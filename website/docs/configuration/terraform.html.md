@@ -129,3 +129,40 @@ to newer versions of the provider without altering the module.
 Root modules should use a `~>` constraint to set both a lower and upper bound
 on versions for each provider they depend on, as described in
 [Provider Versions](providers.html#provider-versions).
+
+## Experimental Language Features
+
+From time to time the Terraform team will introduce new language features
+initially via an opt-in experiment, so that the community can try the new
+feature and give feedback on it prior to it becoming a backward-compatibility
+constraint.
+
+In releases where experimental features are available, you can enable them on
+a per-module basis by setting the `experiments` argument inside a `terraform`
+block:
+
+```hcl
+terraform {
+  experiments = [example]
+}
+```
+
+The above would opt in to an experiment named `example`, assuming such an
+experiment were available in the current Terraform version.
+
+Experiments are subject to arbitrary changes in later releases and, depending on
+the outcome of the experiment, may change drastically before final release or
+may not be released in stable form at all. Such breaking changes may appear
+even in minor and patch releases. We do not recommend using experimental
+features in Terraform modules intended for production use.
+
+In order to make that explicit and to avoid module callers inadvertently
+depending on an experimental feature, any module with experiments enabled will
+generate a warning on every `terraform plan` or `terraform apply`. If you
+want to try experimental features in a shared module, we recommend enabling the
+experiment only in alpha or beta releases of the module.
+
+The introduction and completion of experiments is reported in
+[Terraform's changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md),
+so you can watch the release notes there to discover which experiment keywords,
+if any, are available in a particular Terraform release.

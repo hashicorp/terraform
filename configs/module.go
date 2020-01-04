@@ -103,7 +103,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		diags = append(diags, fileDiags...)
 	}
 
-	diags = append(diags, checkModuleExperiments(mod)...)
+	moreDiags := checkModuleExperiments(mod)
+	diags = append(diags, moreDiags...)
 
 	return mod, diags
 }

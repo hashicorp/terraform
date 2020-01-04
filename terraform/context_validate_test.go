@@ -1445,3 +1445,76 @@ resource "test_instance" "bar" {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
+
+func TestContext2Validate_variableCustomValidationsFail(t *testing.T) {
+	// This test is for custom validation rules associated with root module
+	// variables, and specifically that we handle the situation where the
+	// given value is invalid in a child module.
+	m := testModule(t, "validate-variable-custom-validations-child")
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_variableCustomValidationsRoot(t *testing.T) {
+	// This test is for custom validation rules associated with root module
+	// variables, and specifically that we handle the situation where their
+	// values are unknown during validation, skipping the validation check
+	// altogether. (Root module variables are never known during validation.)
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+# This feature is currently experimental.
+# (If you're currently cleaning up after concluding the experiment,
+# remember to also clean up similar references in the configs package
+# under "invalid-files" and "invalid-modules".)
+terraform {
+  experiments = [variable_validation]
+}
+
+variable "test" {
+  type = string
+
+  validation {
+	condition     = var.test != "nope"
+	error_message = "Value must not be \"nope\"."
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+		Variables: InputValues{
+			"test": &InputValue{
+				Value:      cty.UnknownVal(cty.String),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
+	}
+}
