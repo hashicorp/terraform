@@ -126,6 +126,14 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 				Module: call,
 				Values: vals,
 			},
+
+			&evalVariableValidations{
+				Addr:   n.Addr,
+				Config: n.Config,
+				Expr:   n.Expr,
+
+				IgnoreDiagnostics: false,
+			},
 		},
 	}
 }

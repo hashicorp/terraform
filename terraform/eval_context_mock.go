@@ -115,6 +115,10 @@ type MockEvalContext struct {
 	SetModuleCallArgumentsModule addrs.ModuleCallInstance
 	SetModuleCallArgumentsValues map[string]cty.Value
 
+	GetVariableValueCalled bool
+	GetVariableValueAddr   addrs.AbsInputVariableInstance
+	GetVariableValueValue  cty.Value
+
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
 
@@ -306,6 +310,12 @@ func (c *MockEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, val
 	c.SetModuleCallArgumentsCalled = true
 	c.SetModuleCallArgumentsModule = n
 	c.SetModuleCallArgumentsValues = values
+}
+
+func (c *MockEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
+	c.GetVariableValueCalled = true
+	c.GetVariableValueAddr = addr
+	return c.GetVariableValueValue
 }
 
 func (c *MockEvalContext) Changes() *plans.ChangesSync {

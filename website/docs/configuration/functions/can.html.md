@@ -17,24 +17,37 @@ earlier, see
 whether the expression produced a result without any errors.
 
 This is a special function that is able to catch errors produced when evaluating
-its argument. This function should be used with care, considering many of the
-same caveats that apply to [`try`](./try.html), to avoid writing configurations
-that are hard to read and maintain.
+its argument. For most situations where you could use `can` it's better to use
+[`try`](./try.html) instead, because it allows for more concise definition of
+fallback values for failing expressions.
 
-For most situations it's better to use [`try`](./try.html), because it allows
-for more concise definition of fallback values for failing expressions.
+The primary purpose of `can` is to turn an error condition into a boolean
+validation result when writing
+[custom variable validation rules](../variables.html#custom-validation-rules).
+For example:
+
+```
+variable "timestamp" {
+  type        = string
+
+  validation { # NOTE: custom validation is currently an opt-in experiment (see link above)
+    # formatdate fails if the second argument is not a valid timestamp
+    condition     = can(formatdate("", var.timestamp))
+    error_message = "The timestamp argument requires a valid RFC 3339 timestamp."
+  }
+}
+```
 
 The `can` function can only catch and handle _dynamic_ errors resulting from
 access to data that isn't known until runtime. It will not catch errors
 relating to expressions that can be proven to be invalid for any input, such
 as a malformed resource reference.
 
-~> **Warning:** The `can` function is intended only for concise testing of the
-presence of and types of object attributes. Although it can technically accept
-any sort of expression, we recommend using it only with simple attribute
-references and type conversion functions as shown in the [`try`](./try.html)
-examples. Overuse of `can` to suppress errors will lead to a configuration that
-is hard to understand and maintain.
+~> **Warning:** The `can` function is intended only for simple tests in
+variable validation rules. Although it can technically accept any sort of
+expression and be used elsewhere in the configuration, we recommend against
+using it in other contexts. For error handling elsewhere in the configuration,
+prefer to use [`try`](./try.html).
 
 ## Examples
 
