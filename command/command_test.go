@@ -879,3 +879,11 @@ func normalizeJSON(t *testing.T, src []byte) string {
 	}
 	return buf.String()
 }
+
+func mustResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
