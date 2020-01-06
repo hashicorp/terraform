@@ -36,8 +36,9 @@ func TestStateMv(t *testing.T) {
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
@@ -96,8 +97,9 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
@@ -445,8 +447,9 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
 		)
@@ -897,42 +900,40 @@ func TestStateMv_toNewModule(t *testing.T) {
 	}
 	testStateOutput(t, stateOutPath2, testStateMvModuleNewModule_stateOut)
 }
+
 func TestStateMv_withinBackend(t *testing.T) {
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-
-					"test_instance.baz": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+			},
+			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
 	// the local backend state file is "foo"
 	statePath := "local-state.tfstate"
@@ -944,7 +945,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(state, f); err != nil {
+	if err := writeStateForTesting(state, f); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1057,6 +1058,9 @@ test_instance.baz:
   provider = provider.test
   bar = value
   foo = value
+
+  Dependencies:
+    test_instance.foo
 test_instance.foo:
   ID = bar
   provider = provider.test
