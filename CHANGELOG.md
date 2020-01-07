@@ -1,13 +1,14 @@
 ## 0.12.19 (Unreleased)
 
 ENHANCEMENTS:
-* internal/initwd: cache registry responses when downloading modules [GH-23727]
+* internal/initwd: Cache Terraform Registry metadata responses when handling multiple references to the same module. [GH-23727]
 
 BUG FIXES:
 
 * command: use backend config from state when `-backend=false` is used during `init`. [GH-23802]
 * core: Better error handling for an odd "should never happen" situation regarding the restoration of a deposed instance during a `create_before_destroy` replace action. While this does not yet fix the situation (it can still happen), it now has a specialized error message to hopefully help gather some more information about the root cause in future reports. [GH-23718]
-* core: Prevent insertion of default providers when resources are removed from the config [GH-23696]
+* core: Prevent insertion of default providers when resources are removed from the config .[GH-23696]
+* communicator/ssh: Fix deadlock when SSH agent forwarding fails. [GH-23661]
 
 ## 0.12.18 (December 11, 2019)
 
