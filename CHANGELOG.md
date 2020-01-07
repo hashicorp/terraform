@@ -1,5 +1,8 @@
 ## 0.12.19 (Unreleased)
 
+ENHANCEMENTS:
+* internal/initwd: cache registry responses when downloading modules [GH-23727]
+
 BUG FIXES:
 
 * core: Better error handling for an odd "should never happen" situation regarding the restoration of a deposed instance during a `create_before_destroy` replace action. While this does not yet fix the situation (it can still happen), it now has a specialized error message to hopefully help gather some more information about the root cause in future reports. [GH-23718]
