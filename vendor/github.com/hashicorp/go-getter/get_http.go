@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	safetemp "github.com/hashicorp/go-safetemp"
@@ -88,7 +87,10 @@ func (g *HttpGetter) Get(dst string, u *url.URL) error {
 		return err
 	}
 
-	req.Header = g.Header
+	if g.Header != nil {
+		req.Header = g.Header
+	}
+
 	resp, err := g.Client.Do(req)
 	if err != nil {
 		return err
@@ -128,6 +130,12 @@ func (g *HttpGetter) Get(dst string, u *url.URL) error {
 	return g.getSubdir(ctx, dst, source, subDir)
 }
 
+// GetFile fetches the file from src and stores it at dst.
+// If the server supports Accept-Range, HttpGetter will attempt a range
+// request. This means it is the caller's responsibility to ensure that an
+// older version of the destination file does not exist, else it will be either
+// falsely identified as being replaced, or corrupted with extra bytes
+// appended.
 func (g *HttpGetter) GetFile(dst string, src *url.URL) error {
 	ctx := g.Context()
 	if g.Netrc {
@@ -136,7 +144,6 @@ func (g *HttpGetter) GetFile(dst string, src *url.URL) error {
 			return err
 		}
 	}
-
 	// Create all the parent directories if needed
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		return err
@@ -165,18 +172,17 @@ func (g *HttpGetter) GetFile(dst string, src *url.URL) error {
 		req.Header = g.Header
 	}
 	headResp, err := g.Client.Do(req)
-	if err == nil && headResp != nil {
+	if err == nil {
 		headResp.Body.Close()
 		if headResp.StatusCode == 200 {
 			// If the HEAD request succeeded, then attempt to set the range
 			// query if we can.
-			if headResp.Header.Get("Accept-Ranges") == "bytes" {
+			if headResp.Header.Get("Accept-Ranges") == "bytes" && headResp.ContentLength >= 0 {
 				if fi, err := f.Stat(); err == nil {
-					if _, err = f.Seek(0, os.SEEK_END); err == nil {
-						req.Header.Set("Range", fmt.Sprintf("bytes=%d-", fi.Size()))
+					if _, err = f.Seek(0, io.SeekEnd); err == nil {
 						currentFileSize = fi.Size()
-						totalFileSize, _ := strconv.ParseInt(headResp.Header.Get("Content-Length"), 10, 64)
-						if currentFileSize >= totalFileSize {
+						req.Header.Set("Range", fmt.Sprintf("bytes=%d-", currentFileSize))
+						if currentFileSize >= headResp.ContentLength {
 							// file already present
 							return nil
 						}
