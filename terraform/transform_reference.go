@@ -206,21 +206,30 @@ func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// PruneUnusedValuesTransformer is s GraphTransformer that removes local and
-// output values which are not referenced in the graph. Since outputs and
-// locals always need to be evaluated, if they reference a resource that is not
-// available in the state the interpolation could fail.
-type PruneUnusedValuesTransformer struct{}
+// PruneUnusedValuesTransformer is a GraphTransformer that removes local,
+// variable, and output values which are not referenced in the graph. If these
+// values reference a resource that is no longer in the state the interpolation
+// could fail.
+type PruneUnusedValuesTransformer struct {
+	Destroy bool
+}
 
 func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
-	// this might need multiple runs in order to ensure that pruning a value
-	// doesn't effect a previously checked value.
+	// Pruning a value can effect previously checked edges, so loop until there
+	// are no more changes.
 	for removed := 0; ; removed = 0 {
 		for _, v := range g.Vertices() {
-			switch v.(type) {
-			case *NodeApplyableOutput, *NodeLocal:
+			switch v := v.(type) {
+			case *NodeApplyableOutput:
+				// If we're not certain this is a full destroy, we need to keep any
+				// root module outputs
+				if v.Addr.Module.IsRoot() && !t.Destroy {
+					continue
+				}
+			case *NodeLocal, *NodeApplyableModuleVariable:
 				// OK
 			default:
+				// We're only concerned with variables, locals and outputs
 				continue
 			}
 
@@ -229,6 +238,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 			switch dependants.Len() {
 			case 0:
 				// nothing at all depends on this
+				log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
 				g.Remove(v)
 				removed++
 			case 1:
@@ -236,6 +246,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				// we need to check for the case of a single destroy node.
 				d := dependants.List()[0]
 				if _, ok := d.(*NodeDestroyableOutput); ok {
+					log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
 					g.Remove(v)
 					removed++
 				}
