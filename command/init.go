@@ -295,6 +295,15 @@ func (c *InitCommand) Run(args []string) int {
 			}
 			back = be
 		}
+	} else {
+		// load the previously-stored backend config
+		be, backendDiags := c.Meta.backendFromState()
+		diags = diags.Append(backendDiags)
+		if backendDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		back = be
 	}
 
 	if back == nil {
