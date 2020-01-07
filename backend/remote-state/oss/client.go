@@ -56,6 +56,7 @@ type RemoteClient struct {
 	mu                   sync.Mutex
 	otsTable             string
 	otsTabkePK           TableStorePrimaryKeyMeta
+	lockTimeout          time.Duration
 }
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
@@ -192,25 +193,41 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 
 	log.Printf("[DEBUG] Recoring state lock in tablestore: %#v", putParams)
 
-	_, err := c.otsClient.PutRow(&tablestore.PutRowRequest{
-		PutRowChange: putParams,
-	})
-	if err != nil {
-		log.Printf("[WARN] Error storing state lock in tablestore: %#v", err)
-		lockInfo, infoErr := c.getLockInfo()
-		if infoErr != nil {
-			log.Printf("[WARN] Error getting lock info: %#v", err)
-			err = multierror.Append(err, infoErr)
-		}
-		lockErr := &state.LockError{
-			Err:  err,
-			Info: lockInfo,
-		}
-		log.Printf("[WARN] state lock error: %#v", lockErr)
-		return "", lockErr
-	}
+	lockTimeout := time.After(c.lockTimeout)
+	tick := time.NewTicker(1 * time.Second)
+	var lastError error
 
-	return info.ID, nil
+	for {
+		_, err := c.otsClient.PutRow(&tablestore.PutRowRequest{
+			PutRowChange: putParams,
+		})
+
+		if err == nil {
+			tick.Stop()
+			return info.ID, nil
+		} else {
+			lastError = err
+		}
+
+		select {
+		case <-tick.C:
+			continue
+		case <-lockTimeout:
+			log.Printf("[WARN] Error storing state lock in tablestore: %#v", lastError)
+			lockInfo, infoErr := c.getLockInfo()
+			if infoErr != nil {
+				log.Printf("[WARN] Error getting lock info: %#v", lastError)
+				lastError = multierror.Append(lastError, infoErr)
+			}
+			lockErr := &state.LockError{
+				Err:  lastError,
+				Info: lockInfo,
+			}
+			log.Printf("[WARN] state lock error: %#v", lockErr)
+			tick.Stop()
+			return "", lockErr
+		}
+	}
 }
 
 func (c *RemoteClient) getMD5() ([]byte, error) {

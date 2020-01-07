@@ -36,6 +36,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		acl:                  b.acl,
 		otsTable:             b.otsTable,
 		otsClient:            b.otsClient,
+		lockTimeout:          b.lockTimeout,
 	}
 	if b.otsEndpoint != "" && b.otsTable != "" {
 		table, err := b.otsClient.DescribeTable(&tablestore.DescribeTableRequest{

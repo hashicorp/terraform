@@ -159,6 +159,14 @@ func New() backend.Backend {
 				Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_PROFILE", ""),
 			},
+
+			"lock_timeout_seconds": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Description:  "Number of seconds to wait and retry when acquiring a lock",
+				Default:      0,
+				ValidateFunc: validation.IntBetween(0, 600),
+			},
 		},
 	}
 
@@ -217,6 +225,7 @@ type Backend struct {
 	endpoint             string
 	otsEndpoint          string
 	otsTable             string
+	lockTimeout          time.Duration
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -344,6 +353,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.otsClient = tablestore.NewClientWithConfig(otsEndpoint, parts[0], accessKey, secretKey, securityToken, tablestore.NewDefaultTableStoreConfig())
 	}
 	b.otsTable = d.Get("tablestore_table").(string)
+	b.lockTimeout = time.Duration(d.Get("lock_timeout_seconds").(int)) * time.Second
 
 	return err
 }
