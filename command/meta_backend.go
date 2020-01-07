@@ -581,15 +581,14 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 	if s == nil {
 		// no state, so return a local backend
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		s = terraform.NewState()
 		return backendLocal.New(), diags
-	} else if s.Backend != nil {
-		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
-	} else if s.Backend == nil {
+	}
+	if s.Backend == nil {
 		// s.Backend is nil, so return a local backend
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
 		return backendLocal.New(), diags
 	}
+	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 
 	//backend init function
 	if s.Backend.Type == "" {
