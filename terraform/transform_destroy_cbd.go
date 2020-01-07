@@ -90,7 +90,7 @@ func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
 		return true
 	}
 
-	for _, ov := range s.List() {
+	for _, ov := range s {
 		dn, ok := ov.(GraphNodeDestroyerCBD)
 		if !ok {
 			continue
