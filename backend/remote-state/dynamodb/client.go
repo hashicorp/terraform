@@ -8,11 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	//	"io"
 	"io/ioutil"
 	"log"
 	"strconv"
-	//	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -178,17 +176,6 @@ func (c *RemoteClient) get() (*remote.Payload, error) {
 	for _, state := range states {
 		jsonString = append(jsonString, state.Body.([]byte)...)
 	}
-
-	//buf := bytes.NewBuffer(nil)
-	//if _, err := io.Copy(buf, strings.NewReader(jsonString)); err != nil {
-	//	return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	//}
-
-	//sum := md5.Sum(buf.Bytes())
-	//payload := &remote.Payload{
-	//	Data: buf.Bytes(),
-	//	MD5:  sum[:],
-	//}
 
 	sum := md5.Sum(jsonString)
 	payload := &remote.Payload{
