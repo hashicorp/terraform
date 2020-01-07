@@ -413,7 +413,7 @@ func checkPlugin(url string, pluginProtocolVersion uint) bool {
 func (i *ProviderInstaller) listProviderVersions(name string) ([]Version, error) {
 	url := i.providerVersionsURL(name, false)
 	versions, err := listPluginVersions(url)
-	if err != nil {
+	if err != nil || len(versions) == 0 {
 		// listPluginVersions returns a verbose error message indicating
 		// what was being accessed and what failed
 		log.Printf("[WARN] Error listing versions from %s %s", url, err)
