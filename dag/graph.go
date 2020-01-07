@@ -2,9 +2,7 @@ package dag
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"sort"
 )
 
@@ -14,9 +12,6 @@ type Graph struct {
 	edges     Set
 	downEdges map[interface{}]Set
 	upEdges   map[interface{}]Set
-
-	// JSON encoder for recording debug information
-	debug *encoder
 }
 
 // Subgrapher allows a Vertex to be a Graph itself, by returning a Grapher.
@@ -106,7 +101,6 @@ func (g *Graph) HasEdge(e Edge) bool {
 func (g *Graph) Add(v Vertex) Vertex {
 	g.init()
 	g.vertices.Add(v)
-	g.debug.Add(v)
 	return v
 }
 
@@ -115,7 +109,6 @@ func (g *Graph) Add(v Vertex) Vertex {
 func (g *Graph) Remove(v Vertex) Vertex {
 	// Delete the vertex itself
 	g.vertices.Delete(v)
-	g.debug.Remove(v)
 
 	// Delete the edges to non-existent things
 	for _, target := range g.DownEdges(v) {
@@ -136,8 +129,6 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 	if !g.vertices.Include(original) {
 		return false
 	}
-
-	defer g.debug.BeginOperation("Replace", "").End("")
 
 	// If they're the same, then don't do anything
 	if original == replacement {
@@ -162,7 +153,6 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 // RemoveEdge removes an edge from the graph.
 func (g *Graph) RemoveEdge(edge Edge) {
 	g.init()
-	g.debug.RemoveEdge(edge)
 
 	// Delete the edge from the set
 	g.edges.Delete(edge)
@@ -194,7 +184,6 @@ func (g *Graph) UpEdges(v Vertex) Set {
 // value of the edge itself.
 func (g *Graph) Connect(edge Edge) {
 	g.init()
-	g.debug.Connect(edge)
 
 	source := edge.Source()
 	target := edge.Target()
@@ -325,55 +314,6 @@ func (g *Graph) init() {
 // Dot returns a dot-formatted representation of the Graph.
 func (g *Graph) Dot(opts *DotOpts) []byte {
 	return newMarshalGraph("", g).Dot(opts)
-}
-
-// MarshalJSON returns a JSON representation of the entire Graph.
-func (g *Graph) MarshalJSON() ([]byte, error) {
-	dg := newMarshalGraph("root", g)
-	return json.MarshalIndent(dg, "", "  ")
-}
-
-// SetDebugWriter sets the io.Writer where the Graph will record debug
-// information. After this is set, the graph will immediately encode itself to
-// the stream, and continue to record all subsequent operations.
-func (g *Graph) SetDebugWriter(w io.Writer) {
-	g.debug = &encoder{w: w}
-	g.debug.Encode(newMarshalGraph("root", g))
-}
-
-// DebugVertexInfo encodes arbitrary information about a vertex in the graph
-// debug logs.
-func (g *Graph) DebugVertexInfo(v Vertex, info string) {
-	va := newVertexInfo(typeVertexInfo, v, info)
-	g.debug.Encode(va)
-}
-
-// DebugEdgeInfo encodes arbitrary information about an edge in the graph debug
-// logs.
-func (g *Graph) DebugEdgeInfo(e Edge, info string) {
-	ea := newEdgeInfo(typeEdgeInfo, e, info)
-	g.debug.Encode(ea)
-}
-
-// DebugVisitInfo records a visit to a Vertex during a walk operation.
-func (g *Graph) DebugVisitInfo(v Vertex, info string) {
-	vi := newVertexInfo(typeVisitInfo, v, info)
-	g.debug.Encode(vi)
-}
-
-// DebugOperation marks the start of a set of graph transformations in
-// the debug log, and returns a DebugOperationEnd func, which marks the end of
-// the operation in the log. Additional information can be added to the log via
-// the info parameter.
-//
-// The returned func's End method allows this method to be called from a single
-// defer statement:
-//     defer g.DebugOperationBegin("OpName", "operating").End("")
-//
-// The returned function must be called to properly close the logical operation
-// in the logs.
-func (g *Graph) DebugOperation(operation string, info string) DebugOperationEnd {
-	return g.debug.BeginOperation(operation, info)
 }
 
 // VertexName returns the name of a vertex.
