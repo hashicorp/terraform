@@ -137,7 +137,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		// dedupe addrs when there's multiple instances involved, or
 		// multiple paths in the un-reduced graph
 		depMap := map[string]addrs.AbsResource{}
-		for _, d := range ans.List() {
+		for _, d := range ans {
 			var addr addrs.AbsResource
 
 			switch d := d.(type) {
