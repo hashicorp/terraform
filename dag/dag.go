@@ -29,8 +29,8 @@ func (g *AcyclicGraph) DirectedGraph() Grapher {
 
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Ancestors(v Vertex) (*Set, error) {
-	s := new(Set)
+func (g *AcyclicGraph) Ancestors(v Vertex) (Set, error) {
+	s := make(Set)
 	start := AsVertexList(g.DownEdges(v))
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
@@ -46,8 +46,8 @@ func (g *AcyclicGraph) Ancestors(v Vertex) (*Set, error) {
 
 // Returns a Set that includes every Vertex yielded by walking up from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Descendents(v Vertex) (*Set, error) {
-	s := new(Set)
+func (g *AcyclicGraph) Descendents(v Vertex) (Set, error) {
+	s := make(Set)
 	start := AsVertexList(g.UpEdges(v))
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
@@ -174,7 +174,7 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
 }
 
 // simple convenience helper for converting a dag.Set to a []Vertex
-func AsVertexList(s *Set) []Vertex {
+func AsVertexList(s Set) []Vertex {
 	rawList := s.List()
 	vertexList := make([]Vertex, len(rawList))
 	for i, raw := range rawList {

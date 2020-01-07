@@ -64,6 +64,15 @@ type Walker struct {
 	diagsLock      sync.Mutex
 }
 
+func (w *Walker) init() {
+	if w.vertices == nil {
+		w.vertices = make(Set)
+	}
+	if w.edges == nil {
+		w.edges = make(Set)
+	}
+}
+
 type walkerVertex struct {
 	// These should only be set once on initialization and never written again.
 	// They are not protected by a lock since they don't need to be since
@@ -140,7 +149,9 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 // time during a walk.
 func (w *Walker) Update(g *AcyclicGraph) {
 	log.Print("[TRACE] dag/walk: updating graph")
-	var v, e *Set
+	w.init()
+	v := make(Set)
+	e := make(Set)
 	if g != nil {
 		v, e = g.vertices, g.edges
 	}
@@ -157,9 +168,9 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Calculate all our sets
-	newEdges := e.Difference(&w.edges)
+	newEdges := e.Difference(w.edges)
 	oldEdges := w.edges.Difference(e)
-	newVerts := v.Difference(&w.vertices)
+	newVerts := v.Difference(w.vertices)
 	oldVerts := w.vertices.Difference(v)
 
 	// Add the new vertices
@@ -207,7 +218,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Add the new edges
-	var changedDeps Set
+	changedDeps := make(Set)
 	for _, raw := range newEdges.List() {
 		edge := raw.(Edge)
 		waiter, dep := w.edgeParts(edge)
