@@ -175,10 +175,9 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
 
 // simple convenience helper for converting a dag.Set to a []Vertex
 func AsVertexList(s Set) []Vertex {
-	rawList := s.List()
-	vertexList := make([]Vertex, len(rawList))
-	for i, raw := range rawList {
-		vertexList[i] = raw.(Vertex)
+	vertexList := make([]Vertex, 0, len(s))
+	for _, raw := range s {
+		vertexList = append(vertexList, raw.(Vertex))
 	}
 	return vertexList
 }

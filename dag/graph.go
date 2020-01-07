@@ -47,10 +47,9 @@ func (g *Graph) DirectedGraph() Grapher {
 
 // Vertices returns the list of all the vertices in the graph.
 func (g *Graph) Vertices() []Vertex {
-	list := g.vertices.List()
-	result := make([]Vertex, len(list))
-	for i, v := range list {
-		result[i] = v.(Vertex)
+	result := make([]Vertex, 0, len(g.vertices))
+	for _, v := range g.vertices {
+		result = append(result, v.(Vertex))
 	}
 
 	return result
@@ -58,10 +57,9 @@ func (g *Graph) Vertices() []Vertex {
 
 // Edges returns the list of all the edges in the graph.
 func (g *Graph) Edges() []Edge {
-	list := g.edges.List()
-	result := make([]Edge, len(list))
-	for i, v := range list {
-		result[i] = v.(Edge)
+	result := make([]Edge, 0, len(g.edges))
+	for _, v := range g.edges {
+		result = append(result, v.(Edge))
 	}
 
 	return result
@@ -120,10 +118,10 @@ func (g *Graph) Remove(v Vertex) Vertex {
 	g.debug.Remove(v)
 
 	// Delete the edges to non-existent things
-	for _, target := range g.DownEdges(v).List() {
+	for _, target := range g.DownEdges(v) {
 		g.RemoveEdge(BasicEdge(v, target))
 	}
-	for _, source := range g.UpEdges(v).List() {
+	for _, source := range g.UpEdges(v) {
 		g.RemoveEdge(BasicEdge(source, v))
 	}
 
@@ -148,10 +146,10 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
-	for _, target := range g.DownEdges(original).List() {
+	for _, target := range g.DownEdges(original) {
 		g.Connect(BasicEdge(replacement, target))
 	}
-	for _, source := range g.UpEdges(original).List() {
+	for _, source := range g.UpEdges(original) {
 		g.Connect(BasicEdge(source, replacement))
 	}
 
@@ -254,7 +252,7 @@ func (g *Graph) StringWithNodeTypes() string {
 		// Alphabetize dependencies
 		deps := make([]string, 0, targets.Len())
 		targetNodes := make(map[string]Vertex)
-		for _, target := range targets.List() {
+		for _, target := range targets {
 			dep := VertexName(target)
 			deps = append(deps, dep)
 			targetNodes[dep] = target
@@ -295,7 +293,7 @@ func (g *Graph) String() string {
 
 		// Alphabetize dependencies
 		deps := make([]string, 0, targets.Len())
-		for _, target := range targets.List() {
+		for _, target := range targets {
 			deps = append(deps, VertexName(target))
 		}
 		sort.Strings(deps)
