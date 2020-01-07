@@ -1,11 +1,12 @@
 ## 0.12.19 (Unreleased)
 
 ENHANCEMENTS:
-* internal/initwd: Cache Terraform Registry metadata responses when handling multiple references to the same module. [GH-23727]
+* command/init: Cache Terraform Registry metadata responses when handling multiple references to the same module. [GH-23727]
+* command/state-mv: Detect and remove references elsewhere in the state to the source address in a `terraform state mv` operation. This does not affect any current operations but will cause the resulting state snapshot to be different than before, and a future version of Terraform may make use of this additional precision. [GH-23791]
 
 BUG FIXES:
 
-* command: use backend config from state when `-backend=false` is used during `init`. [GH-23802]
+* command/init: use backend config from state when `-backend=false` is used during `init`. [GH-23802]
 * core: Better error handling for an odd "should never happen" situation regarding the restoration of a deposed instance during a `create_before_destroy` replace action. While this does not yet fix the situation (it can still happen), it now has a specialized error message to hopefully help gather some more information about the root cause in future reports. [GH-23718]
 * core: Prevent insertion of default providers when resources are removed from the config. [GH-23696]
 * core: Detect and handle dependencies implied by references in a `connection` block directly within a `resource` block. [GH-23663]
