@@ -10,10 +10,10 @@ import (
 
 // Graph is used to represent a dependency graph.
 type Graph struct {
-	vertices  *Set
-	edges     *Set
-	downEdges map[interface{}]*Set
-	upEdges   map[interface{}]*Set
+	vertices  Set
+	edges     Set
+	downEdges map[interface{}]Set
+	upEdges   map[interface{}]Set
 
 	// JSON encoder for recording debug information
 	debug *encoder
@@ -179,13 +179,13 @@ func (g *Graph) RemoveEdge(edge Edge) {
 }
 
 // DownEdges returns the outward edges from the source Vertex v.
-func (g *Graph) DownEdges(v Vertex) *Set {
+func (g *Graph) DownEdges(v Vertex) Set {
 	g.init()
 	return g.downEdges[hashcode(v)]
 }
 
 // UpEdges returns the inward edges to the destination Vertex v.
-func (g *Graph) UpEdges(v Vertex) *Set {
+func (g *Graph) UpEdges(v Vertex) Set {
 	g.init()
 	return g.upEdges[hashcode(v)]
 }
@@ -214,7 +214,7 @@ func (g *Graph) Connect(edge Edge) {
 	// Add the down edge
 	s, ok := g.downEdges[sourceCode]
 	if !ok {
-		s = new(Set)
+		s = make(Set)
 		g.downEdges[sourceCode] = s
 	}
 	s.Add(target)
@@ -222,7 +222,7 @@ func (g *Graph) Connect(edge Edge) {
 	// Add the up edge
 	s, ok = g.upEdges[targetCode]
 	if !ok {
-		s = new(Set)
+		s = make(Set)
 		g.upEdges[targetCode] = s
 	}
 	s.Add(source)
@@ -311,16 +311,16 @@ func (g *Graph) String() string {
 
 func (g *Graph) init() {
 	if g.vertices == nil {
-		g.vertices = new(Set)
+		g.vertices = make(Set)
 	}
 	if g.edges == nil {
-		g.edges = new(Set)
+		g.edges = make(Set)
 	}
 	if g.downEdges == nil {
-		g.downEdges = make(map[interface{}]*Set)
+		g.downEdges = make(map[interface{}]Set)
 	}
 	if g.upEdges == nil {
-		g.upEdges = make(map[interface{}]*Set)
+		g.upEdges = make(map[interface{}]Set)
 	}
 }
 
