@@ -100,8 +100,6 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	// v such that the edge (u,v) exists (v is a direct descendant of u).
 	//
 	// For each v-prime reachable from v, remove the edge (u, v-prime).
-	defer g.debug.BeginOperation("TransitiveReduction", "").End("")
-
 	for _, u := range g.Vertices() {
 		uTargets := g.DownEdges(u)
 
@@ -163,8 +161,6 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // This will walk nodes in parallel if it can. The resulting diagnostics
 // contains problems from all graphs visited, in no particular order.
 func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
-	defer g.debug.BeginOperation(typeWalk, "").End("")
-
 	w := &Walker{Callback: cb, Reverse: true}
 	w.Update(g)
 	return w.Wait()
@@ -226,8 +222,6 @@ func (g *AcyclicGraph) DepthFirstWalk(start Set, f DepthWalkFunc) error {
 // SortedDepthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start, always iterating the nodes in a consistent order.
 func (g *AcyclicGraph) SortedDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
-	defer g.debug.BeginOperation(typeDepthFirstWalk, "").End("")
-
 	seen := make(map[Vertex]struct{})
 	frontier := make([]*vertexAtDepth, len(start))
 	for i, v := range start {
@@ -310,8 +304,6 @@ func (g *AcyclicGraph) ReverseDepthFirstWalk(start Set, f DepthWalkFunc) error {
 // SortedReverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start, always iterating the nodes in a consistent order.
 func (g *AcyclicGraph) SortedReverseDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
-	defer g.debug.BeginOperation(typeReverseDepthFirstWalk, "").End("")
-
 	seen := make(map[Vertex]struct{})
 	frontier := make([]*vertexAtDepth, len(start))
 	for i, v := range start {
