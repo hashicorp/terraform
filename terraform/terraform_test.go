@@ -406,9 +406,7 @@ module.child:
 <no state>
 Outputs:
 
-aws_access_key = YYYYY
 aws_route53_zone_id = XXXX
-aws_secret_key = ZZZZ
 `
 
 const testTerraformApplyDependsCreateBeforeStr = `
@@ -693,11 +691,6 @@ foo = bar
 
 const testTerraformApplyOutputOrphanModuleStr = `
 <no state>
-module.child:
-  <no state>
-  Outputs:
-
-  foo = bar
 `
 
 const testTerraformApplyProvisionerStr = `
