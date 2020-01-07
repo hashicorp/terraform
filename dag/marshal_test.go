@@ -117,49 +117,6 @@ func TestGraphJSON_basic(t *testing.T) {
 	}
 }
 
-// record some graph transformations, and make sure we get the same graph when
-// they're replayed
-func TestGraphJSON_basicRecord(t *testing.T) {
-	var g Graph
-	var buf bytes.Buffer
-	g.SetDebugWriter(&buf)
-
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(1, 3))
-	g.Connect(BasicEdge(2, 3))
-	(&AcyclicGraph{g}).TransitiveReduction()
-
-	recorded := buf.Bytes()
-	// the Walk doesn't happen in a determined order, so just count operations
-	// for now to make sure we wrote stuff out.
-	if len(bytes.Split(recorded, []byte{'\n'})) != 17 {
-		t.Fatalf("bad: %s", recorded)
-	}
-
-	original, err := g.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// replay the logs, and marshal the graph back out again
-	m, err := decodeGraph(bytes.NewReader(buf.Bytes()))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	replayed, err := json.MarshalIndent(m, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(original, replayed) {
-		t.Fatalf("\noriginal: %s\nreplayed: %s", original, replayed)
-	}
-}
-
 // Verify that Vertex and Edge annotations appear in the debug output
 func TestGraphJSON_debugInfo(t *testing.T) {
 	var g Graph

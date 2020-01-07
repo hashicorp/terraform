@@ -31,13 +31,12 @@ func (g *AcyclicGraph) DirectedGraph() Grapher {
 // provided starting Vertex v.
 func (g *AcyclicGraph) Ancestors(v Vertex) (Set, error) {
 	s := make(Set)
-	start := AsVertexList(g.DownEdges(v))
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
+	if err := g.DepthFirstWalk(g.DownEdges(v), memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -48,13 +47,12 @@ func (g *AcyclicGraph) Ancestors(v Vertex) (Set, error) {
 // provided starting Vertex v.
 func (g *AcyclicGraph) Descendents(v Vertex) (Set, error) {
 	s := make(Set)
-	start := AsVertexList(g.UpEdges(v))
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	if err := g.ReverseDepthFirstWalk(start, memoFunc); err != nil {
+	if err := g.ReverseDepthFirstWalk(g.UpEdges(v), memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -106,11 +104,10 @@ func (g *AcyclicGraph) TransitiveReduction() {
 
 	for _, u := range g.Vertices() {
 		uTargets := g.DownEdges(u)
-		vs := AsVertexList(g.DownEdges(u))
 
-		g.depthFirstWalk(vs, false, func(v Vertex, d int) error {
+		g.DepthFirstWalk(g.DownEdges(u), func(v Vertex, d int) error {
 			shared := uTargets.Intersection(g.DownEdges(v))
-			for _, vPrime := range AsVertexList(shared) {
+			for _, vPrime := range shared {
 				g.RemoveEdge(BasicEdge(u, vPrime))
 			}
 
@@ -187,19 +184,48 @@ type vertexAtDepth struct {
 	Depth  int
 }
 
-// depthFirstWalk does a depth-first walk of the graph starting from
+// DepthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) DepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
-	return g.depthFirstWalk(start, true, f)
+func (g *AcyclicGraph) DepthFirstWalk(start Set, f DepthWalkFunc) error {
+	seen := make(map[Vertex]struct{})
+	frontier := make([]*vertexAtDepth, 0, len(start))
+	for _, v := range start {
+		frontier = append(frontier, &vertexAtDepth{
+			Vertex: v,
+			Depth:  0,
+		})
+	}
+	for len(frontier) > 0 {
+		// Pop the current vertex
+		n := len(frontier)
+		current := frontier[n-1]
+		frontier = frontier[:n-1]
+
+		// Check if we've seen this already and return...
+		if _, ok := seen[current.Vertex]; ok {
+			continue
+		}
+		seen[current.Vertex] = struct{}{}
+
+		// Visit the current node
+		if err := f(current.Vertex, current.Depth); err != nil {
+			return err
+		}
+
+		for _, v := range g.DownEdges(current.Vertex) {
+			frontier = append(frontier, &vertexAtDepth{
+				Vertex: v,
+				Depth:  current.Depth + 1,
+			})
+		}
+	}
+
+	return nil
 }
 
-// This internal method provides the option of not sorting the vertices during
-// the walk, which we use for the Transitive reduction.
-// Some configurations can lead to fully-connected subgraphs, which makes our
-// transitive reduction algorithm O(n^3). This is still passable for the size
-// of our graphs, but the additional n^2 sort operations would make this
-// uncomputable in a reasonable amount of time.
-func (g *AcyclicGraph) depthFirstWalk(start []Vertex, sorted bool, f DepthWalkFunc) error {
+// SortedDepthFirstWalk does a depth-first walk of the graph starting from
+// the vertices in start, always iterating the nodes in a consistent order.
+func (g *AcyclicGraph) SortedDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
 	defer g.debug.BeginOperation(typeDepthFirstWalk, "").End("")
 
 	seen := make(map[Vertex]struct{})
@@ -229,10 +255,7 @@ func (g *AcyclicGraph) depthFirstWalk(start []Vertex, sorted bool, f DepthWalkFu
 
 		// Visit targets of this in a consistent order.
 		targets := AsVertexList(g.DownEdges(current.Vertex))
-
-		if sorted {
-			sort.Sort(byVertexName(targets))
-		}
+		sort.Sort(byVertexName(targets))
 
 		for _, t := range targets {
 			frontier = append(frontier, &vertexAtDepth{
@@ -245,9 +268,48 @@ func (g *AcyclicGraph) depthFirstWalk(start []Vertex, sorted bool, f DepthWalkFu
 	return nil
 }
 
-// reverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
+// ReverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) ReverseDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
+func (g *AcyclicGraph) ReverseDepthFirstWalk(start Set, f DepthWalkFunc) error {
+	seen := make(map[Vertex]struct{})
+	frontier := make([]*vertexAtDepth, 0, len(start))
+	for _, v := range start {
+		frontier = append(frontier, &vertexAtDepth{
+			Vertex: v,
+			Depth:  0,
+		})
+	}
+	for len(frontier) > 0 {
+		// Pop the current vertex
+		n := len(frontier)
+		current := frontier[n-1]
+		frontier = frontier[:n-1]
+
+		// Check if we've seen this already and return...
+		if _, ok := seen[current.Vertex]; ok {
+			continue
+		}
+		seen[current.Vertex] = struct{}{}
+
+		for _, t := range g.UpEdges(current.Vertex) {
+			frontier = append(frontier, &vertexAtDepth{
+				Vertex: t,
+				Depth:  current.Depth + 1,
+			})
+		}
+
+		// Visit the current node
+		if err := f(current.Vertex, current.Depth); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SortedReverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
+// the vertices in start, always iterating the nodes in a consistent order.
+func (g *AcyclicGraph) SortedReverseDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
 	defer g.debug.BeginOperation(typeReverseDepthFirstWalk, "").End("")
 
 	seen := make(map[Vertex]struct{})

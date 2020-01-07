@@ -345,7 +345,7 @@ func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.ReverseDepthFirstWalk([]Vertex{1}, func(v Vertex, d int) error {
+	err := g.SortedReverseDepthFirstWalk([]Vertex{1}, func(v Vertex, d int) error {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
