@@ -138,7 +138,7 @@ func (c *RemoteClient) getChunks() ([]State, bool, error) {
 
 		states = append(states, state)
 
-		if state.NextStateID == "none" {
+		if state.NextStateID == "" {
 			break
 		} else {
 			queryInput.KeyConditions["StateID"].AttributeValueList[0].S = aws.String(state.NextStateID)
@@ -148,8 +148,8 @@ func (c *RemoteClient) getChunks() ([]State, bool, error) {
 	}
 
 	for i := 0; i < len(states)-1; i += 1 {
-		if states[i].SegmentID != states[i+1].SegmentID {
-			return nil, is_compressed, fmt.Errorf("Got wrong SegmentID")
+		if states[i].VersionID != states[i+1].VersionID {
+			return nil, is_compressed, fmt.Errorf("Got wrong VersionID")
 		}
 	}
 
@@ -229,7 +229,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	if len(states) == 0 {
 		segment_id = -2
 	} else {
-		segment_id = states[0].SegmentID
+		segment_id = states[0].VersionID
 	}
 
 	version_date := time.Now().AddDate(0, 0, c.state_days_ttl).Unix()
@@ -248,8 +248,8 @@ func (c *RemoteClient) Put(data []byte) error {
 					"StateID": {
 						S: aws.String(state.StateID),
 					},
-					"SegmentID": {
-						N: aws.String(strconv.FormatInt(state.SegmentID, 10)),
+					"VersionID": {
+						N: aws.String(strconv.FormatInt(state.VersionID, 10)),
 					},
 				},
 			},
@@ -268,9 +268,9 @@ func (c *RemoteClient) Put(data []byte) error {
 
 			new_state := State{
 				StateID:     state.StateID,
-				SegmentID:   segment_id + 1,
+				VersionID:   segment_id + 1,
 				Body:        body,
-				NextStateID: "none",
+				NextStateID: state.NextStateID,
 				TTL:         version_date,
 			}
 
@@ -326,11 +326,9 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 
 		state := State{
-			StateID:     path,
-			SegmentID:   segment_id + 2,
-			Body:        body,
-			NextStateID: "none",
-			TTL:         0,
+			StateID:   path,
+			VersionID: segment_id + 2,
+			Body:      body,
 		}
 
 		chunks = append(chunks, state)
@@ -409,8 +407,8 @@ func (c *RemoteClient) Delete() error {
 					"StateID": {
 						S: aws.String(state.StateID),
 					},
-					"SegmentID": {
-						N: aws.String(strconv.FormatInt(state.SegmentID, 10)),
+					"VersionID": {
+						N: aws.String(strconv.FormatInt(state.VersionID, 10)),
 					},
 				},
 			},

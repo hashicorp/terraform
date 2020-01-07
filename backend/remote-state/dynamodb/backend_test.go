@@ -521,7 +521,7 @@ func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 					AttributeType: aws.String("S"),
 				},
 				{
-					AttributeName: aws.String("SegmentID"),
+					AttributeName: aws.String("VersionID"),
 					AttributeType: aws.String("N"),
 				},
 			},
@@ -531,7 +531,7 @@ func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 					KeyType:       aws.String("HASH"),
 				},
 				{
-					AttributeName: aws.String("SegmentID"),
+					AttributeName: aws.String("VersionID"),
 					KeyType:       aws.String("RANGE"),
 				},
 			},

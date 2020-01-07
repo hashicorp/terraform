@@ -21,10 +21,10 @@ import (
 
 type State struct {
 	StateID     string
-	SegmentID   int64
+	VersionID   int64
 	Body        interface{}
-	NextStateID string
-	TTL         int64
+	NextStateID string `json:",omitempty"`
+	TTL         int64  `json:",omitempty"`
 }
 
 type Lock struct {
@@ -297,13 +297,13 @@ func (b *Backend) validateTablesSchema() error {
 		stateKeyDef := stateTableDes.Table.KeySchema
 		stateBool := len(stateAttDef) == 2 && len(stateKeyDef) == 2
 		for _, s := range stateAttDef {
-			stateBool = stateBool && (*s.AttributeName == "StateID" && *s.AttributeType == "S" || *s.AttributeName == "SegmentID" && *s.AttributeType == "N")
+			stateBool = stateBool && (*s.AttributeName == "StateID" && *s.AttributeType == "S" || *s.AttributeName == "VersionID" && *s.AttributeType == "N")
 		}
 		for _, s := range stateKeyDef {
 			switch att := *s.AttributeName; att {
 			case "StateID":
 				stateBool = stateBool && *s.KeyType == "HASH"
-			case "SegmentID":
+			case "VersionID":
 				stateBool = stateBool && *s.KeyType == "RANGE"
 			}
 		}
@@ -478,8 +478,8 @@ aws dynamodb delete-table --table-name %[1]s && \
 aws dynamodb wait table-not-exists --table-name %[1]s && \
 aws dynamodb create-table \
 --table-name %[1]s \
---attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=SegmentID,AttributeType=N \
---key-schema AttributeName=StateID,KeyType=HASH AttributeName=SegmentID,KeyType=RANGE \
+--attribute-definitions AttributeName=StateID,AttributeType=S AttributeName=VersionID,AttributeType=N \
+--key-schema AttributeName=StateID,KeyType=HASH AttributeName=VersionID,KeyType=RANGE \
 --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
 
 or create the following resource:
@@ -490,7 +490,7 @@ resource "aws_dynamodb_table" "terraform-dynamodb-state-table" {
   read_capacity  = 5
   write_capacity = 5
   hash_key       = "StateID"
-  range_key      = "SegmentID"
+  range_key      = "VersionID"
 
   attribute {
     name = "StateID"
@@ -498,7 +498,7 @@ resource "aws_dynamodb_table" "terraform-dynamodb-state-table" {
   }
 
   attribute {
-    name = "SegmentID"
+    name = "VersionID"
     type = "N"
   }
 }

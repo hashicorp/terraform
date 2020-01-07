@@ -400,7 +400,7 @@ func TestVersioning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if states[0].SegmentID != int64((num_versions-1)*2) {
+	if states[0].VersionID != int64((num_versions-1)*2) {
 		t.Fatal(err)
 	}
 
