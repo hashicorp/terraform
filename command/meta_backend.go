@@ -562,7 +562,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
-// backendFromState retunrs the initialized (not configured) backend directly
+// backendFromState returns the initialized (not configured) backend directly
 // from the state. This should be used only when a user runs `terraform init
 // -backend=false`. This function returns a local backend if there is no state
 // or no backend configured.
