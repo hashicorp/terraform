@@ -297,7 +297,17 @@ func (p *provisioner) linuxStartHabitatService(o terraform.UIOutput, comm commun
 		options += fmt.Sprintf(" --bind %s", bind.toBindString())
 	}
 
-	return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("hab svc load %s %s", service.Name, options)))
+	// If the requested service is already loaded, skip re-loading it
+	if err := p.svcLoaded(o, comm, service); err != nil {
+		return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("hab svc load %s %s", service.Name, options)))
+	}
+
+	return nil
+}
+
+// This is a check to see if a habitat svc is already loaded on the machine
+func (p *provisioner) svcLoaded(o terraform.UIOutput, comm communicator.Communicator, service Service) error {
+	return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("hab svc status %s >/dev/null 2>&1", service.Name)))
 }
 
 // In the future we'll remove the dedicated install once the synchronous load feature in hab-sup is
