@@ -318,12 +318,6 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
-		"debug json2dot": func() (cli.Command, error) {
-			return &command.DebugJSON2DotCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"force-unlock": func() (cli.Command, error) {
 			return &command.UnlockCommand{
 				Meta: meta,
