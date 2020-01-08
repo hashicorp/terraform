@@ -6,7 +6,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
-* commant/init: Fix an issue with via an update to go-getter where modules would fail to download from the registry [GH-23792]
+* command/init: Fix an issue with via an update to go-getter where modules would fail to download from the registry [GH-23792]
 * command/init: use backend config from state when `-backend=false` is used during `init`. [GH-23802]
 * core: Do not evaluate unused config values, which may not be valid during destroy [GH-23717]
 * core: Better error handling for an odd "should never happen" situation regarding the restoration of a deposed instance during a `create_before_destroy` replace action. While this does not yet fix the situation (it can still happen), it now has a specialized error message to hopefully help gather some more information about the root cause in future reports. [GH-23718]
