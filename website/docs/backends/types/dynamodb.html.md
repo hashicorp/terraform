@@ -13,7 +13,7 @@ description: |-
 Stores the state in a given table on [Amazon DynamoDB](https://aws.amazon.com/dynamodb/).
 This backend supports 
 * state locking and consistency checking via Amazon DynamoDB, which can be enabled by setting the `lock_table` field to an existing DynamoDB table name.
-* global-state can be enabled by setting the `lock_table` and `state_table` fields to an existing DynamoDB global table names.
+* global-state can be enabled by setting the `lock_table` and `state_table` fields to an existing DynamoDB global table names. Please verify that your global table configuration works by running `aws dynamodb list-global-tables` command. 
 
 ~> **Warning!** It is highly recommended that you enable versioning using `state_days_ttl` to allow 
 for state recovery in the case of accidental deletions and human error.
@@ -215,8 +215,9 @@ The following configuration options or environment variables are supported:
  * `global_table_health_check` - (Optional) Enable global table health check. You can use this backend to deploy a disaster recovery solution. When the feature is enabled a test writing into DynamoDB global table is performed to assess region availability, if the check fails state locking for the unhealthy regions are skipped. This defaults to True.
  * `state_days_ttl` - (Optional) Enable state versioning. By default, the new state overrides the old one, by setting state_days_ttl a new item is created for each update. The latest state is the ones with the greatest VersionID value. You can configure state expiration by setting a value greater than zero in `state_days_ttl` variable and enabling [DynamoDB TTL](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html). You can enable/disable this feature at any time, if versioning was enabled old states are retained until expiration. TTL=0 in the DynamoDB table means that state does not expire, `state_days_ttl=0` creates a new version but does not expires the state.  
  * `region` / `AWS_REGION` / `AWS_DEFAULT_REGION` - (Optional) The region of the DynamoDB table. Use ENVs when deploy a disaster recovery solution.
- * `endpoint` / `AWS_DynamoDB_ENDPOINT` - (Optional) A custom endpoint for the
- DynamoDB API.
+ * `endpoint` / `AWS_DynamoDB_ENDPOINT` - (Optional) A custom endpoint for the DynamoDB API.
+ * `endpoints` - (Optional) Key-Value map to specify DynamoDB endpoints in a multi-region deployment. Use the region as Key and DynamoDB endpoint as value. If you omit to specify the endpoint for the current region the value of `endpoint` / `AWS_DynamoDB_ENDPOINT` is used, otherwise `endpoints` configuration takes priority.
+ * `suffix_region` - (Optional) Add region name as suffix to `hash` value. This default to False.
  * `access_key` / `AWS_ACCESS_KEY_ID` - (Optional) AWS access key.
  * `secret_key` / `AWS_SECRET_ACCESS_KEY` - (Optional) AWS secret access key.
  * `lock_table` - (Optional) The name of a DynamoDB table to use for state

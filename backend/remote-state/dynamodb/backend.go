@@ -69,11 +69,25 @@ func New() backend.Backend {
 				}, nil),
 			},
 
+			"region_suffix": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Append region name to hash key.",
+				Default:     false,
+			},
+
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
+			},
+
+			"endpoints": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Custom endpoints for region specific DynamoDB API",
+				Default:     map[string]interface{}{},
 			},
 
 			"iam_endpoint": {
@@ -348,8 +362,7 @@ func (b *Backend) healthCheck(dynClient *dynamodb.DynamoDB) bool {
 	}
 }
 
-func (b *Backend) getGlobalClients(endpoint string, sess *session.Session, global_table_health_check bool) ([]*dynamodb.DynamoDB, error) {
-
+func (b *Backend) getGlobalClients(endpoints map[string]string, sess *session.Session, global_table_health_check bool) ([]*dynamodb.DynamoDB, error) {
 	dyClients := make([]*dynamodb.DynamoDB, 0)
 	if b.lockTable != "" {
 		globalTableParams := &dynamodb.DescribeGlobalTableInput{
@@ -368,7 +381,7 @@ func (b *Backend) getGlobalClients(endpoint string, sess *session.Session, globa
 
 		for _, region := range regions {
 			dyClient := dynamodb.New(sess.Copy(&aws.Config{
-				Endpoint: aws.String(endpoint),
+				Endpoint: aws.String(endpoints[*region.RegionName]),
 				Region:   aws.String(*region.RegionName),
 			}))
 			if global_table_health_check {
@@ -419,6 +432,9 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.tableName = data.Get("state_table").(string)
 	b.hashName = data.Get("hash").(string)
+	if data.Get("region_suffix").(bool) {
+		b.hashName += region
+	}
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 	b.lockTable = data.Get("lock_table").(string)
 	b.state_days_ttl = data.Get("state_days_ttl").(int)
@@ -453,8 +469,24 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
+	endpoint := data.Get("endpoint").(string)
+	// cast enpoints
+	endpoints := make(map[string]string)
+	for key, value := range data.Get("endpoints").(map[string]interface{}) {
+		strKey := fmt.Sprintf("%v", key)
+		strValue := fmt.Sprintf("%v", value)
+
+		endpoints[strKey] = strValue
+	}
+	// resolve endpoints, give priority to endpoints map
+	if _, ok := endpoints[region]; ok {
+		endpoint = endpoints[region]
+	} else {
+		endpoints[region] = endpoint
+	}
+
 	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
-		Endpoint: aws.String(data.Get("endpoint").(string)),
+		Endpoint: aws.String(endpoints[region]),
 	}))
 
 	err = b.validateTablesSchema()
@@ -462,7 +494,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
-	b.dynGlobalClients, err = b.getGlobalClients(data.Get("endpoint").(string), sess, data.Get("global_table_health_check").(bool))
+	b.dynGlobalClients, err = b.getGlobalClients(endpoints, sess, data.Get("global_table_health_check").(bool))
 	if err != nil {
 		return err
 	}
