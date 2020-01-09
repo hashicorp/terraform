@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/states"
 )
 
 // nodeExpandModule represents a module call in the configuration that
@@ -14,6 +15,7 @@ type nodeExpandModule struct {
 	CallerAddr addrs.ModuleInstance
 	Call       addrs.ModuleCall
 	Config     *configs.Module
+	ModuleCall *configs.ModuleCall
 }
 
 var (
@@ -70,10 +72,15 @@ func (n *nodeExpandModule) RemoveIfNotTargeted() bool {
 
 // GraphNodeEvalable
 func (n *nodeExpandModule) EvalTree() EvalNode {
+	// Get the ModuleCall
+	// Do this by using the CallerAddr to find the parent config
+	// And get the modulecall from that config's .modulecalls
+
 	return &evalPrepareModuleExpansion{
 		CallerAddr: n.CallerAddr,
 		Call:       n.Call,
 		Config:     n.Config,
+		ModuleCall: n.ModuleCall,
 	}
 }
 
@@ -81,16 +88,46 @@ type evalPrepareModuleExpansion struct {
 	CallerAddr addrs.ModuleInstance
 	Call       addrs.ModuleCall
 	Config     *configs.Module
+	ModuleCall *configs.ModuleCall
 }
 
 func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) {
-	// Modules don't support any of the repetition arguments yet, so their
-	// expansion type is always "single". We just record this here to make
-	// the expander data structure consistent for now.
-	// FIXME: Once the rest of Terraform Core is ready to support expanding
-	// modules, evaluate the "count" and "for_each" arguments here in a
-	// similar way as in EvalWriteResourceState.
-	log.Printf("[TRACE] evalPrepareModuleExpansion: %s is a singleton", n.CallerAddr.Child(n.Call.Name, addrs.NoKey))
-	ctx.InstanceExpander().SetModuleSingle(n.CallerAddr, n.Call)
+	eachMode := states.NoEach
+	expander := ctx.InstanceExpander()
+
+	if n.ModuleCall == nil {
+		// FIXME: should we have gotten here with no module call?
+		log.Printf("[TRACE] evalPrepareModuleExpansion: %s is a singleton", n.CallerAddr.Child(n.Call.Name, addrs.NoKey))
+		expander.SetModuleSingle(n.CallerAddr, n.Call)
+		return nil, nil
+	}
+
+	count, countDiags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
+	if countDiags.HasErrors() {
+		return nil, countDiags.Err()
+	}
+
+	if count >= 0 { // -1 signals "count not set"
+		eachMode = states.EachList
+	}
+
+	forEach, forEachDiags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
+	if forEachDiags.HasErrors() {
+		return nil, forEachDiags.Err()
+	}
+
+	if forEach != nil {
+		eachMode = states.EachMap
+	}
+
+	switch eachMode {
+	case states.EachList:
+		expander.SetModuleCount(ctx.Path(), n.Call, count)
+	case states.EachMap:
+		expander.SetModuleForEach(ctx.Path(), n.Call, forEach)
+	default:
+		expander.SetModuleSingle(n.CallerAddr, n.Call)
+	}
+
 	return nil, nil
 }

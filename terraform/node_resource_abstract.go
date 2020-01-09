@@ -43,6 +43,10 @@ type GraphNodeResourceInstance interface {
 // operations. It registers all the interfaces for a resource that common
 // across multiple operation types.
 type NodeAbstractResource struct {
+	//FIXME: AbstractResources are no longer absolute, because modules are not expanded.
+	// Addr addrs.Resource
+	// Module addrs.Module
+
 	Addr addrs.AbsResource // Addr is the address for this resource
 
 	// The fields below will be automatically set using the Attach

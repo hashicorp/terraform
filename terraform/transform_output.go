@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -42,12 +43,13 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	// transform of the module path into a module instance path, assuming that
 	// no keys are in use. This should be removed when "count" and "for_each"
 	// are implemented for modules.
-	path := c.Path.UnkeyedInstanceShim()
+	//path := c.Path.UnkeyedInstanceShim()
 
 	for _, o := range c.Module.Outputs {
-		addr := path.OutputValue(o.Name)
-		node := &NodeApplyableOutput{
-			Addr:   addr,
+		//addr := path.OutputValue(o.Name)
+		node := &NodePlannableOutput{
+			Addr:   addrs.OutputValue{Name: o.Name},
+			Module: c.Path,
 			Config: o,
 		}
 		g.Add(node)

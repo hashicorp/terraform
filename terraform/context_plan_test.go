@@ -369,6 +369,8 @@ func TestContext2Plan_minimal(t *testing.T) {
 }
 
 func TestContext2Plan_modules(t *testing.T) {
+	//FIXME: add for_each and single modules to this test
+
 	m := testModule(t, "plan-modules")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -386,8 +388,8 @@ func TestContext2Plan_modules(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if len(plan.Changes.Resources) != 3 {
-		t.Error("expected 3 resource in plan, got", len(plan.Changes.Resources))
+	if len(plan.Changes.Resources) != 6 {
+		t.Error("expected 6 resource in plan, got", len(plan.Changes.Resources))
 	}
 
 	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
@@ -420,7 +422,10 @@ func TestContext2Plan_modules(t *testing.T) {
 			expected = expectFoo
 		case "aws_instance.foo":
 			expected = expectNum
-		case "module.child.aws_instance.foo":
+		case "module.child[0].aws_instance.foo[0]",
+			"module.child[0].aws_instance.foo[1]",
+			"module.child[1].aws_instance.foo[0]",
+			"module.child[1].aws_instance.foo[1]":
 			expected = expectNum
 		default:
 			t.Fatal("unknown instance:", i)

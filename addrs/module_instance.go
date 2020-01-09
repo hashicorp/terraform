@@ -208,6 +208,14 @@ func (m Module) UnkeyedInstanceShim() ModuleInstance {
 	return path
 }
 
+func (m Module) MagicInstanceShim() ModuleInstance {
+	path := make(ModuleInstance, len(m))
+	for i, name := range m {
+		path[i] = ModuleInstanceStep{Name: name}
+	}
+	return path
+}
+
 // ModuleInstanceStep is a single traversal step through the dynamic module
 // tree. It is used only as part of ModuleInstance.
 type ModuleInstanceStep struct {

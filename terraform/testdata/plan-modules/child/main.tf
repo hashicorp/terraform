@@ -1,3 +1,8 @@
 resource "aws_instance" "foo" {
-    num = "2"
+  count = 2
+  num = 2
+}
+
+output "out" {
+  value = aws_instance.foo[0].id
 }

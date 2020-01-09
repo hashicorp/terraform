@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// NodeRefreshableManagedResource represents a resource that is expanabled into
+// NodeRefreshableManagedResource represents a resource that is expandable into
 // NodeRefreshableManagedResourceInstance. Resource count orphans are also added.
 type NodeRefreshableManagedResource struct {
 	*NodeAbstractResource

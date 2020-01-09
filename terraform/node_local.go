@@ -12,7 +12,9 @@ import (
 // Local value nodes only have one operation, common to all walk types:
 // evaluate the result and place it in state.
 type NodeLocal struct {
-	Addr   addrs.AbsLocalValue
+	Addr addrs.AbsLocalValue
+	// FIXME: Do we need Module for evaluating module expansion?
+	// Module addrs.Module
 	Config *configs.Local
 }
 
