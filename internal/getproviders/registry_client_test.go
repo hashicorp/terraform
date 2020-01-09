@@ -25,10 +25,10 @@ import (
 // The second return value is a function to call at the end of a test function
 // to shut down the test server. After you call that function, the discovery
 // object becomes useless.
-func testServices(t *testing.T) (*disco.Disco, func()) {
+func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup func()) {
 	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
 
-	services := disco.New()
+	services = disco.New()
 	services.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
 		"providers.v1": server.URL + "/providers/v1/",
 	})
@@ -42,7 +42,7 @@ func testServices(t *testing.T) (*disco.Disco, func()) {
 		"providers.v1": server.URL + "/fails-immediately/",
 	})
 
-	return services, func() {
+	return services, server.URL, func() {
 		server.Close()
 	}
 }
@@ -53,10 +53,10 @@ func testServices(t *testing.T) (*disco.Disco, func()) {
 //
 // As with testServices, the second return value is a function to call at the end
 // of your test in order to shut down the test server.
-func testRegistrySource(t *testing.T) (*RegistrySource, func()) {
-	services, close := testServices(t)
-	source := NewRegistrySource(services)
-	return source, close
+func testRegistrySource(t *testing.T) (source *RegistrySource, baseURL string, cleanup func()) {
+	services, baseURL, close := testServices(t)
+	source = NewRegistrySource(services)
+	return source, baseURL, close
 }
 
 func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
