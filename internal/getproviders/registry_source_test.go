@@ -14,7 +14,7 @@ import (
 )
 
 func TestSourceAvailableVersions(t *testing.T) {
-	source, close := testRegistrySource(t)
+	source, baseURL, close := testRegistrySource(t)
 	defer close()
 
 	tests := []struct {
@@ -52,14 +52,9 @@ func TestSourceAvailableVersions(t *testing.T) {
 		{
 			"fails.example.com/foo/bar",
 			nil,
-			`could not query provider registry for fails.example.com/foo/bar: Get http://placeholder-origin/fails-immediately/foo/bar/versions: EOF`,
+			`could not query provider registry for fails.example.com/foo/bar: Get ` + baseURL + `/fails-immediately/foo/bar/versions: EOF`,
 		},
 	}
-
-	// Sometimes error messages contain specific HTTP endpoint URLs, but
-	// since our test server is on a random port we'd not be able to
-	// consistently match those. Instead, we'll normalize the URLs.
-	urlPattern := regexp.MustCompile(`http://[^/]+/`)
 
 	for _, test := range tests {
 		t.Run(test.provider, func(t *testing.T) {
@@ -78,8 +73,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 				if test.wantErr == "" {
 					t.Fatalf("wrong error\ngot:  %s\nwant: <nil>", err.Error())
 				}
-				gotErr := urlPattern.ReplaceAllLiteralString(err.Error(), "http://placeholder-origin/")
-				if got, want := gotErr, test.wantErr; got != want {
+				if got, want := err.Error(), test.wantErr; got != want {
 					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
@@ -106,7 +100,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 }
 
 func TestSourcePackageMeta(t *testing.T) {
-	source, close := testRegistrySource(t)
+	source, baseURL, close := testRegistrySource(t)
 	defer close()
 
 	tests := []struct {
@@ -126,7 +120,7 @@ func TestSourcePackageMeta(t *testing.T) {
 				ProtocolVersions: VersionList{versions.MustParseVersion("5.0.0")},
 				TargetPlatform:   Platform{"linux", "amd64"},
 				Filename:         "happycloud_1.2.0.zip",
-				Location:         PackageHTTPURL("/pkg/happycloud_1.2.0.zip"),
+				Location:         PackageHTTPURL(baseURL + "/pkg/happycloud_1.2.0.zip"),
 				SHA256Sum:        [32]uint8{30: 0xf0, 31: 0x0d}, // fake registry uses a memorable sum
 			},
 			``,

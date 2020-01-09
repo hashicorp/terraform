@@ -201,6 +201,15 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	}
 	protoVersions.Sort()
 
+	downloadURL, err := url.Parse(body.DownloadURL)
+	if err != nil {
+		return PackageMeta{}, fmt.Errorf("registry response includes invalid download URL: %s", err)
+	}
+	downloadURL = resp.Request.URL.ResolveReference(downloadURL)
+	if downloadURL.Scheme != "http" && downloadURL.Scheme != "https" {
+		return PackageMeta{}, fmt.Errorf("registry response includes invalid download URL: must use http or https scheme")
+	}
+
 	ret := PackageMeta{
 		ProtocolVersions: protoVersions,
 		TargetPlatform: Platform{
@@ -208,7 +217,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 			Arch: body.Arch,
 		},
 		Filename: body.Filename,
-		Location: PackageHTTPURL(body.DownloadURL),
+		Location: PackageHTTPURL(downloadURL.String()),
 		// SHA256Sum is populated below
 	}
 
