@@ -105,7 +105,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 
 }
 
-func TestSourceDownloadLocation(t *testing.T) {
+func TestSourcePackageMeta(t *testing.T) {
 	source, close := testRegistrySource(t)
 	defer close()
 
@@ -126,7 +126,7 @@ func TestSourceDownloadLocation(t *testing.T) {
 				ProtocolVersions: VersionList{versions.MustParseVersion("5.0.0")},
 				TargetPlatform:   Platform{"linux", "amd64"},
 				Filename:         "happycloud_1.2.0.zip",
-				DownloadURL:      "/pkg/happycloud_1.2.0.zip",
+				Location:         PackageHTTPURL("/pkg/happycloud_1.2.0.zip"),
 				SHA256Sum:        [32]uint8{30: 0xf0, 31: 0x0d}, // fake registry uses a memorable sum
 			},
 			``,
@@ -181,7 +181,7 @@ func TestSourceDownloadLocation(t *testing.T) {
 
 			version := versions.MustParseVersion(test.version)
 
-			got, err := source.DownloadLocation(providerAddr, version, Platform{test.os, test.arch})
+			got, err := source.PackageMeta(providerAddr, version, Platform{test.os, test.arch})
 
 			if err != nil {
 				if test.wantErr == "" {
