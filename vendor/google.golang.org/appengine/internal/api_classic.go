@@ -1,9 +1,14 @@
+// Copyright 2015 Google Inc. All rights reserved.
+// Use of this source code is governed by the Apache 2.0
+// license that can be found in the LICENSE file.
+
 // +build appengine
 
 package internal
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -17,14 +22,20 @@ import (
 
 var contextKey = "holds an appengine.Context"
 
+// fromContext returns the App Engine context or nil if ctx is not
+// derived from an App Engine context.
 func fromContext(ctx netcontext.Context) appengine.Context {
 	c, _ := ctx.Value(&contextKey).(appengine.Context)
 	return c
 }
 
 // This is only for classic App Engine adapters.
-func ClassicContextFromContext(ctx netcontext.Context) appengine.Context {
-	return fromContext(ctx)
+func ClassicContextFromContext(ctx netcontext.Context) (appengine.Context, error) {
+	c := fromContext(ctx)
+	if c == nil {
+		return nil, errNotAppEngineContext
+	}
+	return c, nil
 }
 
 func withContext(parent netcontext.Context, c appengine.Context) netcontext.Context {
@@ -33,10 +44,23 @@ func withContext(parent netcontext.Context, c appengine.Context) netcontext.Cont
 	s := &basepb.StringProto{}
 	c.Call("__go__", "GetNamespace", &basepb.VoidProto{}, s, nil)
 	if ns := s.GetValue(); ns != "" {
-		ctx = WithNamespace(ctx, ns)
+		ctx = NamespacedContext(ctx, ns)
 	}
 
 	return ctx
+}
+
+func IncomingHeaders(ctx netcontext.Context) http.Header {
+	if c := fromContext(ctx); c != nil {
+		if req, ok := c.Request().(*http.Request); ok {
+			return req.Header
+		}
+	}
+	return nil
+}
+
+func ReqContext(req *http.Request) netcontext.Context {
+	return WithContext(netcontext.Background(), req)
 }
 
 func WithContext(parent netcontext.Context, req *http.Request) netcontext.Context {
@@ -44,15 +68,47 @@ func WithContext(parent netcontext.Context, req *http.Request) netcontext.Contex
 	return withContext(parent, c)
 }
 
+type testingContext struct {
+	appengine.Context
+
+	req *http.Request
+}
+
+func (t *testingContext) FullyQualifiedAppID() string { return "dev~testcontext" }
+func (t *testingContext) Call(service, method string, _, _ appengine_internal.ProtoMessage, _ *appengine_internal.CallOptions) error {
+	if service == "__go__" && method == "GetNamespace" {
+		return nil
+	}
+	return fmt.Errorf("testingContext: unsupported Call")
+}
+func (t *testingContext) Request() interface{} { return t.req }
+
+func ContextForTesting(req *http.Request) netcontext.Context {
+	return withContext(netcontext.Background(), &testingContext{req: req})
+}
+
 func Call(ctx netcontext.Context, service, method string, in, out proto.Message) error {
-	if f, ok := ctx.Value(&callOverrideKey).(callOverrideFunc); ok {
+	if ns := NamespaceFromContext(ctx); ns != "" {
+		if fn, ok := NamespaceMods[service]; ok {
+			fn(in, ns)
+		}
+	}
+
+	if f, ctx, ok := callOverrideFromContext(ctx); ok {
 		return f(ctx, service, method, in, out)
+	}
+
+	// Handle already-done contexts quickly.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
 
 	c := fromContext(ctx)
 	if c == nil {
 		// Give a good error message rather than a panic lower down.
-		return errors.New("not an App Engine context")
+		return errNotAppEngineContext
 	}
 
 	// Apply transaction modifications if we're in a transaction.
@@ -70,7 +126,22 @@ func Call(ctx netcontext.Context, service, method string, in, out proto.Message)
 		}
 	}
 
-	return c.Call(service, method, in, out, opts)
+	err := c.Call(service, method, in, out, opts)
+	switch v := err.(type) {
+	case *appengine_internal.APIError:
+		return &APIError{
+			Service: v.Service,
+			Detail:  v.Detail,
+			Code:    v.Code,
+		}
+	case *appengine_internal.CallError:
+		return &CallError{
+			Detail:  v.Detail,
+			Code:    v.Code,
+			Timeout: v.Timeout,
+		}
+	}
+	return err
 }
 
 func handleHTTP(w http.ResponseWriter, r *http.Request) {

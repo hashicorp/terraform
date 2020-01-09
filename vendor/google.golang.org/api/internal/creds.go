@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,90 +15,88 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+
 	"golang.org/x/oauth2/google"
 )
 
 // Creds returns credential information obtained from DialSettings, or if none, then
 // it returns default credential information.
-func Creds(ctx context.Context, ds *DialSettings) (*google.DefaultCredentials, error) {
+func Creds(ctx context.Context, ds *DialSettings) (*google.Credentials, error) {
+	if ds.Credentials != nil {
+		return ds.Credentials, nil
+	}
+	if ds.CredentialsJSON != nil {
+		return credentialsFromJSON(ctx, ds.CredentialsJSON, ds.Endpoint, ds.Scopes, ds.Audiences)
+	}
 	if ds.CredentialsFile != "" {
-		return credFileTokenSource(ctx, ds.CredentialsFile, ds.Scopes...)
+		data, err := ioutil.ReadFile(ds.CredentialsFile)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read credentials file: %v", err)
+		}
+		return credentialsFromJSON(ctx, data, ds.Endpoint, ds.Scopes, ds.Audiences)
 	}
 	if ds.TokenSource != nil {
-		return &google.DefaultCredentials{TokenSource: ds.TokenSource}, nil
+		return &google.Credentials{TokenSource: ds.TokenSource}, nil
 	}
-	return google.FindDefaultCredentials(ctx, ds.Scopes...)
-}
-
-// credFileTokenSource reads a refresh token file or a service account and returns
-// a TokenSource constructed from the config.
-func credFileTokenSource(ctx context.Context, filename string, scope ...string) (*google.DefaultCredentials, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read credentials file: %v", err)
-	}
-	// See if it is a refresh token credentials file first.
-	ts, ok, err := refreshTokenTokenSource(ctx, data, scope...)
+	cred, err := google.FindDefaultCredentials(ctx, ds.Scopes...)
 	if err != nil {
 		return nil, err
 	}
-	if ok {
-		return &google.DefaultCredentials{
-			TokenSource: ts,
-			JSON:        data,
-		}, nil
+	if len(cred.JSON) > 0 {
+		return credentialsFromJSON(ctx, cred.JSON, ds.Endpoint, ds.Scopes, ds.Audiences)
 	}
+	// For GAE and GCE, the JSON is empty so return the default credentials directly.
+	return cred, nil
+}
 
-	// If not, it should be a service account.
-	cfg, err := google.JWTConfigFromJSON(data, scope...)
+// JSON key file type.
+const (
+	serviceAccountKey = "service_account"
+)
+
+// credentialsFromJSON returns a google.Credentials based on the input.
+//
+// - If the JSON is a service account and no scopes provided, returns self-signed JWT auth flow
+// - Otherwise, returns OAuth 2.0 flow.
+func credentialsFromJSON(ctx context.Context, data []byte, endpoint string, scopes []string, audiences []string) (*google.Credentials, error) {
+	cred, err := google.CredentialsFromJSON(ctx, data, scopes...)
 	if err != nil {
-		return nil, fmt.Errorf("google.JWTConfigFromJSON: %v", err)
-	}
-	// jwt.Config does not expose the project ID, so re-unmarshal to get it.
-	var pid struct {
-		ProjectID string `json:"project_id"`
-	}
-	if err := json.Unmarshal(data, &pid); err != nil {
 		return nil, err
 	}
-	return &google.DefaultCredentials{
-		ProjectID:   pid.ProjectID,
-		TokenSource: cfg.TokenSource(ctx),
-		JSON:        data,
-	}, nil
+	if len(data) > 0 && len(scopes) == 0 {
+		var f struct {
+			Type string `json:"type"`
+			// The rest JSON fields are omitted because they are not used.
+		}
+		if err := json.Unmarshal(cred.JSON, &f); err != nil {
+			return nil, err
+		}
+		if f.Type == serviceAccountKey {
+			ts, err := selfSignedJWTTokenSource(data, endpoint, audiences)
+			if err != nil {
+				return nil, err
+			}
+			cred.TokenSource = ts
+		}
+	}
+	return cred, err
 }
 
-func refreshTokenTokenSource(ctx context.Context, data []byte, scope ...string) (oauth2.TokenSource, bool, error) {
-	var c cred
-	if err := json.Unmarshal(data, &c); err != nil {
-		return nil, false, fmt.Errorf("cannot unmarshal credentials file: %v", err)
+func selfSignedJWTTokenSource(data []byte, endpoint string, audiences []string) (oauth2.TokenSource, error) {
+	// Use the API endpoint as the default audience
+	audience := endpoint
+	if len(audiences) > 0 {
+		// TODO(shinfan): Update golang oauth to support multiple audiences.
+		if len(audiences) > 1 {
+			return nil, fmt.Errorf("multiple audiences support is not implemented")
+		}
+		audience = audiences[0]
 	}
-	if c.ClientID == "" || c.ClientSecret == "" || c.RefreshToken == "" || c.Type != "authorized_user" {
-		return nil, false, nil
-	}
-	cfg := &oauth2.Config{
-		ClientID:     c.ClientID,
-		ClientSecret: c.ClientSecret,
-		Endpoint:     google.Endpoint,
-		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		Scopes:       scope,
-	}
-	return cfg.TokenSource(ctx, &oauth2.Token{
-		RefreshToken: c.RefreshToken,
-		Expiry:       time.Now(),
-	}), true, nil
-}
-
-type cred struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	RefreshToken string `json:"refresh_token"`
-	Type         string `json:"type"`
+	return google.JWTAccessTokenSourceFromJSON(data, audience)
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // untar is a shared helper for untarring an archive. The reader should provide
@@ -14,6 +15,7 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 	tarR := tar.NewReader(input)
 	done := false
 	dirHdrs := []*tar.Header{}
+	now := time.Now()
 	for {
 		hdr, err := tarR.Next()
 		if err == io.EOF {
@@ -95,17 +97,37 @@ func untar(input io.Reader, dst, src string, dir bool) error {
 			return err
 		}
 
-		// Set the access and modification time
-		if err := os.Chtimes(path, hdr.AccessTime, hdr.ModTime); err != nil {
+		// Set the access and modification time if valid, otherwise default to current time
+		aTime := now
+		mTime := now
+		if hdr.AccessTime.Unix() > 0 {
+			aTime = hdr.AccessTime
+		}
+		if hdr.ModTime.Unix() > 0 {
+			mTime = hdr.ModTime
+		}
+		if err := os.Chtimes(path, aTime, mTime); err != nil {
 			return err
 		}
 	}
 
-	// Adding a file or subdirectory changes the mtime of a directory
-	// We therefore wait until we've extracted everything and then set the mtime and atime attributes
+	// Perform a final pass over extracted directories to update metadata
 	for _, dirHdr := range dirHdrs {
 		path := filepath.Join(dst, dirHdr.Name)
-		if err := os.Chtimes(path, dirHdr.AccessTime, dirHdr.ModTime); err != nil {
+		// Chmod the directory since they might be created before we know the mode flags
+		if err := os.Chmod(path, dirHdr.FileInfo().Mode()); err != nil {
+			return err
+		}
+		// Set the mtime/atime attributes since they would have been changed during extraction
+		aTime := now
+		mTime := now
+		if dirHdr.AccessTime.Unix() > 0 {
+			aTime = dirHdr.AccessTime
+		}
+		if dirHdr.ModTime.Unix() > 0 {
+			mTime = dirHdr.ModTime
+		}
+		if err := os.Chtimes(path, aTime, mTime); err != nil {
 			return err
 		}
 	}

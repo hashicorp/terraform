@@ -28,6 +28,7 @@
 package status
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -46,7 +47,7 @@ func (se *statusError) Error() string {
 	return fmt.Sprintf("rpc error: code = %s desc = %s", codes.Code(p.GetCode()), p.GetMessage())
 }
 
-func (se *statusError) status() *Status {
+func (se *statusError) GRPCStatus() *Status {
 	return &Status{s: (*spb.Status)(se)}
 }
 
@@ -120,15 +121,25 @@ func FromProto(s *spb.Status) *Status {
 }
 
 // FromError returns a Status representing err if it was produced from this
-// package, otherwise it returns nil, false.
+// package or has a method `GRPCStatus() *Status`. Otherwise, ok is false and a
+// Status is returned with codes.Unknown and the original error message.
 func FromError(err error) (s *Status, ok bool) {
 	if err == nil {
 		return &Status{s: &spb.Status{Code: int32(codes.OK)}}, true
 	}
-	if s, ok := err.(*statusError); ok {
-		return s.status(), true
+	if se, ok := err.(interface {
+		GRPCStatus() *Status
+	}); ok {
+		return se.GRPCStatus(), true
 	}
-	return nil, false
+	return New(codes.Unknown, err.Error()), false
+}
+
+// Convert is a convenience function which removes the need to handle the
+// boolean return value from FromError.
+func Convert(err error) *Status {
+	s, _ := FromError(err)
+	return s
 }
 
 // WithDetails returns a new status with the provided details messages appended to the status.
@@ -165,4 +176,35 @@ func (s *Status) Details() []interface{} {
 		details = append(details, detail.Message)
 	}
 	return details
+}
+
+// Code returns the Code of the error if it is a Status error, codes.OK if err
+// is nil, or codes.Unknown otherwise.
+func Code(err error) codes.Code {
+	// Don't use FromError to avoid allocation of OK status.
+	if err == nil {
+		return codes.OK
+	}
+	if se, ok := err.(interface {
+		GRPCStatus() *Status
+	}); ok {
+		return se.GRPCStatus().Code()
+	}
+	return codes.Unknown
+}
+
+// FromContextError converts a context error into a Status.  It returns a
+// Status with codes.OK if err is nil, or a Status with codes.Unknown if err is
+// non-nil and not a context error.
+func FromContextError(err error) *Status {
+	switch err {
+	case nil:
+		return New(codes.OK, "")
+	case context.DeadlineExceeded:
+		return New(codes.DeadlineExceeded, err.Error())
+	case context.Canceled:
+		return New(codes.Canceled, err.Error())
+	default:
+		return New(codes.Unknown, err.Error())
+	}
 }

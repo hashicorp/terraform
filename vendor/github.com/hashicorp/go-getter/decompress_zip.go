@@ -9,7 +9,7 @@ import (
 )
 
 // ZipDecompressor is an implementation of Decompressor that can
-// decompress tar.gzip files.
+// decompress zip files.
 type ZipDecompressor struct{}
 
 func (d *ZipDecompressor) Decompress(dst, src string, dir bool) error {

@@ -19,13 +19,13 @@
 package naming
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
 )
 
@@ -37,6 +37,9 @@ const (
 var (
 	errMissingAddr  = errors.New("missing address")
 	errWatcherClose = errors.New("watcher has been closed")
+
+	lookupHost = net.DefaultResolver.LookupHost
+	lookupSRV  = net.DefaultResolver.LookupSRV
 )
 
 // NewDNSResolverWithFreq creates a DNS Resolver that can resolve DNS names, and
@@ -73,8 +76,8 @@ func formatIP(addr string) (addrIP string, ok bool) {
 
 // parseTarget takes the user input target string, returns formatted host and port info.
 // If target doesn't specify a port, set the port to be the defaultPort.
-// If target is in IPv6 format and host-name is enclosed in sqarue brackets, brackets
-// are strippd when setting the host.
+// If target is in IPv6 format and host-name is enclosed in square brackets, brackets
+// are stripped when setting the host.
 // examples:
 // target: "www.google.com" returns host: "www.google.com", port: "443"
 // target: "ipv4-host:80" returns host: "ipv4-host", port: "80"
@@ -141,8 +144,8 @@ type dnsWatcher struct {
 	r    *dnsResolver
 	host string
 	port string
-	// The latest resolved address list
-	curAddrs []*Update
+	// The latest resolved address set
+	curAddrs map[string]*Update
 	ctx      context.Context
 	cancel   context.CancelFunc
 	t        *time.Timer
@@ -153,10 +156,10 @@ type ipWatcher struct {
 	updateChan chan *Update
 }
 
-// Next returns the adrress resolution Update for the target. For IP address,
-// the resolution is itself, thus polling name server is unncessary. Therefore,
+// Next returns the address resolution Update for the target. For IP address,
+// the resolution is itself, thus polling name server is unnecessary. Therefore,
 // Next() will return an Update the first time it is called, and will be blocked
-// for all following calls as no Update exisits until watcher is closed.
+// for all following calls as no Update exists until watcher is closed.
 func (i *ipWatcher) Next() ([]*Update, error) {
 	u, ok := <-i.updateChan
 	if !ok {
@@ -192,28 +195,24 @@ type AddrMetadataGRPCLB struct {
 
 // compileUpdate compares the old resolved addresses and newly resolved addresses,
 // and generates an update list
-func (w *dnsWatcher) compileUpdate(newAddrs []*Update) []*Update {
-	update := make(map[Update]bool)
-	for _, u := range newAddrs {
-		update[*u] = true
-	}
-	for _, u := range w.curAddrs {
-		if _, ok := update[*u]; ok {
-			delete(update, *u)
-			continue
+func (w *dnsWatcher) compileUpdate(newAddrs map[string]*Update) []*Update {
+	var res []*Update
+	for a, u := range w.curAddrs {
+		if _, ok := newAddrs[a]; !ok {
+			u.Op = Delete
+			res = append(res, u)
 		}
-		update[Update{Addr: u.Addr, Op: Delete, Metadata: u.Metadata}] = true
 	}
-	res := make([]*Update, 0, len(update))
-	for k := range update {
-		tmp := k
-		res = append(res, &tmp)
+	for a, u := range newAddrs {
+		if _, ok := w.curAddrs[a]; !ok {
+			res = append(res, u)
+		}
 	}
 	return res
 }
 
-func (w *dnsWatcher) lookupSRV() []*Update {
-	var newAddrs []*Update
+func (w *dnsWatcher) lookupSRV() map[string]*Update {
+	newAddrs := make(map[string]*Update)
 	_, srvs, err := lookupSRV(w.ctx, "grpclb", "tcp", w.host)
 	if err != nil {
 		grpclog.Infof("grpc: failed dns SRV record lookup due to %v.\n", err)
@@ -222,7 +221,7 @@ func (w *dnsWatcher) lookupSRV() []*Update {
 	for _, s := range srvs {
 		lbAddrs, err := lookupHost(w.ctx, s.Target)
 		if err != nil {
-			grpclog.Warningf("grpc: failed load banlacer address dns lookup due to %v.\n", err)
+			grpclog.Warningf("grpc: failed load balancer address dns lookup due to %v.\n", err)
 			continue
 		}
 		for _, a := range lbAddrs {
@@ -231,15 +230,16 @@ func (w *dnsWatcher) lookupSRV() []*Update {
 				grpclog.Errorf("grpc: failed IP parsing due to %v.\n", err)
 				continue
 			}
-			newAddrs = append(newAddrs, &Update{Addr: a + ":" + strconv.Itoa(int(s.Port)),
-				Metadata: AddrMetadataGRPCLB{AddrType: GRPCLB, ServerName: s.Target}})
+			addr := a + ":" + strconv.Itoa(int(s.Port))
+			newAddrs[addr] = &Update{Addr: addr,
+				Metadata: AddrMetadataGRPCLB{AddrType: GRPCLB, ServerName: s.Target}}
 		}
 	}
 	return newAddrs
 }
 
-func (w *dnsWatcher) lookupHost() []*Update {
-	var newAddrs []*Update
+func (w *dnsWatcher) lookupHost() map[string]*Update {
+	newAddrs := make(map[string]*Update)
 	addrs, err := lookupHost(w.ctx, w.host)
 	if err != nil {
 		grpclog.Warningf("grpc: failed dns A record lookup due to %v.\n", err)
@@ -251,7 +251,8 @@ func (w *dnsWatcher) lookupHost() []*Update {
 			grpclog.Errorf("grpc: failed IP parsing due to %v.\n", err)
 			continue
 		}
-		newAddrs = append(newAddrs, &Update{Addr: a + ":" + w.port})
+		addr := a + ":" + w.port
+		newAddrs[addr] = &Update{Addr: addr}
 	}
 	return newAddrs
 }

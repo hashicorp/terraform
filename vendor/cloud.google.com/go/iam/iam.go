@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,15 @@
 package iam
 
 import (
-	"golang.org/x/net/context"
+	"context"
+	"fmt"
+	"time"
+
+	gax "github.com/googleapis/gax-go/v2"
 	pb "google.golang.org/genproto/googleapis/iam/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 // client abstracts the IAMPolicy API to allow multiple implementations.
@@ -39,26 +45,59 @@ type grpcClient struct {
 	c pb.IAMPolicyClient
 }
 
+var withRetry = gax.WithRetry(func() gax.Retryer {
+	return gax.OnCodes([]codes.Code{
+		codes.DeadlineExceeded,
+		codes.Unavailable,
+	}, gax.Backoff{
+		Initial:    100 * time.Millisecond,
+		Max:        60 * time.Second,
+		Multiplier: 1.3,
+	})
+})
+
 func (g *grpcClient) Get(ctx context.Context, resource string) (*pb.Policy, error) {
-	proto, err := g.c.GetIamPolicy(ctx, &pb.GetIamPolicyRequest{Resource: resource})
+	var proto *pb.Policy
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "resource", resource))
+	ctx = insertMetadata(ctx, md)
+
+	err := gax.Invoke(ctx, func(ctx context.Context, _ gax.CallSettings) error {
+		var err error
+		proto, err = g.c.GetIamPolicy(ctx, &pb.GetIamPolicyRequest{Resource: resource})
+		return err
+	}, withRetry)
 	if err != nil {
 		return nil, err
 	}
 	return proto, nil
 }
+
 func (g *grpcClient) Set(ctx context.Context, resource string, p *pb.Policy) error {
-	_, err := g.c.SetIamPolicy(ctx, &pb.SetIamPolicyRequest{
-		Resource: resource,
-		Policy:   p,
-	})
-	return err
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "resource", resource))
+	ctx = insertMetadata(ctx, md)
+
+	return gax.Invoke(ctx, func(ctx context.Context, _ gax.CallSettings) error {
+		_, err := g.c.SetIamPolicy(ctx, &pb.SetIamPolicyRequest{
+			Resource: resource,
+			Policy:   p,
+		})
+		return err
+	}, withRetry)
 }
 
 func (g *grpcClient) Test(ctx context.Context, resource string, perms []string) ([]string, error) {
-	res, err := g.c.TestIamPermissions(ctx, &pb.TestIamPermissionsRequest{
-		Resource:    resource,
-		Permissions: perms,
-	})
+	var res *pb.TestIamPermissionsResponse
+	md := metadata.Pairs("x-goog-request-params", fmt.Sprintf("%s=%v", "resource", resource))
+	ctx = insertMetadata(ctx, md)
+
+	err := gax.Invoke(ctx, func(ctx context.Context, _ gax.CallSettings) error {
+		var err error
+		res, err = g.c.TestIamPermissions(ctx, &pb.TestIamPermissionsRequest{
+			Resource:    resource,
+			Permissions: perms,
+		})
+		return err
+	}, withRetry)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +115,15 @@ type Handle struct {
 // InternalNewHandle returns a Handle for resource.
 // The conn parameter refers to a server that must support the IAMPolicy service.
 func InternalNewHandle(conn *grpc.ClientConn, resource string) *Handle {
-	return InternalNewHandleClient(&grpcClient{c: pb.NewIAMPolicyClient(conn)}, resource)
+	return InternalNewHandleGRPCClient(pb.NewIAMPolicyClient(conn), resource)
+}
+
+// InternalNewHandleGRPCClient is for use by the Google Cloud Libraries only.
+//
+// InternalNewHandleClient returns a Handle for resource using the given
+// grpc service that implements IAM as a mixin
+func InternalNewHandleGRPCClient(c pb.IAMPolicyClient, resource string) *Handle {
+	return InternalNewHandleClient(&grpcClient{c: c}, resource)
 }
 
 // InternalNewHandleClient is for use by the Google Cloud Libraries only.
@@ -253,4 +300,16 @@ func memberIndex(m string, b *pb.Binding) int {
 		}
 	}
 	return -1
+}
+
+// insertMetadata inserts metadata into the given context
+func insertMetadata(ctx context.Context, mds ...metadata.MD) context.Context {
+	out, _ := metadata.FromOutgoingContext(ctx)
+	out = out.Copy()
+	for _, md := range mds {
+		for k, v := range md {
+			out[k] = append(out[k], v...)
+		}
+	}
+	return metadata.NewOutgoingContext(ctx, out)
 }

@@ -1,7 +1,7 @@
 package getter
 
 import (
-	"io"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +11,7 @@ import (
 // should already exist.
 //
 // If ignoreDot is set to true, then dot-prefixed files/folders are ignored.
-func copyDir(dst string, src string, ignoreDot bool) error {
+func copyDir(ctx context.Context, dst string, src string, ignoreDot bool) error {
 	src, err := filepath.EvalSymlinks(src)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func copyDir(dst string, src string, ignoreDot bool) error {
 		}
 		defer dstF.Close()
 
-		if _, err := io.Copy(dstF, srcF); err != nil {
+		if _, err := Copy(ctx, dstF, srcF); err != nil {
 			return err
 		}
 
