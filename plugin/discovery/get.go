@@ -536,13 +536,20 @@ func getPluginSHA256SUMs(sumsURL string) ([]byte, error) {
 		return nil, fmt.Errorf("error fetching checksums: %s", err)
 	}
 
+	enforceCheckSig := true
 	sig, err := getFile(sigURL)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching checksums signature: %s", err)
+		if GetReleaseHost(false) == GetReleaseHost(true) || !strings.HasPrefix(sumsURL, GetReleaseHost(false)) || err.Error() != "404 Not Found" {
+			return nil, fmt.Errorf("error fetching checksums signature: %s", err)
+		} else {
+			enforceCheckSig = false
+		}
 	}
 
-	if err := verifySig(sums, sig); err != nil {
-		return nil, err
+	if enforceCheckSig {
+		if err := verifySig(sums, sig); err != nil {
+			return nil, err
+		}
 	}
 
 	return sums, nil
