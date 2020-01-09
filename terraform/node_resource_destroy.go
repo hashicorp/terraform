@@ -281,11 +281,32 @@ type NodeDestroyResource struct {
 }
 
 var (
-	_ GraphNodeEvalable = (*NodeDestroyResource)(nil)
+	_ GraphNodeResource      = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
+	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
 )
 
 func (n *NodeDestroyResource) Name() string {
 	return n.NodeAbstractResource.ResourceAddr().String() + " (clean up state)"
+}
+
+// GraphNodeReferenceable, overriding NodeAbstractResource
+func (n *NodeDestroyResource) ReferenceableAddrs() []addrs.Referenceable {
+	// NodeDestroyResource doesn't participate in references: the graph
+	// builder that created it should ensure directly that it already depends
+	// on every other node related to its resource, without relying on
+	// references.
+	return nil
+}
+
+// GraphNodeReferencer, overriding NodeAbstractResource
+func (n *NodeDestroyResource) References() []*addrs.Reference {
+	// NodeDestroyResource doesn't participate in references: the graph
+	// builder that created it should ensure directly that it already depends
+	// on every other node related to its resource, without relying on
+	// references.
+	return nil
 }
 
 // GraphNodeEvalable
@@ -297,4 +318,14 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 	return &EvalForgetResourceState{
 		Addr: n.NodeAbstractResource.ResourceAddr().Resource,
 	}
+}
+
+// GraphNodeResource
+func (n *NodeDestroyResource) ResourceAddr() addrs.AbsResource {
+	return n.NodeAbstractResource.ResourceAddr()
+}
+
+// GraphNodeSubpath
+func (n *NodeDestroyResource) Path() addrs.ModuleInstance {
+	return n.NodeAbstractResource.Path()
 }
