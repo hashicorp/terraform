@@ -15,6 +15,8 @@ type RegistrySource struct {
 	services *disco.Disco
 }
 
+var _ Source = (*RegistrySource)(nil)
+
 // NewRegistrySource creates and returns a new source that will install
 // providers from their originating provider registries.
 func NewRegistrySource(services *disco.Disco) *RegistrySource {
@@ -60,11 +62,11 @@ func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList
 	return ret, nil
 }
 
-// DownloadLocation returns metadata about the location and capabilities of
+// PackageMeta returns metadata about the location and capabilities of
 // a distribution package for a particular provider at a particular version
 // targeting a particular platform.
 //
-// Callers of DownloadLocation should first call AvailableVersions and pass
+// Callers of PackageMeta should first call AvailableVersions and pass
 // one of the resulting versions to this function. This function cannot
 // distinguish between a version that is not available and an unsupported
 // target platform, so if it encounters either case it will return an error
@@ -73,13 +75,13 @@ func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList
 //
 // To find a package suitable for the platform where the provider installation
 // process is running, set the "target" argument to
-// findproviders.CurrentPlatform.
+// getproviders.CurrentPlatform.
 //
 // If the request fails, the returned error might be an value of
 // ErrHostNoProviders, ErrHostUnreachable, ErrUnauthenticated,
 // ErrPlatformNotSupported, or ErrQueryFailed. Callers must be defensive and
 // expect errors of other types too, to allow for future expansion.
-func (s *RegistrySource) DownloadLocation(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *RegistrySource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	client, err := s.registryClient(provider.Hostname)
 	if err != nil {
 		return PackageMeta{}, err

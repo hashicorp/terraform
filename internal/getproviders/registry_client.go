@@ -207,8 +207,8 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 			OS:   body.OS,
 			Arch: body.Arch,
 		},
-		Filename:    body.Filename,
-		DownloadURL: body.DownloadURL,
+		Filename: body.Filename,
+		Location: PackageHTTPURL(body.DownloadURL),
 		// SHA256Sum is populated below
 	}
 

@@ -51,9 +51,30 @@ type PackageMeta struct {
 	ProtocolVersions VersionList
 	TargetPlatform   Platform
 
-	Filename    string
-	DownloadURL string
-	SHA256Sum   [sha256.Size]byte
+	Filename  string
+	Location  PackageLocation
+	SHA256Sum [sha256.Size]byte
 
 	// TODO: Extra metadata for signature verification
 }
+
+// PackageLocation represents a location where a provider distribution package
+// can be obtained. A value of this type contains either a PackageLocalPath or a
+// PackageHTTPURL value.
+type PackageLocation interface {
+	packageLocation()
+}
+
+// PackageLocalPath is a provider package location in the local filesystem.
+// Its value is a local filesystem path using the syntax understood by Go's
+// standard path/filepath package on the operating system where Terraform is
+// running.
+type PackageLocalPath string
+
+func (p PackageLocalPath) packageLocation() {}
+
+// PackageHTTPURL is a provider package location accessible via HTTP.
+// Its value is a URL string using either the http: scheme or the https: scheme.
+type PackageHTTPURL string
+
+func (p PackageHTTPURL) packageLocation() {}
