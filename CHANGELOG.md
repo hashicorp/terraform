@@ -1,5 +1,10 @@
 ## 0.11.15 (Unreleased)
 
+IMPROVEMENTS:
+
+* backend/http: New options for retries on outgoing requests. [GH-19702]
+* communicator/ssh: Keepalive support [GH-20437]
+
 ## 0.11.14 (May 16, 2019)
 
 NEW FEATURES:
