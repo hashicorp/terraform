@@ -200,7 +200,7 @@ func (i *ProviderInstaller) Get(provider addrs.Provider, req Constraints) (Plugi
 		}
 
 		return PluginMeta{}, diags, errwrap.Wrap(ErrorVersionIncompatible, fmt.Errorf(fmt.Sprintf(
-			errMsg, provider, v.String(), tfversion.String(),
+			errMsg, provider.LegacyString(), v.String(), tfversion.String(),
 			closestVersion.String(), closestVersion.MinorUpgradeConstraintStr(), constraintStr)))
 	}
 

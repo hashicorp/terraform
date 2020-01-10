@@ -947,6 +947,56 @@ func TestInit_rcProviders(t *testing.T) {
 	}
 }
 
+func TestInit_providerSource(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+
+	configDirName := "init-required-providers"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our plugin paths
+	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(DefaultPluginVendorDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// add some dummy providers
+	// the auto plugin directory
+	testPath := filepath.Join(c.pluginDir(), "terraform-provider-test_v1.2.3_x4")
+	if err := ioutil.WriteFile(testPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// the vendor path
+	sourcePath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-source_v1.2.3_x4")
+	if err := ioutil.WriteFile(sourcePath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{configDirName}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+	if strings.Contains(ui.OutputWriter.String(), "Terraform has initialized, but configuration upgrades may be needed") {
+		t.Fatalf("unexpected \"configuration upgrade\" warning in output")
+	}
+}
+
 func TestInit_getUpgradePlugins(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
