@@ -1,6 +1,7 @@
 package configs
 
 import (
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -19,13 +20,53 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl
 	attrs, diags := block.Body.JustAttributes()
 	var reqs []*ProviderRequirement
 	for name, attr := range attrs {
-		req, reqDiags := decodeVersionConstraint(attr)
-		diags = append(diags, reqDiags...)
-		if !diags.HasErrors() {
+		expr, err := attr.Expr.Value(nil)
+		if err != nil {
+			diags = append(diags, err...)
+		}
+
+		switch {
+		case expr.Type().IsPrimitiveType():
+			vc, reqDiags := decodeVersionConstraint(attr)
+			diags = append(diags, reqDiags...)
 			reqs = append(reqs, &ProviderRequirement{
 				Name:        name,
-				Requirement: req,
+				Requirement: vc,
 			})
+		case expr.Type().IsObjectType():
+			if expr.Type().HasAttribute("version") {
+				vc := VersionConstraint{
+					DeclRange: attr.Range,
+				}
+				constraintStr := expr.GetAttr("version").AsString()
+				constraints, err := version.NewConstraint(constraintStr)
+				if err != nil {
+					// NewConstraint doesn't return user-friendly errors, so we'll just
+					// ignore the provided error and produce our own generic one.
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid version constraint",
+						Detail:   "This string does not use correct version constraint syntax.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
+					reqs = append(reqs, &ProviderRequirement{Name: name})
+					return reqs, diags
+				}
+				vc.Required = constraints
+				reqs = append(reqs, &ProviderRequirement{Name: name, Requirement: vc})
+			}
+			// No version
+			reqs = append(reqs, &ProviderRequirement{Name: name})
+		default:
+			// should not happen
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider_requirements syntax",
+				Detail:   "provider_requirements entries must be strings or objects.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
+			reqs = append(reqs, &ProviderRequirement{Name: name})
+			return reqs, diags
 		}
 	}
 	return reqs, diags
