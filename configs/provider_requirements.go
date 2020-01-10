@@ -29,9 +29,15 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 	attrs, diags := block.Body.JustAttributes()
 	var reqs []*RequiredProvider
 	for name, attr := range attrs {
-		req, reqDiags := decodeVersionConstraint(attr)
-		diags = append(diags, reqDiags...)
-		if !diags.HasErrors() {
+		expr, err := attr.Expr.Value(nil)
+		if err != nil {
+			diags = append(diags, err...)
+		}
+
+		switch {
+		case expr.Type().IsPrimitiveType():
+			vc, reqDiags := decodeVersionConstraint(attr)
+			diags = append(diags, reqDiags...)
 			reqs = append(reqs, &RequiredProvider{
 				Name:        name,
 				Requirement: vc,
@@ -52,14 +58,14 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 						Detail:   "This string does not use correct version constraint syntax.",
 						Subject:  attr.Expr.Range().Ptr(),
 					})
-					reqs = append(reqs, &ProviderRequirement{Name: name})
+					reqs = append(reqs, &RequiredProvider{Name: name})
 					return reqs, diags
 				}
 				vc.Required = constraints
-				reqs = append(reqs, &ProviderRequirement{Name: name, Requirement: vc})
+				reqs = append(reqs, &RequiredProvider{Name: name, Requirement: vc})
 			}
 			// No version
-			reqs = append(reqs, &ProviderRequirement{Name: name})
+			reqs = append(reqs, &RequiredProvider{Name: name})
 		default:
 			// should not happen
 			diags = append(diags, &hcl.Diagnostic{
@@ -68,7 +74,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 				Detail:   "provider_requirements entries must be strings or objects.",
 				Subject:  attr.Expr.Range().Ptr(),
 			})
-			reqs = append(reqs, &ProviderRequirement{Name: name})
+			reqs = append(reqs, &RequiredProvider{Name: name})
 			return reqs, diags
 		}
 	}
