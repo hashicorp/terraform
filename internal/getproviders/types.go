@@ -59,19 +59,27 @@ type PackageMeta struct {
 }
 
 // PackageLocation represents a location where a provider distribution package
-// can be obtained. A value of this type contains either a PackageLocalPath or a
-// PackageHTTPURL value.
+// can be obtained. A value of this type contains one of the following
+// concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
 type PackageLocation interface {
 	packageLocation()
 }
 
-// PackageLocalPath is a provider package location in the local filesystem.
-// Its value is a local filesystem path using the syntax understood by Go's
-// standard path/filepath package on the operating system where Terraform is
-// running.
-type PackageLocalPath string
+// PackageLocalArchive is the location of a provider distribution archive file
+// in the local filesystem. Its value is a local filesystem path using the
+// syntax understood by Go's standard path/filepath package on the operating
+// system where Terraform is running.
+type PackageLocalArchive string
 
-func (p PackageLocalPath) packageLocation() {}
+func (p PackageLocalArchive) packageLocation() {}
+
+// PackageLocalDir is the location of a directory containing an unpacked
+// provider distribution archive in the local filesystem. Its value is a local
+// filesystem path using the syntax understood by Go's standard path/filepath
+// package on the operating system where Terraform is running.
+type PackageLocalDir string
+
+func (p PackageLocalDir) packageLocation() {}
 
 // PackageHTTPURL is a provider package location accessible via HTTP.
 // Its value is a URL string using either the http: scheme or the https: scheme.
