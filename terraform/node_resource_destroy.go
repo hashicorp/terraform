@@ -277,7 +277,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 // leaving skeleton resource objects in state after their instances have
 // all been destroyed.
 type NodeDestroyResource struct {
-	NodeAbstractResource *NodeAbstractResource
+	*NodeAbstractResource
 }
 
 var (
@@ -285,10 +285,17 @@ var (
 	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
 	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
 	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
+
+	// FIXME: this is here to document that this node is both
+	// GraphNodeProviderConsumer by virtue of the embedded
+	// NodeAbstractResource, but that behavior is not desired and we skip it by
+	// checking for GraphNodeNoProvider.
+	_ GraphNodeProviderConsumer = (*NodeDestroyResource)(nil)
+	_ GraphNodeNoProvider       = (*NodeDestroyResource)(nil)
 )
 
 func (n *NodeDestroyResource) Name() string {
-	return n.NodeAbstractResource.ResourceAddr().String() + " (clean up state)"
+	return n.ResourceAddr().String() + " (clean up state)"
 }
 
 // GraphNodeReferenceable, overriding NodeAbstractResource
@@ -316,7 +323,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// leftover husk of a resource in state after all of the child instances
 	// and their objects were destroyed.
 	return &EvalForgetResourceState{
-		Addr: n.NodeAbstractResource.ResourceAddr().Resource,
+		Addr: n.ResourceAddr().Resource,
 	}
 }
 
@@ -328,4 +335,14 @@ func (n *NodeDestroyResource) ResourceAddr() addrs.AbsResource {
 // GraphNodeSubpath
 func (n *NodeDestroyResource) Path() addrs.ModuleInstance {
 	return n.NodeAbstractResource.Path()
+}
+
+// GraphNodeNoProvider
+// FIXME: this should be removed once the node can be separated from the
+// Internal NodeAbstractResource behavior.
+func (n *NodeDestroyResource) NoProvider() {
+}
+
+type GraphNodeNoProvider interface {
+	NoProvider()
 }
