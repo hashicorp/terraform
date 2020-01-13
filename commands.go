@@ -6,7 +6,7 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command"
@@ -37,7 +37,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *Config, services *disco.Disco) {
+func initCommands(config *cliconfig.Config, services *disco.Disco) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -390,7 +390,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *Config) (auth.CredentialsSource, error) {
+func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
 	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
 	return config.CredentialsSource(helperPlugins)
 }
