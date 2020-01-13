@@ -3,6 +3,10 @@
 ENHANCEMENTS:
 * config: New built-in functions `try` and `can` are intended to ease working with data structures whose shape isn't known statically. [GH-23794]
 
+BUG FIXES:
+* command/show: Fix an issue with show and aliased providers [GH-23848]
+* core: Always clean up empty resources before empty modules [GH-23822]
+
 EXPERIMENTS:
 
 * This release includes an _opt-in experiment_ for [custom validation rules on module variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules).
@@ -10,10 +14,6 @@ EXPERIMENTS:
     The feature is not yet finalized and is subject to breaking changes even in minor releases, but we're introducing it here in order to solicit feedback from module developers about which use-cases it is meeting, any use-cases it _isn't_ meeting, and any situations where things feel harder to express than they might be.
 
     Due to the experimental nature of this feature, we do not recommend using it in "production" modules yet and we require an explicit [experimental feature opt-in](https://www.terraform.io/docs/configuration/terraform.html#experimental-language-features) of `variable_validation`. Depending on what feedback we receive, the design of this experimental feature may change significantly in future versions without an automatic upgrade path.
-
-BUG FIXES:
-* command/show: Fix an issue with show and aliased providers [GH-23848]
-* core: Always clean up empty resources before empty modules [GH-23822]
 
 ## 0.12.19 (January 08, 2020)
 
