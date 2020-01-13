@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 )
 
@@ -10,5 +11,5 @@ type GraphNodeAttachProviderMetaConfigs interface {
 	GraphNodeResource
 
 	// Sets the configuration
-	AttachProviderMetaConfigs(*configs.ProviderMeta)
+	AttachProviderMetaConfigs(map[addrs.Provider]*configs.ProviderMeta)
 }

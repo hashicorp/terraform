@@ -32,7 +32,7 @@ type Module struct {
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements map[string]ProviderRequirements
 	ProviderLocalNames   map[addrs.Provider]string
-	ProviderMetas        map[string]*ProviderMeta
+	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -95,7 +95,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:          map[string]*ModuleCall{},
 		ManagedResources:     map[string]*Resource{},
 		DataResources:        map[string]*Resource{},
-		ProviderMetas:        map[string]*ProviderMeta{},
+		ProviderMetas:        map[addrs.Provider]*ProviderMeta{},
 	}
 
 	for _, file := range primaryFiles {
@@ -199,7 +199,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, pm := range file.ProviderMetas {
-		if existing, exists := m.ProviderMetas[pm.Provider]; exists {
+		// TODO(paddy): pm.Provider is a string, but we need to build an addrs.Provider out of it somehow
+		if existing, exists := m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate provider_meta block",
@@ -207,7 +208,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				Subject:  &pm.DeclRange,
 			})
 		}
-		m.ProviderMetas[pm.Provider] = pm
+		m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)] = pm
 	}
 
 	for _, v := range file.Variables {

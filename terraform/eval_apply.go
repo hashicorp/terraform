@@ -28,7 +28,7 @@ type EvalApply struct {
 	Change         **plans.ResourceInstanceChange
 	ProviderAddr   addrs.AbsProviderConfig
 	Provider       *providers.Interface
-	ProviderMeta   *configs.ProviderMeta
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 	Output         **states.ResourceInstanceObject
 	CreateNew      *bool
@@ -78,24 +78,26 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-	if n.ProviderMeta != nil {
+	if n.ProviderMetas != nil {
 		log.Printf("[DEBUG] EvalApply: ProviderMeta config value set")
-		// if the provider doesn't support this feature, throw an error
-		if (*n.ProviderSchema).ProviderMeta == nil {
-			log.Printf("[DEBUG] EvalApply: no ProviderMeta schema")
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
-				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
-				Subject:  &n.ProviderMeta.ProviderRange,
-			})
-		} else {
-			log.Printf("[DEBUG] EvalApply: ProviderMeta schema found")
-			var configDiags tfdiags.Diagnostics
-			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
-			diags = diags.Append(configDiags)
-			if configDiags.HasErrors() {
-				return nil, diags.Err()
+		if m, ok := n.ProviderMetas[n.ProviderAddr.ProviderConfig.Type]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if (*n.ProviderSchema).ProviderMeta == nil {
+				log.Printf("[DEBUG] EvalApply: no ProviderMeta schema")
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				log.Printf("[DEBUG] EvalApply: ProviderMeta schema found")
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+				if configDiags.HasErrors() {
+					return nil, diags.Err()
+				}
 			}
 		}
 	}

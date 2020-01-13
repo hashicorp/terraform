@@ -11290,13 +11290,13 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 		}),
 	}
 
-	_, diags := ctx.Refresh()
-	assertNoErrors(t, diags)
-
-	_, diags = ctx.Plan()
+	_, diags := ctx.Plan()
 	assertNoErrors(t, diags)
 
 	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Refresh()
 	assertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {

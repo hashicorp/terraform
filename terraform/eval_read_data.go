@@ -24,7 +24,7 @@ type EvalReadData struct {
 	Config         *configs.Resource
 	Provider       *providers.Interface
 	ProviderAddr   addrs.AbsProviderConfig
-	ProviderMeta   *configs.ProviderMeta
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 
 	// Planned is set when dealing with data resources that were deferred to
@@ -107,21 +107,23 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-	if n.ProviderMeta != nil {
-		// if the provider doesn't support this feature, throw an error
-		if (*n.ProviderSchema).ProviderMeta == nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr().StringCompact()),
-				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
-				Subject:  &n.ProviderMeta.ProviderRange,
-			})
-		} else {
-			var configDiags tfdiags.Diagnostics
-			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
-			diags = diags.Append(configDiags)
-			if configDiags.HasErrors() {
-				return nil, diags.Err()
+	if n.ProviderMetas != nil {
+		if m, ok := n.ProviderMetas[n.ProviderAddr.ProviderConfig.Type]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if (*n.ProviderSchema).ProviderMeta == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr().StringCompact()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+				if configDiags.HasErrors() {
+					return nil, diags.Err()
+				}
 			}
 		}
 	}

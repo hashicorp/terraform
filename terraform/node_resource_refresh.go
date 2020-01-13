@@ -85,7 +85,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
 		a.Dependencies = n.Dependencies
-		a.ProviderMeta = n.ProviderMeta
+		a.ProviderMetas = n.ProviderMetas
 
 		return &NodeRefreshableManagedResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -238,7 +238,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
 				Provider:       &provider,
-				ProviderMeta:   n.ProviderMeta,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				Output:         &state,
