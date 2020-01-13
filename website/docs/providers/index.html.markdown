@@ -38,6 +38,7 @@ down to see all providers.
 - [Bitbucket](/docs/providers/bitbucket/index.html)
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)
+- [Check Point](/docs/providers/checkpoint/index.html)
 - [Chef](/docs/providers/chef/index.html)
 - [CherryServers](/docs/providers/cherryservers/index.html)
 - [Circonus](/docs/providers/circonus/index.html)
