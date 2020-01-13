@@ -124,27 +124,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			// Direct references need the provider configured as well as initialized
 			needConfigured[p.String()] = p
-
-			// attach the provider_meta info
-			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
-				log.Printf("[TRACE] ProviderTransformer: attaching provider meta config for %s to %s", p, dag.VertexName(v))
-				if t.Config == nil {
-					log.Printf("[TRACE] ProviderTransformer: no config set on the transformer for %s", dag.VertexName(v))
-					continue
-				}
-				if t.Config.Module == nil {
-					log.Printf("[TRACE] ProviderTransformer: no module in config for %s", dag.VertexName(v))
-					continue
-				}
-				if t.Config.Module.ProviderMetas == nil {
-					log.Printf("[TRACE] ProviderTransformer: no provider metas defined for %s", dag.VertexName(v))
-					continue
-				}
-				// BUG(paddy): we should probably change this to include the host / namespace
-				if meta, ok := t.Config.Module.ProviderMetas[p.ProviderConfig.Type.Type]; ok {
-					gnapmc.AttachProviderMetaConfigs(meta)
-				}
-			}
 		}
 	}
 

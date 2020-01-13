@@ -56,6 +56,24 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %s", dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
+
+			// attach the provider_meta info
+			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
+				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", dag.VertexName(v))
+				if t.Config == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no config set on the transformer for %s", dag.VertexName(v))
+					continue
+				}
+				if t.Config.Module == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no module in config for %s", dag.VertexName(v))
+					continue
+				}
+				if t.Config.Module.ProviderMetas == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider metas defined for %s", dag.VertexName(v))
+					continue
+				}
+				gnapmc.AttachProviderMetaConfigs(t.Config.Module.ProviderMetas)
+			}
 		}
 		for _, r := range config.Module.DataResources {
 			rAddr := r.Addr()
@@ -67,6 +85,24 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
+
+			// attach the provider_meta info
+			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
+				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", dag.VertexName(v))
+				if t.Config == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no config set on the transformer for %s", dag.VertexName(v))
+					continue
+				}
+				if t.Config.Module == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no module in config for %s", dag.VertexName(v))
+					continue
+				}
+				if t.Config.Module.ProviderMetas == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider metas defined for %s", dag.VertexName(v))
+					continue
+				}
+				gnapmc.AttachProviderMetaConfigs(t.Config.Module.ProviderMetas)
+			}
 		}
 	}
 

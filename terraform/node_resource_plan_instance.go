@@ -116,7 +116,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
-				ProviderMeta:   n.ProviderMeta,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				ForcePlanRead:  true, // _always_ produce a Read change, even if the config seems ready
 				OutputChange:   &change,
@@ -175,7 +175,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
 				Provider:            &provider,
 				ProviderAddr:        n.ResolvedProvider,
-				ProviderMeta:        n.ProviderMeta,
+				ProviderMetas:       n.ProviderMetas,
 				ProviderSchema:      &providerSchema,
 				State:               &state,
 				OutputChange:        &change,

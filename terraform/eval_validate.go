@@ -349,7 +349,7 @@ type EvalValidateResource struct {
 	Provider       *providers.Interface
 	ProviderSchema **ProviderSchema
 	Config         *configs.Resource
-	ProviderMeta   *configs.ProviderMeta
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 
 	// IgnoreWarnings means that warnings will not be passed through. This allows
 	// "just-in-time" passes of validation to continue execution through warnings.
@@ -436,20 +436,27 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	// used only in limited cases with heavy coordination with the
 	// Terraform team, so we're going to defer that solution for a future
 	// enhancement to this functionality.
-	if n.ProviderMeta != nil {
-		// if the provider doesn't support this feature, throw an error
-		if (*n.ProviderSchema).ProviderMeta == nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", cfg.ProviderConfigAddr()),
-				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
-				Subject:  &n.ProviderMeta.ProviderRange,
-			})
-		} else {
-			_, _, metaDiags := ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
-			diags = diags.Append(metaDiags)
+	/*
+		if n.ProviderMetas != nil {
+			if m, ok := n.ProviderMetas[n.ProviderAddr.ProviderConfig.Type]; ok && m != nil {
+				// if the provider doesn't support this feature, throw an error
+				if (*n.ProviderSchema).ProviderMeta == nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", cfg.ProviderConfigAddr()),
+						Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+						Subject:  &m.ProviderRange,
+					})
+				} else {
+					_, _, metaDiags := ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+					diags = diags.Append(metaDiags)
+				}
+			}
 		}
-	}
+	*/
+	// BUG(paddy): we're not validating provider_meta blocks on EvalValidate right now
+	// because the ProviderAddr for the resource isn't available on the EvalValidate
+	// struct.
 
 	// Provider entry point varies depending on resource mode, because
 	// managed resources and data resources are two distinct concepts

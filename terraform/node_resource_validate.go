@@ -46,7 +46,7 @@ func (n *NodeValidatableResource) EvalTree() EvalNode {
 			&EvalValidateResource{
 				Addr:           addr.Resource,
 				Provider:       &provider,
-				ProviderMeta:   n.ProviderMeta,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				Config:         config,
 				ConfigVal:      &configVal,

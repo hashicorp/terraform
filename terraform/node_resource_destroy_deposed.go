@@ -97,7 +97,7 @@ func (n *NodePlanDeposedResourceInstanceObject) EvalTree() EvalNode {
 					Addr:           addr.Resource,
 					ProviderAddr:   n.ResolvedProvider,
 					Provider:       &provider,
-					ProviderMeta:   n.ProviderMeta,
+					ProviderMetas:  n.ProviderMetas,
 					ProviderSchema: &providerSchema,
 					State:          &state,
 					Output:         &state,
