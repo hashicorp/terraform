@@ -12,7 +12,7 @@ resource "null_resource" "a" {
     when = destroy
     index = count.index
     key = each.key
-
+    dir = path.module
   }
 }
 
