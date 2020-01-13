@@ -21,6 +21,7 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Avi Vantage](/docs/providers/avi/index.html)
 - [Aviatrix](/docs/providers/aviatrix/index.html)
 - [A10 Networks](/docs/providers/vthunder/index.html)
+- [Check Point](/docs/providers/checkpoint/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [DNS](/docs/providers/dns/index.html)
