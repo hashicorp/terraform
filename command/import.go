@@ -53,38 +53,8 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("The import command expects two arguments.")
-		cmdFlags.Usage()
-		return 1
-	}
 
 	var diags tfdiags.Diagnostics
-
-	// Parse the provided resource address.
-	traversalSrc := []byte(args[0])
-	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
-	diags = diags.Append(travDiags)
-	if travDiags.HasErrors() {
-		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
-		c.showDiagnostics(diags)
-		c.Ui.Info(importCommandInvalidAddressReference)
-		return 1
-	}
-	addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
-	diags = diags.Append(addrDiags)
-	if addrDiags.HasErrors() {
-		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
-		c.showDiagnostics(diags)
-		c.Ui.Info(importCommandInvalidAddressReference)
-		return 1
-	}
-
-	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
-		diags = diags.Append(errors.New("A managed resource address is required. Importing into a data resource is not allowed."))
-		c.showDiagnostics(diags)
-		return 1
-	}
 
 	if !c.dirIsConfigPath(configPath) {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -108,81 +78,11 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Verify that the given address points to something that exists in config.
-	// This is to reduce the risk that a typo in the resource address will
-	// import something that Terraform will want to immediately destroy on
-	// the next plan, and generally acts as a reassurance of user intent.
-	targetConfig := config.DescendentForInstance(addr.Module)
-	if targetConfig == nil {
-		modulePath := addr.Module.String()
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Import to non-existent module",
-			Detail: fmt.Sprintf(
-				"%s is not defined in the configuration. Please add configuration for this module before importing into it.",
-				modulePath,
-			),
-		})
+	targets, newResources, targetDiags := c.argsToTargets(config, cmdFlags.Args())
+	diags = diags.Append(targetDiags)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
-	}
-	targetMod := targetConfig.Module
-	rcs := targetMod.ManagedResources
-	var rc *configs.Resource
-	resourceRelAddr := addr.Resource.Resource
-	for _, thisRc := range rcs {
-		if resourceRelAddr.Type == thisRc.Type && resourceRelAddr.Name == thisRc.Name {
-			rc = thisRc
-			break
-		}
-	}
-	if !c.Meta.allowMissingConfig && rc == nil {
-		modulePath := addr.Module.String()
-		if modulePath == "" {
-			modulePath = "the root module"
-		}
-
-		c.showDiagnostics(diags)
-
-		// This is not a diagnostic because currently our diagnostics printer
-		// doesn't support having a code example in the detail, and there's
-		// a code example in this message.
-		// TODO: Improve the diagnostics printer so we can use it for this
-		// message.
-		c.Ui.Error(fmt.Sprintf(
-			importCommandMissingResourceFmt,
-			addr, modulePath, resourceRelAddr.Type, resourceRelAddr.Name,
-		))
-		return 1
-	}
-
-	// Also parse the user-provided provider address, if any.
-	var providerAddr addrs.AbsProviderConfig
-	if c.Meta.provider != "" {
-		traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(c.Meta.provider), `-provider=...`, hcl.Pos{Line: 1, Column: 1})
-		diags = diags.Append(travDiags)
-		if travDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			c.Ui.Info(importCommandInvalidAddressReference)
-			return 1
-		}
-		relAddr, addrDiags := configs.ParseProviderConfigCompact(traversal)
-		diags = diags.Append(addrDiags)
-		if addrDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		providerAddr = relAddr.Absolute(addrs.RootModuleInstance)
-	} else {
-		// Use a default address inferred from the resource type.
-		// We assume the same module as the resource address here, which
-		// may get resolved to an inherited provider when we construct the
-		// import graph inside ctx.Import, called below.
-		if rc != nil && rc.ProviderConfigRef != nil {
-			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
-		} else {
-			providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
-		}
 	}
 
 	// Check for user-supplied plugin path
@@ -247,17 +147,8 @@ func (c *ImportCommand) Run(args []string) int {
 		}
 	}()
 
-	// Perform the import. Note that as you can see it is possible for this
-	// API to import more than one resource at once. For now, we only allow
-	// one while we stabilize this feature.
 	newState, importDiags := ctx.Import(&terraform.ImportOpts{
-		Targets: []*terraform.ImportTarget{
-			&terraform.ImportTarget{
-				Addr:         addr,
-				ID:           args[1],
-				ProviderAddr: providerAddr,
-			},
-		},
+		Targets: targets,
 	})
 	diags = diags.Append(importDiags)
 	if diags.HasErrors() {
@@ -278,7 +169,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	c.Ui.Output(c.Colorize().Color("[reset][green]\n" + importCommandSuccessMsg))
 
-	if c.Meta.allowMissingConfig && rc == nil {
+	if c.Meta.allowMissingConfig && newResources {
 		c.Ui.Output(c.Colorize().Color("[reset][yellow]\n" + importCommandAllowMissingResourceMsg))
 	}
 
@@ -290,9 +181,139 @@ func (c *ImportCommand) Run(args []string) int {
 	return 0
 }
 
+func (c *ImportCommand) argsToTargets(config *configs.Config, args []string) ([]*terraform.ImportTarget, bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if (len(args) % 2) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"the import command expects an even number of arguments",
+			c.Help(),
+		))
+		return nil, false, diags
+	}
+	var targets []*terraform.ImportTarget
+	newResources := false
+	for i := 0; i < len(args); i += 2 {
+		t, nr, targetDiags := c.argToTarget(config, args[i], args[i+1])
+		diags = diags.Append(targetDiags)
+		if t != nil {
+			targets = append(targets, t)
+		}
+		newResources = newResources || nr
+	}
+	return targets, newResources, diags
+}
+
+func (c *ImportCommand) argToTarget(config *configs.Config, addrstr, id string) (*terraform.ImportTarget, bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	// Parse the provided resource address.
+	traversalSrc := []byte(addrstr)
+	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(travDiags)
+	if diags.HasErrors() {
+		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
+		c.Ui.Info(importCommandInvalidAddressReference)
+		return nil, false, diags
+	}
+	addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
+	diags = diags.Append(addrDiags)
+	if diags.HasErrors() {
+		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
+		c.Ui.Info(importCommandInvalidAddressReference)
+		return nil, false, diags
+	}
+
+	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
+		diags = diags.Append(errors.New("A managed resource address is required. Importing into a data resource is not allowed."))
+		return nil, false, diags
+	}
+
+	// Verify that the given address points to something that exists in config.
+	// This is to reduce the risk that a typo in the resource address will
+	// import something that Terraform will want to immediately destroy on
+	// the next plan, and generally acts as a reassurance of user intent.
+	targetConfig := config.DescendentForInstance(addr.Module)
+	if targetConfig == nil {
+		modulePath := addr.Module.String()
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Import to non-existent module",
+			Detail: fmt.Sprintf(
+				"%s is not defined in the configuration. Please add configuration for this module before importing into it.",
+				modulePath,
+			),
+		})
+		return nil, false, diags
+	}
+	targetMod := targetConfig.Module
+	rcs := targetMod.ManagedResources
+	var rc *configs.Resource
+	resourceRelAddr := addr.Resource.Resource
+	for _, thisRc := range rcs {
+		if resourceRelAddr.Type == thisRc.Type && resourceRelAddr.Name == thisRc.Name {
+			rc = thisRc
+			break
+		}
+	}
+	if !c.Meta.allowMissingConfig && rc == nil {
+		modulePath := addr.Module.String()
+		if modulePath == "" {
+			modulePath = "the root module"
+		}
+		// This is not a diagnostic because currently our diagnostics printer
+		// doesn't support having a code example in the detail, and there's
+		// a code example in this message.
+		// TODO: Improve the diagnostics printer so we can use it for this
+		// message.
+		c.Ui.Error(fmt.Sprintf(
+			importCommandMissingResourceFmt,
+			addr, modulePath, resourceRelAddr.Type, resourceRelAddr.Name,
+		))
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("resource address %q does not exist in the configuration.", addr),
+			"",
+		))
+		return nil, true, diags
+	}
+
+	// Also parse the user-provided provider address, if any.
+	var providerAddr addrs.AbsProviderConfig
+	if c.Meta.provider != "" {
+		traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(c.Meta.provider), `-provider=...`, hcl.Pos{Line: 1, Column: 1})
+		diags = diags.Append(travDiags)
+		if diags.HasErrors() {
+			c.Ui.Info(importCommandInvalidAddressReference)
+			return nil, false, diags
+		}
+		relAddr, addrDiags := configs.ParseProviderConfigCompact(traversal)
+		diags = diags.Append(addrDiags)
+		if addrDiags.HasErrors() {
+			return nil, false, diags
+		}
+		providerAddr = relAddr.Absolute(addrs.RootModuleInstance)
+	} else {
+		// Use a default address inferred from the resource type.
+		// We assume the same module as the resource address here, which
+		// may get resolved to an inherited provider when we construct the
+		// import graph inside ctx.Import, called below.
+		if rc != nil && rc.ProviderConfigRef != nil {
+			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
+		} else {
+			providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
+		}
+	}
+	return &terraform.ImportTarget{
+		Addr:         addr,
+		ID:           id,
+		ProviderAddr: providerAddr,
+	}, rc == nil, diags
+}
+
 func (c *ImportCommand) Help() string {
 	helpText := `
-Usage: terraform import [options] ADDR ID
+Usage: terraform import [options] ADDR ID [ADDR ID]...
 
   Import existing infrastructure into your Terraform state.
 

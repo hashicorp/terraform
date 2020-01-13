@@ -35,9 +35,8 @@ func TestImport(t *testing.T) {
 		},
 	}
 
-	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
+	importMap := map[providers.ImportResourceStateRequest]providers.ImportResourceStateResponse{
+		{"test_instance", "bar"}: providers.ImportResourceStateResponse{ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
 				State: cty.ObjectVal(map[string]cty.Value{
@@ -45,6 +44,19 @@ func TestImport(t *testing.T) {
 				}),
 			},
 		},
+		},
+		{"test_instance", "morebar"}: providers.ImportResourceStateResponse{ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("moreyay"),
+				}),
+			},
+		},
+		},
+	}
+	p.ImportResourceStateFn = func(r providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		return importMap[r]
 	}
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -60,6 +72,8 @@ func TestImport(t *testing.T) {
 		"-state", statePath,
 		"test_instance.foo",
 		"bar",
+		"test_instance.morefoo",
+		"morebar",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -69,7 +83,7 @@ func TestImport(t *testing.T) {
 		t.Fatal("ImportResourceState should be called")
 	}
 
-	testStateOutput(t, statePath, testImportStr)
+	testStateOutput(t, statePath, testImportTwo)
 }
 
 func TestImport_providerConfig(t *testing.T) {
@@ -733,7 +747,7 @@ func TestImport_missingResourceConfig(t *testing.T) {
 	}
 	code := c.Run(args)
 	if code != 1 {
-		t.Fatalf("import succeeded; expected failure")
+		t.Errorf("import succeeded; expected failure")
 	}
 
 	msg := ui.ErrorWriter.String()
@@ -932,6 +946,14 @@ func TestImport_pluginDir(t *testing.T) {
 const testImportStr = `
 test_instance.foo:
   ID = yay
+  provider = provider.test
+`
+const testImportTwo = `
+test_instance.foo:
+  ID = yay
+  provider = provider.test
+test_instance.morefoo:
+  ID = moreyay
   provider = provider.test
 `
 
