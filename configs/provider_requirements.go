@@ -3,22 +3,31 @@ package configs
 import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/addrs"
 )
 
-// ProviderRequirement represents a declaration of a dependency on a particular
+// RequiredProvider represents a declaration of a dependency on a particular
 // provider version without actually configuring that provider. This is used in
 // child modules that expect a provider to be passed in from their parent.
 //
 // TODO: "Source" is a placeholder for an attribute that is not yet supported.
-type ProviderRequirement struct {
+type RequiredProvider struct {
 	Name        string
 	Source      string // TODO
 	Requirement VersionConstraint
 }
 
-func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl.Diagnostics) {
+// ProviderRequirements represents merged provider version constraints.
+// VersionConstraints come from terraform.require_providers blocks and provider
+// blocks.
+type ProviderRequirements struct {
+	Type               addrs.Provider
+	VersionConstraints []VersionConstraint
+}
+
+func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
-	var reqs []*ProviderRequirement
+	var reqs []*RequiredProvider
 	for name, attr := range attrs {
 		expr, err := attr.Expr.Value(nil)
 		if err != nil {
@@ -29,7 +38,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl
 		case expr.Type().IsPrimitiveType():
 			vc, reqDiags := decodeVersionConstraint(attr)
 			diags = append(diags, reqDiags...)
-			reqs = append(reqs, &ProviderRequirement{
+			reqs = append(reqs, &RequiredProvider{
 				Name:        name,
 				Requirement: vc,
 			})
@@ -49,14 +58,14 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl
 						Detail:   "This string does not use correct version constraint syntax.",
 						Subject:  attr.Expr.Range().Ptr(),
 					})
-					reqs = append(reqs, &ProviderRequirement{Name: name})
+					reqs = append(reqs, &RequiredProvider{Name: name})
 					return reqs, diags
 				}
 				vc.Required = constraints
-				reqs = append(reqs, &ProviderRequirement{Name: name, Requirement: vc})
+				reqs = append(reqs, &RequiredProvider{Name: name, Requirement: vc})
 			}
 			// No version
-			reqs = append(reqs, &ProviderRequirement{Name: name})
+			reqs = append(reqs, &RequiredProvider{Name: name})
 		default:
 			// should not happen
 			diags = append(diags, &hcl.Diagnostic{
@@ -65,7 +74,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*ProviderRequirement, hcl
 				Detail:   "provider_requirements entries must be strings or objects.",
 				Subject:  attr.Expr.Range().Ptr(),
 			})
-			reqs = append(reqs, &ProviderRequirement{Name: name})
+			reqs = append(reqs, &RequiredProvider{Name: name})
 			return reqs, diags
 		}
 	}
