@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -41,7 +42,9 @@ func TestShow(t *testing.T) {
 func TestShow_noArgs(t *testing.T) {
 	// Create the default state
 	statePath := testStateFile(t, testState())
-	defer testChdir(t, filepath.Dir(statePath))()
+	stateDir := filepath.Dir(statePath)
+	defer os.RemoveAll(stateDir)
+	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
@@ -51,16 +54,73 @@ func TestShow_noArgs(t *testing.T) {
 		},
 	}
 
-	args := []string{}
+	// the statefile created by testStateFile is named state.tfstate
+	// so one arg is required
+	args := []string{"state.tfstate"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+
+	if !strings.Contains(ui.OutputWriter.String(), "# test_instance.foo:") {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
+// https://github.com/hashicorp/terraform/issues/21462
+func TestShow_aliasedProvider(t *testing.T) {
+	// Create the default state with aliased resource
+	testState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// The weird whitespace here is reflective of how this would
+				// get written out in a real state file, due to the indentation
+				// of all of the containing wrapping objects and arrays.
+				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{},
+				DependsOn:    []addrs.Referenceable{},
+			},
+			addrs.RootModuleInstance.ProviderConfigAliased("test", "alias"),
+		)
+	})
+
+	statePath := testStateFile(t, testState)
+	stateDir := filepath.Dir(statePath)
+	defer os.RemoveAll(stateDir)
+	defer testChdir(t, stateDir)()
+
+	ui := new(cli.MockUi)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	fmt.Println(os.Getwd())
+
+	// the statefile created by testStateFile is named state.tfstate
+	args := []string{"state.tfstate"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad exit code: \n%s", ui.OutputWriter.String())
+	}
+
+	if strings.Contains(ui.OutputWriter.String(), "# missing schema for provider \"test.alias\"") {
+		t.Fatalf("bad output: \n%s", ui.OutputWriter.String())
 	}
 }
 
 func TestShow_noArgsNoState(t *testing.T) {
 	// Create the default state
 	statePath := testStateFile(t, testState())
-	defer testChdir(t, filepath.Dir(statePath))()
+	stateDir := filepath.Dir(statePath)
+	defer os.RemoveAll(stateDir)
+	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
@@ -70,7 +130,8 @@ func TestShow_noArgsNoState(t *testing.T) {
 		},
 	}
 
-	args := []string{}
+	// the statefile created by testStateFile is named state.tfstate
+	args := []string{"state.tfstate"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}
@@ -150,6 +211,7 @@ func TestShow_plan_json(t *testing.T) {
 func TestShow_state(t *testing.T) {
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
+	defer os.RemoveAll(filepath.Dir(statePath))
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
