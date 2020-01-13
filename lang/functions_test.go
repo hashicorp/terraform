@@ -472,6 +472,26 @@ func TestFunctions(t *testing.T) {
 				`jsonencode({"hello"="world"})`,
 				cty.StringVal("{\"hello\":\"world\"}"),
 			},
+			{
+				`jsonencode({"hello"=10})`,
+				cty.StringVal("{\"hello\":10}"),
+			},
+			{
+				`jsonencode({"hello"=true})`,
+				cty.StringVal("{\"hello\":true}"),
+			},
+			{
+				`jsonencode({"hello"=list(1,2,3)})`,
+				cty.StringVal("{\"hello\":[1,2,3]}"),
+			},
+			{
+				`jsonencode({"hello"=map("name", "Mabel")})`,
+				cty.StringVal("{\"hello\":{\"name\":\"Mabel\"}}"),
+			},
+			{
+				`jsonencode({"hello"=null})`,
+				cty.StringVal("{\"hello\":null}"),
+			},
 		},
 
 		"keys": {
