@@ -24,23 +24,6 @@ type Config = cliconfig.Config
 // discovery behavior for a particular hostname.
 type ConfigHost = cliconfig.ConfigHost
 
-// ConfigCredentialsHelper is the structure of the "credentials_helper"
-// nested block within the CLI configuration.
-type ConfigCredentialsHelper = cliconfig.ConfigCredentialsHelper
-
-// BuiltinConfig is the built-in defaults for the configuration. These
-// can be overridden by user configurations.
-var BuiltinConfig = cliconfig.BuiltinConfig
-
-// ConfigFile returns the default path to the configuration file.
-//
-// On Unix-like systems this is the ".terraformrc" file in the home directory.
-// On Windows, this is the "terraform.rc" file in the application data
-// directory.
-func ConfigFile() (string, error) {
-	return cliconfig.ConfigFile()
-}
-
 // ConfigDir returns the configuration directory for Terraform.
 func ConfigDir() (string, error) {
 	return cliconfig.ConfigDir()
@@ -51,12 +34,4 @@ func ConfigDir() (string, error) {
 // diagnostics (errors and warnings) encountered along the way.
 func LoadConfig() (*Config, tfdiags.Diagnostics) {
 	return cliconfig.LoadConfig()
-}
-
-// EnvConfig returns a Config populated from environment variables.
-//
-// Any values specified in this config should override those set in the
-// configuration file.
-func EnvConfig() *Config {
-	return cliconfig.EnvConfig()
 }
