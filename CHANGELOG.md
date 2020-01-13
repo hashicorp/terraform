@@ -11,6 +11,9 @@ EXPERIMENTS:
 
     Due to the experimental nature of this feature, we do not recommend using it in "production" modules yet and we require an explicit [experimental feature opt-in](https://www.terraform.io/docs/configuration/terraform.html#experimental-language-features) of `variable_validation`. Depending on what feedback we receive, the design of this experimental feature may change significantly in future versions without an automatic upgrade path.
 
+BUG FIXES:
+* core: Always clean up empty resources before empty modules [GH-23822]
+
 ## 0.12.19 (January 08, 2020)
 
 ENHANCEMENTS:
