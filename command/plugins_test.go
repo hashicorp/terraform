@@ -99,6 +99,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 
 func TestPluginPath(t *testing.T) {
 	td := testTempDir(t)
+	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	pluginPath := []string{"a", "b", "c"}
