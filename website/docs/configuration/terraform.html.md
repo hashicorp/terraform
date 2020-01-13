@@ -130,6 +130,19 @@ Root modules should use a `~>` constraint to set both a lower and upper bound
 on versions for each provider they depend on, as described in
 [Provider Versions](providers.html#provider-versions).
 
+An alternate syntax is also supported, but not intended for use at this time.
+It exists to support future enhancements.
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      version = ">= 2.7.0"
+    }
+  }
+}
+```
+
 ## Experimental Language Features
 
 From time to time the Terraform team will introduce new language features
