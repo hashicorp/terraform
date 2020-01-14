@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 * config: New built-in functions `try` and `can` are intended to ease working with data structures whose shape isn't known statically. [GH-23794]
+* config: New, optional syntax for [`required_providers`](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions) setting in `terraform` blocks. This is not intended for general use yet but will support upcoming enhancements. [GH-23843] 
 
 BUG FIXES:
 * command/show: Fix an issue with show and aliased providers [GH-23848]
