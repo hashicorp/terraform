@@ -24,7 +24,7 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
 
-	providerAddr := addrs.ProviderConfig{Type: addrs.NewLegacyProvider("foo")}
+	providerAddr := addrs.LocalProviderConfig{Type: "foo"}
 
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
 	ctx1.SetProviderInput(providerAddr, expected1)
@@ -57,8 +57,8 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 		},
 	}
 
-	providerAddrDefault := addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}
-	providerAddrAlias := addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test"), Alias: "foo"}
+	providerAddrDefault := addrs.LocalProviderConfig{Type: "test"}
+	providerAddrAlias := addrs.LocalProviderConfig{Type: "test", Alias: "foo"}
 
 	_, err := ctx.InitProvider("test", providerAddrDefault)
 	if err != nil {

@@ -33,7 +33,7 @@ type EvalContext interface {
 	// returns the implementation of the resource provider or an error.
 	//
 	// It is an error to initialize the same provider more than once.
-	InitProvider(typ string, addr addrs.ProviderConfig) (providers.Interface, error)
+	InitProvider(typ string, addr addrs.LocalProviderConfig) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.
@@ -52,18 +52,18 @@ type EvalContext interface {
 	ProviderSchema(addrs.AbsProviderConfig) *ProviderSchema
 
 	// CloseProvider closes provider connections that aren't needed anymore.
-	CloseProvider(addrs.ProviderConfig) error
+	CloseProvider(addrs.LocalProviderConfig) error
 
 	// ConfigureProvider configures the provider with the given
 	// configuration. This is a separate context call because this call
 	// is used to store the provider configuration for inheritance lookups
 	// with ParentProviderConfig().
-	ConfigureProvider(addrs.ProviderConfig, cty.Value) tfdiags.Diagnostics
+	ConfigureProvider(addrs.LocalProviderConfig, cty.Value) tfdiags.Diagnostics
 
 	// ProviderInput and SetProviderInput are used to configure providers
 	// from user input.
-	ProviderInput(addrs.ProviderConfig) map[string]cty.Value
-	SetProviderInput(addrs.ProviderConfig, map[string]cty.Value)
+	ProviderInput(addrs.LocalProviderConfig) map[string]cty.Value
+	SetProviderInput(addrs.LocalProviderConfig, map[string]cty.Value)
 
 	// InitProvisioner initializes the provisioner with the given name and
 	// returns the implementation of the resource provisioner or an error.

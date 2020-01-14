@@ -64,13 +64,13 @@ func (r *Resource) Addr() addrs.Resource {
 // that should be used for this resource. This function implements the
 // default behavior of extracting the type from the resource type name if
 // an explicit "provider" argument was not provided.
-func (r *Resource) ProviderConfigAddr() addrs.ProviderConfig {
+func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 	if r.ProviderConfigRef == nil {
 		return r.Addr().DefaultProviderConfig()
 	}
 
-	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(r.ProviderConfigRef.Name),
+	return addrs.LocalProviderConfig{
+		Type:  r.ProviderConfigRef.Name,
 		Alias: r.ProviderConfigRef.Alias,
 	}
 }
@@ -445,9 +445,9 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 //
 // This is a trivial conversion, essentially just discarding the source
 // location information and keeping just the addressing information.
-func (r *ProviderConfigRef) Addr() addrs.ProviderConfig {
-	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(r.Name),
+func (r *ProviderConfigRef) Addr() addrs.LocalProviderConfig {
+	return addrs.LocalProviderConfig{
+		Type:  r.Name,
 		Alias: r.Alias,
 	}
 }

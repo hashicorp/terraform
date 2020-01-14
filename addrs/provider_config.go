@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-// ProviderConfig is the address of a provider configuration.
-type ProviderConfig struct {
-	Type Provider
+// LocalProviderConfig is the address of a provider configuration.
+type LocalProviderConfig struct {
+	Type string
 
 	// If not empty, Alias identifies which non-default (aliased) provider
 	// configuration this address refers to.
@@ -20,48 +20,48 @@ type ProviderConfig struct {
 
 // NewDefaultProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given type name.
-func NewDefaultProviderConfig(typeName string) ProviderConfig {
-	return ProviderConfig{
-		Type: NewLegacyProvider(typeName),
+func NewDefaultProviderConfig(typeName string) LocalProviderConfig {
+	return LocalProviderConfig{
+		Type: typeName,
 	}
 }
 
 // Absolute returns an AbsProviderConfig from the receiver and the given module
 // instance address.
-func (pc ProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
+func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module:         module,
 		ProviderConfig: pc,
 	}
 }
 
-func (pc ProviderConfig) String() string {
-	if pc.Type.LegacyString() == "" {
+func (pc LocalProviderConfig) String() string {
+	if pc.Type == "" {
 		// Should never happen; always indicates a bug
 		return "provider.<invalid>"
 	}
 
 	if pc.Alias != "" {
-		return fmt.Sprintf("provider.%s.%s", pc.Type.LegacyString(), pc.Alias)
+		return fmt.Sprintf("provider.%s.%s", pc.Type, pc.Alias)
 	}
 
-	return "provider." + pc.Type.LegacyString()
+	return "provider." + pc.Type
 }
 
 // StringCompact is an alternative to String that returns the form that can
 // be parsed by ParseProviderConfigCompact, without the "provider." prefix.
-func (pc ProviderConfig) StringCompact() string {
+func (pc LocalProviderConfig) StringCompact() string {
 	if pc.Alias != "" {
-		return fmt.Sprintf("%s.%s", pc.Type.LegacyString(), pc.Alias)
+		return fmt.Sprintf("%s.%s", pc.Type, pc.Alias)
 	}
-	return pc.Type.LegacyString()
+	return pc.Type
 }
 
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
 	Module         ModuleInstance
-	ProviderConfig ProviderConfig
+	ProviderConfig LocalProviderConfig
 }
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
@@ -103,7 +103,7 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	}
 
 	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.ProviderConfig.Type = NewLegacyProvider(tt.Name)
+		ret.ProviderConfig.Type = tt.Name
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -165,8 +165,8 @@ func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnosti
 func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module: m,
-		ProviderConfig: ProviderConfig{
-			Type: NewLegacyProvider(name),
+		ProviderConfig: LocalProviderConfig{
+			Type: name,
 		},
 	}
 }
@@ -176,8 +176,8 @@ func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module: m,
-		ProviderConfig: ProviderConfig{
-			Type:  NewLegacyProvider(name),
+		ProviderConfig: LocalProviderConfig{
+			Type:  name,
 			Alias: alias,
 		},
 	}

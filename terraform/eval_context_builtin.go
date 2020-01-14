@@ -103,7 +103,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.ProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.LocalProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
 	absAddr := addr.Absolute(ctx.Path())
 
@@ -142,10 +142,10 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
 	ctx.once.Do(ctx.init)
 
-	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type.LegacyString())
+	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
+func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.LocalProviderConfig) error {
 	ctx.once.Do(ctx.init)
 
 	ctx.ProviderLock.Lock()
@@ -161,7 +161,7 @@ func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
+func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.LocalProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Absolute(ctx.Path())
 	p := ctx.Provider(absAddr)
@@ -185,7 +185,7 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg 
 	return resp.Diagnostics
 }
 
-func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string]cty.Value {
+func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.LocalProviderConfig) map[string]cty.Value {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
@@ -197,7 +197,7 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string
 	return ctx.ProviderInputConfig[pc.String()]
 }
 
-func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[string]cty.Value) {
+func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.LocalProviderConfig, c map[string]cty.Value) {
 	absProvider := pc.Absolute(ctx.Path())
 
 	if !ctx.Path().IsRoot() {

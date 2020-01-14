@@ -178,7 +178,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.ProviderConfig.Type.LegacyString(),
+			rc.ProviderAddr.ProviderConfig.Type,
 			addr.Resource.Resource.Mode,
 			addr.Resource.Resource.Type,
 		)

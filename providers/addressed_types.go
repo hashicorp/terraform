@@ -8,13 +8,13 @@ import (
 
 // AddressedTypes is a helper that extracts all of the distinct provider
 // types from the given list of relative provider configuration addresses.
-func AddressedTypes(providerAddrs []addrs.ProviderConfig) []string {
+func AddressedTypes(providerAddrs []addrs.LocalProviderConfig) []string {
 	if len(providerAddrs) == 0 {
 		return nil
 	}
 	m := map[string]struct{}{}
 	for _, addr := range providerAddrs {
-		m[addr.Type.LegacyString()] = struct{}{}
+		m[addr.Type] = struct{}{}
 	}
 
 	names := make([]string, 0, len(m))
@@ -34,7 +34,7 @@ func AddressedTypesAbs(providerAddrs []addrs.AbsProviderConfig) []string {
 	}
 	m := map[string]struct{}{}
 	for _, addr := range providerAddrs {
-		m[addr.ProviderConfig.Type.LegacyString()] = struct{}{}
+		m[addr.ProviderConfig.Type] = struct{}{}
 	}
 
 	names := make([]string, 0, len(m))

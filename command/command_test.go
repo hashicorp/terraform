@@ -271,8 +271,8 @@ func testState() *states.State {
 				Dependencies: []addrs.AbsResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
-			addrs.ProviderConfig{
-				Type: addrs.NewLegacyProvider("test"),
+			addrs.LocalProviderConfig{
+				Type: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		// DeepCopy is used here to ensure our synthetic state matches exactly

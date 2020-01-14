@@ -60,14 +60,14 @@ func (r Resource) Absolute(module ModuleInstance) AbsResource {
 // configurations from parent modules. It just does a static analysis of the
 // receiving address and returns an address to start from, relative to the
 // same module that contains the resource.
-func (r Resource) DefaultProviderConfig() ProviderConfig {
+func (r Resource) DefaultProviderConfig() LocalProviderConfig {
 	typeName := r.Type
 	if under := strings.Index(typeName, "_"); under != -1 {
 		typeName = typeName[:under]
 	}
 
-	return ProviderConfig{
-		Type: NewLegacyProvider(typeName),
+	return LocalProviderConfig{
+		Type: typeName,
 	}
 }
 

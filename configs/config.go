@@ -191,11 +191,11 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type.LegacyString()] = struct{}{}
+		m[providerAddr.Type] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type.LegacyString()] = struct{}{}
+		m[providerAddr.Type] = struct{}{}
 	}
 
 	// Must also visit our child modules, recursively.
