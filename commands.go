@@ -210,6 +210,12 @@ func initCommands(config *Config, services *disco.Disco) {
 			}, nil
 		},
 
+		"providers mirror": func() (cli.Command, error) {
+			return &command.ProvidersMirrorCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"providers schema": func() (cli.Command, error) {
 			return &command.ProvidersSchemaCommand{
 				Meta: meta,
