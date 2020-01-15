@@ -380,7 +380,7 @@ func applyFn(ctx context.Context) error {
 
 func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	usePolicyFile := false
-	if usePolicyFileRaw, ok := c.Get("use_policyfile"); ok {
+	if usePolicyFileRaw, ok := c.Get("use_policyfile"); ok && !c.IsComputed("use_policyfile") {
 		switch usePolicyFileRaw := usePolicyFileRaw.(type) {
 		case bool:
 			usePolicyFile = usePolicyFileRaw
@@ -393,6 +393,8 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 		default:
 			return ws, append(es, errors.New("\"use_policyfile\" must be a boolean"))
 		}
+	} else if c.IsComputed("use_policyfile") {
+		usePolicyFile = c.IsSet("use_policyfile")
 	}
 
 	if !usePolicyFile && !c.IsSet("run_list") {
