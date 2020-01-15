@@ -81,6 +81,13 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 				return nil, fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
 			}
 		}
+
+		// Ensure Windows is using the proper modules directory format after
+		// reading the modules manifest
+		if string(filepath.Separator) != "/" {
+			record.Dir = filepath.FromSlash(record.Dir)
+		}
+
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
