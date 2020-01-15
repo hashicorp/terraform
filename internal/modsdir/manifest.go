@@ -125,7 +125,7 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 
 		// Ensure Dir is written in a format that can be read by Linux and
 		// Windows nodes
-		if record.Dir != "" {
+		if string(filepath.Separator) != "/" {
 			record.Dir = filepath.ToSlash(record.Dir)
 		}
 		write.Records = append(write.Records, record)
