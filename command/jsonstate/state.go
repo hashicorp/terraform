@@ -273,8 +273,11 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				current.Index = k
 			}
 
+			// FIXME: this info needs to be stored in state
+			providerFqn := addrs.NewLegacyProvider(r.ProviderConfig.ProviderConfig.Type)
+
 			schema, _ := schemas.ResourceTypeConfig(
-				r.ProviderConfig.ProviderConfig.Type,
+				providerFqn.String(),
 				r.Addr.Mode,
 				r.Addr.Type,
 			)

@@ -304,7 +304,10 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 	if !ok {
 		panic(fmt.Sprintf("unknown provider type for %s", addr.String()))
 	}
-	providerSchema, ok := an.ProviderSchemas[providerType]
+
+	// FQN!
+	fqn := addrs.NewLegacyProvider(providerType).String()
+	providerSchema, ok := an.ProviderSchemas[fqn]
 	if !ok {
 		panic(fmt.Sprintf("missing schema for provider type %q", providerType))
 	}
@@ -357,7 +360,8 @@ func (u *Upgrader) upgradeNativeSyntaxProvider(filename string, buf *bytes.Buffe
 
 	// We should always have a schema for each provider in our analysis
 	// object. If not, it's a bug in the analyzer.
-	providerSchema, ok := an.ProviderSchemas[typeName]
+	fqn := addrs.NewLegacyProvider(typeName).String()
+	providerSchema, ok := an.ProviderSchemas[fqn]
 	if !ok {
 		panic(fmt.Sprintf("missing schema for provider type %q", typeName))
 	}

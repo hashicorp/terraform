@@ -139,8 +139,12 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				}
 
 				var schema *configschema.Block
+
+				// FIXME: this information needs to be encoded in state
+
 				provider := addr.DefaultProviderConfig().Absolute(m.Addr).ProviderConfig.StringCompact()
-				if _, exists := schemas.Providers[provider]; !exists {
+				fqn := addrs.NewLegacyProvider(provider).String()
+				if _, exists := schemas.Providers[fqn]; !exists {
 					// This should never happen in normal use because we should've
 					// loaded all of the schemas and checked things prior to this
 					// point. We can't return errors here, but since this is UI code
@@ -152,7 +156,7 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				switch addr.Mode {
 				case addrs.ManagedResourceMode:
 					schema, _ = schemas.ResourceTypeConfig(
-						provider,
+						fqn,
 						addr.Mode,
 						addr.Type,
 					)
@@ -169,7 +173,7 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 					))
 				case addrs.DataResourceMode:
 					schema, _ = schemas.ResourceTypeConfig(
-						provider,
+						fqn,
 						addr.Mode,
 						addr.Type,
 					)

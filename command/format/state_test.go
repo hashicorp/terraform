@@ -139,7 +139,7 @@ func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
 		Providers: map[string]*terraform.ProviderSchema{
-			"test": provider.GetSchemaReturn,
+			"registry.terraform.io/-/test": provider.GetSchemaReturn,
 		},
 	}
 }

@@ -180,8 +180,11 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			)
 		}
 
+		// FIXME: this information should be encoded in plan
+		fqn := addrs.NewLegacyProvider(r.ProviderAddr.ProviderConfig.Type)
+
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			r.ProviderAddr.ProviderConfig.Type,
+			fqn.String(),
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)

@@ -11,7 +11,7 @@ func TestInternalPlugin_InternalProviders(t *testing.T) {
 	providers := m.internalProviders()
 	// terraform is the only provider moved back to internal
 	for _, name := range []string{"terraform"} {
-		pf, ok := providers[addrs.NewLegacyProvider(name)]
+		pf, ok := providers[addrs.NewLegacyProvider(name).String()]
 		if !ok {
 			t.Errorf("Expected to find %s in InternalProviders", name)
 		}

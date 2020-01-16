@@ -352,7 +352,7 @@ func TestMarshalResources(t *testing.T) {
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[string]*terraform.ProviderSchema{
-			"test": &terraform.ProviderSchema{
+			"registry.terraform.io/-/test": &terraform.ProviderSchema{
 				ResourceTypes: map[string]*configschema.Block{
 					"test_thing": {
 						Attributes: map[string]*configschema.Attribute{

@@ -53,7 +53,7 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
 		providers: map[string]providers.Factory{
-			addrs.NewLegacyProvider("test").String(): providers.FactoryFixed(testP),
+			"registry.terraform.io/-/test": providers.FactoryFixed(testP),
 		},
 	}
 

@@ -177,8 +177,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			continue
 		}
 
+		// FIXME: this information needs to be in the plan
+		providerFqn := addrs.NewLegacyProvider(rc.ProviderAddr.ProviderConfig.Type)
 		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.ProviderConfig.Type,
+			providerFqn.String(),
 			addr.Resource.Resource.Mode,
 			addr.Resource.Resource.Type,
 		)

@@ -19,9 +19,9 @@ func TestConfigProviderTypes(t *testing.T) {
 
 	got := cfg.ProviderTypes()
 	want := []string{
-		"aws",
-		"null",
-		"template",
+		"registry.terraform.io/-/aws",
+		"registry.terraform.io/-/null",
+		"registry.terraform.io/-/template",
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)

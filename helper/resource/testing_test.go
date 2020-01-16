@@ -1081,7 +1081,7 @@ func TestTestProviderResolver(t *testing.T) {
 
 	for name := range reqd {
 		t.Run(name, func(t *testing.T) {
-			pf, ok := factories[addrs.NewLegacyProvider(name)]
+			pf, ok := factories[addrs.NewLegacyProvider(name).String()]
 			if !ok {
 				t.Fatalf("no factory for %q", name)
 			}

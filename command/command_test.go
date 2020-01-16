@@ -120,8 +120,8 @@ func testFixturePath(name string) string {
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
+			map[string]providers.Factory{
+				"registry.terraform.io/-/test": providers.FactoryFixed(p),
 			},
 		),
 	}
@@ -130,8 +130,8 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
 	return &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
+			map[string]providers.Factory{
+				"registry.terraform.io/-/test": providers.FactoryFixed(p),
 			},
 		),
 		Provisioners: map[string]provisioners.Factory{
