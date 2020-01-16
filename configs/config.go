@@ -187,19 +187,39 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 	}
 
 	for _, pc := range c.Module.ProviderConfigs {
-		m[pc.Name] = struct{}{}
+		// TODO: update to addrs.NewDefaultProvider _when the time is right_
+		// first check if the provider pc.Name is mapped to a non-default Provider
+		if p, exists := c.Module.ProviderRequirements[pc.Name]; exists {
+			m[p.Type.String()] = struct{}{}
+		} else {
+			m[addrs.NewLegacyProvider(pc.Name).String()] = struct{}{}
+		}
 	}
 	for _, rc := range c.Module.ManagedResources {
-		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		pTy := rc.ProviderConfigAddr().Type
+		if p, exists := c.Module.ProviderRequirements[pTy]; exists {
+			m[p.Type.String()] = struct{}{}
+		} else {
+			m[addrs.NewLegacyProvider(pTy).String()] = struct{}{}
+		}
 	}
 	for _, rc := range c.Module.DataResources {
-		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		pTy := rc.ProviderConfigAddr().Type
+		if p, exists := c.Module.ProviderRequirements[pTy]; exists {
+			m[p.Type.String()] = struct{}{}
+		} else {
+			m[addrs.NewLegacyProvider(pTy).String()] = struct{}{}
+		}
 	}
 
 	// Must also visit our child modules, recursively.
 	for _, cc := range c.Children {
 		cc.gatherProviderTypes(m)
 	}
+}
+
+func (c *Config) ProviderForLocalConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+	// The 'required_providers' is a flat list that omits aliases
+
+	return addrs.Provider{}
 }

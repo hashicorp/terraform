@@ -72,6 +72,7 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		Schemas:            w.Context.schemas,
 		VariableValues:     w.variableValues,
 		VariableValuesLock: &w.variableValuesLock,
+		ProviderFQNs:       w.Context.providerFQNs,
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -84,6 +85,7 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		ProviderCache:       w.providerCache,
 		ProviderInputConfig: w.Context.providerInputConfig,
 		ProviderLock:        &w.providerLock,
+		ProviderFQNs:        w.Context.providerFQNs,
 		ProvisionerCache:    w.provisionerCache,
 		ProvisionerLock:     &w.provisionerLock,
 		ChangesValue:        w.Changes,

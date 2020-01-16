@@ -18,8 +18,8 @@ func TestMockResourceProvider_impl(t *testing.T) {
 // a single given.
 func testProviderComponentFactory(name string, provider providers.Interface) *basicComponentFactory {
 	return &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider(name): providers.FactoryFixed(provider),
+		providers: map[string]providers.Factory{
+			addrs.NewLegacyProvider(name).String(): providers.FactoryFixed(provider),
 		},
 	}
 }

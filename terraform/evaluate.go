@@ -52,6 +52,11 @@ type Evaluator struct {
 	// This must not be mutated during evaluation.
 	Schemas *Schemas
 
+	// ProviderFQNs is a map of AbsProviderConfigs to ProviderFQNs. A provider
+	// will only be in this list if it is not a default HashiCorp provider. This
+	// must be constructed by the caller and must not be mutated.
+	ProviderFQNs map[string]addrs.Provider
+
 	// State is the current state, embedded in a wrapper that ensures that
 	// it can be safely accessed and modified concurrently.
 	State *states.SyncState
@@ -565,7 +570,15 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 
 	instAddr := addrs.ResourceInstance{Resource: addr, Key: addrs.NoKey}
 
-	schema := d.getResourceSchema(addr, providerAddr)
+	var provider addrs.Provider
+	if fqn, exists := d.Evaluator.ProviderFQNs[providerAddr.ProviderConfig.Type]; exists {
+		provider = fqn
+	} else {
+		// TODO: this will be a NewDefaultProvider
+		provider = addrs.NewLegacyProvider(providerAddr.ProviderConfig.Type)
+	}
+
+	schema := d.getResourceSchema(addr, provider)
 	if schema == nil {
 		// This shouldn't happen, since validation before we get here should've
 		// taken care of it, but we'll show a reasonable error message anyway.
@@ -778,10 +791,9 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 	}
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	providerType := providerAddr.ProviderConfig.Type
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, provider addrs.Provider) *configschema.Block {
 	schemas := d.Evaluator.Schemas
-	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	schema, _ := schemas.ResourceTypeConfig(provider.String(), addr.Mode, addr.Type)
 	return schema
 }
 

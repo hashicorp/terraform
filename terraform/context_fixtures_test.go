@@ -3,7 +3,6 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
@@ -53,8 +52,8 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 	return &contextTestFixture{
 		Config: c,
 		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			map[string]providers.Factory{
+				"registry.terraform.io/-/aws": testProviderFuncFixed(p),
 			},
 		),
 	}
@@ -81,8 +80,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 	return &contextTestFixture{
 		Config: c,
 		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			map[string]providers.Factory{
+				"registry.terraform.io/-/aws": testProviderFuncFixed(p),
 			},
 		),
 	}

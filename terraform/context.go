@@ -102,6 +102,9 @@ type Context struct {
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
 	shadowErr           error
+
+	// ProviderFQNs is a map of addrs.AbsProviderConfig.String()s to addrs.Provider
+	providerFQNs map[string]addrs.Provider
 }
 
 // (additional methods on Context can be found in context_*.go files.)
@@ -159,7 +162,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	variables = variables.Override(opts.Variables)
 
 	// Bind available provider plugins to the constraints in config
-	var providerFactories map[addrs.Provider]providers.Factory
+	var providerFactories map[string]providers.Factory
 	if opts.ProviderResolver != nil {
 		deps := ConfigTreeDependencies(opts.Config, state)
 		reqd := deps.AllPluginRequirements()
@@ -175,7 +178,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 			return nil, diags
 		}
 	} else {
-		providerFactories = make(map[addrs.Provider]providers.Factory)
+		providerFactories = make(map[string]providers.Factory)
 	}
 
 	components := &basicComponentFactory{
@@ -199,6 +202,10 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	if config == nil {
 		config = configs.NewEmptyConfig()
 	}
+
+	// Provider config addrs (local or absolute) doesn't tell us anything about the provider FQN.
+	// Create a map of absolute provider config address strings to provider FQNs
+	pFQNs := gatherProviderFQNs(config, state)
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
@@ -230,6 +237,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		providerSHA256s:     opts.ProviderSHA256s,
+		providerFQNs:        pFQNs,
 		sh:                  sh,
 	}, diags
 }

@@ -113,8 +113,8 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 
 	// Setup our provider
 	b.ContextOpts.ProviderResolver = providers.ResolverFixed(
-		map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider(name): providers.FactoryFixed(p),
+		map[string]providers.Factory{
+			addrs.NewLegacyProvider(name).String(): providers.FactoryFixed(p),
 		},
 	)
 

@@ -288,7 +288,7 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 // This should be called only with configurations that have passed calls
 // to config.Validate(), which ensures that all of the given version
 // constraints are valid. It will panic if any invalid constraints are present.
-func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[addrs.Provider]providers.Factory, tfdiags.Diagnostics) {
+func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret, errs := resolver.ResolveProviders(reqd)
 	if errs != nil {

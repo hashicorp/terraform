@@ -32,7 +32,7 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 		transform := &AttachSchemaTransformer{
 			Schemas: &Schemas{
 				Providers: map[string]*ProviderSchema{
-					"aws": {
+					"registry.terraform.io/-/aws": {
 						ResourceTypes: map[string]*configschema.Block{
 							"aws_instance": &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{

@@ -53,12 +53,14 @@ type BuiltinEvalContext struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	Components          contextComponentFactory
-	Hooks               []Hook
-	InputValue          UIInput
+	Components contextComponentFactory
+	Hooks      []Hook
+	InputValue UIInput
+
 	ProviderCache       map[string]providers.Interface
 	ProviderInputConfig map[string]map[string]cty.Value
 	ProviderLock        *sync.Mutex
+	ProviderFQNs        map[string]addrs.Provider
 	ProvisionerCache    map[string]provisioners.Interface
 	ProvisionerLock     *sync.Mutex
 	ChangesValue        *plans.ChangesSync
@@ -107,6 +109,13 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.LocalPro
 	ctx.once.Do(ctx.init)
 	absAddr := addr.Absolute(ctx.Path())
 
+	// see if this provider has a custom FQN
+	if existing, exists := ctx.ProviderFQNs[typeName]; exists {
+		typeName = existing.String()
+	} else {
+		typeName = addrs.NewLegacyProvider(typeName).String()
+	}
+
 	// If we already initialized, it is an error
 	if p := ctx.Provider(absAddr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)
@@ -139,10 +148,10 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
+func (ctx *BuiltinEvalContext) ProviderSchema(fqn string) *ProviderSchema {
 	ctx.once.Do(ctx.init)
 
-	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
+	return ctx.Schemas.ProviderSchema(fqn)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.LocalProviderConfig) error {
@@ -170,7 +179,14 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.LocalProviderConfig,
 		return diags
 	}
 
-	providerSchema := ctx.ProviderSchema(absAddr)
+	var fqn string
+	if existing, exists := ctx.ProviderFQNs[addr.Type]; exists {
+		fqn = existing.String()
+	} else {
+		fqn = addrs.NewLegacyProvider(addr.Type).String()
+	}
+
+	providerSchema := ctx.ProviderSchema(fqn)
 	if providerSchema == nil {
 		diags = diags.Append(fmt.Errorf("schema for %s is not available", absAddr))
 		return diags

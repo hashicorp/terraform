@@ -215,8 +215,15 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	// Normally accessing this directly is wrong because it doesn't take into
 	// account provider inheritance, etc but it's okay here because we're only
 	// paying attention to the type anyway.
+
 	providerType := cfg.ProviderConfigAddr().Type
-	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+
+	fqn := addrs.NewLegacyProvider(providerType).String()
+	if existing, exists := modCfg.Module.ProviderRequirements[providerType]; exists {
+		fqn = existing.Type.String()
+	}
+
+	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(fqn, addr.Mode, addr.Type)
 
 	if schema == nil {
 		// Prior validation should've taken care of a resource block with an

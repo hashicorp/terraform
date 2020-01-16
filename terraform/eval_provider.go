@@ -140,7 +140,9 @@ func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if n.Schema != nil {
-		*n.Schema = ctx.ProviderSchema(n.Addr)
+		// FIXME oh dear, this node doesn't have the info I thought it did
+		fqn := addrs.NewLegacyProvider(n.Addr.ProviderConfig.Type).String()
+		*n.Schema = ctx.ProviderSchema(fqn)
 	}
 
 	return nil, nil

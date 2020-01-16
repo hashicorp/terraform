@@ -52,8 +52,8 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(testP),
+		providers: map[string]providers.Factory{
+			addrs.NewLegacyProvider("test").String(): providers.FactoryFixed(testP),
 		},
 	}
 

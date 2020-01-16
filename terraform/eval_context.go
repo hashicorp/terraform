@@ -33,7 +33,7 @@ type EvalContext interface {
 	// returns the implementation of the resource provider or an error.
 	//
 	// It is an error to initialize the same provider more than once.
-	InitProvider(typ string, addr addrs.LocalProviderConfig) (providers.Interface, error)
+	InitProvider(fqn string, addr addrs.LocalProviderConfig) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.
@@ -49,7 +49,7 @@ type EvalContext interface {
 	//
 	// This method expects an _absolute_ provider configuration address, since
 	// resources in one module are able to use providers from other modules.
-	ProviderSchema(addrs.AbsProviderConfig) *ProviderSchema
+	ProviderSchema(string) *ProviderSchema
 
 	// CloseProvider closes provider connections that aren't needed anymore.
 	CloseProvider(addrs.LocalProviderConfig) error

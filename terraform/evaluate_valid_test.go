@@ -56,7 +56,7 @@ For example, to correlate with indices of a referring resource, use:
 		Config: cfg,
 		Schemas: &Schemas{
 			Providers: map[string]*ProviderSchema{
-				"aws": {
+				"registry.terraform.io/-/aws": {
 					ResourceTypes: map[string]*configschema.Block{
 						"aws_instance": {},
 					},

@@ -34,9 +34,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("aws"):       providers.FactoryFixed(awsProvider),
-			addrs.NewLegacyProvider("openstack"): providers.FactoryFixed(openstackProvider),
+		providers: map[string]providers.Factory{
+			"registry.terraform.io/-/aws":       providers.FactoryFixed(awsProvider),
+			"registry.terraform.io/-/openstack": providers.FactoryFixed(openstackProvider),
 		},
 	}
 
@@ -45,8 +45,8 @@ func TestPlanGraphBuilder(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[string]*ProviderSchema{
-				"aws":       awsProvider.GetSchemaReturn,
-				"openstack": openstackProvider.GetSchemaReturn,
+				"registry.terraform.io/-/aws":       awsProvider.GetSchemaReturn,
+				"registry.terraform.io/-/openstack": openstackProvider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -92,8 +92,8 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(provider),
+		providers: map[string]providers.Factory{
+			"registry.terraform.io/-/test": providers.FactoryFixed(provider),
 		},
 	}
 
@@ -102,7 +102,7 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[string]*ProviderSchema{
-				"test": provider.GetSchemaReturn,
+				"registry.terraform.io/-/test": provider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -171,8 +171,8 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(provider),
+		providers: map[string]providers.Factory{
+			"registry.terraform.io/-/test": providers.FactoryFixed(provider),
 		},
 	}
 
@@ -181,7 +181,7 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[string]*ProviderSchema{
-				"test": provider.GetSchemaReturn,
+				"registry.terraform.io/-/test": provider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -258,8 +258,8 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	}
 
 	components := &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("aws"): providers.FactoryFixed(awsProvider),
+		providers: map[string]providers.Factory{
+			"registry.terraform.io/-/aws": providers.FactoryFixed(awsProvider),
 		},
 	}
 
@@ -268,7 +268,7 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[string]*ProviderSchema{
-				"aws": awsProvider.GetSchemaReturn,
+				"registry.terraform.io/-/aws": awsProvider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,

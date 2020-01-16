@@ -62,7 +62,6 @@ func (pc LocalProviderConfig) StringCompact() string {
 type AbsProviderConfig struct {
 	Module         ModuleInstance
 	ProviderConfig LocalProviderConfig
-	Provider       Provider
 }
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider

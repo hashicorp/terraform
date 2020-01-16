@@ -163,9 +163,9 @@ func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Inter
 	return c.ProviderProvider
 }
 
-func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
+func (c *MockEvalContext) ProviderSchema(fqn string) *ProviderSchema {
 	c.ProviderSchemaCalled = true
-	c.ProviderSchemaAddr = addr
+	c.ProviderSchemaAddr = addrs.AbsProviderConfig{ProviderConfig: addrs.LocalProviderConfig{Type: fqn}}
 	return c.ProviderSchemaSchema
 }
 

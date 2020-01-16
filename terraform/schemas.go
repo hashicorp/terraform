@@ -24,17 +24,17 @@ type Schemas struct {
 //
 // It's usually better to go use the more precise methods offered by type
 // Schemas to handle this detail automatically.
-func (ss *Schemas) ProviderSchema(typeName string) *ProviderSchema {
+func (ss *Schemas) ProviderSchema(fqn string) *ProviderSchema {
 	if ss.Providers == nil {
 		return nil
 	}
-	return ss.Providers[typeName]
+	return ss.Providers[fqn]
 }
 
 // ProviderConfig returns the schema for the provider configuration of the
 // given provider type, or nil if no such schema is available.
-func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
-	ps := ss.ProviderSchema(typeName)
+func (ss *Schemas) ProviderConfig(fqn string) *configschema.Block {
+	ps := ss.ProviderSchema(fqn)
 	if ps == nil {
 		return nil
 	}
@@ -50,8 +50,8 @@ func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
 // a resource using the "provider" meta-argument. Therefore it's important to
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
-func (ss *Schemas) ResourceTypeConfig(providerType string, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
-	ps := ss.ProviderSchema(providerType)
+func (ss *Schemas) ResourceTypeConfig(fqn string, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
+	ps := ss.ProviderSchema(fqn)
 	if ps == nil || ps.ResourceTypes == nil {
 		return nil, 0
 	}
@@ -92,19 +92,19 @@ func LoadSchemas(config *configs.Config, state *states.State, components context
 func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Config, state *states.State, components contextComponentFactory) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	ensure := func(typeName string) {
-		if _, exists := schemas[typeName]; exists {
+	ensure := func(fqn string) {
+		if _, exists := schemas[fqn]; exists {
 			return
 		}
 
-		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", typeName)
-		provider, err := components.ResourceProvider(typeName, "early/"+typeName)
+		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", fqn)
+		provider, err := components.ResourceProvider(fqn, "early/"+fqn)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
-			schemas[typeName] = &ProviderSchema{}
+			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to instantiate provider %q to obtain schema: %s", typeName, err),
+				fmt.Errorf("Failed to instantiate provider %q to obtain schema: %s", fqn, err),
 			)
 			return
 		}
@@ -116,9 +116,9 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 		if resp.Diagnostics.HasErrors() {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
-			schemas[typeName] = &ProviderSchema{}
+			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to retrieve schema from provider %q: %s", typeName, resp.Diagnostics.Err()),
+				fmt.Errorf("Failed to retrieve schema from provider %q: %s", fqn, resp.Diagnostics.Err()),
 			)
 			return
 		}
@@ -135,7 +135,7 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 			// We're not using the version numbers here yet, but we'll check
 			// for validity anyway in case we start using them in future.
 			diags = diags.Append(
-				fmt.Errorf("invalid negative schema version provider configuration for provider %q", typeName),
+				fmt.Errorf("invalid negative schema version provider configuration for provider %q", fqn),
 			)
 		}
 
@@ -144,7 +144,7 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 			s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
 			if r.Version < 0 {
 				diags = diags.Append(
-					fmt.Errorf("invalid negative schema version for resource type %s in provider %q", t, typeName),
+					fmt.Errorf("invalid negative schema version for resource type %s in provider %q", t, fqn),
 				)
 			}
 		}
@@ -155,12 +155,12 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 				// We're not using the version numbers here yet, but we'll check
 				// for validity anyway in case we start using them in future.
 				diags = diags.Append(
-					fmt.Errorf("invalid negative schema version for data source %s in provider %q", t, typeName),
+					fmt.Errorf("invalid negative schema version for data source %s in provider %q", t, fqn),
 				)
 			}
 		}
 
-		schemas[typeName] = s
+		schemas[fqn] = s
 	}
 
 	if config != nil {
@@ -169,10 +169,14 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 		}
 	}
 
+	// TODO/FIXME for now I'm just going to treat _every_ provider in state like a NewLegacyProvider
+	// this is wrong
 	if state != nil {
 		needed := providers.AddressedTypesAbs(state.ProviderAddrs())
+
 		for _, typeName := range needed {
-			ensure(typeName)
+			fqn := addrs.NewLegacyProvider(typeName)
+			ensure(fqn.String())
 		}
 	}
 
