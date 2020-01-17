@@ -151,7 +151,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{
+			Config:  b.Config,
+			Schemas: b.Schemas,
+		},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

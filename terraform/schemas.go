@@ -15,6 +15,7 @@ import (
 // Schemas is a container for various kinds of schema that Terraform needs
 // during processing.
 type Schemas struct {
+	// keys in Providers are stringified addrs.Providers
 	Providers    map[string]*ProviderSchema
 	Provisioners map[string]*configschema.Block
 }

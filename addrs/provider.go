@@ -14,6 +14,11 @@ type Provider struct {
 
 // String returns an FQN string, indended for use in output.
 func (pt Provider) String() string {
+	// if any of the fields are empty the Provider was not properly initialized
+	if pt.Type == "" || pt.Namespace == "" || pt.Hostname.ForDisplay() == "" {
+		panic("bad provider")
+	}
+
 	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
 }
 

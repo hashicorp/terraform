@@ -195,7 +195,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: t.Schemas},
+		&AttachSchemaTransformer{
+			Config:  t.Config,
+			Schemas: t.Schemas,
+		},
 
 		&ReferenceTransformer{},
 	}

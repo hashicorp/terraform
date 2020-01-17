@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -43,6 +44,7 @@ type GraphNodeAttachProvisionerSchema interface {
 // GraphNodeAttachProvisionerSchema, looks up the needed schemas for each
 // and then passes them to a method implemented by the node.
 type AttachSchemaTransformer struct {
+	Config  *configs.Config
 	Schemas *Schemas
 }
 
@@ -60,10 +62,13 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
 			providerAddr, _ := tv.ProvidedBy()
-			providerType := providerAddr.ProviderConfig.Type
 
-			// FIXME: where to lookup FQN from for real?
-			providerFqn := addrs.NewLegacyProvider(providerType).String()
+			var providerFqn string
+			if t.Config != nil {
+				providerFqn = t.Config.ProviderForLocalConfigAddr(providerAddr.ProviderConfig).String()
+			} else {
+				providerFqn = addrs.NewLegacyProvider(providerAddr.ProviderConfig.Type).String()
+			}
 
 			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
 			if schema == nil {
@@ -77,9 +82,12 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
 			providerAddr := tv.ProviderAddr()
 
-			// FIXME: where to lookup FQN from for real?
-
-			providerFqn := addrs.NewLegacyProvider(providerAddr.ProviderConfig.Type).String()
+			var providerFqn string
+			if t.Config != nil {
+				providerFqn = t.Config.ProviderForLocalConfigAddr(providerAddr.ProviderConfig).String()
+			} else {
+				providerFqn = addrs.NewLegacyProvider(tv.Name()).String()
+			}
 
 			schema := t.Schemas.ProviderConfig(providerFqn)
 			if schema == nil {

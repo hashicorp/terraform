@@ -162,7 +162,7 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
-// ProviderTypes returns the names of each distinct provider type referenced
+// ProviderTypes returns the FQNs of each distinct provider type referenced
 // in the receiving configuration.
 //
 // This is a helper for easily determining which provider types are required
@@ -218,8 +218,17 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 	}
 }
 
-func (c *Config) ProviderForLocalConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
-	// The 'required_providers' is a flat list that omits aliases
+// ProviderForLocalConfigAddr returns the FQN for a given
+// addrs.LocalProviderConfig, first by checking for the provider in the
+// module.ProviderRequirements and falling back to addrs.NewLegacyProvider if it
+// is not found.
 
-	return addrs.Provider{}
+// TODO: update to addrs.NewDefaultProvider in 0.13
+func (c *Config) ProviderForLocalConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+	// The 'required_providers' is a flat list without aliases
+	if provider, exists := c.Module.ProviderRequirements[addr.Type]; exists {
+		return provider.Type
+	}
+
+	return addrs.NewLegacyProvider(addr.Type)
 }

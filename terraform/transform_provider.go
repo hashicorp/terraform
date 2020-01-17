@@ -320,7 +320,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		log.Printf("[DEBUG] adding implicit provider configuration %s, implied first by %s", defaultAddr, dag.VertexName(v))
-
 		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
 			Addr: defaultAddr,

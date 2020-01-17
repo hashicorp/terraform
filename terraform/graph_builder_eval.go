@@ -87,7 +87,10 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{
+			Config:  b.Config,
+			Schemas: b.Schemas,
+		},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
