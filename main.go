@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
@@ -164,12 +165,18 @@ func wrappedMain() int {
 	services := disco.NewWithCredentialsSource(credsSrc)
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
+	// For the moment, we just always use the registry source to install
+	// direct from a registry. In future there should be a mechanism to
+	// configure providers sources from the CLI config, which will then
+	// change how we construct this object.
+	providerSrc := getproviders.NewRegistrySource(services)
+
 	// Initialize the backends.
 	backendInit.Init(services)
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(config, services)
+		initCommands(config, services, providerSrc)
 	}
 
 	// Run checkpoint

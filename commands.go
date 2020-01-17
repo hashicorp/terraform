@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
@@ -37,7 +38,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *cliconfig.Config, services *disco.Disco) {
+func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -67,6 +68,7 @@ func initCommands(config *cliconfig.Config, services *disco.Disco) {
 		Ui:               Ui,
 
 		Services:        services,
+		ProviderSource:  providerSrc,
 		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
