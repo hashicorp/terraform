@@ -42,6 +42,17 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
+	if c.ProviderSource == nil {
+		// This should not happen in normal use, but it might arise in unit
+		// tests if the test doesn't add a provider source, in which case
+		// we'll panic explicitly here to make it clearer what's going on.
+		// If you see a panic here, then the embedded Meta value inside the
+		// command struct has not been populated correctly. If the panic is
+		// in a unit test then you may need to provide a mock
+		// getproviders.Source, or a real one directed at a fake registry/mirror.
+		panic("providers mirror without a provider source")
+	}
+
 	targetDir := args[0]
 	if info, err := os.Stat(targetDir); err != nil || !info.IsDir() {
 		const summary = "Invalid target directory"
