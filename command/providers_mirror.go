@@ -24,10 +24,7 @@ func (c *ProvidersMirrorCommand) Synopsis() string {
 }
 
 func (c *ProvidersMirrorCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
+	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.defaultFlagSet("providers mirror")
 	if err := cmdFlags.Parse(args); err != nil {
@@ -41,6 +38,17 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	}
 
 	var diags tfdiags.Diagnostics
+
+	if c.ProviderSource == nil {
+		// This should not happen in normal use, but it might arise in unit
+		// tests if the test doesn't add a provider source, in which case
+		// we'll panic explicitly here to make it clearer what's going on.
+		// If you see a panic here, then the embedded Meta value inside the
+		// command struct has not been populated correctly. If the panic is
+		// in a unit test then you may need to provide a mock
+		// getproviders.Source, or a real one directed at a fake registry/mirror.
+		panic("providers mirror without a provider source")
+	}
 
 	targetDir := args[0]
 	if info, err := os.Stat(targetDir); err != nil || !info.IsDir() {
@@ -76,21 +84,12 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		return 1
 	}
 
-	deps, moreDiags := cfg.ProviderDependencies()
+	reqs, moreDiags := cfg.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
-
-	// Unlike other commands that install plugins for immediate use with the
-	// current workspace, this command intentionally considers only the
-	// configuration to ensure that it can be run in situations where it would
-	// be inconvenient to initialize a backend, such as if we're preparing
-	// a mirror that is intended to then be transported onto the system that
-	// has the necessary backend connectivity/credentials but might not itself
-	// be able to reach origin registries.
-	reqs := deps.AllPluginRequirements()
 
 	fmt.Printf("reqs %#v\n", reqs)
 
