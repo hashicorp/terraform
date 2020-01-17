@@ -70,12 +70,20 @@ message RawState {
     map<string, string> flatmap = 2;
 }
 
+enum StringKind {
+    PLAIN = 0;
+    MARKDOWN = 1;
+}
+
 // Schema is the configuration schema for a Resource, Provider, or Provisioner.
 message Schema {
     message Block {
         int64 version = 1;
         repeated Attribute attributes = 2;
         repeated NestedBlock block_types = 3;
+        string description = 4;
+        StringKind description_kind = 5;
+        bool deprecated = 6;
     }
 
     message Attribute {
@@ -86,6 +94,8 @@ message Schema {
         bool optional = 5;
         bool computed = 6;
         bool sensitive = 7;
+        StringKind description_kind = 8;
+        bool deprecated = 8;
     }
 
     message NestedBlock {
