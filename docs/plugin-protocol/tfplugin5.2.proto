@@ -95,7 +95,7 @@ message Schema {
         bool computed = 6;
         bool sensitive = 7;
         StringKind description_kind = 8;
-        bool deprecated = 8;
+        bool deprecated = 9;
     }
 
     message NestedBlock {
