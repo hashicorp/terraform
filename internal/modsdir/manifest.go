@@ -82,11 +82,9 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 			}
 		}
 
-		// Ensure Windows is using the proper modules directory format after
-		// reading the modules manifest
-		if string(filepath.Separator) != "/" {
-			record.Dir = filepath.FromSlash(record.Dir)
-		}
+		// Ensure Windows is using the proper modules path format after
+		// reading the modules manifest Dir records
+		record.Dir = filepath.FromSlash(record.Dir)
 
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
@@ -124,10 +122,8 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 		}
 
 		// Ensure Dir is written in a format that can be read by Linux and
-		// Windows nodes
-		if string(filepath.Separator) != "/" {
-			record.Dir = filepath.ToSlash(record.Dir)
-		}
+		// Windows nodes for remote and apply compatibility
+		record.Dir = filepath.ToSlash(record.Dir)
 		write.Records = append(write.Records, record)
 	}
 
