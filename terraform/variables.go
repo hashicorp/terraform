@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+	"regexp"
+	"string"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -290,6 +292,15 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 					tfdiags.Error,
 					"Invalid value for input variable",
 					fmt.Sprintf("The value provided for variable %q is not valid: %s.", name, err),
+				))
+			}
+		} else if pos := strings.Index(vc.Description, "allowed_pattern"); pos >= 0 {
+			pattern = strings.Trim(vc.Description[pos+15:], "= ")
+			if !regexp.MustCompile(pattern).MatchString(val.Value) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid value for input variable",
+					fmt.Sprintf("The value provided for variable %q does not match pattern: %s.", name, pattern),
 				))
 			}
 		}
