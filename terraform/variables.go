@@ -322,3 +322,4 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 
 	return diags
 }
+
