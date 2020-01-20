@@ -102,7 +102,7 @@ you can achieve this using the `find` command as follows:
 find . -name '*.tf' -printf "%h\n" | uniq | xargs -n1 terraform 0.12upgrade -yes
 ```
 
-If you are running on OSX, `find` does not have `-printf` by default. You will need to install gnu find using homebrew:
+On Mac OS X, the `find` included with the system does not support the `-printf` argument. You can install GNU find using Homebrew in order to use that argument:
 
 ```
 brew install findutils
