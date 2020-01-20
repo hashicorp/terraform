@@ -295,7 +295,7 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 				))
 			}
 		} else if pos := strings.Index(vc.Description, "allowed_pattern"); pos >= 0 {
-			pattern = strings.Trim(vc.Description[pos+15:], "= ")
+			pattern := strings.Trim(vc.Description[pos+15:], "= ")
 			if !regexp.MustCompile(pattern).MatchString(val.Value) {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
