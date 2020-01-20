@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 	"regexp"
-	"string"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -322,4 +322,3 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 
 	return diags
 }
-
