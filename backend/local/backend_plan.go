@@ -263,7 +263,7 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 			continue
 		}
 
-		// FIXME currently only available in config - where should this live?
+		// FIXME: FQN needs to be recorded in both state and plan
 		providerFqn := addrs.NewLegacyProvider(rcs.ProviderAddr.ProviderConfig.Type)
 		providerSchema := schemas.ProviderSchema(providerFqn.String())
 		if providerSchema == nil {

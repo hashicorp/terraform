@@ -44,11 +44,11 @@ type EvalContext interface {
 	// that owns the given provider before calling this method.
 	Provider(addrs.AbsProviderConfig) providers.Interface
 
-	// ProviderSchema retrieves the schema for a particular provider, which
-	// must have already been initialized with InitProvider.
+	// ProviderSchema retrieves the schema for a particular provider, which must
+	// have already been initialized with InitProvider.
 	//
-	// This method expects an _absolute_ provider configuration address, since
-	// resources in one module are able to use providers from other modules.
+	// This method expects a provider FQN string, since resources in one module
+	// are able to use providers from other modules.
 	ProviderSchema(string) *ProviderSchema
 
 	// CloseProvider closes provider connections that aren't needed anymore.

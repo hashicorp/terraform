@@ -152,7 +152,7 @@ func (i *mockProviderInstaller) FileName(provider, version string) string {
 func (i *mockProviderInstaller) Get(provider addrs.Provider, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 	noMeta := discovery.PluginMeta{}
-	versions := i.Providers[provider.Type]
+	versions := i.Providers[provider.String()]
 	if len(versions) == 0 {
 		return noMeta, diags, fmt.Errorf("provider %q not found", provider)
 	}

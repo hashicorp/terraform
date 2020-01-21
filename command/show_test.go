@@ -262,7 +262,7 @@ func TestShow_json_output(t *testing.T) {
 				Meta: m,
 				providerInstaller: &mockProviderInstaller{
 					Providers: map[string][]string{
-						"test": []string{"1.2.3"},
+						"registry.terraform.io/-/test": []string{"1.2.3"},
 					},
 					Dir: m.pluginDir(),
 				},
@@ -361,7 +361,7 @@ func TestShow_json_output_state(t *testing.T) {
 				Meta: m,
 				providerInstaller: &mockProviderInstaller{
 					Providers: map[string][]string{
-						"test": []string{"1.2.3"},
+						"registry.terraform.io/-/test": []string{"1.2.3"},
 					},
 					Dir: m.pluginDir(),
 				},

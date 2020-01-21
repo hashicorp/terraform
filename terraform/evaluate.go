@@ -52,9 +52,9 @@ type Evaluator struct {
 	// This must not be mutated during evaluation.
 	Schemas *Schemas
 
-	// ProviderFQNs is a map of AbsProviderConfigs to ProviderFQNs. A provider
-	// will only be in this list if it is not a default HashiCorp provider. This
-	// must be constructed by the caller and must not be mutated.
+	// ProviderFQNs is a map of AbsProviderConfigs strings to ProviderFQNs. A
+	// provider will only be in this list if it is not a default HashiCorp
+	// provider. This must be constructed by the caller and must not be mutated.
 	ProviderFQNs map[string]addrs.Provider
 
 	// State is the current state, embedded in a wrapper that ensures that

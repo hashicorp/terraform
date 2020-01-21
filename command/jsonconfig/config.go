@@ -144,7 +144,7 @@ func marshalProviderConfigs(
 		if provider, exists := c.Module.ProviderRequirements[pc.Name]; exists {
 			fqn = provider.Type
 		} else {
-			fqn = addrs.NewLegacyProvider(provider.Type.String())
+			fqn = addrs.NewLegacyProvider(pc.Name)
 		}
 		schema := schemas.ProviderConfig(fqn.String())
 		p := providerConfig{

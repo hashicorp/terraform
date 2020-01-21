@@ -305,7 +305,6 @@ func (u *Upgrader) upgradeNativeSyntaxResource(filename string, buf *bytes.Buffe
 		panic(fmt.Sprintf("unknown provider type for %s", addr.String()))
 	}
 
-	// FQN!
 	fqn := addrs.NewLegacyProvider(providerType).String()
 	providerSchema, ok := an.ProviderSchemas[fqn]
 	if !ok {
