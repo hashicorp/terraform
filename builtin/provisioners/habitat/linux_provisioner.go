@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 )
 
 const installURL = "https://raw.githubusercontent.com/habitat-sh/habitat/master/components/hab/install.sh"
@@ -209,7 +210,20 @@ func (p *provisioner) linuxStartHabitatSystemd(o terraform.UIOutput, comm commun
 		return err
 	}
 
-	return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("systemctl enable %s && systemctl start %s", p.ServiceName, p.ServiceName)))
+	// Restart habitat service
+	err = p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("systemctl enable %s && systemctl restart %s", p.ServiceName, p.ServiceName)))
+	if err != nil {
+		return err
+	}
+
+	// Wait for habitat service to start (hab svc status is zero return)
+	for habErr := p.runCommand(o, comm, p.linuxGetCommand("hab svc status >/dev/null 2>&1")); habErr != nil; {
+		o.Output("Waiting for habitat to start ...")
+		time.Sleep(time.Duration(1) * time.Second)
+		habErr = p.runCommand(o, comm, p.linuxGetCommand("hab svc status >/dev/null 2>&1"))
+	}
+
+	return nil
 }
 
 func (p *provisioner) linuxUploadSystemdUnit(o terraform.UIOutput, comm communicator.Communicator, contents *bytes.Buffer) error {
