@@ -169,11 +169,11 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (
 	var module module
 	var rs []resource
 
-	managedResources, err := marshalResources(c.Module.ManagedResources, schemas, addr)
+	managedResources, err := marshalManagedResources(c, schemas, addr)
 	if err != nil {
 		return module, err
 	}
-	dataResources, err := marshalResources(c.Module.DataResources, schemas, addr)
+	dataResources, err := marshalDataResources(c, schemas, addr)
 	if err != nil {
 		return module, err
 	}
@@ -279,23 +279,15 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	return ret
 }
 
-func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
+func marshalManagedResources(c *configs.Config, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
 	var rs []resource
-	for _, v := range resources {
+	for _, v := range c.Module.ManagedResources {
 		r := resource{
 			Address:           v.Addr().String(),
 			Type:              v.Type,
 			Name:              v.Name,
 			ProviderConfigKey: opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr),
-		}
-
-		switch v.Mode {
-		case addrs.ManagedResourceMode:
-			r.Mode = "managed"
-		case addrs.DataResourceMode:
-			r.Mode = "data"
-		default:
-			return rs, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, v.Mode.String())
+			Mode:              "managed",
 		}
 
 		cExp := marshalExpression(v.Count)
@@ -308,8 +300,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			}
 		}
 
-		// FIXME: need to pass this information from the config here
-		fqn := addrs.NewLegacyProvider(v.ProviderConfigAddr().Type)
+		fqn := c.ProviderForLocalConfigAddr(v.ProviderConfigAddr())
 		schema, schemaVer := schemas.ResourceTypeConfig(
 			fqn.String(),
 			v.Mode,
@@ -323,7 +314,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		r.Expressions = marshalExpressions(v.Config, schema)
 
 		// Managed is populated only for Mode = addrs.ManagedResourceMode
-		if v.Managed != nil && len(v.Managed.Provisioners) > 0 {
+		if len(v.Managed.Provisioners) > 0 {
 			var provisioners []provisioner
 			for _, p := range v.Managed.Provisioners {
 				schema := schemas.ProvisionerConfig(p.Type)
@@ -335,6 +326,62 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			}
 			r.Provisioners = provisioners
 		}
+
+		if len(v.DependsOn) > 0 {
+			dependencies := make([]string, len(v.DependsOn))
+			for i, d := range v.DependsOn {
+				ref, diags := addrs.ParseRef(d)
+				// we should not get an error here, because `terraform validate`
+				// would have complained well before this point, but if we do we'll
+				// silenty skip it.
+				if !diags.HasErrors() {
+					dependencies[i] = ref.Subject.String()
+				}
+			}
+			r.DependsOn = dependencies
+		}
+
+		rs = append(rs, r)
+	}
+	sort.Slice(rs, func(i, j int) bool {
+		return rs[i].Address < rs[j].Address
+	})
+	return rs, nil
+}
+
+func marshalDataResources(c *configs.Config, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
+	var rs []resource
+	for _, v := range c.Module.DataResources {
+		r := resource{
+			Address:           v.Addr().String(),
+			Type:              v.Type,
+			Name:              v.Name,
+			ProviderConfigKey: opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr),
+			Mode:              "data",
+		}
+
+		cExp := marshalExpression(v.Count)
+		if !cExp.Empty() {
+			r.CountExpression = &cExp
+		} else {
+			fExp := marshalExpression(v.ForEach)
+			if !fExp.Empty() {
+				r.ForEachExpression = &fExp
+			}
+		}
+
+		fqn := c.ProviderForLocalConfigAddr(v.ProviderConfigAddr())
+		schema, schemaVer := schemas.ResourceTypeConfig(
+			fqn.String(),
+			v.Mode,
+			v.Type,
+		)
+		if schema == nil {
+			return nil, fmt.Errorf("no schema found for %s", v.Addr().String())
+		}
+		r.SchemaVersion = schemaVer
+
+		r.Expressions = marshalExpressions(v.Config, schema)
 
 		if len(v.DependsOn) > 0 {
 			dependencies := make([]string, len(v.DependsOn))
