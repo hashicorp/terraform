@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 * command/show: Fix an issue with show and aliased providers [GH-23848]
 * core: Always clean up empty resources before empty modules [GH-23822]
+* internal/modsdir/manifest: Fix CLI issue with Windows machines [GH-23865]
 
 EXPERIMENTS:
 
