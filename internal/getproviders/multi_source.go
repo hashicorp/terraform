@@ -118,6 +118,23 @@ func ParseMultiSourceMatchingPatterns(strs []string) (MultiSourceMatchingPattern
 	return ret, nil
 }
 
+// CanHandleProvider returns true if and only if the given provider address
+// is both included by the selector's include patterns and _not_ excluded
+// by its exclude patterns.
+//
+// The absense of any include patterns is treated the same as a pattern
+// that matches all addresses. Exclusions take priority over inclusions.
+func (s MultiSourceSelector) CanHandleProvider(addr addrs.Provider) bool {
+	switch {
+	case s.Exclude.MatchesProvider(addr):
+		return false
+	case len(s.Include) > 0:
+		return s.Include.MatchesProvider(addr)
+	default:
+		return true
+	}
+}
+
 // MatchesProvider tests whether the receiving matching patterns match with
 // the given concrete provider address.
 func (ps MultiSourceMatchingPatterns) MatchesProvider(addr addrs.Provider) bool {

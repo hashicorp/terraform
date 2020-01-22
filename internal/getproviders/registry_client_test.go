@@ -42,6 +42,15 @@ func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup 
 		"providers.v1": server.URL + "/fails-immediately/",
 	})
 
+	// We'll also permit registry.terraform.io here just because it's our
+	// default and has some unique features that are not allowed on any other
+	// hostname. It behaves the same as example.com, which should be preferred
+	// if you're not testing something specific to the default registry in order
+	// to ensure that most things are hostname-agnostic.
+	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
+		"providers.v1": server.URL + "/providers/v1/",
+	})
+
 	return services, server.URL, func() {
 		server.Close()
 	}
@@ -89,12 +98,34 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	pathParts := strings.Split(path, "/")[3:]
-	if len(pathParts) < 3 {
+	if len(pathParts) < 2 {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`unexpected number of path parts`))
 		return
 	}
 	log.Printf("[TRACE] fake provider registry request for %#v", pathParts)
+	if len(pathParts) == 2 {
+		switch pathParts[0] + "/" + pathParts[1] {
+
+		case "-/legacy":
+			// NOTE: This legacy lookup endpoint is specific to
+			// registry.terraform.io and not expected to work on any other
+			// registry host.
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			resp.Write([]byte(`{"namespace":"legacycorp"}`))
+
+		default:
+			resp.WriteHeader(404)
+			resp.Write([]byte(`unknown namespace or provider type for direct lookup`))
+		}
+	}
+
+	if len(pathParts) < 3 {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`unexpected number of path parts`))
+		return
+	}
 
 	if pathParts[2] == "versions" {
 		if len(pathParts) != 3 {

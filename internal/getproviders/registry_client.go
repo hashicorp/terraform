@@ -238,6 +238,64 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	return ret, nil
 }
 
+// LegacyProviderCanonicalAddress returns the raw address strings produced by
+// the registry when asked about the given unqualified provider type name.
+// The returned namespace string is taken verbatim from the registry's response.
+//
+// This method exists only to allow compatibility with unqualified names
+// in older configurations. New configurations should be written so as not to
+// depend on it.
+func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string, error) {
+	endpointPath, err := url.Parse(path.Join("-", typeName))
+	if err != nil {
+		// Should never happen because we're constructing this from
+		// already-validated components.
+		return "", err
+	}
+	endpointURL := c.baseURL.ResolveReference(endpointPath)
+
+	req, err := http.NewRequest("GET", endpointURL.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	c.addHeadersToRequest(req)
+
+	// This is just to give us something to return in error messages. It's
+	// not a proper provider address.
+	placeholderProviderAddr := addrs.NewLegacyProvider(typeName)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", c.errQueryFailed(placeholderProviderAddr, err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		// Great!
+	case http.StatusNotFound:
+		return "", ErrProviderNotKnown{
+			Provider: placeholderProviderAddr,
+		}
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return "", c.errUnauthorized(placeholderProviderAddr.Hostname)
+	default:
+		return "", c.errQueryFailed(placeholderProviderAddr, errors.New(resp.Status))
+	}
+
+	type ResponseBody struct {
+		Namespace string
+	}
+	var body ResponseBody
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&body); err != nil {
+		return "", c.errQueryFailed(placeholderProviderAddr, err)
+	}
+
+	return body.Namespace, nil
+}
+
 func (c *registryClient) addHeadersToRequest(req *http.Request) {
 	if c.creds != nil {
 		c.creds.PrepareRequest(req)
