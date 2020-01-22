@@ -99,8 +99,16 @@ are not supported by the tool itself, but if you are on a Unix-style system
 you can achieve this using the `find` command as follows:
 
 ```
-find . -name '*.tf' -printf "%h\n" | xargs -n1 terraform 0.12upgrade -yes
+find . -name '*.tf' -printf "%h\n" | uniq | xargs -n1 terraform 0.12upgrade -yes
 ```
+
+On Mac OS X, the `find` included with the system does not support the `-printf` argument. You can install GNU find using Homebrew in order to use that argument:
+
+```
+brew install findutils
+```
+Once installed, run the above command line using `gfind` instead of `find`.
+
 
 Note that the above includes the `-yes` option to override the interactive
 prompt, so be sure you have a clean work tree before running it.
