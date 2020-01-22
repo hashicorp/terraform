@@ -1,13 +1,13 @@
-## 0.12.20 (Unreleased)
+## 0.12.20 (January 22, 2020)
 
 ENHANCEMENTS:
-* config: New built-in functions `try` and `can` are intended to ease working with data structures whose shape isn't known statically. [GH-23794]
-* config: New, optional syntax for [`required_providers`](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions) setting in `terraform` blocks. This is not intended for general use yet but will support upcoming enhancements. [GH-23843] 
+* config: New built-in functions `try` and `can` are intended to ease working with data structures whose shape isn't known statically. ([#23794](https://github.com/hashicorp/terraform/issues/23794))
+* config: New, optional syntax for [`required_providers`](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions) setting in `terraform` blocks. This is not intended for general use yet but will support upcoming enhancements. [[#23843](https://github.com/hashicorp/terraform/issues/23843)] 
 
 BUG FIXES:
-* command/show: Fix an issue with show and aliased providers [GH-23848]
-* core: Always clean up empty resources before empty modules [GH-23822]
-* internal/modsdir/manifest: Fix CLI issue with Windows machines [GH-23865]
+* command/show: Fix an issue with show and aliased providers ([#23848](https://github.com/hashicorp/terraform/issues/23848))
+* core: Always clean up empty resources before empty modules ([#23822](https://github.com/hashicorp/terraform/issues/23822))
+* internal/modsdir/manifest: Fix CLI issue with Windows machines ([#23865](https://github.com/hashicorp/terraform/issues/23865))
 
 EXPERIMENTS:
 
