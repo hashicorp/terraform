@@ -1,4 +1,4 @@
-package terraform
+eval_diff.gopackage terraform
 
 import (
 	"fmt"
