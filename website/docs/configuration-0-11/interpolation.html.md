@@ -465,7 +465,7 @@ ${hello} ${world}!
 ```hcl
 data "template_file" "example" {
   template = "${file("templates/greeting.tpl")}"
-  vars {
+  vars = {
     hello = "goodnight"
     world = "moon"
   }
