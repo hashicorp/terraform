@@ -11,7 +11,7 @@ import (
 
 // ProviderConfig is the address of a provider configuration.
 type ProviderConfig struct {
-	Type Provider
+	Type string
 
 	// If not empty, Alias identifies which non-default (aliased) provider
 	// configuration this address refers to.
@@ -22,7 +22,7 @@ type ProviderConfig struct {
 // configuration for the provider with the given type name.
 func NewDefaultProviderConfig(typeName string) ProviderConfig {
 	return ProviderConfig{
-		Type: NewLegacyProvider(typeName),
+		Type: typeName,
 	}
 }
 
@@ -36,25 +36,25 @@ func (pc ProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
 }
 
 func (pc ProviderConfig) String() string {
-	if pc.Type.LegacyString() == "" {
+	if pc.Type == "" {
 		// Should never happen; always indicates a bug
 		return "provider.<invalid>"
 	}
 
 	if pc.Alias != "" {
-		return fmt.Sprintf("provider.%s.%s", pc.Type.LegacyString(), pc.Alias)
+		return fmt.Sprintf("provider.%s.%s", pc.Type, pc.Alias)
 	}
 
-	return "provider." + pc.Type.LegacyString()
+	return "provider." + pc.Type
 }
 
 // StringCompact is an alternative to String that returns the form that can
 // be parsed by ParseProviderConfigCompact, without the "provider." prefix.
 func (pc ProviderConfig) StringCompact() string {
 	if pc.Alias != "" {
-		return fmt.Sprintf("%s.%s", pc.Type.LegacyString(), pc.Alias)
+		return fmt.Sprintf("%s.%s", pc.Type, pc.Alias)
 	}
-	return pc.Type.LegacyString()
+	return pc.Type
 }
 
 // AbsProviderConfig is the absolute address of a provider configuration
@@ -103,7 +103,7 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	}
 
 	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.ProviderConfig.Type = NewLegacyProvider(tt.Name)
+		ret.ProviderConfig.Type = tt.Name
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -166,7 +166,7 @@ func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module: m,
 		ProviderConfig: ProviderConfig{
-			Type: NewLegacyProvider(name),
+			Type: name,
 		},
 	}
 }
@@ -177,7 +177,7 @@ func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderCon
 	return AbsProviderConfig{
 		Module: m,
 		ProviderConfig: ProviderConfig{
-			Type:  NewLegacyProvider(name),
+			Type:  name,
 			Alias: alias,
 		},
 	}

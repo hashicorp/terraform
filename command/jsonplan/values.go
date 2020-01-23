@@ -181,7 +181,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		}
 
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			r.ProviderAddr.ProviderConfig.Type.LegacyString(),
+			r.ProviderAddr.ProviderConfig.Type,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)

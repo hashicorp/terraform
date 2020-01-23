@@ -42,7 +42,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -57,7 +57,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -75,7 +75,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(childInstance),
 	)
 	childModule.SetResourceInstanceCurrent(
@@ -98,7 +98,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(childInstance),
 	)
 
@@ -123,7 +123,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(childInstance),
 	)
 
@@ -139,7 +139,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(childInstance),
 	)
 	childModule.SetResourceInstanceCurrent(
@@ -154,7 +154,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(childInstance),
 	)
 
@@ -170,7 +170,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(childInstance),
 	)
 

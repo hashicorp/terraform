@@ -16,7 +16,7 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 
 	seq := make([]EvalNode, 0, 5)
 	seq = append(seq, &EvalInitProvider{
-		TypeName: relAddr.Type.LegacyString(),
+		TypeName: relAddr.Type,
 		Addr:     addr.ProviderConfig,
 	})
 

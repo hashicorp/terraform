@@ -115,7 +115,7 @@ func TestContextImport_collision(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.ProviderConfig{Type: addrs.NewLegacyProvider("aws")}.Absolute(addrs.RootModuleInstance),
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
 			)
 		}),
 	})
@@ -601,7 +601,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.ProviderConfig{Type: addrs.NewLegacyProvider("aws")}.Absolute(addrs.RootModuleInstance),
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
 			)
 		}),
 	})
@@ -659,7 +659,7 @@ func TestContextImport_moduleExisting(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.ProviderConfig{Type: addrs.NewLegacyProvider("aws")}.Absolute(addrs.RootModuleInstance),
+				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
 			)
 		}),
 	})

@@ -17,7 +17,7 @@ func TestBuildProviderConfig(t *testing.T) {
 		"set_in_config": cty.StringVal("config"),
 	})
 	providerAddr := addrs.ProviderConfig{
-		Type: addrs.NewLegacyProvider("foo"),
+		Type: "foo",
 	}
 
 	ctx := &MockEvalContext{
@@ -68,7 +68,7 @@ func TestEvalConfigProvider(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	rp := providers.Interface(provider)
 	n := &EvalConfigProvider{
-		Addr:     addrs.ProviderConfig{Type: addrs.NewLegacyProvider("foo")},
+		Addr:     addrs.ProviderConfig{Type: "foo"},
 		Config:   config,
 		Provider: &rp,
 	}
@@ -98,7 +98,7 @@ func TestEvalInitProvider_impl(t *testing.T) {
 
 func TestEvalInitProvider(t *testing.T) {
 	n := &EvalInitProvider{
-		Addr: addrs.ProviderConfig{Type: addrs.NewLegacyProvider("foo")},
+		Addr: addrs.ProviderConfig{Type: "foo"},
 	}
 	provider := &MockProvider{}
 	ctx := &MockEvalContext{InitProviderProvider: provider}
@@ -116,7 +116,7 @@ func TestEvalInitProvider(t *testing.T) {
 
 func TestEvalCloseProvider(t *testing.T) {
 	n := &EvalCloseProvider{
-		Addr: addrs.ProviderConfig{Type: addrs.NewLegacyProvider("foo")},
+		Addr: addrs.ProviderConfig{Type: "foo"},
 	}
 	provider := &MockProvider{}
 	ctx := &MockEvalContext{CloseProviderProvider: provider}

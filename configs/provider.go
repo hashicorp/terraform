@@ -96,7 +96,7 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 // to its containing module.
 func (p *Provider) Addr() addrs.ProviderConfig {
 	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(p.Name),
+		Type:  p.Name,
 		Alias: p.Alias,
 	}
 }
@@ -123,7 +123,7 @@ func (p *Provider) moduleUniqueKey() string {
 func ParseProviderConfigCompact(traversal hcl.Traversal) (addrs.ProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := addrs.ProviderConfig{
-		Type: addrs.NewLegacyProvider(traversal.RootName()),
+		Type: traversal.RootName(),
 	}
 
 	if len(traversal) < 2 {

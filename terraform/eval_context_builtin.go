@@ -142,7 +142,7 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
 	ctx.once.Do(ctx.init)
 
-	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type.LegacyString())
+	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {

@@ -4976,7 +4976,7 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
 			},
 			addrs.ProviderConfig{
-				Type: addrs.NewLegacyProvider("test"),
+				Type: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})

@@ -67,7 +67,7 @@ func (r Resource) DefaultProviderConfig() ProviderConfig {
 	}
 
 	return ProviderConfig{
-		Type: NewLegacyProvider(typeName),
+		Type: typeName,
 	}
 }
 
