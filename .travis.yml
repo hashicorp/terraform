@@ -13,14 +13,6 @@ go:
 env:
   - CONSUL_VERSION=0.7.5 GOMAXPROCS=4 GO111MODULE=on GOPROXY=https://proxy.golang.org/
 
-# Fetch consul for the backend and provider tests
-before_install:
-  - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
-  - unzip consul.zip
-  - mkdir -p ~/bin
-  - mv consul ~/bin
-  - export PATH="~/bin:$PATH"
-
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
@@ -33,10 +25,15 @@ before_script:
 - git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
 script:
-- make test
-- go mod verify
-- make e2etest
-- GOOS=windows go build -mod=vendor
+- if [ "$HOSTTYPE" == "s390x" ]; then 
+    make test;
+    go mod verify;
+  else
+    make test;
+    go mod verify;
+    make e2etest;
+    GOOS=windows go build -mod=vendor;
+  fi
 # website-test is temporarily disabled while we get the website build back in shape after the v0.12 reorganization
 #- make website-test
 
@@ -54,3 +51,14 @@ matrix:
   fast_finish: true
   allow_failures:
   - go: tip
+  include:
+    - os: linux
+      # Fetch consul for the backend and provider tests
+      before_install:
+        - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+        - unzip consul.zip
+        - mkdir -p ~/bin
+        - mv consul ~/bin
+        - export PATH="~/bin:$PATH"
+    - os: linux
+      arch: s390x
