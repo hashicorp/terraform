@@ -133,6 +133,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"yamldecode":       ctyyaml.YAMLDecodeFunc,
 			"yamlencode":       ctyyaml.YAMLEncodeFunc,
 			"zipmap":           funcs.ZipmapFunc,
+			"flipmap":           funcs.FlipmapFunc,
 		}
 
 		s.funcs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, func() map[string]function.Function {
