@@ -664,29 +664,28 @@ form. This covers many uses, but some resource types include repeatable _nested
 blocks_ in their arguments, which do not accept expressions:
 
 ```hcl
-resource "aws_security_group" "example" {
+resource "sample_resource" "example" {
   name = "example" # can use expressions here
 
-  ingress {
-    # but the "ingress" block is always a literal block
+  repeatable_block {
+    # but the "repeatable_block" block is always a literal block
   }
 }
 ```
 
-You can dynamically construct repeatable nested blocks like `ingress` using a
+You can dynamically construct repeatable nested blocks like `repeatable_block` using a
 special `dynamic` block type, which is supported inside `resource`, `data`,
 `provider`, and `provisioner` blocks:
 
 ```hcl
-resource "aws_security_group" "example" {
+resource "sample_resource" "example" {
   name = "example" # can use expressions here
 
-  dynamic "ingress" {
-    for_each = var.service_ports
+  dynamic "repeatable_block" {
+    for_each = var.things
     content {
-      from_port = ingress.value
-      to_port   = ingress.value
-      protocol  = "tcp"
+      val1 = repeatable_block.value
+      val2   = repeatable_block.value
     }
   }
 }
@@ -696,12 +695,12 @@ A `dynamic` block acts much like a `for` expression, but produces nested blocks
 instead of a complex typed value. It iterates over a given complex value, and
 generates a nested block for each element of that complex value.
 
-- The label of the dynamic block (`"ingress"` in the example above) specifies
+- The label of the dynamic block (`"repeatable_block"` in the example above) specifies
   what kind of nested block to generate.
 - The `for_each` argument provides the complex value to iterate over.
 - The `iterator` argument (optional) sets the name of a temporary variable
   that represents the current element of the complex value. If omitted, the name
-  of the variable defaults to the label of the `dynamic` block (`"ingress"` in
+  of the variable defaults to the label of the `dynamic` block (`"repeatable_block"` in
   the example above).
 - The `labels` argument (optional) is a list of strings that specifies the block
   labels, in order, to use for each generated block. You can use the temporary
@@ -713,7 +712,7 @@ Since the `for_each` argument accepts any collection or structural value,
 you can use a `for` expression or splat expression to transform an existing
 collection.
 
-The iterator object (`ingress` in the example above) has two attributes:
+The iterator object (`repeatable_block` in the example above) has two attributes:
 
 * `key` is the map key or list element index for the current element. If the
   `for_each` expression produces a _set_ value then `key` is identical to
