@@ -12,7 +12,7 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	oauthserver "github.com/hashicorp/terraform/command/testdata/login-oauth-server"
@@ -70,6 +70,13 @@ func TestLogin(t *testing.T) {
 					"token":  s.URL + "/token",
 				},
 			})
+			svcs.ForceHostServices(svchost.Hostname("tfe.acme.com"), map[string]interface{}{
+				// This represents a Terraform Enterprise instance which does not
+				// yet support the login API, but does support the TFE tokens API.
+				"tfe.v2":   "/api/v2",
+				"tfe.v2.1": "/api/v2",
+				"tfe.v2.2": "/api/v2",
+			})
 			svcs.ForceHostServices(svchost.Hostname("unsupported.example.net"), map[string]interface{}{
 				// This host intentionally left blank.
 			})
@@ -125,13 +132,31 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
+	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
+		// Enter "yes" at the consent prompt, then paste a token.
+		inp("yes\npasted-token\n")
+		status := c.Run([]string{"tfe.acme.com"})
+		if status != 0 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+		}
+
+		credsSrc := c.Services.CredentialsSource()
+		creds, err := credsSrc.ForHost(svchost.Hostname("tfe.acme.com"))
+		if err != nil {
+			t.Errorf("failed to retrieve credentials: %s", err)
+		}
+		if got, want := creds.Token(), "pasted-token"; got != want {
+			t.Errorf("wrong token %q; want %q", got, want)
+		}
+	}))
+
+	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
 		status := c.Run([]string{"unsupported.example.net"})
 		if status == 0 {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Error: Host does not support Terraform login"; !strings.Contains(got, want) {
+		if got, want := ui.ErrorWriter.String(), "Error: Host does not support Terraform tokens API"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	}))
