@@ -404,6 +404,15 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"flipmap": {
+			{
+				`flipmap({"hello" = "world"})`,
+				cty.MapVal(map[string]cty.Value{
+					"world": cty.StringVal("hello"),
+				}),
+			},
+		},
+
 		"floor": {
 			{
 				`floor(-1.8)`,
@@ -986,15 +995,6 @@ func TestFunctions(t *testing.T) {
 				cty.ObjectVal(map[string]cty.Value{
 					"hello": cty.StringVal("world"),
 					"bar":   cty.StringVal("baz"),
-				}),
-			},
-		},
-
-		"flipmap": {
-			{
-				`flipmap({"hello" = "world"})`,
-				cty.MapVal(map[string]cty.Value{
-					"world": cty.StringVal("hello"),
 				}),
 			},
 		},

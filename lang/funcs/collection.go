@@ -76,6 +76,52 @@ var ElementFunc = function.New(&function.Spec{
 	},
 })
 
+// FlipmapFunc constructs a function that flips keys and values of a map or object of strings
+var FlipmapFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "inputObject",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		m := args[0]
+		ty := args[0].Type()
+
+		switch {
+		case ty.IsMapType():
+			if ty.ElementType() != cty.String {
+				return cty.DynamicPseudoType, function.NewArgErrorf(0, "each map element must be of type string")
+			}
+			return cty.Map(cty.String), nil
+		case ty.IsObjectType():
+			for it := m.ElementIterator(); it.Next(); {
+				_, v := it.Element()
+				if v.Type() != cty.String {
+					return cty.DynamicPseudoType, function.NewArgErrorf(0, "each object element must be of type string")
+				}
+			}
+			return cty.Map(cty.String), nil
+		}
+		return cty.Map(cty.String), errors.New("input must be map or object")
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		m := args[0]
+		o := make(map[string]cty.Value)
+
+		for it := m.ElementIterator(); it.Next(); {
+			k, v := it.Element()
+			o[v.AsString()] = k
+		}
+
+		if len(o) == 0 {
+			return cty.MapValEmpty(cty.String), nil
+		}
+
+		return cty.MapVal(o), nil
+	},
+})
+
 var LengthFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -1379,52 +1425,6 @@ var ZipmapFunc = function.New(&function.Spec{
 	},
 })
 
-// FlipmapFunc constructs a function that flips keys and values of a map or object of strings
-var FlipmapFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "inputObject",
-			Type: cty.DynamicPseudoType,
-		},
-	},
-	Type: func(args []cty.Value) (ret cty.Type, err error) {
-		m := args[0]
-		ty := args[0].Type()
-
-		switch {
-		case ty.IsMapType():
-			if ty.ElementType() != cty.String {
-				return cty.DynamicPseudoType, function.NewArgErrorf(0, "each map element must be of type string")
-			}
-			return cty.Map(cty.String), nil
-		case ty.IsObjectType():
-			for it := m.ElementIterator(); it.Next(); {
-				_, v := it.Element()
-				if v.Type() != cty.String {
-					return cty.DynamicPseudoType, function.NewArgErrorf(0, "each object element must be of type string")
-				}
-			}
-			return cty.Map(cty.String), nil
-		}
-		return cty.Map(cty.String), errors.New("input must be map or object")
-	},
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		m := args[0]
-		o := make(map[string]cty.Value)
-
-		for it := m.ElementIterator(); it.Next(); {
-			k, v := it.Element()
-			o[v.AsString()] = k
-		}
-
-		if len(o) == 0 {
-			return cty.MapValEmpty(cty.String), nil
-		}
-
-		return cty.MapVal(o), nil
-	},
-})
-
 // helper function to add an element to a list, if it does not already exist
 func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
 	for _, ele := range slice {
@@ -1444,6 +1444,11 @@ func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) 
 // the list length.
 func Element(list, index cty.Value) (cty.Value, error) {
 	return ElementFunc.Call([]cty.Value{list, index})
+}
+
+// Flipmap flips keys and values of a map or object of strings
+func Flipmap(inputObject cty.Value) (cty.Value, error) {
+	return FlipmapFunc.Call([]cty.Value{inputObject})
 }
 
 // Length returns the number of elements in the given collection or number of
@@ -1565,9 +1570,4 @@ func Values(values cty.Value) (cty.Value, error) {
 // Zipmap constructs a map from a list of keys and a corresponding list of values.
 func Zipmap(keys, values cty.Value) (cty.Value, error) {
 	return ZipmapFunc.Call([]cty.Value{keys, values})
-}
-
-// Flipmap flips keys and values of a map or object of strings
-func Flipmap(inputObject cty.Value) (cty.Value, error) {
-	return FlipmapFunc.Call([]cty.Value{inputObject})
 }

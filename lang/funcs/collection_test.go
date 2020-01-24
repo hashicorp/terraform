@@ -126,6 +126,65 @@ func TestElement(t *testing.T) {
 
 }
 
+func TestFlipmap(t *testing.T) {
+	tests := []struct {
+		Values cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.StringVal("bar"),
+				"world": cty.StringVal("baz"),
+			}),
+			cty.MapVal(map[string]cty.Value{
+				"bar": cty.StringVal("hello"),
+				"baz": cty.StringVal("world"),
+			}),
+			false,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"hello": cty.StringVal("bar"),
+				"world": cty.StringVal("baz"),
+			}),
+			cty.MapVal(map[string]cty.Value{
+				"bar": cty.StringVal("hello"),
+				"baz": cty.StringVal("world"),
+			}),
+			false,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"hello": cty.ListVal([]cty.Value{
+					cty.StringVal("world"),
+				}),
+			}),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("flipmap(%#v)", test.Values), func(t *testing.T) {
+			got, err := Flipmap(test.Values)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestLength(t *testing.T) {
 	tests := []struct {
 		Value cty.Value
@@ -3213,65 +3272,6 @@ func TestZipmap(t *testing.T) {
 
 			if !got.RawEquals(test.Want) {
 				t.Errorf("wrong result\n\nkeys:   %#v\nvalues: %#v\ngot:    %#v\nwant:   %#v", test.Keys, test.Values, got, test.Want)
-			}
-		})
-	}
-}
-
-func TestFlipmap(t *testing.T) {
-	tests := []struct {
-		Values cty.Value
-		Want   cty.Value
-		Err    bool
-	}{
-		{
-			cty.MapVal(map[string]cty.Value{
-				"hello": cty.StringVal("bar"),
-				"world": cty.StringVal("baz"),
-			}),
-			cty.MapVal(map[string]cty.Value{
-				"bar": cty.StringVal("hello"),
-				"baz": cty.StringVal("world"),
-			}),
-			false,
-		},
-		{
-			cty.ObjectVal(map[string]cty.Value{
-				"hello": cty.StringVal("bar"),
-				"world": cty.StringVal("baz"),
-			}),
-			cty.MapVal(map[string]cty.Value{
-				"bar": cty.StringVal("hello"),
-				"baz": cty.StringVal("world"),
-			}),
-			false,
-		},
-		{
-			cty.MapVal(map[string]cty.Value{
-				"hello": cty.ListVal([]cty.Value{
-					cty.StringVal("world"),
-				}),
-			}),
-			cty.NilVal,
-			true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("flipmap(%#v)", test.Values), func(t *testing.T) {
-			got, err := Flipmap(test.Values)
-
-			if test.Err {
-				if err == nil {
-					t.Fatal("succeeded; want error")
-				}
-				return
-			} else if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
 			}
 		})
 	}
