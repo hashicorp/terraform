@@ -989,6 +989,15 @@ func TestFunctions(t *testing.T) {
 				}),
 			},
 		},
+
+		"flipmap": {
+			{
+				`flipmap({"hello" = "world"})`,
+				cty.MapVal(map[string]cty.Value{
+					"world": cty.StringVal("hello"),
+				}),
+			},
+		},
 	}
 
 	data := &dataForTests{} // no variables available; we only need literals here
