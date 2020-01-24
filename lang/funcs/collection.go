@@ -1399,7 +1399,7 @@ var FlipmapFunc = function.New(&function.Spec{
 			return cty.Map(cty.String), nil
 		case ty.IsObjectType():
 			for it := m.ElementIterator(); it.Next(); {
-				_,v := it.Element()
+				_, v := it.Element()
 				if v.Type() != cty.String {
 					return cty.DynamicPseudoType, function.NewArgErrorf(0, "each object element must be of type string")
 				}
@@ -1413,7 +1413,7 @@ var FlipmapFunc = function.New(&function.Spec{
 		o := make(map[string]cty.Value)
 
 		for it := m.ElementIterator(); it.Next(); {
-			k,v := it.Element()
+			k, v := it.Element()
 			o[v.AsString()] = k
 		}
 
