@@ -14,6 +14,15 @@ func (v InputVariable) String() string {
 	return "var." + v.Name
 }
 
+// Absolute converts the receiver into an absolute address within the given
+// module instance.
+func (v InputVariable) Absolute(m ModuleInstance) AbsInputVariableInstance {
+	return AbsInputVariableInstance{
+		Module:   m,
+		Variable: v,
+	}
+}
+
 // AbsInputVariableInstance is the address of an input variable within a
 // particular module instance.
 type AbsInputVariableInstance struct {

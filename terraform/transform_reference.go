@@ -503,6 +503,8 @@ func appendResourceDestroyReferences(refs []*addrs.Reference) []*addrs.Reference
 			newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
 			refs = append(refs, &newRef)
 		}
+		// FIXME: Using this method in module expansion references,
+		// May want to refactor this method beyond resources
 	}
 	return refs
 }

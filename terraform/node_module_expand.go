@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -31,14 +32,16 @@ func (n *nodeExpandModule) Name() string {
 
 // GraphNodeSubPath implementation
 func (n *nodeExpandModule) Path() addrs.ModuleInstance {
-	// Notice that the node represents the module call and so we report
-	// the parent module as the path. The module call we're representing
-	// might expand into multiple child module instances during our work here.
+	// This node represents the module call within a module,
+	// so return the CallerAddr as the path as the module
+	// call may expand into multiple child instances
 	return n.CallerAddr
 }
 
 // GraphNodeReferencer implementation
 func (n *nodeExpandModule) References() []*addrs.Reference {
+	var refs []*addrs.Reference
+
 	// Expansion only uses the count and for_each expressions, so this
 	// particular graph node only refers to those.
 	// Individual variable values in the module call definition might also
@@ -49,18 +52,14 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// our call, these references will be correctly interpreted as being
 	// in the calling module's namespace, not the namespaces of any of the
 	// child module instances we might expand to during our evaluation.
-	var ret []*addrs.Reference
-	// TODO: Once count and for_each are actually supported, analyze their
-	// expressions for references here.
-	/*
-		if n.Config.Count != nil {
-			ret = append(ret, n.Config.Count.References()...)
-		}
-		if n.Config.ForEach != nil {
-			ret = append(ret, n.Config.ForEach.References()...)
-		}
-	*/
-	return ret
+
+	if n.ModuleCall.Count != nil {
+		refs, _ = lang.ReferencesInExpr(n.ModuleCall.Count)
+	}
+	if n.ModuleCall.ForEach != nil {
+		refs, _ = lang.ReferencesInExpr(n.ModuleCall.ForEach)
+	}
+	return appendResourceDestroyReferences(refs)
 }
 
 // RemovableIfNotTargeted implementation
@@ -72,10 +71,6 @@ func (n *nodeExpandModule) RemoveIfNotTargeted() bool {
 
 // GraphNodeEvalable
 func (n *nodeExpandModule) EvalTree() EvalNode {
-	// Get the ModuleCall
-	// Do this by using the CallerAddr to find the parent config
-	// And get the modulecall from that config's .modulecalls
-
 	return &evalPrepareModuleExpansion{
 		CallerAddr: n.CallerAddr,
 		Call:       n.Call,
@@ -84,6 +79,8 @@ func (n *nodeExpandModule) EvalTree() EvalNode {
 	}
 }
 
+// evalPrepareModuleExpansion is an EvalNode implementation
+// that sets the count or for_each on the instance expander
 type evalPrepareModuleExpansion struct {
 	CallerAddr addrs.ModuleInstance
 	Call       addrs.ModuleCall

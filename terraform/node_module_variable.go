@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -8,6 +10,66 @@ import (
 	"github.com/hashicorp/terraform/lang"
 	"github.com/zclconf/go-cty/cty"
 )
+
+// NodePlannableModuleVariable is the placeholder for an variable that has not yet had
+// its module path expanded.
+type NodePlannableModuleVariable struct {
+	Addr   addrs.InputVariable
+	Module addrs.Module
+	Config *configs.Variable
+	Expr   hcl.Expression
+}
+
+var (
+	_ GraphNodeSubPath           = (*NodePlannableModuleVariable)(nil)
+	_ RemovableIfNotTargeted     = (*NodePlannableModuleVariable)(nil)
+	_ GraphNodeReferenceable     = (*NodePlannableModuleVariable)(nil)
+	_ GraphNodeDynamicExpandable = (*NodePlannableModuleVariable)(nil)
+)
+
+func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+		o := &NodeApplyableModuleVariable{
+			Addr:   n.Addr.Absolute(module),
+			Config: n.Config,
+			Expr:   n.Expr,
+		}
+		g.Add(o)
+	}
+	return &g, nil
+}
+
+func (n *NodePlannableModuleVariable) Name() string {
+	return fmt.Sprintf("%s.%s", n.Module, n.Addr.String())
+}
+
+// GraphNodeSubPath
+func (n *NodePlannableModuleVariable) Path() addrs.ModuleInstance {
+	// Return an UnkeyedInstanceShim as our placeholder,
+	// given that modules will be unexpanded at this point in the walk
+	return n.Module.UnkeyedInstanceShim()
+}
+
+// GraphNodeReferenceable
+func (n *NodePlannableModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
+	// FIXME: References for module variables probably need to be thought out a bit more
+	// Otherwise, we can reference the output via the address itself, or the
+	// module call
+	_, call := n.Module.Call()
+	return []addrs.Referenceable{n.Addr, call}
+}
+
+// RemovableIfNotTargeted
+func (n *NodePlannableModuleVariable) RemoveIfNotTargeted() bool {
+	return true
+}
+
+// GraphNodeTargetDownstream
+func (n *NodePlannableModuleVariable) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+	return true
+}
 
 // NodeApplyableModuleVariable represents a module variable input during
 // the apply step.

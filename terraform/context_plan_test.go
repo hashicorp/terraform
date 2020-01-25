@@ -404,8 +404,15 @@ func TestContext2Plan_modules(t *testing.T) {
 	expectNum := objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.UnknownVal(cty.String),
 		"num":  cty.NumberIntVal(2),
-		"type": cty.StringVal("aws_instance")},
-	)
+		"type": cty.StringVal("aws_instance"),
+	})
+
+	expectExpansion := objectVal(t, schema, map[string]cty.Value{
+		"bar":  cty.StringVal("baz"),
+		"id":   cty.UnknownVal(cty.String),
+		"num":  cty.NumberIntVal(2),
+		"type": cty.StringVal("aws_instance"),
+	})
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.Create {
@@ -426,7 +433,7 @@ func TestContext2Plan_modules(t *testing.T) {
 			"module.child[0].aws_instance.foo[1]",
 			"module.child[1].aws_instance.foo[0]",
 			"module.child[1].aws_instance.foo[1]":
-			expected = expectNum
+			expected = expectExpansion
 		default:
 			t.Fatal("unknown instance:", i)
 		}
