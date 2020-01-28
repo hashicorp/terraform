@@ -39,14 +39,14 @@ func TestParseProviderConfigCompact(t *testing.T) {
 		{
 			`aws`,
 			addrs.ProviderConfig{
-				Type: addrs.NewLegacyProvider("aws"),
+				Type: "aws",
 			},
 			``,
 		},
 		{
 			`aws.foo`,
 			addrs.ProviderConfig{
-				Type:  addrs.NewLegacyProvider("aws"),
+				Type:  "aws",
 				Alias: "foo",
 			},
 			``,

@@ -274,7 +274,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 			}
 
 			schema, _ := schemas.ResourceTypeConfig(
-				r.ProviderConfig.ProviderConfig.Type.LegacyString(),
+				r.ProviderConfig.ProviderConfig.Type,
 				r.Addr.Mode,
 				r.Addr.Type,
 			)

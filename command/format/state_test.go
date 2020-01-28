@@ -244,7 +244,7 @@ func basicState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -259,7 +259,7 @@ func basicState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"compute":"sure"}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -294,7 +294,7 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -320,7 +320,7 @@ func nestedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -342,7 +342,7 @@ func deposedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -370,7 +370,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceDeposed(
@@ -386,7 +386,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state

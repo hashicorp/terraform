@@ -50,7 +50,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 			resType := res.Addr.Type
 			providerType := res.ProviderConfig.ProviderConfig.Type
 
-			resource := getResource(providers, providerType.LegacyString(), res.Addr)
+			resource := getResource(providers, providerType, res.Addr)
 
 			for key, i := range res.Instances {
 				resState := &terraform.ResourceState{

@@ -36,7 +36,7 @@ func TestState(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -79,7 +79,7 @@ func TestState(t *testing.T) {
 							},
 						},
 						ProviderConfig: addrs.ProviderConfig{
-							Type: addrs.NewLegacyProvider("test"),
+							Type: "test",
 						}.Absolute(addrs.RootModuleInstance),
 					},
 				},
@@ -141,7 +141,7 @@ func TestStateDeepCopy(t *testing.T) {
 			Dependencies:  []addrs.AbsResource{},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -167,7 +167,7 @@ func TestStateDeepCopy(t *testing.T) {
 			},
 		},
 		addrs.ProviderConfig{
-			Type: addrs.NewLegacyProvider("test"),
+			Type: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 

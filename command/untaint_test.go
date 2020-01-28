@@ -23,7 +23,7 @@ func TestUntaint(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectTainted,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -63,7 +63,7 @@ func TestUntaint_lockedState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectTainted,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -271,7 +271,7 @@ func TestUntaint_missing(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectTainted,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -304,7 +304,7 @@ func TestUntaint_missingAllow(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectTainted,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -389,7 +389,7 @@ func TestUntaint_module(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectTainted,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -401,7 +401,7 @@ func TestUntaint_module(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectTainted,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)

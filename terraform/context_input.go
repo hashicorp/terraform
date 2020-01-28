@@ -96,7 +96,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				UIInput:     c.uiInput,
 			}
 
-			schema := c.schemas.ProviderConfig(pa.Type.LegacyString())
+			schema := c.schemas.ProviderConfig(pa.Type)
 			if schema == nil {
 				// Could either be an incorrect config or just an incomplete
 				// mock in tests. We'll let a later pass decide, and just
