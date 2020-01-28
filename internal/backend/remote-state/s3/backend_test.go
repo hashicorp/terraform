@@ -326,6 +326,19 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected config validation error")
 	}
+
+	cfg = hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":         "us-west-1",
+		"bucket":         "tf-test",
+		"key":            "trailing-slash/",
+		"encrypt":        true,
+		"dynamodb_table": "dynamoTable",
+	})
+
+	_, diags = New().PrepareConfig(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected config validation error")
+	}
 }
 
 func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
