@@ -78,6 +78,7 @@ down to see all providers.
 - [HuaweiCloudStack](/docs/providers/huaweicloudstack/index.html)
 - [Icinga2](/docs/providers/icinga2/index.html)
 - [Ignition](/docs/providers/ignition/index.html)
+- [Incapsula](/docs/providers/incapsula/index.html)
 - [InfluxDB](/docs/providers/influxdb/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
