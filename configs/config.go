@@ -170,48 +170,43 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 // information and so callers are expected to have already dealt with
 // provider version selection in an earlier step and have identified suitable
 // versions for each provider.
-func (c *Config) ProviderTypes() []string {
-	m := make(map[string]struct{})
+func (c *Config) ProviderTypes() []addrs.Provider {
+	m := make(map[addrs.Provider]struct{})
 	c.gatherProviderTypes(m)
 
-	ret := make([]string, 0, len(m))
+	ret := make([]addrs.Provider, 0, len(m))
 	for k := range m {
 		ret = append(ret, k)
 	}
-	sort.Strings(ret)
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].String() < ret[j].String()
+	})
 	return ret
 }
-func (c *Config) gatherProviderTypes(m map[string]struct{}) {
+
+func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 	if c == nil {
 		return
 	}
 
+	// FIXME: These are currently all assuming legacy provider addresses.
+	// As part of phasing those out we'll need to change this to look up
+	// the true provider addresses via the local-to-FQN mapping table
+	// stored inside c.Module.
 	for _, pc := range c.Module.ProviderConfigs {
-		m[pc.Name] = struct{}{}
+		m[addrs.NewLegacyProvider(pc.Name)] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		m[addrs.NewLegacyProvider(providerAddr.LocalType)] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		m[addrs.NewLegacyProvider(providerAddr.LocalType)] = struct{}{}
 	}
 
 	// Must also visit our child modules, recursively.
 	for _, cc := range c.Children {
 		cc.gatherProviderTypes(m)
 	}
-}
-
-// ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
-// by checking for the provider in module.ProviderRequirements and falling
-// back to addrs.NewLegacyProvider if it is not found.
-//
-// TODO: update to addrs.NewDefaultProvider in 0.13
-func (c *Config) ProviderForConfigAddr(addr addrs.ProviderConfig) addrs.Provider {
-	if provider, exists := c.Module.ProviderRequirements[addr.Type]; exists {
-		return provider.Type
-	}
-	return addrs.NewLegacyProvider(addr.Type)
 }

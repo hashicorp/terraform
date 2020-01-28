@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+
+	"github.com/hashicorp/terraform/addrs"
 )
 
 func TestConfigProviderTypes(t *testing.T) {
@@ -18,10 +20,10 @@ func TestConfigProviderTypes(t *testing.T) {
 	}
 
 	got := cfg.ProviderTypes()
-	want := []string{
-		"aws",
-		"null",
-		"template",
+	want := []addrs.Provider{
+		addrs.NewLegacyProvider("aws"),
+		addrs.NewLegacyProvider("null"),
+		addrs.NewLegacyProvider("template"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)

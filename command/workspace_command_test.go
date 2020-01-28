@@ -241,7 +241,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalType: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 

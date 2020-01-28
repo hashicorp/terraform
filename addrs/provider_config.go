@@ -9,59 +9,83 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-// ProviderConfig is the address of a provider configuration.
-type ProviderConfig struct {
-	Type string
+// LocalProviderConfig is the address of a provider configuration from the
+// perspective of references in a particular module.
+//
+// Finding the corresponding AbsProviderConfig will require looking up the
+// LocalType in the providers table in the module's configuration; there is
+// no syntax-only translation between these types.
+type LocalProviderConfig struct {
+	LocalType string
 
 	// If not empty, Alias identifies which non-default (aliased) provider
 	// configuration this address refers to.
 	Alias string
 }
 
-// NewDefaultProviderConfig returns the address of the default (un-aliased)
-// configuration for the provider with the given type name.
-func NewDefaultProviderConfig(typeName string) ProviderConfig {
-	return ProviderConfig{
-		Type: typeName,
+// NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
+// configuration for the provider with the given local type name.
+func NewDefaultLocalProviderConfig(localTypeName string) LocalProviderConfig {
+	return LocalProviderConfig{
+		LocalType: localTypeName,
 	}
 }
 
 // Absolute returns an AbsProviderConfig from the receiver and the given module
 // instance address.
-func (pc ProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
+//
+// TODO: This methold will become obsolete as part of supporting fully-qualified
+// provider names in AbsProviderConfig, requiring a lookup via the module
+// configuration instead. However, we continue to support it for now by
+// relying on the fact that only "legacy" provider addresses are currently
+// supported.
+func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module:         module,
 		ProviderConfig: pc,
 	}
 }
 
-func (pc ProviderConfig) String() string {
-	if pc.Type == "" {
+func (pc LocalProviderConfig) String() string {
+	if pc.LocalType == "" {
 		// Should never happen; always indicates a bug
 		return "provider.<invalid>"
 	}
 
 	if pc.Alias != "" {
-		return fmt.Sprintf("provider.%s.%s", pc.Type, pc.Alias)
+		return fmt.Sprintf("provider.%s.%s", pc.LocalType, pc.Alias)
 	}
 
-	return "provider." + pc.Type
+	return "provider." + pc.LocalType
 }
 
 // StringCompact is an alternative to String that returns the form that can
 // be parsed by ParseProviderConfigCompact, without the "provider." prefix.
-func (pc ProviderConfig) StringCompact() string {
+func (pc LocalProviderConfig) StringCompact() string {
 	if pc.Alias != "" {
-		return fmt.Sprintf("%s.%s", pc.Type, pc.Alias)
+		return fmt.Sprintf("%s.%s", pc.LocalType, pc.Alias)
 	}
-	return pc.Type
+	return pc.LocalType
 }
 
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
-	Module         ModuleInstance
-	ProviderConfig ProviderConfig
+	Module ModuleInstance
+
+	// TODO: In a future change, this will no longer be an embedded
+	// LocalProviderConfig and should instead be two separate fields
+	// to allow AbsProviderConfig to use provider FQN rather than
+	// local type name:
+	//
+	//     Provider Provider
+	//     Alias    string
+	//
+	// For now though, we continue to embed LocalProviderConfig until we're
+	// ready to teach the rest of Terraform Core about non-legacy provider
+	// FQNs, and update our ParseAbsProviderConfig and AbsProviderConfig.String
+	// methods to deal with FQNs.
+	ProviderConfig LocalProviderConfig
 }
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
@@ -103,7 +127,7 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	}
 
 	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.ProviderConfig.Type = tt.Name
+		ret.ProviderConfig.LocalType = tt.Name
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -162,23 +186,31 @@ func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnosti
 
 // ProviderConfigDefault returns the address of the default provider config
 // of the given type inside the recieving module instance.
+//
+// TODO: The signature of this should change to accept a Provider address
+// instead of a bare name once AbsProviderConfig starts having its own Provider
+// and Alias fields rather than embedding LocalProviderConfig.
 func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module: m,
-		ProviderConfig: ProviderConfig{
-			Type: name,
+		ProviderConfig: LocalProviderConfig{
+			LocalType: name,
 		},
 	}
 }
 
 // ProviderConfigAliased returns the address of an aliased provider config
 // of with given type and alias inside the recieving module instance.
+//
+// TODO: The signature of this should change to accept a Provider address
+// instead of a bare name once AbsProviderConfig starts having its own Provider
+// and Alias fields rather than embedding LocalProviderConfig.
 func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module: m,
-		ProviderConfig: ProviderConfig{
-			Type:  name,
-			Alias: alias,
+		ProviderConfig: LocalProviderConfig{
+			LocalType: name,
+			Alias:     alias,
 		},
 	}
 }
