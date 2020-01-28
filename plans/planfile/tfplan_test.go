@@ -57,7 +57,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.ProviderConfig{
-						Type: addrs.NewLegacyProvider("test"),
+						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.DeleteThenCreate,
@@ -77,7 +77,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					DeposedKey: "foodface",
 					ProviderAddr: addrs.ProviderConfig{
-						Type: addrs.NewLegacyProvider("test"),
+						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Delete,
@@ -195,7 +195,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.ProviderConfig{
-						Type: addrs.NewLegacyProvider("test"),
+						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Delete,

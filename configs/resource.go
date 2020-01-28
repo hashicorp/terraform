@@ -70,7 +70,7 @@ func (r *Resource) ProviderConfigAddr() addrs.ProviderConfig {
 	}
 
 	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(r.ProviderConfigRef.Name),
+		Type:  r.ProviderConfigRef.Name,
 		Alias: r.ProviderConfigRef.Alias,
 	}
 }
@@ -447,7 +447,7 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 // location information and keeping just the addressing information.
 func (r *ProviderConfigRef) Addr() addrs.ProviderConfig {
 	return addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider(r.Name),
+		Type:  r.Name,
 		Alias: r.Alias,
 	}
 }

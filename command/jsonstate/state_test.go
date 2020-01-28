@@ -202,7 +202,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.ProviderConfig{
-						Type: addrs.NewLegacyProvider("test"),
+						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 				},
 			},
@@ -245,7 +245,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.ProviderConfig{
-						Type: addrs.NewLegacyProvider("test"),
+						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 				},
 			},
@@ -293,7 +293,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.ProviderConfig{
-						Type: addrs.NewLegacyProvider("test"),
+						Type: "test",
 					}.Absolute(addrs.RootModuleInstance),
 				},
 			},

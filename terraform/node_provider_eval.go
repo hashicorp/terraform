@@ -14,7 +14,7 @@ func (n *NodeEvalableProvider) EvalTree() EvalNode {
 	relAddr := addr.ProviderConfig
 
 	return &EvalInitProvider{
-		TypeName: relAddr.Type.LegacyString(),
+		TypeName: relAddr.Type,
 		Addr:     addr.ProviderConfig,
 	}
 }

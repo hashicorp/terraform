@@ -24,7 +24,7 @@ func TestStateShow(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -79,7 +79,7 @@ func TestStateShow_multi(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(addrs.RootModuleInstance),
+			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -91,7 +91,7 @@ func TestStateShow_multi(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: addrs.NewLegacyProvider("test")}.Absolute(submod),
+			addrs.ProviderConfig{Type: "test"}.Absolute(submod),
 		)
 	})
 	statePath := testStateFile(t, state)
