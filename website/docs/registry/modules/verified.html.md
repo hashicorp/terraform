@@ -16,8 +16,8 @@ The blue verification badge appears next to modules that are verified.
 
 ![Verified module listing](/assets/images/docs/registry-verified.png)
 
-If a module is verified, it is promised to be actively maintained and of
-high quality. It isn't indicative of flexibility or feature support; very
+Verified modules are expected to be actively maintained by the Cloud providers.
+The verified badge isn’t indicative of flexibility or feature support; very
 simple modules can be verified just because they're great examples of modules.
 Likewise, an unverified module could be extremely high quality and actively
 maintained. An unverified module shouldn't be assumed to be poor quality, it
