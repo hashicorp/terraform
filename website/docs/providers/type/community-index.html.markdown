@@ -52,7 +52,6 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [CloudPassage Halo](https://gitlab.com/kiwicom/terraform-provider-cphalo)
 - [CodeClimate](https://github.com/babbel/terraform-provider-codeclimate)
 - [Confidant](https://github.com/stripe/terraform-provider-confidant)
-- [Confluent Cloud](https://github.com/riferrei/terraform-provider-ccloud)
 - [Consul ACL](https://github.com/Ashald/terraform-provider-consulacl)
 - [CoreOS Container Linux Configs](https://github.com/coreos/terraform-provider-ct)
 - [Coveo Cloud](https://github.com/ernesto-arm/coveo-provider)
