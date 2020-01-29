@@ -29,9 +29,7 @@ type ConfigTransformer struct {
 	// Unique will only add resources that aren't already present in the graph.
 	Unique bool
 
-	// Mode will only add resources that match the given mode
-	ModeFilter bool
-	Mode       addrs.ResourceMode
+	ResourceFilter func(addrs.AbsResource) bool
 
 	l         sync.Mutex
 	uniqueMap map[string]struct{}
@@ -108,8 +106,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
-		if t.ModeFilter && relAddr.Mode != t.Mode {
-			// Skip non-matching modes
+		if t.ResourceFilter != nil && !t.ResourceFilter(relAddr.Absolute(instPath)) {
 			continue
 		}
 

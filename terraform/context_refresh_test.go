@@ -1907,6 +1907,62 @@ data "aws_data_source" "foo" {
 	}
 }
 
+// We can't refresh managed resources that don't exist in the state.
+func TestContext2Refresh_missingInstance(t *testing.T) {
+	// aws_instance.bar should not be added to the refresh graph at all, since
+	// it's evaluated will fail if aws_instance.foo no longer exists.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "foo" {
+  count = 1
+}
+
+resource "aws_instance" "bar" {
+  count = 1
+  foo = aws_instance.foo[count.index].id
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		// resource has disappeared
+		resp.NewState = cty.NullVal(req.PriorState.Type())
+		return
+	}
+
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		addrs.ProviderConfig{
+			Type: "aws",
+		}.Absolute(addrs.RootModuleInstance),
+	)
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			},
+		),
+		State: state,
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+}
+
 func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 	m := testModule(t, "plan-data-depends-on")
 	p := testProvider("test")

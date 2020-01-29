@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -93,31 +91,36 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	steps := []GraphTransformer{
-		// Creates all the managed resources that aren't in the state, but only if
-		// we have a state already. No resources in state means there's not
-		// anything to refresh.
-		func() GraphTransformer {
-			if b.State.HasResources() {
-				return &ConfigTransformer{
-					Concrete:   concreteManagedResource,
-					Config:     b.Config,
-					Unique:     true,
-					ModeFilter: true,
-					Mode:       addrs.ManagedResourceMode,
+		&ConfigTransformer{
+			Concrete: concreteManagedResource,
+			Config:   b.Config,
+			Unique:   true,
+			// don't attempt to refresh managed resources that have no
+			// instances in the state. These may have references to
+			// non-existent resources and cannot be evaluated during refresh.
+			ResourceFilter: func(addr addrs.AbsResource) bool {
+				if addr.Resource.Mode != addrs.ManagedResourceMode {
+					return false
 				}
-			}
-			log.Println("[TRACE] No managed resources in state during refresh; skipping managed resource transformer")
-			return nil
-		}(),
+
+				res := b.State.Resource(addr)
+				if res == nil || len(res.Instances) == 0 {
+					return false
+				}
+
+				return true
+			},
+		},
 
 		// Creates all the data resources that aren't in the state. This will also
 		// add any orphans from scaling in as destroy nodes.
 		&ConfigTransformer{
-			Concrete:   concreteDataResource,
-			Config:     b.Config,
-			Unique:     true,
-			ModeFilter: true,
-			Mode:       addrs.DataResourceMode,
+			Concrete: concreteDataResource,
+			Config:   b.Config,
+			Unique:   true,
+			ResourceFilter: func(addr addrs.AbsResource) bool {
+				return addr.Resource.Mode == addrs.DataResourceMode
+			},
 		},
 
 		// Add any fully-orphaned resources from config (ones that have been

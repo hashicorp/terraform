@@ -36,9 +36,10 @@ func TestConfigTransformer(t *testing.T) {
 func TestConfigTransformer_mode(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 	tf := &ConfigTransformer{
-		Config:     testModule(t, "transform-config-mode-data"),
-		ModeFilter: true,
-		Mode:       addrs.DataResourceMode,
+		Config: testModule(t, "transform-config-mode-data"),
+		ResourceFilter: func(addr addrs.AbsResource) bool {
+			return addr.Resource.Mode == addrs.DataResourceMode
+		},
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
