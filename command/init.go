@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -39,6 +40,8 @@ func (c *InitCommand) Run(args []string) int {
 	var flagBackend, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
 	var flagVerifyPlugins bool
+	var flagGetPlugins *bool
+	var flagGetPluginsRaw bool
 	flagConfigExtra := newRawFlags("-backend-config")
 
 	args = c.Meta.process(args)
@@ -47,7 +50,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
-	cmdFlags.BoolVar(&c.getPlugins, "get-plugins", true, "")
+	cmdFlags.BoolVar(&flagGetPluginsRaw, "get-plugins", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -56,15 +59,31 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
 	var diags tfdiags.Diagnostics
 
+	if flagIsSet(cmdFlags, "get-plugins") {
+		flagGetPlugins = &flagGetPluginsRaw
+	}
+
+	// flagGetPlugins is nil if -get-plugins is unset on the command line.
+	// In this case, its default value depends on the value of -plugin-dir.
+	if flagGetPlugins == nil {
+		if len(flagPluginPath) > 0 {
+			c.getPlugins = false
+		} else {
+			c.getPlugins = true
+		}
+	} else {
+		c.getPlugins = *flagGetPlugins
+	}
+
 	if len(flagPluginPath) > 0 {
 		c.pluginPath = flagPluginPath
-		c.getPlugins = false
 	}
 
 	// Validate the arg count
@@ -724,6 +743,18 @@ Options:
 
 func (c *InitCommand) Synopsis() string {
 	return "Initialize a Terraform working directory"
+}
+
+// flagIsSet returns true iff the given flag was explicitly set on the command
+// line.
+func flagIsSet(flagSet *flag.FlagSet, name string) bool {
+	found := false
+	flagSet.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }
 
 const errInitConfigError = `
