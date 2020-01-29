@@ -1395,6 +1395,48 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	}
 }
 
+// Verify that plugin-dir allows auto-install when get-plugins is set
+func TestInit_pluginDirWithGetPluginsDoesGet(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+		providerInstaller: &mockProviderInstaller{
+			Providers: map[string][]string{
+				"greater_than": []string{"2.3.4"},
+				// config specifies
+				"between": []string{"1.2.3"},
+			},
+			Dir: m.pluginDir(),
+		},
+	}
+
+	if err := os.MkdirAll("a", 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ioutil.WriteFile(filepath.Join("a", "terraform-provider-exact_v1.2.3_x4"), []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{
+		"-plugin-dir=a",
+		"-get-plugins=true",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter)
+	}
+}
+
 // Verify that plugin-dir doesn't prevent discovery of internal providers
 func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	td := tempDir(t)
