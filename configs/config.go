@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"sort"
 
 	version "github.com/hashicorp/go-version"
@@ -209,4 +210,74 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 	for _, cc := range c.Children {
 		cc.gatherProviderTypes(m)
 	}
+}
+
+// ResolveAbsProviderAddr returns the AbsProviderConfig represented by the given
+// ProviderConfig address, which must not be nil or this method will panic.
+//
+// If the given address is already an AbsProviderConfig then this method returns
+// it verbatim, and will always succeed. If it's a LocalProviderConfig then
+// it will consult the local-to-FQN mapping table for the given module
+// to find the absolute address corresponding to the given local one.
+//
+// The module address to resolve local addresses in must be given in the second
+// argument, and must refer to a module that exists under the receiver or
+// else this method will panic.
+func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.ModuleInstance) addrs.AbsProviderConfig {
+	switch addr := addr.(type) {
+
+	case addrs.AbsProviderConfig:
+		return addr
+
+	case addrs.LocalProviderConfig:
+		// Find the descendent Config that contains the module that this
+		// local config belongs to.
+		mc := c.DescendentForInstance(inModule)
+		if mc == nil {
+			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
+		}
+
+		var provider addrs.Provider
+		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalType]; exists {
+			provider = providerReq.Type
+		} else {
+			// FIXME: For now we're returning a _legacy_ address as fallback here,
+			// but once we remove legacy addresses this should actually be a
+			// _default_ provider address.
+			provider = addrs.NewLegacyProvider(addr.LocalType)
+		}
+
+		// FIXME: Once AbsProviderConfig starts using FQN rather than
+		// embedding LocalProviderConfig we will use "provider"
+		// properly here, but for now we'll require a legacy one because
+		// the rest of Terraform isn't ready to deal with non-legacy
+		// provider addresses yet.
+		return addrs.AbsProviderConfig{
+			Module: inModule,
+			ProviderConfig: addrs.LocalProviderConfig{
+				LocalType: provider.LegacyString(),
+				Alias:     addr.Alias,
+			},
+		}
+
+	default:
+		panic(fmt.Sprintf("cannot ResolveAbsProviderAddr(%v, ...)", addr))
+	}
+
+}
+
+// ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
+// by checking for the provider in module.ProviderRequirements and falling
+// back to addrs.NewLegacyProvider if it is not found.
+func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+	// FIXME: Once AbsProviderAddr itself includes an addrs.Provider we
+	// can just return that here.
+	return addrs.NewLegacyProvider(
+		// addrs.RootModuleInstance here looks weird, but it's okay because
+		// ProviderForConfigAddr looks up addresses in the module directly
+		// connected to the receiver (rather than a descendent, as with
+		// ResolveAbsProviderAddr) and we're going to discard the Module field
+		// of the ResolveAbsProviderAddr return value anyway.
+		c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).ProviderConfig.LocalType,
+	)
 }

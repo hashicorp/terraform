@@ -9,6 +9,30 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
+// ProviderConfig is an interface type whose dynamic type can be either
+// LocalProviderConfig or AbsProviderConfig, in order to represent situations
+// where a value might either be module-local or absolute but the decision
+// cannot be made until runtime.
+//
+// Where possible, use either LocalProviderConfig or AbsProviderConfig directly
+// instead, to make intent more clear. ProviderConfig can be used only in
+// situations where the recipient of the value has some out-of-band way to
+// determine a "current module" to use if the value turns out to be
+// a LocalProviderConfig.
+//
+// Recipients of non-nil ProviderConfig values that actually need
+// AbsProviderConfig values should call ResolveAbsProviderAddr on the
+// *configs.Config value representing the root module configuration, which
+// handles the translation from local to fully-qualified using mapping tables
+// defined in the configuration.
+//
+// Recipients of a ProviderConfig value can assume it can contain only a
+// LocalProviderConfig value, an AbsProviderConfigValue, or nil to represent
+// the absense of a provider config in situations where that is meaningful.
+type ProviderConfig interface {
+	providerConfig()
+}
+
 // LocalProviderConfig is the address of a provider configuration from the
 // perspective of references in a particular module.
 //
@@ -23,6 +47,8 @@ type LocalProviderConfig struct {
 	Alias string
 }
 
+var _ ProviderConfig = LocalProviderConfig{}
+
 // NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given local type name.
 func NewDefaultLocalProviderConfig(localTypeName string) LocalProviderConfig {
@@ -30,6 +56,9 @@ func NewDefaultLocalProviderConfig(localTypeName string) LocalProviderConfig {
 		LocalType: localTypeName,
 	}
 }
+
+// providerConfig Implements addrs.ProviderConfig.
+func (pc LocalProviderConfig) providerConfig() {}
 
 // Absolute returns an AbsProviderConfig from the receiver and the given module
 // instance address.
@@ -87,6 +116,8 @@ type AbsProviderConfig struct {
 	// methods to deal with FQNs.
 	ProviderConfig LocalProviderConfig
 }
+
+var _ ProviderConfig = AbsProviderConfig{}
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
 // address. The following are examples of traversals that can be successfully
@@ -214,6 +245,9 @@ func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderCon
 		},
 	}
 }
+
+// providerConfig Implements addrs.ProviderConfig.
+func (pc AbsProviderConfig) providerConfig() {}
 
 // Inherited returns an address that the receiving configuration address might
 // inherit from in a parent module. The second bool return value indicates if
