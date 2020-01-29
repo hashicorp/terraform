@@ -177,7 +177,7 @@ func TestApply_parallelism(t *testing.T) {
 	// to ApplyResourceChange, we need to use a number of separate providers
 	// here. They will all have the same mock implementation function assigned
 	// but crucially they will each have their own mutex.
-	providerFactories := map[string]providers.Factory{}
+	providerFactories := map[addrs.Provider]providers.Factory{}
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
 		provider := &terraform.MockProvider{}
@@ -203,7 +203,7 @@ func TestApply_parallelism(t *testing.T) {
 				NewState: cty.EmptyObjectVal,
 			}
 		}
-		providerFactories[name] = providers.FactoryFixed(provider)
+		providerFactories[addrs.NewLegacyProvider(name)] = providers.FactoryFixed(provider)
 	}
 	testingOverrides := &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(providerFactories),

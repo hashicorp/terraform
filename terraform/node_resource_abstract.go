@@ -195,6 +195,11 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
 		result = append(result, refs...)
 		if c.Managed != nil {
+			if c.Managed.Connection != nil {
+				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
+				result = append(result, refs...)
+			}
+
 			for _, p := range c.Managed.Provisioners {
 				if p.When != configs.ProvisionerWhenCreate {
 					continue

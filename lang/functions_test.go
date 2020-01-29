@@ -109,6 +109,27 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"can": {
+			{
+				`can(true)`,
+				cty.True,
+			},
+			{
+				// Note: "can" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "can" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference.
+				`can({}.baz)`,
+				cty.False,
+			},
+		},
+
 		"ceil": {
 			{
 				`ceil(1.2)`,
@@ -862,6 +883,30 @@ func TestFunctions(t *testing.T) {
 			{
 				`trimsuffix("helloworld", "world")`,
 				cty.StringVal("hello"),
+			},
+		},
+
+		"try": {
+			{
+				// Note: "try" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "try" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference. That's okay because this
+				// function exists primarily to ease access to dynamically-typed
+				// structures that Terraform can't statically validate by
+				// definition.
+				`try({}.baz, "fallback")`,
+				cty.StringVal("fallback"),
+			},
+			{
+				`try("fallback")`,
+				cty.StringVal("fallback"),
 			},
 		},
 

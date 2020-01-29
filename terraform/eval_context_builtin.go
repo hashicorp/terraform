@@ -312,6 +312,16 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 	}
 }
 
+func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
+	modKey := addr.Module.String()
+	modVars := ctx.VariableValues[modKey]
+	val, ok := modVars[addr.Variable.Name]
+	if !ok {
+		return cty.DynamicVal
+	}
+	return val
+}
+
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
 	return ctx.ChangesValue
 }

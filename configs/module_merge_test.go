@@ -3,8 +3,10 @@ package configs
 import (
 	"testing"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -198,4 +200,78 @@ func TestModuleOverrideDynamic(t *testing.T) {
 			t.Fatalf("wrong dynamic block label %q; want %q", got, want)
 		}
 	})
+}
+
+func TestMergeProviderVersionConstraints(t *testing.T) {
+	v1, _ := version.NewConstraint("1.0.0")
+	vc1 := VersionConstraint{
+		Required: v1,
+	}
+	v2, _ := version.NewConstraint("2.0.0")
+	vc2 := VersionConstraint{
+		Required: v2,
+	}
+
+	tests := map[string]struct {
+		Input    map[string]ProviderRequirements
+		Override []*RequiredProvider
+		Want     map[string]ProviderRequirements
+	}{
+		"basic merge": {
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{},
+				},
+			},
+			[]*RequiredProvider{
+				&RequiredProvider{
+					Name:        "null",
+					Requirement: VersionConstraint{},
+				},
+			},
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{},
+				},
+				"null": ProviderRequirements{
+					Type: addrs.NewLegacyProvider("null"),
+					VersionConstraints: []VersionConstraint{
+						VersionConstraint{
+							Required:  version.Constraints(nil),
+							DeclRange: hcl.Range{},
+						},
+					},
+				},
+			},
+		},
+		"override version constraint": {
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{vc1},
+				},
+			},
+			[]*RequiredProvider{
+				&RequiredProvider{
+					Name:        "random",
+					Requirement: vc2,
+				},
+			},
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.NewLegacyProvider("random"),
+					VersionConstraints: []VersionConstraint{vc2},
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mergeProviderVersionConstraints(test.Input, test.Override)
+			assertResultDeepEqual(t, test.Input, test.Want)
+		})
+	}
 }

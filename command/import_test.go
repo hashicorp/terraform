@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -549,8 +550,8 @@ func TestImport_providerNameMismatch(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
 				ProviderResolver: providers.ResolverFixed(
-					map[string]providers.Factory{
-						"test-beta": providers.FactoryFixed(p),
+					map[addrs.Provider]providers.Factory{
+						addrs.NewLegacyProvider("test-beta"): providers.FactoryFixed(p),
 					},
 				),
 			},
@@ -890,17 +891,18 @@ func TestImport_pluginDir(t *testing.T) {
 
 	// Now we need to go through some plugin init.
 	// This discovers our fake plugin and writes the lock file.
+	initUi := new(cli.MockUi)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			pluginPath: []string{"./plugins"},
-			Ui:         cli.NewMockUi(),
+			Ui:         initUi,
 		},
 		providerInstaller: &discovery.ProviderInstaller{
 			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 		},
 	}
 	if code := initCmd.Run(nil); code != 0 {
-		t.Fatal(initCmd.Meta.Ui.(*cli.MockUi).ErrorWriter.String())
+		t.Fatal(initUi.ErrorWriter.String())
 	}
 
 	args := []string{

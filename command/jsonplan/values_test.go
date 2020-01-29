@@ -31,6 +31,18 @@ func TestMarshalAttributeValues(t *testing.T) {
 			nil,
 		},
 		{
+			cty.NullVal(cty.String),
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			nil,
+		},
+		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("bar"),
 			}),

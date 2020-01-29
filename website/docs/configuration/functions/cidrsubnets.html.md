@@ -7,17 +7,17 @@ description: |-
   ranges within a particular CIDR prefix.
 ---
 
-# `cidrsubnet` Function
+# `cidrsubnets` Function
 
 -> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-`cidrsubnet` calculates a sequence of consecutive IP address ranges within
+`cidrsubnets` calculates a sequence of consecutive IP address ranges within
 a particular CIDR prefix.
 
 ```hcl
-cidrsubnet(prefix, newbits...)
+cidrsubnets(prefix, newbits...)
 ```
 
 `prefix` must be given in CIDR notation, as defined in

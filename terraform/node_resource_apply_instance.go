@@ -394,8 +394,9 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					return createBeforeDestroyEnabled && err != nil, nil
 				},
 				Then: &EvalMaybeRestoreDeposedObject{
-					Addr: addr.Resource,
-					Key:  &deposedKey,
+					Addr:          addr.Resource,
+					PlannedChange: &diffApply,
+					Key:           &deposedKey,
 				},
 			},
 

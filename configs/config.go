@@ -203,3 +203,15 @@ func (c *Config) gatherProviderTypes(m map[string]struct{}) {
 		cc.gatherProviderTypes(m)
 	}
 }
+
+// ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
+// by checking for the provider in module.ProviderRequirements and falling
+// back to addrs.NewLegacyProvider if it is not found.
+//
+// TODO: update to addrs.NewDefaultProvider in 0.13
+func (c *Config) ProviderForConfigAddr(addr addrs.ProviderConfig) addrs.Provider {
+	if provider, exists := c.Module.ProviderRequirements[addr.Type]; exists {
+		return provider.Type
+	}
+	return addrs.NewLegacyProvider(addr.Type)
+}

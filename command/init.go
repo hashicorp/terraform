@@ -295,6 +295,15 @@ func (c *InitCommand) Run(args []string) int {
 			}
 			back = be
 		}
+	} else {
+		// load the previously-stored backend config
+		be, backendDiags := c.Meta.backendFromState()
+		diags = diags.Append(backendDiags)
+		if backendDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		back = be
 	}
 
 	if back == nil {
@@ -496,7 +505,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	configReqs := configDeps.AllPluginRequirements()
 	// FIXME: This is weird because ConfigTreeDependencies was written before
 	// we switched over to using earlyConfig as the main source of dependencies.
-	// In future we should clean this up to be a more reasoable API.
+	// In future we should clean this up to be a more reasonable API.
 	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllPluginRequirements()
 
 	requirements := configReqs.Merge(stateReqs)
@@ -517,7 +526,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 
 		for provider, reqd := range missing {
-			pty := addrs.ProviderType{Name: provider}
+			pty := addrs.NewLegacyProvider(provider)
 			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
 			diags = diags.Append(providerDiags)
 
@@ -597,7 +606,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	available = c.providerPluginSet() // re-discover to see newly-installed plugins
 
 	// internal providers were already filtered out, since we don't need to get them.
-	chosen := choosePlugins(available, nil, requirements)
+	chosen := chooseProviders(available, nil, requirements)
 
 	digests := map[string][]byte{}
 	for name, meta := range chosen {

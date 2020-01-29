@@ -86,7 +86,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 	for name, reqs := range c.Module.RequiredProviders {
 		inst := moduledeps.ProviderInstance(name)
 		var constraints version.Constraints
-		for _, reqStr := range reqs {
+		for _, reqStr := range reqs.VersionConstraints {
 			if reqStr != "" {
 				constraint, err := version.NewConstraint(reqStr)
 				if err != nil {

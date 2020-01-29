@@ -70,22 +70,7 @@ func ResourceChange(
 	}
 	buf.WriteString(color.Color("[reset]\n"))
 
-	switch change.Action {
-	case plans.Create:
-		buf.WriteString(color.Color("[green]  +[reset] "))
-	case plans.Read:
-		buf.WriteString(color.Color("[cyan] <=[reset] "))
-	case plans.Update:
-		buf.WriteString(color.Color("[yellow]  ~[reset] "))
-	case plans.DeleteThenCreate:
-		buf.WriteString(color.Color("[red]-[reset]/[green]+[reset] "))
-	case plans.CreateThenDelete:
-		buf.WriteString(color.Color("[green]+[reset]/[red]-[reset] "))
-	case plans.Delete:
-		buf.WriteString(color.Color("[red]  -[reset] "))
-	default:
-		buf.WriteString(color.Color("??? "))
-	}
+	buf.WriteString(color.Color(DiffActionSymbol(change.Action)) + " ")
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
@@ -1029,8 +1014,9 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 }
 
 func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
-	if !p.action.IsReplace() {
-		// "requiredReplace" only applies when the instance is being replaced
+	if !p.action.IsReplace() || p.requiredReplace.Empty() {
+		// "requiredReplace" only applies when the instance is being replaced,
+		// and we should only inspect that set if it is not empty
 		return false
 	}
 	return p.requiredReplace.Has(path)

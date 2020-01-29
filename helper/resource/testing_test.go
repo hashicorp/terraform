@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/terraform"
@@ -1080,7 +1081,7 @@ func TestTestProviderResolver(t *testing.T) {
 
 	for name := range reqd {
 		t.Run(name, func(t *testing.T) {
-			pf, ok := factories[name]
+			pf, ok := factories[addrs.NewLegacyProvider(name)]
 			if !ok {
 				t.Fatalf("no factory for %q", name)
 			}

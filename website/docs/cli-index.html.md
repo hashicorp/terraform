@@ -30,7 +30,7 @@ _intermediate and advanced users,_ who need to find complete and detailed
 information quickly.
 
 - **New user?** Try the
-  [Getting Started guide](https://learn.hashicorp.com/terraform/getting-started/install.html)
+  [Getting Started guide](https://learn.hashicorp.com/terraform/getting-started/install)
   at [Learn Terraform](https://learn.hashicorp.com/terraform), then return
   here once you've used Terraform to manage some simple resources.
 - **Curious about Terraform?** See [Introduction to Terraform](/intro/index.html)

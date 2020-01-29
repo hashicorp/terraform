@@ -37,6 +37,10 @@ inspect a planfile.
 
 The command-line flags are all optional. The list of available flags are:
 
+* `-compact-warnings` - If Terraform produces any warnings that are not
+  accompanied by errors, show them in a more compact form that includes only
+  the summary messages.
+
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
 * `-detailed-exitcode` - Return a detailed exit code when the command exits.

@@ -313,16 +313,6 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 	)))
 }
 
-const planErrNoConfig = `
-No configuration files found!
-
-Plan requires configuration to be present. Planning without a configuration
-would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run plan with the "-destroy"
-flag or create a single empty configuration file. Otherwise, please create
-a Terraform configuration file in the path being executed and try again.
-`
-
 const planHeaderIntro = `
 An execution plan has been generated and is shown below.
 Resource actions are indicated with the following symbols:

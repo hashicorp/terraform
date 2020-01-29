@@ -410,11 +410,3 @@ func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariablePa
 		SourceType: terraform.ValueFromInput,
 	}, nil
 }
-
-const validateWarnHeader = `
-There are warnings related to your configuration. If no errors occurred,
-Terraform will continue despite these warnings. It is a good idea to resolve
-these warnings in the near future.
-
-Warnings:
-`

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -388,6 +389,12 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalMaybeRestoreDeposedObject struct {
 	Addr addrs.ResourceInstance
 
+	// PlannedChange might be the action we're performing that includes
+	// the possiblity of restoring a deposed object. However, it might also
+	// be nil. It's here only for use in error messages and must not be
+	// used for business logic.
+	PlannedChange **plans.ResourceInstanceChange
+
 	// Key is a pointer to the deposed object key that should be forgotten
 	// from the state, which must be non-nil.
 	Key *states.DeposedKey
@@ -398,6 +405,33 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 	absAddr := n.Addr.Absolute(ctx.Path())
 	dk := *n.Key
 	state := ctx.State()
+
+	if dk == states.NotDeposed {
+		// This should never happen, and so it always indicates a bug.
+		// We should evaluate this node only if we've previously deposed
+		// an object as part of the same operation.
+		var diags tfdiags.Diagnostics
+		if n.PlannedChange != nil && *n.PlannedChange != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Attempt to restore non-existent deposed object",
+				fmt.Sprintf(
+					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
+					absAddr, (*n.PlannedChange).Action,
+				),
+			))
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Attempt to restore non-existent deposed object",
+				fmt.Sprintf(
+					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
+					absAddr,
+				),
+			))
+		}
+		return nil, diags.Err()
+	}
 
 	restored := state.MaybeRestoreResourceInstanceDeposed(absAddr, dk)
 	if restored {
