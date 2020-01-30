@@ -340,6 +340,12 @@ infrastructure object associated with it (as described above in
 [Resource Behavior](#resource-behavior)), and each is separately created,
 updated, or destroyed when the configuration is applied.
 
+-> **Note:** The keys of the map (or all the values in the case of a set of strings) must
+be _known values_, or you will get an error message that `for_each` has dependencies
+that cannot be determined before apply, and a `-target` may be needed. `for_each` keys
+cannot be the result (or rely on the result of) of impure functions, including `uuid`, `bcrypt`,
+or `timestamp`, as their evaluation is deferred resource during evaluation.
+
 ```hcl
 resource "azurerm_resource_group" "rg" {
   for_each = {
