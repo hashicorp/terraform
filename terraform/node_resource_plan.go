@@ -3,8 +3,8 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlannableResource represents a resource that is "plannable":

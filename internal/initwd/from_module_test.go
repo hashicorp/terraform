@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestDirFromModule_registry(t *testing.T) {

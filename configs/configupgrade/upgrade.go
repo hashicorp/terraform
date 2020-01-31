@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 
 	hcl2 "github.com/hashicorp/hcl/v2"
 	hcl2write "github.com/hashicorp/hcl/v2/hclwrite"

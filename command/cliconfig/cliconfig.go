@@ -17,8 +17,8 @@ import (
 
 	"github.com/hashicorp/hcl"
 
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 	"github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 const pluginCacheDirEnvVar = "TF_PLUGIN_CACHE_DIR"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
-	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 

@@ -5,9 +5,9 @@ package init
 import (
 	"sync"
 
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
 	backendAtlas "github.com/hashicorp/terraform/backend/atlas"

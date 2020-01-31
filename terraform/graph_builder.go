@@ -5,9 +5,9 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/tfdiags"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // GraphBuilder is an interface that can be implemented and used with
