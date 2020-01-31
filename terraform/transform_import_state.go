@@ -20,7 +20,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		// This will be populated if the targets come from the cli, but tests
 		// may not specify implied provider addresses.
 		providerAddr := target.ProviderAddr
-		if providerAddr.ProviderConfig.LocalType == "" {
+		if providerAddr.ProviderConfig.LocalName == "" {
 			defaultFQN := target.Addr.Resource.Resource.DefaultProvider()
 			providerAddr = addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(target.Addr.Module)
 		}

@@ -21,7 +21,7 @@ func AddressedTypes(providerAddrs []addrs.LocalProviderConfig) []addrs.Provider 
 	m := map[string]addrs.Provider{}
 	for _, addr := range providerAddrs {
 		// FIXME: This will no longer work once we move away from legacy addresses.
-		legacyFQN := addrs.NewLegacyProvider(addr.LocalType)
+		legacyFQN := addrs.NewLegacyProvider(addr.LocalName)
 		m[legacyFQN.String()] = legacyFQN
 	}
 
@@ -50,7 +50,7 @@ func AddressedTypesAbs(providerAddrs []addrs.AbsProviderConfig) []addrs.Provider
 	for _, addr := range providerAddrs {
 		// FIXME: When changing AbsProviderConfig to include provider FQN,
 		// use that directly here instead.
-		legacyFQN := addrs.NewLegacyProvider(addr.ProviderConfig.LocalType)
+		legacyFQN := addrs.NewLegacyProvider(addr.ProviderConfig.LocalName)
 		m[legacyFQN.String()] = legacyFQN
 	}
 

@@ -151,7 +151,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 				SchemaVersion: 0,
 			},
 			addrs.LocalProviderConfig{
-				LocalType: "test",
+				LocalName: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 

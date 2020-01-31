@@ -45,7 +45,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
 			Module: addrs.RootModuleInstance,
 			ProviderConfig: addrs.LocalProviderConfig{
-				LocalType: "test",
+				LocalName: "test",
 				Alias:     "boop",
 			},
 		}
@@ -56,7 +56,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	})
 	t.Run("local, implied mapping", func(t *testing.T) {
 		addr := addrs.LocalProviderConfig{
-			LocalType: "implied",
+			LocalName: "implied",
 			Alias:     "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
@@ -69,7 +69,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			//    Provider as the addrs repr of "registry.terraform.io/hashicorp/implied"
 			//    Alias as "boop".
 			ProviderConfig: addrs.LocalProviderConfig{
-				LocalType: "implied",
+				LocalName: "implied",
 				Alias:     "boop",
 			},
 		}
@@ -79,7 +79,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	})
 	t.Run("local, explicit mapping", func(t *testing.T) {
 		addr := addrs.LocalProviderConfig{
-			LocalType: "foo_test", // this is explicitly set in the config
+			LocalName: "foo_test", // this is explicitly set in the config
 			Alias:     "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
@@ -92,7 +92,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			// the "registry.terraform.io/foo/test" FQN here, while still
 			// preserving the "boop" alias.
 			ProviderConfig: addrs.LocalProviderConfig{
-				LocalType: "foo_test",
+				LocalName: "foo_test",
 				Alias:     "boop",
 			},
 		}

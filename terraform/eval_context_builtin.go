@@ -148,8 +148,8 @@ func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *Pro
 	ctx.once.Do(ctx.init)
 
 	// FIXME: Once AbsProviderConfig starts containing an FQN, use that directly
-	// here instead of addr.ProviderConfig.LocalType.
-	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.LocalType)
+	// here instead of addr.ProviderConfig.LocalName.
+	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.LocalName)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {

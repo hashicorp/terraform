@@ -37,10 +37,10 @@ type ProviderConfig interface {
 // perspective of references in a particular module.
 //
 // Finding the corresponding AbsProviderConfig will require looking up the
-// LocalType in the providers table in the module's configuration; there is
+// LocalName in the providers table in the module's configuration; there is
 // no syntax-only translation between these types.
 type LocalProviderConfig struct {
-	LocalType string
+	LocalName string
 
 	// If not empty, Alias identifies which non-default (aliased) provider
 	// configuration this address refers to.
@@ -51,9 +51,9 @@ var _ ProviderConfig = LocalProviderConfig{}
 
 // NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given local type name.
-func NewDefaultLocalProviderConfig(localTypeName string) LocalProviderConfig {
+func NewDefaultLocalProviderConfig(LocalNameName string) LocalProviderConfig {
 	return LocalProviderConfig{
-		LocalType: localTypeName,
+		LocalName: LocalNameName,
 	}
 }
 
@@ -76,25 +76,25 @@ func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig 
 }
 
 func (pc LocalProviderConfig) String() string {
-	if pc.LocalType == "" {
+	if pc.LocalName == "" {
 		// Should never happen; always indicates a bug
 		return "provider.<invalid>"
 	}
 
 	if pc.Alias != "" {
-		return fmt.Sprintf("provider.%s.%s", pc.LocalType, pc.Alias)
+		return fmt.Sprintf("provider.%s.%s", pc.LocalName, pc.Alias)
 	}
 
-	return "provider." + pc.LocalType
+	return "provider." + pc.LocalName
 }
 
 // StringCompact is an alternative to String that returns the form that can
 // be parsed by ParseProviderConfigCompact, without the "provider." prefix.
 func (pc LocalProviderConfig) StringCompact() string {
 	if pc.Alias != "" {
-		return fmt.Sprintf("%s.%s", pc.LocalType, pc.Alias)
+		return fmt.Sprintf("%s.%s", pc.LocalName, pc.Alias)
 	}
-	return pc.LocalType
+	return pc.LocalName
 }
 
 // AbsProviderConfig is the absolute address of a provider configuration
@@ -158,7 +158,7 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	}
 
 	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.ProviderConfig.LocalType = tt.Name
+		ret.ProviderConfig.LocalName = tt.Name
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -225,7 +225,7 @@ func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module: m,
 		ProviderConfig: LocalProviderConfig{
-			LocalType: name,
+			LocalName: name,
 		},
 	}
 }
@@ -240,7 +240,7 @@ func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderCon
 	return AbsProviderConfig{
 		Module: m,
 		ProviderConfig: LocalProviderConfig{
-			LocalType: name,
+			LocalName: name,
 			Alias:     alias,
 		},
 	}

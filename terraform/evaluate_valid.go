@@ -217,7 +217,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	// legacy addresses. d.Evaluator.Schemas.ResourceTypeConfig below ought to
 	// change to take an addrs.Provider, and then that's what we should be
 	// passing in here.
-	providerType := cfg.ProviderConfigAddr().LocalType
+	providerType := cfg.ProviderConfigAddr().LocalName
 	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
 
 	if schema == nil {

@@ -75,12 +75,12 @@ func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 		return addrs.LocalProviderConfig{
 			// This will panic once non-legacy addresses are in play.
 			// See the TODO comment above ^^
-			LocalType: fqn.LegacyString(),
+			LocalName: fqn.LegacyString(),
 		}
 	}
 
 	return addrs.LocalProviderConfig{
-		LocalType: r.ProviderConfigRef.Name,
+		LocalName: r.ProviderConfigRef.Name,
 		Alias:     r.ProviderConfigRef.Alias,
 	}
 }
@@ -457,7 +457,7 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 // location information and keeping just the addressing information.
 func (r *ProviderConfigRef) Addr() addrs.LocalProviderConfig {
 	return addrs.LocalProviderConfig{
-		LocalType: r.Name,
+		LocalName: r.Name,
 		Alias:     r.Alias,
 	}
 }

@@ -10,11 +10,11 @@ import (
 
 func TestAddressedTypes(t *testing.T) {
 	providerAddrs := []addrs.LocalProviderConfig{
-		{LocalType: "aws"},
-		{LocalType: "aws", Alias: "foo"},
-		{LocalType: "azure"},
-		{LocalType: "null"},
-		{LocalType: "null"},
+		{LocalName: "aws"},
+		{LocalName: "aws", Alias: "foo"},
+		{LocalName: "azure"},
+		{LocalName: "null"},
+		{LocalName: "null"},
 	}
 
 	got := AddressedTypes(providerAddrs)
@@ -30,11 +30,11 @@ func TestAddressedTypes(t *testing.T) {
 
 func TestAddressedTypesAbs(t *testing.T) {
 	providerAddrs := []addrs.AbsProviderConfig{
-		addrs.LocalProviderConfig{LocalType: "aws"}.Absolute(addrs.RootModuleInstance),
-		addrs.LocalProviderConfig{LocalType: "aws", Alias: "foo"}.Absolute(addrs.RootModuleInstance),
-		addrs.LocalProviderConfig{LocalType: "azure"}.Absolute(addrs.RootModuleInstance),
-		addrs.LocalProviderConfig{LocalType: "null"}.Absolute(addrs.RootModuleInstance),
-		addrs.LocalProviderConfig{LocalType: "null"}.Absolute(addrs.RootModuleInstance),
+		addrs.LocalProviderConfig{LocalName: "aws"}.Absolute(addrs.RootModuleInstance),
+		addrs.LocalProviderConfig{LocalName: "aws", Alias: "foo"}.Absolute(addrs.RootModuleInstance),
+		addrs.LocalProviderConfig{LocalName: "azure"}.Absolute(addrs.RootModuleInstance),
+		addrs.LocalProviderConfig{LocalName: "null"}.Absolute(addrs.RootModuleInstance),
+		addrs.LocalProviderConfig{LocalName: "null"}.Absolute(addrs.RootModuleInstance),
 	}
 
 	got := AddressedTypesAbs(providerAddrs)

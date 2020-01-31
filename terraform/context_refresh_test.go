@@ -104,7 +104,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 				AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
 			},
 			addrs.LocalProviderConfig{
-				LocalType: "test",
+				LocalName: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})
@@ -1739,7 +1739,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 					"id": "foo",
 				},
 			},
-			addrs.LocalProviderConfig{LocalType: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 
@@ -1822,7 +1822,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 				SchemaVersion: 3,
 				AttrsJSON:     []byte(`{"id":"foo"}`),
 			},
-			addrs.LocalProviderConfig{LocalType: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 
@@ -1991,7 +1991,7 @@ func TestRefresh_updateDependencies(t *testing.T) {
 			},
 		},
 		addrs.LocalProviderConfig{
-			LocalType: "aws",
+			LocalName: "aws",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -2005,7 +2005,7 @@ func TestRefresh_updateDependencies(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
 		},
 		addrs.LocalProviderConfig{
-			LocalType: "aws",
+			LocalName: "aws",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 

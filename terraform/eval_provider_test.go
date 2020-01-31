@@ -19,7 +19,7 @@ func TestBuildProviderConfig(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "foo",
+			LocalName: "foo",
 		},
 	}
 
@@ -73,7 +73,7 @@ func TestEvalConfigProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "foo",
+			LocalName: "foo",
 		},
 	}
 	n := &EvalConfigProvider{
@@ -109,7 +109,7 @@ func TestEvalInitProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "foo",
+			LocalName: "foo",
 		},
 	}
 	n := &EvalInitProvider{
@@ -133,7 +133,7 @@ func TestEvalCloseProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "foo",
+			LocalName: "foo",
 		},
 	}
 	n := &EvalCloseProvider{

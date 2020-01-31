@@ -272,7 +272,7 @@ func testState() *states.State {
 				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.LocalProviderConfig{
-				LocalType: "test",
+				LocalName: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		// DeepCopy is used here to ensure our synthetic state matches exactly

@@ -145,7 +145,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 						providerAddr = addrs.AbsProviderConfig{
 							Module: moduleAddr,
 							ProviderConfig: addrs.LocalProviderConfig{
-								LocalType: defaultProvider.LegacyString(),
+								LocalName: defaultProvider.LegacyString(),
 							},
 						}
 					}

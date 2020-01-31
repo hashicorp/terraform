@@ -39,14 +39,14 @@ func TestParseProviderConfigCompact(t *testing.T) {
 		{
 			`aws`,
 			addrs.LocalProviderConfig{
-				LocalType: "aws",
+				LocalName: "aws",
 			},
 			``,
 		},
 		{
 			`aws.foo`,
 			addrs.LocalProviderConfig{
-				LocalType: "aws",
+				LocalName: "aws",
 				Alias:     "foo",
 			},
 			``,

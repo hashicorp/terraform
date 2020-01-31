@@ -199,11 +199,11 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[addrs.NewLegacyProvider(providerAddr.LocalType)] = struct{}{}
+		m[addrs.NewLegacyProvider(providerAddr.LocalName)] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[addrs.NewLegacyProvider(providerAddr.LocalType)] = struct{}{}
+		m[addrs.NewLegacyProvider(providerAddr.LocalName)] = struct{}{}
 	}
 
 	// Must also visit our child modules, recursively.
@@ -238,13 +238,13 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		}
 
 		var provider addrs.Provider
-		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalType]; exists {
+		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
 			provider = providerReq.Type
 		} else {
 			// FIXME: For now we're returning a _legacy_ address as fallback here,
 			// but once we remove legacy addresses this should actually be a
 			// _default_ provider address.
-			provider = addrs.NewLegacyProvider(addr.LocalType)
+			provider = addrs.NewLegacyProvider(addr.LocalName)
 		}
 
 		// FIXME: Once AbsProviderConfig starts using FQN rather than
@@ -255,7 +255,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		return addrs.AbsProviderConfig{
 			Module: inModule,
 			ProviderConfig: addrs.LocalProviderConfig{
-				LocalType: provider.LegacyString(),
+				LocalName: provider.LegacyString(),
 				Alias:     addr.Alias,
 			},
 		}
@@ -278,6 +278,6 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 		// connected to the receiver (rather than a descendent, as with
 		// ResolveAbsProviderAddr) and we're going to discard the Module field
 		// of the ResolveAbsProviderAddr return value anyway.
-		c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).ProviderConfig.LocalType,
+		c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).ProviderConfig.LocalName,
 	)
 }

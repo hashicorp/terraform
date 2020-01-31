@@ -13,7 +13,7 @@ func (n *NodeEvalableProvider) EvalTree() EvalNode {
 	addr := n.Addr
 
 	return &EvalInitProvider{
-		TypeName: addr.ProviderConfig.LocalType, // FIXME: Should be an addrs.Provider
+		TypeName: addr.ProviderConfig.LocalName, // FIXME: Should be an addrs.Provider
 		Addr:     addr,
 	}
 }

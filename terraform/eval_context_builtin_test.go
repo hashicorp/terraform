@@ -27,13 +27,13 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	providerAddr1 := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "foo",
+			LocalName: "foo",
 		},
 	}
 	providerAddr2 := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "foo",
+			LocalName: "foo",
 		},
 	}
 
@@ -75,13 +75,13 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	providerAddrDefault := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "test",
+			LocalName: "test",
 		},
 	}
 	providerAddrAlias := addrs.AbsProviderConfig{
 		Module: addrs.RootModuleInstance,
 		ProviderConfig: addrs.LocalProviderConfig{
-			LocalType: "test",
+			LocalName: "test",
 			Alias:     "foo",
 		},
 	}

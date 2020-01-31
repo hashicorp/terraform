@@ -545,7 +545,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a_id"}`),
 		},
 		addrs.LocalProviderConfig{
-			LocalType: "test",
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -569,7 +569,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			},
 		},
 		addrs.LocalProviderConfig{
-			LocalType: "test",
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
