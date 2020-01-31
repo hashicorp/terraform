@@ -25,6 +25,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the S3 bucket",
+				DefaultFunc: schema.EnvDefaultFunc("S3_BACKEND_BUCKET", nil),
 			},
 
 			"key": {
