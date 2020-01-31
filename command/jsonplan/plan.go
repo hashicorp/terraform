@@ -177,8 +177,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			continue
 		}
 
+		// FIXME: update this once the provider fqn is available in the AbsProviderConfig
+		providerFqn := addrs.NewLegacyProvider(rc.ProviderAddr.ProviderConfig.LocalName)
 		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.ProviderConfig.LocalName,
+			providerFqn,
 			addr.Resource.Resource.Mode,
 			addr.Resource.Resource.Type,
 		)

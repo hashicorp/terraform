@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -59,9 +60,11 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
 			providerAddr, _ := tv.ProvidedBy()
-			providerType := providerAddr.ProviderConfig.LocalName
 
-			schema, version := t.Schemas.ResourceTypeConfig(providerType, mode, typeName)
+			// TODO: get providerFQN directly from AbsProviderConfig
+			providerFqn := addrs.NewLegacyProvider(providerAddr.ProviderConfig.LocalName)
+
+			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
 				continue
@@ -72,7 +75,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
 			providerAddr := tv.ProviderAddr()
-			schema := t.Schemas.ProviderConfig(providerAddr.ProviderConfig.LocalName)
+			// TODO: get providerFQN directly from AbsProviderConfig
+			providerFqn := addrs.NewLegacyProvider(providerAddr.ProviderConfig.LocalName)
+			schema := t.Schemas.ProviderConfig(providerFqn)
+
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
 				continue

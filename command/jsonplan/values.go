@@ -180,8 +180,10 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			)
 		}
 
+		// FIXME: update this once the provider fqn is available in the AbsProviderConfig
+		providerFqn := addrs.NewLegacyProvider(r.ProviderAddr.ProviderConfig.LocalName)
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			r.ProviderAddr.ProviderConfig.LocalName,
+			providerFqn,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)

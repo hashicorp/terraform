@@ -781,9 +781,9 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
 	// FIXME: Once AbsProviderConfig has an addrs.Provider in it, we should
 	// be looking schemas up using provider FQNs rather than legacy names.
-	providerType := providerAddr.ProviderConfig.LocalName
+	providerFqn := addrs.NewLegacyProvider(providerAddr.ProviderConfig.LocalName)
 	schemas := d.Evaluator.Schemas
-	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	schema, _ := schemas.ResourceTypeConfig(providerFqn, addr.Mode, addr.Type)
 	return schema
 }
 
