@@ -97,14 +97,14 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS access key",
-				Default:     "",
+				DefaultFunc: schema.EnvDefaultFunc("BACKEND_AWS_ACCESS_KEY_ID", ""),
 			},
 
 			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "AWS secret key",
-				Default:     "",
+				DefaultFunc: schema.EnvDefaultFunc("BACKEND_AWS_SECRET_ACCESS_KEY", ""),
 			},
 
 			"kms_key_id": {
