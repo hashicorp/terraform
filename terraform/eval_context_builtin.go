@@ -103,9 +103,14 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.ProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
-	absAddr := addr.Absolute(ctx.Path())
+	absAddr := addr
+	if !absAddr.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of InitProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s initialized by wrong module %s", absAddr, ctx.Path()))
+	}
 
 	// If we already initialized, it is an error
 	if p := ctx.Provider(absAddr); p != nil {
@@ -142,16 +147,23 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
 	ctx.once.Do(ctx.init)
 
-	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
+	// FIXME: Once AbsProviderConfig starts containing an FQN, use that directly
+	// here instead of addr.ProviderConfig.LocalName.
+	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.LocalName)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
+func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
 	ctx.once.Do(ctx.init)
+	if !addr.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of CloseProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s closed by wrong module %s", addr, ctx.Path()))
+	}
 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	key := addr.Absolute(ctx.Path()).String()
+	key := addr.String()
 	provider := ctx.ProviderCache[key]
 	if provider != nil {
 		delete(ctx.ProviderCache, key)
@@ -161,9 +173,15 @@ func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
+func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	absAddr := addr.Absolute(ctx.Path())
+	absAddr := addr
+	if !absAddr.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of ConfigureProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s configured by wrong module %s", absAddr, ctx.Path()))
+	}
+
 	p := ctx.Provider(absAddr)
 	if p == nil {
 		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
@@ -185,9 +203,15 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg 
 	return resp.Diagnostics
 }
 
-func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string]cty.Value {
+func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[string]cty.Value {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
+
+	if !pc.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of InitProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s initialized by wrong module %s", pc, ctx.Path()))
+	}
 
 	if !ctx.Path().IsRoot() {
 		// Only root module provider configurations can have input.
@@ -197,8 +221,13 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string
 	return ctx.ProviderInputConfig[pc.String()]
 }
 
-func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[string]cty.Value) {
-	absProvider := pc.Absolute(ctx.Path())
+func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c map[string]cty.Value) {
+	absProvider := pc
+	if !absProvider.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of InitProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
+	}
 
 	if !ctx.Path().IsRoot() {
 		// Only root module provider configurations can have input.

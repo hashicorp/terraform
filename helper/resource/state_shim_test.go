@@ -41,8 +41,8 @@ func TestStateShim(t *testing.T) {
 				},
 			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -56,8 +56,8 @@ func TestStateShim(t *testing.T) {
 			AttrsFlat: map[string]string{"id": "baz", "bazzle": "dazzle"},
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -74,8 +74,8 @@ func TestStateShim(t *testing.T) {
 			AttrsJSON: []byte(`{"id": "bar", "fuzzle":"wuzzle"}`),
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(childInstance),
 	)
 	childModule.SetResourceInstanceCurrent(
@@ -97,8 +97,8 @@ func TestStateShim(t *testing.T) {
 				},
 			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(childInstance),
 	)
 
@@ -122,8 +122,8 @@ func TestStateShim(t *testing.T) {
 				},
 			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(childInstance),
 	)
 
@@ -138,8 +138,8 @@ func TestStateShim(t *testing.T) {
 			AttrsFlat: map[string]string{"id": "0", "bazzle": "dazzle"},
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(childInstance),
 	)
 	childModule.SetResourceInstanceCurrent(
@@ -153,8 +153,8 @@ func TestStateShim(t *testing.T) {
 			AttrsFlat: map[string]string{"id": "1", "bazzle": "dazzle"},
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(childInstance),
 	)
 
@@ -169,8 +169,8 @@ func TestStateShim(t *testing.T) {
 			AttrsJSON: []byte(`{"id": "single", "bazzle":"dazzle"}`),
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(childInstance),
 	)
 

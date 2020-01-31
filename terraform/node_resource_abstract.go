@@ -324,8 +324,13 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 		return relAddr.Absolute(n.Path()), false
 	}
 
-	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Addr.Module), false
+	// Use our type and containing module path to guess a provider configuration address.
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(n.Addr.Module), false
 }
 
 // GraphNodeProviderConsumer
@@ -345,7 +350,12 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	}
 
 	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Path()), false
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(n.Addr.Module), false
 }
 
 // GraphNodeProvisionerConsumer

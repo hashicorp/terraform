@@ -137,7 +137,17 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 						}
 						providerAddr = localAddr.Absolute(moduleAddr)
 					} else {
-						providerAddr = resAddr.DefaultProviderConfig().Absolute(moduleAddr)
+						defaultProvider := resAddr.DefaultProvider()
+						// FIXME: Once AbsProviderConfig is using addrs.Provider
+						// instead of embedding LocalProviderConfig, just use
+						// the defaultProvider value as the FQN here, removing
+						// the reliance on legacy address forms.
+						providerAddr = addrs.AbsProviderConfig{
+							Module: moduleAddr,
+							ProviderConfig: addrs.LocalProviderConfig{
+								LocalName: defaultProvider.LegacyString(),
+							},
+						}
 					}
 				}
 

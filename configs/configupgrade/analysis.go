@@ -179,7 +179,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 				}
 
 				if providerKey == "" {
-					providerKey = rAddr.DefaultProviderConfig().StringCompact()
+					providerKey = rAddr.DefaultProvider().LegacyString()
 				}
 
 				inst := moduledeps.ProviderInstance(providerKey)

@@ -26,8 +26,8 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 
@@ -44,8 +44,8 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})
@@ -92,8 +92,8 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
@@ -108,8 +108,8 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})
@@ -155,8 +155,8 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
@@ -171,8 +171,8 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})
@@ -218,8 +218,8 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
@@ -234,8 +234,8 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	})

@@ -19,8 +19,8 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			`provider.aws`,
 			AbsProviderConfig{
 				Module: RootModuleInstance,
-				ProviderConfig: ProviderConfig{
-					Type: "aws",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
 				},
 			},
 			``,
@@ -29,9 +29,9 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			`provider.aws.foo`,
 			AbsProviderConfig{
 				Module: RootModuleInstance,
-				ProviderConfig: ProviderConfig{
-					Type:  "aws",
-					Alias: "foo",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
+					Alias:     "foo",
 				},
 			},
 			``,
@@ -44,8 +44,8 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						Name: "baz",
 					},
 				},
-				ProviderConfig: ProviderConfig{
-					Type: "aws",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
 				},
 			},
 			``,
@@ -58,9 +58,9 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						Name: "baz",
 					},
 				},
-				ProviderConfig: ProviderConfig{
-					Type:  "aws",
-					Alias: "foo",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
+					Alias:     "foo",
 				},
 			},
 			``,
@@ -74,8 +74,8 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						InstanceKey: StringKey("foo"),
 					},
 				},
-				ProviderConfig: ProviderConfig{
-					Type: "aws",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
 				},
 			},
 			``,
@@ -89,8 +89,8 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						InstanceKey: IntKey(1),
 					},
 				},
-				ProviderConfig: ProviderConfig{
-					Type: "aws",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
 				},
 			},
 			``,
@@ -107,8 +107,8 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						Name: "bar",
 					},
 				},
-				ProviderConfig: ProviderConfig{
-					Type: "aws",
+				ProviderConfig: LocalProviderConfig{
+					LocalName: "aws",
 				},
 			},
 			``,

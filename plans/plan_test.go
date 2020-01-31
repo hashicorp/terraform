@@ -20,8 +20,8 @@ func TestProviderAddrs(t *testing.T) {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.ProviderConfig{
-						Type: "test",
+					ProviderAddr: addrs.LocalProviderConfig{
+						LocalName: "test",
 					}.Absolute(addrs.RootModuleInstance),
 				},
 				{
@@ -31,8 +31,8 @@ func TestProviderAddrs(t *testing.T) {
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					DeposedKey: "foodface",
-					ProviderAddr: addrs.ProviderConfig{
-						Type: "test",
+					ProviderAddr: addrs.LocalProviderConfig{
+						LocalName: "test",
 					}.Absolute(addrs.RootModuleInstance),
 				},
 				{
@@ -41,8 +41,8 @@ func TestProviderAddrs(t *testing.T) {
 						Type: "test_thing",
 						Name: "what",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.ProviderConfig{
-						Type: "test",
+					ProviderAddr: addrs.LocalProviderConfig{
+						LocalName: "test",
 					}.Absolute(addrs.RootModuleInstance.Child("foo", addrs.NoKey)),
 				},
 			},
@@ -51,11 +51,11 @@ func TestProviderAddrs(t *testing.T) {
 
 	got := plan.ProviderAddrs()
 	want := []addrs.AbsProviderConfig{
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance.Child("foo", addrs.NoKey)),
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	}
 

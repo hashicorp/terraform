@@ -181,7 +181,8 @@ func (c *ImportCommand) Run(args []string) int {
 		if rc != nil && rc.ProviderConfigRef != nil {
 			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
 		} else {
-			providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
+			providerType := resourceRelAddr.DefaultProvider()
+			providerAddr = addrs.NewDefaultLocalProviderConfig(providerType.LegacyString()).Absolute(addr.Module)
 		}
 	}
 

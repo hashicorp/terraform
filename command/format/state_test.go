@@ -243,8 +243,8 @@ func basicState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -258,8 +258,8 @@ func basicState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"compute":"sure"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -293,8 +293,8 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -319,8 +319,8 @@ func nestedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -341,8 +341,8 @@ func deposedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -369,8 +369,8 @@ func onlyDeposedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceDeposed(
@@ -385,8 +385,8 @@ func onlyDeposedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state

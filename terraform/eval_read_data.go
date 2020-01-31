@@ -85,7 +85,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.ProviderConfig.Type, n.Addr.Resource.Type)
+		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.ProviderConfig.LocalName, n.Addr.Resource.Type)
 	}
 
 	// We'll always start by evaluating the configuration. What we do after
@@ -223,7 +223,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -237,7 +237,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced null object",
 			fmt.Sprintf(
 				"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr,
+				n.ProviderAddr.ProviderConfig.LocalName, absAddr,
 			),
 		))
 	}
@@ -247,7 +247,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr,
+				n.ProviderAddr.ProviderConfig.LocalName, absAddr,
 			),
 		))
 
@@ -364,7 +364,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s. The result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}

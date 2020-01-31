@@ -53,7 +53,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 		// us to keep this relatively simple without significant hardship.
 
 		pcs := make(map[string]*configs.Provider)
-		pas := make(map[string]addrs.ProviderConfig)
+		pas := make(map[string]addrs.LocalProviderConfig)
 		for _, pc := range c.config.Module.ProviderConfigs {
 			addr := pc.Addr()
 			pcs[addr.String()] = pc
@@ -96,12 +96,12 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				UIInput:     c.uiInput,
 			}
 
-			schema := c.schemas.ProviderConfig(pa.Type)
+			schema := c.schemas.ProviderConfig(pa.LocalName)
 			if schema == nil {
 				// Could either be an incorrect config or just an incomplete
 				// mock in tests. We'll let a later pass decide, and just
 				// ignore this for the purposes of gathering input.
-				log.Printf("[TRACE] Context.Input: No schema available for provider type %q", pa.Type)
+				log.Printf("[TRACE] Context.Input: No schema available for provider type %q", pa.LocalName)
 				continue
 			}
 

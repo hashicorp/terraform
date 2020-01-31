@@ -24,16 +24,27 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
 
-	providerAddr := addrs.ProviderConfig{Type: "foo"}
+	providerAddr1 := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "foo",
+		},
+	}
+	providerAddr2 := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "foo",
+		},
+	}
 
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
-	ctx1.SetProviderInput(providerAddr, expected1)
+	ctx1.SetProviderInput(providerAddr1, expected1)
 
 	try2 := map[string]cty.Value{"value": cty.StringVal("bar")}
-	ctx2.SetProviderInput(providerAddr, try2) // ignored because not a root module
+	ctx2.SetProviderInput(providerAddr2, try2) // ignored because not a root module
 
-	actual1 := ctx1.ProviderInput(providerAddr)
-	actual2 := ctx2.ProviderInput(providerAddr)
+	actual1 := ctx1.ProviderInput(providerAddr1)
+	actual2 := ctx2.ProviderInput(providerAddr2)
 
 	if !reflect.DeepEqual(actual1, expected1) {
 		t.Errorf("wrong result 1\ngot:  %#v\nwant: %#v", actual1, expected1)
@@ -57,8 +68,23 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 		},
 	}
 
-	providerAddrDefault := addrs.ProviderConfig{Type: "test"}
-	providerAddrAlias := addrs.ProviderConfig{Type: "test", Alias: "foo"}
+	// FIXME: Once AbsProviderConfig has a provider FQN instead of an
+	// embedded LocalProviderConfig, use a legacy or default provider address
+	// here depending on whether we've moved away from legacy provider
+	// addresses in general yet.
+	providerAddrDefault := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "test",
+		},
+	}
+	providerAddrAlias := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "test",
+			Alias:     "foo",
+		},
+	}
 
 	_, err := ctx.InitProvider("test", providerAddrDefault)
 	if err != nil {

@@ -262,7 +262,7 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 		if rcs.Action == plans.NoOp {
 			continue
 		}
-		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.LocalName)
 		if providerSchema == nil {
 			// Should never happen
 			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
