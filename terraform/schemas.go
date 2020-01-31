@@ -92,7 +92,12 @@ func LoadSchemas(config *configs.Config, state *states.State, components context
 func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Config, state *states.State, components contextComponentFactory) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	ensure := func(typeName string) {
+	ensure := func(typeAddr addrs.Provider) {
+		// FIXME: Once schema lookup is ready to look up by addrs.Provider rather
+		// than legacy name, we'll use typeAddr directly. For now, we support
+		// only legacy addresses.
+		typeName := typeAddr.LegacyString()
+
 		if _, exists := schemas[typeName]; exists {
 			return
 		}
@@ -171,8 +176,8 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 
 	if state != nil {
 		needed := providers.AddressedTypesAbs(state.ProviderAddrs())
-		for _, typeName := range needed {
-			ensure(typeName)
+		for _, typeAddr := range needed {
+			ensure(typeAddr)
 		}
 	}
 

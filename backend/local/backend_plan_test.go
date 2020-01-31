@@ -215,8 +215,8 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 				}]
 			}`),
 			},
-			addrs.ProviderConfig{
-				Type: "test",
+			addrs.LocalProviderConfig{
+				LocalName: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 	}))
@@ -658,8 +658,8 @@ func testPlanState() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -684,8 +684,8 @@ func testPlanState_withDataSource() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -700,8 +700,8 @@ func testPlanState_withDataSource() *states.State {
 				"filter": "foo"
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state
@@ -726,8 +726,8 @@ func testPlanState_tainted() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	return state

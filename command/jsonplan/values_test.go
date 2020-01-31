@@ -258,7 +258,7 @@ func TestMarshalPlanResources(t *testing.T) {
 							Type: "test_thing",
 							Name: "example",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+						ProviderAddr: addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 						ChangeSrc: plans.ChangeSrc{
 							Action: test.Action,
 							Before: before,

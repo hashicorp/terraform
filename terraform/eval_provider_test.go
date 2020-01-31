@@ -16,8 +16,11 @@ func TestBuildProviderConfig(t *testing.T) {
 	configBody := configs.SynthBody("", map[string]cty.Value{
 		"set_in_config": cty.StringVal("config"),
 	})
-	providerAddr := addrs.ProviderConfig{
-		Type: "foo",
+	providerAddr := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "foo",
+		},
 	}
 
 	ctx := &MockEvalContext{
@@ -67,8 +70,14 @@ func TestEvalConfigProvider(t *testing.T) {
 	}
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	rp := providers.Interface(provider)
+	providerAddr := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "foo",
+		},
+	}
 	n := &EvalConfigProvider{
-		Addr:     addrs.ProviderConfig{Type: "foo"},
+		Addr:     providerAddr,
 		Config:   config,
 		Provider: &rp,
 	}
@@ -97,8 +106,14 @@ func TestEvalInitProvider_impl(t *testing.T) {
 }
 
 func TestEvalInitProvider(t *testing.T) {
+	providerAddr := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "foo",
+		},
+	}
 	n := &EvalInitProvider{
-		Addr: addrs.ProviderConfig{Type: "foo"},
+		Addr: providerAddr,
 	}
 	provider := &MockProvider{}
 	ctx := &MockEvalContext{InitProviderProvider: provider}
@@ -115,8 +130,14 @@ func TestEvalInitProvider(t *testing.T) {
 }
 
 func TestEvalCloseProvider(t *testing.T) {
+	providerAddr := addrs.AbsProviderConfig{
+		Module: addrs.RootModuleInstance,
+		ProviderConfig: addrs.LocalProviderConfig{
+			LocalName: "foo",
+		},
+	}
 	n := &EvalCloseProvider{
-		Addr: addrs.ProviderConfig{Type: "foo"},
+		Addr: providerAddr,
 	}
 	provider := &MockProvider{}
 	ctx := &MockEvalContext{CloseProviderProvider: provider}

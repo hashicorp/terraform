@@ -212,10 +212,12 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		return diags
 	}
 
-	// Normally accessing this directly is wrong because it doesn't take into
-	// account provider inheritance, etc but it's okay here because we're only
-	// paying attention to the type anyway.
-	providerType := cfg.ProviderConfigAddr().Type
+	// FIXME: This is wrong: it's assuming that the local type is the same
+	// as the type from the provider FQN, which will not hold once we eliminate
+	// legacy addresses. d.Evaluator.Schemas.ResourceTypeConfig below ought to
+	// change to take an addrs.Provider, and then that's what we should be
+	// passing in here.
+	providerType := cfg.ProviderConfigAddr().LocalName
 	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
 
 	if schema == nil {
