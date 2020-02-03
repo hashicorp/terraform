@@ -24,11 +24,6 @@ Usage: `terraform login [hostname]`
 If you don't provide an explicit hostname, Terraform will assume you want to
 log in to Terraform Cloud at `app.terraform.io`.
 
-[Private Terraform Enterprise](/docs/enterprise/index.html) does not currently
-support `terraform login`, so to work with Private Terraform Enterprise you
-must configure credentials manually as described in
-[Remote Backend Configuration](https://www.terraform.io/docs/cloud/run/cli.html#remote-backend-configuration).
-
 ## Credentials Storage
 
 By default, Terraform will obtain an API token and save it in plain text in a
