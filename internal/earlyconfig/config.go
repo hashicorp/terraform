@@ -84,7 +84,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 
 	providers := make(moduledeps.Providers)
 	for name, reqs := range c.Module.RequiredProviders {
-		inst := moduledeps.ProviderInstance(name)
+		fqn := addrs.ParseProviderFqnString(name)
 		var constraints version.Constraints
 		for _, reqStr := range reqs.VersionConstraints {
 			if reqStr != "" {
@@ -100,7 +100,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 				constraints = append(constraints, constraint...)
 			}
 		}
-		providers[inst] = moduledeps.ProviderDependency{
+		providers[fqn] = moduledeps.ProviderDependency{
 			Constraints: discovery.NewConstraints(constraints),
 			Reason:      moduledeps.ProviderDependencyExplicit,
 		}
