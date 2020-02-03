@@ -138,8 +138,8 @@ func testProviderSchema() *terraform.ProviderSchema {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": provider.GetSchemaReturn,
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
 		},
 	}
 }

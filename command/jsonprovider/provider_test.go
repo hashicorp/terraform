@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -117,8 +118,8 @@ func TestMarshalProvider(t *testing.T) {
 
 func testProviders() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": testProvider(),
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewLegacyProvider("test"): testProvider(),
 		},
 	}
 }

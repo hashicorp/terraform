@@ -500,7 +500,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 // that resource is destroyed.
 func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 	schemas := simpleTestSchemas()
-	instanceSchema := schemas.Providers["test"].ResourceTypes["test_object"]
+	instanceSchema := schemas.Providers[addrs.NewLegacyProvider("test")].ResourceTypes["test_object"]
 
 	bBefore, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{

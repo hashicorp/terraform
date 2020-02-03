@@ -139,7 +139,9 @@ func marshalProviderConfigs(
 	}
 
 	for k, pc := range c.Module.ProviderConfigs {
-		schema := schemas.ProviderConfig(pc.Name)
+		// FIXME: lookup providerFqn from config
+		providerFqn := addrs.NewLegacyProvider(pc.Name)
+		schema := schemas.ProviderConfig(providerFqn)
 		p := providerConfig{
 			Name:              pc.Name,
 			Alias:             pc.Alias,
@@ -301,8 +303,10 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			}
 		}
 
+		// TODO: get actual providerFqn
+		providerFqn := addrs.NewLegacyProvider(v.ProviderConfigAddr().LocalName)
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			v.ProviderConfigAddr().LocalName,
+			providerFqn,
 			v.Mode,
 			v.Type,
 		)

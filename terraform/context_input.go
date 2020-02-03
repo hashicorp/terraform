@@ -96,7 +96,9 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				UIInput:     c.uiInput,
 			}
 
-			schema := c.schemas.ProviderConfig(pa.LocalName)
+			// TODO: get provider FQN
+			providerFqn := addrs.NewLegacyProvider(pa.LocalName)
+			schema := c.schemas.ProviderConfig(providerFqn)
 			if schema == nil {
 				// Could either be an incorrect config or just an incomplete
 				// mock in tests. We'll let a later pass decide, and just

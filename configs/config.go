@@ -163,7 +163,7 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
-// ProviderTypes returns the names of each distinct provider type referenced
+// ProviderTypes returns the FQNs of each distinct provider type referenced
 // in the receiving configuration.
 //
 // This is a helper for easily determining which provider types are required
