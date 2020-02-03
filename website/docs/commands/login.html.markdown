@@ -47,7 +47,7 @@ The information below is for anyone intending to implement the server side
 of `terraform login` in order to offer Terraform-native services in a
 third-party system.
 
-Terraform implements `terraform login` by performing an OAuth 2.0 authorization
+The `terraform login` command supports performing an OAuth 2.0 authorization
 request using configuration provided by the target host. You may wish to
 implement this protocol if you are producing a third-party implementation of
 any [Terraform-native services](/docs/internals/remote-service-discovery.html),
