@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -546,11 +547,33 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		}
 	}
 
-	token, err := c.Ui.AskSecret(fmt.Sprintf("Token for %s:", hostname.ForDisplay()))
+	token, err := c.Ui.AskSecret(fmt.Sprintf(c.Colorize().Color("Token for [bold]%s[reset]:"), hostname.ForDisplay()))
 	if err != nil {
 		diags := diags.Append(fmt.Errorf("Failed to retrieve token: %s", err))
 		return "", diags
 	}
+
+	token = strings.TrimSpace(token)
+	cfg := &tfe.Config{
+		Address:  service.String(),
+		BasePath: service.Path,
+		Token:    token,
+		Headers:  make(http.Header),
+	}
+	client, err := tfe.NewClient(cfg)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to create API client: %s", err))
+		return "", diags
+	}
+	user, err := client.Users.ReadCurrent(context.Background())
+	if err == tfe.ErrUnauthorized {
+		diags = diags.Append(fmt.Errorf("Token is invalid: %s", err))
+		return "", diags
+	} else if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to retrieve user account details: %s", err))
+		return "", diags
+	}
+	c.Ui.Output(fmt.Sprintf(c.Colorize().Color("\nRetrieved token for user [bold]%s[reset]\n"), user.Username))
 
 	return svcauth.HostCredentialsToken(token), nil
 }
