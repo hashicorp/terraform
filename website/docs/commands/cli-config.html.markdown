@@ -93,12 +93,12 @@ credentials "app.terraform.io" {
 ```
 
 You can have multiple `credentials` blocks if you regularly use services from
-multiple hosts but many users will configure only one, for either
+multiple hosts. Many users will configure only one, for either
 Terraform Cloud (at `app.terraform.io`) or for their organization's own
 Terraform Enterprise host. Each `credentials` block contains a `token` argument
 giving the API token to use for that host.
 
-~> **Important:** If you are using Terraform Cloud or Terraform Enterprise then
+~> **Important:** If you are using Terraform Cloud or Terraform Enterprise,
 the token provided must be either a
 [user token](/docs/cloud/users-teams-organizations/users.html#api-tokens)
 or a
