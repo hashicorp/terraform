@@ -1,9 +1,6 @@
 # Each line is a file pattern followed by one or more owners.
 # More on CODEOWNERS files: https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
-# Terraform Core default ownership
-*                               @hashicorp/terraform-core
-
 # Remote-state backends
 /backend/remote-state/azure     @hashicorp/terraform-azure
 /backend/remote-state/gcs       @hashicorp/terraform-google
