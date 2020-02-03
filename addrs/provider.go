@@ -20,7 +20,9 @@ type Provider struct {
 
 const DefaultRegistryHost = "registry.terraform.io"
 
-var ValidProviderName = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+var (
+	ValidProviderName = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+)
 
 // String returns an FQN string, indended for use in output.
 func (pt Provider) String() string {
@@ -40,6 +42,11 @@ func NewDefaultProvider(name string) Provider {
 // NewLegacyProvider returns a mock address for a provider.
 // This will be removed when ProviderType is fully integrated.
 func NewLegacyProvider(name string) Provider {
+	// This is intended to catch provider names with aliases, such as "null.foo"
+	if !ValidProviderName.MatchString(name) {
+		panic("invalid provider name")
+	}
+
 	return Provider{
 		Type:      name,
 		Namespace: "-",
@@ -58,8 +65,8 @@ func (pt Provider) LegacyString() string {
 	return pt.Type
 }
 
-//
 // ParseProviderSourceString parses the source attribute and returns a provider.
+// This is intended primary to parse the FQN-like strings returned by terraform-config-inspect.
 func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	var ret Provider
 	var diags tfdiags.Diagnostics
@@ -100,7 +107,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	ret.Hostname = DefaultRegistryHost
 
 	if len(parts) == 1 {
-		// TODO: this will be NewDefaultProvider IN THE FUTURE
+		// FIXME: update this to NewDefaultProvider in the provider source release
 		return NewLegacyProvider(parts[0]), diags
 	}
 

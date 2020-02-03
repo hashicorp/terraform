@@ -109,12 +109,9 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 					}
 				}
 
-				inst := moduledeps.ProviderInstance(name)
-				if alias != "" {
-					inst = moduledeps.ProviderInstance(name + "." + alias)
-				}
-				log.Printf("[TRACE] Provider block requires provider %q", inst)
-				m.Providers[inst] = moduledeps.ProviderDependency{
+				fqn := addrs.NewLegacyProvider(name)
+				log.Printf("[TRACE] Provider block requires provider %q", fqn.LegacyString())
+				m.Providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: constraints,
 					Reason:      moduledeps.ProviderDependencyExplicit,
 				}
@@ -178,18 +175,23 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 					}
 				}
 
+				var fqn addrs.Provider
 				if providerKey == "" {
-					providerKey = rAddr.DefaultProvider().LegacyString()
+					fqn = rAddr.DefaultProvider()
+				} else {
+					// ProviderDependencies only need to know the provider FQN
+					// strip any alias from the providerKey
+					parts := strings.Split(providerKey, ".")
+					fqn = addrs.NewLegacyProvider(parts[0])
 				}
 
-				inst := moduledeps.ProviderInstance(providerKey)
-				log.Printf("[TRACE] Resource block for %s requires provider %q", rAddr, inst)
-				if _, exists := m.Providers[inst]; !exists {
-					m.Providers[inst] = moduledeps.ProviderDependency{
+				log.Printf("[TRACE] Resource block for %s requires provider %q", rAddr, fqn)
+				if _, exists := m.Providers[fqn]; !exists {
+					m.Providers[fqn] = moduledeps.ProviderDependency{
 						Reason: moduledeps.ProviderDependencyImplicit,
 					}
 				}
-				ret.ResourceProviderType[rAddr] = inst.Type()
+				ret.ResourceProviderType[rAddr] = fqn.Type
 			}
 		}
 
