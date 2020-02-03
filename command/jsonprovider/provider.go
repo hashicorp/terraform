@@ -35,7 +35,7 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 	providers := newProviders()
 
 	for k, v := range s.Providers {
-		providers.Schemas[k] = marshalProvider(v)
+		providers.Schemas[k.LegacyString()] = marshalProvider(v)
 	}
 
 	ret, err := json.Marshal(providers)

@@ -15,7 +15,7 @@ import (
 // Schemas is a container for various kinds of schema that Terraform needs
 // during processing.
 type Schemas struct {
-	Providers    map[string]*ProviderSchema
+	Providers    map[addrs.Provider]*ProviderSchema
 	Provisioners map[string]*configschema.Block
 }
 
@@ -24,17 +24,17 @@ type Schemas struct {
 //
 // It's usually better to go use the more precise methods offered by type
 // Schemas to handle this detail automatically.
-func (ss *Schemas) ProviderSchema(typeName string) *ProviderSchema {
+func (ss *Schemas) ProviderSchema(provider addrs.Provider) *ProviderSchema {
 	if ss.Providers == nil {
 		return nil
 	}
-	return ss.Providers[typeName]
+	return ss.Providers[provider]
 }
 
 // ProviderConfig returns the schema for the provider configuration of the
 // given provider type, or nil if no such schema is available.
-func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
-	ps := ss.ProviderSchema(typeName)
+func (ss *Schemas) ProviderConfig(provider addrs.Provider) *configschema.Block {
+	ps := ss.ProviderSchema(provider)
 	if ps == nil {
 		return nil
 	}
@@ -50,8 +50,8 @@ func (ss *Schemas) ProviderConfig(typeName string) *configschema.Block {
 // a resource using the "provider" meta-argument. Therefore it's important to
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
-func (ss *Schemas) ResourceTypeConfig(providerType string, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
-	ps := ss.ProviderSchema(providerType)
+func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
+	ps := ss.ProviderSchema(provider)
 	if ps == nil || ps.ResourceTypes == nil {
 		return nil, 0
 	}
@@ -76,7 +76,7 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // still valid but may be incomplete.
 func LoadSchemas(config *configs.Config, state *states.State, components contextComponentFactory) (*Schemas, error) {
 	schemas := &Schemas{
-		Providers:    map[string]*ProviderSchema{},
+		Providers:    map[addrs.Provider]*ProviderSchema{},
 		Provisioners: map[string]*configschema.Block{},
 	}
 	var diags tfdiags.Diagnostics
@@ -89,16 +89,14 @@ func LoadSchemas(config *configs.Config, state *states.State, components context
 	return schemas, diags.Err()
 }
 
-func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Config, state *states.State, components contextComponentFactory) tfdiags.Diagnostics {
+func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *configs.Config, state *states.State, components contextComponentFactory) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	ensure := func(typeAddr addrs.Provider) {
-		// FIXME: Once schema lookup is ready to look up by addrs.Provider rather
-		// than legacy name, we'll use typeAddr directly. For now, we support
-		// only legacy addresses.
-		typeName := typeAddr.LegacyString()
+	ensure := func(fqn addrs.Provider) {
+		// TODO: LegacyString() will be removed in an upcoming release
+		typeName := fqn.LegacyString()
 
-		if _, exists := schemas[typeName]; exists {
+		if _, exists := schemas[fqn]; exists {
 			return
 		}
 
@@ -107,7 +105,7 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
-			schemas[typeName] = &ProviderSchema{}
+			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
 				fmt.Errorf("Failed to instantiate provider %q to obtain schema: %s", typeName, err),
 			)
@@ -121,7 +119,7 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 		if resp.Diagnostics.HasErrors() {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
-			schemas[typeName] = &ProviderSchema{}
+			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
 				fmt.Errorf("Failed to retrieve schema from provider %q: %s", typeName, resp.Diagnostics.Err()),
 			)
@@ -165,12 +163,12 @@ func loadProviderSchemas(schemas map[string]*ProviderSchema, config *configs.Con
 			}
 		}
 
-		schemas[typeName] = s
+		schemas[fqn] = s
 	}
 
 	if config != nil {
-		for _, typeName := range config.ProviderTypes() {
-			ensure(typeName)
+		for _, fqn := range config.ProviderTypes() {
+			ensure(fqn)
 		}
 	}
 
