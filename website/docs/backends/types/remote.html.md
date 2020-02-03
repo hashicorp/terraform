@@ -17,14 +17,11 @@ backend. This backend requires either a Terraform Cloud account on
 
 The remote backend stores state and runs operations in Terraform Cloud.
 
-When used with a Pro or Premium tier Terraform Cloud account, operations
+When used with a Terraform Cloud account, operations
 like `terraform plan` or `terraform apply` are executed in Terraform
 Cloud's run environment, with log output streaming to the local terminal.
 Remote plans and applies use variable values from the associated Terraform
 Cloud workspace.
-
-When used with a free Terraform Cloud account, operations are executed on
-the local machine and state is stored in Terraform Cloud.
 
 ## Command Support
 
