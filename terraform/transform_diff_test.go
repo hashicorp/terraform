@@ -43,8 +43,8 @@ func TestDiffTransformer(t *testing.T) {
 						Type: "aws_instance",
 						Name: "foo",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					ProviderAddr: addrs.ProviderConfig{
-						Type: "aws",
+					ProviderAddr: addrs.LocalProviderConfig{
+						LocalName: "aws",
 					}.Absolute(addrs.RootModuleInstance),
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Update,

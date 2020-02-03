@@ -16,6 +16,11 @@ This backend also supports state locking and consistency checking via
 [Alibaba Cloud Table Store](https://www.alibabacloud.com/help/doc-detail/27280.htm), which can be enabled by setting
 the `tablestore_table` field to an existing TableStore table name.
 
+-> **Note:** The OSS backend is available from terraform version 0.12.2.
+
+!> **Warning:** If you set `tablestore_table`, please ensure the table does not contain primary key named
+`LockID`, `Info` and `Digest`. Otherwise, there will throw an error `OTSParameterInvalid Duplicated attribute column ...`.
+
 ## Example Configuration
 
 ```hcl
@@ -78,6 +83,7 @@ The following configuration options or environment variables are supported:
  * `access_key` - (Optional) Alibaba Cloud access key. It supports environment variables `ALICLOUD_ACCESS_KEY` and  `ALICLOUD_ACCESS_KEY_ID`.
  * `secret_key` - (Optional) Alibaba Cloud secret access key. It supports environment variables `ALICLOUD_SECRET_KEY` and  `ALICLOUD_ACCESS_KEY_SECRET`.
  * `security_token` - (Optional) STS access token. It supports environment variable `ALICLOUD_SECURITY_TOKEN`.
+ * `ecs_role_name` - (Optional, Available in 0.12.14+) The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.
  * `region` - (Optional) The region of the OSS bucket. It supports environment variables `ALICLOUD_REGION` and `ALICLOUD_DEFAULT_REGION`.
  * `endpoint` - (Optional) A custom endpoint for the OSS API. It supports environment variables `ALICLOUD_OSS_ENDPOINT` and `OSS_ENDPOINT`.
  * `bucket` - (Required) The name of the OSS bucket.
@@ -90,7 +96,7 @@ The following configuration options or environment variables are supported:
  * `acl` - (Optional) [Object
    ACL](https://www.alibabacloud.com/help/doc-detail/52284.htm)
    to be applied to the state file.
- * `shared_credentials_file` - (Optional, Available in 0.12.8+) This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.
+ * `shared_credentials_file` - (Optional, Available in 0.12.8+) This is the path to the shared credentials file. It can also be sourced from the `ALICLOUD_SHARED_CREDENTIALS_FILE` environment variable. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.
  * `profile` - (Optional, Available in 0.12.8+)  This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.
  * `assume_role` - (Optional, Available in 0.12.6+) If provided with a role ARN, will attempt to assume this role using the supplied credentials.
 

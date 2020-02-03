@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"github.com/jmespath/go-jmespath"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -21,6 +23,7 @@ import (
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/version"
+	"github.com/mitchellh/go-homedir"
 	"log"
 	"net/http"
 	"strconv"
@@ -50,6 +53,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Alibaba Cloud Security Token",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECURITY_TOKEN", ""),
+			},
+
+			"ecs_role_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ECS_ROLE_NAME", os.Getenv("ALICLOUD_ECS_ROLE_NAME")),
+				Description: "The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.",
 			},
 
 			"region": &schema.Schema{
@@ -140,6 +150,7 @@ func New() backend.Backend {
 			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SHARED_CREDENTIALS_FILE", ""),
 				Description: "This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.",
 			},
 			"profile": {
@@ -276,8 +287,17 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
+	if accessKey == "" {
+		ecsRoleName := getBackendConfig(d.Get("ecs_role_name").(string), "ram_role_name")
+		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAuthCredentialByEcsRoleName(ecsRoleName)
+		if err != nil {
+			return err
+		}
+		accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
+	}
+
 	if roleArn != "" {
-		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy, sessionExpiration)
+		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, securityToken, region, roleArn, sessionName, policy, sessionExpiration)
 		if err != nil {
 			return err
 		}
@@ -347,7 +367,7 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 	return endpointsResponse, nil
 }
 
-func getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy string, sessionExpiration int) (string, string, string, error) {
+func getAssumeRoleAK(accessKey, secretKey, stsToken, region, roleArn, sessionName, policy string, sessionExpiration int) (string, string, string, error) {
 	request := sts.CreateAssumeRoleRequest()
 	request.RoleArn = roleArn
 	request.RoleSessionName = sessionName
@@ -355,7 +375,13 @@ func getAssumeRoleAK(accessKey, secretKey, region, roleArn, sessionName, policy 
 	request.Policy = policy
 	request.Scheme = "https"
 
-	client, err := sts.NewClientWithAccessKey(region, accessKey, secretKey)
+	var client *sts.Client
+	var err error
+	if stsToken == "" {
+		client, err = sts.NewClientWithAccessKey(region, accessKey, secretKey)
+	} else {
+		client, err = sts.NewClientWithStsToken(region, accessKey, secretKey, stsToken)
+	}
 	if err != nil {
 		return "", "", "", err
 	}
@@ -445,7 +471,11 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			return nil, nil
 		}
 		current := d.Get("profile").(string)
-		profilePath := d.Get("shared_credentials_file").(string)
+		// Set CredsFilename, expanding home directory
+		profilePath, err := homedir.Expand(d.Get("shared_credentials_file").(string))
+		if err != nil {
+			return nil, err
+		}
 		if profilePath == "" {
 			profilePath = fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("HOME"))
 			if runtime.GOOS == "windows" {
@@ -453,7 +483,7 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			}
 		}
 		providerConfig = make(map[string]interface{})
-		_, err := os.Stat(profilePath)
+		_, err = os.Stat(profilePath)
 		if !os.IsNotExist(err) {
 			data, err := ioutil.ReadFile(profilePath)
 			if err != nil {
@@ -502,4 +532,79 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 	}
 
 	return providerConfig[ProfileKey], nil
+}
+
+var securityCredURL = "http://100.100.100.200/latest/meta-data/ram/security-credentials/"
+
+// getAuthCredentialByEcsRoleName aims to access meta to get sts credential
+// Actually, the job should be done by sdk, but currently not all resources and products support alibaba-cloud-sdk-go,
+// and their go sdk does support ecs role name.
+// This method is a temporary solution and it should be removed after all go sdk support ecs role name
+// The related PR: https://github.com/terraform-providers/terraform-provider-alicloud/pull/731
+func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, token string, err error) {
+
+	if ecsRoleName == "" {
+		return
+	}
+	requestUrl := securityCredURL + ecsRoleName
+	httpRequest, err := http.NewRequest(requests.GET, requestUrl, strings.NewReader(""))
+	if err != nil {
+		err = fmt.Errorf("build sts requests err: %s", err.Error())
+		return
+	}
+	httpClient := &http.Client{}
+	httpResponse, err := httpClient.Do(httpRequest)
+	if err != nil {
+		err = fmt.Errorf("get Ecs sts token err : %s", err.Error())
+		return
+	}
+
+	response := responses.NewCommonResponse()
+	err = responses.Unmarshal(response, httpResponse, "")
+	if err != nil {
+		err = fmt.Errorf("Unmarshal Ecs sts token response err : %s", err.Error())
+		return
+	}
+
+	if response.GetHttpStatus() != http.StatusOK {
+		err = fmt.Errorf("get Ecs sts token err, httpStatus: %d, message = %s", response.GetHttpStatus(), response.GetHttpContentString())
+		return
+	}
+	var data interface{}
+	err = json.Unmarshal(response.GetHttpContentBytes(), &data)
+	if err != nil {
+		err = fmt.Errorf("refresh Ecs sts token err, json.Unmarshal fail: %s", err.Error())
+		return
+	}
+	code, err := jmespath.Search("Code", data)
+	if err != nil {
+		err = fmt.Errorf("refresh Ecs sts token err, fail to get Code: %s", err.Error())
+		return
+	}
+	if code.(string) != "Success" {
+		err = fmt.Errorf("refresh Ecs sts token err, Code is not Success")
+		return
+	}
+	accessKeyId, err := jmespath.Search("AccessKeyId", data)
+	if err != nil {
+		err = fmt.Errorf("refresh Ecs sts token err, fail to get AccessKeyId: %s", err.Error())
+		return
+	}
+	accessKeySecret, err := jmespath.Search("AccessKeySecret", data)
+	if err != nil {
+		err = fmt.Errorf("refresh Ecs sts token err, fail to get AccessKeySecret: %s", err.Error())
+		return
+	}
+	securityToken, err := jmespath.Search("SecurityToken", data)
+	if err != nil {
+		err = fmt.Errorf("refresh Ecs sts token err, fail to get SecurityToken: %s", err.Error())
+		return
+	}
+
+	if accessKeyId == nil || accessKeySecret == nil || securityToken == nil {
+		err = fmt.Errorf("there is no any available accesskey, secret and security token for Ecs role %s", ecsRoleName)
+		return
+	}
+
+	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
 }

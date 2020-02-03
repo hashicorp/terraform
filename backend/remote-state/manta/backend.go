@@ -53,7 +53,7 @@ func New() backend.Backend {
 			"insecure_skip_tls_verify": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TRITON_SKIP_TLS_VERIFY", ""),
+				DefaultFunc: schema.EnvDefaultFunc("TRITON_SKIP_TLS_VERIFY", false),
 			},
 
 			"path": {

@@ -134,9 +134,16 @@ type CBDEdgeTransformer struct {
 	// obtain schema information from providers and provisioners so we can
 	// properly resolve implicit dependencies.
 	Schemas *Schemas
+
+	// If the operation is a simple destroy, no transformation is done.
+	Destroy bool
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
+	if t.Destroy {
+		return nil
+	}
+
 	// Go through and reverse any destroy edges
 	destroyMap := make(map[string][]dag.Vertex)
 	for _, v := range g.Vertices() {
@@ -153,22 +160,27 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		// Find the destroy edge. There should only be one.
+		// Find the resource edges
 		for _, e := range g.EdgesTo(v) {
-			// Not a destroy edge, ignore it
-			de, ok := e.(*DestroyEdge)
-			if !ok {
-				continue
+			switch de := e.(type) {
+			case *DestroyEdge:
+				// we need to invert the destroy edge from the create node
+				log.Printf("[TRACE] CBDEdgeTransformer: inverting edge: %s => %s",
+					dag.VertexName(de.Source()), dag.VertexName(de.Target()))
+
+				// Found it! Invert.
+				g.RemoveEdge(de)
+				applyNode := de.Source()
+				destroyNode := de.Target()
+				g.Connect(&DestroyEdge{S: destroyNode, T: applyNode})
+			default:
+				// We cannot have any direct dependencies from creators when
+				// the node is CBD without inducing a cycle.
+				if _, ok := e.Source().(GraphNodeCreator); ok {
+					log.Printf("[TRACE] CBDEdgeTransformer: removing non DestroyEdge to CBD destroy node: %s => %s", dag.VertexName(e.Source()), dag.VertexName(e.Target()))
+					g.RemoveEdge(e)
+				}
 			}
-
-			log.Printf("[TRACE] CBDEdgeTransformer: inverting edge: %s => %s",
-				dag.VertexName(de.Source()), dag.VertexName(de.Target()))
-
-			// Found it! Invert.
-			g.RemoveEdge(de)
-			applyNode := de.Source()
-			destroyNode := de.Target()
-			g.Connect(&DestroyEdge{S: destroyNode, T: applyNode})
 		}
 
 		// If the address has an index, we strip that. Our depMap creation
@@ -201,12 +213,7 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 	// They key here is that B happens before A is destroyed. This is to
 	// facilitate the primary purpose for CBD: making sure that downstreams
 	// are properly updated to avoid downtime before the resource is destroyed.
-	//
-	// We can't trust that the resource being destroyed or anything that
-	// depends on it is actually in our current graph so we make a new
-	// graph in order to determine those dependencies and add them in.
-	log.Printf("[TRACE] CBDEdgeTransformer: building graph to find dependencies...")
-	depMap, err := t.depMap(destroyMap)
+	depMap, err := t.depMap(g, destroyMap)
 	if err != nil {
 		return err
 	}
@@ -248,27 +255,13 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *CBDEdgeTransformer) depMap(destroyMap map[string][]dag.Vertex) (map[string][]dag.Vertex, error) {
-	// Build the graph of our config, this ensures that all resources
-	// are present in the graph.
-	g, diags := (&BasicGraphBuilder{
-		Steps: []GraphTransformer{
-			&FlatConfigTransformer{Config: t.Config},
-			&AttachResourceConfigTransformer{Config: t.Config},
-			&AttachStateTransformer{State: t.State},
-			&AttachSchemaTransformer{Schemas: t.Schemas},
-			&ReferenceTransformer{},
-		},
-		Name: "CBDEdgeTransformer",
-	}).Build(nil)
-	if diags.HasErrors() {
-		return nil, diags.Err()
-	}
+func (t *CBDEdgeTransformer) depMap(g *Graph, destroyMap map[string][]dag.Vertex) (map[string][]dag.Vertex, error) {
+	// Build the list of destroy nodes that each resource address should depend
+	// on. For example, when we find B, we map the address of B to A_d in the
+	// "depMap" variable below.
 
-	// Using this graph, build the list of destroy nodes that each resource
-	// address should depend on. For example, when we find B, we map the
-	// address of B to A_d in the "depMap" variable below.
-	depMap := make(map[string][]dag.Vertex)
+	// Use a nested map to remove duplicate edges.
+	depMap := make(map[string]map[dag.Vertex]struct{})
 	for _, v := range g.Vertices() {
 		// We're looking for resources.
 		rn, ok := v.(GraphNodeResource)
@@ -289,8 +282,10 @@ func (t *CBDEdgeTransformer) depMap(destroyMap map[string][]dag.Vertex) (map[str
 		}
 
 		// Get the nodes that depend on this on. In the example above:
-		// finding B in A => B.
-		for _, v := range g.UpEdges(v).List() {
+		// finding B in A => B. Since dependencies can span modules, walk all
+		// descendents of the resource.
+		des, _ := g.Descendents(v)
+		for _, v := range des.List() {
 			// We're looking for resources.
 			rn, ok := v.(GraphNodeResource)
 			if !ok {
@@ -300,9 +295,25 @@ func (t *CBDEdgeTransformer) depMap(destroyMap map[string][]dag.Vertex) (map[str
 			// Keep track of the destroy nodes that this address
 			// needs to depend on.
 			key := rn.ResourceAddr().String()
-			depMap[key] = append(depMap[key], dns...)
+
+			deps, ok := depMap[key]
+			if !ok {
+				deps = make(map[dag.Vertex]struct{})
+			}
+
+			for _, d := range dns {
+				deps[d] = struct{}{}
+			}
+			depMap[key] = deps
 		}
 	}
 
-	return depMap, nil
+	result := map[string][]dag.Vertex{}
+	for k, m := range depMap {
+		for v := range m {
+			result[k] = append(result[k], v)
+		}
+	}
+
+	return result, nil
 }

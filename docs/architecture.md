@@ -124,13 +124,13 @@ representing the entire configuration.
 
 Terraform expects configuration files written in the Terraform language, which
 is a DSL built on top of
-[HCL](https://github.com/hashicorp/hcl2). Some parts of the configuration
+[HCL](https://github.com/hashicorp/hcl). Some parts of the configuration
 cannot be interpreted until we build and walk the graph, since they depend
 on the outcome of other parts of the configuration, and so these parts of
 the configuration remain represented as the low-level HCL types
-[hcl.Body](https://godoc.org/github.com/hashicorp/hcl2/hcl#Body)
+[hcl.Body](https://godoc.org/github.com/hashicorp/hcl/v2/hcl#Body)
 and
-[hcl.Expression](https://godoc.org/github.com/hashicorp/hcl2/hcl#Expression),
+[hcl.Expression](https://godoc.org/github.com/hashicorp/hcl/v2/hcl#Expression),
 allowing Terraform to interpret them at a more appropriate time.
 
 ## State Manager

@@ -27,7 +27,7 @@ func TestStateMv(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -36,10 +36,11 @@ func TestStateMv(t *testing.T) {
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -87,7 +88,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -96,10 +97,11 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceMeta(
 			addrs.Resource{
@@ -108,7 +110,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Name: "bar",
 			}.Absolute(addrs.RootModuleInstance),
 			states.EachList,
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -167,7 +169,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -179,7 +181,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -237,6 +239,74 @@ test_instance.foo.0:
 `)
 }
 
+func TestStateMv_instanceToNewResource(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo[0]",
+		"test_instance.bar[\"new\"]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, `
+test_instance.bar["new"]:
+  ID = bar
+  provider = provider.test
+  bar = value
+  foo = value
+`)
+
+	// now move the instance to a new resource in a new module
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar[\"new\"]",
+		"module.test.test_instance.baz[\"new\"]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, `
+<no state>
+module.test:
+  test_instance.baz["new"]:
+    ID = bar
+    provider = provider.test
+    bar = value
+    foo = value
+`)
+}
+
 func TestStateMv_differentResourceTypes(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -249,7 +319,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -299,7 +369,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -311,7 +381,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -368,7 +438,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -377,10 +447,11 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				Name: "baz",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -426,7 +497,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -477,7 +548,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, stateSrc)
@@ -493,7 +564,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	stateOutPath := testStateFile(t, stateDst)
@@ -570,7 +641,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -582,7 +653,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -594,7 +665,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -649,7 +720,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 					AttrsJSON: []byte(fmt.Sprintf(`{"id":"foo%d","foo":"value","bar":"value"}`, i)),
 					Status:    states.ObjectReady,
 				},
-				addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+				addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 			)
 		}
 		s.SetResourceInstanceCurrent(
@@ -662,7 +733,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -713,7 +784,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -725,7 +796,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 
@@ -777,7 +848,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 		)
 	})
 
@@ -829,42 +900,40 @@ func TestStateMv_toNewModule(t *testing.T) {
 	}
 	testStateOutput(t, stateOutPath2, testStateMvModuleNewModule_stateOut)
 }
+
 func TestStateMv_withinBackend(t *testing.T) {
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-
-					"test_instance.baz": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+			},
+			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
 
 	// the local backend state file is "foo"
 	statePath := "local-state.tfstate"
@@ -876,7 +945,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(state, f); err != nil {
+	if err := writeStateForTesting(state, f); err != nil {
 		t.Fatal(err)
 	}
 
@@ -989,6 +1058,9 @@ test_instance.baz:
   provider = provider.test
   bar = value
   foo = value
+
+  Dependencies:
+    test_instance.foo
 test_instance.foo:
   ID = bar
   provider = provider.test

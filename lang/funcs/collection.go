@@ -1179,7 +1179,6 @@ func sliceIndexes(args []cty.Value) (int, int, bool, error) {
 	return startIndex, endIndex, startKnown && endKnown, nil
 }
 
-// TransposeFunc contructs a function that takes a map of lists of strings and
 // TransposeFunc constructs a function that takes a map of lists of strings and
 // swaps the keys and values to produce a new map of lists of strings.
 var TransposeFunc = function.New(&function.Spec{
@@ -1224,6 +1223,10 @@ var TransposeFunc = function.New(&function.Spec{
 				values = append(values, cty.StringVal(v))
 			}
 			outputMap[outKey] = cty.ListVal(values)
+		}
+
+		if len(outputMap) == 0 {
+			return cty.MapValEmpty(cty.List(cty.String)), nil
 		}
 
 		return cty.MapVal(outputMap), nil

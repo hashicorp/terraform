@@ -2903,8 +2903,8 @@ func TestTranspose(t *testing.T) {
 			cty.MapVal(map[string]cty.Value{
 				"key1": cty.ListValEmpty(cty.String),
 			}),
-			cty.NilVal,
-			true,
+			cty.MapValEmpty(cty.List(cty.String)),
+			false,
 		},
 		{ // bad map - value not a list
 			cty.MapVal(map[string]cty.Value{

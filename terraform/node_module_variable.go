@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
@@ -125,6 +125,14 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 			&EvalSetModuleCallArguments{
 				Module: call,
 				Values: vals,
+			},
+
+			&evalVariableValidations{
+				Addr:   n.Addr,
+				Config: n.Config,
+				Expr:   n.Expr,
+
+				IgnoreDiagnostics: false,
 			},
 		},
 	}

@@ -32,7 +32,10 @@ var _ set.OrderedRules = setRules{}
 // This function is not safe to use for security-related applications, since
 // the hash used is not strong enough.
 func (val Value) Hash() int {
-	hashBytes := makeSetHashBytes(val)
+	hashBytes, marks := makeSetHashBytes(val)
+	if len(marks) > 0 {
+		panic("can't take hash of value that has marks or has embedded values that have marks")
+	}
 	return int(crc32.ChecksumIEEE(hashBytes))
 }
 
@@ -110,19 +113,20 @@ func (r setRules) Less(v1, v2 interface{}) bool {
 		// default consistent-but-undefined ordering then. This situation is
 		// not considered a compatibility constraint; callers should rely only
 		// on the ordering rules for primitive values.
-		v1h := makeSetHashBytes(v1v)
-		v2h := makeSetHashBytes(v2v)
+		v1h, _ := makeSetHashBytes(v1v)
+		v2h, _ := makeSetHashBytes(v2v)
 		return bytes.Compare(v1h, v2h) < 0
 	}
 }
 
-func makeSetHashBytes(val Value) []byte {
+func makeSetHashBytes(val Value) ([]byte, ValueMarks) {
 	var buf bytes.Buffer
-	appendSetHashBytes(val, &buf)
-	return buf.Bytes()
+	marks := make(ValueMarks)
+	appendSetHashBytes(val, &buf, marks)
+	return buf.Bytes(), marks
 }
 
-func appendSetHashBytes(val Value, buf *bytes.Buffer) {
+func appendSetHashBytes(val Value, buf *bytes.Buffer, marks ValueMarks) {
 	// Exactly what bytes we generate here don't matter as long as the following
 	// constraints hold:
 	// - Unknown and null values all generate distinct strings from
@@ -136,6 +140,19 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 	// the Equivalent function will still distinguish values, but set
 	// performance will be best if we are able to produce a distinct string
 	// for each distinct value, unknown values notwithstanding.
+
+	// Marks aren't considered part of a value for equality-testing purposes,
+	// so we'll unmark our value before we work with it but we'll remember
+	// the marks in case the caller needs to re-apply them to a derived
+	// value.
+	if val.IsMarked() {
+		unmarkedVal, valMarks := val.Unmark()
+		for m := range valMarks {
+			marks[m] = struct{}{}
+		}
+		val = unmarkedVal
+	}
+
 	if !val.IsKnown() {
 		buf.WriteRune('?')
 		return
@@ -147,6 +164,17 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 
 	switch val.ty {
 	case Number:
+		// Due to an unfortunate quirk of gob encoding for big.Float, we end up
+		// with non-pointer values immediately after a gob round-trip, and
+		// we end up in here before we've had a chance to run
+		// gobDecodeFixNumberPtr on the inner values of a gob-encoded set,
+		// and so sadly we must make a special effort to handle that situation
+		// here just so that we can get far enough along to fix it up for
+		// everything else in this package.
+		if bf, ok := val.v.(big.Float); ok {
+			buf.WriteString(bf.String())
+			return
+		}
 		buf.WriteString(val.v.(*big.Float).String())
 		return
 	case Bool:
@@ -164,9 +192,9 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 	if val.ty.IsMapType() {
 		buf.WriteRune('{')
 		val.ForEachElement(func(keyVal, elementVal Value) bool {
-			appendSetHashBytes(keyVal, buf)
+			appendSetHashBytes(keyVal, buf, marks)
 			buf.WriteRune(':')
-			appendSetHashBytes(elementVal, buf)
+			appendSetHashBytes(elementVal, buf, marks)
 			buf.WriteRune(';')
 			return false
 		})
@@ -177,7 +205,7 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 	if val.ty.IsListType() || val.ty.IsSetType() {
 		buf.WriteRune('[')
 		val.ForEachElement(func(keyVal, elementVal Value) bool {
-			appendSetHashBytes(elementVal, buf)
+			appendSetHashBytes(elementVal, buf, marks)
 			buf.WriteRune(';')
 			return false
 		})
@@ -193,7 +221,7 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 		}
 		sort.Strings(attrNames)
 		for _, attrName := range attrNames {
-			appendSetHashBytes(val.GetAttr(attrName), buf)
+			appendSetHashBytes(val.GetAttr(attrName), buf, marks)
 			buf.WriteRune(';')
 		}
 		buf.WriteRune('>')
@@ -203,7 +231,7 @@ func appendSetHashBytes(val Value, buf *bytes.Buffer) {
 	if val.ty.IsTupleType() {
 		buf.WriteRune('<')
 		val.ForEachElement(func(keyVal, elementVal Value) bool {
-			appendSetHashBytes(elementVal, buf)
+			appendSetHashBytes(elementVal, buf, marks)
 			buf.WriteRune(';')
 			return false
 		})

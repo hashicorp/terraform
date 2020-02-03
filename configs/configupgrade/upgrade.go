@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/terraform/tfdiags"
 
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2write "github.com/hashicorp/hcl2/hclwrite"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	hcl2write "github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 // Upgrade takes some input module sources and produces a new ModuleSources

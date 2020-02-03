@@ -118,10 +118,110 @@ elements all have a consistent type:
 ]
 ```
 
+## Finding combinations for `for_each`
+
+The
+[resource `for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+and
+[`dynamic` block](/docs/configuration/expressions.html#dynamic-blocks)
+language features both require a collection value that has one element for
+each repetition.
+
+Sometimes your input data comes in separate values that cannot be directly
+used in a `for_each` argument, and `setproduct` can be a useful helper function
+for the situation where you want to find all unique combinations of elements in
+a number of different collections.
+
+For example, consider a module that declares variables like the following:
+
+```hcl
+variable "networks" {
+  type = map(object({
+    base_cidr_block = string
+  }))
+}
+
+variable "subnets" {
+  type = map(object({
+    number = number
+  }))
+}
+```
+
+If the goal is to create each of the defined subnets per each of the defined
+networks, creating the top-level networks can directly use `var.networks`
+because it's already in a form where the resulting instances match one-to-one
+with map elements:
+
+```hcl
+resource "aws_vpc" "example" {
+  for_each = var.networks
+
+  cidr_block = each.value.base_cidr_block
+}
+```
+
+However, in order to declare all of the _subnets_ with a single `resource`
+block, we must first produce a collection whose elements represent all of
+the combinations of networks and subnets, so that each element itself
+represents a subnet:
+
+```hcl
+locals {
+  # setproduct works with sets and lists, but our variables are both maps
+  # so we'll need to convert them first.
+  networks = [
+    for key, network in var.networks : {
+      key        = key
+      cidr_block = network.cidr_block
+    }
+  ]
+  subnets = [
+    for key, subnet in var.subnets : {
+      key    = key
+      number = subnet.number
+    }
+  ]
+
+  network_subnets = [
+    # in pair, element zero is a network and element one is a subnet,
+    # in all unique combinations.
+    for pair in setproduct(local.networks, local.subnets) : {
+      network_key = pair[0].key
+      subnet_key  = pair[1].key
+      network_id  = aws_vpc.example[pair[0].key].id
+
+      # The cidr_block is derived from the corresponding network. See the
+      # cidrsubnet function for more information on how this calculation works.
+      cidr_block = cidrsubnet(pair[0].cidr_block, 4, pair[1].number)
+    }
+  ]
+}
+
+resource "aws_subnet" "example" {
+  # local.network_subnets is a list, so we must now project it into a map
+  # where each key is unique. We'll combine the network and subnet keys to
+  # produce a single unique key per instance.
+  for_each = {
+    for subnet in local.network_subnets : "${subnet.network_key}.${subnet.subnet_key}" => subnet
+  }
+
+  vpc_id            = each.value.network_id
+  availability_zone = each.value.subnet_key
+  cidr_block        = each.value_cidr_block
+}
+```
+
+The above results in one subnet instance per combination of network and subnet
+elements in the input variables.
+
 ## Related Functions
 
 * [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
+* [`flatten`](./flatten.html) is useful for flattening heirarchical data
+  into a single list, for situations where the relationships between two
+  object types are defined explicitly.
 * [`setintersection`](./setintersection.html) computes the _intersection_ of
   multiple sets.
 * [`setunion`](./setunion.html) computes the _union_ of multiple

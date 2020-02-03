@@ -35,8 +35,8 @@ func TestState(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -78,8 +78,8 @@ func TestState(t *testing.T) {
 								Deposed: map[DeposedKey]*ResourceInstanceObjectSrc{},
 							},
 						},
-						ProviderConfig: addrs.ProviderConfig{
-							Type: "test",
+						ProviderConfig: addrs.LocalProviderConfig{
+							LocalName: "test",
 						}.Absolute(addrs.RootModuleInstance),
 					},
 				},
@@ -138,10 +138,10 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies:  []addrs.Referenceable{},
+			Dependencies:  []addrs.AbsResource{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -155,14 +155,19 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies: []addrs.Referenceable{addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "baz",
-			}},
+			Dependencies: []addrs.AbsResource{
+				{
+					Module: addrs.RootModuleInstance,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "baz",
+					},
+				},
+			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 

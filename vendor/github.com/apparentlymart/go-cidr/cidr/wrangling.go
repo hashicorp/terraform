@@ -29,9 +29,8 @@ func intToIP(ipInt *big.Int, bits int) net.IP {
 	return net.IP(ret)
 }
 
-func insertNumIntoIP(ip net.IP, num int, prefixLen int) net.IP {
+func insertNumIntoIP(ip net.IP, bigNum *big.Int, prefixLen int) net.IP {
 	ipInt, totalBits := ipToInt(ip)
-	bigNum := big.NewInt(int64(num))
 	bigNum.Lsh(bigNum, uint(totalBits-prefixLen))
 	ipInt.Or(ipInt, bigNum)
 	return intToIP(ipInt, totalBits)
