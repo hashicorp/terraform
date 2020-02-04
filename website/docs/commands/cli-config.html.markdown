@@ -63,35 +63,86 @@ The following settings can be set in the CLI configuration file:
   [plugin caching](/docs/configuration/providers.html#provider-plugin-cache)
   and specifies, as a string, the location of the plugin cache directory.
 
-- `credentials` — provides credentials for use with Terraform Cloud.
-    Terraform uses this when performing remote operations or state access with
-    the [remote backend](../backends/types/remote.html) and when accessing
-    Terraform Cloud's [private module registry.](/docs/cloud/registry/index.html)
+- `credentials` - configures credentials for use with Terraform Cloud or
+  Terraform Enterprise. See [Credentials](#credentials) below for more
+  information.
 
-    This setting is a repeatable block, where the block label is a hostname
-    (either `app.terraform.io` or the hostname of a Terraform Enterprise instance) and
-    the block body contains a `token` attribute. Whenever Terraform accesses
-    state, modules, or remote operations from that hostname, it will
-    authenticate with that API token.
+- `credentials_helper` - configures an external helper program for the storage
+  and retrieval of credentials for Terraform Cloud or Terraform Enterprise.
+  See [Credentials Helpers](#credentials-helpers) below for more information.
 
-    ``` hcl
-    credentials "app.terraform.io" {
-      token = "xxxxxx.atlasv1.zzzzzzzzzzzzz"
-    }
-    ```
+## Credentials
 
-    ~> **Important:** The token provided here must be a
-    [user token](/docs/cloud/users-teams-organizations/users.html#api-tokens)
-    or a
-    [team token](/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens);
-    organization tokens cannot be used for command-line Terraform actions.
+[Terraform Cloud](/docs/cloud/index.html) provides a number of remote network
+services for use with Terraform, and
+[Terraform Enterprise](/docs/enterprise/index.html) allows hosting those
+services inside your own infrastructure. For example, these systems offer both
+[remote operations](/docs/cloud/run/cli.html) and a
+[private module registry](/docs/cloud/registry/index.html).
 
-    -> **Note:** The credentials hostname must match the hostname in your module
-    sources and/or backend configuration. If your Terraform Enterprise instance
-    is available at multiple hostnames, use one of them consistently. (The SaaS
-    version of Terraform Cloud responds to API calls at both its current
-    hostname, app.terraform.io, and its historical hostname,
-    atlas.hashicorp.com.)
+When interacting with Terraform-specific network services, Terraform expects
+to find API tokens in CLI configuration files in `credentials` blocks:
+
+```hcl
+credentials "app.terraform.io" {
+  token = "xxxxxx.atlasv1.zzzzzzzzzzzzz"
+}
+```
+
+You can have multiple `credentials` blocks if you regularly use services from
+multiple hosts. Many users will configure only one, for either
+Terraform Cloud (at `app.terraform.io`) or for their organization's own
+Terraform Enterprise host. Each `credentials` block contains a `token` argument
+giving the API token to use for that host.
+
+~> **Important:** If you are using Terraform Cloud or Terraform Enterprise,
+the token provided must be either a
+[user token](/docs/cloud/users-teams-organizations/users.html#api-tokens)
+or a
+[team token](/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens);
+organization tokens cannot be used for command-line Terraform actions.
+
+-> **Note:** The credentials hostname must match the hostname in your module
+sources and/or backend configuration. If your Terraform Enterprise instance
+is available at multiple hostnames, use only one of them consistently.
+Terraform Cloud responds to API calls at both its current hostname
+`app.terraform.io`, and its historical hostname `atlas.hashicorp.com`.
+
+If you are running the Terraform CLI interactively on a computer that is capable
+of also running a web browser, you can optionally obtain credentials and save
+them in the CLI configuration automatically using
+[the `terraform login` command](./login.html).
+
+### Credentials Helpers
+
+If you would prefer not to store your API tokens directly in the CLI
+configuration as described in the previous section, you can optionally instruct
+Terraform to use a different credentials storage mechanism by configuring a
+special kind of plugin program called a _credentials helper_.
+
+```hcl
+credentials_helper "example" {
+  args = []
+}
+```
+
+`credentials_helper` is a configuration block that can appear at most once
+in the CLI configuration. Its label (`"example"` above) is the name of the
+credentials helper to use. The `args` argument is optional and allows passing
+additional arguments to the helper program, for example if it needs to be
+configured with the address of a remote host to access for credentials.
+
+A configured credentials helper will be consulted only to retrieve credentials
+for hosts that are _not_ explicitly configured in a `credentials` block as
+described in the previous section.
+Conversely, this means you can override the credentials returned by the helper
+for a specific hostname by writing a `credentials` block alongside the
+`credentials_helper` block.
+
+Terraform does not include any credentials helpers in the main distribution.
+To learn how to write and install your own credentials helpers to integrate
+with existing in-house credentials management systems, see
+[the guide to Credentials Helper internals](/docs/internals/credentials-helpers.html).
 
 ## Deprecated Settings
 
