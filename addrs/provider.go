@@ -66,11 +66,18 @@ func (pt Provider) LegacyString() string {
 }
 
 // ParseProviderSourceString parses the source attribute and returns a provider.
-// This is intended primary to parse the FQN-like strings returned by terraform-config-inspect.
+// This is intended primarily to parse the FQN-like strings returned by
+// terraform-config-inspect.
+//
+// The following are valid source string formats:
+// 		name
+// 		namespace/name
+// 		hostname/namespace/name
 func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	var ret Provider
 	var diags tfdiags.Diagnostics
 
+	// split the source string into individual components
 	parts := strings.Split(str, "/")
 	if len(parts) == 0 || len(parts) > 3 {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -93,7 +100,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 		}
 	}
 
-	// check the 'name' portion
+	// check the 'name' portion, which is always the last part
 	name := parts[len(parts)-1]
 	if !ValidProviderName.MatchString(name) {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -112,6 +119,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	}
 
 	if len(parts) >= 2 {
+		// the namespace is always the second-to-last part
 		namespace := parts[len(parts)-2]
 		if !ValidProviderName.MatchString(namespace) {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -126,6 +134,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 
 	// Final Case: 3 parts
 	if len(parts) == 3 {
+		// the namespace is always the first part in a three-part source string
 		hn, err := svchost.ForComparison(parts[0])
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
