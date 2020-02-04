@@ -12,12 +12,18 @@ import (
 // values cannot be represented from the module where they are defined,
 // OutputValue is not Referenceable, while ModuleCallOutput is.
 type OutputValue struct {
-	referenceable
 	Name string
 }
 
 func (v OutputValue) String() string {
 	return "output." + v.Name
+}
+
+func (v OutputValue) AbsString(m Module) string {
+	if m.IsRoot() {
+		return v.String()
+	}
+	return fmt.Sprintf("%s.%s", m.String(), v.String())
 }
 
 // Absolute converts the receiver into an absolute address within the given

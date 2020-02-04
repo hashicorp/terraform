@@ -23,7 +23,7 @@ var (
 	_ GraphNodeReferenceable = (*NodePlannableOutput)(nil)
 	//_ GraphNodeEvalable          = (*NodePlannableOutput)(nil)
 	//_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
-	//_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
+	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
 )
 
 func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -34,13 +34,14 @@ func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 			Addr:   n.Addr.Absolute(module),
 			Config: n.Config,
 		}
+		// log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	}
 	return &g, nil
 }
 
 func (n *NodePlannableOutput) Name() string {
-	return fmt.Sprintf("%s.%s", n.Module, n.Addr.Name)
+	return n.Addr.AbsString(n.Module)
 }
 
 // GraphNodeSubPath
@@ -57,10 +58,10 @@ func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
 		return nil
 	}
 
-	// Otherwise, we can reference the output via the address itself, or the
+	// Otherwise, we can reference the output via the
 	// module call
 	_, call := n.Module.Call()
-	return []addrs.Referenceable{n.Addr, call}
+	return []addrs.Referenceable{call}
 }
 
 // RemovableIfNotTargeted
@@ -116,7 +117,6 @@ func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag
 }
 
 func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePath addrs.ModuleInstance) {
-
 	// Output values have their expressions resolved in the context of the
 	// module where they are defined.
 	referencePath = addr.Module
@@ -125,7 +125,6 @@ func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePa
 	selfPath = addr.Module.Parent()
 
 	return // uses named return values
-
 }
 
 // GraphNodeReferenceOutside implementation
