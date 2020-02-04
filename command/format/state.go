@@ -139,26 +139,33 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				}
 
 				var schema *configschema.Block
-				provider := addr.DefaultProviderConfig().Absolute(m.Addr).ProviderConfig.StringCompact()
-				if _, exists := schemas.Providers[provider]; !exists {
-					// This should never happen in normal use because we should've
-					// loaded all of the schemas and checked things prior to this
-					// point. We can't return errors here, but since this is UI code
-					// we will try to do _something_ reasonable.
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider))
+
+				// TODO: Get the provider FQN when it is available from the
+				// AbsoluteProviderConfig, in state.
+				//
+				// Check if the resource has a configured provider, otherwise
+				// use the default provider.
+				provider := m.Resources[key].ProviderConfig.ProviderConfig.Type
+				if _, exists := schemas.Providers[provider.LegacyString()]; !exists {
+					// This should never happen in normal use because we
+					// should've loaded all of the schemas and checked things
+					// prior to this point. We can't return errors here, but
+					// since this is UI code we will try to do _something_
+					// reasonable.
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.LegacyString()))
 					continue
 				}
 
 				switch addr.Mode {
 				case addrs.ManagedResourceMode:
 					schema, _ = schemas.ResourceTypeConfig(
-						provider,
+						provider.LegacyString(),
 						addr.Mode,
 						addr.Type,
 					)
 					if schema == nil {
 						p.buf.WriteString(fmt.Sprintf(
-							"# missing schema for provider %q resource type %s\n\n", provider, addr.Type))
+							"# missing schema for provider %q resource type %s\n\n", provider.LegacyString(), addr.Type))
 						continue
 					}
 
@@ -169,7 +176,7 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 					))
 				case addrs.DataResourceMode:
 					schema, _ = schemas.ResourceTypeConfig(
-						provider,
+						provider.LegacyString(),
 						addr.Mode,
 						addr.Type,
 					)
