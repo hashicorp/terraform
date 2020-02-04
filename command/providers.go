@@ -122,7 +122,6 @@ func providersCommandPopulateTreeNode(node treeprint.Tree, deps *moduledeps.Modu
 	for fqn := range deps.Providers {
 		fqns = append(fqns, fqn)
 	}
-	//sort.Strings(fqns)
 
 	for _, fqn := range fqns {
 		dep := deps.Providers[fqn]
