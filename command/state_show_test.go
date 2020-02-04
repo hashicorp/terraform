@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -179,6 +180,66 @@ func TestStateShow_emptyState(t *testing.T) {
 	}
 	if !strings.Contains(ui.ErrorWriter.String(), "No instance found for the given address!") {
 		t.Fatalf("expected a no instance found error, got: %s", ui.ErrorWriter.String())
+	}
+}
+
+func TestStateShow_configured_provider(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.LocalProviderConfig{LocalName: "test-beta"}.Absolute(addrs.RootModuleInstance),
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				ProviderResolver: providers.ResolverFixed(
+					map[addrs.Provider]providers.Factory{
+						addrs.NewLegacyProvider("test-beta"): providers.FactoryFixed(p),
+					},
+				),
+			},
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateShowOutput) + "\n"
+	actual := ui.OutputWriter.String()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
 	}
 }
 
