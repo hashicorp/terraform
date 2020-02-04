@@ -22,8 +22,6 @@ Cloud's run environment, with log output streaming to the local terminal. Remote
 
 Terraform Cloud can also be used with local operations, in which case only state is stored in the Terraform Cloud backend.
 
-
-
 ## Command Support
 
 Currently the remote backend supports the following Terraform commands:
@@ -172,8 +170,9 @@ The following configuration options are supported:
 * `organization` - (Required) The name of the organization containing the
   targeted workspace(s).
 * `token` - (Optional) The token used to authenticate with the remote backend.
-  We recommend omitting the token from the configuration, and instead setting it
-  as `credentials` in the
+  We recommend omitting the token from the configuration, and instead using
+  [`terraform login`](/docs/commands/login.html) or manually configuring
+  `credentials` in the
   [CLI config file](/docs/commands/cli-config.html#credentials).
 * `workspaces` - (Required) A block specifying which remote workspace(s) to use.
   The `workspaces` block supports the following keys:
