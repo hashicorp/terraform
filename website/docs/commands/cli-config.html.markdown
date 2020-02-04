@@ -63,25 +63,22 @@ The following settings can be set in the CLI configuration file:
   [plugin caching](/docs/configuration/providers.html#provider-plugin-cache)
   and specifies, as a string, the location of the plugin cache directory.
 
-- `credentials` - configures credentials for use with Terraform Cloud, Terraform
-Enterprise, or other hosts that provide Terraform services. See
-[Credentials](#credentials)
-below for more information.
+- `credentials` - configures credentials for use with Terraform Cloud or
+  Terraform Enterprise. See [Credentials](#credentials) below for more
+  information.
 
 - `credentials_helper` - configures an external helper program for the storage
-and retrieval of credentials for Terraform Cloud, Terraform Enterprise,
-or other hosts that provide Terraform Services. See
-[Credentials Helpers](#credentials-helpers)
-below for more information.
+  and retrieval of credentials for Terraform Cloud or Terraform Enterprise.
+  See [Credentials Helpers](#credentials-helpers) below for more information.
 
 ## Credentials
 
-[Terraform Cloud](/docs/cloud/) provides a number of remote network services
-for use with Terraform, and [Terraform Enterprise](/docs/enterprise/) allows
-hosting those services inside your own infrastructure.
-For example, these systems offer both
+[Terraform Cloud](/docs/cloud/index.html) provides a number of remote network
+services for use with Terraform, and
+[Terraform Enterprise](/docs/enterprise/index.html) allows hosting those
+services inside your own infrastructure. For example, these systems offer both
 [remote operations](/docs/cloud/run/cli.html) and a
-[private module registry](/docs/cloud/registry/).
+[private module registry](/docs/cloud/registry/index.html).
 
 When interacting with Terraform-specific network services, Terraform expects
 to find API tokens in CLI configuration files in `credentials` blocks:
