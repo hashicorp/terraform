@@ -1,4 +1,9 @@
 ## 0.12.21 (Unreleased)
+
+BUG FIXES:
+
+* command/state show: Fix an issue when a resource has a non-default provider configured [GH-24027]
+
 ## 0.12.20 (January 22, 2020)
 
 ENHANCEMENTS:
