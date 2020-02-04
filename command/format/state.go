@@ -141,13 +141,14 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				var schema *configschema.Block
 
 				// TODO: Get the provider FQN when it is available from the AbsoluteProviderConfig, in state
-				provider := addr.DefaultProvider()
+				// check if the resource has a configured provider, otherwise use the default provider
+				provider := addrs.NewLegacyProvider(m.Resources[key].ProviderConfig.ProviderConfig.LocalName)
 				if _, exists := schemas.Providers[provider]; !exists {
 					// This should never happen in normal use because we should've
 					// loaded all of the schemas and checked things prior to this
 					// point. We can't return errors here, but since this is UI code
 					// we will try to do _something_ reasonable.
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider))
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.LegacyString()))
 					continue
 				}
 
