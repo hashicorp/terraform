@@ -41,5 +41,5 @@ your organization's existing secrets management system.
 ## Login Server Support
 
 The `terraform login` command works with any server supporting the
-[login protocol](/docs/internal/login-protocol.html), including Terraform Cloud
+[login protocol](/docs/internals/login-protocol.html), including Terraform Cloud
 and Terraform Enterprise.
