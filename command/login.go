@@ -10,10 +10,11 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command/cliconfig"
@@ -125,23 +126,47 @@ func (c *LoginCommand) Run(args []string) int {
 	case nil:
 		// Great! No problem, then.
 	case *disco.ErrServiceNotProvided:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Host does not support Terraform login",
-			fmt.Sprintf("The given hostname %q does not allow creating Terraform authorization tokens.", dispHostname),
-		))
+		// This is also fine! We'll try the manual token creation process.
 	case *disco.ErrVersionNotSupported:
 		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
+			tfdiags.Warning,
 			"Host does not support Terraform login",
 			fmt.Sprintf("The given hostname %q allows creating Terraform authorization tokens, but requires a newer version of Terraform CLI to do so.", dispHostname),
 		))
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
+			tfdiags.Warning,
 			"Host does not support Terraform login",
 			fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
 		))
+	}
+
+	// If login service is unavailable, check for a TFE v2 API as fallback
+	var service *url.URL
+	if clientConfig == nil {
+		service, err = host.ServiceURL("tfe.v2")
+		switch err.(type) {
+		case nil:
+			// Success!
+		case *disco.ErrServiceNotProvided:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Host does not support Terraform tokens API",
+				fmt.Sprintf("The given hostname %q does not support creating Terraform authorization tokens.", dispHostname),
+			))
+		case *disco.ErrVersionNotSupported:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Host does not support Terraform tokens API",
+				fmt.Sprintf("The given hostname %q allows creating Terraform authorization tokens, but requires a newer version of Terraform CLI to do so.", dispHostname),
+			))
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Host does not support Terraform tokens API",
+				fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
+			))
+		}
 	}
 
 	if credsCtx.Location == cliconfig.CredentialsInOtherFile {
@@ -157,37 +182,41 @@ func (c *LoginCommand) Run(args []string) int {
 		return 1
 	}
 
-	var token *oauth2.Token
-	switch {
-	case clientConfig.SupportedGrantTypes.Has(disco.OAuthAuthzCodeGrant):
-		// We prefer an OAuth code grant if the server supports it.
-		var tokenDiags tfdiags.Diagnostics
-		token, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
-		diags = diags.Append(tokenDiags)
-		if tokenDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
+	var token svcauth.HostCredentialsToken
+	var tokenDiags tfdiags.Diagnostics
+
+	// Prefer Terraform login if available
+	if clientConfig != nil {
+		var oauthToken *oauth2.Token
+
+		switch {
+		case clientConfig.SupportedGrantTypes.Has(disco.OAuthAuthzCodeGrant):
+			// We prefer an OAuth code grant if the server supports it.
+			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
+		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
+			// The password grant type is allowed only for Terraform Cloud SaaS.
+			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
+		default:
+			tokenDiags = tokenDiags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Host does not support Terraform login",
+				fmt.Sprintf("The given hostname %q does not allow any OAuth grant types that are supported by this version of Terraform.", dispHostname),
+			))
 		}
-	case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
-		// The password grant type is allowed only for Terraform Cloud SaaS.
-		var tokenDiags tfdiags.Diagnostics
-		token, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
-		diags = diags.Append(tokenDiags)
-		if tokenDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
+		if oauthToken != nil {
+			token = svcauth.HostCredentialsToken(oauthToken.AccessToken)
 		}
-	default:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Host does not support Terraform login",
-			fmt.Sprintf("The given hostname %q does not allow any OAuth grant types that are supported by this version of Terraform.", dispHostname),
-		))
+	} else if service != nil {
+		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, service)
+	}
+
+	diags = diags.Append(tokenDiags)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	err = creds.StoreForHost(hostname, svcauth.HostCredentialsToken(token.AccessToken))
+	err = creds.StoreForHost(hostname, token)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -468,10 +497,72 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	return token, diags
 }
 
-func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext) (bool, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsCtx *loginCredentialsContext, service *url.URL) (svcauth.HostCredentialsToken, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	c.Ui.Output(fmt.Sprintf("Terraform will request an API token for %s using OAuth.\n", hostname.ForDisplay()))
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthGrantType(""), credsCtx)
+	diags = diags.Append(confirmDiags)
+	if !confirm {
+		diags = diags.Append(errors.New("Login cancelled"))
+		return "", diags
+	}
+
+	tokensURL := url.URL{
+		Scheme:   "https",
+		Host:     service.Hostname(),
+		Path:     "/app/settings/tokens",
+		RawQuery: "source=terraform-login",
+	}
+
+	launchBrowserManually := false
+	if c.BrowserLauncher != nil {
+		err := c.BrowserLauncher.OpenURL(tokensURL.String())
+		if err == nil {
+			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the tokens page for %s.\n", hostname.ForDisplay()))
+			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", tokensURL.String()))
+		} else {
+			// Assume we're on a platform where opening a browser isn't possible.
+			launchBrowserManually = true
+		}
+	} else {
+		launchBrowserManually = true
+	}
+
+	if launchBrowserManually {
+		c.Ui.Output(fmt.Sprintf("Open the following URL to access the tokens page for %s:\n    %s\n", hostname.ForDisplay(), tokensURL.String()))
+	}
+
+	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+	c.Ui.Output("Generate a token using your browser, and copy-paste it into this prompt.\n")
+
+	// credsCtx might not be set if we're using a mock credentials source
+	// in a test, but it should always be set in normal use.
+	if credsCtx != nil {
+		switch credsCtx.Location {
+		case cliconfig.CredentialsViaHelper:
+			c.Ui.Output(fmt.Sprintf("Terraform will store the token in the configured %q credentials helper\nfor use by subsequent commands.\n", credsCtx.HelperType))
+		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
+			c.Ui.Output(fmt.Sprintf("Terraform will store the token in plain text in the following file\nfor use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+		}
+	}
+
+	token, err := c.Ui.AskSecret(fmt.Sprintf("Token for %s:", hostname.ForDisplay()))
+	if err != nil {
+		diags := diags.Append(fmt.Errorf("Failed to retrieve token: %s", err))
+		return "", diags
+	}
+
+	return svcauth.HostCredentialsToken(token), nil
+}
+
+func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext) (bool, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	mechanism := "OAuth"
+	if grantType == "" {
+		mechanism = "your browser"
+	}
+
+	c.Ui.Output(fmt.Sprintf("Terraform will request an API token for %s using %s.\n", hostname.ForDisplay(), mechanism))
 
 	if grantType.UsesAuthorizationEndpoint() {
 		c.Ui.Output(
