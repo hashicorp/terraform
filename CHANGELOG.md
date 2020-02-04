@@ -1,5 +1,9 @@
 ## 0.12.21 (Unreleased)
 
+NEW FEATURES:
+
+* command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
+
 BUG FIXES:
 
 * command/state show: Fix an issue when a resource has a non-default provider configured [GH-24027]
