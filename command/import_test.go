@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -536,6 +537,99 @@ func TestImport_customProvider(t *testing.T) {
 	testStateOutput(t, statePath, testImportCustomProviderStr)
 }
 
+// This tests behavior when the provider name does not match the implied
+// provider name
+func TestImport_providerNameMismatch(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-provider-mismatch"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				ProviderResolver: providers.ResolverFixed(
+					map[addrs.Provider]providers.Factory{
+						addrs.NewLegacyProvider("test-beta"): providers.FactoryFixed(p),
+					},
+				),
+			},
+			Ui: ui,
+		},
+	}
+
+	configured := false
+	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+		configured = true
+
+		cfg := req.Config
+		if !cfg.Type().HasAttribute("foo") {
+			return providers.ConfigureResponse{
+				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("configuration has no foo argument")),
+			}
+		}
+		if got, want := cfg.GetAttr("foo"), cty.StringVal("baz"); !want.RawEquals(got) {
+			return providers.ConfigureResponse{
+				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("foo argument is %#v, but want %#v", got, want)),
+			}
+		}
+
+		return providers.ConfigureResponse{}
+	}
+
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+
+	args := []string{
+		"-provider", "test-beta",
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify that the test-beta provider was configured
+	if !configured {
+		t.Fatal("Configure should be called")
+	}
+
+	if !p.ImportResourceStateCalled {
+		t.Fatal("ImportResourceState (provider 'test-beta') should be called")
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource (provider 'test-beta' should be called")
+	}
+
+	testStateOutput(t, statePath, testImportProviderMismatchStr)
+}
 func TestImport_allowMissingResourceConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
@@ -797,17 +891,18 @@ func TestImport_pluginDir(t *testing.T) {
 
 	// Now we need to go through some plugin init.
 	// This discovers our fake plugin and writes the lock file.
+	initUi := new(cli.MockUi)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			pluginPath: []string{"./plugins"},
-			Ui:         cli.NewMockUi(),
+			Ui:         initUi,
 		},
 		providerInstaller: &discovery.ProviderInstaller{
 			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 		},
 	}
 	if code := initCmd.Run(nil); code != 0 {
-		t.Fatal(initCmd.Meta.Ui.(*cli.MockUi).ErrorWriter.String())
+		t.Fatal(initUi.ErrorWriter.String())
 	}
 
 	args := []string{
@@ -844,4 +939,10 @@ const testImportCustomProviderStr = `
 test_instance.foo:
   ID = yay
   provider = provider.test.alias
+`
+
+const testImportProviderMismatchStr = `
+test_instance.foo:
+  ID = yay
+  provider = provider.test-beta
 `

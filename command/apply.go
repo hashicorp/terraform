@@ -248,11 +248,15 @@ Usage: terraform apply [options] [DIR-OR-PLAN]
 
 Options:
 
+  -auto-approve          Skip interactive approval of plan before applying.
+
   -backup=path           Path to backup the existing state file before
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
-  -auto-approve          Skip interactive approval of plan before applying.
+  -compact-warnings      If Terraform produces any warnings that are not
+                         accompanied by errors, show them in a more compact
+                         form that includes only the summary messages.
 
   -lock=true             Lock the state file when locking is supported.
 

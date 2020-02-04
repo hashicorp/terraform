@@ -30,8 +30,8 @@ func TestContext2Validate_badCount(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -59,8 +59,8 @@ func TestContext2Validate_badVar(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -87,35 +87,28 @@ func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 		},
 	}
 
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
-		Variables: InputValues{
-			"foo.foo": &InputValue{
-				Value:      cty.StringVal("bar"),
-				SourceType: ValueFromCaller,
-			},
-		},
+		Variables: InputValues{},
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "provider_var" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
 
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "maybe_a_map" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
@@ -149,9 +142,9 @@ func TestContext2Validate_computedVar(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws":  testProviderFuncFixed(p),
-				"test": testProviderFuncFixed(pt),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"):  testProviderFuncFixed(p),
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(pt),
 			},
 		),
 	})
@@ -198,8 +191,8 @@ func TestContext2Validate_computedInFunction(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -235,8 +228,8 @@ func TestContext2Validate_countComputed(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -261,8 +254,8 @@ func TestContext2Validate_countNegative(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -289,8 +282,8 @@ func TestContext2Validate_countVariable(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -314,17 +307,16 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 		},
 	}
 
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "foo" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
@@ -345,8 +337,8 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -373,8 +365,8 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -399,8 +391,8 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -431,8 +423,8 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -464,8 +456,8 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -507,8 +499,8 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -555,8 +547,8 @@ func TestContext2Validate_orphans(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -597,8 +589,8 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -635,8 +627,8 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -670,8 +662,8 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -700,8 +692,8 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -737,8 +729,8 @@ func TestContext2Validate_badResourceConnection(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -771,8 +763,8 @@ func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -819,8 +811,8 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -847,17 +839,16 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 		},
 	}
 
-	c := testContext2(t, &ContextOpts{
+	_, diags := NewContext(&ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
-
-	diags := c.Validate()
 	if !diags.HasErrors() {
+		// Error should be: The input variable "foo" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
@@ -878,8 +869,8 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -910,8 +901,8 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -955,8 +946,8 @@ func TestContext2Validate_tainted(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		State: state,
@@ -998,8 +989,8 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Provisioners: map[string]ProvisionerFactory{
@@ -1045,8 +1036,8 @@ func TestContext2Validate_varRefUnknown(t *testing.T) {
 	c := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -1095,8 +1086,8 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"template": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("template"): testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -1130,8 +1121,8 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -1155,8 +1146,8 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"template": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("template"): testProviderFuncFixed(p),
 			},
 		),
 		UIInput: input,
@@ -1235,8 +1226,8 @@ output "out" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1274,8 +1265,8 @@ resource "aws_instance" "foo" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1305,8 +1296,8 @@ output "out" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1338,8 +1329,8 @@ output "out" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1371,8 +1362,8 @@ output "out" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1403,8 +1394,8 @@ resource "test_instance" "bar" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1438,8 +1429,8 @@ resource "test_instance" "bar" {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -1452,5 +1443,78 @@ resource "test_instance" "bar" {
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
 	if got, want := diags.Err().Error(), `no argument, nested block, or exported attribute named "does_not_exist_in_schema"`; strings.Index(got, want) == -1 {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_variableCustomValidationsFail(t *testing.T) {
+	// This test is for custom validation rules associated with root module
+	// variables, and specifically that we handle the situation where the
+	// given value is invalid in a child module.
+	m := testModule(t, "validate-variable-custom-validations-child")
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_variableCustomValidationsRoot(t *testing.T) {
+	// This test is for custom validation rules associated with root module
+	// variables, and specifically that we handle the situation where their
+	// values are unknown during validation, skipping the validation check
+	// altogether. (Root module variables are never known during validation.)
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+# This feature is currently experimental.
+# (If you're currently cleaning up after concluding the experiment,
+# remember to also clean up similar references in the configs package
+# under "invalid-files" and "invalid-modules".)
+terraform {
+  experiments = [variable_validation]
+}
+
+variable "test" {
+  type = string
+
+  validation {
+	condition     = var.test != "nope"
+	error_message = "Value must not be \"nope\"."
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+		Variables: InputValues{
+			"test": &InputValue{
+				Value:      cty.UnknownVal(cty.String),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
 	}
 }

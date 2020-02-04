@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
@@ -57,7 +57,7 @@ func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagn
 // If a reference string is coming from a source that should be identified in
 // error messages then the caller should instead parse it directly using a
 // suitable function from the HCL API and pass the traversal itself to
-// ParseProviderConfigCompact.
+// ParseModuleInstance.
 //
 // Error diagnostics are returned if either the parsing fails or the analysis
 // of the traversal fails. There is no way for the caller to distinguish the

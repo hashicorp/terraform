@@ -3,16 +3,30 @@
     <h4><a href="/docs/registry/index.html">Terraform Registry</a></h4>
 
     <ul class="nav docs-sidenav">
-      <li<%= sidebar_current("docs-registry-use") %>>
-        <a href="/docs/registry/modules/use.html">Finding and Using Modules</a>
+      <li>
+        <a href="#">Providers</a>
+        <ul class="nav nav-auto-expand">
+          <li<%= sidebar_current("docs-registry-provider-docs") %>>
+            <a href="/docs/registry/providers/docs.html">Provider Documentation</a>
+          </li>
+        </ul>
       </li>
 
-      <li<%= sidebar_current("docs-registry-publish") %>>
-        <a href="/docs/registry/modules/publish.html">Publishing Modules</a>
-      </li>
+      <li>
+        <a href="#">Modules</a>
+        <ul class="nav nav-auto-expand">
+          <li<%= sidebar_current("docs-registry-use") %>>
+            <a href="/docs/registry/modules/use.html">Finding and Using Modules</a>
+          </li>
 
-      <li<%= sidebar_current("docs-registry-verified") %>>
-        <a href="/docs/registry/modules/verified.html">Verified Modules</a>
+          <li<%= sidebar_current("docs-registry-publish") %>>
+            <a href="/docs/registry/modules/publish.html">Publishing Modules</a>
+          </li>
+
+          <li<%= sidebar_current("docs-registry-verified") %>>
+            <a href="/docs/registry/modules/verified.html">Verified Modules</a>
+          </li>
+        </ul>
       </li>
 
       <li<%= sidebar_current("docs-registry-private") %>>

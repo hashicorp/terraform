@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
@@ -173,10 +173,13 @@ func (m *Meta) dirIsConfigPath(dir string) bool {
 // directory even if loadBackendConfig succeeded.)
 func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
 	mod, diags := m.loadSingleModule(rootDir)
+
+	// Only return error diagnostics at this point. Any warnings will be caught
+	// again later and duplicated in the output.
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	return mod.Backend, diags
+	return mod.Backend, nil
 }
 
 // loadValuesFile loads a file that defines a single map of key/value pairs.

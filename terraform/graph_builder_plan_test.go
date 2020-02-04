@@ -34,9 +34,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"aws":       providers.FactoryFixed(awsProvider),
-			"openstack": providers.FactoryFixed(openstackProvider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"):       providers.FactoryFixed(awsProvider),
+			addrs.NewLegacyProvider("openstack"): providers.FactoryFixed(openstackProvider),
 		},
 	}
 
@@ -44,9 +44,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 		Config:     testModule(t, "graph-builder-plan-basic"),
 		Components: components,
 		Schemas: &Schemas{
-			Providers: map[string]*ProviderSchema{
-				"aws":       awsProvider.GetSchemaReturn,
-				"openstack": openstackProvider.GetSchemaReturn,
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewLegacyProvider("aws"):       awsProvider.GetSchemaReturn,
+				addrs.NewLegacyProvider("openstack"): openstackProvider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -92,8 +92,8 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": providers.FactoryFixed(provider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(provider),
 		},
 	}
 
@@ -101,8 +101,8 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 		Config:     testModule(t, "graph-builder-plan-dynblock"),
 		Components: components,
 		Schemas: &Schemas{
-			Providers: map[string]*ProviderSchema{
-				"test": provider.GetSchemaReturn,
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -171,8 +171,8 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": providers.FactoryFixed(provider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(provider),
 		},
 	}
 
@@ -180,8 +180,8 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 		Config:     testModule(t, "graph-builder-plan-attr-as-blocks"),
 		Components: components,
 		Schemas: &Schemas{
-			Providers: map[string]*ProviderSchema{
-				"test": provider.GetSchemaReturn,
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -258,8 +258,8 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	}
 
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"aws": providers.FactoryFixed(awsProvider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): providers.FactoryFixed(awsProvider),
 		},
 	}
 
@@ -267,8 +267,8 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 		Config:     testModule(t, "plan-for-each"),
 		Components: components,
 		Schemas: &Schemas{
-			Providers: map[string]*ProviderSchema{
-				"aws": awsProvider.GetSchemaReturn,
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewLegacyProvider("aws"): awsProvider.GetSchemaReturn,
 			},
 		},
 		DisableReduce: true,
@@ -338,6 +338,8 @@ var.foo
 const testPlanGraphBuilderForEachStr = `
 aws_instance.bar
   provider.aws
+aws_instance.bar2
+  provider.aws
 aws_instance.bat
   aws_instance.boo
   provider.aws
@@ -349,6 +351,7 @@ aws_instance.foo
   provider.aws
 meta.count-boundary (EachMode fixup)
   aws_instance.bar
+  aws_instance.bar2
   aws_instance.bat
   aws_instance.baz
   aws_instance.boo
@@ -357,6 +360,7 @@ meta.count-boundary (EachMode fixup)
 provider.aws
 provider.aws (close)
   aws_instance.bar
+  aws_instance.bar2
   aws_instance.bat
   aws_instance.baz
   aws_instance.boo

@@ -40,6 +40,11 @@ func NotificationDestination(v NotificationDestinationType) *NotificationDestina
 	return &v
 }
 
+// PlanExportType returns a pointer to the given plan export data type.
+func PlanExportType(v PlanExportDataType) *PlanExportDataType {
+	return &v
+}
+
 // ServiceProvider returns a pointer to the given service provider type.
 func ServiceProvider(v ServiceProviderType) *ServiceProviderType {
 	return &v

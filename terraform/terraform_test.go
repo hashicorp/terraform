@@ -210,6 +210,22 @@ func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
 	return addr
 }
 
+func mustResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+func mustProviderConfig(s string) addrs.AbsProviderConfig {
+	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 func instanceObjectIdForTests(obj *states.ResourceInstanceObject) string {
 	v := obj.Value
 	if v.IsNull() || !v.IsKnown() {
@@ -390,9 +406,7 @@ module.child:
 <no state>
 Outputs:
 
-aws_access_key = YYYYY
 aws_route53_zone_id = XXXX
-aws_secret_key = ZZZZ
 `
 
 const testTerraformApplyDependsCreateBeforeStr = `
@@ -608,9 +622,6 @@ aws_instance.bar:
   foo = true
   type = aws_instance
 
-  Dependencies:
-    module.child
-
 module.child:
   <no state>
   Outputs:
@@ -666,6 +677,9 @@ module.child:
     provider = provider.aws
     type = aws_instance
     value = bar
+
+    Dependencies:
+      aws_instance.foo
 `
 
 const testTerraformApplyOutputOrphanStr = `
@@ -677,11 +691,6 @@ foo = bar
 
 const testTerraformApplyOutputOrphanModuleStr = `
 <no state>
-module.child:
-  <no state>
-  Outputs:
-
-  foo = bar
 `
 
 const testTerraformApplyProvisionerStr = `
@@ -784,17 +793,11 @@ aws_instance.foo.1:
   provider = provider.aws
   foo = number 1
   type = aws_instance
-
-  Dependencies:
-    aws_instance.foo[0]
 aws_instance.foo.2:
   ID = foo
   provider = provider.aws
   foo = number 2
   type = aws_instance
-
-  Dependencies:
-    aws_instance.foo[0]
 `
 
 const testTerraformApplyProvisionerDiffStr = `
@@ -859,7 +862,7 @@ aws_instance.a:
   type = aws_instance
 
   Dependencies:
-    module.child
+    module.child.aws_instance.child
 
 module.child:
   aws_instance.child:
@@ -877,7 +880,7 @@ aws_instance.a:
   type = aws_instance
 
   Dependencies:
-    module.child
+    module.child.module.grandchild.aws_instance.c
 
 module.child.grandchild:
   aws_instance.c:
@@ -897,7 +900,7 @@ module.child:
     type = aws_instance
 
     Dependencies:
-      module.grandchild
+      module.child.module.grandchild.aws_instance.c
 module.child.grandchild:
   aws_instance.c:
     ID = foo
@@ -1305,9 +1308,6 @@ data.null_data_source.bar:
   ID = foo
   provider = provider.null
   bar = yes
-
-  Dependencies:
-    data.null_data_source.foo
 data.null_data_source.foo:
   ID = foo
   provider = provider.null

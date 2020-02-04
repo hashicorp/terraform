@@ -1,6 +1,6 @@
 package config
 
-//go:generate stringer -type=ResourceMode -output=resource_mode_string.go resource_mode.go
+//go:generate go run golang.org/x/tools/cmd/stringer -type=ResourceMode -output=resource_mode_string.go resource_mode.go
 type ResourceMode int
 
 const (

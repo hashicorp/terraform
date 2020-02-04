@@ -125,7 +125,7 @@ func TestGraph_plan(t *testing.T) {
 			Before: plans.DynamicValue(`{}`),
 			After:  plans.DynamicValue(`null`),
 		},
-		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
 	})
 	emptyConfig, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
 	if err != nil {

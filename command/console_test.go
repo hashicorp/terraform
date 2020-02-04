@@ -84,3 +84,52 @@ func TestConsole_tfvars(t *testing.T) {
 		t.Fatalf("bad: %q", actual)
 	}
 }
+
+func TestConsole_unsetRequiredVars(t *testing.T) {
+	// This test is verifying that it's possible to run "terraform console"
+	// without providing values for all required variables, without
+	// "terraform console" producing an interactive prompt for those variables
+	// or producing errors. Instead, it should allow evaluation in that
+	// partial context but see the unset variables values as being unknown.
+
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ConsoleCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	var output bytes.Buffer
+	defer testStdinPipe(t, strings.NewReader("var.foo\n"))()
+	outCloser := testStdoutCapture(t, &output)
+
+	args := []string{
+		// This test fixture includes variable "foo" {}, which we are
+		// intentionally not setting here.
+		testFixturePath("apply-vars"),
+	}
+	code := c.Run(args)
+	outCloser()
+
+	// Because we're running "terraform console" in piped input mode, we're
+	// expecting it to return a nonzero exit status here but the message
+	// must be the one indicating that it did attempt to evaluate var.foo and
+	// got an unknown value in return, rather than an error about var.foo
+	// not being set or a failure to prompt for it.
+	if code == 0 {
+		t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+	}
+
+	// The error message should be the one console produces when it encounters
+	// an unknown value.
+	got := ui.ErrorWriter.String()
+	want := `Error: Result depends on values that cannot be determined`
+	if !strings.Contains(got, want) {
+		t.Fatalf("wrong output\ngot:\n%s\n\nwant string containing %q", got, want)
+	}
+}

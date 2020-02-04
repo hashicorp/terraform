@@ -3,7 +3,7 @@ package terraform
 import (
 	"testing"
 
-	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
@@ -46,6 +46,20 @@ func TestModuleTreeDependencies(t *testing.T) {
 					},
 					"foo.bar": moduledeps.ProviderDependency{
 						Constraints: discovery.ConstraintStr(">=2.0.0").MustParse(),
+						Reason:      moduledeps.ProviderDependencyExplicit,
+					},
+				},
+				Children: nil,
+			},
+		},
+		"required_providers block": {
+			"module-deps-required-providers",
+			nil,
+			&moduledeps.Module{
+				Name: "root",
+				Providers: moduledeps.Providers{
+					"foo": moduledeps.ProviderDependency{
+						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
@@ -251,8 +265,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 			}
 
 			got := ConfigTreeDependencies(root, MustShimLegacyState(test.State))
-			for _, problem := range deep.Equal(got, test.Want) {
-				t.Error(problem)
+			if !cmp.Equal(got, test.Want) {
+				t.Error(cmp.Diff(got, test.Want))
 			}
 		})
 	}

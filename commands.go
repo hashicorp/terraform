@@ -4,12 +4,16 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/hashicorp/terraform/command"
-	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/mitchellh/cli"
+
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/command/cliconfig"
+	"github.com/hashicorp/terraform/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -34,7 +38,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *Config, services *disco.Disco) {
+func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -50,6 +54,11 @@ func initCommands(config *Config, services *disco.Disco) {
 		services.ForceHostServices(host, hostConfig.Services)
 	}
 
+	configDir, err := cliconfig.ConfigDir()
+	if err != nil {
+		configDir = "" // No config dir available (e.g. looking up a home directory failed)
+	}
+
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
@@ -58,9 +67,12 @@ func initCommands(config *Config, services *disco.Disco) {
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
-		Services: services,
+		Services:        services,
+		ProviderSource:  providerSrc,
+		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
+		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
 		OverrideDataDir:     dataDir,
 
@@ -171,6 +183,16 @@ func initCommands(config *Config, services *disco.Disco) {
 				Meta: meta,
 			}, nil
 		},
+
+		// "terraform login" is disabled until Terraform Cloud is ready to
+		// support it.
+		/*
+			"login": func() (cli.Command, error) {
+				return &command.LoginCommand{
+					Meta: meta,
+				}, nil
+			},
+		*/
 
 		"output": func() (cli.Command, error) {
 			return &command.OutputCommand{
@@ -370,7 +392,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *Config) (auth.CredentialsSource, error) {
+func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
 	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
 	return config.CredentialsSource(helperPlugins)
 }

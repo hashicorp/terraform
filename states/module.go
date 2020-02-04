@@ -76,7 +76,7 @@ func (ms *Module) RemoveResource(addr addrs.Resource) {
 }
 
 // SetResourceInstanceCurrent saves the given instance object as the current
-// generation of the resource instance with the given address, simulataneously
+// generation of the resource instance with the given address, simultaneously
 // updating the recorded provider configuration address, dependencies, and
 // resource EachMode.
 //
@@ -88,23 +88,58 @@ func (ms *Module) RemoveResource(addr addrs.Resource) {
 // are updated for all other instances of the same resource as a side-effect of
 // this call.
 func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
-	ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
-
 	rs := ms.Resource(addr.Resource)
-	is := rs.EnsureInstance(addr.Key)
-
+	// if the resource is nil and the object is nil, don't do anything!
+	// you'll probably just cause issues
+	if obj == nil && rs == nil {
+		return
+	}
+	if obj == nil && rs != nil {
+		// does the resource have any other objects?
+		// if not then delete the whole resource
+		// When deleting the resource, ensure that its EachMode is NoEach,
+		// as a resource with EachList or EachMap can have 0 instances and be valid
+		if rs.EachMode == NoEach && len(rs.Instances) == 0 {
+			delete(ms.Resources, addr.Resource.String())
+			return
+		}
+		// check for an existing resource, now that we've ensured that rs.Instances is more than 0/not nil
+		is := rs.Instance(addr.Key)
+		if is == nil {
+			// if there is no instance on the resource with this address and obj is nil, return and change nothing
+			return
+		}
+		// if we have an instance, update the current
+		is.Current = obj
+		if !is.HasObjects() {
+			// If we have no objects at all then we'll clean up.
+			delete(rs.Instances, addr.Key)
+			// Delete the resource if it has no instances, but only if NoEach
+			if rs.EachMode == NoEach && len(rs.Instances) == 0 {
+				delete(ms.Resources, addr.Resource.String())
+				return
+			}
+		}
+		// Nothing more to do here, so return!
+		return
+	}
+	if rs == nil && obj != nil {
+		// We don't have have a resource so make one, which is a side effect of setResourceMeta
+		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
+		// now we have a resource! so update the rs value to point to it
+		rs = ms.Resource(addr.Resource)
+	}
+	// Get our instance from the resource; it could be there or not at this point
+	is := rs.Instance(addr.Key)
+	if is == nil {
+		// if we don't have a resource, create one and add to the instances
+		is = rs.CreateInstance(addr.Key)
+		// update the resource meta because we have a new instance, so EachMode may have changed
+		ms.SetResourceMeta(addr.Resource, eachModeForInstanceKey(addr.Key), provider)
+	}
+	// Update the resource's ProviderConfig, in case the provider has updated
+	rs.ProviderConfig = provider
 	is.Current = obj
-
-	if !is.HasObjects() {
-		// If we have no objects at all then we'll clean up.
-		delete(rs.Instances, addr.Key)
-	}
-	if rs.EachMode == NoEach && len(rs.Instances) == 0 {
-		// Also clean up if we only expect to have one instance anyway
-		// and there are none. We leave the resource behind if an each mode
-		// is active because an empty list or map of instances is a valid state.
-		delete(ms.Resources, addr.Resource.String())
-	}
 }
 
 // SetResourceInstanceDeposed saves the given instance object as a deposed

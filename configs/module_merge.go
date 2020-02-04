@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -35,7 +35,7 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd []*ProviderRequirement) {
+func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd []*RequiredProvider) {
 	// Any provider name that's mentioned in the override gets nilled out in
 	// our map so that we'll rebuild it below. Any provider not mentioned is
 	// left unchanged.
@@ -43,7 +43,8 @@ func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd [
 		delete(recv, reqd.Name)
 	}
 	for _, reqd := range ovrd {
-		recv[reqd.Name] = append(recv[reqd.Name], reqd.Requirement)
+		fqn := addrs.NewLegacyProvider(reqd.Name)
+		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 	}
 }
 

@@ -123,7 +123,7 @@ var SplitFunc = function.New(&function.Spec{
 	},
 })
 
-// ChompFunc constructions a function that removes newline characters at the end of a string.
+// ChompFunc constructs a function that removes newline characters at the end of a string.
 var ChompFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -138,7 +138,7 @@ var ChompFunc = function.New(&function.Spec{
 	},
 })
 
-// IndentFunc constructions a function that adds a given number of spaces to the
+// IndentFunc constructs a function that adds a given number of spaces to the
 // beginnings of all but the first line in a given multi-line string.
 var IndentFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -163,7 +163,7 @@ var IndentFunc = function.New(&function.Spec{
 	},
 })
 
-// ReplaceFunc constructions a function that searches a given string for another
+// ReplaceFunc constructs a function that searches a given string for another
 // given substring, and replaces each occurence with a given replacement string.
 var ReplaceFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -201,7 +201,7 @@ var ReplaceFunc = function.New(&function.Spec{
 	},
 })
 
-// TitleFunc constructions a function that converts the first letter of each word
+// TitleFunc constructs a function that converts the first letter of each word
 // in the given string to uppercase.
 var TitleFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -216,7 +216,7 @@ var TitleFunc = function.New(&function.Spec{
 	},
 })
 
-// TrimSpaceFunc constructions a function that removes any space characters from
+// TrimSpaceFunc constructs a function that removes any space characters from
 // the start and end of the given string.
 var TrimSpaceFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -228,6 +228,69 @@ var TrimSpaceFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		return cty.StringVal(strings.TrimSpace(args[0].AsString())), nil
+	},
+})
+
+// TrimFunc constructs a function that removes the specified characters from
+// the start and end of the given string.
+var TrimFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "cutset",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		cutset := args[1].AsString()
+		return cty.StringVal(strings.Trim(str, cutset)), nil
+	},
+})
+
+// TrimPrefixFunc constructs a function that removes the specified characters from
+// the start the given string.
+var TrimPrefixFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "prefix",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		prefix := args[1].AsString()
+		return cty.StringVal(strings.TrimPrefix(str, prefix)), nil
+	},
+})
+
+// TrimSuffixFunc constructs a function that removes the specified characters from
+// the end of the given string.
+var TrimSuffixFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "suffix",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		cutset := args[1].AsString()
+		return cty.StringVal(strings.TrimSuffix(str, cutset)), nil
 	},
 })
 
@@ -277,4 +340,19 @@ func Title(str cty.Value) (cty.Value, error) {
 // TrimSpace removes any space characters from the start and end of the given string.
 func TrimSpace(str cty.Value) (cty.Value, error) {
 	return TrimSpaceFunc.Call([]cty.Value{str})
+}
+
+// Trim removes the specified characters from the start and end of the given string.
+func Trim(str, cutset cty.Value) (cty.Value, error) {
+	return TrimFunc.Call([]cty.Value{str, cutset})
+}
+
+// TrimPrefix removes the specified prefix from the start of the given string.
+func TrimPrefix(str, prefix cty.Value) (cty.Value, error) {
+	return TrimPrefixFunc.Call([]cty.Value{str, prefix})
+}
+
+// TrimSuffix removes the specified suffix from the end of the given string.
+func TrimSuffix(str, suffix cty.Value) (cty.Value, error) {
+	return TrimSuffixFunc.Call([]cty.Value{str, suffix})
 }

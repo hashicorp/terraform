@@ -1,3 +1,9 @@
+# v0.4.0 (October 3, 2019)
+
+BUG FIXES
+
+* awsauth: fixed credentials retrieval, validation, and error handling
+
 # v0.3.0 (February 26, 2019)
 
 BUG FIXES

@@ -22,6 +22,21 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+const (
+	// errMsgNoValidCredentialSources error getting credentials
+	errMsgNoValidCredentialSources = `No valid credential sources found for AWS Provider.
+	Please see https://terraform.io/docs/providers/aws/index.html for more information on
+	providing credentials for the AWS Provider`
+)
+
+var (
+	// ErrNoValidCredentialSources indicates that no credentials source could be found
+	ErrNoValidCredentialSources = errNoValidCredentialSources()
+)
+
+func errNoValidCredentialSources() error { return errors.New(errMsgNoValidCredentialSources) }
+
+// GetAccountIDAndPartition gets the account ID and associated partition.
 func GetAccountIDAndPartition(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
 	var accountID, partition string
 	var err, errors error
@@ -51,6 +66,8 @@ func GetAccountIDAndPartition(iamconn *iam.IAM, stsconn *sts.STS, authProviderNa
 	return accountID, partition, errors
 }
 
+// GetAccountIDAndPartitionFromEC2Metadata gets the account ID and associated
+// partition from EC2 metadata.
 func GetAccountIDAndPartitionFromEC2Metadata() (string, string, error) {
 	log.Println("[DEBUG] Trying to get account information via EC2 Metadata")
 
@@ -75,6 +92,8 @@ func GetAccountIDAndPartitionFromEC2Metadata() (string, string, error) {
 	return parseAccountIDAndPartitionFromARN(info.InstanceProfileArn)
 }
 
+// GetAccountIDAndPartitionFromIAMGetUser gets the account ID and associated
+// partition from IAM.
 func GetAccountIDAndPartitionFromIAMGetUser(iamconn *iam.IAM) (string, string, error) {
 	log.Println("[DEBUG] Trying to get account information via iam:GetUser")
 
@@ -102,6 +121,8 @@ func GetAccountIDAndPartitionFromIAMGetUser(iamconn *iam.IAM) (string, string, e
 	return parseAccountIDAndPartitionFromARN(aws.StringValue(output.User.Arn))
 }
 
+// GetAccountIDAndPartitionFromIAMListRoles gets the account ID and associated
+// partition from listing IAM roles.
 func GetAccountIDAndPartitionFromIAMListRoles(iamconn *iam.IAM) (string, string, error) {
 	log.Println("[DEBUG] Trying to get account information via iam:ListRoles")
 
@@ -123,6 +144,8 @@ func GetAccountIDAndPartitionFromIAMListRoles(iamconn *iam.IAM) (string, string,
 	return parseAccountIDAndPartitionFromARN(aws.StringValue(output.Roles[0].Arn))
 }
 
+// GetAccountIDAndPartitionFromSTSGetCallerIdentity gets the account ID and associated
+// partition from STS caller identity.
 func GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsconn *sts.STS) (string, string, error) {
 	log.Println("[DEBUG] Trying to get account information via sts:GetCallerIdentity")
 
@@ -148,9 +171,54 @@ func parseAccountIDAndPartitionFromARN(inputARN string) (string, string, error) 
 	return arn.AccountID, arn.Partition, nil
 }
 
-// This function is responsible for reading credentials from the
-// environment in the case that they're not explicitly specified
-// in the Terraform configuration.
+// GetCredentialsFromSession returns credentials derived from a session. A
+// session uses the AWS SDK Go chain of providers so may use a provider (e.g.,
+// ProcessProvider) that is not part of the Terraform provider chain.
+func GetCredentialsFromSession(c *Config) (*awsCredentials.Credentials, error) {
+	log.Printf("[INFO] Attempting to use session-derived credentials")
+
+	var sess *session.Session
+	var err error
+	if c.Profile == "" {
+		sess, err = session.NewSession()
+		if err != nil {
+			return nil, ErrNoValidCredentialSources
+		}
+	} else {
+		options := &session.Options{
+			Config: aws.Config{
+				HTTPClient: cleanhttp.DefaultClient(),
+				MaxRetries: aws.Int(0),
+				Region:     aws.String(c.Region),
+			},
+		}
+		options.Profile = c.Profile
+		options.SharedConfigState = session.SharedConfigEnable
+
+		sess, err = session.NewSessionWithOptions(*options)
+		if err != nil {
+			if IsAWSErr(err, "NoCredentialProviders", "") {
+				return nil, ErrNoValidCredentialSources
+			}
+			return nil, fmt.Errorf("Error creating AWS session: %s", err)
+		}
+	}
+
+	creds := sess.Config.Credentials
+	cp, err := sess.Config.Credentials.Get()
+	if err != nil {
+		return nil, ErrNoValidCredentialSources
+	}
+
+	log.Printf("[INFO] Successfully derived credentials from session")
+	log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
+	return creds, nil
+}
+
+// GetCredentials gets credentials from the environment, shared credentials,
+// or the session (which may include a credential process). GetCredentials also
+// validates the credentials and the ability to assume a role or will return an
+// error if unsuccessful.
 func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 	// build a chain provider, lazy-evaluated by aws-sdk
 	providers := []awsCredentials.Provider{
@@ -225,29 +293,31 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 		}
 	}
 
-	// This is the "normal" flow (i.e. not assuming a role)
-	if c.AssumeRoleARN == "" {
-		return awsCredentials.NewChainCredentials(providers), nil
-	}
-
-	// Otherwise we need to construct and STS client with the main credentials, and verify
-	// that we can assume the defined role.
-	log.Printf("[INFO] Attempting to AssumeRole %s (SessionName: %q, ExternalId: %q, Policy: %q)",
-		c.AssumeRoleARN, c.AssumeRoleSessionName, c.AssumeRoleExternalID, c.AssumeRolePolicy)
-
+	// Validate the credentials before returning them
 	creds := awsCredentials.NewChainCredentials(providers)
 	cp, err := creds.Get()
 	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
-			return nil, errors.New(`No valid credential sources found for AWS Provider.
-  Please see https://terraform.io/docs/providers/aws/index.html for more information on
-  providing credentials for the AWS Provider`)
+		if IsAWSErr(err, "NoCredentialProviders", "") {
+			creds, err = GetCredentialsFromSession(c)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
 		}
-
-		return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
+	} else {
+		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
 	}
 
-	log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
+	// This is the "normal" flow (i.e. not assuming a role)
+	if c.AssumeRoleARN == "" {
+		return creds, nil
+	}
+
+	// Otherwise we need to construct an STS client with the main credentials, and verify
+	// that we can assume the defined role.
+	log.Printf("[INFO] Attempting to AssumeRole %s (SessionName: %q, ExternalId: %q, Policy: %q)",
+		c.AssumeRoleARN, c.AssumeRoleSessionName, c.AssumeRoleExternalID, c.AssumeRolePolicy)
 
 	awsConfig := &aws.Config{
 		Credentials: creds,

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -114,12 +114,10 @@ func TestParseRef(t *testing.T) {
 		{
 			`data.external.foo`,
 			&Reference{
-				Subject: ResourceInstance{
-					Resource: Resource{
-						Mode: DataResourceMode,
-						Type: "external",
-						Name: "foo",
-					},
+				Subject: Resource{
+					Mode: DataResourceMode,
+					Type: "external",
+					Name: "foo",
 				},
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
@@ -592,12 +590,10 @@ func TestParseRef(t *testing.T) {
 		{
 			`boop_instance.foo`,
 			&Reference{
-				Subject: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "boop_instance",
-						Name: "foo",
-					},
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "boop_instance",
+					Name: "foo",
 				},
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},

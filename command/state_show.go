@@ -72,6 +72,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	// Build the operation (required to get the schemas)
 	opReq := c.Operation(b)
+	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -118,7 +119,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	singleInstance.EnsureModule(addr.Module).SetResourceInstanceCurrent(
 		addr.Resource,
 		is.Current,
-		addr.Resource.Resource.DefaultProviderConfig().Absolute(addr.Module),
+		addrs.NewDefaultLocalProviderConfig(addr.Resource.Resource.DefaultProvider().LegacyString()).Absolute(addr.Module),
 	)
 
 	output := format.State(&format.StateOpts{

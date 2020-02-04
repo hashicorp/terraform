@@ -81,6 +81,11 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 				return nil, fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
 			}
 		}
+
+		// Ensure Windows is using the proper modules path format after
+		// reading the modules manifest Dir records
+		record.Dir = filepath.FromSlash(record.Dir)
+
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
@@ -115,6 +120,10 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 		} else {
 			record.VersionStr = ""
 		}
+
+		// Ensure Dir is written in a format that can be read by Linux and
+		// Windows nodes for remote and apply compatibility
+		record.Dir = filepath.ToSlash(record.Dir)
 		write.Records = append(write.Records, record)
 	}
 

@@ -5,9 +5,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/hcl2/ext/dynblock"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/dynblock"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang/blocktoattr"
@@ -194,8 +194,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// it, since that allows us to gather a full set of any errors and
 	// warnings, but once we've gathered all the data we'll then skip anything
 	// that's redundant in the process of populating our values map.
-	dataResources := map[string]map[string]map[addrs.InstanceKey]cty.Value{}
-	managedResources := map[string]map[string]map[addrs.InstanceKey]cty.Value{}
+	dataResources := map[string]map[string]cty.Value{}
+	managedResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]map[addrs.InstanceKey]cty.Value{}
 	moduleOutputs := map[string]map[addrs.InstanceKey]map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
@@ -208,7 +208,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	for _, ref := range refs {
 		rng := ref.SourceRange
-		isSelf := false
 
 		rawSubj := ref.Subject
 		if rawSubj == addrs.Self {
@@ -226,45 +225,64 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				continue
 			}
 
-			// Treat "self" as an alias for the configured self address.
-			rawSubj = selfAddr
-			isSelf = true
-
-			if rawSubj == addrs.Self {
+			if selfAddr == addrs.Self {
 				// Programming error: the self address cannot alias itself.
 				panic("scope SelfAddr attempting to alias itself")
 			}
+
+			// self can only be used within a resource instance
+			subj := selfAddr.(addrs.ResourceInstance)
+
+			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
+
+			diags = diags.Append(valDiags)
+
+			// Self is an exception in that it must always resolve to a
+			// particular instance. We will still insert the full resource into
+			// the context below.
+			var hclDiags hcl.Diagnostics
+			// We should always have a valid self index by this point, but in
+			// the case of an error, self may end up as a cty.DynamicValue.
+			switch k := subj.Key.(type) {
+			case addrs.IntKey:
+				self, hclDiags = hcl.Index(val, cty.NumberIntVal(int64(k)), ref.SourceRange.ToHCL().Ptr())
+				diags.Append(hclDiags)
+			case addrs.StringKey:
+				self, hclDiags = hcl.Index(val, cty.StringVal(string(k)), ref.SourceRange.ToHCL().Ptr())
+				diags.Append(hclDiags)
+			default:
+				self = val
+			}
+			continue
 		}
 
 		// This type switch must cover all of the "Referenceable" implementations
-		// in package addrs.
-		switch subj := rawSubj.(type) {
+		// in package addrs, however we are removing the possibility of
+		// ResourceInstance beforehand.
+		if addr, ok := rawSubj.(addrs.ResourceInstance); ok {
+			rawSubj = addr.ContainingResource()
+		}
 
-		case addrs.ResourceInstance:
-			var into map[string]map[string]map[addrs.InstanceKey]cty.Value
-			switch subj.Resource.Mode {
+		switch subj := rawSubj.(type) {
+		case addrs.Resource:
+			var into map[string]map[string]cty.Value
+			switch subj.Mode {
 			case addrs.ManagedResourceMode:
 				into = managedResources
 			case addrs.DataResourceMode:
 				into = dataResources
 			default:
-				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Resource.Mode))
+				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Mode))
 			}
 
-			val, valDiags := normalizeRefValue(s.Data.GetResourceInstance(subj, rng))
+			val, valDiags := normalizeRefValue(s.Data.GetResource(subj, rng))
 			diags = diags.Append(valDiags)
 
-			r := subj.Resource
+			r := subj
 			if into[r.Type] == nil {
-				into[r.Type] = make(map[string]map[addrs.InstanceKey]cty.Value)
+				into[r.Type] = make(map[string]cty.Value)
 			}
-			if into[r.Type][r.Name] == nil {
-				into[r.Type][r.Name] = make(map[addrs.InstanceKey]cty.Value)
-			}
-			into[r.Type][r.Name][subj.Key] = val
-			if isSelf {
-				self = val
-			}
+			into[r.Type][r.Name] = val
 
 		case addrs.ModuleCallInstance:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstance(subj, rng))
@@ -274,9 +292,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				wholeModules[subj.Call.Name] = make(map[addrs.InstanceKey]cty.Value)
 			}
 			wholeModules[subj.Call.Name][subj.Key] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.ModuleCallOutput:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstanceOutput(subj, rng))
@@ -291,57 +306,36 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				moduleOutputs[callName][callKey] = make(map[string]cty.Value)
 			}
 			moduleOutputs[callName][callKey][subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.InputVariable:
 			val, valDiags := normalizeRefValue(s.Data.GetInputVariable(subj, rng))
 			diags = diags.Append(valDiags)
 			inputVariables[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.LocalValue:
 			val, valDiags := normalizeRefValue(s.Data.GetLocalValue(subj, rng))
 			diags = diags.Append(valDiags)
 			localValues[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.PathAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetPathAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.TerraformAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			terraformAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.CountAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetCountAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			countAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		case addrs.ForEachAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetForEachAttr(subj, rng))
 			diags = diags.Append(valDiags)
 			forEachAttrs[subj.Name] = val
-			if isSelf {
-				self = val
-			}
 
 		default:
 			// Should never happen
@@ -367,13 +361,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	return ctx, diags
 }
 
-func buildResourceObjects(resources map[string]map[string]map[addrs.InstanceKey]cty.Value) map[string]cty.Value {
+func buildResourceObjects(resources map[string]map[string]cty.Value) map[string]cty.Value {
 	vals := make(map[string]cty.Value)
-	for typeName, names := range resources {
-		nameVals := make(map[string]cty.Value)
-		for name, keys := range names {
-			nameVals[name] = buildInstanceObjects(keys)
-		}
+	for typeName, nameVals := range resources {
 		vals[typeName] = cty.ObjectVal(nameVals)
 	}
 	return vals

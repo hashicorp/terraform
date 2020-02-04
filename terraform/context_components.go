@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 )
@@ -27,21 +28,20 @@ type contextComponentFactory interface {
 
 // basicComponentFactory just calls a factory from a map directly.
 type basicComponentFactory struct {
-	providers    map[string]providers.Factory
+	providers    map[addrs.Provider]providers.Factory
 	provisioners map[string]ProvisionerFactory
 }
 
 func (c *basicComponentFactory) ResourceProviders() []string {
-	result := make([]string, len(c.providers))
+	var result []string
 	for k := range c.providers {
-		result = append(result, k)
+		result = append(result, k.LegacyString())
 	}
-
 	return result
 }
 
 func (c *basicComponentFactory) ResourceProvisioners() []string {
-	result := make([]string, len(c.provisioners))
+	var result []string
 	for k := range c.provisioners {
 		result = append(result, k)
 	}
@@ -50,7 +50,7 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 }
 
 func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
-	f, ok := c.providers[typ]
+	f, ok := c.providers[addrs.NewLegacyProvider(typ)]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)
 	}

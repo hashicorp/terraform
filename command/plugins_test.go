@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
@@ -23,8 +24,8 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 	})
 
 	resolver := &multiVersionProviderResolver{
-		Internal: map[string]providers.Factory{
-			"internal": providers.FactoryFixed(
+		Internal: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("internal"): providers.FactoryFixed(
 				&terraform.MockProvider{
 					GetSchemaReturn: &terraform.ProviderSchema{
 						ResourceTypes: map[string]*configschema.Block{
@@ -50,7 +51,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got["plugin"]; !exists {
+		if _, exists := got[addrs.NewLegacyProvider("plugin")]; !exists {
 			t.Errorf("provider \"plugin\" not in result")
 		}
 	})
@@ -78,7 +79,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 		if ct := len(got); ct != 1 {
 			t.Errorf("wrong number of results %d; want 1", ct)
 		}
-		if _, exists := got["internal"]; !exists {
+		if _, exists := got[addrs.NewLegacyProvider("internal")]; !exists {
 			t.Errorf("provider \"internal\" not in result")
 		}
 	})
@@ -98,6 +99,7 @@ func TestMultiVersionProviderResolver(t *testing.T) {
 
 func TestPluginPath(t *testing.T) {
 	td := testTempDir(t)
+	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	pluginPath := []string{"a", "b", "c"}
@@ -120,7 +122,7 @@ func TestPluginPath(t *testing.T) {
 func TestInternalProviders(t *testing.T) {
 	m := Meta{}
 	internal := m.internalProviders()
-	tfProvider, err := internal["terraform"]()
+	tfProvider, err := internal[addrs.NewLegacyProvider("terraform")]()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,10 +149,10 @@ func (i *mockProviderInstaller) FileName(provider, version string) string {
 	return fmt.Sprintf("terraform-provider-%s_v%s_x4", provider, version)
 }
 
-func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+func (i *mockProviderInstaller) Get(provider addrs.Provider, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 	noMeta := discovery.PluginMeta{}
-	versions := i.Providers[provider]
+	versions := i.Providers[provider.Type]
 	if len(versions) == 0 {
 		return noMeta, diags, fmt.Errorf("provider %q not found", provider)
 	}
@@ -168,7 +170,7 @@ func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) 
 
 		if req.Allows(version) {
 			// provider filename
-			name := i.FileName(provider, v)
+			name := i.FileName(provider.Type, v)
 			path := filepath.Join(i.Dir, name)
 			f, err := os.Create(path)
 			if err != nil {
@@ -176,7 +178,7 @@ func (i *mockProviderInstaller) Get(provider string, req discovery.Constraints) 
 			}
 			f.Close()
 			return discovery.PluginMeta{
-				Name:    provider,
+				Name:    provider.Type,
 				Version: discovery.VersionStr(v),
 				Path:    path,
 			}, diags, nil
@@ -199,8 +201,8 @@ func (i *mockProviderInstaller) PurgeUnused(map[string]discovery.PluginMeta) (di
 
 type callbackPluginInstaller func(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error)
 
-func (cb callbackPluginInstaller) Get(provider string, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
-	return cb(provider, req)
+func (cb callbackPluginInstaller) Get(provider addrs.Provider, req discovery.Constraints) (discovery.PluginMeta, tfdiags.Diagnostics, error) {
+	return cb(provider.Type, req)
 }
 
 func (cb callbackPluginInstaller) PurgeUnused(map[string]discovery.PluginMeta) (discovery.PluginMetaSet, error) {

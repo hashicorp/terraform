@@ -48,7 +48,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 
 		for _, res := range newMod.Resources {
 			resType := res.Addr.Type
-			providerType := res.ProviderConfig.ProviderConfig.Type
+			providerType := res.ProviderConfig.ProviderConfig.LocalName
 
 			resource := getResource(providers, providerType, res.Addr)
 
@@ -81,12 +81,13 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 					}
 
 					if i.Current.SchemaVersion != 0 {
-						resState.Primary.Meta = map[string]interface{}{
-							"schema_version": i.Current.SchemaVersion,
+						if resState.Primary.Meta == nil {
+							resState.Primary.Meta = map[string]interface{}{}
 						}
+						resState.Primary.Meta["schema_version"] = i.Current.SchemaVersion
 					}
 
-					for _, dep := range i.Current.Dependencies {
+					for _, dep := range i.Current.DependsOn {
 						resState.Dependencies = append(resState.Dependencies, dep.String())
 					}
 

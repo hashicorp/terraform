@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -150,8 +150,8 @@ func TestBackendStates(t *testing.T, b Backend) {
 				Status:        states.ObjectReady,
 				SchemaVersion: 0,
 			},
-			addrs.ProviderConfig{
-				Type: "test",
+			addrs.LocalProviderConfig{
+				LocalName: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 

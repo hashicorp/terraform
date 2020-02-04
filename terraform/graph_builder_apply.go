@@ -127,21 +127,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
-		},
-		GraphTransformIf(
-			func() bool { return !b.Destroy },
-			&CBDEdgeTransformer{
-				Config:  b.Config,
-				State:   b.State,
-				Schemas: b.Schemas,
-			},
-		),
-
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
@@ -170,21 +155,39 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
+
+		// Destruction ordering
+		&DestroyEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+		},
+
+		&CBDEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+			Destroy: b.Destroy,
+		},
 
 		// Handle destroy time transformations for output and local values.
 		// Reverse the edges from outputs and locals, so that
 		// interpolations don't fail during destroy.
 		// Create a destroy node for outputs to remove them from the state.
-		// Prune unreferenced values, which may have interpolations that can't
-		// be resolved.
 		GraphTransformIf(
 			func() bool { return b.Destroy },
 			GraphTransformMulti(
 				&DestroyValueReferenceTransformer{},
 				&DestroyOutputTransformer{},
-				&PruneUnusedValuesTransformer{},
 			),
 		),
+
+		// Prune unreferenced values, which may have interpolations that can't
+		// be resolved.
+		&PruneUnusedValuesTransformer{
+			Destroy: b.Destroy,
+		},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{

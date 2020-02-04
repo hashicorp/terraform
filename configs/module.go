@@ -3,9 +3,10 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/experiments"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -25,9 +26,11 @@ type Module struct {
 
 	CoreVersionConstraints []VersionConstraint
 
+	ActiveExperiments experiments.Set
+
 	Backend              *Backend
 	ProviderConfigs      map[string]*Provider
-	ProviderRequirements map[string][]VersionConstraint
+	ProviderRequirements map[string]ProviderRequirements
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -53,9 +56,11 @@ type Module struct {
 type File struct {
 	CoreVersionConstraints []VersionConstraint
 
-	Backends             []*Backend
-	ProviderConfigs      []*Provider
-	ProviderRequirements []*ProviderRequirement
+	ActiveExperiments experiments.Set
+
+	Backends          []*Backend
+	ProviderConfigs   []*Provider
+	RequiredProviders []*RequiredProvider
 
 	Variables []*Variable
 	Locals    []*Local
@@ -79,7 +84,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
 		ProviderConfigs:      map[string]*Provider{},
-		ProviderRequirements: map[string][]VersionConstraint{},
+		ProviderRequirements: map[string]ProviderRequirements{},
 		Variables:            map[string]*Variable{},
 		Locals:               map[string]*Local{},
 		Outputs:              map[string]*Output{},
@@ -97,6 +102,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		fileDiags := mod.mergeFile(file)
 		diags = append(diags, fileDiags...)
 	}
+
+	diags = append(diags, checkModuleExperiments(mod)...)
 
 	return mod, diags
 }
@@ -123,6 +130,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		// when we actually check these constraints.
 		m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
 	}
+
+	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
 	for _, b := range file.Backends {
 		if m.Backend != nil {
@@ -160,8 +169,22 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.ProviderConfigs[key] = pc
 	}
 
-	for _, reqd := range file.ProviderRequirements {
-		m.ProviderRequirements[reqd.Name] = append(m.ProviderRequirements[reqd.Name], reqd.Requirement)
+	for _, reqd := range file.RequiredProviders {
+		// TODO: once the remaining provider source functionality is
+		// implemented, get addrs.Provider from source if set, or
+		// addrs.NewDefaultProvider(name) if not
+		if reqd.Source != "" {
+			panic("source is not yet supported")
+		}
+		fqn := addrs.NewLegacyProvider(reqd.Name)
+		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
+			if existing.Type != fqn {
+				panic("provider fqn mismatch")
+			}
+			existing.VersionConstraints = append(existing.VersionConstraints, reqd.Requirement)
+		} else {
+			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
+		}
 	}
 
 	for _, v := range file.Variables {
@@ -304,8 +327,8 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	if len(file.ProviderRequirements) != 0 {
-		mergeProviderVersionConstraints(m.ProviderRequirements, file.ProviderRequirements)
+	if len(file.RequiredProviders) != 0 {
+		mergeProviderVersionConstraints(m.ProviderRequirements, file.RequiredProviders)
 	}
 
 	for _, v := range file.Variables {
