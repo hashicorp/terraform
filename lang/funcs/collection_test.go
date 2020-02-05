@@ -2119,9 +2119,7 @@ func TestMerge(t *testing.T) {
 					"a": cty.List(cty.String),
 				})),
 			},
-			cty.MapVal(map[string]cty.Value{
-				"c": cty.StringVal("d"),
-			}),
+			cty.NullVal(cty.EmptyObject),
 			false,
 		},
 		{ // handle null object
