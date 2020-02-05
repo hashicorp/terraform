@@ -96,8 +96,12 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				UIInput:     c.uiInput,
 			}
 
-			// TODO: get provider FQN
-			providerFqn := addrs.NewLegacyProvider(pa.LocalName)
+			var providerFqn addrs.Provider
+			if existing, exists := c.config.Module.ProviderRequirements[pa.LocalName]; exists {
+				providerFqn = existing.Type
+			} else {
+				providerFqn = addrs.NewLegacyProvider(pa.LocalName)
+			}
 			schema := c.schemas.ProviderConfig(providerFqn)
 			if schema == nil {
 				// Could either be an incorrect config or just an incomplete

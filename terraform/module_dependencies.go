@@ -82,9 +82,12 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// allowing for more terse declaration in situations where both a
 		// configuration and a constraint are defined in the same module.
 		for _, pCfg := range module.ProviderConfigs {
-			//FIXME: lookup the provider localname in the TBD map and see if
-			//there is an FQN associated
-			fqn := addrs.NewLegacyProvider(pCfg.Name)
+			var fqn addrs.Provider
+			if existing, exists := module.ProviderRequirements[pCfg.Name]; exists {
+				fqn = existing.Type
+			} else {
+				fqn = addrs.NewLegacyProvider(pCfg.Name)
+			}
 
 			discoConstraints := discovery.AllVersions
 			if pCfg.Version.Required != nil {
@@ -105,9 +108,15 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// an explicit dependency on the same provider.
 		for _, rc := range module.ManagedResources {
 			addr := rc.ProviderConfigAddr()
-			//FIXME: lookup the provider localname in the TBD map and see if
-			//there is an FQN associated
-			fqn := addrs.NewLegacyProvider(addr.LocalName)
+			//look up the provider localname in the provider requirements map and see if
+			//there is a non-default FQN associated
+			var fqn addrs.Provider
+			if existing, exists := module.ProviderRequirements[addr.LocalName]; exists {
+				fqn = existing.Type
+			} else {
+				fqn = addrs.NewLegacyProvider(addr.LocalName)
+			}
+
 			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
@@ -125,9 +134,14 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		}
 		for _, rc := range module.DataResources {
 			addr := rc.ProviderConfigAddr()
-			//FIXME: lookup the provider localname in the TBD map and see if
-			//there is an FQN associated
-			fqn := addrs.NewLegacyProvider(addr.LocalName)
+			//look up the provider localname in the provider requirements map and see if
+			//there is a non-default FQN associated
+			var fqn addrs.Provider
+			if existing, exists := module.ProviderRequirements[addr.LocalName]; exists {
+				fqn = existing.Type
+			} else {
+				fqn = addrs.NewLegacyProvider(addr.LocalName)
+			}
 			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
