@@ -124,7 +124,7 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.AbsProvi
 
 	key := absAddr.String()
 
-	p, err := ctx.Components.ResourceProvider(typeName, key)
+	p, err := ctx.Components.ResourceProvider(typeName)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (ctx *BuiltinEvalContext) InitProvisioner(n string) (provisioners.Interface
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	p, err := ctx.Components.ResourceProvisioner(n, "")
+	p, err := ctx.Components.ResourceProvisioner(n)
 	if err != nil {
 		return nil, err
 	}

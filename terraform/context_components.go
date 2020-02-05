@@ -13,16 +13,13 @@ import (
 // This factory gets more information than the raw maps using to initialize
 // a Context. This information is used for debugging.
 type contextComponentFactory interface {
-	// ResourceProvider creates a new ResourceProvider with the given
-	// type. The "uid" is a unique identifier for this provider being
-	// initialized that can be used for internal tracking.
-	ResourceProvider(typ, uid string) (providers.Interface, error)
+	// ResourceProvider creates a new ResourceProvider with the given type.
+	ResourceProvider(typ string) (providers.Interface, error)
 	ResourceProviders() []string
 
-	// ResourceProvisioner creates a new ResourceProvisioner with the
-	// given type. The "uid" is a unique identifier for this provisioner
-	// being initialized that can be used for internal tracking.
-	ResourceProvisioner(typ, uid string) (provisioners.Interface, error)
+	// ResourceProvisioner creates a new ResourceProvisioner with the given
+	// type.
+	ResourceProvisioner(typ string) (provisioners.Interface, error)
 	ResourceProvisioners() []string
 }
 
@@ -49,7 +46,7 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 	return result
 }
 
-func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Interface, error) {
+func (c *basicComponentFactory) ResourceProvider(typ string) (providers.Interface, error) {
 	f, ok := c.providers[addrs.NewLegacyProvider(typ)]
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q", typ)
@@ -58,7 +55,7 @@ func (c *basicComponentFactory) ResourceProvider(typ, uid string) (providers.Int
 	return f()
 }
 
-func (c *basicComponentFactory) ResourceProvisioner(typ, uid string) (provisioners.Interface, error) {
+func (c *basicComponentFactory) ResourceProvisioner(typ string) (provisioners.Interface, error) {
 	f, ok := c.provisioners[typ]
 	if !ok {
 		return nil, fmt.Errorf("unknown provisioner %q", typ)

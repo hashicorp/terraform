@@ -101,7 +101,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", typeName)
-		provider, err := components.ResourceProvider(typeName, "early/"+typeName)
+		provider, err := components.ResourceProvider(typeName)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
@@ -191,7 +191,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 		}
 
 		log.Printf("[TRACE] LoadSchemas: retrieving schema for provisioner %q", name)
-		provisioner, err := components.ResourceProvisioner(name, "early/"+name)
+		provisioner, err := components.ResourceProvisioner(name)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
