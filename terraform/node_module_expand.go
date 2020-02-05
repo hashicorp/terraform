@@ -14,6 +14,7 @@ import (
 // configured.
 type nodeExpandModule struct {
 	CallerAddr addrs.ModuleInstance
+	Addr       addrs.Module
 	Call       addrs.ModuleCall
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
@@ -41,6 +42,10 @@ func (n *nodeExpandModule) Path() addrs.ModuleInstance {
 // GraphNodeReferencer implementation
 func (n *nodeExpandModule) References() []*addrs.Reference {
 	var refs []*addrs.Reference
+
+	if n.ModuleCall == nil {
+		return nil
+	}
 
 	// Expansion only uses the count and for_each expressions, so this
 	// particular graph node only refers to those.
