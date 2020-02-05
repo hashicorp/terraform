@@ -58,8 +58,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// The main way to declare a provider dependency is explicitly inside
 		// the "terraform" block, which allows declaring a requirement without
 		// also creating a configuration.
-		for fullName, req := range module.ProviderRequirements {
-			inst := moduledeps.ProviderInstance(fullName)
+		for _, req := range module.ProviderRequirements {
 			// The handling here is a bit fiddly because the moduledeps package
 			// was designed around the legacy (pre-0.12) configuration model
 			// and hasn't yet been revised to handle the new model. As a result,
@@ -73,7 +72,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 			}
 			discoConstraints := discovery.NewConstraints(rawConstraints)
 
-			providers[inst] = moduledeps.ProviderDependency{
+			providers[req.Type] = moduledeps.ProviderDependency{
 				Constraints: discoConstraints,
 				Reason:      moduledeps.ProviderDependencyExplicit,
 			}
@@ -82,16 +81,19 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// Provider configurations can also include version constraints,
 		// allowing for more terse declaration in situations where both a
 		// configuration and a constraint are defined in the same module.
-		for fullName, pCfg := range module.ProviderConfigs {
-			inst := moduledeps.ProviderInstance(fullName)
+		for _, pCfg := range module.ProviderConfigs {
+			//FIXME: lookup the provider localname in the TBD map and see if
+			//there is an FQN associated
+			fqn := addrs.NewLegacyProvider(pCfg.Name)
+
 			discoConstraints := discovery.AllVersions
 			if pCfg.Version.Required != nil {
 				discoConstraints = discovery.NewConstraints(pCfg.Version.Required)
 			}
-			if existing, exists := providers[inst]; exists {
+			if existing, exists := providers[fqn]; exists {
 				existing.Constraints = existing.Constraints.Append(discoConstraints)
 			} else {
-				providers[inst] = moduledeps.ProviderDependency{
+				providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: discoConstraints,
 					Reason:      moduledeps.ProviderDependencyExplicit,
 				}
@@ -103,8 +105,10 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// an explicit dependency on the same provider.
 		for _, rc := range module.ManagedResources {
 			addr := rc.ProviderConfigAddr()
-			inst := moduledeps.ProviderInstance(addr.StringCompact())
-			if _, exists := providers[inst]; exists {
+			//FIXME: lookup the provider localname in the TBD map and see if
+			//there is an FQN associated
+			fqn := addrs.NewLegacyProvider(addr.LocalName)
+			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
 			}
@@ -114,15 +118,17 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
-			providers[inst] = moduledeps.ProviderDependency{
+			providers[fqn] = moduledeps.ProviderDependency{
 				Constraints: discovery.AllVersions,
 				Reason:      reason,
 			}
 		}
 		for _, rc := range module.DataResources {
 			addr := rc.ProviderConfigAddr()
-			inst := moduledeps.ProviderInstance(addr.StringCompact())
-			if _, exists := providers[inst]; exists {
+			//FIXME: lookup the provider localname in the TBD map and see if
+			//there is an FQN associated
+			fqn := addrs.NewLegacyProvider(addr.LocalName)
+			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
 			}
@@ -132,7 +138,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
-			providers[inst] = moduledeps.ProviderDependency{
+			providers[fqn] = moduledeps.ProviderDependency{
 				Constraints: discovery.AllVersions,
 				Reason:      reason,
 			}
@@ -189,9 +195,11 @@ func configTreeMergeStateDependencies(root *moduledeps.Module, state *states.Sta
 		module := findModule(ms.Addr)
 
 		for _, rs := range ms.Resources {
-			inst := moduledeps.ProviderInstance(rs.ProviderConfig.ProviderConfig.StringCompact())
-			if _, exists := module.Providers[inst]; !exists {
-				module.Providers[inst] = moduledeps.ProviderDependency{
+			//FIXME: lookup the provider localname in the TBD map and see if
+			//there is an FQN associated
+			fqn := addrs.NewLegacyProvider(rs.ProviderConfig.ProviderConfig.LocalName)
+			if _, exists := module.Providers[fqn]; !exists {
+				module.Providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: discovery.AllVersions,
 					Reason:      moduledeps.ProviderDependencyFromState,
 				}

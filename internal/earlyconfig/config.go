@@ -84,7 +84,14 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 
 	providers := make(moduledeps.Providers)
 	for name, reqs := range c.Module.RequiredProviders {
-		inst := moduledeps.ProviderInstance(name)
+		fqn, diags := addrs.ParseProviderSourceString(name)
+		if diags.HasErrors() {
+			diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
+				Severity: tfconfig.DiagError,
+				Summary:  "Invalid provider source",
+				Detail:   fmt.Sprintf("Invalid source %q for provider", name),
+			}))
+		}
 		var constraints version.Constraints
 		for _, reqStr := range reqs.VersionConstraints {
 			if reqStr != "" {
@@ -93,14 +100,14 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 					diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
 						Severity: tfconfig.DiagError,
 						Summary:  "Invalid provider version constraint",
-						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, name),
+						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, fqn.LegacyString()),
 					}))
 					continue
 				}
 				constraints = append(constraints, constraint...)
 			}
 		}
-		providers[inst] = moduledeps.ProviderDependency{
+		providers[fqn] = moduledeps.ProviderDependency{
 			Constraints: discovery.NewConstraints(constraints),
 			Reason:      moduledeps.ProviderDependencyExplicit,
 		}

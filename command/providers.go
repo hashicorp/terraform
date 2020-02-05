@@ -3,8 +3,8 @@ package command
 import (
 	"fmt"
 	"path/filepath"
-	"sort"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/terraform"
@@ -118,14 +118,13 @@ func (c *ProvidersCommand) Run(args []string) int {
 }
 
 func providersCommandPopulateTreeNode(node treeprint.Tree, deps *moduledeps.Module) {
-	names := make([]string, 0, len(deps.Providers))
-	for name := range deps.Providers {
-		names = append(names, string(name))
+	fqns := make([]addrs.Provider, 0, len(deps.Providers))
+	for fqn := range deps.Providers {
+		fqns = append(fqns, fqn)
 	}
-	sort.Strings(names)
 
-	for _, name := range names {
-		dep := deps.Providers[moduledeps.ProviderInstance(name)]
+	for _, fqn := range fqns {
+		dep := deps.Providers[fqn]
 		versionsStr := dep.Constraints.String()
 		if versionsStr != "" {
 			versionsStr = " " + versionsStr
@@ -137,7 +136,7 @@ func providersCommandPopulateTreeNode(node treeprint.Tree, deps *moduledeps.Modu
 		case moduledeps.ProviderDependencyFromState:
 			reasonStr = " (from state)"
 		}
-		node.AddNode(fmt.Sprintf("provider.%s%s%s", name, versionsStr, reasonStr))
+		node.AddNode(fmt.Sprintf("provider.%s%s%s", fqn.LegacyString(), versionsStr, reasonStr))
 	}
 
 	for _, child := range deps.Children {

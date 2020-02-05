@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -40,12 +41,8 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
-						Reason:      moduledeps.ProviderDependencyExplicit,
-					},
-					"foo.bar": moduledeps.ProviderDependency{
-						Constraints: discovery.ConstraintStr(">=2.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
@@ -58,7 +55,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
@@ -72,7 +69,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
@@ -86,11 +83,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
-						Constraints: discovery.AllVersions,
-						Reason:      moduledeps.ProviderDependencyImplicit,
-					},
-					"foo.baz": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyImplicit,
 					},
@@ -104,7 +97,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
@@ -118,11 +111,11 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
-					"bar": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("bar"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
@@ -131,11 +124,11 @@ func TestModuleTreeDependencies(t *testing.T) {
 					{
 						Name: "child",
 						Providers: moduledeps.Providers{
-							"foo": moduledeps.ProviderDependency{
+							addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 								Constraints: discovery.AllVersions,
 								Reason:      moduledeps.ProviderDependencyInherited,
 							},
-							"baz": moduledeps.ProviderDependency{
+							addrs.NewLegacyProvider("baz"): moduledeps.ProviderDependency{
 								Constraints: discovery.AllVersions,
 								Reason:      moduledeps.ProviderDependencyImplicit,
 							},
@@ -144,11 +137,11 @@ func TestModuleTreeDependencies(t *testing.T) {
 							{
 								Name: "grandchild",
 								Providers: moduledeps.Providers{
-									"bar": moduledeps.ProviderDependency{
+									addrs.NewLegacyProvider("bar"): moduledeps.ProviderDependency{
 										Constraints: discovery.AllVersions,
 										Reason:      moduledeps.ProviderDependencyInherited,
 									},
-									"foo": moduledeps.ProviderDependency{
+									addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 										Constraints: discovery.AllVersions,
 										Reason:      moduledeps.ProviderDependencyExplicit,
 									},
@@ -177,7 +170,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyFromState,
 					},
@@ -195,10 +188,6 @@ func TestModuleTreeDependencies(t *testing.T) {
 							"foo_bar.test1": {
 								Type:     "foo_bar",
 								Provider: "",
-							},
-							"foo_bar.test2": {
-								Type:     "foo_bar",
-								Provider: "foo.bar",
 							},
 							"baz_bar.test": {
 								Type:     "baz_bar",
@@ -223,15 +212,11 @@ func TestModuleTreeDependencies(t *testing.T) {
 			&moduledeps.Module{
 				Name: "root",
 				Providers: moduledeps.Providers{
-					"foo": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
 						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
-					"foo.bar": moduledeps.ProviderDependency{
-						Constraints: discovery.ConstraintStr(">=2.0.0").MustParse(),
-						Reason:      moduledeps.ProviderDependencyExplicit,
-					},
-					"baz": moduledeps.ProviderDependency{
+					addrs.NewLegacyProvider("baz"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyFromState,
 					},
@@ -244,7 +229,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 							{
 								Name: "grandchild",
 								Providers: moduledeps.Providers{
-									"banana": moduledeps.ProviderDependency{
+									addrs.NewLegacyProvider("banana"): moduledeps.ProviderDependency{
 										Constraints: discovery.AllVersions,
 										Reason:      moduledeps.ProviderDependencyFromState,
 									},
