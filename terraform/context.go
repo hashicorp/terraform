@@ -141,13 +141,17 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	// We throw an error in case of negative parallelism or
 	// parallelism equal to 0.
 	par := opts.Parallelism
-	if par <= 0 {
+	if par < 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid parallelism value",
 			fmt.Sprintf("The parallelism must be a positive value. Not %d.", par),
 		))
 		return nil, diags
+	}
+
+	if par == 0 {
+		par = 10
 	}
 
 	// Set up the variables in the following sequence:
