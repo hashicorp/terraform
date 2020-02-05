@@ -451,6 +451,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"ifset": {
+			{
+				`ifset({ a: "a", b: "b"}, "a", "z"])`,
+				cty.StringVal("a"),
+			},
+		},
+
 		"join": {
 			{
 				`join(" ", ["Hello", "World"])`,
