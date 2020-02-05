@@ -453,8 +453,8 @@ func TestFunctions(t *testing.T) {
 
 		"ifset": {
 			{
-				`ifset({ a: "a", b: "b"}, "a", "z"])`,
-				cty.StringVal("a"),
+				`ifset({ "a" = "a", "b" = "b"}, "c", "z" )`,
+				cty.StringVal("z"),
 			},
 		},
 
