@@ -212,12 +212,12 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		return diags
 	}
 
-	// FIXME: This is wrong: it's assuming that the local type is the same
-	// as the type from the provider FQN, which will not hold once we eliminate
-	// legacy addresses. d.Evaluator.Schemas.ResourceTypeConfig below ought to
-	// change to take an addrs.Provider, and then that's what we should be
-	// passing in here.
-	providerFqn := addrs.NewLegacyProvider(cfg.ProviderConfigAddr().LocalName)
+	var providerFqn addrs.Provider
+	if existing, exists := modCfg.Module.ProviderRequirements[cfg.ProviderConfigAddr().LocalName]; exists {
+		providerFqn = existing.Type
+	} else {
+		providerFqn = addrs.NewLegacyProvider(cfg.ProviderConfigAddr().LocalName)
+	}
 	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerFqn, addr.Mode, addr.Type)
 
 	if schema == nil {
