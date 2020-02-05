@@ -34,6 +34,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_list_set":         testResourceListSet(),
 			"test_resource_map":              testResourceMap(),
 			"test_resource_computed_set":     testResourceComputedSet(),
+			"test_resource_computed_map":     testResourceComputedMap(),
 			"test_resource_config_mode":      testResourceConfigMode(),
 			"test_resource_nested_id":        testResourceNestedId(),
 			"test_undeleteable":              testResourceUndeleteable(),
