@@ -3217,3 +3217,126 @@ func TestZipmap(t *testing.T) {
 		})
 	}
 }
+
+func TestIfSet(t *testing.T) {
+	tests := []struct {
+		M    cty.Value
+		F    cty.Value
+		D    cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{ // empty string
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal(""),
+				"b": cty.StringVal(""),
+			}),
+			cty.StringVal("a"),
+			cty.StringVal("z"),
+			cty.StringVal(""),
+			false,
+		},
+		{ // empty string
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Bool),
+				"b": cty.NullVal(cty.Bool),
+			}),
+			cty.StringVal("a"),
+			cty.StringVal("z"),
+			cty.NullVal(cty.Bool),
+			false,
+		},
+		{ // string value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("a"),
+				"b": cty.StringVal("b"),
+			}),
+			cty.StringVal("a"),
+			cty.StringVal("z"),
+			cty.StringVal("a"),
+			false,
+		},
+		{ // string value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("a"),
+				"b": cty.StringVal("b"),
+			}),
+			cty.StringVal("d"),
+			cty.StringVal("z"),
+			cty.StringVal("z"),
+			false,
+		}, { // number int value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.NumberIntVal(1),
+				"b": cty.NumberIntVal(2),
+			}),
+			cty.StringVal("a"),
+			cty.NumberIntVal(3),
+			cty.NumberIntVal(1),
+			false,
+		},
+		{ // number int value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.NumberIntVal(1),
+				"b": cty.NumberIntVal(2),
+			}),
+			cty.StringVal("d"),
+			cty.NumberIntVal(3),
+			cty.NumberIntVal(3),
+			false,
+		}, { // list value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{cty.StringVal("a")}),
+				"b": cty.ListVal([]cty.Value{cty.StringVal("b")}),
+			}),
+			cty.StringVal("a"),
+			cty.StringVal("z"),
+			cty.ListVal([]cty.Value{cty.StringVal("a")}),
+			false,
+		}, { // list value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{cty.StringVal("a")}),
+				"b": cty.ListVal([]cty.Value{cty.StringVal("b")}),
+			}),
+			cty.StringVal("c"),
+			cty.ListVal([]cty.Value{cty.StringVal("z")}),
+			cty.ListVal([]cty.Value{cty.StringVal("z")}),
+			false,
+		}, { // map value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{"aa": cty.StringVal("aa")}),
+				"b": cty.MapVal(map[string]cty.Value{"bb": cty.StringVal("bb")}),
+			}),
+			cty.StringVal("a"),
+			cty.MapVal(map[string]cty.Value{"zz": cty.StringVal("zz")}),
+			cty.MapVal(map[string]cty.Value{"aa": cty.StringVal("aa")}),
+			false,
+		}, { // map value check
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{"aa": cty.StringVal("aa")}),
+				"b": cty.MapVal(map[string]cty.Value{"bb": cty.StringVal("bb")}),
+			}),
+			cty.StringVal("d"),
+			cty.MapVal(map[string]cty.Value{"zz": cty.StringVal("zz")}),
+			cty.MapVal(map[string]cty.Value{"zz": cty.StringVal("zz")}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("IfSet(%#v, %#v, %#v)", test.M, test.F, test.D), func(t *testing.T) {
+			got, err := IfSet(test.M, test.F, test.D)
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

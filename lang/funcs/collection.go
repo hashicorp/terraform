@@ -504,6 +504,34 @@ func flattener(flattenList cty.Value) ([]cty.Value, bool) {
 	return out, true
 }
 
+// IfSetFunc returns the value of the field in a map or the dafult if the variable is not defined
+var IfSetFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:         "m",
+			Type:         cty.DynamicPseudoType,
+			AllowUnknown: true,
+		},
+		{
+			Name: "f",
+			Type: cty.String,
+		},
+		{
+			Name: "d",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: function.StaticReturnType(cty.DynamicPseudoType),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		m := args[0].AsValueMap()
+		f := args[1].AsString()
+		if _, ok := m[f]; ok {
+			return m[f], nil
+		}
+		return args[2], nil
+	},
+})
+
 // KeysFunc constructs a function that takes a map and returns a sorted list of the map keys.
 var KeysFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -1447,6 +1475,11 @@ func Chunklist(list, size cty.Value) (cty.Value, error) {
 // sequence of the list contents.
 func Flatten(list cty.Value) (cty.Value, error) {
 	return FlattenFunc.Call([]cty.Value{list})
+}
+
+// IfSet returns the value of the field in a map or the dafult if the variable is not defined
+func IfSet(m, f, d cty.Value) (cty.Value, error) {
+	return IfSetFunc.Call([]cty.Value{m, f, d})
 }
 
 // Keys takes a map and returns a sorted list of the map keys.
