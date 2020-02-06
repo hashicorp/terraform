@@ -68,12 +68,12 @@ func (pc LocalProviderConfig) providerConfig() {}
 // configuration instead. However, we continue to support it for now by
 // relying on the fact that only "legacy" provider addresses are currently
 // supported.
-func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
-	return AbsProviderConfig{
-		Module:         module,
-		ProviderConfig: pc,
-	}
-}
+// func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
+// 	return AbsProviderConfig{
+// 		Module:         module,
+// 		ProviderConfig: pc,
+// 	}
+// }
 
 func (pc LocalProviderConfig) String() string {
 	if pc.LocalName == "" {
@@ -100,21 +100,9 @@ func (pc LocalProviderConfig) StringCompact() string {
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
-	Module ModuleInstance
-
-	// TODO: In a future change, this will no longer be an embedded
-	// LocalProviderConfig and should instead be two separate fields
-	// to allow AbsProviderConfig to use provider FQN rather than
-	// local type name:
-	//
-	//     Provider Provider
-	//     Alias    string
-	//
-	// For now though, we continue to embed LocalProviderConfig until we're
-	// ready to teach the rest of Terraform Core about non-legacy provider
-	// FQNs, and update our ParseAbsProviderConfig and AbsProviderConfig.String
-	// methods to deal with FQNs.
-	ProviderConfig LocalProviderConfig
+	Module   ModuleInstance
+	Provider Provider
+	Alias    string
 }
 
 var _ ProviderConfig = AbsProviderConfig{}
@@ -157,8 +145,13 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 		return ret, diags
 	}
 
-	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.ProviderConfig.LocalName = tt.Name
+	if tt, ok := remain[1].(hcl.TraverseIndex); ok {
+		p, sourceDiags := ParseProviderSourceString(tt.Key.AsString())
+		ret.Provider = p
+		if sourceDiags.HasErrors() {
+			diags = diags.Append(sourceDiags)
+			return ret, diags
+		}
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -171,7 +164,7 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 
 	if len(remain) == 3 {
 		if tt, ok := remain[2].(hcl.TraverseAttr); ok {
-			ret.ProviderConfig.Alias = tt.Name
+			ret.Alias = tt.Name
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -223,10 +216,8 @@ func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnosti
 // and Alias fields rather than embedding LocalProviderConfig.
 func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 	return AbsProviderConfig{
-		Module: m,
-		ProviderConfig: LocalProviderConfig{
-			LocalName: name,
-		},
+		Module:   m,
+		Provider: NewLegacyProvider(name),
 	}
 }
 
@@ -238,11 +229,9 @@ func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 // and Alias fields rather than embedding LocalProviderConfig.
 func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
-		Module: m,
-		ProviderConfig: LocalProviderConfig{
-			LocalName: name,
-			Alias:     alias,
-		},
+		Module:   m,
+		Provider: NewLegacyProvider(name),
+		Alias:    alias,
 	}
 }
 
@@ -267,19 +256,23 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 	}
 
 	// Can't inherit if we have an alias.
-	if pc.ProviderConfig.Alias != "" {
+	if pc.Alias != "" {
 		return AbsProviderConfig{}, false
 	}
 
 	// Otherwise, we might inherit from a configuration with the same
-	// provider name in the parent module instance.
+	// provider type in the parent module instance.
 	parentMod := pc.Module.Parent()
-	return pc.ProviderConfig.Absolute(parentMod), true
+	return AbsProviderConfig{
+		Module:   parentMod,
+		Provider: pc.Provider,
+	}, true
+
 }
 
 func (pc AbsProviderConfig) String() string {
 	if len(pc.Module) == 0 {
-		return pc.ProviderConfig.String()
+		return pc.Provider.String()
 	}
-	return fmt.Sprintf("%s.%s", pc.Module.String(), pc.ProviderConfig.String())
+	return fmt.Sprintf("%s.%s", pc.Module.String(), pc.Provider.String())
 }
