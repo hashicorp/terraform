@@ -61,21 +61,12 @@ func (c *LogoutCommand) Run(args []string) int {
 	// working as expected. (Perhaps the normalization is part of the cause.)
 	dispHostname := hostname.ForDisplay()
 
-	creds := c.Services.CredentialsSource()
-
-	// In normal use (i.e. without test mocks/fakes) creds will be an instance
-	// of the command/cliconfig.CredentialsSource type, which has some extra
-	// methods we can use to give the user better feedback about what we're
-	// going to do. credsCtx will be nil if it's any other implementation,
-	// though.
-	var credsCtx *loginCredentialsContext
-	if c, ok := creds.(*cliconfig.CredentialsSource); ok {
-		filename, _ := c.CredentialsFilePath()
-		credsCtx = &loginCredentialsContext{
-			Location:      c.HostCredentialsLocation(hostname),
-			LocalFilename: filename, // empty in the very unlikely event that we can't select a config directory for this user
-			HelperType:    c.CredentialsHelperType(),
-		}
+	creds := c.Services.CredentialsSource().(*cliconfig.CredentialsSource)
+	filename, _ := creds.CredentialsFilePath()
+	credsCtx := &loginCredentialsContext{
+		Location:      creds.HostCredentialsLocation(hostname),
+		LocalFilename: filename, // empty in the very unlikely event that we can't select a config directory for this user
+		HelperType:    creds.CredentialsHelperType(),
 	}
 
 	if credsCtx.Location == cliconfig.CredentialsInOtherFile {
