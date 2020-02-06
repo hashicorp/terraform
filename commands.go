@@ -188,6 +188,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco) {
 			}, nil
 		},
 
+		"logout": func() (cli.Command, error) {
+			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"output": func() (cli.Command, error) {
 			return &command.OutputCommand{
 				Meta: meta,
