@@ -42,7 +42,7 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
-						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
+						Constraints: discovery.ConstraintStr(">=1.0.0,>=2.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
 				},
@@ -213,9 +213,10 @@ func TestModuleTreeDependencies(t *testing.T) {
 				Name: "root",
 				Providers: moduledeps.Providers{
 					addrs.NewLegacyProvider("foo"): moduledeps.ProviderDependency{
-						Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
+						Constraints: discovery.ConstraintStr(">=1.0.0,>=2.0.0").MustParse(),
 						Reason:      moduledeps.ProviderDependencyExplicit,
 					},
+
 					addrs.NewLegacyProvider("baz"): moduledeps.ProviderDependency{
 						Constraints: discovery.AllVersions,
 						Reason:      moduledeps.ProviderDependencyFromState,
