@@ -3,6 +3,7 @@
 NEW FEATURES:
 
 * command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
+* lang/funcs: add `setsubtract` function [GH-23424]
 
 BUG FIXES:
 
