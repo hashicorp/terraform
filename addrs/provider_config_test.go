@@ -27,17 +27,19 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			},
 			``,
 		},
-		// {
-		// 	`provider.aws.foo`,
-		// 	AbsProviderConfig{
-		// 		Module: RootModuleInstance,
-		// 		ProviderConfig: LocalProviderConfig{
-		// 			LocalName: "aws",
-		// 			Alias:     "foo",
-		// 		},
-		// 	},
-		// 	``,
-		// },
+		{
+			`provider.["registry.terraform.io/hashicorp/aws"].foo`,
+			AbsProviderConfig{
+				Module: RootModuleInstance,
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+				Alias: "foo",
+			},
+			``,
+		},
 		// {
 		// 	`module.baz.provider.aws`,
 		// 	AbsProviderConfig{
