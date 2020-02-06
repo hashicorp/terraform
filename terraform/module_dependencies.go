@@ -94,7 +94,11 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 				discoConstraints = discovery.NewConstraints(pCfg.Version.Required)
 			}
 			if existing, exists := providers[fqn]; exists {
-				existing.Constraints = existing.Constraints.Append(discoConstraints)
+				constraints := existing.Constraints.Append(discoConstraints)
+				providers[fqn] = moduledeps.ProviderDependency{
+					Constraints: constraints,
+					Reason:      moduledeps.ProviderDependencyExplicit,
+				}
 			} else {
 				providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: discoConstraints,
