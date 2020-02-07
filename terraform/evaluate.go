@@ -400,6 +400,62 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	return cty.ObjectVal(vals), diags
 }
 
+func (d *evaluationStateData) GetRootModuleOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// First we'll consult the configuration to see if an output of this
+	// name is declared at all.
+	output := d.Evaluator.Config.Root.Module.Outputs[addr.Name]
+	if output == nil {
+		var suggestions []string
+		for k := range d.Evaluator.Config.Root.Module.Outputs {
+			suggestions = append(suggestions, k)
+		}
+		suggestion := nameSuggestion(addr.Name, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared output value`,
+			Detail: fmt.Sprintf(
+				`An output value with the name %q has not been declared in the root module.%s`,
+				addr.Name, suggestion,
+			),
+			Subject: rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
+	// If a pending change is present in our current changeset then its value
+	// takes priority over what's in state. (It will usually be the same but
+	// will differ if the new value is unknown during planning.)
+	absAddr := addr.Absolute(addrs.RootModuleInstance)
+	if changeSrc := d.Evaluator.Changes.GetOutputChange(absAddr); changeSrc != nil {
+		change, err := changeSrc.Decode()
+		if err != nil {
+			panic("change err")
+			// This should happen only if someone has tampered with a plan
+			// file, so we won't bother with a pretty error for it.
+			diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", absAddr, err))
+			return cty.DynamicVal, diags
+		}
+		// We care only about the "after" value, which is the value this output
+		// will take on after the plan is applied.
+		return change.After, diags
+	}
+
+	os := d.Evaluator.State.OutputValue(absAddr)
+	if os == nil {
+		// Not evaluated yet?
+		return cty.DynamicVal, diags
+	}
+
+	return os.Value, diags
+
+}
+
 func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 

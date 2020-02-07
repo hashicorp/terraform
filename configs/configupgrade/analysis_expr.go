@@ -128,6 +128,11 @@ func (d analysisData) GetModuleInstance(addrs.ModuleCallInstance, tfdiags.Source
 }
 
 func (d analysisData) GetModuleInstanceOutput(addrs.ModuleCallOutput, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	// This implementation doesn't use this.
+	return cty.DynamicVal, nil
+}
+
+func (d analysisData) GetRootModuleOutput(addrs.OutputValue, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// We only work on one module at a time during upgrading, so we have no
 	// information about the outputs of a child module.
 	return cty.DynamicVal, nil

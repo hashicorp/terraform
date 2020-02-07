@@ -15,6 +15,7 @@ type dataForTests struct {
 	PathAttrs      map[string]cty.Value
 	TerraformAttrs map[string]cty.Value
 	InputVariables map[string]cty.Value
+	Outputs        map[string]cty.Value
 }
 
 var _ Data = &dataForTests{}
@@ -51,6 +52,10 @@ func (d *dataForTests) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng 
 	// This will panic if the module object does not have the requested attribute
 	obj := d.Modules[addr.Call.String()]
 	return obj.GetAttr(addr.Name), nil
+}
+
+func (d *dataForTests) GetRootModuleOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.Outputs[addr.Name], nil
 }
 
 func (d *dataForTests) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

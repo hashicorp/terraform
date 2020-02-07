@@ -13,6 +13,7 @@ import (
 // OutputValue is not Referenceable, while ModuleCallOutput is.
 type OutputValue struct {
 	Name string
+	referenceable
 }
 
 func (v OutputValue) String() string {

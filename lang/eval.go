@@ -198,6 +198,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	managedResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]map[addrs.InstanceKey]cty.Value{}
 	moduleOutputs := map[string]map[addrs.InstanceKey]map[string]cty.Value{}
+	rootModuleOutputs := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
@@ -307,6 +308,11 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			}
 			moduleOutputs[callName][callKey][subj.Name] = val
 
+		case addrs.OutputValue:
+			val, valDiags := normalizeRefValue(s.Data.GetRootModuleOutput(subj, rng))
+			diags = diags.Append(valDiags)
+			rootModuleOutputs[subj.Name] = val
+
 		case addrs.InputVariable:
 			val, valDiags := normalizeRefValue(s.Data.GetInputVariable(subj, rng))
 			diags = diags.Append(valDiags)
@@ -354,6 +360,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
+	vals["output"] = cty.ObjectVal(rootModuleOutputs)
 	if self != cty.NilVal {
 		vals["self"] = self
 	}
