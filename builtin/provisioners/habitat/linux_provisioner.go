@@ -211,7 +211,7 @@ func (p *provisioner) linuxStartHabitatSystemd(o terraform.UIOutput, comm commun
 	}
 
 	// Restart habitat service
-	err = p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("systemctl enable %s && systemctl restart %s", p.ServiceName, p.ServiceName)))
+	err = p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("systemctl enable %s && systemctl start %s", p.ServiceName, p.ServiceName)))
 	if err != nil {
 		return err
 	}
