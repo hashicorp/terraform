@@ -1,4 +1,9 @@
 ## 0.12.21 (Unreleased)
+
+* command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
+* lang/funcs: add `setsubtract` function [GH-23424]
+
+
 ## 0.12.20 (January 22, 2020)
 
 ENHANCEMENTS:
