@@ -72,7 +72,6 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The directory for saving the state file in bucket",
-				Default:     "env:",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					prefix := v.(string)
 					if strings.HasPrefix(prefix, "/") || strings.HasPrefix(prefix, "./") {
@@ -164,7 +163,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	cpf.HttpProfile.ReqMethod = "POST"
 	cpf.HttpProfile.ReqTimeout = 300
 	cpf.Language = "en-US"
-	b.tagClient, _ = tag.NewClient(credential, b.region, cpf)
+	b.tagClient, err = tag.NewClient(credential, b.region, cpf)
 
-	return nil
+	return err
 }
