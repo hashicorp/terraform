@@ -1,6 +1,7 @@
 package addrs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -40,123 +41,136 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			},
 			``,
 		},
-		// {
-		// 	`module.baz.provider.aws`,
-		// 	AbsProviderConfig{
-		// 		Module: ModuleInstance{
-		// 			{
-		// 				Name: "baz",
-		// 			},
-		// 		},
-		// 		ProviderConfig: LocalProviderConfig{
-		// 			LocalName: "aws",
-		// 		},
-		// 	},
-		// 	``,
-		// },
-		// {
-		// 	`module.baz.provider.aws.foo`,
-		// 	AbsProviderConfig{
-		// 		Module: ModuleInstance{
-		// 			{
-		// 				Name: "baz",
-		// 			},
-		// 		},
-		// 		ProviderConfig: LocalProviderConfig{
-		// 			LocalName: "aws",
-		// 			Alias:     "foo",
-		// 		},
-		// 	},
-		// 	``,
-		// },
-		// {
-		// 	`module.baz["foo"].provider.aws`,
-		// 	AbsProviderConfig{
-		// 		Module: ModuleInstance{
-		// 			{
-		// 				Name:        "baz",
-		// 				InstanceKey: StringKey("foo"),
-		// 			},
-		// 		},
-		// 		ProviderConfig: LocalProviderConfig{
-		// 			LocalName: "aws",
-		// 		},
-		// 	},
-		// 	``,
-		// },
-		// {
-		// 	`module.baz[1].provider.aws`,
-		// 	AbsProviderConfig{
-		// 		Module: ModuleInstance{
-		// 			{
-		// 				Name:        "baz",
-		// 				InstanceKey: IntKey(1),
-		// 			},
-		// 		},
-		// 		ProviderConfig: LocalProviderConfig{
-		// 			LocalName: "aws",
-		// 		},
-		// 	},
-		// 	``,
-		// },
-		// {
-		// 	`module.baz[1].module.bar.provider.aws`,
-		// 	AbsProviderConfig{
-		// 		Module: ModuleInstance{
-		// 			{
-		// 				Name:        "baz",
-		// 				InstanceKey: IntKey(1),
-		// 			},
-		// 			{
-		// 				Name: "bar",
-		// 			},
-		// 		},
-		// 		ProviderConfig: LocalProviderConfig{
-		// 			LocalName: "aws",
-		// 		},
-		// 	},
-		// 	``,
-		// },
-		// {
-		// 	`aws`,
-		// 	AbsProviderConfig{},
-		// 	`Provider address must begin with "provider.", followed by a provider type name.`,
-		// },
-		// {
-		// 	`aws.foo`,
-		// 	AbsProviderConfig{},
-		// 	`Provider address must begin with "provider.", followed by a provider type name.`,
-		// },
-		// {
-		// 	`provider`,
-		// 	AbsProviderConfig{},
-		// 	`Provider address must begin with "provider.", followed by a provider type name.`,
-		// },
-		// {
-		// 	`provider.aws.foo.bar`,
-		// 	AbsProviderConfig{},
-		// 	`Extraneous operators after provider configuration alias.`,
-		// },
-		// {
-		// 	`provider["aws"]`,
-		// 	AbsProviderConfig{},
-		// 	`The prefix "provider." must be followed by a provider type name.`,
-		// },
-		// {
-		// 	`provider.aws["foo"]`,
-		// 	AbsProviderConfig{},
-		// 	`Provider type name must be followed by a configuration alias name.`,
-		// },
-		// {
-		// 	`module.foo`,
-		// 	AbsProviderConfig{},
-		// 	`Provider address must begin with "provider.", followed by a provider type name.`,
-		// },
-		// {
-		// 	`module.foo["provider"]`,
-		// 	AbsProviderConfig{},
-		// 	`Provider address must begin with "provider.", followed by a provider type name.`,
-		// },
+		{
+			`module.baz.provider.["registry.terraform.io/hashicorp/aws"]`,
+			AbsProviderConfig{
+				Module: ModuleInstance{
+					{
+						Name: "baz",
+					},
+				},
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+			},
+			``,
+		},
+		{
+			`module.baz.provider.["registry.terraform.io/hashicorp/aws"].foo`,
+			AbsProviderConfig{
+				Module: ModuleInstance{
+					{
+						Name: "baz",
+					},
+				},
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+				Alias: "foo",
+			},
+			``,
+		},
+		{
+			`module.baz["foo"].provider.["registry.terraform.io/hashicorp/aws"]`,
+			AbsProviderConfig{
+				Module: ModuleInstance{
+					{
+						Name:        "baz",
+						InstanceKey: StringKey("foo"),
+					},
+				},
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+			},
+			``,
+		},
+		{
+			`module.baz[1].provider.["registry.terraform.io/hashicorp/aws"]`,
+			AbsProviderConfig{
+				Module: ModuleInstance{
+					{
+						Name:        "baz",
+						InstanceKey: IntKey(1),
+					},
+				},
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+			},
+			``,
+		},
+		{
+			`module.baz[1].module.bar.provider.["registry.terraform.io/hashicorp/aws"]`,
+			AbsProviderConfig{
+				Module: ModuleInstance{
+					{
+						Name:        "baz",
+						InstanceKey: IntKey(1),
+					},
+					{
+						Name: "bar",
+					},
+				},
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+			},
+			``,
+		},
+		{
+			`aws`,
+			AbsProviderConfig{},
+			`Provider address must begin with "provider.", followed by a provider type name.`,
+		},
+		{
+			`aws.foo`,
+			AbsProviderConfig{},
+			`Provider address must begin with "provider.", followed by a provider type name.`,
+		},
+		{
+			`provider`,
+			AbsProviderConfig{},
+			`Provider address must begin with "provider.", followed by a provider type name.`,
+		},
+		{
+			`provider.aws.foo.bar`,
+			AbsProviderConfig{},
+			`Extraneous operators after provider configuration alias.`,
+		},
+		// This used to generate an error, but now the syntax is ok.
+		// When NewLegacyProvider() is deprecated this will change.
+		{
+			`provider["aws"]`,
+			AbsProviderConfig{
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "-",
+					Hostname:  "registry.terraform.io",
+				},
+			},
+			``,
+		},
+		{
+			`provider["aws"]["foo"]`,
+			AbsProviderConfig{},
+			`Provider type name must be followed by a configuration alias name.`,
+		},
+		{
+			`module.foo`,
+			AbsProviderConfig{},
+			`Provider address must begin with "provider.", followed by a provider type name.`,
+		},
 	}
 
 	for _, test := range tests {
@@ -188,6 +202,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			}
 
 			for _, problem := range deep.Equal(got, test.Want) {
+				fmt.Printf("%#v\n", got)
 				t.Error(problem)
 			}
 		})

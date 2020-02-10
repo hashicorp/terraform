@@ -60,21 +60,6 @@ func NewDefaultLocalProviderConfig(LocalNameName string) LocalProviderConfig {
 // providerConfig Implements addrs.ProviderConfig.
 func (pc LocalProviderConfig) providerConfig() {}
 
-// Absolute returns an AbsProviderConfig from the receiver and the given module
-// instance address.
-//
-// TODO: This methold will become obsolete as part of supporting fully-qualified
-// provider names in AbsProviderConfig, requiring a lookup via the module
-// configuration instead. However, we continue to support it for now by
-// relying on the fact that only "legacy" provider addresses are currently
-// supported.
-// func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
-// 	return AbsProviderConfig{
-// 		Module:         module,
-// 		ProviderConfig: pc,
-// 	}
-// }
-
 func (pc LocalProviderConfig) String() string {
 	if pc.LocalName == "" {
 		// Should never happen; always indicates a bug
@@ -111,11 +96,11 @@ var _ ProviderConfig = AbsProviderConfig{}
 // address. The following are examples of traversals that can be successfully
 // parsed as absolute provider configuration addresses:
 //
-//     provider.aws
-//     provider.aws.foo
-//     module.bar.provider.aws
-//     module.bar.module.baz.provider.aws.foo
-//     module.foo[1].provider.aws.foo
+//     provider.["registry.terraform.io/hashicorp/aws"]
+//     provider.["registry.terraform.io/hashicorp/aws"].foo
+//     module.bar.provider.["registry.terraform.io/hashicorp/aws"]
+//     module.bar.module.baz.provider.["registry.terraform.io/hashicorp/aws"].foo
+//     module.foo[1].provider.["registry.terraform.io/hashicorp/aws"].foo
 //
 // This type of address is used, for example, to record the relationships
 // between resources and provider configurations in the state structure.
