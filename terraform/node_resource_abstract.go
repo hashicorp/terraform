@@ -170,12 +170,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		var result []*addrs.Reference
 
 		for _, traversal := range c.DependsOn {
-			ref, err := addrs.ParseRef(traversal)
-			if err != nil {
+			ref, diags := addrs.ParseRef(traversal)
+			if diags.HasErrors() {
 				// We ignore this here, because this isn't a suitable place to return
 				// errors. This situation should be caught and rejected during
 				// validation.
-				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, err)
+				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
 				continue
 			}
 
@@ -195,6 +195,11 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
 		result = append(result, refs...)
 		if c.Managed != nil {
+			if c.Managed.Connection != nil {
+				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
+				result = append(result, refs...)
+			}
+
 			for _, p := range c.Managed.Provisioners {
 				if p.When != configs.ProvisionerWhenCreate {
 					continue
@@ -319,8 +324,13 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 		return relAddr.Absolute(n.Path()), false
 	}
 
-	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Addr.Module), false
+	// Use our type and containing module path to guess a provider configuration address.
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(n.Addr.Module), false
 }
 
 // GraphNodeProviderConsumer
@@ -340,7 +350,12 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	}
 
 	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Path()), false
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(n.Addr.Module), false
 }
 
 // GraphNodeProvisionerConsumer

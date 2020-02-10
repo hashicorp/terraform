@@ -124,6 +124,10 @@ Options:
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact form
+                      that includes only the summary messages.
+
   -input=true         Ask for input for variables if not directly set.
 
   -lock=true          Lock the state file when locking is supported.

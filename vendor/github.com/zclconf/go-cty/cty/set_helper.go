@@ -119,7 +119,13 @@ func (s ValueSet) SymmetricDifference(other ValueSet) ValueSet {
 }
 
 // requireElementType panics if the given value is not of the set's element type.
+//
+// It also panics if the given value is marked, because marked values cannot
+// be stored in sets.
 func (s ValueSet) requireElementType(v Value) {
+	if v.IsMarked() {
+		panic("cannot store marked value directly in a set (make the set itself unknown instead)")
+	}
 	if !v.Type().Equals(s.ElementType()) {
 		panic(fmt.Errorf("attempt to use %#v value with set of %#v", v.Type(), s.ElementType()))
 	}

@@ -99,6 +99,13 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	needConfigured := map[string]addrs.AbsProviderConfig{}
 	for _, v := range g.Vertices() {
 
+		// FIXME: fix the type that implements this, so it's not a
+		// GraphNodeProviderConsumer.
+		// check if we want to skip connecting this to a provider
+		if _, ok := v.(GraphNodeNoProvider); ok {
+			continue
+		}
+
 		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			requested[v] = make(map[string]ProviderRequest)
@@ -275,6 +282,13 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	var err error
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
+		// FIXME: fix the type that implements this, so it's not a
+		// GraphNodeProviderConsumer.
+		// check if we want to skip connecting this to a provider
+		if _, ok := v.(GraphNodeNoProvider); ok {
+			continue
+		}
+
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
@@ -295,7 +309,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other
 		// aspects of the resource's declared provider address.
-		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.ProviderConfig.Type)
+		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.ProviderConfig.LocalName)
 		key := defaultAddr.String()
 		provider := m[key]
 
@@ -705,7 +719,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
-			if p.Name == addr.ProviderConfig.Type && p.Alias == addr.ProviderConfig.Alias {
+			if p.Name == addr.ProviderConfig.LocalName && p.Alias == addr.ProviderConfig.Alias {
 				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break

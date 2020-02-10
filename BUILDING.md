@@ -19,9 +19,9 @@ Until Terraform v1.0, Terraform's versioning scheme is as follows:
   version.
 
 Although the Terraform team takes care to preserve compatibility between
-major releases as much as possible, major release upgrades will often require
-specific upgrade actions for a subset of users as we refine the product
-design in preparation for making more specific backward-compatibility promises
+major releases, major release upgrades will often require a subset of users
+to take specific upgrade actions. This issue will persist while the product
+design is refined in preparation for more specific backward-compatibility promises
 in a later Terraform 1.0 release.
 
 ## Process

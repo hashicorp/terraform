@@ -664,29 +664,31 @@ form. This covers many uses, but some resource types include repeatable _nested
 blocks_ in their arguments, which do not accept expressions:
 
 ```hcl
-resource "aws_security_group" "example" {
-  name = "example" # can use expressions here
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name = "tf-test-name" # can use expressions here
 
-  ingress {
-    # but the "ingress" block is always a literal block
+  setting {
+    # but the "setting" block is always a literal block
   }
 }
 ```
 
-You can dynamically construct repeatable nested blocks like `ingress` using a
+You can dynamically construct repeatable nested blocks like `setting` using a
 special `dynamic` block type, which is supported inside `resource`, `data`,
 `provider`, and `provisioner` blocks:
 
 ```hcl
-resource "aws_security_group" "example" {
-  name = "example" # can use expressions here
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux 2018.03 v2.11.4 running Go 1.12.6"
 
-  dynamic "ingress" {
-    for_each = var.service_ports
+  dynamic "setting" {
+    for_each = var.settings
     content {
-      from_port = ingress.value
-      to_port   = ingress.value
-      protocol  = "tcp"
+      namespace = setting.value["namespace"]
+      name = setting.value["name"]
+      value = setting.value["value"]
     }
   }
 }
@@ -696,12 +698,12 @@ A `dynamic` block acts much like a `for` expression, but produces nested blocks
 instead of a complex typed value. It iterates over a given complex value, and
 generates a nested block for each element of that complex value.
 
-- The label of the dynamic block (`"ingress"` in the example above) specifies
+- The label of the dynamic block (`"setting"` in the example above) specifies
   what kind of nested block to generate.
 - The `for_each` argument provides the complex value to iterate over.
 - The `iterator` argument (optional) sets the name of a temporary variable
   that represents the current element of the complex value. If omitted, the name
-  of the variable defaults to the label of the `dynamic` block (`"ingress"` in
+  of the variable defaults to the label of the `dynamic` block (`"setting"` in
   the example above).
 - The `labels` argument (optional) is a list of strings that specifies the block
   labels, in order, to use for each generated block. You can use the temporary
@@ -713,7 +715,7 @@ Since the `for_each` argument accepts any collection or structural value,
 you can use a `for` expression or splat expression to transform an existing
 collection.
 
-The iterator object (`ingress` in the example above) has two attributes:
+The iterator object (`setting` in the example above) has two attributes:
 
 * `key` is the map key or list element index for the current element. If the
   `for_each` expression produces a _set_ value then `key` is identical to

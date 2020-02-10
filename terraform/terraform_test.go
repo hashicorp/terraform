@@ -210,6 +210,22 @@ func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
 	return addr
 }
 
+func mustResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+func mustProviderConfig(s string) addrs.AbsProviderConfig {
+	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 func instanceObjectIdForTests(obj *states.ResourceInstanceObject) string {
 	v := obj.Value
 	if v.IsNull() || !v.IsKnown() {
@@ -390,9 +406,7 @@ module.child:
 <no state>
 Outputs:
 
-aws_access_key = YYYYY
 aws_route53_zone_id = XXXX
-aws_secret_key = ZZZZ
 `
 
 const testTerraformApplyDependsCreateBeforeStr = `
@@ -677,11 +691,6 @@ foo = bar
 
 const testTerraformApplyOutputOrphanModuleStr = `
 <no state>
-module.child:
-  <no state>
-  Outputs:
-
-  foo = bar
 `
 
 const testTerraformApplyProvisionerStr = `

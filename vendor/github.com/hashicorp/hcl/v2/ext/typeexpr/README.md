@@ -65,3 +65,71 @@ type checking it will be one that has identifiers as its attributes; object
 types with weird attributes generally show up only from arbitrary object
 constructors in configuration files, which are usually treated either as maps
 or as the dynamic pseudo-type.
+
+## Type Constraints as Values
+
+Along with defining a convention for writing down types using HCL expression
+constructs, this package also includes a mechanism for representing types as
+values that can be used as data within an HCL-based language.
+
+`typeexpr.TypeConstraintType` is a
+[`cty` capsule type](https://github.com/zclconf/go-cty/blob/master/docs/types.md#capsule-types)
+that encapsulates `cty.Type` values. You can construct such a value directly
+using the `TypeConstraintVal` function:
+
+```go
+tyVal := typeexpr.TypeConstraintVal(cty.String)
+
+// We can unpack the type from a value using TypeConstraintFromVal
+ty := typeExpr.TypeConstraintFromVal(tyVal)
+```
+
+However, the primary purpose of `typeexpr.TypeConstraintType` is to be
+specified as the type constraint for an argument, in which case it serves
+as a signal for HCL to treat the argument expression as a type constraint
+expression as defined above, rather than as a normal value expression.
+
+"An argument" in the above in practice means the following two locations:
+
+* As the type constraint for a parameter of a cty function that will be
+  used in an `hcl.EvalContext`. In that case, function calls in the HCL
+  native expression syntax will require the argument to be valid type constraint
+  expression syntax and the function implementation will receive a
+  `TypeConstraintType` value as the argument value for that parameter.
+
+* As the type constraint for a `hcldec.AttrSpec` or `hcldec.BlockAttrsSpec`
+  when decoding an HCL body using `hcldec`. In that case, the attributes
+  with that type constraint will be required to be valid type constraint
+  expression syntax and the result will be a `TypeConstraintType` value.
+
+Note that the special handling of these arguments means that an argument
+marked in this way must use the type constraint syntax directly. It is not
+valid to pass in a value of `TypeConstraintType` that has been obtained
+dynamically via some other expression result.
+
+`TypeConstraintType` is provided with the intent of using it internally within
+application code when incorporating type constraint expression syntax into
+an HCL-based language, not to be used for dynamic "programming with types". A
+calling application could support programming with types by defining its _own_
+capsule type, but that is not the purpose of `TypeConstraintType`.
+
+## The "convert" `cty` Function
+
+Building on the `TypeConstraintType` described in the previous section, this
+package also provides `typeexpr.ConvertFunc` which is a cty function that
+can be placed into a `cty.EvalContext` (conventionally named "convert") in
+order to provide a general type conversion function in an HCL-based language:
+
+```hcl
+  foo = convert("true", bool)
+```
+
+The second parameter uses the mechanism described in the previous section to
+require its argument to be a type constraint expression rather than a value
+expression. In doing so, it allows converting with any type constraint that
+can be expressed in this package's type constraint syntax. In the above example,
+the `foo` argument would receive a boolean true, or `cty.True` in `cty` terms.
+
+The target type constraint must always be provided statically using inline
+type constraint syntax. There is no way to _dynamically_ select a type
+constraint using this function.

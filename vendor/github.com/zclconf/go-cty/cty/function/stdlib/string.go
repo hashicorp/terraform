@@ -3,10 +3,10 @@ package stdlib
 import (
 	"strings"
 
+	"github.com/apparentlymart/go-textseg/textseg"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
-	"github.com/apparentlymart/go-textseg/textseg"
 )
 
 var UpperFunc = function.New(&function.Spec{

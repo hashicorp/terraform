@@ -86,9 +86,9 @@ func (b *Local) opPlan(
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
 		}
 
-		refreshedState, err := tfCtx.Refresh()
-		if err != nil {
-			diags = diags.Append(err)
+		refreshedState, refreshDiags := tfCtx.Refresh()
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
 			b.ReportResult(runningOp, diags)
 			return
 		}
@@ -262,7 +262,10 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 		if rcs.Action == plans.NoOp {
 			continue
 		}
-		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+
+		// FIXME: update this once the provider fqn is available in the AbsProviderConfig
+		providerFqn := addrs.NewLegacyProvider(rcs.ProviderAddr.ProviderConfig.LocalName)
+		providerSchema := schemas.ProviderSchema(providerFqn)
 		if providerSchema == nil {
 			// Should never happen
 			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
@@ -312,16 +315,6 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
 }
-
-const planErrNoConfig = `
-No configuration files found!
-
-Plan requires configuration to be present. Planning without a configuration
-would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run plan with the "-destroy"
-flag or create a single empty configuration file. Otherwise, please create
-a Terraform configuration file in the path being executed and try again.
-`
 
 const planHeaderIntro = `
 An execution plan has been generated and is shown below.

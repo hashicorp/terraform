@@ -26,7 +26,7 @@ type stateValues struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
-	if value == cty.NilVal {
+	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
 	ret := make(attributeValues)
@@ -180,8 +180,10 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			)
 		}
 
+		// FIXME: update this once the provider fqn is available in the AbsProviderConfig
+		providerFqn := addrs.NewLegacyProvider(r.ProviderAddr.ProviderConfig.LocalName)
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			r.ProviderAddr.ProviderConfig.Type,
+			providerFqn,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)

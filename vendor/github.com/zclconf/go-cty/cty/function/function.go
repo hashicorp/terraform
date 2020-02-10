@@ -142,6 +142,21 @@ func (f Function) ReturnTypeForValues(args []cty.Value) (ty cty.Type, err error)
 	for i, spec := range f.spec.Params {
 		val := posArgs[i]
 
+		if val.IsMarked() && !spec.AllowMarked {
+			// During type checking we just unmark values and discard their
+			// marks, under the assumption that during actual execution of
+			// the function we'll do similarly and then re-apply the marks
+			// afterwards. Note that this does mean that a function that
+			// inspects values (rather than just types) in its Type
+			// implementation can potentially fail to take into account marks,
+			// unless it specifically opts in to seeing them.
+			unmarked, _ := val.Unmark()
+			newArgs := make([]cty.Value, len(args))
+			copy(newArgs, args)
+			newArgs[i] = unmarked
+			args = newArgs
+		}
+
 		if val.IsNull() && !spec.AllowNull {
 			return cty.Type{}, NewArgErrorf(i, "argument must not be null")
 		}
@@ -167,6 +182,15 @@ func (f Function) ReturnTypeForValues(args []cty.Value) (ty cty.Type, err error)
 		spec := f.spec.VarParam
 		for i, val := range varArgs {
 			realI := i + len(posArgs)
+
+			if val.IsMarked() && !spec.AllowMarked {
+				// See the similar block in the loop above for what's going on here.
+				unmarked, _ := val.Unmark()
+				newArgs := make([]cty.Value, len(args))
+				copy(newArgs, args)
+				newArgs[realI] = unmarked
+				args = newArgs
+			}
 
 			if val.IsNull() && !spec.AllowNull {
 				return cty.Type{}, NewArgErrorf(realI, "argument must not be null")
@@ -208,9 +232,10 @@ func (f Function) Call(args []cty.Value) (val cty.Value, err error) {
 
 	// Type checking already dealt with most situations relating to our
 	// parameter specification, but we still need to deal with unknown
-	// values.
+	// values and marked values.
 	posArgs := args[:len(f.spec.Params)]
 	varArgs := args[len(f.spec.Params):]
+	var resultMarks []cty.ValueMarks
 
 	for i, spec := range f.spec.Params {
 		val := posArgs[i]
@@ -218,13 +243,36 @@ func (f Function) Call(args []cty.Value) (val cty.Value, err error) {
 		if !val.IsKnown() && !spec.AllowUnknown {
 			return cty.UnknownVal(expectedType), nil
 		}
+
+		if val.IsMarked() && !spec.AllowMarked {
+			unwrappedVal, marks := val.Unmark()
+			// In order to avoid additional overhead on applications that
+			// are not using marked values, we copy the given args only
+			// if we encounter a marked value we need to unmark. However,
+			// as a consequence we end up doing redundant copying if multiple
+			// marked values need to be unwrapped. That seems okay because
+			// argument lists are generally small.
+			newArgs := make([]cty.Value, len(args))
+			copy(newArgs, args)
+			newArgs[i] = unwrappedVal
+			resultMarks = append(resultMarks, marks)
+			args = newArgs
+		}
 	}
 
 	if f.spec.VarParam != nil {
 		spec := f.spec.VarParam
-		for _, val := range varArgs {
+		for i, val := range varArgs {
 			if !val.IsKnown() && !spec.AllowUnknown {
 				return cty.UnknownVal(expectedType), nil
+			}
+			if val.IsMarked() && !spec.AllowMarked {
+				unwrappedVal, marks := val.Unmark()
+				newArgs := make([]cty.Value, len(args))
+				copy(newArgs, args)
+				newArgs[len(posArgs)+i] = unwrappedVal
+				resultMarks = append(resultMarks, marks)
+				args = newArgs
 			}
 		}
 	}
@@ -243,6 +291,9 @@ func (f Function) Call(args []cty.Value) (val cty.Value, err error) {
 		retVal, err = f.spec.Impl(args, expectedType)
 		if err != nil {
 			return cty.NilVal, err
+		}
+		if len(resultMarks) > 0 {
+			retVal = retVal.WithMarks(resultMarks...)
 		}
 	}
 

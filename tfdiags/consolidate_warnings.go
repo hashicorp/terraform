@@ -15,12 +15,9 @@ import "fmt"
 // The returned slice always has a separate backing array from the reciever,
 // but some diagnostic values themselves might be shared.
 //
-// The definition of "unreasonable" may change in future releases.
-func (diags Diagnostics) ConsolidateWarnings() Diagnostics {
-	// We'll start grouping when there are more than this number of warnings
-	// with the same summary.
-	const unreasonableThreshold = 2
-
+// The definition of "unreasonable" is given as the threshold argument. At most
+// that many warnings with the same summary will be shown.
+func (diags Diagnostics) ConsolidateWarnings(threshold int) Diagnostics {
 	if len(diags) == 0 {
 		return nil
 	}
@@ -55,7 +52,7 @@ func (diags Diagnostics) ConsolidateWarnings() Diagnostics {
 		}
 
 		warningStats[summary]++
-		if warningStats[summary] == unreasonableThreshold {
+		if warningStats[summary] == threshold {
 			// Initially creating the group doesn't really change anything
 			// visibly in the result, since a group with only one warning
 			// is just a passthrough anyway, but once we do this any additional
@@ -127,4 +124,23 @@ func (wg *warningGroup) Append(diag Diagnostic) {
 		panic("can't append a non-warning diagnostic to a warningGroup")
 	}
 	wg.Warnings = append(wg.Warnings, diag)
+}
+
+// WarningGroupSourceRanges can be used in conjunction with
+// Diagnostics.ConsolidateWarnings to recover the full set of original source
+// locations from a consolidated warning.
+//
+// For convenience, this function accepts any diagnostic and will just return
+// the single Source value from any diagnostic that isn't a warning group.
+func WarningGroupSourceRanges(diag Diagnostic) []Source {
+	wg, ok := diag.(*warningGroup)
+	if !ok {
+		return []Source{diag.Source()}
+	}
+
+	ret := make([]Source, len(wg.Warnings))
+	for i, wrappedDiag := range wg.Warnings {
+		ret[i] = wrappedDiag.Source()
+	}
+	return ret
 }

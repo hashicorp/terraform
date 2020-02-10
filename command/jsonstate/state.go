@@ -101,9 +101,10 @@ type resource struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
-	if value == cty.NilVal {
+	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
+
 	ret := make(attributeValues)
 
 	it := value.ElementIterator()
@@ -272,8 +273,10 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				current.Index = k
 			}
 
+			// FIXME: lookup providerFqn from state
+			providerFqn := addrs.NewLegacyProvider(r.ProviderConfig.ProviderConfig.LocalName)
 			schema, _ := schemas.ResourceTypeConfig(
-				r.ProviderConfig.ProviderConfig.Type,
+				providerFqn,
 				r.Addr.Mode,
 				r.Addr.Type,
 			)

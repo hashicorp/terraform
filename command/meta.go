@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
@@ -73,6 +74,11 @@ type Meta struct {
 	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
 	// into the given directory.
 	PluginCacheDir string
+
+	// ProviderSource allows determining the available versions of a provider
+	// and determines where a distribution package for a particular
+	// provider version can be obtained.
+	ProviderSource getproviders.Source
 
 	// OverrideDataDir, if non-empty, overrides the return value of the
 	// DataDir method for situations where the local .terraform/ directory
@@ -157,6 +163,9 @@ type Meta struct {
 	// init.
 	//
 	// reconfigure forces init to ignore any stored configuration.
+	//
+	// compactWarnings (-compact-warnings) selects a more compact presentation
+	// of warnings in the output when they are not accompanied by errors.
 	statePath        string
 	stateOutPath     string
 	backupPath       string
@@ -166,6 +175,7 @@ type Meta struct {
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
 	reconfigure      bool
+	compactWarnings  bool
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
@@ -377,6 +387,7 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 
 	f.BoolVar(&m.input, "input", true, "input")
 	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
+	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
 
 	if m.variableArgs.items == nil {
 		m.variableArgs = newRawFlags("-var")
@@ -480,8 +491,33 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	diags = diags.Append(vals...)
 	diags.Sort()
 
+	if len(diags) == 0 {
+		return
+	}
+
+	diags = diags.ConsolidateWarnings(1)
+
 	// Since warning messages are generally competing
-	diags = diags.ConsolidateWarnings()
+	if m.compactWarnings {
+		// If the user selected compact warnings and all of the diagnostics are
+		// warnings then we'll use a more compact representation of the warnings
+		// that only includes their summaries.
+		// We show full warnings if there are also errors, because a warning
+		// can sometimes serve as good context for a subsequent error.
+		useCompact := true
+		for _, diag := range diags {
+			if diag.Severity() != tfdiags.Warning {
+				useCompact = false
+				break
+			}
+		}
+		if useCompact {
+			msg := format.DiagnosticWarningsCompact(diags, m.Colorize())
+			msg = "\n" + msg + "\nTo see the full warning notes, run Terraform without -compact-warnings.\n"
+			m.Ui.Warn(msg)
+			return
+		}
+	}
 
 	for _, diag := range diags {
 		// TODO: Actually measure the terminal width and pass it here.

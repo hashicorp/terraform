@@ -166,7 +166,7 @@ func (c *ImportCommand) Run(args []string) int {
 			c.Ui.Info(importCommandInvalidAddressReference)
 			return 1
 		}
-		relAddr, addrDiags := addrs.ParseProviderConfigCompact(traversal)
+		relAddr, addrDiags := configs.ParseProviderConfigCompact(traversal)
 		diags = diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
 			c.showDiagnostics(diags)
@@ -181,7 +181,8 @@ func (c *ImportCommand) Run(args []string) int {
 		if rc != nil && rc.ProviderConfigRef != nil {
 			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
 		} else {
-			providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
+			providerType := resourceRelAddr.DefaultProvider()
+			providerAddr = addrs.NewDefaultLocalProviderConfig(providerType.LegacyString()).Absolute(addr.Module)
 		}
 	}
 

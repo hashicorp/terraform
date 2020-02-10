@@ -89,11 +89,32 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test"),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig("provider.test"),
+	)
+
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-dep-cbd"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -479,7 +500,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 // that resource is destroyed.
 func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 	schemas := simpleTestSchemas()
-	instanceSchema := schemas.Providers["test"].ResourceTypes["test_object"]
+	instanceSchema := schemas.Providers[addrs.NewLegacyProvider("test")].ResourceTypes["test_object"]
 
 	bBefore, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
@@ -523,8 +544,8 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"a_id"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 	root.SetResourceInstanceCurrent(
@@ -547,8 +568,8 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 				},
 			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
+		addrs.LocalProviderConfig{
+			LocalName: "test",
 		}.Absolute(addrs.RootModuleInstance),
 	)
 
@@ -577,6 +598,48 @@ test_object.b
 	if got != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, got)
 	}
+}
+
+// The orphan clean up node should not be connected to a provider
+func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.A"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig("provider.test.foo"),
+	)
+
+	b := &ApplyGraphBuilder{
+		Config:     testModule(t, "graph-builder-orphan-alias"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
+		State:      state,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The cleanup node has no state or config of its own, so would create a
+	// default provider which we don't want.
+	testGraphNotContains(t, g, "provider.test")
 }
 
 const testApplyGraphBuilderStr = `

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *configs.Provider) hcl.Body {
+func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *configs.Provider) hcl.Body {
 	var configBody hcl.Body
 	if config != nil {
 		configBody = config.Config
@@ -49,7 +49,7 @@ func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *con
 // EvalConfigProvider is an EvalNode implementation that configures
 // a provider that is already initialized and retrieved.
 type EvalConfigProvider struct {
-	Addr     addrs.ProviderConfig
+	Addr     addrs.AbsProviderConfig
 	Provider *providers.Interface
 	Config   *configs.Provider
 }
@@ -89,7 +89,7 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 // EvalGetProvider node.
 type EvalInitProvider struct {
 	TypeName string
-	Addr     addrs.ProviderConfig
+	Addr     addrs.AbsProviderConfig
 }
 
 func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
@@ -99,7 +99,7 @@ func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
 // EvalCloseProvider is an EvalNode implementation that closes provider
 // connections that aren't needed anymore.
 type EvalCloseProvider struct {
-	Addr addrs.ProviderConfig
+	Addr addrs.AbsProviderConfig
 }
 
 func (n *EvalCloseProvider) Eval(ctx EvalContext) (interface{}, error) {
@@ -125,7 +125,7 @@ type EvalGetProvider struct {
 }
 
 func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
-	if n.Addr.ProviderConfig.Type == "" {
+	if n.Addr.ProviderConfig.LocalName == "" {
 		// Should never happen
 		panic("EvalGetProvider used with uninitialized provider configuration address")
 	}

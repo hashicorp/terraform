@@ -150,8 +150,8 @@ func TestBackendStates(t *testing.T, b Backend) {
 				Status:        states.ObjectReady,
 				SchemaVersion: 0,
 			},
-			addrs.ProviderConfig{
-				Type: "test",
+			addrs.LocalProviderConfig{
+				LocalName: "test",
 			}.Absolute(addrs.RootModuleInstance),
 		)
 
