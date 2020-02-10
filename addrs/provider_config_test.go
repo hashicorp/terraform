@@ -17,7 +17,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		WantDiag string
 	}{
 		{
-			`provider.["registry.terraform.io/hashicorp/aws"]`,
+			`provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: RootModuleInstance,
 				Provider: Provider{
@@ -29,7 +29,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			``,
 		},
 		{
-			`provider.["registry.terraform.io/hashicorp/aws"].foo`,
+			`provider["registry.terraform.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
 				Module: RootModuleInstance,
 				Provider: Provider{
@@ -42,7 +42,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			``,
 		},
 		{
-			`module.baz.provider.["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz.provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -58,7 +58,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			``,
 		},
 		{
-			`module.baz.provider.["registry.terraform.io/hashicorp/aws"].foo`,
+			`module.baz.provider["registry.terraform.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -75,7 +75,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			``,
 		},
 		{
-			`module.baz["foo"].provider.["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz["foo"].provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -92,7 +92,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			``,
 		},
 		{
-			`module.baz[1].provider.["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz[1].provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -109,7 +109,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			``,
 		},
 		{
-			`module.baz[1].module.bar.provider.["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz[1].module.bar.provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -147,19 +147,6 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			`provider.aws.foo.bar`,
 			AbsProviderConfig{},
 			`Extraneous operators after provider configuration alias.`,
-		},
-		// This used to generate an error, but now the syntax is ok.
-		// When NewLegacyProvider() is deprecated this will change.
-		{
-			`provider["aws"]`,
-			AbsProviderConfig{
-				Provider: Provider{
-					Type:      "aws",
-					Namespace: "-",
-					Hostname:  "registry.terraform.io",
-				},
-			},
-			``,
 		},
 		{
 			`provider["aws"]["foo"]`,

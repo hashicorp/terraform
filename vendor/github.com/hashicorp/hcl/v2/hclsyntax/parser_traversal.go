@@ -43,7 +43,7 @@ func (p *parser) ParseTraversalAbs() (hcl.Traversal, hcl.Diagnostics) {
 			// Attribute access
 			dot := p.Read() // eat dot
 			nameTok := p.Read()
-			if nameTok.Type != TokenIdent && nameTok.Type != TokenOBrack {
+			if nameTok.Type != TokenIdent {
 				if nameTok.Type == TokenStar {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -64,56 +64,11 @@ func (p *parser) ParseTraversalAbs() (hcl.Traversal, hcl.Diagnostics) {
 				return ret, diags
 			}
 
-			if nameTok.Type == TokenIdent {
-				attrName := string(nameTok.Bytes)
-				ret = append(ret, hcl.TraverseAttr{
-					Name:     attrName,
-					SrcRange: hcl.RangeBetween(dot.Range, nameTok.Range),
-				})
-			} else { // nameTok.Type == TokenOBrack
-				open := p.Read() // eat open bracket
-				next := p.Peek()
-				switch next.Type {
-				case TokenQuotedLit:
-					tok := p.Read() // eat string
-					str, strDiags := ParseStringLiteralToken(tok)
-					diags = append(diags, strDiags...)
-
-					close := p.Read()
-					if close.Type != TokenCQuote {
-						diags = append(diags, &hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Unclosed quoted string",
-							Detail:   "String missing closing quote.",
-							Subject:  &close.Range,
-							Context:  hcl.RangeBetween(open.Range, close.Range).Ptr(),
-						})
-					}
-					ret = append(ret, hcl.TraverseIndex{
-						Key:      cty.StringVal(str),
-						SrcRange: hcl.RangeBetween(open.Range, close.Range),
-					})
-				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "String required",
-						Detail:   "Bracket must be followed by a valid string.",
-						Subject:  &nameTok.Range,
-						Context:  hcl.RangeBetween(varTok.Range, nameTok.Range).Ptr(),
-					})
-				}
-				// close brackets
-				close := p.Read()
-				if close.Type != TokenCBrack {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Unclosed index brackets",
-						Detail:   "Index key must be followed by a closing bracket.",
-						Subject:  &close.Range,
-						Context:  hcl.RangeBetween(open.Range, close.Range).Ptr(),
-					})
-				}
-			}
+			attrName := string(nameTok.Bytes)
+			ret = append(ret, hcl.TraverseAttr{
+				Name:     attrName,
+				SrcRange: hcl.RangeBetween(dot.Range, nameTok.Range),
+			})
 		case TokenOBrack:
 			// Index
 			open := p.Read() // eat open bracket
