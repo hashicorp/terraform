@@ -65,7 +65,7 @@ is immediately available on system boot. For example:
 * Oracle Cloud Infrastructure: `metadata` or `extended_metadata` on
   [`oci_core_instance`](/docs/providers/oci/r/core_instance.html)
   or [`oci_core_instance_configuration`](/docs/providers/oci/r/core_instance_configuration.html).
-* VMWare vSphere: Attach a virtual CDROM to
+* VMware vSphere: Attach a virtual CDROM to
   [`vsphere_virtual_machine`](/docs/providers/vsphere/r/virtual_machine.html)
   using the `cdrom` block, containing a file called `user-data.txt`.
 
