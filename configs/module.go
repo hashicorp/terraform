@@ -434,10 +434,10 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
-// gatherProviderLocalNames is a helper function that returns a map of provider
-// FQNs -> provider local names. This information is useful for user-facing
-// output, which should include both the FQN and LocalName. It must only be
-// populated after the module has been parsed.
+// gatherProviderLocalNames is a helper function that populatesA a map of
+// provider FQNs -> provider local names. This information is useful for
+// user-facing output, which should include both the FQN and LocalName. It must
+// only be populated after the module has been parsed.
 func (m *Module) gatherProviderLocalNames() {
 	providers := make(map[addrs.Provider]string)
 	for k, v := range m.ProviderRequirements {
