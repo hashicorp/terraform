@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -127,6 +128,45 @@ func TestDecodeRequiredProvidersBlock_mixed(t *testing.T) {
 		t.Fatalf("unexpected error")
 	}
 	if len(got) != 2 {
+		t.Fatalf("wrong number of results, got %d, wanted 2", len(got))
+	}
+	for i, rp := range want {
+		if !cmp.Equal(got[i], rp, ignoreUnexported, comparer) {
+			t.Fatalf("wrong result:\n %s", cmp.Diff(got[0], rp, ignoreUnexported, comparer))
+		}
+	}
+}
+
+func TestDecodeRequiredProvidersBlock_version_error(t *testing.T) {
+	block := &hcl.Block{
+		Type: "required_providers",
+		Body: hcltest.MockBody(&hcl.BodyContent{
+			Attributes: hcl.Attributes{
+				"my_test": {
+					Name: "my_test",
+					Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+						"source":  cty.StringVal("mycloud/test"),
+						"version": cty.StringVal("invalid"),
+					})),
+				},
+			},
+		}),
+	}
+
+	want := []*RequiredProvider{
+		{
+			Name:   "my_test",
+			Source: "mycloud/test",
+		},
+	}
+
+	got, diags := decodeRequiredProvidersBlock(block)
+	if !diags.HasErrors() {
+		t.Fatalf("expected error, got success")
+	} else {
+		fmt.Printf(diags[0].Summary)
+	}
+	if len(got) != 1 {
 		t.Fatalf("wrong number of results, got %d, wanted 1", len(got))
 	}
 	for i, rp := range want {

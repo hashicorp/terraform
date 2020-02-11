@@ -25,4 +25,10 @@ func TestNewModule_provider_local_name(t *testing.T) {
 			t.Fatalf("provider localname mismatch: got %s, want foo_test", name)
 		}
 	}
+
+	// ensure the reverse lookup (fqn to local name) works as well
+	localName := mod.LocalNameForProvider(p)
+	if localName != "foo_test" {
+		t.Fatal("provider local name not found")
+	}
 }
