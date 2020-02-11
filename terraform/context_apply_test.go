@@ -10745,7 +10745,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyFn = testApplyFn
+	//p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	schema := p.GetSchemaReturn
 	schema.ProviderMeta = &configschema.Block{
@@ -10755,6 +10755,15 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 				Required: true,
 			},
 		},
+	}
+	arcPMs := map[string]cty.Value{}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		arcPMs[req.TypeName] = req.ProviderMeta
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("ID")
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(s),
+		}
 	}
 	p.GetSchemaReturn = schema
 	ctx := testContext2(t, &ContextOpts{
@@ -10775,22 +10784,39 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 	if !p.ApplyResourceChangeCalled {
 		t.Fatalf("ApplyResourceChange not called")
 	}
-	if p.ApplyResourceChangeRequest.ProviderMeta.IsNull() {
-		t.Fatalf("null ProviderMeta in ApplyResourceChange")
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := arcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module ApplyResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ApplyResourceChange")
+	} else {
+		expectations["quux-submodule"] = pm
 	}
+
+	if pm, ok := arcPMs["test_instance"]; !ok {
+		t.Fatalf("root module ApplyResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ApplyResourceChange")
+	} else {
+		expectations["quux"] = pm
+	}
+
 	type metaStruct struct {
 		Baz string `cty:"baz"`
 	}
-	var meta metaStruct
-	err := gocty.FromCtyValue(p.ApplyResourceChangeRequest.ProviderMeta, &meta)
-	if err != nil {
-		t.Fatalf("Error parsing cty value: %s", err)
-	}
-	if meta.Baz != "quux" {
-		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
-	}
 
-	// TODO(paddy): it should actually be called multiple times, once per module, and we're only checking that it's called at all
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
+	}
 }
 
 func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
@@ -10931,26 +10957,26 @@ func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
 		t.Fatalf("plan supposed to error, has no errors")
 	}
 
-	var fooErr, barErr bool
-	errorSummary := "The resource test_instance.%s belongs to a provider that doesn't support provider_meta blocks"
+	var rootErr, subErr bool
+	errorSummary := "The resource test_%s.bar belongs to a provider that doesn't support provider_meta blocks"
 	for _, diag := range diags {
 		if diag.Description().Summary != "Provider test doesn't support provider_meta" {
 			t.Errorf("Unexpected error: %+v", diag.Description())
 		}
 		switch diag.Description().Detail {
-		case fmt.Sprintf(errorSummary, "bar"):
-			barErr = true
-		case fmt.Sprintf(errorSummary, "foo"):
-			fooErr = true
+		case fmt.Sprintf(errorSummary, "instance"):
+			rootErr = true
+		case fmt.Sprintf(errorSummary, "resource"):
+			subErr = true
 		default:
 			t.Errorf("Unexpected error: %s", diag.Description())
 		}
 	}
-	if !fooErr {
-		t.Errorf("Expected unsupported provider_meta block error for foo, none received")
+	if !rootErr {
+		t.Errorf("Expected unsupported provider_meta block error for root module, none received")
 	}
-	if !barErr {
-		t.Errorf("Expected unsupported provider_meta block error for bar, none received")
+	if !subErr {
+		t.Errorf("Expected unsupported provider_meta block error for sub-module, none received")
 	}
 }
 
@@ -11153,26 +11179,26 @@ func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 		t.Fatalf("refresh supposed to error, has no errors")
 	}
 
-	var fooErr, barErr bool
-	errorSummary := "The resource test_instance.%s belongs to a provider that doesn't support provider_meta blocks"
+	var rootErr, subErr bool
+	errorSummary := "The resource test_%s.bar belongs to a provider that doesn't support provider_meta blocks"
 	for _, diag := range diags {
 		if diag.Description().Summary != "Provider test doesn't support provider_meta" {
 			t.Errorf("Unexpected error: %+v", diag.Description())
 		}
 		switch diag.Description().Detail {
-		case fmt.Sprintf(errorSummary, "bar"):
-			barErr = true
-		case fmt.Sprintf(errorSummary, "foo"):
-			fooErr = true
+		case fmt.Sprintf(errorSummary, "instance"):
+			rootErr = true
+		case fmt.Sprintf(errorSummary, "resource"):
+			subErr = true
 		default:
 			t.Errorf("Unexpected error: %s", diag.Description())
 		}
 	}
-	if !fooErr {
-		t.Errorf("Expected unsupported provider_meta block error for foo, none received")
+	if !rootErr {
+		t.Errorf("Expected unsupported provider_meta block error for root module, none received")
 	}
-	if !barErr {
-		t.Errorf("Expected unsupported provider_meta block error for bar, none received")
+	if !subErr {
+		t.Errorf("Expected unsupported provider_meta block error for sub-module, none received")
 	}
 }
 
