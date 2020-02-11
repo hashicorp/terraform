@@ -440,6 +440,10 @@ func (r *Resource) RefreshWithoutUpgrade(
 			return s, err
 		}
 
+		if s != nil {
+			data.providerMeta = s.ProviderMeta
+		}
+
 		exists, err := r.Exists(data, meta)
 		if err != nil {
 			return s, err
@@ -453,6 +457,10 @@ func (r *Resource) RefreshWithoutUpgrade(
 	data.timeouts = &rt
 	if err != nil {
 		return s, err
+	}
+
+	if s != nil {
+		data.providerMeta = s.ProviderMeta
 	}
 
 	err = r.Read(data, meta)
