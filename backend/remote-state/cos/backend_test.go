@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	appId         = 1258798060
-	defaultPrefix = "env:"
+	defaultPrefix = ""
 	defaultKey    = "terraform.tfstate"
 )
 
@@ -181,19 +180,21 @@ func TestBackendWithEncryption(t *testing.T) {
 func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool) backend.Backend {
 	t.Helper()
 
-	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_COS_TEST") == ""
+	skip := os.Getenv("TF_COS_APPID") == ""
 	if skip {
-		t.Skip("This test require setting TF_ACC or TF_COS_TEST environment variables")
+		t.Skip("This test require setting TF_COS_APPID environment variables")
 	}
 
 	if os.Getenv(PROVIDER_REGION) == "" {
 		os.Setenv(PROVIDER_REGION, "ap-guangzhou")
 	}
 
+	appId := os.Getenv("TF_COS_APPID")
 	region := os.Getenv(PROVIDER_REGION)
+
 	config := map[string]interface{}{
 		"region": region,
-		"bucket": bucket,
+		"bucket": bucket + appId,
 		"prefix": prefix,
 		"key":    key,
 	}
@@ -222,5 +223,5 @@ func teardownBackend(t *testing.T, b backend.Backend) {
 
 func bucketName(t *testing.T) string {
 	unique := fmt.Sprintf("%s-%x", t.Name(), time.Now().UnixNano())
-	return fmt.Sprintf("terraform-test-%s-%d", fmt.Sprintf("%x", md5.Sum([]byte(unique)))[:10], appId)
+	return fmt.Sprintf("terraform-test-%s-%s", fmt.Sprintf("%x", md5.Sum([]byte(unique)))[:10], "")
 }
