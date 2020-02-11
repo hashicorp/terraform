@@ -43,11 +43,9 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
-			Module: addrs.RootModuleInstance,
-			ProviderConfig: addrs.LocalProviderConfig{
-				LocalName: "test",
-				Alias:     "boop",
-			},
+			Module:   addrs.RootModuleInstance,
+			Provider: addrs.NewLegacyProvider("test"),
+			Alias:    "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
 		if got, want := got.String(), addr.String(); got != want {
@@ -68,10 +66,8 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			// string here, at which point the correct result will be:
 			//    Provider as the addrs repr of "registry.terraform.io/hashicorp/implied"
 			//    Alias as "boop".
-			ProviderConfig: addrs.LocalProviderConfig{
-				LocalName: "implied",
-				Alias:     "boop",
-			},
+			Provider: addrs.NewLegacyProvider("implied"),
+			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
@@ -91,10 +87,8 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			// once we are fully supporting this we should expect to see
 			// the "registry.terraform.io/foo/test" FQN here, while still
 			// preserving the "boop" alias.
-			ProviderConfig: addrs.LocalProviderConfig{
-				LocalName: "foo_test",
-				Alias:     "boop",
-			},
+			Provider: addrs.NewLegacyProvider("foo_test"),
+			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)

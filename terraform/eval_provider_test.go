@@ -17,10 +17,8 @@ func TestBuildProviderConfig(t *testing.T) {
 		"set_in_config": cty.StringVal("config"),
 	})
 	providerAddr := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "foo",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
 	}
 
 	ctx := &MockEvalContext{
@@ -71,10 +69,8 @@ func TestEvalConfigProvider(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	rp := providers.Interface(provider)
 	providerAddr := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "foo",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	n := &EvalConfigProvider{
 		Addr:     providerAddr,
@@ -107,10 +103,8 @@ func TestEvalInitProvider_impl(t *testing.T) {
 
 func TestEvalInitProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "foo",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	n := &EvalInitProvider{
 		Addr: providerAddr,
@@ -131,10 +125,8 @@ func TestEvalInitProvider(t *testing.T) {
 
 func TestEvalCloseProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "foo",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	n := &EvalCloseProvider{
 		Addr: providerAddr,

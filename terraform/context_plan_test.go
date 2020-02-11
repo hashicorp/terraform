@@ -4975,9 +4975,10 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	m := testModule(t, "plan-ignore-changes-in-map")

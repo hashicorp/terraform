@@ -129,9 +129,8 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 			),
 			Config: m.Module.DataResources["data.aws_instance.foo"],
 			ResolvedProvider: addrs.AbsProviderConfig{
-				ProviderConfig: addrs.LocalProviderConfig{
-					LocalName: "aws",
-				},
+				Provider: addrs.NewLegacyProvider("aws"),
+				Module:   addrs.RootModuleInstance,
 			},
 		},
 	}
@@ -174,7 +173,7 @@ root - terraform.graphNodeRoot
 		t.Fatal("failed to find a destroyableDataResource")
 	}
 
-	if destroyableDataResource.ResolvedProvider.ProviderConfig.LocalName == "" {
+	if destroyableDataResource.ResolvedProvider.Provider.Type == "" {
 		t.Fatal("NodeDestroyableDataResourceInstance missing provider config")
 	}
 }

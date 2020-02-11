@@ -544,9 +544,10 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"a_id"}`),
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	root.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -568,9 +569,10 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	b := &ApplyGraphBuilder{

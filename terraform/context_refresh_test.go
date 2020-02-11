@@ -103,9 +103,10 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 
@@ -1739,7 +1740,10 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 					"id": "foo",
 				},
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 
@@ -1822,7 +1826,10 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 				SchemaVersion: 3,
 				AttrsJSON:     []byte(`{"id":"foo"}`),
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 
@@ -1990,9 +1997,10 @@ func TestRefresh_updateDependencies(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "aws",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("aws"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	root.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -2004,9 +2012,10 @@ func TestRefresh_updateDependencies(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "aws",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("aws"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	m := testModuleInline(t, map[string]string{

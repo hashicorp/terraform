@@ -16,57 +16,65 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		WantDiag string
 	}{
 		{
-			`provider.aws`,
+			`provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: RootModuleInstance,
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
 			},
 			``,
 		},
 		{
-			`provider.aws.foo`,
+			`provider["registry.terraform.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
 				Module: RootModuleInstance,
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
-					Alias:     "foo",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
+				Alias: "foo",
 			},
 			``,
 		},
 		{
-			`module.baz.provider.aws`,
+			`module.baz.provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
 						Name: "baz",
 					},
 				},
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
 			},
 			``,
 		},
 		{
-			`module.baz.provider.aws.foo`,
+			`module.baz.provider["registry.terraform.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
 						Name: "baz",
 					},
 				},
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
-					Alias:     "foo",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
+				Alias: "foo",
 			},
 			``,
 		},
 		{
-			`module.baz["foo"].provider.aws`,
+			`module.baz["foo"].provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -74,14 +82,16 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						InstanceKey: StringKey("foo"),
 					},
 				},
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
 			},
 			``,
 		},
 		{
-			`module.baz[1].provider.aws`,
+			`module.baz[1].provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -89,14 +99,16 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						InstanceKey: IntKey(1),
 					},
 				},
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
 			},
 			``,
 		},
 		{
-			`module.baz[1].module.bar.provider.aws`,
+			`module.baz[1].module.bar.provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: ModuleInstance{
 					{
@@ -107,8 +119,10 @@ func TestParseAbsProviderConfig(t *testing.T) {
 						Name: "bar",
 					},
 				},
-				ProviderConfig: LocalProviderConfig{
-					LocalName: "aws",
+				Provider: Provider{
+					Type:      "aws",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
 				},
 			},
 			``,
@@ -134,22 +148,12 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			`Extraneous operators after provider configuration alias.`,
 		},
 		{
-			`provider["aws"]`,
-			AbsProviderConfig{},
-			`The prefix "provider." must be followed by a provider type name.`,
-		},
-		{
-			`provider.aws["foo"]`,
+			`provider["aws"]["foo"]`,
 			AbsProviderConfig{},
 			`Provider type name must be followed by a configuration alias name.`,
 		},
 		{
 			`module.foo`,
-			AbsProviderConfig{},
-			`Provider address must begin with "provider.", followed by a provider type name.`,
-		},
-		{
-			`module.foo["provider"]`,
 			AbsProviderConfig{},
 			`Provider address must begin with "provider.", followed by a provider type name.`,
 		},
