@@ -9,8 +9,6 @@ import (
 // RequiredProvider represents a declaration of a dependency on a particular
 // provider version without actually configuring that provider. This is used in
 // child modules that expect a provider to be passed in from their parent.
-//
-// TODO: "Source" is a placeholder for an attribute that is not yet supported.
 type RequiredProvider struct {
 	Name        string
 	Source      string // TODO
@@ -43,6 +41,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 				Requirement: vc,
 			})
 		case expr.Type().IsObjectType():
+			ret := &RequiredProvider{Name: name}
 			if expr.Type().HasAttribute("version") {
 				vc := VersionConstraint{
 					DeclRange: attr.Range,
@@ -58,14 +57,15 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 						Detail:   "This string does not use correct version constraint syntax.",
 						Subject:  attr.Expr.Range().Ptr(),
 					})
-					reqs = append(reqs, &RequiredProvider{Name: name})
-					return reqs, diags
+				} else {
+					vc.Required = constraints
+					ret.Requirement = vc
 				}
-				vc.Required = constraints
-				reqs = append(reqs, &RequiredProvider{Name: name, Requirement: vc})
 			}
-			// No version
-			reqs = append(reqs, &RequiredProvider{Name: name})
+			if expr.Type().HasAttribute("source") {
+				ret.Source = expr.GetAttr("source").AsString()
+			}
+			reqs = append(reqs, ret)
 		default:
 			// should not happen
 			diags = append(diags, &hcl.Diagnostic{
