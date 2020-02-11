@@ -31,6 +31,7 @@ type Module struct {
 	Backend              *Backend
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements map[string]ProviderRequirements
+	ProviderLocalNames   map[addrs.Provider]string
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -85,6 +86,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	mod := &Module{
 		ProviderConfigs:      map[string]*Provider{},
 		ProviderRequirements: map[string]ProviderRequirements{},
+		ProviderLocalNames:   map[addrs.Provider]string{},
 		Variables:            map[string]*Variable{},
 		Locals:               map[string]*Local{},
 		Outputs:              map[string]*Output{},
@@ -104,6 +106,9 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	}
 
 	diags = append(diags, checkModuleExperiments(mod)...)
+
+	// Generate the FQN -> LocalProviderName map
+	mod.gatherProviderLocalNames()
 
 	return mod, diags
 }
@@ -170,11 +175,14 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, reqd := range file.RequiredProviders {
-		// TODO: once the remaining provider source functionality is
-		// implemented, get addrs.Provider from source if set, or
-		// addrs.NewDefaultProvider(name) if not
+		// As an interim *testing* step, we will accept a source argument
+		// but assume that the source is a legacy provider. This allows us to
+		// exercise the provider local names -> fqn logic without changing
+		// terraform's behavior.
 		if reqd.Source != "" {
-			panic("source is not yet supported")
+			// Fixme: once the rest of the provider source logic is implemented,
+			// update this to get the addrs.Provider by using
+			// addrs.ParseProviderSourceString()
 		}
 		fqn := addrs.NewLegacyProvider(reqd.Name)
 		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
@@ -424,4 +432,28 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	}
 
 	return diags
+}
+
+// gatherProviderLocalNames is a helper function that populatesA a map of
+// provider FQNs -> provider local names. This information is useful for
+// user-facing output, which should include both the FQN and LocalName. It must
+// only be populated after the module has been parsed.
+func (m *Module) gatherProviderLocalNames() {
+	providers := make(map[addrs.Provider]string)
+	for k, v := range m.ProviderRequirements {
+		providers[v.Type] = k
+	}
+	m.ProviderLocalNames = providers
+}
+
+// LocalNameForProvider returns the module-specific user-supplied local name for
+// a given provider FQN, or the default local name if none was supplied.
+func (m *Module) LocalNameForProvider(p addrs.Provider) string {
+	if existing, exists := m.ProviderLocalNames[p]; exists {
+		return existing
+	} else {
+		// If there isn't a map entry, fall back to the default:
+		// Type = LocalName
+		return p.Type
+	}
 }
