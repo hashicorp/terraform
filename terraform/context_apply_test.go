@@ -156,7 +156,7 @@ func TestContext2Apply_escape(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = "bar"
   type = aws_instance
 `)
@@ -186,7 +186,7 @@ func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	got := strings.TrimSpace(state.String())
 	want := strings.TrimSpace(`null_resource.foo.0:
   ID = foo
-  provider = provider.null
+  provider = provider["registry.terraform.io/-/null"]
 
 Outputs:
 
@@ -596,7 +596,7 @@ amis_from_module = {eu-west-1:ami-789012 eu-west-2:ami-989484 us-west-1:ami-1234
 module.test:
   null_resource.noop:
     ID = foo
-    provider = provider.null
+    provider = provider["registry.terraform.io/-/null"]
 
   Outputs:
 
@@ -764,7 +764,7 @@ func TestContext2Apply_providerWarning(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 	if actual != expected {
 		t.Fatalf("got: \n%s\n\nexpected:\n%s", actual, expected)
@@ -978,7 +978,7 @@ func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   require_new = yes
   type = aws_instance
   value = foo
@@ -987,7 +987,7 @@ aws_instance.bar:
     aws_instance.foo
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   require_new = yes
   type = aws_instance
 	`)
@@ -1132,12 +1132,12 @@ func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar.0:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = bar
   type = aws_instance
 aws_instance.bar.1:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = bar
   type = aws_instance
 	`)
@@ -1198,7 +1198,7 @@ func TestContext2Apply_createBeforeDestroy_deposedOnly(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -2113,7 +2113,7 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   num = 2
 	`)
 }
@@ -2248,7 +2248,7 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo: (tainted)
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   num = 2
   type = aws_instance
 	`)
@@ -2594,12 +2594,12 @@ CREATE: aws_instance.foo[1]
 	want := strings.TrimSpace(`
 aws_instance.foo.0:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = foo
   type = aws_instance
 aws_instance.foo.1:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = foo
   type = aws_instance
 `)
@@ -2931,7 +2931,7 @@ func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 module.child:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws.eu
+    provider = provider["registry.terraform.io/-/aws"].eu
 	`)
 }
 
@@ -3555,7 +3555,7 @@ func TestContext2Apply_moduleTarget(t *testing.T) {
 module.A:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
     foo = bar
     type = aws_instance
 
@@ -3565,7 +3565,7 @@ module.A:
 module.B:
   aws_instance.bar:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
     foo = foo
     type = aws_instance
 
@@ -4486,7 +4486,7 @@ func TestContext2Apply_outputDependsOn(t *testing.T) {
 		checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 
 Outputs:
 
@@ -5197,7 +5197,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   require_new = yes
   Deposed ID 1 = foo
 	`)
@@ -5280,7 +5280,7 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = qux
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   require_new = yes
   Deposed ID 1 = bar
 	`)
@@ -5308,7 +5308,7 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web:
   ID = quux
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   require_new = yes
 	`)
 }
@@ -5350,7 +5350,7 @@ func TestContext2Apply_provisionerFailContinue(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = bar
   type = aws_instance
   `)
@@ -5518,7 +5518,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 
 	// Verify apply was invoked
@@ -5668,7 +5668,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   `)
 
 	// Verify apply was invoked
@@ -5748,7 +5748,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = bar
   type = aws_instance
 	`)
@@ -7421,7 +7421,7 @@ func TestContext2Apply_errorDestroy(t *testing.T) {
 	expected := strings.TrimSpace(`
 test_thing.foo:
   ID = baz
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `) // test_thing.foo is still here, even though provider returned no new state along with its error
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -8216,7 +8216,7 @@ func TestContext2Apply_targeted(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   num = 2
   type = aws_instance
 	`)
@@ -8253,13 +8253,13 @@ func TestContext2Apply_targetedCount(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo.0:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.foo.1:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.foo.2:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -8294,7 +8294,7 @@ func TestContext2Apply_targetedCountIndex(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo.1:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -8346,7 +8346,7 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = i-abc123
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -8692,15 +8692,15 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = i-abc123
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.foo:
   ID = i-bcd345
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 
 module.child:
   aws_instance.bar:
     ID = i-abc123
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -8754,16 +8754,16 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar.0:
   ID = i-abc123
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.bar.2:
   ID = i-abc123
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.foo.0:
   ID = i-bcd345
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.foo.1:
   ID = i-bcd345
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -8806,12 +8806,12 @@ func TestContext2Apply_targetedModule(t *testing.T) {
 module.child:
   aws_instance.bar:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
     num = 2
     type = aws_instance
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
     num = 2
     type = aws_instance
 	`)
@@ -8851,7 +8851,7 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = foo
   type = aws_instance
 
@@ -8861,7 +8861,7 @@ aws_instance.foo:
 module.child:
   aws_instance.mod:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 
   Outputs:
 
@@ -8934,7 +8934,7 @@ child2_id = foo
 module.child2:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 
   Outputs:
 
@@ -8980,7 +8980,7 @@ func TestContext2Apply_targetedModuleResource(t *testing.T) {
 module.child:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
     num = 2
     type = aws_instance
 	`)
@@ -9529,7 +9529,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	expected := strings.TrimSpace(`
 template_file.child:
   ID = foo
-  provider = provider.template
+  provider = provider["registry.terraform.io/-/template"]
   __template_requires_new = true
   template = Hi
   type = template_file
@@ -9538,7 +9538,7 @@ template_file.child:
     template_file.parent
 template_file.parent.0:
   ID = foo
-  provider = provider.template
+  provider = provider["registry.terraform.io/-/template"]
   template = Hi
   type = template_file
 `)
@@ -9612,10 +9612,10 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.iambeingadded:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.ifailedprovisioners: (tainted)
   ID = ifailedprovisioners
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 		`)
 	if actual != expected {
 		t.Fatalf("expected state: \n%s\ngot: \n%s", expected, actual)
@@ -9666,7 +9666,7 @@ func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   required_field = set
   type = aws_instance
 `)
@@ -9813,7 +9813,7 @@ func TestContext2Apply_ignoreChangesWildcard(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   required_field = set
   type = aws_instance
 `)
@@ -10064,7 +10064,7 @@ func TestContext2Apply_targetedModuleRecursive(t *testing.T) {
 module.child.subchild:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
     num = 2
     type = aws_instance
 	`)

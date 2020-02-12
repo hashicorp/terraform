@@ -91,7 +91,6 @@ func readState(src []byte) (*File, tfdiags.Diagnostics) {
 	if versionDiags.HasErrors() {
 		return nil, diags
 	}
-
 	switch version {
 	case 0:
 		diags = diags.Append(tfdiags.Sourceless(

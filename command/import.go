@@ -155,9 +155,37 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	if c.Meta.provider != "" {
+		traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(c.Meta.provider), `-provider=...`, hcl.Pos{Line: 1, Column: 1})
+		diags = diags.Append(travDiags)
+		if travDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			c.Ui.Info(importCommandInvalidAddressReference)
+			return 1
+		}
+		relAddr, addrDiags := configs.ParseProviderConfigCompact(traversal)
+		diags = diags.Append(addrDiags)
+		if addrDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		providerAddr = relAddr.Absolute(addrs.RootModuleInstance)
+
+	} else {
+		// Use a default address inferred from the resource type.
+		// We assume the same module as the resource address here, which
+		// may get resolved to an inherited provider when we construct the
+		// import graph inside ctx.Import, called below.
+		if rc != nil && rc.ProviderConfigRef != nil {
+			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
+		} else {
+			providerType := resourceRelAddr.DefaultProvider()
+			providerAddr = addrs.NewDefaultLocalProviderConfig(providerType.LegacyString()).Absolute(addr.Module)
+		}
+	}
+
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 

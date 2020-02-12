@@ -118,7 +118,7 @@ func TestEvalInitProvider(t *testing.T) {
 	if !ctx.InitProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.InitProviderAddr.String() != "provider.foo" {
+	if ctx.InitProviderAddr.String() != `provider["registry.terraform.io/-/foo"]` {
 		t.Fatalf("wrong provider address %s", ctx.InitProviderAddr)
 	}
 }
@@ -140,7 +140,7 @@ func TestEvalCloseProvider(t *testing.T) {
 	if !ctx.CloseProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.CloseProviderAddr.String() != "provider.foo" {
+	if ctx.CloseProviderAddr.String() != `provider["registry.terraform.io/-/foo"]` {
 		t.Fatalf("wrong provider address %s", ctx.CloseProviderAddr)
 	}
 }
@@ -167,7 +167,7 @@ func TestEvalGetProvider(t *testing.T) {
 	if !ctx.ProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.ProviderAddr.String() != "provider.foo" {
+	if ctx.ProviderAddr.String() != `provider["registry.terraform.io/-/foo"]` {
 		t.Fatalf("wrong provider address %s", ctx.ProviderAddr)
 	}
 }

@@ -181,13 +181,11 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 // the returned address is invalid.
 func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
 	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return AbsProviderConfig{}, diags
 	}
-
 	addr, addrDiags := ParseAbsProviderConfig(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
@@ -338,11 +336,32 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 
 }
 
-// FIXME: we're only using legacy strings for now until all of terraform knows the difference
-// The original LocalProviderConfig strings included a leading "provider.", which is why its added here.
-func (pc AbsProviderConfig) String() string {
+// FIXME: This will be removed once all of terraform understands FQNs
+func (pc AbsProviderConfig) LegacyString() string {
+	if pc.Alias != "" {
+		if len(pc.Module) == 0 {
+			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.LegacyString(), pc.Alias)
+		} else {
+			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.LegacyString(), pc.Alias)
+		}
+	}
 	if len(pc.Module) == 0 {
 		return fmt.Sprintf("%s.%s", "provider", pc.Provider.LegacyString())
 	}
 	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
+}
+
+func (pc AbsProviderConfig) String() string {
+	if pc.Alias != "" {
+		if len(pc.Module) == 0 {
+			return fmt.Sprintf("%s[%q].%s", "provider", pc.Provider.String(), pc.Alias)
+		} else {
+			return fmt.Sprintf("%s.%s[%q].%s", pc.Module.String(), "provider", pc.Provider.String(), pc.Alias)
+		}
+	}
+	if len(pc.Module) == 0 {
+		return fmt.Sprintf("%s[%q]", "provider", pc.Provider.String())
+	}
+
+	return fmt.Sprintf("%s.%s[%q]", pc.Module.String(), "provider", pc.Provider.String())
 }

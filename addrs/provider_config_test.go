@@ -193,3 +193,48 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestString(t *testing.T) {
+	tests := []struct {
+		Config AbsProviderConfig
+		Want   string
+	}{
+		{
+			AbsProviderConfig{
+				Module:   RootModuleInstance,
+				Provider: NewLegacyProvider("foo"),
+			},
+			`provider["registry.terraform.io/-/foo"]`,
+		},
+		{
+			AbsProviderConfig{
+				Module:   RootModuleInstance.Child("child_module", NoKey),
+				Provider: NewLegacyProvider("foo"),
+			},
+			`module.child_module.provider["registry.terraform.io/-/foo"]`,
+		},
+		{
+			AbsProviderConfig{
+				Module:   RootModuleInstance,
+				Alias:    "bar",
+				Provider: NewLegacyProvider("foo"),
+			},
+			`provider["registry.terraform.io/-/foo"].bar`,
+		},
+		{
+			AbsProviderConfig{
+				Module:   RootModuleInstance.Child("child_module", NoKey),
+				Alias:    "bar",
+				Provider: NewLegacyProvider("foo"),
+			},
+			`module.child_module.provider["registry.terraform.io/-/foo"].bar`,
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Config.String()
+		if got != test.Want {
+			t.Errorf("wrong result. Got %s, want %s\n", got, test.Want)
+		}
+	}
+}

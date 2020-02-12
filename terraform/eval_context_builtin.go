@@ -104,6 +104,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 }
 
 func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.AbsProviderConfig) (providers.Interface, error) {
+
 	ctx.once.Do(ctx.init)
 	absAddr := addr
 	if !absAddr.Module.Equal(ctx.Path()) {

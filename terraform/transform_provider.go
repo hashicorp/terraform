@@ -313,7 +313,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// referenced provider type in the _root_ module, ignoring all other
 		// aspects of the resource's declared provider address.
 		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.Provider.LegacyString())
-		key := fmt.Sprintf("%s.%s", "provider", defaultAddr.String())
+		key := defaultAddr.String()
 		provider := m[key]
 
 		if provider != nil {
@@ -595,6 +595,7 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
 		addr := addrs.AbsProviderConfig{
 			Provider: fqn,
+			Alias:    p.Alias,
 			Module:   path,
 		}
 
@@ -685,7 +686,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 
 		fullParentAddr := addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider(pair.InParent.Addr().LocalName),
-			Module:   instPath,
+			Module:   parentInstPath,
 			Alias:    pair.InParent.Addr().Alias,
 		}
 

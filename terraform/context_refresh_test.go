@@ -1689,7 +1689,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.bar:
   ID = foo
-  provider = provider.aws.foo`)
+  provider = provider["registry.terraform.io/-/aws"].foo`)
 
 	state, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1781,7 +1781,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   name = foo
 `)
 		if got != want {
@@ -1865,7 +1865,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   name = foo
 `)
 		if got != want {
@@ -2050,14 +2050,14 @@ resource "aws_instance" "foo" {
 	expect := strings.TrimSpace(`
 aws_instance.bar:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = foo
 
   Dependencies:
     aws_instance.foo
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 
   Dependencies:
     aws_instance.baz
