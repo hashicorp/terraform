@@ -9692,9 +9692,9 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	}
 
 	// correct the state
-	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.ProviderConfig{
-		Type:  addrs.NewLegacyProvider("aws"),
-		Alias: "bar",
+	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.LocalProviderConfig{
+		LocalName: "aws",
+		Alias:     "bar",
 	}.Absolute(addrs.RootModuleInstance)
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatal(diags.Err())
