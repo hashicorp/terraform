@@ -149,6 +149,25 @@ func TestNew_Invalid(t *testing.T) {
 	}
 }
 
+func TestNew_InvalidHost(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "i-am-invalid",
+				"port":     "22",
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	_, err := New(r)
+	if err == nil {
+		t.Fatal("should have had an error creating communicator")
+	}
+}
+
 func TestStart(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
