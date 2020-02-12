@@ -2079,7 +2079,7 @@ func TestMerge(t *testing.T) {
 					"c": cty.StringVal("d"),
 				}),
 			},
-			cty.ObjectVal(map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.StringVal("b"),
 				"c": cty.StringVal("d"),
 			}),
@@ -2090,6 +2090,65 @@ func TestMerge(t *testing.T) {
 				cty.MapVal(map[string]cty.Value{
 					"a": cty.UnknownVal(cty.String),
 				}),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle null map
+			[]cty.Value{
+				cty.NullVal(cty.Map(cty.String)),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle null map
+			[]cty.Value{
+				cty.NullVal(cty.Map(cty.String)),
+				cty.NullVal(cty.Object(map[string]cty.Type{
+					"a": cty.List(cty.String),
+				})),
+			},
+			cty.NullVal(cty.EmptyObject),
+			false,
+		},
+		{ // handle null object
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+				cty.NullVal(cty.Object(map[string]cty.Type{
+					"a": cty.List(cty.String),
+				})),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle unknowns
+			[]cty.Value{
+				cty.UnknownVal(cty.Map(cty.String)),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.UnknownVal(cty.Map(cty.String)),
+			false,
+		},
+		{ // handle dynamic unknown
+			[]cty.Value{
+				cty.UnknownVal(cty.DynamicPseudoType),
 				cty.MapVal(map[string]cty.Value{
 					"c": cty.StringVal("d"),
 				}),
@@ -2107,7 +2166,7 @@ func TestMerge(t *testing.T) {
 					"a": cty.StringVal("x"),
 				}),
 			},
-			cty.ObjectVal(map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.StringVal("x"),
 				"c": cty.StringVal("d"),
 			}),
@@ -2151,7 +2210,7 @@ func TestMerge(t *testing.T) {
 					}),
 				}),
 			},
-			cty.ObjectVal(map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.MapVal(map[string]cty.Value{
 					"b": cty.StringVal("c"),
 				}),
@@ -2176,7 +2235,7 @@ func TestMerge(t *testing.T) {
 					}),
 				}),
 			},
-			cty.ObjectVal(map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.ListVal([]cty.Value{
 					cty.StringVal("b"),
 					cty.StringVal("c"),
@@ -2210,6 +2269,66 @@ func TestMerge(t *testing.T) {
 				"d": cty.MapVal(map[string]cty.Value{
 					"e": cty.StringVal("f"),
 				}),
+			}),
+			false,
+		},
+		{ // merge objects of various shapes
+			[]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"d": cty.DynamicVal,
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				"d": cty.DynamicVal,
+			}),
+			false,
+		},
+		{ // merge maps and objects
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"d": cty.NumberIntVal(2),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				"d": cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		{ // attr a type and value is overridden
+			[]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+					}),
+					"b": cty.StringVal("b"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"e": cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"e": cty.StringVal("f"),
+				}),
+				"b": cty.StringVal("b"),
 			}),
 			false,
 		},
