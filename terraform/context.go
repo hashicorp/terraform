@@ -138,7 +138,17 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling
 	// from providers.
+	// We throw an error in case of negative parallelism
 	par := opts.Parallelism
+	if par < 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid parallelism value",
+			fmt.Sprintf("The parallelism must be a positive value. Not %d.", par),
+		))
+		return nil, diags
+	}
+
 	if par == 0 {
 		par = 10
 	}
