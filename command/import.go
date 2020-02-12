@@ -43,7 +43,6 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
-	cmdFlags.StringVar(&c.Meta.provider, "provider", "", "provider")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.Meta.allowMissingConfig, "allow-missing-config", false, "allow missing config")
@@ -156,36 +155,6 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Also parse the user-provided provider address, if any.
-	var providerAddr addrs.AbsProviderConfig
-	if c.Meta.provider != "" {
-		traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(c.Meta.provider), `-provider=...`, hcl.Pos{Line: 1, Column: 1})
-		diags = diags.Append(travDiags)
-		if travDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			c.Ui.Info(importCommandInvalidAddressReference)
-			return 1
-		}
-		relAddr, addrDiags := configs.ParseProviderConfigCompact(traversal)
-		diags = diags.Append(addrDiags)
-		if addrDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		providerAddr = relAddr.Absolute(addrs.RootModuleInstance)
-	} else {
-		// Use a default address inferred from the resource type.
-		// We assume the same module as the resource address here, which
-		// may get resolved to an inherited provider when we construct the
-		// import graph inside ctx.Import, called below.
-		if rc != nil && rc.ProviderConfigRef != nil {
-			providerAddr = rc.ProviderConfigAddr().Absolute(addr.Module)
-		} else {
-			providerType := resourceRelAddr.DefaultProvider()
-			providerAddr = addrs.NewDefaultLocalProviderConfig(providerType.LegacyString()).Absolute(addr.Module)
-		}
-	}
-
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
@@ -254,9 +223,8 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, importDiags := ctx.Import(&terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr:         addr,
-				ID:           args[1],
-				ProviderAddr: providerAddr,
+				Addr: addr,
+				ID:   args[1],
 			},
 		},
 	})
@@ -340,11 +308,6 @@ Options:
   -lock-timeout=0s        Duration to retry a state lock.
 
   -no-color               If specified, output won't contain any color.
-
-  -provider=provider      Deprecated: Override the provider configuration to use
-                          when importing the object. By default, Terraform uses the
-                          provider specified in the configuration for the target
-                          resource, and that is the best behavior in most cases.
 
   -state=PATH             Path to the source state file. Defaults to the configured
                           backend, or "terraform.tfstate"
