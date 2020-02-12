@@ -1,4 +1,9 @@
-## 0.12.21 (Unreleased)
+## 0.13.0 (Unreleased)
+
+BREAKING CHANGES:
+
+* command/import: remove the deprecated -provider command line argument [GH-24090]
+#22862 fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. 
 
 NEW FEATURES:
 
