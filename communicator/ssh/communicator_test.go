@@ -691,6 +691,7 @@ func TestScriptPath(t *testing.T) {
 			Ephemeral: terraform.EphemeralState{
 				ConnInfo: map[string]string{
 					"type":        "ssh",
+					"host":        "127.0.0.1",
 					"script_path": tc.Input,
 				},
 			},
@@ -715,7 +716,14 @@ func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
 	staticSeedPath := "/tmp/terraform_1298498081.sh"
-	c, err := New(&terraform.InstanceState{})
+	c, err := New(&terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type": "ssh",
+				"host": "127.0.0.1",
+			},
+		},
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
