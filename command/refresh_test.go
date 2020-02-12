@@ -757,10 +757,10 @@ foo = "bar"
 const testRefreshStr = `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `
 const testRefreshCwdStr = `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `

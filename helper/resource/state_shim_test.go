@@ -41,9 +41,10 @@ func TestStateShim(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -56,9 +57,10 @@ func TestStateShim(t *testing.T) {
 			AttrsFlat: map[string]string{"id": "baz", "bazzle": "dazzle"},
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	childInstance := addrs.RootModuleInstance.Child("child", addrs.NoKey)
@@ -74,9 +76,10 @@ func TestStateShim(t *testing.T) {
 			AttrsJSON: []byte(`{"id": "bar", "fuzzle":"wuzzle"}`),
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(childInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   childInstance,
+		},
 	)
 	childModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -97,9 +100,10 @@ func TestStateShim(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(childInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   childInstance,
+		},
 	)
 
 	childModule.SetResourceInstanceDeposed(
@@ -122,9 +126,10 @@ func TestStateShim(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(childInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   childInstance,
+		},
 	)
 
 	childModule.SetResourceInstanceCurrent(
@@ -138,9 +143,10 @@ func TestStateShim(t *testing.T) {
 			AttrsFlat: map[string]string{"id": "0", "bazzle": "dazzle"},
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(childInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   childInstance,
+		},
 	)
 	childModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -153,9 +159,10 @@ func TestStateShim(t *testing.T) {
 			AttrsFlat: map[string]string{"id": "1", "bazzle": "dazzle"},
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(childInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   childInstance,
+		},
 	)
 
 	childModule.SetResourceInstanceCurrent(
@@ -169,9 +176,10 @@ func TestStateShim(t *testing.T) {
 			AttrsJSON: []byte(`{"id": "single", "bazzle":"dazzle"}`),
 			DependsOn: []addrs.Referenceable{},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(childInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   childInstance,
+		},
 	)
 
 	expected := &terraform.State{

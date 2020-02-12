@@ -410,22 +410,22 @@ func TestTaint_module(t *testing.T) {
 const testTaintStr = `
 test_instance.foo: (tainted)
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `
 
 const testTaintDefaultStr = `
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `
 
 const testTaintModuleStr = `
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 
 module.child:
   test_instance.blah: (tainted)
     ID = blah
-    provider = provider.test
+    provider = provider["registry.terraform.io/-/test"]
 `

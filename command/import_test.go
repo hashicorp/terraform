@@ -838,17 +838,17 @@ func TestImport_pluginDir(t *testing.T) {
 const testImportStr = `
 test_instance.foo:
   ID = yay
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `
 
 const testImportCustomProviderStr = `
 test_instance.foo:
   ID = yay
-  provider = provider.test.alias
+  provider = provider["registry.terraform.io/-/test"].alias
 `
 
 const testImportProviderMismatchStr = `
 test_instance.foo:
   ID = yay
-  provider = provider.test-beta
+  provider = provider["registry.terraform.io/-/test-beta"]
 `

@@ -141,7 +141,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider.test
+    provider = provider["registry.terraform.io/-/test"]
     bar = value
     foo = value
 `)
@@ -154,14 +154,14 @@ module.child:
 	testStateOutput(t, backups[0], `
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider.test
+    provider = provider["registry.terraform.io/-/test"]
     bar = value
     foo = value
 `)
@@ -479,12 +479,12 @@ func TestStateRm_backendState(t *testing.T) {
 const testStateRmOutputOriginal = `
 test_instance.bar:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 `
@@ -492,7 +492,7 @@ test_instance.foo:
 const testStateRmOutput = `
 test_instance.bar:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 `
