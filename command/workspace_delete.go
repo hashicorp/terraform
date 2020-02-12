@@ -119,6 +119,8 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
+		// We need to release the lock before exit
+		stateLocker.Unlock(nil)
 		c.Ui.Error(err.Error())
 		return 1
 	}
@@ -126,6 +128,8 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	hasResources := stateMgr.State().HasResources()
 
 	if hasResources && !force {
+		// We need to release the lock before exit
+		stateLocker.Unlock(nil)
 		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envNotEmpty), workspace))
 		return 1
 	}
