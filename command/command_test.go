@@ -271,9 +271,10 @@ func testState() *states.State {
 				Dependencies: []addrs.AbsResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 		// DeepCopy is used here to ensure our synthetic state matches exactly
 		// with a state that will have been copied during the command

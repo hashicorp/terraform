@@ -150,6 +150,10 @@ func TestFullInitialState() *states.State {
 		Type: "null_resource",
 		Name: "foo",
 	}
-	childMod.SetResourceMeta(rAddr, states.EachList, addrs.NewDefaultLocalProviderConfig(rAddr.DefaultProvider().LegacyString()).Absolute(addrs.RootModuleInstance))
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: rAddr.DefaultProvider(),
+		Module:   addrs.RootModuleInstance,
+	}
+	childMod.SetResourceMeta(rAddr, states.EachList, providerAddr)
 	return state
 }

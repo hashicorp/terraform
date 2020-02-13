@@ -727,7 +727,10 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 			AttrsFlat: r.Primary.Attributes,
 			Status:    states.ObjectReady,
 		},
-		addrs.LocalProviderConfig{LocalName: "placeholder"}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("placeholder"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	// Create the config module. We use the full config because Refresh

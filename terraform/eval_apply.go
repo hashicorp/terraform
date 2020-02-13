@@ -128,7 +128,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -198,7 +198,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				// to notice in the logs if an inconsistency beyond the type system
 				// leads to a downstream provider failure.
 				var buf strings.Builder
-				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.LocalName, absAddr)
+				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.Provider.LegacyString(), absAddr)
 				for _, err := range errs {
 					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 				}
@@ -218,7 +218,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 						"Provider produced inconsistent result after apply",
 						fmt.Sprintf(
 							"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-							absAddr, n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatError(err),
+							absAddr, n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatError(err),
 						),
 					))
 				}

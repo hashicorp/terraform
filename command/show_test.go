@@ -489,7 +489,10 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 			Type: "test_instance",
 			Name: "foo",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-		ProviderAddr: addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 		ChangeSrc: plans.ChangeSrc{
 			Action: action,
 			Before: priorValRaw,

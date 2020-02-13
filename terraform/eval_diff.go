@@ -65,7 +65,7 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 				"Provider produced inconsistent final plan",
 				fmt.Sprintf(
 					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					absAddr, n.ProviderAddr.ProviderConfig.LocalName,
+					absAddr, n.ProviderAddr.Provider.LegacyString(),
 					plannedChange.Action, actualChange.Action,
 				),
 			))
@@ -79,7 +79,7 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced inconsistent final plan",
 			fmt.Sprintf(
 				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				absAddr, n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatError(err),
+				absAddr, n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatError(err),
 			),
 		))
 	}
@@ -120,7 +120,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	if providerSchema == nil {
 		return nil, fmt.Errorf("provider schema is unavailable for %s", n.Addr)
 	}
-	if n.ProviderAddr.ProviderConfig.LocalName == "" {
+	if n.ProviderAddr.Provider.Type == "" {
 		panic(fmt.Sprintf("EvalDiff for %s does not have ProviderAddr set", n.Addr.Absolute(ctx.Path())))
 	}
 
@@ -230,7 +230,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid plan",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -246,7 +246,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			// to notice in the logs if an inconsistency beyond the type system
 			// leads to a downstream provider failure.
 			var buf strings.Builder
-			fmt.Fprintf(&buf, "[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.LocalName, absAddr)
+			fmt.Fprintf(&buf,
+				"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
+				n.ProviderAddr.Provider.LegacyString(), absAddr,
+			)
 			for _, err := range errs {
 				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 			}
@@ -258,7 +261,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 					"Provider produced invalid plan",
 					fmt.Sprintf(
 						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ProviderAddr.ProviderConfig.LocalName, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+						n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 					),
 				))
 			}
@@ -301,7 +304,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 					"Provider produced invalid plan",
 					fmt.Sprintf(
 						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ProviderAddr.ProviderConfig.LocalName, absAddr, path,
+						n.ProviderAddr.Provider.LegacyString(), absAddr, path,
 					),
 				))
 				continue
@@ -397,7 +400,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				"Provider produced invalid plan",
 				fmt.Sprintf(
 					"Provider %q planned an invalid value for %s%s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					n.ProviderAddr.ProviderConfig.LocalName, absAddr, tfdiags.FormatError(err),
+					n.ProviderAddr.Provider.LegacyString(), absAddr, tfdiags.FormatError(err),
 				),
 			))
 		}
@@ -603,7 +606,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := *n.State
 
-	if n.ProviderAddr.ProviderConfig.LocalName == "" {
+	if n.ProviderAddr.Provider.Type == "" {
 		if n.DeposedKey == "" {
 			panic(fmt.Sprintf("EvalDiffDestroy for %s does not have ProviderAddr set", absAddr))
 		} else {

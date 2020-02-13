@@ -60,21 +60,6 @@ func NewDefaultLocalProviderConfig(LocalNameName string) LocalProviderConfig {
 // providerConfig Implements addrs.ProviderConfig.
 func (pc LocalProviderConfig) providerConfig() {}
 
-// Absolute returns an AbsProviderConfig from the receiver and the given module
-// instance address.
-//
-// TODO: This methold will become obsolete as part of supporting fully-qualified
-// provider names in AbsProviderConfig, requiring a lookup via the module
-// configuration instead. However, we continue to support it for now by
-// relying on the fact that only "legacy" provider addresses are currently
-// supported.
-func (pc LocalProviderConfig) Absolute(module ModuleInstance) AbsProviderConfig {
-	return AbsProviderConfig{
-		Module:         module,
-		ProviderConfig: pc,
-	}
-}
-
 func (pc LocalProviderConfig) String() string {
 	if pc.LocalName == "" {
 		// Should never happen; always indicates a bug
@@ -100,21 +85,9 @@ func (pc LocalProviderConfig) StringCompact() string {
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
-	Module ModuleInstance
-
-	// TODO: In a future change, this will no longer be an embedded
-	// LocalProviderConfig and should instead be two separate fields
-	// to allow AbsProviderConfig to use provider FQN rather than
-	// local type name:
-	//
-	//     Provider Provider
-	//     Alias    string
-	//
-	// For now though, we continue to embed LocalProviderConfig until we're
-	// ready to teach the rest of Terraform Core about non-legacy provider
-	// FQNs, and update our ParseAbsProviderConfig and AbsProviderConfig.String
-	// methods to deal with FQNs.
-	ProviderConfig LocalProviderConfig
+	Module   ModuleInstance
+	Provider Provider
+	Alias    string
 }
 
 var _ ProviderConfig = AbsProviderConfig{}
@@ -123,11 +96,11 @@ var _ ProviderConfig = AbsProviderConfig{}
 // address. The following are examples of traversals that can be successfully
 // parsed as absolute provider configuration addresses:
 //
-//     provider.aws
-//     provider.aws.foo
-//     module.bar.provider.aws
-//     module.bar.module.baz.provider.aws.foo
-//     module.foo[1].provider.aws.foo
+//     provider.["registry.terraform.io/hashicorp/aws"]
+//     provider.["registry.terraform.io/hashicorp/aws"].foo
+//     module.bar.provider.["registry.terraform.io/hashicorp/aws"]
+//     module.bar.module.baz.provider.["registry.terraform.io/hashicorp/aws"].foo
+//     module.foo[1].provider.["registry.terraform.io/hashicorp/aws"].foo
 //
 // This type of address is used, for example, to record the relationships
 // between resources and provider configurations in the state structure.
@@ -157,8 +130,13 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 		return ret, diags
 	}
 
-	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.ProviderConfig.LocalName = tt.Name
+	if tt, ok := remain[1].(hcl.TraverseIndex); ok {
+		p, sourceDiags := ParseProviderSourceString(tt.Key.AsString())
+		ret.Provider = p
+		if sourceDiags.HasErrors() {
+			diags = diags.Append(sourceDiags)
+			return ret, diags
+		}
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -171,7 +149,7 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 
 	if len(remain) == 3 {
 		if tt, ok := remain[2].(hcl.TraverseAttr); ok {
-			ret.ProviderConfig.Alias = tt.Name
+			ret.Alias = tt.Name
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -203,6 +181,18 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 // the returned address is invalid.
 func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return AbsProviderConfig{}, diags
+	}
+	addr, addrDiags := ParseAbsProviderConfig(traversal)
+	diags = diags.Append(addrDiags)
+	return addr, diags
+}
+
+func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
 	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
@@ -210,9 +200,77 @@ func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnosti
 		return AbsProviderConfig{}, diags
 	}
 
-	addr, addrDiags := ParseAbsProviderConfig(traversal)
+	addr, addrDiags := ParseLegacyAbsProviderConfig(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
+}
+
+// ParseLegacyAbsProviderConfig parses the given traversal as an absolute
+// provider address. The following are examples of traversals that can be
+// successfully parsed as legacy absolute provider configuration addresses:
+//
+//     provider.aws
+//     provider.aws.foo
+//     module.bar.provider.aws
+//     module.bar.module.baz.provider.aws.foo
+//     module.foo[1].provider.aws.foo
+//
+// This type of address is used in legacy state and may appear in state v4 if
+// the provider config addresses have not been normalized to include provider
+// FQN.
+func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
+	modInst, remain, diags := parseModuleInstancePrefix(traversal)
+	ret := AbsProviderConfig{
+		Module: modInst,
+	}
+
+	if len(remain) < 2 || remain.RootName() != "provider" {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider configuration address",
+			Detail:   "Provider address must begin with \"provider.\", followed by a provider type name.",
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return ret, diags
+	}
+	if len(remain) > 3 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider configuration address",
+			Detail:   "Extraneous operators after provider configuration alias.",
+			Subject:  hcl.Traversal(remain[3:]).SourceRange().Ptr(),
+		})
+		return ret, diags
+	}
+
+	// We always assume legacy-style providers in legacy state
+	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
+		ret.Provider = NewLegacyProvider(tt.Name)
+	} else {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider configuration address",
+			Detail:   "The prefix \"provider.\" must be followed by a provider type name.",
+			Subject:  remain[1].SourceRange().Ptr(),
+		})
+		return ret, diags
+	}
+
+	if len(remain) == 3 {
+		if tt, ok := remain[2].(hcl.TraverseAttr); ok {
+			ret.Alias = tt.Name
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider configuration address",
+				Detail:   "Provider type name must be followed by a configuration alias name.",
+				Subject:  remain[2].SourceRange().Ptr(),
+			})
+			return ret, diags
+		}
+	}
+
+	return ret, diags
 }
 
 // ProviderConfigDefault returns the address of the default provider config
@@ -223,10 +281,8 @@ func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnosti
 // and Alias fields rather than embedding LocalProviderConfig.
 func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 	return AbsProviderConfig{
-		Module: m,
-		ProviderConfig: LocalProviderConfig{
-			LocalName: name,
-		},
+		Module:   m,
+		Provider: NewLegacyProvider(name),
 	}
 }
 
@@ -238,11 +294,9 @@ func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
 // and Alias fields rather than embedding LocalProviderConfig.
 func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
-		Module: m,
-		ProviderConfig: LocalProviderConfig{
-			LocalName: name,
-			Alias:     alias,
-		},
+		Module:   m,
+		Provider: NewLegacyProvider(name),
+		Alias:    alias,
 	}
 }
 
@@ -267,19 +321,52 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 	}
 
 	// Can't inherit if we have an alias.
-	if pc.ProviderConfig.Alias != "" {
+	if pc.Alias != "" {
 		return AbsProviderConfig{}, false
 	}
 
 	// Otherwise, we might inherit from a configuration with the same
-	// provider name in the parent module instance.
+	// provider type in the parent module instance.
 	parentMod := pc.Module.Parent()
-	return pc.ProviderConfig.Absolute(parentMod), true
+	return AbsProviderConfig{
+		Module:   parentMod,
+		Provider: pc.Provider,
+	}, true
+
 }
 
-func (pc AbsProviderConfig) String() string {
-	if len(pc.Module) == 0 {
-		return pc.ProviderConfig.String()
+// LegacyString() returns a legacy-style AbsProviderConfig string and should only be used for legacy state shimming.
+func (pc AbsProviderConfig) LegacyString() string {
+	if pc.Alias != "" {
+		if len(pc.Module) == 0 {
+			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.LegacyString(), pc.Alias)
+		} else {
+			return fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString(), pc.Alias)
+		}
 	}
-	return fmt.Sprintf("%s.%s", pc.Module.String(), pc.ProviderConfig.String())
+	if len(pc.Module) == 0 {
+		return fmt.Sprintf("%s.%s", "provider", pc.Provider.LegacyString())
+	}
+	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
+}
+
+// String() returns a string representation of an AbsProviderConfig in the following format:
+//
+// 	provider["example.com/namespace/name"]
+// 	provider["example.com/namespace/name"].alias
+// 	module.module-name.provider["example.com/namespace/name"]
+// 	module.module-name.provider["example.com/namespace/name"].alias
+func (pc AbsProviderConfig) String() string {
+	if pc.Alias != "" {
+		if len(pc.Module) == 0 {
+			return fmt.Sprintf("%s[%q].%s", "provider", pc.Provider.String(), pc.Alias)
+		} else {
+			return fmt.Sprintf("%s.%s[%q].%s", pc.Module.String(), "provider", pc.Provider.String(), pc.Alias)
+		}
+	}
+	if len(pc.Module) == 0 {
+		return fmt.Sprintf("%s[%q]", "provider", pc.Provider.String())
+	}
+
+	return fmt.Sprintf("%s.%s[%q]", pc.Module.String(), "provider", pc.Provider.String())
 }

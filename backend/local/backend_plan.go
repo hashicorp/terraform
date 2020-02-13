@@ -263,9 +263,7 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 			continue
 		}
 
-		// FIXME: update this once the provider fqn is available in the AbsProviderConfig
-		providerFqn := addrs.NewLegacyProvider(rcs.ProviderAddr.ProviderConfig.LocalName)
-		providerSchema := schemas.ProviderSchema(providerFqn)
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
 		if providerSchema == nil {
 			// Should never happen
 			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))

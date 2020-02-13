@@ -45,9 +45,10 @@ func TestSession_basicState(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -59,9 +60,10 @@ func TestSession_basicState(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 

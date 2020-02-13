@@ -103,9 +103,10 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 
@@ -1688,7 +1689,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.bar:
   ID = foo
-  provider = provider.aws.foo`)
+  provider = provider["registry.terraform.io/-/aws"].foo`)
 
 	state, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1739,7 +1740,10 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 					"id": "foo",
 				},
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 
@@ -1777,7 +1781,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   name = foo
 `)
 		if got != want {
@@ -1822,7 +1826,10 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 				SchemaVersion: 3,
 				AttrsJSON:     []byte(`{"id":"foo"}`),
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 
@@ -1858,7 +1865,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   name = foo
 `)
 		if got != want {
@@ -1990,9 +1997,10 @@ func TestRefresh_updateDependencies(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "aws",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("aws"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	root.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -2004,9 +2012,10 @@ func TestRefresh_updateDependencies(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "aws",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("aws"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	m := testModuleInline(t, map[string]string{
@@ -2041,14 +2050,14 @@ resource "aws_instance" "foo" {
 	expect := strings.TrimSpace(`
 aws_instance.bar:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = foo
 
   Dependencies:
     aws_instance.foo
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 
   Dependencies:
     aws_instance.baz

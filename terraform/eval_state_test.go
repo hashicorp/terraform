@@ -224,7 +224,7 @@ func TestEvalWriteState(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = i-abc123
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 	`)
 }
 
@@ -271,7 +271,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo: (1 deposed)
   ID = <not created>
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   Deposed ID 1 = i-abc123
 	`)
 }

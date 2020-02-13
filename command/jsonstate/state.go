@@ -254,7 +254,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				Address:      r.Addr.String(),
 				Type:         r.Addr.Type,
 				Name:         r.Addr.Name,
-				ProviderName: r.ProviderConfig.ProviderConfig.StringCompact(),
+				ProviderName: r.ProviderConfig.Provider.LegacyString(),
 			}
 
 			switch r.Addr.Mode {
@@ -273,10 +273,8 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				current.Index = k
 			}
 
-			// FIXME: lookup providerFqn from state
-			providerFqn := addrs.NewLegacyProvider(r.ProviderConfig.ProviderConfig.LocalName)
 			schema, _ := schemas.ResourceTypeConfig(
-				providerFqn,
+				r.ProviderConfig.Provider,
 				r.Addr.Mode,
 				r.Addr.Type,
 			)
