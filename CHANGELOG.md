@@ -6,7 +6,7 @@ BREAKING CHANGES:
 #22862 fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. 
 
 ---
+For information on prior major releases, see their changelogs:
 
-For information on v0.12, please see [the v0.12 branch changelog](https://github.com/hashicorp/terraform/blob/v0.12/CHANGELOG.md).
-
-For information on v0.11 and prior releases, please see [the v0.11 branch changelog](https://github.com/hashicorp/terraform/blob/v0.11/CHANGELOG.md).
+* [v0.12](https://github.com/hashicorp/terraform/blob/v0.12/CHANGELOG.md)
+* [v0.11 and earlier](https://github.com/hashicorp/terraform/blob/v0.11/CHANGELOG.md)
