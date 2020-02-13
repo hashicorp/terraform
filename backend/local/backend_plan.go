@@ -162,19 +162,20 @@ func (b *Local) opPlan(
 
 		if plan.Changes.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
-			return
+		} else {
+			// Only print plan if it is not empty
+			b.renderPlan(plan, baseState, schemas)
 		}
-
-		b.renderPlan(plan, baseState, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
 		// errors then we would've returned early at some other point above.
+		// Note that diagnostics will be shown even if there are no changes.
 		b.ShowDiagnostics(diags)
 
 		// Give the user some next-steps, unless we're running in an automation
 		// tool which is presumed to provide its own UI for further actions.
-		if !b.RunningInAutomation {
+		if !plan.Changes.Empty() && !b.RunningInAutomation {
 
 			b.CLI.Output("\n------------------------------------------------------------------------")
 
