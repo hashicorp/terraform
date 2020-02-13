@@ -133,7 +133,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	expectedState := strings.TrimSpace(`
  aws_instance.foo: (1 deposed)
   ID = baz
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   Deposed ID 1 = foo`)
 
 	if ctx.State().String() != expectedState {
@@ -863,7 +863,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 module.child:
   aws_instance.foo:
     ID = baz
-    provider = provider.aws`
+    provider = provider["registry.terraform.io/-/aws"]`
 
 	if ctx.State().String() != expectedState {
 		t.Fatalf("\nexpected state: %q\n\ngot: %q", expectedState, ctx.State().String())
@@ -967,16 +967,16 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 
 	expectedState := `aws_instance.top:
   ID = top
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 
 module.parent.childone:
   aws_instance.foo:
     ID = baz
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 module.parent.childtwo:
   aws_instance.foo:
     ID = baz
-    provider = provider.aws`
+    provider = provider["registry.terraform.io/-/aws"]`
 
 	if expectedState != ctx.State().String() {
 		t.Fatalf("\nexpect state: %q\ngot state:    %q\n", expectedState, ctx.State().String())
@@ -2923,15 +2923,15 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 
 	expectedState := `aws_instance.foo.0:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = foo
   type = aws_instance
 aws_instance.foo.1:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance.foo.2:
   ID = bar
-  provider = provider.aws`
+  provider = provider["registry.terraform.io/-/aws"]`
 
 	if ctx.State().String() != expectedState {
 		t.Fatalf("epected state:\n%q\n\ngot state:\n%q\n", expectedState, ctx.State().String())
@@ -4975,9 +4975,10 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
 			},
-			addrs.LocalProviderConfig{
-				LocalName: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	m := testModule(t, "plan-ignore-changes-in-map")

@@ -165,7 +165,10 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			// stub it out with an init-only provider node, which will just
 			// start up the provider and fetch its schema.
 			if _, exists := needConfigured[key]; target == nil && !exists {
-				stubAddr := p.ProviderConfig.Absolute(addrs.RootModuleInstance)
+				stubAddr := addrs.AbsProviderConfig{
+					Module:   addrs.RootModuleInstance,
+					Provider: p.Provider,
+				}
 				stub := &NodeEvalableProvider{
 					&NodeAbstractProvider{
 						Addr: stubAddr,
@@ -300,7 +303,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// the later proper resolution of provider inheritance done by
 		// ProviderTransformer.
 		p, _ := pv.ProvidedBy()
-		if p.ProviderConfig.Alias != "" {
+		if p.Alias != "" {
 			// We do not create default aliased configurations.
 			log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
 			continue
@@ -309,7 +312,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other
 		// aspects of the resource's declared provider address.
-		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.ProviderConfig.LocalName)
+		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.Provider.LegacyString())
 		key := defaultAddr.String()
 		provider := m[key]
 
@@ -585,7 +588,16 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 	// add all providers from the configuration
 	for _, p := range mod.ProviderConfigs {
 		relAddr := p.Addr()
-		addr := relAddr.Absolute(path)
+
+		// FIXME: This relies on the assumption that all providers are
+		// LegacyProviders, and will instead need to lookup the FQN in the
+		// config from the provider local name when that is supported.
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+		addr := addrs.AbsProviderConfig{
+			Provider: fqn,
+			Alias:    p.Alias,
+			Module:   path,
+		}
 
 		abstract := &NodeAbstractProvider{
 			Addr: addr,
@@ -661,8 +673,23 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 	// Go through all the providers the parent is passing in, and add proxies to
 	// the parent provider nodes.
 	for _, pair := range parentCfg.Providers {
-		fullAddr := pair.InChild.Addr().Absolute(instPath)
-		fullParentAddr := pair.InParent.Addr().Absolute(parentInstPath)
+
+		// FIXME: this is relying on assumptions that the only providers are
+		// legacy-style providers, and will instead need to lookup fqns from the
+		// config when that information is available.
+		//fullAddr := pair.InChild.Addr().Absolute(instPath)
+		fullAddr := addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider(pair.InChild.Addr().LocalName),
+			Module:   instPath,
+			Alias:    pair.InChild.Addr().Alias,
+		}
+
+		fullParentAddr := addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider(pair.InParent.Addr().LocalName),
+			Module:   parentInstPath,
+			Alias:    pair.InParent.Addr().Alias,
+		}
+
 		fullName := fullAddr.String()
 		fullParentName := fullParentAddr.String()
 
@@ -687,7 +714,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 		}
 
 		// aliased configurations can't be implicitly passed in
-		if fullAddr.ProviderConfig.Alias != "" {
+		if fullAddr.Alias != "" {
 			continue
 		}
 
@@ -719,7 +746,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
-			if p.Name == addr.ProviderConfig.LocalName && p.Alias == addr.ProviderConfig.Alias {
+			if p.Name == addr.Provider.Type && p.Alias == addr.Alias {
 				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break

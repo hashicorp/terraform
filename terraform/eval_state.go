@@ -218,7 +218,7 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := ctx.State()
 
-	if n.ProviderAddr.ProviderConfig.LocalName == "" {
+	if n.ProviderAddr.Provider.Type == "" {
 		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
 	}
 	obj := *n.State

@@ -162,7 +162,13 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				vals[key] = cty.StringVal(rawVal)
 			}
 
-			c.providerInputConfig[pk] = vals
+			absConfigAddr := addrs.AbsProviderConfig{
+				Provider: providerFqn,
+				Alias:    pa.Alias,
+				Module:   c.Config().Path.UnkeyedInstanceShim(),
+			}
+			c.providerInputConfig[absConfigAddr.String()] = vals
+
 			log.Printf("[TRACE] Context.Input: Input for %s: %#v", pk, vals)
 		}
 	}

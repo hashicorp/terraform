@@ -25,16 +25,12 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	ctx2.ProviderLock = &lock
 
 	providerAddr1 := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "foo",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	providerAddr2 := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "foo",
-		},
+		Module:   addrs.RootModuleInstance.Child("child", addrs.NoKey),
+		Provider: addrs.NewLegacyProvider("foo"),
 	}
 
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
@@ -73,17 +69,13 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	// here depending on whether we've moved away from legacy provider
 	// addresses in general yet.
 	providerAddrDefault := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "test",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("test"),
 	}
 	providerAddrAlias := addrs.AbsProviderConfig{
-		Module: addrs.RootModuleInstance,
-		ProviderConfig: addrs.LocalProviderConfig{
-			LocalName: "test",
-			Alias:     "foo",
-		},
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("test"),
+		Alias:    "foo",
 	}
 
 	_, err := ctx.InitProvider("test", providerAddrDefault)

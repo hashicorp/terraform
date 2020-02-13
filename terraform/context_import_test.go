@@ -115,7 +115,10 @@ func TestContextImport_collision(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.LocalProviderConfig{LocalName: "aws"}.Absolute(addrs.RootModuleInstance),
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewLegacyProvider("aws"),
+					Module:   addrs.RootModuleInstance,
+				},
 			)
 		}),
 	})
@@ -144,7 +147,7 @@ func TestContextImport_collision(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := `aws_instance.foo:
   ID = bar
-  provider = provider.aws`
+  provider = provider["registry.terraform.io/-/aws"]`
 
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
@@ -601,7 +604,10 @@ func TestContextImport_moduleDiff(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.LocalProviderConfig{LocalName: "aws"}.Absolute(addrs.RootModuleInstance),
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewLegacyProvider("aws"),
+					Module:   addrs.RootModuleInstance,
+				},
 			)
 		}),
 	})
@@ -659,7 +665,10 @@ func TestContextImport_moduleExisting(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.LocalProviderConfig{LocalName: "aws"}.Absolute(addrs.RootModuleInstance),
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewLegacyProvider("aws"),
+					Module:   addrs.RootModuleInstance,
+				},
 			)
 		}),
 	})
@@ -909,13 +918,13 @@ func TestContextImport_customProvider(t *testing.T) {
 const testImportStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportCountIndexStr = `
 aws_instance.foo.0:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleStr = `
@@ -923,7 +932,7 @@ const testImportModuleStr = `
 module.foo:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleDepth2Str = `
@@ -931,7 +940,7 @@ const testImportModuleDepth2Str = `
 module.a.b:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleDiffStr = `
@@ -939,11 +948,11 @@ const testImportModuleDiffStr = `
 module.bar:
   aws_instance.bar:
     ID = bar
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 module.foo:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleExistingStr = `
@@ -951,42 +960,42 @@ const testImportModuleExistingStr = `
 module.foo:
   aws_instance.bar:
     ID = bar
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportMultiStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance_thing.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportMultiSameStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance_thing.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance_thing.foo-1:
   ID = qux
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportRefreshStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = bar
 `
 
 const testImportCustomProviderStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws.alias
+  provider = provider["registry.terraform.io/-/aws"].alias
 `

@@ -201,9 +201,10 @@ func TestMarshalResources(t *testing.T) {
 							},
 						},
 					},
-					ProviderConfig: addrs.LocalProviderConfig{
-						LocalName: "test",
-					}.Absolute(addrs.RootModuleInstance),
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewLegacyProvider("test"),
+						Module:   addrs.RootModuleInstance,
+					},
 				},
 			},
 			testSchemas(),
@@ -244,9 +245,10 @@ func TestMarshalResources(t *testing.T) {
 							},
 						},
 					},
-					ProviderConfig: addrs.LocalProviderConfig{
-						LocalName: "test",
-					}.Absolute(addrs.RootModuleInstance),
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewLegacyProvider("test"),
+						Module:   addrs.RootModuleInstance,
+					},
 				},
 			},
 			testSchemas(),
@@ -292,9 +294,10 @@ func TestMarshalResources(t *testing.T) {
 							},
 						},
 					},
-					ProviderConfig: addrs.LocalProviderConfig{
-						LocalName: "test",
-					}.Absolute(addrs.RootModuleInstance),
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewLegacyProvider("test"),
+						Module:   addrs.RootModuleInstance,
+					},
 				},
 			},
 			testSchemas(),

@@ -247,17 +247,10 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 			provider = addrs.NewLegacyProvider(addr.LocalName)
 		}
 
-		// FIXME: Once AbsProviderConfig starts using FQN rather than
-		// embedding LocalProviderConfig we will use "provider"
-		// properly here, but for now we'll require a legacy one because
-		// the rest of Terraform isn't ready to deal with non-legacy
-		// provider addresses yet.
 		return addrs.AbsProviderConfig{
-			Module: inModule,
-			ProviderConfig: addrs.LocalProviderConfig{
-				LocalName: provider.LegacyString(),
-				Alias:     addr.Alias,
-			},
+			Module:   inModule,
+			Provider: provider,
+			Alias:    addr.Alias,
 		}
 
 	default:
@@ -270,14 +263,5 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 // by checking for the provider in module.ProviderRequirements and falling
 // back to addrs.NewLegacyProvider if it is not found.
 func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
-	// FIXME: Once AbsProviderAddr itself includes an addrs.Provider we
-	// can just return that here.
-	return addrs.NewLegacyProvider(
-		// addrs.RootModuleInstance here looks weird, but it's okay because
-		// ProviderForConfigAddr looks up addresses in the module directly
-		// connected to the receiver (rather than a descendent, as with
-		// ResolveAbsProviderAddr) and we're going to discard the Module field
-		// of the ResolveAbsProviderAddr return value anyway.
-		c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).ProviderConfig.LocalName,
-	)
+	return c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).Provider
 }

@@ -321,7 +321,14 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		return relAddr.Absolute(n.Path()), false
+		// FIXME: this will need to lookup the provider and see if there's an
+		// FQN associated with the local config
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+		return addrs.AbsProviderConfig{
+			Provider: fqn,
+			Module:   n.Path(),
+			Alias:    relAddr.Alias,
+		}, false
 	}
 
 	// Use our type and containing module path to guess a provider configuration address.
@@ -330,7 +337,10 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	// with the local name here, once we've done the work elsewhere to make
 	// that possible.
 	defaultFQN := n.Addr.Resource.DefaultProvider()
-	return addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(n.Addr.Module), false
+	return addrs.AbsProviderConfig{
+		Provider: defaultFQN,
+		Module:   n.Addr.Module,
+	}, false
 }
 
 // GraphNodeProviderConsumer
@@ -338,7 +348,16 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		return relAddr.Absolute(n.Path()), false
+		// Use our type and containing module path to guess a provider configuration address.
+		// FIXME: This is relying on the FQN-to-local matching true only of legacy
+		// addresses.
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+
+		return addrs.AbsProviderConfig{
+			Provider: fqn,
+			Module:   n.Path(),
+			Alias:    relAddr.Alias,
+		}, false
 	}
 
 	// If we have state, then we will use the provider from there
@@ -355,7 +374,10 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	// with the local name here, once we've done the work elsewhere to make
 	// that possible.
 	defaultFQN := n.Addr.Resource.DefaultProvider()
-	return addrs.NewDefaultLocalProviderConfig(defaultFQN.LegacyString()).Absolute(n.Addr.Module), false
+	return addrs.AbsProviderConfig{
+		Provider: defaultFQN,
+		Module:   n.Addr.Module,
+	}, false
 }
 
 // GraphNodeProvisionerConsumer

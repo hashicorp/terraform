@@ -29,7 +29,10 @@ func TestApply_destroy(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -122,7 +125,10 @@ func TestApply_destroyLockedState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -194,7 +200,10 @@ func TestApply_destroyTargeted(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"i-ab123"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -206,7 +215,10 @@ func TestApply_destroyTargeted(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"i-abc123"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)

@@ -833,7 +833,10 @@ func TestApply_refresh(t *testing.T) {
 				AttrsJSON: []byte(`{"ami":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -987,7 +990,10 @@ func TestApply_state(t *testing.T) {
 				AttrsJSON: []byte(`{"ami":"foo"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -1351,7 +1357,10 @@ func TestApply_backup(t *testing.T) {
 				AttrsJSON: []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:    states.ObjectReady,
 			},
-			addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -1652,7 +1661,10 @@ func applyFixturePlanFile(t *testing.T) string {
 			Type: "test_instance",
 			Name: "foo",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-		ProviderAddr: addrs.LocalProviderConfig{LocalName: "test"}.Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Create,
 			Before: priorValRaw,

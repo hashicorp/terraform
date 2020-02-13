@@ -15,7 +15,9 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 
 	seq := make([]EvalNode, 0, 5)
 	seq = append(seq, &EvalInitProvider{
-		TypeName: addr.ProviderConfig.LocalName, // TODO: This should be an addrs.Provider
+		// FIXME: type is now in the AbsProviderConfig, EvalInitProvider doen't
+		// need this field anymore
+		TypeName: addr.Provider.Type,
 		Addr:     addr,
 	})
 
