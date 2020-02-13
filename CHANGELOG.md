@@ -1,5 +1,8 @@
 ## 0.12.21 (Unreleased)
 
+NEW FEATURES:
+* backend/cos: New backend "cos", supporting using Tencent Cloud Storage as a remote backend.
+
 ENHANCEMENTS:
 
 * command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
