@@ -438,8 +438,8 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid response from remote module registry",
-				fmt.Sprintf("The remote registry at %s failed to return a download URL for %s %s.", hostname, addr, latestMatch),
+				"Error accessing remote module registry",
+				fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
 			))
 			return nil, nil, diags
 		}
