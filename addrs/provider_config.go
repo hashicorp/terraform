@@ -205,9 +205,9 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 	return addr, diags
 }
 
-// ParseLegacyAbsProviderConfig parses the given traversal as an absolute provider
-// address. The following are examples of traversals that can be successfully
-// parsed as absolute provider configuration addresses:
+// ParseLegacyAbsProviderConfig parses the given traversal as an absolute
+// provider address. The following are examples of traversals that can be
+// successfully parsed as legacy absolute provider configuration addresses:
 //
 //     provider.aws
 //     provider.aws.foo
@@ -215,10 +215,9 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 //     module.bar.module.baz.provider.aws.foo
 //     module.foo[1].provider.aws.foo
 //
-// This type of address is used, for example, to record the relationships
-// between resources and provider configurations in the state structure.
-// This type of address is not generally used in the UI, except in error
-// messages that refer to provider configurations.
+// This type of address is used in legacy state and may appear in state v4 if
+// the provider config addresses have not been normalized to include provider
+// FQN.
 func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
 	modInst, remain, diags := parseModuleInstancePrefix(traversal)
 	ret := AbsProviderConfig{
@@ -336,8 +335,7 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 
 }
 
-// This function returns a legagy-style AbsProviderConfig string and should only be used for legacy state shimming.
-
+// LegacyString() returns a legacy-style AbsProviderConfig string and should only be used for legacy state shimming.
 func (pc AbsProviderConfig) LegacyString() string {
 	if pc.Alias != "" {
 		if len(pc.Module) == 0 {
@@ -352,6 +350,12 @@ func (pc AbsProviderConfig) LegacyString() string {
 	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
 }
 
+// String() returns a string representation of an AbsProviderConfig in the following format:
+//
+// 	provider["example.com/namespace/name"]
+// 	provider["example.com/namespace/name"].alias
+// 	module.module-name.provider["example.com/namespace/name"]
+// 	module.module-name.provider["example.com/namespace/name"].alias
 func (pc AbsProviderConfig) String() string {
 	if pc.Alias != "" {
 		if len(pc.Module) == 0 {

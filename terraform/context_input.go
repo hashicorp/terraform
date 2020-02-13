@@ -167,7 +167,6 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				Alias:    pa.Alias,
 				Module:   c.Config().Path.UnkeyedInstanceShim(),
 			}
-			// FIXME: this could be keyed by absProviderConfigs instead of strings.
 			c.providerInputConfig[absConfigAddr.String()] = vals
 
 			log.Printf("[TRACE] Context.Input: Input for %s: %#v", pk, vals)

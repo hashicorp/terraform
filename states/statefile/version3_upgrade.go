@@ -106,22 +106,16 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 				if strings.Contains(oldProviderAddr, "provider.") {
 					// Smells like a new-style provider address, but we'll test it.
 					var diags tfdiags.Diagnostics
-					// let's see if this is a legacy provider string, before provider source FQNs were included
 					providerAddr, diags = addrs.ParseLegacyAbsProviderConfigStr(oldProviderAddr)
-
 					if diags.HasErrors() {
-						providerAddr, diags = addrs.ParseAbsProviderConfigStr(oldProviderAddr)
-						if diags.HasErrors() {
-							if strings.Contains(oldProviderAddr, "${") {
-								// There seems to be a common misconception that
-								// interpolation was valid in provider aliases
-								// in 0.11, so we'll use a specialized error
-								// message for that case.
-								return nil, fmt.Errorf("invalid provider config reference %q for %s: this alias seems to contain a template interpolation sequence, which was not supported but also not error-checked in Terraform 0.11. To proceed, rename the associated provider alias to a valid identifier and apply the change with Terraform 0.11 before upgrading to Terraform 0.12", oldProviderAddr, instAddr)
-							}
-
-							return nil, fmt.Errorf("invalid provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
+						if strings.Contains(oldProviderAddr, "${") {
+							// There seems to be a common misconception that
+							// interpolation was valid in provider aliases
+							// in 0.11, so we'll use a specialized error
+							// message for that case.
+							return nil, fmt.Errorf("invalid provider config reference %q for %s: this alias seems to contain a template interpolation sequence, which was not supported but also not error-checked in Terraform 0.11. To proceed, rename the associated provider alias to a valid identifier and apply the change with Terraform 0.11 before upgrading to Terraform 0.12", oldProviderAddr, instAddr)
 						}
+						return nil, fmt.Errorf("invalid provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 					}
 				} else {
 					// Smells like an old-style module-local provider address,
