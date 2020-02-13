@@ -2,10 +2,11 @@
 
 NEW FEATURES:
 * backend/cos: New backend "cos", supporting using Tencent Cloud Storage as a remote backend.
+* command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
+* command/logout: Add "terraform logout" command to remove local credentials [GH-24048]
 
 ENHANCEMENTS:
 
-* command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
 * command/workspace delete: release lock after workspace removal warning [GH-24085]
 * lang/funcs: add `setsubtract` function [GH-23424]
 
