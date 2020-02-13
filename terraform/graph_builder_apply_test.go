@@ -266,7 +266,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig("provider.test"),
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -275,7 +275,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"bar"}`),
 			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.test_object.A")},
 		},
-		mustProviderConfig("provider.test"),
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{
@@ -370,7 +370,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig("provider.test"),
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
 	modB := state.EnsureModule(addrs.RootModuleInstance.Child("B", addrs.NoKey))
 	modB.SetResourceInstanceCurrent(
@@ -380,7 +380,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"foo","value":"foo"}`),
 			Dependencies: []addrs.AbsResource{mustResourceAddr("module.A.test_object.foo")},
 		},
-		mustProviderConfig("provider.test"),
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{

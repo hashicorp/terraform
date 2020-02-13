@@ -299,7 +299,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"parent"}`),
 			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.aws_instance.child")},
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 	child.SetResourceInstanceCurrent(
@@ -308,7 +308,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"child"}`),
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 
 	{
@@ -1264,7 +1264,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
@@ -1273,7 +1273,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"foo"}`),
 			Dependencies: []addrs.AbsResource{mustResourceAddr("aws_instance.bar")},
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 
 	// Record the order we see Apply
@@ -2698,7 +2698,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"a"}`),
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -2708,7 +2708,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"b"}`),
 			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.aws_instance.a")},
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -8029,7 +8029,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.bar").Resource,
@@ -8038,7 +8038,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"i-abc123"}`),
 			Dependencies: []addrs.AbsResource{mustResourceAddr("aws_instance.foo")},
 		},
-		mustProviderConfig("provider.aws"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -9672,7 +9672,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig("provider.aws.baz"),
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"].baz`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -9692,10 +9692,12 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	}
 
 	// correct the state
-	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.LocalProviderConfig{
-		LocalName: "aws",
-		Alias:     "bar",
-	}.Absolute(addrs.RootModuleInstance)
+	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.AbsProviderConfig{
+		Provider: addrs.NewLegacyProvider("aws"),
+		Alias:    "bar",
+		Module:   addrs.RootModuleInstance,
+	}
+
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
