@@ -42,7 +42,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   addrs.RootModuleInstance,
 		},
 	)
@@ -58,7 +58,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   addrs.RootModuleInstance,
 		},
 	)
@@ -77,7 +77,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   childInstance,
 		},
 	)
@@ -101,7 +101,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   childInstance,
 		},
 	)
@@ -127,7 +127,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   childInstance,
 		},
 	)
@@ -144,7 +144,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   childInstance,
 		},
 	)
@@ -160,7 +160,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   childInstance,
 		},
 	)
@@ -177,7 +177,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewLegacyProvider("test"),
 			Module:   childInstance,
 		},
 	)
@@ -329,6 +329,6 @@ func TestStateShim(t *testing.T) {
 	}
 
 	if !expected.Equal(shimmed) {
-		t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", expected, shimmed)
+		t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", shimmed, expected)
 	}
 }

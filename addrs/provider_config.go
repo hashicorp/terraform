@@ -336,13 +336,14 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 
 }
 
-// FIXME: This will be removed once all of terraform understands FQNs
+// This function returns a legagy-style AbsProviderConfig string and should only be used for legacy state shimming.
+
 func (pc AbsProviderConfig) LegacyString() string {
 	if pc.Alias != "" {
 		if len(pc.Module) == 0 {
 			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.LegacyString(), pc.Alias)
 		} else {
-			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.LegacyString(), pc.Alias)
+			return fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString(), pc.Alias)
 		}
 	}
 	if len(pc.Module) == 0 {
