@@ -84,6 +84,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lib/pq v1.0.0
+	github.com/likexian/gokit v0.20.15
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/masterzen/winrm v0.0.0-20190223112901-5e5c9a7fe54b
 	github.com/mattn/go-colorable v0.1.1
@@ -113,6 +114,8 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.2.1
+	github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible
+	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c
 	github.com/terraform-providers/terraform-provider-openstack v1.15.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect

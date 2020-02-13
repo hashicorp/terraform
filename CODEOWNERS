@@ -5,3 +5,4 @@
 /backend/remote-state/azure     @hashicorp/terraform-azure
 /backend/remote-state/gcs       @hashicorp/terraform-google
 /backend/remote-state/s3        @hashicorp/terraform-aws
+/backend/remote-state/s3        @likexian

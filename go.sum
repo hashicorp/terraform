@@ -41,6 +41,7 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ChrisTrenkamp/goxpath v0.0.0-20170922090931-c385f95c6022 h1:y8Gs8CzNfDF5AZvjr+5UyGQvQEBL7pwo+v+wX6q9JI8=
 github.com/ChrisTrenkamp/goxpath v0.0.0-20170922090931-c385f95c6022/go.mod h1:nuWgzSkT5PnyOd+272uUmV0dnAnAn42Mk7PiQC5VzN4=
+github.com/QcloudApi/qcloud_sign_golang v0.0.0-20141224014652-e4130a326409/go.mod h1:1pk82RBxDY/JZnPQrtqHlUFfCctgdorsd9M06fMynOM=
 github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292 h1:tuQ7w+my8a8mkwN7x2TSd7OzTjkZ7rAeSyH4xncuAMI=
 github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292/go.mod h1:KYCjqMOeHpNuTOiFQU6WEcTG7poCJrUs0YgyHNtn1no=
 github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af h1:DBNMBMuMiWYu0b+8KMJuWmfCkcxl09JwdlqwDZZ6U14=
@@ -285,6 +286,14 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/likexian/gokit v0.0.0-20190309162924-0a377eecf7aa/go.mod h1:QdfYv6y6qPA9pbBA2qXtoT8BMKha6UyNbxWGWl/9Jfk=
+github.com/likexian/gokit v0.0.0-20190418170008-ace88ad0983b/go.mod h1:KKqSnk/VVSW8kEyO2vVCXoanzEutKdlBAPohmGXkxCk=
+github.com/likexian/gokit v0.0.0-20190501133040-e77ea8b19cdc/go.mod h1:3kvONayqCaj+UgrRZGpgfXzHdMYCAO0KAt4/8n0L57Y=
+github.com/likexian/gokit v0.20.15 h1:DgtIqqTRFqtbiLJFzuRESwVrxWxfs8OlY6hnPYBa3BM=
+github.com/likexian/gokit v0.20.15/go.mod h1:kn+nTv3tqh6yhor9BC4Lfiu58SmH8NmQ2PmEl+uM6nU=
+github.com/likexian/simplejson-go v0.0.0-20190409170913-40473a74d76d/go.mod h1:Typ1BfnATYtZ/+/shXfFYLrovhFyuKvzwrdOnIDHlmg=
+github.com/likexian/simplejson-go v0.0.0-20190419151922-c1f9f0b4f084/go.mod h1:U4O1vIJvIKwbMZKUJ62lppfdvkCdVd2nfMimHK81eec=
+github.com/likexian/simplejson-go v0.0.0-20190502021454-d8787b4bfa0b/go.mod h1:3BWwtmKP9cXWwYCr5bkoVDEfLywacOv0s06OBEDpyt8=
 github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82 h1:wnfcqULT+N2seWf6y4yHzmi7GD2kNx4Ute0qArktD48=
 github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82/go.mod h1:y54tfGmO3NKssKveTEFFzH8C/akrSOy/iW9qEAUDV84=
 github.com/masterzen/simplexml v0.0.0-20160608183007-4572e39b1ab9 h1:SmVbOZFWAlyQshuMfOkiAx1f5oUTsOGG5IXplAEYeeM=
@@ -336,6 +345,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.1 h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9AWI=
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
+github.com/mozillazg/go-httpheader v0.2.1 h1:geV7TrjbL8KXSyvghnFm+NyTux/hxwueTSrwhe88TQQ=
+github.com/mozillazg/go-httpheader v0.2.1/go.mod h1:jJ8xECTlalr6ValeXYdOF8fFUISeBAdw6E61aqQma60=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/56bj7Y/xa04UccTW04VP0Qed4vnQ=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d/go.mod h1:YUTz3bUH2ZwIWBy3CJBeOBEugqcmXREj14T+iG/4k4U=
@@ -392,6 +403,10 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d h1:Z4EH+5EffvBEhh37F0C0DnpklTMh00JOkjW5zK3ofBI=
 github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d/go.mod h1:BSTlc8jOjh0niykqEGVXOLXdi9o0r0kR8tCYiMvjFgw=
+github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible h1:5Td2b0yfaOvw9M9nZ5Oav6Li9bxUNxt4DgxMfIPpsa0=
+github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible/go.mod h1:0PfYow01SHPMhKY31xa+EFz2RStxIqj6JFAJS+IkCi4=
+github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c h1:iRD1CqtWUjgEVEmjwTMbP1DMzz1HRytOsgx/rlw/vNs=
+github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c/go.mod h1:wk2XFUg6egk4tSDNZtXeKfe2G6690UVyt163PuUxBZk=
 github.com/terraform-providers/terraform-provider-openstack v1.15.0 h1:adpjqej+F8BAX9dHmuPF47sUIkgifeqBu6p7iCsyj0Y=
 github.com/terraform-providers/terraform-provider-openstack v1.15.0/go.mod h1:2aQ6n/BtChAl1y2S60vebhyJyZXBsuAI5G4+lHrT1Ew=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 h1:lYIiVDtZnyTWlNwiAxLj0bbpTcx1BWCFhXjfsvmPdNc=
