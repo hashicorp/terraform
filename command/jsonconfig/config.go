@@ -14,10 +14,23 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// FormatVersion represents the version of the json format and will be
+// incremented for any change to this format that requires changes to a
+// consuming parser.
+const FormatVersion = "0.1"
+
 // Config represents the complete configuration source
 type config struct {
+	FormatVersion string `json:"format_version,omitempty"`
+
 	ProviderConfigs map[string]providerConfig `json:"provider_config,omitempty"`
 	RootModule      module                    `json:"root_module,omitempty"`
+}
+
+func newConfig() *config {
+	return &config{
+		FormatVersion: FormatVersion,
+	}
 }
 
 // ProviderConfig describes all of the provider configurations throughout the
@@ -33,12 +46,13 @@ type providerConfig struct {
 }
 
 type module struct {
-	Outputs map[string]output `json:"outputs,omitempty"`
+	Variables variables         `json:"variables,omitempty"`
+	Outputs   map[string]output `json:"outputs,omitempty"`
+
 	// Resources are sorted in a user-friendly order that is undefined at this
 	// time, but consistent.
 	Resources   []resource            `json:"resources,omitempty"`
 	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
-	Variables   variables             `json:"variables,omitempty"`
 }
 
 type moduleCall struct {
@@ -113,7 +127,7 @@ type provisioner struct {
 
 // Marshal returns the json encoding of terraform configuration.
 func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
-	var output config
+	output := newConfig()
 
 	pcs := make(map[string]providerConfig)
 	marshalProviderConfigs(c, schemas, pcs)

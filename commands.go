@@ -238,6 +238,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		"show-config": func() (cli.Command, error) {
+			return &command.ShowConfigCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"taint": func() (cli.Command, error) {
 			return &command.TaintCommand{
 				Meta: meta,

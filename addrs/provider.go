@@ -13,6 +13,9 @@ import (
 // Provider encapsulates a single provider type. In the future this will be
 // extended to include additional fields including Namespace and SourceHost
 type Provider struct {
+	referenceable
+
+	Alias     string
 	Type      string
 	Namespace string
 	Hostname  svchost.Hostname
@@ -24,8 +27,17 @@ var (
 	ValidProviderName = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 )
 
-// String returns an FQN string, indended for use in output.
 func (pt Provider) String() string {
+	addr := fmt.Sprintf("provider.%s", pt.Type)
+	if pt.Alias != "" {
+		addr = fmt.Sprintf("%s.%s", addr, pt.Alias)
+	}
+
+	return addr
+}
+
+// Name returns an FQN string, indended for use in output.
+func (pt Provider) Name() string {
 	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
 }
 
