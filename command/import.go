@@ -204,6 +204,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Get the context
 	ctx, state, ctxDiags := local.Context(opReq)
 
+	// Creating the context can result in a lock, so ensure we release it
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {

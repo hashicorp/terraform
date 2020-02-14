@@ -97,6 +97,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	// Get the context
 	ctx, _, ctxDiags := local.Context(opReq)
 
+	// Creating the context can result in a lock, so ensure we release it
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {
