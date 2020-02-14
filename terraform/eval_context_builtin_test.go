@@ -64,10 +64,6 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 		},
 	}
 
-	// FIXME: Once AbsProviderConfig has a provider FQN instead of an
-	// embedded LocalProviderConfig, use a legacy or default provider address
-	// here depending on whether we've moved away from legacy provider
-	// addresses in general yet.
 	providerAddrDefault := addrs.AbsProviderConfig{
 		Module:   addrs.RootModuleInstance,
 		Provider: addrs.NewLegacyProvider("test"),
