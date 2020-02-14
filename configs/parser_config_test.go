@@ -226,10 +226,10 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 }
 
 // TestParseLoadConfigFileError is a test that verifies files from
-// testdata/warning-files produce particular warnings.
+// testdata/warning-files produce particular errors.
 //
 // This test does not verify that reading these files produces the correct
-// file element contents in spite of those warnings. More detailed assertions
+// file element contents in spite of those errors. More detailed assertions
 // may be made on some subset of these configuration files in other tests.
 func TestParserLoadConfigFileError(t *testing.T) {
 	files, err := ioutil.ReadDir("testdata/error-files")
@@ -247,7 +247,7 @@ func TestParserLoadConfigFileError(t *testing.T) {
 
 			// First we'll scan the file to see what warnings are expected.
 			// That's declared inside the files themselves by using the
-			// string "WARNING: " somewhere on each line that is expected
+			// string "ERROR: " somewhere on each line that is expected
 			// to produce a warning, followed by the expected warning summary
 			// text. A single-line comment (with #) is the main way to do that.
 			const marker = "ERROR: "
