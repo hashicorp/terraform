@@ -100,8 +100,8 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			return
 		}
 
-		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", typeName)
-		provider, err := components.ResourceProvider(typeName)
+		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", fqn.LegacyString())
+		provider, err := components.ResourceProvider(fqn)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.

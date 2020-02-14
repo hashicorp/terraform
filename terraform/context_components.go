@@ -14,7 +14,7 @@ import (
 // a Context. This information is used for debugging.
 type contextComponentFactory interface {
 	// ResourceProvider creates a new ResourceProvider with the given type.
-	ResourceProvider(typ string) (providers.Interface, error)
+	ResourceProvider(typ addrs.Provider) (providers.Interface, error)
 	ResourceProviders() []string
 
 	// ResourceProvisioner creates a new ResourceProvisioner with the given
@@ -46,10 +46,10 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 	return result
 }
 
-func (c *basicComponentFactory) ResourceProvider(typ string) (providers.Interface, error) {
-	f, ok := c.providers[addrs.NewLegacyProvider(typ)]
+func (c *basicComponentFactory) ResourceProvider(typ addrs.Provider) (providers.Interface, error) {
+	f, ok := c.providers[typ]
 	if !ok {
-		return nil, fmt.Errorf("unknown provider %q", typ)
+		return nil, fmt.Errorf("unknown provider %q", typ.LegacyString())
 	}
 
 	return f()

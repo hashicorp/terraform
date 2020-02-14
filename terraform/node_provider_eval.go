@@ -13,9 +13,6 @@ func (n *NodeEvalableProvider) EvalTree() EvalNode {
 	addr := n.Addr
 
 	return &EvalInitProvider{
-		// FIXME: type is now in the AbsProviderConfig, EvalInitProvider doen't
-		// need this field anymore
-		TypeName: addr.Provider.Type,
-		Addr:     addr,
+		Addr: addr,
 	}
 }

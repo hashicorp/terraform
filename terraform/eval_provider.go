@@ -88,12 +88,11 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 // and returns nothing. The provider can be retrieved again with the
 // EvalGetProvider node.
 type EvalInitProvider struct {
-	TypeName string
-	Addr     addrs.AbsProviderConfig
+	Addr addrs.AbsProviderConfig
 }
 
 func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
-	return ctx.InitProvider(n.TypeName, n.Addr)
+	return ctx.InitProvider(n.Addr)
 }
 
 // EvalCloseProvider is an EvalNode implementation that closes provider

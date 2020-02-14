@@ -154,9 +154,9 @@ func (c *MockEvalContext) Input() UIInput {
 	return c.InputInput
 }
 
-func (c *MockEvalContext) InitProvider(t string, addr addrs.AbsProviderConfig) (providers.Interface, error) {
+func (c *MockEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	c.InitProviderCalled = true
-	c.InitProviderType = t
+	c.InitProviderType = addr.LegacyString()
 	c.InitProviderAddr = addr
 	return c.InitProviderProvider, c.InitProviderError
 }
