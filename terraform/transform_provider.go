@@ -668,11 +668,6 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 	// Go through all the providers the parent is passing in, and add proxies to
 	// the parent provider nodes.
 	for _, pair := range parentCfg.Providers {
-
-		// FIXME: this is relying on assumptions that the only providers are
-		// legacy-style providers, and will instead need to lookup fqns from the
-		// config when that information is available.
-		//fullAddr := pair.InChild.Addr().Absolute(instPath)
 		fqn := c.Module.ProviderForLocalConfig(pair.InChild.Addr())
 		fullAddr := addrs.AbsProviderConfig{
 			Provider: fqn,
