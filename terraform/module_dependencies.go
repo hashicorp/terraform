@@ -192,8 +192,6 @@ func configTreeMergeStateDependencies(root *moduledeps.Module, state *states.Sta
 		module := findModule(ms.Addr)
 
 		for _, rs := range ms.Resources {
-			//FIXME: lookup the provider localname in the TBD map and see if
-			//there is an FQN associated
 			fqn := rs.ProviderConfig.Provider
 			if _, exists := module.Providers[fqn]; !exists {
 				module.Providers[fqn] = moduledeps.ProviderDependency{
