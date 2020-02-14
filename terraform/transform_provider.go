@@ -673,14 +673,15 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 		// legacy-style providers, and will instead need to lookup fqns from the
 		// config when that information is available.
 		//fullAddr := pair.InChild.Addr().Absolute(instPath)
+		fqn := c.Module.ProviderForLocalConfig(pair.InChild.Addr())
 		fullAddr := addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider(pair.InChild.Addr().LocalName),
+			Provider: fqn,
 			Module:   instPath,
 			Alias:    pair.InChild.Addr().Alias,
 		}
 
 		fullParentAddr := addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider(pair.InParent.Addr().LocalName),
+			Provider: fqn,
 			Module:   parentInstPath,
 			Alias:    pair.InParent.Addr().Alias,
 		}

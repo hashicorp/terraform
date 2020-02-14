@@ -82,13 +82,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// allowing for more terse declaration in situations where both a
 		// configuration and a constraint are defined in the same module.
 		for _, pCfg := range module.ProviderConfigs {
-			var fqn addrs.Provider
-			if existing, exists := module.ProviderRequirements[pCfg.Name]; exists {
-				fqn = existing.Type
-			} else {
-				fqn = addrs.NewLegacyProvider(pCfg.Name)
-			}
-
+			fqn := module.ProviderForLocalConfig(pCfg.Addr())
 			discoConstraints := discovery.AllVersions
 			if pCfg.Version.Required != nil {
 				discoConstraints = discovery.NewConstraints(pCfg.Version.Required)
@@ -112,15 +106,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// an explicit dependency on the same provider.
 		for _, rc := range module.ManagedResources {
 			addr := rc.ProviderConfigAddr()
-			//look up the provider localname in the provider requirements map and see if
-			//there is a non-default FQN associated
-			var fqn addrs.Provider
-			if existing, exists := module.ProviderRequirements[addr.LocalName]; exists {
-				fqn = existing.Type
-			} else {
-				fqn = addrs.NewLegacyProvider(addr.LocalName)
-			}
-
+			fqn := module.ProviderForLocalConfig(addr)
 			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
@@ -138,14 +124,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		}
 		for _, rc := range module.DataResources {
 			addr := rc.ProviderConfigAddr()
-			//look up the provider localname in the provider requirements map and see if
-			//there is a non-default FQN associated
-			var fqn addrs.Provider
-			if existing, exists := module.ProviderRequirements[addr.LocalName]; exists {
-				fqn = existing.Type
-			} else {
-				fqn = addrs.NewLegacyProvider(addr.LocalName)
-			}
+			fqn := module.ProviderForLocalConfig(addr)
 			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
