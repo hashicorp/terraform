@@ -659,9 +659,7 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 			AttrsJSON:           []byte(`{"id":"a_id"}`),
 			CreateBeforeDestroy: true,
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -683,9 +681,7 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 				},
 			},
 		},
-		addrs.LocalProviderConfig{
-			LocalName: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{
