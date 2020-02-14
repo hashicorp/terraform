@@ -15,7 +15,7 @@ earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `merge` takes an arbitrary number of maps or objects, and returns a single map
-pr object that contains a merged set of elements from all arguments. 
+or object that contains a merged set of elements from all arguments. 
 
 If more than one given map or object defines the same key or attribute, then
 the one that is later in the argument sequence takes precedence. If the
