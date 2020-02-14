@@ -103,7 +103,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.AbsProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
 	absAddr := addr
 	if !absAddr.Module.Equal(ctx.Path()) {
@@ -124,12 +124,12 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.AbsProvi
 
 	key := absAddr.String()
 
-	p, err := ctx.Components.ResourceProvider(typeName)
+	p, err := ctx.Components.ResourceProvider(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", typeName, absAddr)
+	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.LegacyString(), absAddr)
 	ctx.ProviderCache[key] = p
 
 	return p, nil

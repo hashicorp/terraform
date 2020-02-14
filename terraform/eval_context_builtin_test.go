@@ -78,11 +78,11 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 		Alias:    "foo",
 	}
 
-	_, err := ctx.InitProvider("test", providerAddrDefault)
+	_, err := ctx.InitProvider(providerAddrDefault)
 	if err != nil {
 		t.Fatalf("error initializing provider test: %s", err)
 	}
-	_, err = ctx.InitProvider("test", providerAddrAlias)
+	_, err = ctx.InitProvider(providerAddrAlias)
 	if err != nil {
 		t.Fatalf("error initializing provider test.foo: %s", err)
 	}
