@@ -13,6 +13,7 @@ ENHANCEMENTS:
 BUG FIXES:
 * command/state show: Fix an issue when a resource has a non-default provider configured [GH-24027]
 * backend/remote-state: Fix issues where lingering lock files remained when deleting non-empty workspaces [GH-24085]
+* command/import: Release lock if initialization error occurs on import ([#23318](https://github.com/hashicorp/terraform/issues/23318))
 
 ## 0.12.20 (January 22, 2020)
 
