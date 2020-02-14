@@ -4,6 +4,12 @@ BREAKING CHANGES:
 
 * command/import: remove the deprecated -provider command line argument [GH-24090]
 #22862 fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. 
+* config: Inside provisioner blocks that have when = destroy set, and inside any connection blocks that are used by such provisioner blocks, it is now an error to refer to any objects other than self, count, or each [GH-24083]
+* config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
+
+
+BUG FIXES: 
+* core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
 
 ---
 For information on prior major releases, see their changelogs:
