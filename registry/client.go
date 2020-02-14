@@ -368,6 +368,8 @@ func (c *Client) TerraformProviderLocation(provider *regsrc.TerraformProvider, v
 	return &loc, nil
 }
 
+// configureDiscoveryRetry configures the number of retries the registry client
+// will attempt for requests with retryable errors, like 502 status codes
 func configureDiscoveryRetry() {
 	discoveryRetry = defaultRetry
 
