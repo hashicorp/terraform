@@ -85,7 +85,7 @@ func TestShow_aliasedProvider(t *testing.T) {
 				Dependencies: []addrs.AbsResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
-			addrs.RootModuleInstance.ProviderConfigAliased("test", "alias"),
+			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewLegacyProvider("test"), "alias"),
 		)
 	})
 

@@ -62,7 +62,7 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 						),
 					ProviderAddr: addrs.RootModuleInstance.
 						Child("moo", addrs.NoKey).
-						ProviderConfigDefault("foo"),
+						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 					ID: "bar",
 				},
 			},
@@ -279,7 +279,7 @@ func TestMissingProviderTransformer_moduleChild(t *testing.T) {
 						),
 					ProviderAddr: addrs.RootModuleInstance.
 						Child("moo", addrs.NoKey).
-						ProviderConfigDefault("foo"),
+						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 					ID: "bar",
 				},
 			},
@@ -324,7 +324,7 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 						),
 					ProviderAddr: addrs.RootModuleInstance.
 						Child("moo", addrs.NoKey).
-						ProviderConfigDefault("foo"),
+						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 					ID: "bar",
 				},
 			},
@@ -366,7 +366,7 @@ func TestParentProviderTransformer(t *testing.T) {
 						),
 					ProviderAddr: addrs.RootModuleInstance.
 						Child("moo", addrs.NoKey).
-						ProviderConfigDefault("foo"),
+						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 					ID: "bar",
 				},
 			},
@@ -420,7 +420,7 @@ func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
 						),
 					ProviderAddr: addrs.RootModuleInstance.
 						Child("moo", addrs.NoKey).
-						ProviderConfigDefault("foo"),
+						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 					ID: "bar",
 				},
 			},

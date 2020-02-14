@@ -214,7 +214,7 @@ func TestEvalWriteState(t *testing.T) {
 		State: &obj,
 
 		ProviderSchema: &providerSchema,
-		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewLegacyProvider("aws")),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -261,7 +261,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 		State: &obj,
 
 		ProviderSchema: &providerSchema,
-		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewLegacyProvider("aws")),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
