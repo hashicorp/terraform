@@ -587,12 +587,7 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 
 	// add all providers from the configuration
 	for _, p := range mod.ProviderConfigs {
-		relAddr := p.Addr()
-
-		// FIXME: This relies on the assumption that all providers are
-		// LegacyProviders, and will instead need to lookup the FQN in the
-		// config from the provider local name when that is supported.
-		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+		fqn := mod.ProviderForLocalConfig(p.Addr())
 		addr := addrs.AbsProviderConfig{
 			Provider: fqn,
 			Alias:    p.Alias,
