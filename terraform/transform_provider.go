@@ -312,7 +312,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other
 		// aspects of the resource's declared provider address.
-		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.Provider.LegacyString())
+		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.Provider)
 		key := defaultAddr.String()
 		provider := m[key]
 

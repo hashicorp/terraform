@@ -152,7 +152,7 @@ func TestEvalGetProvider_impl(t *testing.T) {
 func TestEvalGetProvider(t *testing.T) {
 	var actual providers.Interface
 	n := &EvalGetProvider{
-		Addr:   addrs.RootModuleInstance.ProviderConfigDefault("foo"),
+		Addr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 		Output: &actual,
 	}
 	provider := &MockProvider{}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -96,11 +97,11 @@ var _ ProviderConfig = AbsProviderConfig{}
 // address. The following are examples of traversals that can be successfully
 // parsed as absolute provider configuration addresses:
 //
-//     provider.["registry.terraform.io/hashicorp/aws"]
-//     provider.["registry.terraform.io/hashicorp/aws"].foo
-//     module.bar.provider.["registry.terraform.io/hashicorp/aws"]
-//     module.bar.module.baz.provider.["registry.terraform.io/hashicorp/aws"].foo
-//     module.foo[1].provider.["registry.terraform.io/hashicorp/aws"].foo
+//     provider["registry.terraform.io/hashicorp/aws"]
+//     provider["registry.terraform.io/hashicorp/aws"].foo
+//     module.bar.provider["registry.terraform.io/hashicorp/aws"]
+//     module.bar.module.baz.provider["registry.terraform.io/hashicorp/aws"].foo
+//     module.foo[1].provider["registry.terraform.io/hashicorp/aws"].foo
 //
 // This type of address is used, for example, to record the relationships
 // between resources and provider configurations in the state structure.
@@ -131,6 +132,15 @@ func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags
 	}
 
 	if tt, ok := remain[1].(hcl.TraverseIndex); ok {
+		if !tt.Key.Type().Equals(cty.String) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider configuration address",
+				Detail:   "The prefix \"provider.\" must be followed by a provider type name.",
+				Subject:  remain[1].SourceRange().Ptr(),
+			})
+			return ret, diags
+		}
 		p, sourceDiags := ParseProviderSourceString(tt.Key.AsString())
 		ret.Provider = p
 		if sourceDiags.HasErrors() {
@@ -273,29 +283,21 @@ func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, t
 	return ret, diags
 }
 
-// ProviderConfigDefault returns the address of the default provider config
-// of the given type inside the recieving module instance.
-//
-// TODO: The signature of this should change to accept a Provider address
-// instead of a bare name once AbsProviderConfig starts having its own Provider
-// and Alias fields rather than embedding LocalProviderConfig.
-func (m ModuleInstance) ProviderConfigDefault(name string) AbsProviderConfig {
+// ProviderConfigDefault returns the address of the default provider config of
+// the given type inside the recieving module instance.
+func (m ModuleInstance) ProviderConfigDefault(provider Provider) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module:   m,
-		Provider: NewLegacyProvider(name),
+		Provider: provider,
 	}
 }
 
-// ProviderConfigAliased returns the address of an aliased provider config
-// of with given type and alias inside the recieving module instance.
-//
-// TODO: The signature of this should change to accept a Provider address
-// instead of a bare name once AbsProviderConfig starts having its own Provider
-// and Alias fields rather than embedding LocalProviderConfig.
-func (m ModuleInstance) ProviderConfigAliased(name, alias string) AbsProviderConfig {
+// ProviderConfigAliased returns the address of an aliased provider config of
+// the given type and alias inside the recieving module instance.
+func (m ModuleInstance) ProviderConfigAliased(provider Provider, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module:   m,
-		Provider: NewLegacyProvider(name),
+		Provider: provider,
 		Alias:    alias,
 	}
 }
@@ -311,9 +313,9 @@ func (pc AbsProviderConfig) providerConfig() {}
 // other than the root module. Even if a valid address is returned, inheritence
 // may not be performed for other reasons, such as if the calling module
 // provided explicit provider configurations within the call for this module.
-// The ProviderTransformer graph transform in the main terraform module has
-// the authoritative logic for provider inheritance, and this method is here
-// mainly just for its benefit.
+// The ProviderTransformer graph transform in the main terraform module has the
+// authoritative logic for provider inheritance, and this method is here mainly
+// just for its benefit.
 func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 	// Can't inherit if we're already in the root.
 	if len(pc.Module) == 0 {
