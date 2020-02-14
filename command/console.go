@@ -96,11 +96,6 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Get the context
 	ctx, _, ctxDiags := local.Context(opReq)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
 
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
@@ -108,6 +103,12 @@ func (c *ConsoleCommand) Run(args []string) int {
 			c.Ui.Error(err.Error())
 		}
 	}()
+
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	// Setup the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
