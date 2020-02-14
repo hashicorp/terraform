@@ -258,6 +258,75 @@ func TestImport_remoteState(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
+// early failure on import should not leave stale lock
+func TestImport_initializationErrorShouldUnlock(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := "imported.tfstate"
+
+	// init our backend
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	ic := &InitCommand{
+		Meta: m,
+		providerInstaller: &mockProviderInstaller{
+			Providers: map[string][]string{
+				"test": []string{"1.2.3"},
+			},
+
+			Dir: m.pluginDir(),
+		},
+	}
+
+	// (Using log here rather than t.Log so that these messages interleave with other trace logs)
+	log.Print("[TRACE] TestImport_initializationErrorShouldUnlock running: terraform init")
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// overwrite the config with one including a resource from an invalid provider
+	copy.CopyFile(filepath.Join(testFixturePath("import-provider-invalid"), "main.tf"), filepath.Join(td, "main.tf"))
+
+	p := testProvider()
+	ui = new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"unknown_instance.baz",
+		"bar",
+	}
+	log.Printf("[TRACE] TestImport_initializationErrorShouldUnlock running: terraform import %s %s", args[0], args[1])
+
+	// this should fail
+	if code := c.Run(args); code != 1 {
+		fmt.Println(ui.OutputWriter)
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// specifically, it should fail due to a missing provider
+	msg := ui.ErrorWriter.String()
+	if want := "Could not satisfy plugin requirements"; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+
+	// verify that the local state was unlocked after initialization error
+	if _, err := os.Stat(filepath.Join(td, fmt.Sprintf(".%s.lock.info", statePath))); !os.IsNotExist(err) {
+		t.Fatal("state left locked after import")
+	}
+}
+
 func TestImport_providerConfigWithVar(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-provider-var"))()
 
