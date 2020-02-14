@@ -157,6 +157,11 @@ func TestParseAbsProviderConfig(t *testing.T) {
 			AbsProviderConfig{},
 			`Provider address must begin with "provider.", followed by a provider type name.`,
 		},
+		{
+			`provider[0]`,
+			AbsProviderConfig{},
+			`The prefix "provider." must be followed by a provider type name.`,
+		},
 	}
 
 	for _, test := range tests {
