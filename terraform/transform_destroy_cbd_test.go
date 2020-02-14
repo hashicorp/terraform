@@ -341,12 +341,10 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 test_object.A\[0\]
 test_object.A\[0\] \(destroy deposed \w+\)
   test_object.A\[0\]
-  test_object.A\[1\]
   test_object.B\[0\]
   test_object.B\[1\]
 test_object.A\[1\]
 test_object.A\[1\] \(destroy deposed \w+\)
-  test_object.A\[0\]
   test_object.A\[1\]
   test_object.B\[0\]
   test_object.B\[1\]

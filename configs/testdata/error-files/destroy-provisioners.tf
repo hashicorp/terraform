@@ -5,7 +5,7 @@ locals {
 resource "null_resource" "a" {
   connection {
     host = self.hostname
-    user = local.user # WARNING: External references from destroy provisioners are deprecated
+    user = local.user # ERROR: Invalid reference from destroy provisioner
   }
 
   provisioner "remote-exec" {
@@ -36,9 +36,9 @@ resource "null_resource" "b" {
     when = destroy
     connection {
       host = self.hostname
-      user = local.user # WARNING: External references from destroy provisioners are deprecated
+      user = local.user # ERROR: Invalid reference from destroy provisioner
     }
 
-    command = "echo ${local.name}" # WARNING: External references from destroy provisioners are deprecated
+    command = "echo ${local.name}" # ERROR: Invalid reference from destroy provisioner
   }
 }
