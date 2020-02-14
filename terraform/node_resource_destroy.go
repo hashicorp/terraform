@@ -33,7 +33,6 @@ var (
 	_ GraphNodeReferenceable       = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferencer          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeEvalable            = (*NodeDestroyResourceInstance)(nil)
-	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
 )
 
@@ -286,12 +285,8 @@ var (
 	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
 	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
 
-	// FIXME: this is here to document that this node is both
-	// GraphNodeProviderConsumer by virtue of the embedded
-	// NodeAbstractResource, but that behavior is not desired and we skip it by
-	// checking for GraphNodeNoProvider.
-	_ GraphNodeProviderConsumer = (*NodeDestroyResource)(nil)
-	_ GraphNodeNoProvider       = (*NodeDestroyResource)(nil)
+	// FIXME: fix this comment
+	_ GraphNodeNoProvider = (*NodeDestroyResource)(nil)
 )
 
 func (n *NodeDestroyResource) Name() string {

@@ -23,7 +23,6 @@ type NodeApplyableResource struct {
 var (
 	_ GraphNodeResource             = (*NodeApplyableResource)(nil)
 	_ GraphNodeEvalable             = (*NodeApplyableResource)(nil)
-	_ GraphNodeProviderConsumer     = (*NodeApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeApplyableResource)(nil)
 	_ GraphNodeReferencer           = (*NodeApplyableResource)(nil)
 )

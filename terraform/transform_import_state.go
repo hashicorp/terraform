@@ -50,7 +50,6 @@ type graphNodeImportState struct {
 var (
 	_ GraphNodeSubPath           = (*graphNodeImportState)(nil)
 	_ GraphNodeEvalable          = (*graphNodeImportState)(nil)
-	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
 )
 

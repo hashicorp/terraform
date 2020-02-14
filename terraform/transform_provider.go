@@ -56,21 +56,6 @@ type GraphNodeCloseProvider interface {
 	CloseProviderAddr() addrs.AbsProviderConfig
 }
 
-// GraphNodeProviderConsumer is an interface that nodes that require
-// a provider must implement. ProvidedBy must return the address of the provider
-// to use, which will be resolved to a configuration either in the same module
-// or in an ancestor module, with the resulting absolute address passed to
-// SetProvider.
-type GraphNodeProviderConsumer interface {
-	// ProvidedBy returns the address of the provider configuration the node
-	// refers to. If the returned "exact" value is true, this address will
-	// be taken exactly. If "exact" is false, a provider configuration from
-	// an ancestor module may be selected instead.
-	ProvidedBy() (addr addrs.AbsProviderConfig, exact bool)
-	// Set the resolved provider address for this resource.
-	SetProvider(addrs.AbsProviderConfig)
-}
-
 // ProviderTransformer is a GraphTransformer that maps resources to
 // providers within the graph. This will error if there are any resources
 // that don't map to proper resources.
@@ -107,7 +92,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		}
 
 		// Does the vertex _directly_ use a provider?
-		if pv, ok := v.(GraphNodeProviderConsumer); ok {
+		if pv, ok := v.(GraphNodeResource); ok {
 			requested[v] = make(map[string]ProviderRequest)
 
 			p, exact := pv.ProvidedBy()
@@ -200,7 +185,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			}
 
 			log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", dag.VertexName(v), v, dag.VertexName(target))
-			if pv, ok := v.(GraphNodeProviderConsumer); ok {
+			if pv, ok := v.(GraphNodeResource); ok {
 				pv.SetProvider(target.ProviderAddr())
 			}
 			g.Connect(dag.BasicEdge(v, target))
@@ -243,7 +228,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 
 		// connect all the provider's resources to the close node
 		for _, s := range g.UpEdges(p).List() {
-			if _, ok := s.(GraphNodeProviderConsumer); ok {
+			if _, ok := s.(GraphNodeResource); ok {
 				g.Connect(dag.BasicEdge(closer, s))
 			}
 		}
@@ -292,7 +277,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		pv, ok := v.(GraphNodeProviderConsumer)
+		pv, ok := v.(GraphNodeResource)
 		if !ok {
 			continue
 		}

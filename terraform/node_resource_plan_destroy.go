@@ -26,7 +26,6 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeEvalable             = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
 // GraphNodeDestroyer

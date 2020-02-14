@@ -12,8 +12,6 @@ import (
 // that need a resource schema attached.
 type GraphNodeAttachResourceSchema interface {
 	GraphNodeResource
-	GraphNodeProviderConsumer
-
 	AttachResourceSchema(schema *configschema.Block, version uint64)
 }
 

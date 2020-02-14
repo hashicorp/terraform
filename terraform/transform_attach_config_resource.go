@@ -42,7 +42,8 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 		// Get the configuration.
 		config := t.Config.DescendentForInstance(addr.Module)
 		if config == nil {
-			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", dag.VertexName(v), v)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available",
+				dag.VertexName(v), v)
 			continue
 		}
 
@@ -54,7 +55,8 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %s", dag.VertexName(v), v, r.DeclRange)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %s",
+				dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
 		}
 		for _, r := range config.Module.DataResources {
@@ -65,7 +67,8 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", dag.VertexName(v), v, r.DeclRange)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v",
+				dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
 		}
 	}

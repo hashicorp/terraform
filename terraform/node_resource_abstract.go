@@ -21,6 +21,15 @@ type ConcreteResourceNodeFunc func(*NodeAbstractResource) dag.Vertex
 // the given resource.
 type GraphNodeResource interface {
 	ResourceAddr() addrs.AbsResource
+
+	// ProvidedBy returns the address of the provider configuration the node
+	// refers to. If the returned "exact" value is true, this address will
+	// be taken exactly. If "exact" is false, a provider configuration from
+	// an ancestor module may be selected instead.
+	ProvidedBy() (addrs.AbsProviderConfig, bool)
+
+	// Set the resolved provider address for this resource
+	SetProvider(addrs.AbsProviderConfig)
 }
 
 // ConcreteResourceInstanceNodeFunc is a callback type used to convert an
@@ -65,7 +74,6 @@ var (
 	_ GraphNodeSubPath                 = (*NodeAbstractResource)(nil)
 	_ GraphNodeReferenceable           = (*NodeAbstractResource)(nil)
 	_ GraphNodeReferencer              = (*NodeAbstractResource)(nil)
-	_ GraphNodeProviderConsumer        = (*NodeAbstractResource)(nil)
 	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResource)(nil)
 	_ GraphNodeResource                = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachResourceConfig    = (*NodeAbstractResource)(nil)
@@ -103,7 +111,6 @@ var (
 	_ GraphNodeSubPath                 = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeReferenceable           = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeReferencer              = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProviderConsumer        = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeResource                = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeResourceInstance        = (*NodeAbstractResourceInstance)(nil)
@@ -275,7 +282,7 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 	n.ResolvedProvider = p
 }
 
-// GraphNodeProviderConsumer
+// GraphNodeResource
 func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
@@ -302,16 +309,14 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	}, false
 }
 
-// GraphNodeProviderConsumer
+// GraphNodeResource
 func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		// Use our type and containing module path to guess a provider configuration address.
-		// FIXME: This is relying on the FQN-to-local matching true only of legacy
-		// addresses.
+		// FIXME: this will need to lookup the provider and see if there's an
+		// FQN associated with the local config
 		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
-
 		return addrs.AbsProviderConfig{
 			Provider: fqn,
 			Module:   n.Path(),
