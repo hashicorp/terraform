@@ -80,6 +80,12 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	// Find the things that reference things and connect them
 	for _, v := range vs {
+		if _, ok := v.(GraphNodeDestroyer); ok {
+			// destroy nodes references are not connected, since they can only
+			// use their own state.
+			continue
+		}
+
 		parents, _ := m.References(v)
 		parentsDbg := make([]string, len(parents))
 		for i, v := range parents {
@@ -165,42 +171,6 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 
 		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", attacher.ResourceAddr(), deps)
 		attacher.AttachDependencies(deps)
-	}
-
-	return nil
-}
-
-// DestroyReferenceTransformer is a GraphTransformer that reverses the edges
-// for locals and outputs that depend on other nodes which will be
-// removed during destroy. If a destroy node is evaluated before the local or
-// output value, it will be removed from the state, and the later interpolation
-// will fail.
-type DestroyValueReferenceTransformer struct{}
-
-func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
-	vs := g.Vertices()
-	for _, v := range vs {
-		switch v.(type) {
-		case *NodeApplyableOutput, *NodeLocal:
-			// OK
-		default:
-			continue
-		}
-
-		// reverse any outgoing edges so that the value is evaluated first.
-		for _, e := range g.EdgesFrom(v) {
-			target := e.Target()
-
-			// only destroy nodes will be evaluated in reverse
-			if _, ok := target.(GraphNodeDestroyer); !ok {
-				continue
-			}
-
-			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
-
-			g.RemoveEdge(e)
-			g.Connect(&DestroyEdge{S: target, T: v})
-		}
 	}
 
 	return nil

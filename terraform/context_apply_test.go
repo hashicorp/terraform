@@ -290,35 +290,26 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.a": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "parent",
-						},
-						Dependencies: []string{"module.child"},
-						Provider:     "provider.aws",
-					},
-				},
-			},
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.child": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "child",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"parent"}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.aws_instance.child")},
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.child").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"child"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	{
 		// verify the apply happens in the correct order
@@ -1264,30 +1255,26 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "foo",
-							Attributes: map[string]string{},
-						},
-					},
 
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("aws_instance.bar")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	// Record the order we see Apply
 	var actual []string
@@ -1329,34 +1316,6 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 // Test that destroy ordering is correct with dependencies only
 // in the state.
 func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
-	legacyState := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "foo",
-							Attributes: map[string]string{},
-						},
-						Provider: "provider.aws",
-					},
-
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{},
-						},
-						Dependencies: []string{"aws_instance.foo"},
-						Provider:     "provider.aws",
-					},
-				},
-			},
-		},
-	})
-
 	newState := states.NewState()
 	root := newState.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -1404,9 +1363,6 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 	// It is possible for this to be racy, so we loop a number of times
 	// just to check.
 	for i := 0; i < 10; i++ {
-		t.Run("legacy", func(t *testing.T) {
-			testContext2Apply_destroyDependsOnStateOnly(t, legacyState)
-		})
 		t.Run("new", func(t *testing.T) {
 			testContext2Apply_destroyDependsOnStateOnly(t, newState)
 		})
@@ -1458,34 +1414,6 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T, state *states.Sta
 // Test that destroy ordering is correct with dependencies only
 // in the state within a module (GH-11749)
 func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
-	legacyState := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "foo",
-							Attributes: map[string]string{},
-						},
-						Provider: "provider.aws",
-					},
-
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{},
-						},
-						Dependencies: []string{"aws_instance.foo"},
-						Provider:     "provider.aws",
-					},
-				},
-			},
-		},
-	})
-
 	newState := states.NewState()
 	child := newState.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 	child.SetResourceInstanceCurrent(
@@ -1533,9 +1461,6 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 	// It is possible for this to be racy, so we loop a number of times
 	// just to check.
 	for i := 0; i < 10; i++ {
-		t.Run("legacy", func(t *testing.T) {
-			testContext2Apply_destroyDependsOnStateOnlyModule(t, legacyState)
-		})
 		t.Run("new", func(t *testing.T) {
 			testContext2Apply_destroyDependsOnStateOnlyModule(t, newState)
 		})
@@ -2116,72 +2041,6 @@ aws_instance.foo:
   provider = provider["registry.terraform.io/-/aws"]
   num = 2
 	`)
-}
-
-// for_each values cannot be used in the provisioner during destroy.
-// There may be a way to handle this, but for now make sure we print an error
-// rather than crashing with an invalid config.
-func TestContext2Apply_provisionerDestroyForEach(t *testing.T) {
-	m := testModule(t, "apply-provisioner-each")
-	p := testProvider("aws")
-	pr := testProvisioner()
-	p.DiffFn = testDiffFn
-	p.ApplyFn = testApplyFn
-
-	s := &states.State{
-		Modules: map[string]*states.Module{
-			"": &states.Module{
-				Resources: map[string]*states.Resource{
-					"aws_instance.bar": &states.Resource{
-						Addr:     addrs.Resource{Mode: 77, Type: "aws_instance", Name: "bar"},
-						EachMode: states.EachMap,
-						Instances: map[addrs.InstanceKey]*states.ResourceInstance{
-							addrs.StringKey("a"): &states.ResourceInstance{
-								Current: &states.ResourceInstanceObjectSrc{
-									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
-								},
-							},
-							addrs.StringKey("b"): &states.ResourceInstance{
-								Current: &states.ResourceInstanceObjectSrc{
-									AttrsJSON: []byte(`{"foo":"bar","id":"foo"}`),
-								},
-							},
-						},
-						ProviderConfig: addrs.AbsProviderConfig{
-							Module:   addrs.ModuleInstance(nil),
-							Provider: addrs.NewLegacyProvider("aws"),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-		State:   s,
-		Destroy: true,
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	_, diags := ctx.Apply()
-	if diags == nil {
-		t.Fatal("should error")
-	}
-	if !strings.Contains(diags.Err().Error(), "each.value cannot be used in this context") {
-		t.Fatal("unexpected error:", diags.Err())
-	}
 }
 
 func TestContext2Apply_cancelProvisioner(t *testing.T) {
@@ -2831,30 +2690,26 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 		},
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.b": resourceState("aws_instance", "b"),
-				},
-			},
-
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.a": resourceState("aws_instance", "a"),
-				},
-				Outputs: map[string]*OutputState{
-					"a_output": &OutputState{
-						Type:      "string",
-						Sensitive: false,
-						Value:     "a",
-					},
-				},
-			},
+	state := states.NewState()
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"a"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b"}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.aws_instance.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -5763,196 +5618,6 @@ aws_instance.foo:
 	}
 }
 
-func TestContext2Apply_provisionerDestroyModule(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-module")
-	p := testProvider("aws")
-	pr := testProvisioner()
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["command"]
-		if !ok || val != "value" {
-			t.Fatalf("bad value for foo: %v %#v", val, c)
-		}
-
-		return nil
-	}
-
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	checkStateString(t, state, `<no state>`)
-
-	// Verify apply was invoked
-	if !pr.ProvisionResourceCalled {
-		t.Fatalf("provisioner not invoked")
-	}
-}
-
-func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-ref")
-	p := testProvider("aws")
-	pr := testProvisioner()
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		val, ok := c.Config["command"]
-		if !ok || val != "hello" {
-			return fmt.Errorf("bad value for command: %v %#v", val, c)
-		}
-
-		return nil
-	}
-
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"value": "hello",
-							},
-						},
-						Provider: "provider.aws",
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
-		},
-	})
-
-	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
-
-	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	checkStateString(t, state, `<no state>`)
-
-	// Verify apply was invoked
-	if !pr.ProvisionResourceCalled {
-		t.Fatalf("provisioner not invoked")
-	}
-}
-
-// Test that a destroy provisioner referencing an invalid key errors.
-func TestContext2Apply_provisionerDestroyRefInvalid(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-ref-invalid")
-	p := testProvider("aws")
-	pr := testProvisioner()
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		return nil
-	}
-
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-	})
-
-	// this was an apply test, but this is now caught in Validation
-	if diags := ctx.Validate(); !diags.HasErrors() {
-		t.Fatal("expected error")
-	}
-}
-
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
@@ -8350,259 +8015,32 @@ aws_instance.bar:
 	`)
 }
 
-func TestContext2Apply_destroyProvisionerWithLocals(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-locals")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-
-	pr := testProvisioner()
-	pr.ApplyFn = func(_ *InstanceState, rc *ResourceConfig) error {
-		cmd, ok := rc.Get("command")
-		if !ok || cmd != "local" {
-			return fmt.Errorf("provisioner got %v:%s", ok, cmd)
-		}
-		return nil
-	}
-	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
-		Provisioner: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"command": {
-					Type:     cty.String,
-					Required: true,
-				},
-				"when": {
-					Type:     cty.String,
-					Optional: true,
-				},
-			},
-		},
-	}
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "1234"),
-					},
-				},
-			},
-		}),
-		Destroy: true,
-		// the test works without targeting, but this also tests that the local
-		// node isn't inadvertently pruned because of the wrong evaluation
-		// order.
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
-		},
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-
-	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-
-	if !pr.ProvisionResourceCalled {
-		t.Fatal("provisioner not called")
-	}
-}
-
-// this also tests a local value in the config referencing a resource that
-// wasn't in the state during destroy.
-func TestContext2Apply_destroyProvisionerWithMultipleLocals(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-multiple-locals")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-
-	pr := testProvisioner()
-	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
-		Provisioner: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"id": {
-					Type:     cty.String,
-					Required: true,
-				},
-				"command": {
-					Type:     cty.String,
-					Required: true,
-				},
-				"when": {
-					Type:     cty.String,
-					Optional: true,
-				},
-			},
-		},
-	}
-
-	pr.ApplyFn = func(is *InstanceState, rc *ResourceConfig) error {
-		cmd, ok := rc.Get("command")
-		if !ok {
-			return errors.New("no command in provisioner")
-		}
-		id, ok := rc.Get("id")
-		if !ok {
-			return errors.New("no id in provisioner")
-		}
-
-		switch id {
-		case "1234":
-			if cmd != "local" {
-				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
-			}
-		case "3456":
-			if cmd != "1234" {
-				return fmt.Errorf("provisioner %q got:%q", is.ID, cmd)
-			}
-		default:
-			t.Fatal("unknown instance")
-		}
-		return nil
-	}
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "1234"),
-						"aws_instance.bar": resourceState("aws_instance", "3456"),
-					},
-				},
-			},
-		}),
-		Destroy: true,
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-
-	if _, diags := ctx.Apply(); diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-
-	if !pr.ProvisionResourceCalled {
-		t.Fatal("provisioner not called")
-	}
-}
-
-func TestContext2Apply_destroyProvisionerWithOutput(t *testing.T) {
-	m := testModule(t, "apply-provisioner-destroy-outputs")
-	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-
-	pr := testProvisioner()
-	pr.ApplyFn = func(is *InstanceState, rc *ResourceConfig) error {
-		cmd, ok := rc.Get("command")
-		if !ok || cmd != "3" {
-			return fmt.Errorf("provisioner for %s got %v:%s", is.ID, ok, cmd)
-		}
-		return nil
-	}
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
-		Provisioners: map[string]ProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "1"),
-					},
-					Outputs: map[string]*OutputState{
-						"value": {
-							Type:  "string",
-							Value: "3",
-						},
-					},
-				},
-				&ModuleState{
-					Path: []string{"root", "mod"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.baz": resourceState("aws_instance", "3"),
-					},
-					// state needs to be properly initialized
-					Outputs: map[string]*OutputState{},
-				},
-				&ModuleState{
-					Path: []string{"root", "mod2"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.bar": resourceState("aws_instance", "2"),
-					},
-				},
-			},
-		}),
-		Destroy: true,
-
-		// targeting the source of the value used by all resources should still
-		// destroy them all.
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("mod", addrs.NoKey).Resource(
-				addrs.ManagedResourceMode, "aws_instance", "baz",
-			),
-		},
-	})
-
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-
-	state, diags := ctx.Apply()
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-	if !pr.ProvisionResourceCalled {
-		t.Fatal("provisioner not called")
-	}
-
-	// confirm all outputs were removed too
-	for _, mod := range state.Modules {
-		if len(mod.OutputValues) > 0 {
-			t.Fatalf("output left in module state: %#v\n", mod)
-		}
-	}
-}
-
 func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 	m := testModule(t, "apply-destroy-targeted-count")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"i-abc123"}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("aws_instance.foo")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
@@ -8610,17 +8048,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
-					},
-				},
-			},
-		}),
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
@@ -10236,29 +9664,16 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-			},
-			&ModuleState{
-				Path: []string{"root", "child"},
-			},
-			&ModuleState{
-				Path: []string{"root", "mod", "removed"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.child": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-						// this provider doesn't exist
-						Provider: "provider.aws.baz",
-					},
-				},
-			},
+	state := states.NewState()
+	removed := state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.NoKey).Child("removed", addrs.NoKey))
+	removed.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.child").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"].baz`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -10267,7 +9682,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
-		State:   s,
+		State:   state,
 		Destroy: true,
 	})
 
@@ -10277,10 +9692,10 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	}
 
 	// correct the state
-	s.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.AbsProviderConfig{
+	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.AbsProviderConfig{
 		Provider: addrs.NewLegacyProvider("aws"),
-		Module:   addrs.RootModuleInstance,
 		Alias:    "bar",
+		Module:   addrs.RootModuleInstance,
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {

@@ -235,12 +235,6 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 		"test_object.B",
 		destroyB,
 	)
-
-	// actual := strings.TrimSpace(g.String())
-	// expected := strings.TrimSpace(testApplyGraphBuilderDoubleCBDStr)
-	// if actual != expected {
-	// 	t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
-	// }
 }
 
 // This tests the ordering of two resources being destroyed that depend
@@ -263,33 +257,26 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 		},
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"test_object.A": &ResourceState{
-						Type: "test_object",
-						Primary: &InstanceState{
-							ID:         "foo",
-							Attributes: map[string]string{},
-						},
-						Provider: "provider.test",
-					},
-
-					"test_object.B": &ResourceState{
-						Type: "test_object",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{},
-						},
-						Dependencies: []string{"test_object.A"},
-						Provider:     "provider.test",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"bar"}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.test_object.A")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+	)
 
 	b := &ApplyGraphBuilder{
 		Config:        testModule(t, "empty"),
@@ -304,7 +291,6 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
-	t.Logf("Graph:\n%s", g.String())
 
 	if g.Path.String() != addrs.RootModuleInstance.String() {
 		t.Fatalf("wrong path %q", g.Path.String())
@@ -376,11 +362,33 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	modA := state.EnsureModule(addrs.RootModuleInstance.Child("A", addrs.NoKey))
+	modA.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+	)
+	modB := state.EnsureModule(addrs.RootModuleInstance.Child("B", addrs.NoKey))
+	modB.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"foo","value":"foo"}`),
+			Dependencies: []addrs.AbsResource{mustResourceAddr("module.A.test_object.foo")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+	)
+
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-module-destroy"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
