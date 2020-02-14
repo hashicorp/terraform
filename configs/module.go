@@ -457,3 +457,11 @@ func (m *Module) LocalNameForProvider(p addrs.Provider) string {
 		return p.Type
 	}
 }
+
+// ProviderForLocalConfig returns the provider FQN for a given LocalProviderConfig
+func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
+	if provider, exists := m.ProviderRequirements[pc.String()]; exists {
+		return provider.Type
+	}
+	return addrs.NewLegacyProvider(pc.LocalName)
+}
