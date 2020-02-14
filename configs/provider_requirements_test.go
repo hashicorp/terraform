@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -124,6 +125,11 @@ func TestDecodeRequiredProvidersBlock_mixed(t *testing.T) {
 	}
 
 	got, diags := decodeRequiredProvidersBlock(block)
+
+	sort.SliceStable(got, func(i, j int) bool {
+		return got[i].Name < got[j].Name
+	})
+
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error")
 	}
