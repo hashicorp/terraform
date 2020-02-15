@@ -58,7 +58,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// The main way to declare a provider dependency is explicitly inside
 		// the "terraform" block, which allows declaring a requirement without
 		// also creating a configuration.
-		for _, req := range module.ProviderRequirements {
+		for localName, req := range module.ProviderRequirements {
 			// The handling here is a bit fiddly because the moduledeps package
 			// was designed around the legacy (pre-0.12) configuration model
 			// and hasn't yet been revised to handle the new model. As a result,
@@ -71,6 +71,10 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 				rawConstraints = append(rawConstraints, constraint.Required...)
 			}
 			discoConstraints := discovery.NewConstraints(rawConstraints)
+			fqn := req.Type
+			if fqn.IsZero() {
+				fqn = addrs.NewLegacyProvider(localName)
+			}
 
 			providers[req.Type] = moduledeps.ProviderDependency{
 				Constraints: discoConstraints,
@@ -83,6 +87,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// configuration and a constraint are defined in the same module.
 		for _, pCfg := range module.ProviderConfigs {
 			fqn := module.ProviderForLocalConfig(pCfg.Addr())
+
 			discoConstraints := discovery.AllVersions
 			if pCfg.Version.Required != nil {
 				discoConstraints = discovery.NewConstraints(pCfg.Version.Required)
@@ -107,6 +112,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		for _, rc := range module.ManagedResources {
 			addr := rc.ProviderConfigAddr()
 			fqn := module.ProviderForLocalConfig(addr)
+
 			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
@@ -125,6 +131,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		for _, rc := range module.DataResources {
 			addr := rc.ProviderConfigAddr()
 			fqn := module.ProviderForLocalConfig(addr)
+
 			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue

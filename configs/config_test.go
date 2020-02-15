@@ -75,7 +75,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	})
 	t.Run("local, explicit mapping", func(t *testing.T) {
 		addr := addrs.LocalProviderConfig{
-			LocalName: "foo_test", // this is explicitly set in the config
+			LocalName: "foo-test", // this is explicitly set in the config
 			Alias:     "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
@@ -87,7 +87,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			// once we are fully supporting this we should expect to see
 			// the "registry.terraform.io/foo/test" FQN here, while still
 			// preserving the "boop" alias.
-			Provider: addrs.NewLegacyProvider("foo_test"),
+			Provider: addrs.NewLegacyProvider("foo-test"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {

@@ -17,18 +17,18 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	// currently assumes everything is a legacy provider and the localname and
 	// type match. This test will be updated when provider source is fully
 	// implemented.
-	p := addrs.NewLegacyProvider("foo_test")
+	p := addrs.NewLegacyProvider("foo-test")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
 		t.Fatal("provider FQN foo/test not found")
 	} else {
-		if name != "foo_test" {
-			t.Fatalf("provider localname mismatch: got %s, want foo_test", name)
+		if name != "foo-test" {
+			t.Fatalf("provider localname mismatch: got %s, want foo-test", name)
 		}
 	}
 
 	// ensure the reverse lookup (fqn to local name) works as well
 	localName := mod.LocalNameForProvider(p)
-	if localName != "foo_test" {
+	if localName != "foo-test" {
 		t.Fatal("provider local name not found")
 	}
 }
