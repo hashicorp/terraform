@@ -1,7 +1,7 @@
 
 terraform {
   required_providers {
-    foo_test = {
+    foo-test = {
       source = "foo/test"
     }
   }
