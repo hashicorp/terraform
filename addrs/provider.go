@@ -109,6 +109,23 @@ func (pt Provider) IsZero() bool {
 	return pt == Provider{}
 }
 
+// LessThan returns true if the receiver should sort before the other given
+// address in an ordered list of provider addresses.
+//
+// This ordering is an arbitrary one just to allow deterministic results from
+// functions that would otherwise have no natural ordering. It's subject
+// to change in future.
+func (pt Provider) LessThan(other Provider) bool {
+	switch {
+	case pt.Hostname != other.Hostname:
+		return pt.Hostname < other.Hostname
+	case pt.Namespace != other.Namespace:
+		return pt.Namespace < other.Namespace
+	default:
+		return pt.Type < other.Type
+	}
+}
+
 // ParseProviderSourceString parses the source attribute and returns a provider.
 // This is intended primarily to parse the FQN-like strings returned by
 // terraform-config-inspect.
