@@ -78,6 +78,10 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.NonFatalErr()
 	}
 
+	if !configVal.IsWhollyKnown() {
+		return nil, fmt.Errorf("EvalConfigProvider %s configuration contains unknown values", n.Addr)
+	}
+
 	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
 	configDiags = configDiags.InConfigBody(configBody)
 

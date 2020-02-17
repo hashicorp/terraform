@@ -3472,6 +3472,7 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 
 func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-provider-destroy")
+
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
@@ -3503,7 +3504,25 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 		},
 	}
 
-	var state *states.State
+	// the state must already contain the vault instance, since the provider
+	// requires it.
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "vault_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"vault"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("vault"),
+			Module:   addrs.RootModuleInstance,
+		},
+	)
 
 	// First, create the instances
 	{
@@ -3515,6 +3534,7 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 					addrs.NewLegacyProvider("vault"): testProviderFuncFixed(p2),
 				},
 			),
+			State: state,
 		})
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -3630,7 +3650,25 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 		},
 	}
 
-	var state *states.State
+	// the state must already contain the vault instance, since the provider
+	// requires it.
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "vault_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"vault"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("vault"),
+			Module:   addrs.RootModuleInstance,
+		},
+	)
 
 	// First, create the instances
 	{
@@ -3642,6 +3680,7 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 					addrs.NewLegacyProvider("vault"): testProviderFuncFixed(p2),
 				},
 			),
+			State: state,
 		})
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
