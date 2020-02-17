@@ -55,7 +55,7 @@ type RemoteClient struct {
 	info                 *state.LockInfo
 	mu                   sync.Mutex
 	otsTable             string
-	otsTabkePK           TableStorePrimaryKeyMeta
+	otsTablePK           TableStorePrimaryKeyMeta
 }
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
@@ -170,7 +170,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
+					ColumnName: c.otsTablePK.PKName,
 					Value:      c.getPKValue(),
 				},
 			},
@@ -223,7 +223,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
+					ColumnName: c.otsTablePK.PKName,
 					Value:      c.getPKValue(),
 				},
 			},
@@ -270,7 +270,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
+					ColumnName: c.otsTablePK.PKName,
 					Value:      c.getPKValue(),
 				},
 			},
@@ -315,7 +315,7 @@ func (c *RemoteClient) deleteMD5() error {
 			PrimaryKey: &tablestore.PrimaryKey{
 				PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 					{
-						ColumnName: c.otsTabkePK.PKName,
+						ColumnName: c.otsTablePK.PKName,
 						Value:      c.getPKValue(),
 					},
 				},
@@ -341,7 +341,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
+					ColumnName: c.otsTablePK.PKName,
 					Value:      c.getPKValue(),
 				},
 			},
@@ -394,7 +394,7 @@ func (c *RemoteClient) Unlock(id string) error {
 			PrimaryKey: &tablestore.PrimaryKey{
 				PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 					{
-						ColumnName: c.otsTabkePK.PKName,
+						ColumnName: c.otsTablePK.PKName,
 						Value:      c.getPKValue(),
 					},
 				},
@@ -459,9 +459,9 @@ func (c *RemoteClient) getObj() (*remote.Payload, error) {
 
 func (c *RemoteClient) getPKValue() (value interface{}) {
 	value = statePKValue
-	if c.otsTabkePK.PKType == "Integer" {
+	if c.otsTablePK.PKType == "Integer" {
 		value = hashcode.String(statePKValue)
-	} else if c.otsTabkePK.PKType == "Binary" {
+	} else if c.otsTablePK.PKType == "Binary" {
 		value = stringToBin(statePKValue)
 	}
 	return

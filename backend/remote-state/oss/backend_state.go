@@ -57,7 +57,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 			} else {
 				return client, fmt.Errorf("Unsupported PrimaryKey type: %d.", *t.Type)
 			}
-			client.otsTabkePK = pkMeta
+			client.otsTablePK = pkMeta
 			break
 		}
 	}
