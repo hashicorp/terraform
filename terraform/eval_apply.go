@@ -561,8 +561,15 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
-		forEach, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
-		diags = diags.Append(forEachDiags)
+		var forEach map[string]cty.Value
+
+		// We can't evaluate the for_each expression during a destroy
+		if n.When != configs.ProvisionerWhenDestroy {
+			m, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
+			diags = diags.Append(forEachDiags)
+			forEach = m
+		}
+
 		keyData := EvalDataForInstanceKey(instanceAddr.Key, forEach)
 
 		// Evaluate the main provisioner configuration.
