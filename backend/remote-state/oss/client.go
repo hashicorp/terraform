@@ -16,7 +16,6 @@ import (
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/pkg/errors"
@@ -25,7 +24,6 @@ import (
 // Store the last saved serial in tablestore with this suffix for consistency checks.
 const (
 	stateIDSuffix = "-md5"
-	statePKValue  = "terraform-remote-state-lock"
 )
 
 var (
@@ -40,11 +38,6 @@ var (
 // test hook called when checksums don't match
 var testChecksumHook func()
 
-type TableStorePrimaryKeyMeta struct {
-	PKName string
-	PKType string
-}
-
 type RemoteClient struct {
 	ossClient            *oss.Client
 	otsClient            *tablestore.TableStoreClient
@@ -56,7 +49,6 @@ type RemoteClient struct {
 	info                 *state.LockInfo
 	mu                   sync.Mutex
 	otsTable             string
-	otsTabkePK           TableStorePrimaryKeyMeta
 }
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
@@ -173,16 +165,12 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
-					Value:      c.getPKValue(),
+					ColumnName: "LockID",
+					Value:      c.lockPath(),
 				},
 			},
 		},
 		Columns: []tablestore.AttributeColumn{
-			{
-				ColumnName: "LockID",
-				Value:      c.lockPath(),
-			},
 			{
 				ColumnName: "Info",
 				Value:      string(info.Marshal()),
@@ -193,7 +181,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		},
 	}
 
-	log.Printf("[DEBUG] Recoring state lock in tablestore: %#v", putParams)
+	log.Printf("[DEBUG] Recording state lock in tablestore: %#v", putParams)
 
 	_, err := c.otsClient.PutRow(&tablestore.PutRowRequest{
 		PutRowChange: putParams,
@@ -226,8 +214,8 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
-					Value:      c.getPKValue(),
+					ColumnName: "LockID",
+					Value:      c.lockPath() + stateIDSuffix,
 				},
 			},
 		},
@@ -273,23 +261,19 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
-					Value:      c.getPKValue(),
+					ColumnName: "LockID",
+					Value:      c.lockPath() + stateIDSuffix,
 				},
 			},
 		},
 		Columns: []tablestore.AttributeColumn{
-			{
-				ColumnName: "LockID",
-				Value:      c.lockPath() + stateIDSuffix,
-			},
 			{
 				ColumnName: "Digest",
 				Value:      hex.EncodeToString(sum),
 			},
 		},
 		Condition: &tablestore.RowCondition{
-			RowExistenceExpectation: tablestore.RowExistenceExpectation_EXPECT_NOT_EXIST,
+			RowExistenceExpectation: tablestore.RowExistenceExpectation_IGNORE,
 		},
 	}
 
@@ -318,8 +302,8 @@ func (c *RemoteClient) deleteMD5() error {
 			PrimaryKey: &tablestore.PrimaryKey{
 				PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 					{
-						ColumnName: c.otsTabkePK.PKName,
-						Value:      c.getPKValue(),
+						ColumnName: "LockID",
+						Value:      c.lockPath() + stateIDSuffix,
 					},
 				},
 			},
@@ -344,8 +328,8 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: c.otsTabkePK.PKName,
-					Value:      c.getPKValue(),
+					ColumnName: "LockID",
+					Value:      c.lockPath(),
 				},
 			},
 		},
@@ -397,8 +381,8 @@ func (c *RemoteClient) Unlock(id string) error {
 			PrimaryKey: &tablestore.PrimaryKey{
 				PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 					{
-						ColumnName: c.otsTabkePK.PKName,
-						Value:      c.getPKValue(),
+						ColumnName: "LockID",
+						Value:      c.lockPath(),
 					},
 				},
 			},
@@ -458,23 +442,6 @@ func (c *RemoteClient) getObj() (*remote.Payload, error) {
 	}
 
 	return payload, nil
-}
-
-func (c *RemoteClient) getPKValue() (value interface{}) {
-	value = statePKValue
-	if c.otsTabkePK.PKType == "Integer" {
-		value = hashcode.String(statePKValue)
-	} else if c.otsTabkePK.PKType == "Binary" {
-		value = stringToBin(statePKValue)
-	}
-	return
-}
-
-func stringToBin(s string) (binString string) {
-	for _, c := range s {
-		binString = fmt.Sprintf("%s%b", binString, c)
-	}
-	return
 }
 
 const errBadChecksumFmt = `state data in OSS does not have the expected content.
