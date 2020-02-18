@@ -181,7 +181,7 @@ func deleteOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
 func createTablestoreTable(t *testing.T, otsClient *tablestore.TableStoreClient, tableName string) {
 	tableMeta := new(tablestore.TableMeta)
 	tableMeta.TableName = tableName
-	tableMeta.AddPrimaryKeyColumn("LockID", tablestore.PrimaryKeyType_STRING)
+	tableMeta.AddPrimaryKeyColumn(pkName, tablestore.PrimaryKeyType_STRING)
 
 	tableOption := new(tablestore.TableOption)
 	tableOption.TimeToAlive = -1
