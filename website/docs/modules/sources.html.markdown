@@ -360,6 +360,8 @@ module "consul" {
 }
 ```
 
+<em>Note:</em> If your bucket lives in us-east-1, omit the region in the path URL (```s3::https://s3.amazonaws.com/...```)
+
 The `s3::` prefix causes Terraform to use AWS-style authentication when
 accessing the given URL. As a result, this scheme may also work for other
 services that mimic the S3 API, as long as they handle authentication in the
