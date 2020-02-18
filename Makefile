@@ -12,10 +12,10 @@ bin: fmtcheck generate
 # dev creates binaries for testing Terraform locally. These are put
 # into ./bin/ as well as $GOPATH/bin
 dev: fmtcheck generate
-	go install -mod=vendor .
+	go install -gcflags="all=-N -l" -mod=vendor .
 
 quickdev: generate
-	go install -mod=vendor .
+	go install -gcflags="all=-N -l" -mod=vendor .
 
 # Shorthand for building and installing just one plugin for local testing.
 # Run as (for example): make plugin-dev PLUGIN=provider-aws
