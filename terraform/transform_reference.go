@@ -200,7 +200,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				if v.Module.IsRoot() && !t.Destroy {
 					continue
 				}
-			case *NodeLocal, *NodeApplyableModuleVariable:
+			case *NodeLocal, *NodeApplyableModuleVariable, *NodePlannableModuleVariable:
 				// OK
 			default:
 				// We're only concerned with variables, locals and outputs
