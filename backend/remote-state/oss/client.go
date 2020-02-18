@@ -158,6 +158,8 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return "", nil
 	}
 
+	info.Path = c.lockPath()
+
 	if info.ID == "" {
 		lockID, err := uuid.GenerateUUID()
 		if err != nil {
