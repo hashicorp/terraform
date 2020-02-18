@@ -181,7 +181,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		Columns: []tablestore.AttributeColumn{
 			{
 				ColumnName: "LockID",
-				Value:      c.lockFile,
+				Value:      c.lockPath(),
 			},
 			{
 				ColumnName: "Info",
