@@ -8,6 +8,7 @@ import (
 
 	"bytes"
 	"crypto/md5"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
