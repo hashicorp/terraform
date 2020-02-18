@@ -195,6 +195,11 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				if v.Addr.Module.IsRoot() && !t.Destroy {
 					continue
 				}
+			case *NodePlannableOutput:
+				// Have similar guardrails for plannable outputs as applyable above
+				if v.Module.IsRoot() && !t.Destroy {
+					continue
+				}
 			case *NodeLocal, *NodeApplyableModuleVariable:
 				// OK
 			default:
