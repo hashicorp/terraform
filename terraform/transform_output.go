@@ -67,7 +67,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 	}
 
 	for _, v := range g.Vertices() {
-		output, ok := v.(*NodeApplyableOutput)
+		output, ok := v.(*NodePlannableOutput)
 		if !ok {
 			continue
 		}
@@ -75,6 +75,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 		// create the destroy node for this output
 		node := &NodeDestroyableOutput{
 			Addr:   output.Addr,
+			Module: output.Module,
 			Config: output.Config,
 		}
 
