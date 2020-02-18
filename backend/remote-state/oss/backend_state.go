@@ -12,9 +12,10 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 
-	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"log"
 	"path"
+
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 )
 
 const (

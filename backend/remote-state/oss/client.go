@@ -8,6 +8,10 @@ import (
 	"io"
 
 	"encoding/hex"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-multierror"
@@ -16,9 +20,6 @@ import (
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/pkg/errors"
-	"log"
-	"sync"
-	"time"
 )
 
 // Store the last saved serial in tablestore with this suffix for consistency checks.
