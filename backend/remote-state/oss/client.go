@@ -21,9 +21,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Store the last saved serial in tablestore with this suffix for consistency checks.
 const (
+	// Store the last saved serial in tablestore with this suffix for consistency checks.
 	stateIDSuffix = "-md5"
+
+	pkName = "LockID"
 )
 
 var (
@@ -165,7 +167,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: "LockID",
+					ColumnName: pkName,
 					Value:      c.lockPath(),
 				},
 			},
@@ -214,12 +216,12 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: "LockID",
+					ColumnName: pkName,
 					Value:      c.lockPath() + stateIDSuffix,
 				},
 			},
 		},
-		ColumnsToGet: []string{"LockID", "Digest"},
+		ColumnsToGet: []string{pkName, "Digest"},
 		MaxVersion:   1,
 	}
 
@@ -261,7 +263,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: "LockID",
+					ColumnName: pkName,
 					Value:      c.lockPath() + stateIDSuffix,
 				},
 			},
@@ -302,7 +304,7 @@ func (c *RemoteClient) deleteMD5() error {
 			PrimaryKey: &tablestore.PrimaryKey{
 				PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 					{
-						ColumnName: "LockID",
+						ColumnName: pkName,
 						Value:      c.lockPath() + stateIDSuffix,
 					},
 				},
@@ -328,12 +330,12 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		PrimaryKey: &tablestore.PrimaryKey{
 			PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 				{
-					ColumnName: "LockID",
+					ColumnName: pkName,
 					Value:      c.lockPath(),
 				},
 			},
 		},
-		ColumnsToGet: []string{"LockID", "Info"},
+		ColumnsToGet: []string{pkName, "Info"},
 		MaxVersion:   1,
 	}
 
@@ -381,7 +383,7 @@ func (c *RemoteClient) Unlock(id string) error {
 			PrimaryKey: &tablestore.PrimaryKey{
 				PrimaryKeys: []*tablestore.PrimaryKeyColumn{
 					{
-						ColumnName: "LockID",
+						ColumnName: pkName,
 						Value:      c.lockPath(),
 					},
 				},
