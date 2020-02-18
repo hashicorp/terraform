@@ -2,6 +2,8 @@ VERSION?="0.3.32"
 TEST?=./...
 GOFMT_FILES?=$$(find . -not -path "./vendor/*" -type f -name '*.go')
 WEBSITE_REPO=github.com/hashicorp/terraform-website
+GO_GENERATE_SRC=$(shell git grep -l "//go:generate" ':(exclude)vendor/*')
+GO_GENERATE_TARGET=.make-go-generate
 
 default: test
 
@@ -66,7 +68,9 @@ cover:
 # generate runs `go generate` to build the dynamically generated
 # source files, except the protobuf stubs which are built instead with
 # "make protobuf".
-generate:
+generate: $(GO_GENERATE_TARGET)
+
+$(GO_GENERATE_TARGET): $(GO_GENERATE_SRC)
 	GOFLAGS=-mod=vendor go generate ./...
 	# go fmt doesn't support -mod=vendor but it still wants to populate the
 	# module cache with everything in go.mod even though formatting requires
@@ -74,6 +78,7 @@ generate:
 	# now until the "go fmt" behavior is rationalized to either support the
 	# -mod= argument or _not_ try to install things.
 	GO111MODULE=off go fmt command/internal_plugin_list.go > /dev/null
+	touch $@
 
 # We separate the protobuf generation because most development tasks on
 # Terraform do not involve changing protobuf files and protoc is not a

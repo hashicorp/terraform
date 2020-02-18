@@ -1,3 +1,4 @@
+.make-go-generate
 *.dll
 *.exe
 .DS_Store
