@@ -1,20 +1,20 @@
-## 0.12.21 (Unreleased)
+## 0.12.21 (February 19, 2020)
 
 NEW FEATURES:
 * backend/cos: New backend "cos", supporting using Tencent Cloud Storage as a remote backend.
-* command/login: Enable "terraform login" and add support for UI-generated tokens [GH-23995]
-* command/logout: Add "terraform logout" command to remove local credentials [GH-24048]
+* command/login: Enable "terraform login" and add support for UI-generated tokens ([#23995](https://github.com/hashicorp/terraform/issues/23995))
+* command/logout: Add "terraform logout" command to remove local credentials ([#24048](https://github.com/hashicorp/terraform/issues/24048))
 
 ENHANCEMENTS:
 
-* command/workspace delete: release lock after workspace removal warning [GH-24085]
-* lang/funcs: add `setsubtract` function [GH-23424]
+* command/workspace delete: release lock after workspace removal warning ([#24085](https://github.com/hashicorp/terraform/issues/24085))
+* lang/funcs: add `setsubtract` function ([#23424](https://github.com/hashicorp/terraform/issues/23424))
 
 BUG FIXES:
-* command/state show: Fix an issue when a resource has a non-default provider configured [GH-24027]
-* backend/remote-state: Fix issues where lingering lock files remained when deleting non-empty workspaces [GH-24085]
-* command/import: Release lock if initialization error occurs on import [GH-23318]
-* terraform: Fix panic when using `for_each` with a set containing `null` values [GH-24047]
+* command/state show: Fix an issue when a resource has a non-default provider configured ([#24027](https://github.com/hashicorp/terraform/issues/24027))
+* backend/remote-state: Fix issues where lingering lock files remained when deleting non-empty workspaces ([#24085](https://github.com/hashicorp/terraform/issues/24085))
+* command/import: Release lock if initialization error occurs on import ([#23318](https://github.com/hashicorp/terraform/issues/23318))
+* terraform: Fix panic when using `for_each` with a set containing `null` values ([#24047](https://github.com/hashicorp/terraform/issues/24047))
 
 ## 0.12.20 (January 22, 2020)
 
