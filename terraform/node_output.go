@@ -44,7 +44,7 @@ func (n *NodeApplyableOutput) RemoveIfNotTargeted() bool {
 }
 
 // GraphNodeTargetDownstream
-func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
 	// If any of the direct dependencies of an output are targeted then
 	// the output must always be targeted as well, so its value will always
 	// be up-to-date at the completion of an apply walk.
@@ -172,7 +172,7 @@ func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
 
 // This will keep the destroy node in the graph if its corresponding output
 // node is also in the destroy graph.
-func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
 	return true
 }
 

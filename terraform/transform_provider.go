@@ -242,7 +242,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		g.Connect(dag.BasicEdge(closer, p))
 
 		// connect all the provider's resources to the close node
-		for _, s := range g.UpEdges(p).List() {
+		for _, s := range g.UpEdges(p) {
 			if _, ok := s.(GraphNodeProviderConsumer); ok {
 				g.Connect(dag.BasicEdge(closer, s))
 			}

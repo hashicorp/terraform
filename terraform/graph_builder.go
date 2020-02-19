@@ -46,15 +46,7 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 			stepName = stepName[dot+1:]
 		}
 
-		debugOp := g.DebugOperation(stepName, "")
 		err := step.Transform(g)
-
-		errMsg := ""
-		if err != nil {
-			errMsg = err.Error()
-		}
-		debugOp.End(errMsg)
-
 		if thisStepStr := g.StringWithNodeTypes(); thisStepStr != lastStepStr {
 			log.Printf("[TRACE] Completed graph transform %T with new graph:\n%s  ------", step, logging.Indent(thisStepStr))
 			lastStepStr = thisStepStr

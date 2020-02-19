@@ -92,7 +92,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 		// the destroy node must depend on the eval node
 		deps.Add(v)
 
-		for _, d := range deps.List() {
+		for _, d := range deps {
 			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
 			g.Connect(dag.BasicEdge(node, d))
 		}
