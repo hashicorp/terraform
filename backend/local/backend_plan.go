@@ -162,6 +162,8 @@ func (b *Local) opPlan(
 
 		if plan.Changes.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			// Even if there are no changes, there still could be some warnings
+			b.ShowDiagnostics(diags)
 			return
 		}
 
