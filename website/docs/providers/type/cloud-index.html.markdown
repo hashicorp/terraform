@@ -18,6 +18,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 
 
 - [Arukas](/docs/providers/arukas/index.html)
+- [BaiduCloud](/docs/providers/baiducloud/index.html)
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)
 - [CherryServers](/docs/providers/cherryservers/index.html)
