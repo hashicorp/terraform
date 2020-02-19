@@ -42,9 +42,9 @@ a [OTS TableStore](https://www.terraform.io/docs/providers/alicloud/r/ots_table.
 Terraform state will be written into the file `path/mystate/version-1.tfstate`. The `TableStore` must have a primary key of type `string`.
 
 
-## Using the OSS remote state
+## Data Source Configuration
 
-To make use of the OSS remote state we can use the
+To make use of the OSS remote state in another configuration, use the
 [`terraform_remote_state` data
 source](/docs/providers/terraform/d/remote_state.html).
 
