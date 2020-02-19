@@ -91,7 +91,13 @@ set or requires a specific version of Terraform for remote operations, we
 recommend that you create your remote workspaces on Terraform Cloud before
 running any remote operations against them.
 
-## Example Configuration
+## Example Configurations and References
+
+->  **Note:** We recommend omitting the token from the configuration, and instead using
+  [`terraform login`](/docs/commands/login.html) or manually configuring
+  `credentials` in the [CLI config file](/docs/commands/cli-config.html#credentials).
+
+### Basic Configuration
 
 ```hcl
 # Using a single workspace:
@@ -119,23 +125,7 @@ terraform {
 }
 ```
 
-## Example Reference
-
-```hcl
-data "terraform_remote_state" "foo" {
-  backend = "remote"
-
-  config = {
-    organization = "company"
-
-    workspaces = {
-      name = "workspace"
-    }
-  }
-}
-```
-
-## Example configuration using CLI input
+### Using CLI Input
 
 ```hcl
 # main.tf
@@ -159,6 +149,22 @@ Running `terraform init` with the backend file:
 
 ```sh
 terraform init -backend-config=backend.hcl
+```
+
+### Example Reference
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "remote"
+
+  config = {
+    organization = "company"
+
+    workspaces = {
+      name = "workspace"
+    }
+  }
+}
 ```
 
 ## Configuration variables
@@ -185,7 +191,7 @@ The following configuration options are supported:
     (minus the prefix) are used on the command line for Terraform CLI workspaces.
     If omitted, only the default workspace can be used. This option conflicts with `name`.
     
-->  **Note** You must use the `name` key when configuring a `terraform_remote_state`
+->  **Note:** You must use the `name` key when configuring a `terraform_remote_state`
 data source that retrieves state from another Terraform Cloud workspace. The `prefix` key is only
 intended for use when configuring an instance of the remote backend.
 
