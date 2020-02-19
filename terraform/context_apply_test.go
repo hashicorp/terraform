@@ -5266,28 +5266,23 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["command"]
-		if !ok || val != "destroy" {
+		if !ok || val != "destroy a" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
 		return nil
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:  m,
@@ -5331,21 +5326,16 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 		return fmt.Errorf("provisioner error")
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:  m,
@@ -5371,7 +5361,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	}
 
 	checkStateString(t, state, `
-aws_instance.foo:
+aws_instance.foo["a"]:
   ID = bar
   provider = provider["registry.terraform.io/-/aws"]
 	`)
@@ -5405,21 +5395,16 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 		return fmt.Errorf("provisioner error")
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:  m,
@@ -5547,7 +5532,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 
 	destroyCalled := false
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
-		expected := "create"
+		expected := "create a b"
 		if rs.ID == "bar" {
 			destroyCalled = true
 			return nil
@@ -5561,22 +5546,16 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 		return nil
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -5588,6 +5567,14 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 		),
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
+		},
+		Variables: InputValues{
+			"input": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				SourceType: ValueFromInput,
+			},
 		},
 	})
 
@@ -5601,7 +5588,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 	}
 
 	checkStateString(t, state, `
-aws_instance.foo:
+aws_instance.foo["a"]:
   ID = foo
   provider = provider["registry.terraform.io/-/aws"]
   foo = bar
