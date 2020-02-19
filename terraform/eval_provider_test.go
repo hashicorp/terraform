@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -94,6 +95,33 @@ func TestEvalConfigProvider(t *testing.T) {
 	}
 	if got, want := gotObj.GetAttr("test_string"), cty.StringVal("hello"); !got.RawEquals(want) {
 		t.Errorf("wrong configuration value\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestEvalConfigProviderWithUnknown(t *testing.T) {
+	config := &configs.Provider{
+		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"test_string": cty.UnknownVal(cty.String),
+		}),
+	}
+	provider := mockProviderWithConfigSchema(simpleTestSchema())
+	rp := providers.Interface(provider)
+	providerAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
+	}
+	n := &EvalConfigProvider{
+		Addr:     providerAddr,
+		Config:   config,
+		Provider: &rp,
+	}
+
+	ctx := &MockEvalContext{ProviderProvider: provider}
+	ctx.installSimpleEval()
+	_, err := n.Eval(ctx)
+	if err == nil || !strings.Contains(err.Error(), "unknown") {
+		t.Fatalf("expected eval error from unknown config attribute, got %v", err)
 	}
 }
 
