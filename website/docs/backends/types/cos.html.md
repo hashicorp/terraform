@@ -31,9 +31,9 @@ terraform {
 This assumes we have a [COS Bucket](https://www.terraform.io/docs/providers/tencentcloud/r/cos_bucket.html) created named `bucket-for-terraform-state-1258798060`,
 Terraform state will be written into the file `terraform/state/terraform.tfstate`.
 
-## Using the COS remote state
+## Data Source Configuration
 
-To make use of the COS remote state we can use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
 ```hcl
 data "terraform_remote_state" "foo" {

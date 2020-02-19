@@ -26,7 +26,7 @@ terraform {
 Note that for the access credentials we recommend using a
 [partial configuration](/docs/backends/config.html).
 
-## Example Referencing
+## Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {

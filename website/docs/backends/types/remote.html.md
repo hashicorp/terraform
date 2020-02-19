@@ -91,7 +91,7 @@ set or requires a specific version of Terraform for remote operations, we
 recommend that you create your remote workspaces on Terraform Cloud before
 running any remote operations against them.
 
-## Example Configurations and References
+## Example Configurations
 
 ->  **Note:** We recommend omitting the token from the configuration, and instead using
   [`terraform login`](/docs/commands/login.html) or manually configuring
@@ -151,7 +151,7 @@ Running `terraform init` with the backend file:
 terraform init -backend-config=backend.hcl
 ```
 
-### Example Reference
+### Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {
