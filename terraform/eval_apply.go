@@ -563,7 +563,10 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 
 		var forEach map[string]cty.Value
 
-		// We can't evaluate the for_each expression during a destroy
+		// For a destroy-time provisioner forEach is intentionally nil here,
+		// which EvalDataForInstanceKey responds to by not populating EachValue
+		// in its result. That's okay because each.value is prohibited for
+		// destroy-time provisioners.
 		if n.When != configs.ProvisionerWhenDestroy {
 			m, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
 			diags = diags.Append(forEachDiags)
