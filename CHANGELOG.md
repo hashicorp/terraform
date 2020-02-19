@@ -13,8 +13,8 @@ ENHANCEMENTS:
 BUG FIXES:
 * command/state show: Fix an issue when a resource has a non-default provider configured [GH-24027]
 * backend/remote-state: Fix issues where lingering lock files remained when deleting non-empty workspaces [GH-24085]
-* command/import: Release lock if initialization error occurs on import ([#23318](https://github.com/hashicorp/terraform/issues/23318))
-* terraform: Fix panic when using `for_each` with a set containing `null` values ([#24047](https://github.com/hashicorp/terraform/issues/24047))
+* command/import: Release lock if initialization error occurs on import [GH-23318]
+* terraform: Fix panic when using `for_each` with a set containing `null` values [GH-24047]
 
 ## 0.12.20 (January 22, 2020)
 
