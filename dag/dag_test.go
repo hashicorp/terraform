@@ -335,6 +335,63 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 }
 
+func BenchmarkDAG(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		count := 150
+		b.StopTimer()
+		g := &AcyclicGraph{}
+
+		// create 4 layers of fully connected nodes
+		// layer A
+		for i := 0; i < count; i++ {
+			g.Add(fmt.Sprintf("A%d", i))
+		}
+
+		// layer B
+		for i := 0; i < count; i++ {
+			B := fmt.Sprintf("B%d", i)
+			g.Add(fmt.Sprintf(B))
+			for j := 0; j < count; j++ {
+				g.Connect(BasicEdge(B, fmt.Sprintf("A%d", j)))
+			}
+		}
+
+		// layer C
+		for i := 0; i < count; i++ {
+			c := fmt.Sprintf("C%d", i)
+			g.Add(fmt.Sprintf(c))
+			for j := 0; j < count; j++ {
+				// connect them to previous layers so we have something that requires reduction
+				g.Connect(BasicEdge(c, fmt.Sprintf("A%d", j)))
+				g.Connect(BasicEdge(c, fmt.Sprintf("B%d", j)))
+			}
+		}
+
+		// layer D
+		for i := 0; i < count; i++ {
+			d := fmt.Sprintf("D%d", i)
+			g.Add(fmt.Sprintf(d))
+			for j := 0; j < count; j++ {
+				g.Connect(BasicEdge(d, fmt.Sprintf("A%d", j)))
+				g.Connect(BasicEdge(d, fmt.Sprintf("B%d", j)))
+				g.Connect(BasicEdge(d, fmt.Sprintf("C%d", j)))
+			}
+		}
+
+		b.StartTimer()
+		// Find dependencies for every node
+		for _, v := range g.Vertices() {
+			_, err := g.Ancestors(v)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+
+		// reduce the final graph
+		g.TransitiveReduction()
+	}
+}
+
 func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)
@@ -345,7 +402,7 @@ func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.ReverseDepthFirstWalk([]Vertex{1}, func(v Vertex, d int) error {
+	err := g.SortedReverseDepthFirstWalk([]Vertex{1}, func(v Vertex, d int) error {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
