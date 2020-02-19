@@ -104,6 +104,11 @@ type InstanceKeyEvalData = instances.RepetitionData
 
 // EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
 // evaluating in a context that has the given instance key.
+//
+// The forEachMap argument can be nil when preparing for evaluation
+// in a context where each.value is prohibited, such as a destroy-time
+// provisioner. In that case, the returned EachValue will always be
+// cty.NilVal.
 func EvalDataForInstanceKey(key addrs.InstanceKey, forEachMap map[string]cty.Value) InstanceKeyEvalData {
 	var evalData InstanceKeyEvalData
 	if key == nil {
