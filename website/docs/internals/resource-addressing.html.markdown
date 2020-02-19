@@ -101,7 +101,7 @@ resource "aws_instance" "web" {
 An address like this:
 
 ```
-aws_instance.web["example"]
+aws_instance.web[\"example\"]
 ```
 
 Refers to only the "example" instance in the config.
