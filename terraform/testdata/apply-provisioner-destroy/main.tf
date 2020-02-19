@@ -1,12 +1,18 @@
 resource "aws_instance" "foo" {
+    for_each = var.input
     foo = "bar"
 
     provisioner "shell" {
-        command = "create"
+        command = "create ${each.key} ${each.value}"
     }
 
     provisioner "shell" {
-        command  = "destroy"
         when = "destroy"
+        command  = "destroy ${each.key}"
     }
+}
+
+variable "input" {
+  type = map(string)
+  default = {}
 }
