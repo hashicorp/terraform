@@ -30,7 +30,7 @@ terraform {
 }
 ```
 
-## Example Referencing
+## Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {

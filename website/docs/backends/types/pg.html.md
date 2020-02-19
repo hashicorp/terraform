@@ -52,9 +52,9 @@ To use a Postgres server running on the same machine as Terraform, configure loc
 terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?sslmode=disable"
 ```
 
-## Example Referencing
+## Data Source Configuration
 
-To make use of the pg remote state we can use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+To make use of the pg remote state in another configuration, use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
 ```hcl
 data "terraform_remote_state" "network" {
