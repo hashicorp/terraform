@@ -5,6 +5,10 @@ IMPROVEMENTS:
 * backend/http: New options for retries on outgoing requests. [GH-19702]
 * communicator/ssh: Keepalive support [GH-20437]
 
+BUG FIXES: 
+
+* cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
+
 ## 0.11.14 (May 16, 2019)
 
 NEW FEATURES:
