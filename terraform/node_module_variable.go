@@ -102,7 +102,7 @@ func (n *NodePlannableModuleVariable) RemoveIfNotTargeted() bool {
 }
 
 // GraphNodeTargetDownstream
-func (n *NodePlannableModuleVariable) TargetDownstream(targetedDeps, untargetedDeps *dag.Set) bool {
+func (n *NodePlannableModuleVariable) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
 	return true
 }
 
