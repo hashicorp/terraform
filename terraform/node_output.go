@@ -41,7 +41,7 @@ func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 }
 
 func (n *NodePlannableOutput) Name() string {
-	return n.Addr.AbsString(n.Module)
+	return n.Addr.Absolute(n.Module.UnkeyedInstanceShim()).String()
 }
 
 // GraphNodeSubPath

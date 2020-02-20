@@ -19,13 +19,6 @@ func (v OutputValue) String() string {
 	return "output." + v.Name
 }
 
-func (v OutputValue) AbsString(m Module) string {
-	if m.IsRoot() {
-		return v.String()
-	}
-	return fmt.Sprintf("%s.%s", m.String(), v.String())
-}
-
 // Absolute converts the receiver into an absolute address within the given
 // module instance.
 func (v OutputValue) Absolute(m ModuleInstance) AbsOutputValue {
