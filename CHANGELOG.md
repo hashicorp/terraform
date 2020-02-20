@@ -9,6 +9,7 @@ BREAKING CHANGES:
 
 
 BUG FIXES: 
+* cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
 * core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
 
 ---
