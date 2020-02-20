@@ -1,5 +1,8 @@
 ## 0.12.22 (Unreleased)
 
+BUG FIXES:
+* cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
+
 ## 0.12.21 (February 19, 2020)
 
 NEW FEATURES:
