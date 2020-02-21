@@ -30,6 +30,28 @@ func (p Platform) String() string {
 	return p.OS + "_" + p.Arch
 }
 
+// ParsePlatform parses a string representation of a platform, like
+// "linux_amd64", or returns an error if the string is not valid.
+func ParsePlatform(str string) (Platform, error) {
+	underPos := strings.Index(str, "_")
+	if underPos < 1 || underPos >= len(str)-2 {
+		return Platform{}, fmt.Errorf("must be two words separated by an underscore")
+	}
+
+	os, arch := str[:underPos], str[underPos+1:]
+	if strings.ContainsAny(os, " \t\n\r") {
+		return Platform{}, fmt.Errorf("OS portion must not contain whitespace")
+	}
+	if strings.ContainsAny(arch, " \t\n\r") {
+		return Platform{}, fmt.Errorf("architecture portion must not contain whitespace")
+	}
+
+	return Platform{
+		OS:   os,
+		Arch: arch,
+	}, nil
+}
+
 // CurrentPlatform is the platform where the current program is running.
 //
 // If attempting to install providers for use on the same system where the
