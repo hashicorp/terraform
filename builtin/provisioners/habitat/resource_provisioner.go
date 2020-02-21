@@ -369,7 +369,7 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	}
 
 	acceptLicense, ok := c.Get("accept_license")
-	if ok && !acceptLicense.(bool) {
+	if ok && acceptLicense != hcl2shim.UnknownVariableValue && !acceptLicense.(bool) {
 		if v != nil && strings.TrimSpace(v.(string)) != "" {
 			versionOld, _ := version.NewVersion("0.79.0")
 			versionRequired, _ := version.NewVersion(v.(string))
