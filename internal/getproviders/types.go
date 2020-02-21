@@ -48,6 +48,9 @@ var CurrentPlatform = Platform{
 // accepted by the current version of Terraform before trying to use the
 // described package.
 type PackageMeta struct {
+	Provider addrs.Provider
+	Version  Version
+
 	ProtocolVersions VersionList
 	TargetPlatform   Platform
 
