@@ -1,0 +1,25 @@
+language: go
+go:
+  - 1.6
+  - 1.7
+  - 1.8
+  - tip
+
+sudo: false
+
+before_install:
+  - go get github.com/mattn/goveralls
+
+install:
+  - go get
+  - go build
+
+script:
+  - make test
+  - $HOME/gopath/bin/goveralls -service=travis-ci -ignore=vendor/
+
+matrix:
+  allow_failures:
+    - go: 1.6
+    - go: 1.7
+    - go: tip

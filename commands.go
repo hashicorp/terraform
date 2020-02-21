@@ -184,15 +184,17 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
-		// "terraform login" is disabled until Terraform Cloud is ready to
-		// support it.
-		/*
-			"login": func() (cli.Command, error) {
-				return &command.LoginCommand{
-					Meta: meta,
-				}, nil
-			},
-		*/
+		"login": func() (cli.Command, error) {
+			return &command.LoginCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"logout": func() (cli.Command, error) {
+			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
 
 		"output": func() (cli.Command, error) {
 			return &command.OutputCommand{
@@ -312,12 +314,6 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 
 		"debug": func() (cli.Command, error) {
 			return &command.DebugCommand{
-				Meta: meta,
-			}, nil
-		},
-
-		"debug json2dot": func() (cli.Command, error) {
-			return &command.DebugJSON2DotCommand{
 				Meta: meta,
 			}, nil
 		},

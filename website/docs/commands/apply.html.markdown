@@ -20,7 +20,7 @@ By default, `apply` scans the current directory for the configuration
 and applies the changes appropriately. However, a path to another configuration
 or an execution plan can be provided. Explicit execution plans files can be
 used to split plan and apply into separate steps within
-[automation systems](/guides/running-terraform-in-automation.html).
+[automation systems](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
 
 The command-line flags are all optional. The list of available flags are:
 

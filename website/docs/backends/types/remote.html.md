@@ -22,8 +22,6 @@ Cloud's run environment, with log output streaming to the local terminal. Remote
 
 Terraform Cloud can also be used with local operations, in which case only state is stored in the Terraform Cloud backend.
 
-
-
 ## Command Support
 
 Currently the remote backend supports the following Terraform commands:
@@ -93,7 +91,13 @@ set or requires a specific version of Terraform for remote operations, we
 recommend that you create your remote workspaces on Terraform Cloud before
 running any remote operations against them.
 
-## Example Configuration
+## Example Configurations
+
+->  **Note:** We recommend omitting the token from the configuration, and instead using
+  [`terraform login`](/docs/commands/login.html) or manually configuring
+  `credentials` in the [CLI config file](/docs/commands/cli-config.html#credentials).
+
+### Basic Configuration
 
 ```hcl
 # Using a single workspace:
@@ -121,23 +125,7 @@ terraform {
 }
 ```
 
-## Example Reference
-
-```hcl
-data "terraform_remote_state" "foo" {
-  backend = "remote"
-
-  config = {
-    organization = "company"
-
-    workspaces = {
-      name = "workspace"
-    }
-  }
-}
-```
-
-## Example configuration using CLI input
+### Using CLI Input
 
 ```hcl
 # main.tf
@@ -163,6 +151,22 @@ Running `terraform init` with the backend file:
 terraform init -backend-config=backend.hcl
 ```
 
+### Data Source Configuration
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "remote"
+
+  config = {
+    organization = "company"
+
+    workspaces = {
+      name = "workspace"
+    }
+  }
+}
+```
+
 ## Configuration variables
 
 The following configuration options are supported:
@@ -172,8 +176,9 @@ The following configuration options are supported:
 * `organization` - (Required) The name of the organization containing the
   targeted workspace(s).
 * `token` - (Optional) The token used to authenticate with the remote backend.
-  We recommend omitting the token from the configuration, and instead setting it
-  as `credentials` in the
+  We recommend omitting the token from the configuration, and instead using
+  [`terraform login`](/docs/commands/login.html) or manually configuring
+  `credentials` in the
   [CLI config file](/docs/commands/cli-config.html#credentials).
 * `workspaces` - (Required) A block specifying which remote workspace(s) to use.
   The `workspaces` block supports the following keys:
@@ -186,7 +191,7 @@ The following configuration options are supported:
     (minus the prefix) are used on the command line for Terraform CLI workspaces.
     If omitted, only the default workspace can be used. This option conflicts with `name`.
     
-->  **Note** You must use the `name` key when configuring a `terraform_remote_state`
+->  **Note:** You must use the `name` key when configuring a `terraform_remote_state`
 data source that retrieves state from another Terraform Cloud workspace. The `prefix` key is only
 intended for use when configuring an instance of the remote backend.
 

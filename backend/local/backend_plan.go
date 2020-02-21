@@ -162,6 +162,8 @@ func (b *Local) opPlan(
 
 		if plan.Changes.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			// Even if there are no changes, there still could be some warnings
+			b.ShowDiagnostics(diags)
 			return
 		}
 
@@ -262,7 +264,8 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 		if rcs.Action == plans.NoOp {
 			continue
 		}
-		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
 		if providerSchema == nil {
 			// Should never happen
 			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))

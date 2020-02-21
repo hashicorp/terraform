@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -138,7 +139,17 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling
 	// from providers.
+	// We throw an error in case of negative parallelism
 	par := opts.Parallelism
+	if par < 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid parallelism value",
+			fmt.Sprintf("The parallelism must be a positive value. Not %d.", par),
+		))
+		return nil, diags
+	}
+
 	if par == 0 {
 		par = 10
 	}
@@ -778,6 +789,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 		Context:            c,
 		State:              c.state.SyncWrapper(),
 		Changes:            c.changes.SyncWrapper(),
+		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,
 		StopContext:        c.runContext,
 		RootVariableValues: c.variables,

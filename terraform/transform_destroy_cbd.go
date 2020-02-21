@@ -90,7 +90,7 @@ func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
 		return true
 	}
 
-	for _, ov := range s.List() {
+	for _, ov := range s {
 		dn, ok := ov.(GraphNodeDestroyerCBD)
 		if !ok {
 			continue
@@ -134,25 +134,16 @@ type CBDEdgeTransformer struct {
 	// obtain schema information from providers and provisioners so we can
 	// properly resolve implicit dependencies.
 	Schemas *Schemas
-
-	// If the operation is a simple destroy, no transformation is done.
-	Destroy bool
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
-	if t.Destroy {
-		return nil
-	}
-
 	// Go through and reverse any destroy edges
-	destroyMap := make(map[string][]dag.Vertex)
 	for _, v := range g.Vertices() {
 		dn, ok := v.(GraphNodeDestroyerCBD)
 		if !ok {
 			continue
 		}
-		dern, ok := v.(GraphNodeDestroyer)
-		if !ok {
+		if _, ok = v.(GraphNodeDestroyer); !ok {
 			continue
 		}
 
@@ -162,158 +153,17 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 
 		// Find the resource edges
 		for _, e := range g.EdgesTo(v) {
-			switch de := e.(type) {
-			case *DestroyEdge:
-				// we need to invert the destroy edge from the create node
-				log.Printf("[TRACE] CBDEdgeTransformer: inverting edge: %s => %s",
-					dag.VertexName(de.Source()), dag.VertexName(de.Target()))
+			src := e.Source()
 
-				// Found it! Invert.
-				g.RemoveEdge(de)
-				applyNode := de.Source()
-				destroyNode := de.Target()
-				g.Connect(&DestroyEdge{S: destroyNode, T: applyNode})
-			default:
-				// We cannot have any direct dependencies from creators when
-				// the node is CBD without inducing a cycle.
-				if _, ok := e.Source().(GraphNodeCreator); ok {
-					log.Printf("[TRACE] CBDEdgeTransformer: removing non DestroyEdge to CBD destroy node: %s => %s", dag.VertexName(e.Source()), dag.VertexName(e.Target()))
-					g.RemoveEdge(e)
-				}
+			// If source is a create node, invert the edge.
+			// This covers both the node's own creator, as well as reversing
+			// any dependants' edges.
+			if _, ok := src.(GraphNodeCreator); ok {
+				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", dag.VertexName(src), dag.VertexName(v))
+				g.RemoveEdge(e)
+				g.Connect(dag.BasicEdge(v, src))
 			}
 		}
-
-		// If the address has an index, we strip that. Our depMap creation
-		// graph doesn't expand counts so we don't currently get _exact_
-		// dependencies. One day when we limit dependencies more exactly
-		// this will have to change. We have a test case covering this
-		// (depNonCBDCountBoth) so it'll be caught.
-		addr := dern.DestroyAddr()
-		key := addr.ContainingResource().String()
-
-		// Add this to the list of nodes that we need to fix up
-		// the edges for (step 2 above in the docs).
-		destroyMap[key] = append(destroyMap[key], v)
 	}
-
-	// If we have no CBD nodes, then our work here is done
-	if len(destroyMap) == 0 {
-		return nil
-	}
-
-	// We have CBD nodes. We now have to move on to the much more difficult
-	// task of connecting dependencies of the creation side of the destroy
-	// to the destruction node. The easiest way to explain this is an example:
-	//
-	// Given a pre-destroy dependence of: A => B
-	//   And A has CBD set.
-	//
-	// The resulting graph should be: A => B => A_d
-	//
-	// They key here is that B happens before A is destroyed. This is to
-	// facilitate the primary purpose for CBD: making sure that downstreams
-	// are properly updated to avoid downtime before the resource is destroyed.
-	depMap, err := t.depMap(g, destroyMap)
-	if err != nil {
-		return err
-	}
-
-	// We now have the mapping of resource addresses to the destroy
-	// nodes they need to depend on. We now go through our own vertices to
-	// find any matching these addresses and make the connection.
-	for _, v := range g.Vertices() {
-		// We're looking for creators
-		rn, ok := v.(GraphNodeCreator)
-		if !ok {
-			continue
-		}
-
-		// Get the address
-		addr := rn.CreateAddr()
-
-		// If the address has an index, we strip that. Our depMap creation
-		// graph doesn't expand counts so we don't currently get _exact_
-		// dependencies. One day when we limit dependencies more exactly
-		// this will have to change. We have a test case covering this
-		// (depNonCBDCount) so it'll be caught.
-		key := addr.ContainingResource().String()
-
-		// If there is nothing this resource should depend on, ignore it
-		dns, ok := depMap[key]
-		if !ok {
-			continue
-		}
-
-		// We have nodes! Make the connection
-		for _, dn := range dns {
-			log.Printf("[TRACE] CBDEdgeTransformer: destroy depends on dependence: %s => %s",
-				dag.VertexName(dn), dag.VertexName(v))
-			g.Connect(dag.BasicEdge(dn, v))
-		}
-	}
-
 	return nil
-}
-
-func (t *CBDEdgeTransformer) depMap(g *Graph, destroyMap map[string][]dag.Vertex) (map[string][]dag.Vertex, error) {
-	// Build the list of destroy nodes that each resource address should depend
-	// on. For example, when we find B, we map the address of B to A_d in the
-	// "depMap" variable below.
-
-	// Use a nested map to remove duplicate edges.
-	depMap := make(map[string]map[dag.Vertex]struct{})
-	for _, v := range g.Vertices() {
-		// We're looking for resources.
-		rn, ok := v.(GraphNodeResource)
-		if !ok {
-			continue
-		}
-
-		// Get the address
-		addr := rn.ResourceAddr()
-		key := addr.String()
-
-		// Get the destroy nodes that are destroying this resource.
-		// If there aren't any, then we don't need to worry about
-		// any connections.
-		dns, ok := destroyMap[key]
-		if !ok {
-			continue
-		}
-
-		// Get the nodes that depend on this on. In the example above:
-		// finding B in A => B. Since dependencies can span modules, walk all
-		// descendents of the resource.
-		des, _ := g.Descendents(v)
-		for _, v := range des.List() {
-			// We're looking for resources.
-			rn, ok := v.(GraphNodeResource)
-			if !ok {
-				continue
-			}
-
-			// Keep track of the destroy nodes that this address
-			// needs to depend on.
-			key := rn.ResourceAddr().String()
-
-			deps, ok := depMap[key]
-			if !ok {
-				deps = make(map[dag.Vertex]struct{})
-			}
-
-			for _, d := range dns {
-				deps[d] = struct{}{}
-			}
-			depMap[key] = deps
-		}
-	}
-
-	result := map[string][]dag.Vertex{}
-	for k, m := range depMap {
-		for v := range m {
-			result[k] = append(result[k], v)
-		}
-	}
-
-	return result, nil
 }

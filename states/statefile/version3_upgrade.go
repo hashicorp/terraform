@@ -106,7 +106,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 				if strings.Contains(oldProviderAddr, "provider.") {
 					// Smells like a new-style provider address, but we'll test it.
 					var diags tfdiags.Diagnostics
-					providerAddr, diags = addrs.ParseAbsProviderConfigStr(oldProviderAddr)
+					providerAddr, diags = addrs.ParseLegacyAbsProviderConfigStr(oldProviderAddr)
 					if diags.HasErrors() {
 						if strings.Contains(oldProviderAddr, "${") {
 							// There seems to be a common misconception that
@@ -135,9 +135,16 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 							}
 							return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 						}
-						providerAddr = localAddr.Absolute(moduleAddr)
+						providerAddr = addrs.AbsProviderConfig{
+							Module:   moduleAddr,
+							Provider: addrs.NewLegacyProvider(localAddr.LocalName),
+							Alias:    localAddr.Alias,
+						}
 					} else {
-						providerAddr = resAddr.DefaultProviderConfig().Absolute(moduleAddr)
+						providerAddr = addrs.AbsProviderConfig{
+							Module:   moduleAddr,
+							Provider: resAddr.DefaultProvider(),
+						}
 					}
 				}
 

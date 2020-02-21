@@ -24,7 +24,7 @@ created by other teams, you will benefit from a private module registry.
 ## Terraform Cloud's Private Registry
 
 [Terraform Cloud](https://www.hashicorp.com/products/terraform)
-includes a private module registry, available at both Pro and Premium tiers.
+includes a private module registry. It is available to all accounts, including free organizations.
 
 It uses the same VCS-backed tagged release workflow as the Terraform Registry,
 but imports modules from your private VCS repos (on any of Terraform Cloud's supported VCS

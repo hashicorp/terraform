@@ -33,27 +33,27 @@ func TestProviderReservedNames(t *testing.T) {
 func TestParseProviderConfigCompact(t *testing.T) {
 	tests := []struct {
 		Input    string
-		Want     addrs.ProviderConfig
+		Want     addrs.LocalProviderConfig
 		WantDiag string
 	}{
 		{
 			`aws`,
-			addrs.ProviderConfig{
-				Type: "aws",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
 			},
 			``,
 		},
 		{
 			`aws.foo`,
-			addrs.ProviderConfig{
-				Type:  "aws",
-				Alias: "foo",
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
+				Alias:     "foo",
 			},
 			``,
 		},
 		{
 			`aws["foo"]`,
-			addrs.ProviderConfig{},
+			addrs.LocalProviderConfig{},
 			`The provider type name must either stand alone or be followed by an alias name separated with a dot.`,
 		},
 	}

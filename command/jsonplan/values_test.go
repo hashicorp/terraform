@@ -258,7 +258,10 @@ func TestMarshalPlanResources(t *testing.T) {
 							Type: "test_thing",
 							Name: "example",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+						ProviderAddr: addrs.AbsProviderConfig{
+							Provider: addrs.NewLegacyProvider("test"),
+							Module:   addrs.RootModuleInstance,
+						},
 						ChangeSrc: plans.ChangeSrc{
 							Action: test.Action,
 							Before: before,
@@ -290,8 +293,8 @@ func TestMarshalPlanResources(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": &terraform.ProviderSchema{
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewLegacyProvider("test"): &terraform.ProviderSchema{
 				ResourceTypes: map[string]*configschema.Block{
 					"test_thing": {
 						Attributes: map[string]*configschema.Attribute{

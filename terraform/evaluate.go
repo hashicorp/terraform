@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -97,47 +98,32 @@ type evaluationStateData struct {
 	Operation walkOperation
 }
 
-// InstanceKeyEvalData is used during evaluation to specify which values,
-// if any, should be produced for count.index, each.key, and each.value.
-type InstanceKeyEvalData struct {
-	// CountIndex is the value for count.index, or cty.NilVal if evaluating
-	// in a context where the "count" argument is not active.
-	//
-	// For correct operation, this should always be of type cty.Number if not
-	// nil.
-	CountIndex cty.Value
-
-	// EachKey and EachValue are the values for each.key and each.value
-	// respectively, or cty.NilVal if evaluating in a context where the
-	// "for_each" argument is not active. These must either both be set
-	// or neither set.
-	//
-	// For correct operation, EachKey must always be either of type cty.String
-	// or cty.Number if not nil.
-	EachKey, EachValue cty.Value
-}
+// InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
+// here for compatibility. In new code, use instances.RepetitionData instead.
+type InstanceKeyEvalData = instances.RepetitionData
 
 // EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
 // evaluating in a context that has the given instance key.
+//
+// The forEachMap argument can be nil when preparing for evaluation
+// in a context where each.value is prohibited, such as a destroy-time
+// provisioner. In that case, the returned EachValue will always be
+// cty.NilVal.
 func EvalDataForInstanceKey(key addrs.InstanceKey, forEachMap map[string]cty.Value) InstanceKeyEvalData {
-	var countIdx cty.Value
-	var eachKey cty.Value
-	var eachVal cty.Value
-
-	if intKey, ok := key.(addrs.IntKey); ok {
-		countIdx = cty.NumberIntVal(int64(intKey))
+	var evalData InstanceKeyEvalData
+	if key == nil {
+		return evalData
 	}
 
-	if stringKey, ok := key.(addrs.StringKey); ok {
-		eachKey = cty.StringVal(string(stringKey))
-		eachVal = forEachMap[string(stringKey)]
+	keyValue := key.Value()
+	switch keyValue.Type() {
+	case cty.String:
+		evalData.EachKey = keyValue
+		evalData.EachValue = forEachMap[keyValue.AsString()]
+	case cty.Number:
+		evalData.CountIndex = keyValue
 	}
-
-	return InstanceKeyEvalData{
-		CountIndex: countIdx,
-		EachKey:    eachKey,
-		EachValue:  eachVal,
-	}
+	return evalData
 }
 
 // EvalDataForNoInstanceKey is a value of InstanceKeyData that sets no instance
@@ -779,9 +765,8 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	providerType := providerAddr.ProviderConfig.Type
 	schemas := d.Evaluator.Schemas
-	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	schema, _ := schemas.ResourceTypeConfig(providerAddr.Provider, addr.Mode, addr.Type)
 	return schema
 }
 

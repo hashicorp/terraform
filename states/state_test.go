@@ -35,9 +35,10 @@ func TestState(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
@@ -78,9 +79,10 @@ func TestState(t *testing.T) {
 								Deposed: map[DeposedKey]*ResourceInstanceObjectSrc{},
 							},
 						},
-						ProviderConfig: addrs.ProviderConfig{
-							Type: "test",
-						}.Absolute(addrs.RootModuleInstance),
+						ProviderConfig: addrs.AbsProviderConfig{
+							Provider: addrs.NewDefaultProvider("test"),
+							Module:   addrs.RootModuleInstance,
+						},
 					},
 				},
 			},
@@ -140,9 +142,10 @@ func TestStateDeepCopy(t *testing.T) {
 			Private:       []byte("private data"),
 			Dependencies:  []addrs.AbsResource{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -166,9 +169,10 @@ func TestStateDeepCopy(t *testing.T) {
 				},
 			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 
 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))

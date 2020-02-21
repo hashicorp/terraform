@@ -134,15 +134,15 @@ func TestGraphEdgesFrom(t *testing.T) {
 
 	edges := g.EdgesFrom(1)
 
-	var expected Set
+	expected := make(Set)
 	expected.Add(BasicEdge(1, 3))
 
-	var s Set
+	s := make(Set)
 	for _, e := range edges {
 		s.Add(e)
 	}
 
-	if s.Intersection(&expected).Len() != expected.Len() {
+	if s.Intersection(expected).Len() != expected.Len() {
 		t.Fatalf("bad: %#v", edges)
 	}
 }
@@ -157,15 +157,15 @@ func TestGraphEdgesTo(t *testing.T) {
 
 	edges := g.EdgesTo(3)
 
-	var expected Set
+	expected := make(Set)
 	expected.Add(BasicEdge(1, 3))
 
-	var s Set
+	s := make(Set)
 	for _, e := range edges {
 		s.Add(e)
 	}
 
-	if s.Intersection(&expected).Len() != expected.Len() {
+	if s.Intersection(expected).Len() != expected.Len() {
 		t.Fatalf("bad: %#v", edges)
 	}
 }

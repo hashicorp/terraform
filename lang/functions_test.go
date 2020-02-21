@@ -687,6 +687,15 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"setsubtract": {
+			{
+				`setsubtract(["a", "b", "c"], ["a", "c"])`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+			},
+		},
+
 		"setunion": {
 			{
 				`setunion(["a", "b"], ["b", "c"], ["d"])`,

@@ -224,3 +224,62 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 		})
 	}
 }
+
+// TestParseLoadConfigFileError is a test that verifies files from
+// testdata/warning-files produce particular errors.
+//
+// This test does not verify that reading these files produces the correct
+// file element contents in spite of those errors. More detailed assertions
+// may be made on some subset of these configuration files in other tests.
+func TestParserLoadConfigFileError(t *testing.T) {
+	files, err := ioutil.ReadDir("testdata/error-files")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, info := range files {
+		name := info.Name()
+		t.Run(name, func(t *testing.T) {
+			src, err := ioutil.ReadFile(filepath.Join("testdata/error-files", name))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// First we'll scan the file to see what warnings are expected.
+			// That's declared inside the files themselves by using the
+			// string "ERROR: " somewhere on each line that is expected
+			// to produce a warning, followed by the expected warning summary
+			// text. A single-line comment (with #) is the main way to do that.
+			const marker = "ERROR: "
+			sc := bufio.NewScanner(bytes.NewReader(src))
+			wantErrors := make(map[int]string)
+			lineNum := 1
+			for sc.Scan() {
+				lineText := sc.Text()
+				if idx := strings.Index(lineText, marker); idx != -1 {
+					summaryText := lineText[idx+len(marker):]
+					wantErrors[lineNum] = summaryText
+				}
+				lineNum++
+			}
+
+			parser := testParser(map[string]string{
+				name: string(src),
+			})
+
+			_, diags := parser.LoadConfigFile(name)
+
+			gotErrors := make(map[int]string)
+			for _, diag := range diags {
+				if diag.Severity != hcl.DiagError || diag.Subject == nil {
+					continue
+				}
+				gotErrors[diag.Subject.Start.Line] = diag.Summary
+			}
+
+			if diff := cmp.Diff(wantErrors, gotErrors); diff != "" {
+				t.Errorf("wrong errors\n%s", diff)
+			}
+		})
+	}
+}

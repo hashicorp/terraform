@@ -153,6 +153,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Schemas: b.Schemas},
 
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{Config: b.Config},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
@@ -168,20 +173,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:  b.Config,
 			State:   b.State,
 			Schemas: b.Schemas,
-			Destroy: b.Destroy,
 		},
 
-		// Handle destroy time transformations for output and local values.
-		// Reverse the edges from outputs and locals, so that
-		// interpolations don't fail during destroy.
 		// Create a destroy node for outputs to remove them from the state.
-		GraphTransformIf(
-			func() bool { return b.Destroy },
-			GraphTransformMulti(
-				&DestroyValueReferenceTransformer{},
-				&DestroyOutputTransformer{},
-			),
-		),
+		&DestroyOutputTransformer{Destroy: b.Destroy},
 
 		// Prune unreferenced values, which may have interpolations that can't
 		// be resolved.

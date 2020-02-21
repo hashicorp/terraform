@@ -60,9 +60,15 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 // outputs during destroy. We need to do this to ensure that no stale outputs
 // are ever left in the state.
 type DestroyOutputTransformer struct {
+	Destroy bool
 }
 
 func (t *DestroyOutputTransformer) Transform(g *Graph) error {
+	// Only clean root outputs on a full destroy
+	if !t.Destroy {
+		return nil
+	}
+
 	for _, v := range g.Vertices() {
 		output, ok := v.(*NodeApplyableOutput)
 		if !ok {
@@ -86,7 +92,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 		// the destroy node must depend on the eval node
 		deps.Add(v)
 
-		for _, d := range deps.List() {
+		for _, d := range deps {
 			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
 			g.Connect(dag.BasicEdge(node, d))
 		}

@@ -218,8 +218,8 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := ctx.State()
 
-	if n.ProviderAddr.ProviderConfig.Type == "" {
-		return nil, fmt.Errorf("failed to write state for %s, missing provider type", absAddr)
+	if n.ProviderAddr.Provider.Type == "" {
+		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
 	}
 	obj := *n.State
 	if obj == nil || obj.Value.IsNull() {
@@ -487,6 +487,19 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	// This method takes care of all of the business logic of updating this
 	// while ensuring that any existing instances are preserved, etc.
 	state.SetResourceMeta(absAddr, eachMode, n.ProviderAddr)
+
+	// We'll record our expansion decision in the shared "expander" object
+	// so that later operations (i.e. DynamicExpand and expression evaluation)
+	// can refer to it.
+	expander := ctx.InstanceExpander()
+	switch eachMode {
+	case states.EachList:
+		expander.SetResourceCount(ctx.Path(), n.Addr, count)
+	case states.EachMap:
+		expander.SetResourceForEach(ctx.Path(), n.Addr, forEach)
+	default:
+		expander.SetResourceSingle(ctx.Path(), n.Addr)
+	}
 
 	return nil, nil
 }

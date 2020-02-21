@@ -100,6 +100,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"rsadecrypt":       funcs.RsaDecryptFunc,
 			"setintersection":  stdlib.SetIntersectionFunc,
 			"setproduct":       funcs.SetProductFunc,
+			"setsubtract":      stdlib.SetSubtractFunc,
 			"setunion":         stdlib.SetUnionFunc,
 			"sha1":             funcs.Sha1Func,
 			"sha256":           funcs.Sha256Func,

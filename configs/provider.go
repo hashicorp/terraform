@@ -94,10 +94,10 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 
 // Addr returns the address of the receiving provider configuration, relative
 // to its containing module.
-func (p *Provider) Addr() addrs.ProviderConfig {
-	return addrs.ProviderConfig{
-		Type:  p.Name,
-		Alias: p.Alias,
+func (p *Provider) Addr() addrs.LocalProviderConfig {
+	return addrs.LocalProviderConfig{
+		LocalName: p.Name,
+		Alias:     p.Alias,
 	}
 }
 
@@ -120,10 +120,10 @@ func (p *Provider) moduleUniqueKey() string {
 //
 // If the returned diagnostics contains errors then the result value is invalid
 // and must not be used.
-func ParseProviderConfigCompact(traversal hcl.Traversal) (addrs.ProviderConfig, tfdiags.Diagnostics) {
+func ParseProviderConfigCompact(traversal hcl.Traversal) (addrs.LocalProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := addrs.ProviderConfig{
-		Type: traversal.RootName(),
+	ret := addrs.LocalProviderConfig{
+		LocalName: traversal.RootName(),
 	}
 
 	if len(traversal) < 2 {
@@ -172,13 +172,13 @@ func ParseProviderConfigCompact(traversal hcl.Traversal) (addrs.ProviderConfig, 
 // of the traversal fails. There is no way for the caller to distinguish the
 // two kinds of diagnostics programmatically. If error diagnostics are returned
 // then the returned address is invalid.
-func ParseProviderConfigCompactStr(str string) (addrs.ProviderConfig, tfdiags.Diagnostics) {
+func ParseProviderConfigCompactStr(str string) (addrs.LocalProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
-		return addrs.ProviderConfig{}, diags
+		return addrs.LocalProviderConfig{}, diags
 	}
 
 	addr, addrDiags := ParseProviderConfigCompact(traversal)
