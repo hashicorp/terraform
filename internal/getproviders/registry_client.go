@@ -211,6 +211,8 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	}
 
 	ret := PackageMeta{
+		Provider:         provider,
+		Version:          version,
 		ProtocolVersions: protoVersions,
 		TargetPlatform: Platform{
 			OS:   body.OS,

@@ -117,6 +117,10 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{
+				Provider: addrs.NewProvider(
+					svchost.Hostname("example.com"), "awesomesauce", "happycloud",
+				),
+				Version:          versions.MustParseVersion("1.2.0"),
 				ProtocolVersions: VersionList{versions.MustParseVersion("5.0.0")},
 				TargetPlatform:   Platform{"linux", "amd64"},
 				Filename:         "happycloud_1.2.0.zip",
