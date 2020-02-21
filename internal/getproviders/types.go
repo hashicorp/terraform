@@ -2,9 +2,13 @@ package getproviders
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"runtime"
+	"sort"
+	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // Version represents a particular single version of a provider.
@@ -28,6 +32,22 @@ type Platform struct {
 
 func (p Platform) String() string {
 	return p.OS + "_" + p.Arch
+}
+
+// LessThan returns true if the receiver should sort before the other given
+// Platform in an ordered list of platforms.
+//
+// The ordering is lexical first by OS and then by Architecture.
+// This ordering is primarily just to ensure that results of
+// functions in this package will be deterministic. The ordering is not
+// intended to have any semantic meaning and is subject to change in future.
+func (p Platform) LessThan(other Platform) bool {
+	switch {
+	case p.OS != other.OS:
+		return p.OS < other.OS
+	default:
+		return p.Arch < other.Arch
+	}
 }
 
 // ParsePlatform parses a string representation of a platform, like
@@ -83,6 +103,30 @@ type PackageMeta struct {
 	// TODO: Extra metadata for signature verification
 }
 
+// LessThan returns true if the receiver should sort before the given other
+// PackageMeta in a sorted list of PackageMeta.
+//
+// Sorting preference is given first to the provider address, then to the
+// taget platform, and the to the version number (using semver precedence).
+// Packages that differ only in semver build metadata have no defined
+// precedence and so will always return false.
+//
+// This ordering is primarily just to maximize the chance that results of
+// functions in this package will be deterministic. The ordering is not
+// intended to have any semantic meaning and is subject to change in future.
+func (m PackageMeta) LessThan(other PackageMeta) bool {
+	switch {
+	case m.Provider != other.Provider:
+		return m.Provider.LessThan(other.Provider)
+	case m.TargetPlatform != other.TargetPlatform:
+		return m.TargetPlatform.LessThan(other.TargetPlatform)
+	case m.Version != other.Version:
+		return m.Version.LessThan(other.Version)
+	default:
+		return false
+	}
+}
+
 // PackageLocation represents a location where a provider distribution package
 // can be obtained. A value of this type contains one of the following
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
@@ -111,3 +155,72 @@ func (p PackageLocalDir) packageLocation() {}
 type PackageHTTPURL string
 
 func (p PackageHTTPURL) packageLocation() {}
+
+// PackageMetaList is a list of PackageMeta. It's just []PackageMeta with
+// some methods for convenient sorting and filtering.
+type PackageMetaList []PackageMeta
+
+func (l PackageMetaList) Len() int {
+	return len(l)
+}
+
+func (l PackageMetaList) Less(i, j int) bool {
+	return l[i].LessThan(l[j])
+}
+
+func (l PackageMetaList) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
+}
+
+// Sort performs an in-place, stable sort on the contents of the list, using
+// the ordering given by method Less. This ordering is primarily to help
+// encourage deterministic results from functions and does not have any
+// semantic meaning.
+func (l PackageMetaList) Sort() {
+	sort.Stable(l)
+}
+
+// FilterPlatform constructs a new PackageMetaList that contains only the
+// elements of the receiver that are for the given target platform.
+//
+// Pass CurrentPlatform to filter only for packages targeting the platform
+// where this code is running.
+func (l PackageMetaList) FilterPlatform(target Platform) PackageMetaList {
+	var ret PackageMetaList
+	for _, m := range l {
+		if m.TargetPlatform == target {
+			ret = append(ret, m)
+		}
+	}
+	return ret
+}
+
+// FilterProviderExactVersion constructs a new PackageMetaList that contains
+// only the elements of the receiver that relate to the given provider address
+// and exact version.
+//
+// The version matching for this function is exact, including matching on
+// semver build metadata, because it's intended for handling a single exact
+// version selected by the caller from a set of available versions.
+func (l PackageMetaList) FilterProviderExactVersion(provider addrs.Provider, version Version) PackageMetaList {
+	var ret PackageMetaList
+	for _, m := range l {
+		if m.Provider == provider && m.Version == version {
+			ret = append(ret, m)
+		}
+	}
+	return ret
+}
+
+// FilterProviderPlatformExactVersion is a combination of both
+// FilterPlatform and FilterProviderExactVersion that filters by all three
+// criteria at once.
+func (l PackageMetaList) FilterProviderPlatformExactVersion(provider addrs.Provider, platform Platform, version Version) PackageMetaList {
+	var ret PackageMetaList
+	for _, m := range l {
+		if m.Provider == provider && m.Version == version && m.TargetPlatform == platform {
+			ret = append(ret, m)
+		}
+	}
+	return ret
+}
