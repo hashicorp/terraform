@@ -96,8 +96,14 @@ type PackageMeta struct {
 	ProtocolVersions VersionList
 	TargetPlatform   Platform
 
-	Filename  string
-	Location  PackageLocation
+	Filename string
+	Location PackageLocation
+
+	// FIXME: Our current hashing scheme only works for sources that have
+	// access to the original distribution archives, so this isn't always
+	// populated. Need to figure out a different approach where we can
+	// consistently hash both from an archive file and from an extracted
+	// archive to detect inconsistencies.
 	SHA256Sum [sha256.Size]byte
 
 	// TODO: Extra metadata for signature verification
