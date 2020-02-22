@@ -29,7 +29,9 @@ into a separate file for readability.
 The "vars" argument must be a map. Within the template file, each of the keys
 in the map is available as a variable for interpolation. The template may
 also use any other function available in the Terraform language, except that
-recursive calls to `templatefile` are not permitted.
+recursive calls to `templatefile` are not permitted. Variable names must
+each start with a letter, followed by zero or more letters, digits, or
+underscores.
 
 Strings in the Terraform language are sequences of Unicode characters, so
 this function will interpret the file contents as UTF-8 encoded text and
