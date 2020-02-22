@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/version"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -568,7 +569,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 					// Generic version incompatible msg
 					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
 				case err == discovery.ErrorSignatureVerification:
-					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider))
+					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider, version.SemVer))
 				case err == discovery.ErrorChecksumVerification,
 					err == discovery.ErrorMissingChecksumVerification:
 					c.Ui.Error(fmt.Sprintf(errChecksumVerification, provider))
@@ -1020,9 +1021,12 @@ were changed after this version was released to the Registry.
 `
 
 const errSignatureVerification = `
-[reset][bold][red]Error verifying GPG signature for provider %[1]q[reset][red]
-Terraform was unable to verify the GPG signature of the downloaded provider
-files using the keys downloaded from the Terraform Registry. This may mean that
-the publisher of the provider removed the key it was signed with, or that the
-distributed files were changed after this version was released.
+[reset][bold][red]Error:[reset][bold] Untrusted signing key for provider %[1]q[reset]
+
+This provider package is not signed with the HashiCorp signing key, and is
+therefore incompatible with Terraform v%[2]s.
+
+A later version of Terraform may have introduced other signing keys that would
+accept this provider. Alternatively, an earlier version of this provider may
+be compatible with Terraform v%[2]s.
 `
