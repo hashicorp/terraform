@@ -1362,7 +1362,7 @@ func (m schemaMap) validate(
 	if !schema.Required && !schema.Optional {
 		// This is a computed-only field
 		return nil, []error{fmt.Errorf(
-			"%q: this field cannot be set", k)}
+			"%q: computed field was not set", k)}
 	}
 
 	// If the value is unknown then we can't validate it yet.
