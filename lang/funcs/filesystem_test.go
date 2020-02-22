@@ -58,25 +58,25 @@ func TestTemplateFile(t *testing.T) {
 		Path cty.Value
 		Vars cty.Value
 		Want cty.Value
-		Err  bool
+		Err  string
 	}{
 		{
 			cty.StringVal("testdata/hello.txt"),
 			cty.EmptyObjectVal,
 			cty.StringVal("Hello World"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata/icon.png"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			true, // Not valid UTF-8
+			`contents of testdata/icon.png are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
 		},
 		{
 			cty.StringVal("testdata/missing"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			true, // no file exists
+			`no file exists at testdata/missing`,
 		},
 		{
 			cty.StringVal("testdata/hello.tmpl"),
@@ -84,7 +84,7 @@ func TestTemplateFile(t *testing.T) {
 				"name": cty.StringVal("Jodie"),
 			}),
 			cty.StringVal("Hello, Jodie!"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata/hello.tmpl"),
@@ -92,13 +92,13 @@ func TestTemplateFile(t *testing.T) {
 				"name": cty.StringVal("Jimbo"),
 			}),
 			cty.StringVal("Hello, Jimbo!"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata/hello.tmpl"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			true, // "name" is missing from the vars map
+			`vars map does not contain key "name", referenced at testdata/hello.tmpl:1,10-14`,
 		},
 		{
 			cty.StringVal("testdata/func.tmpl"),
@@ -110,13 +110,13 @@ func TestTemplateFile(t *testing.T) {
 				}),
 			}),
 			cty.StringVal("The items are a, b, c"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata/recursive.tmpl"),
 			cty.MapValEmpty(cty.String),
 			cty.NilVal,
-			true, // recursive templatefile call not allowed
+			`testdata/recursive.tmpl:1,3-16: Error in function call; Call to function "templatefile" failed: cannot recursively call templatefile from inside templatefile call.`,
 		},
 		{
 			cty.StringVal("testdata/list.tmpl"),
@@ -128,7 +128,7 @@ func TestTemplateFile(t *testing.T) {
 				}),
 			}),
 			cty.StringVal("- a\n- b\n- c\n"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata/list.tmpl"),
@@ -136,7 +136,7 @@ func TestTemplateFile(t *testing.T) {
 				"list": cty.True,
 			}),
 			cty.NilVal,
-			true, // iteration over non-iterable value
+			`testdata/list.tmpl:1,13-17: Iteration over non-iterable value; A value of type bool cannot be used as the collection in a 'for' expression.`,
 		},
 		{
 			cty.StringVal("testdata/bare.tmpl"),
@@ -144,7 +144,7 @@ func TestTemplateFile(t *testing.T) {
 				"val": cty.True,
 			}),
 			cty.True, // since this template contains only an interpolation, its true value shines through
-			false,
+			``,
 		},
 	}
 
@@ -165,9 +165,12 @@ func TestTemplateFile(t *testing.T) {
 				}
 			}
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {
