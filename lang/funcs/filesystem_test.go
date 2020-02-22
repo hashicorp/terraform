@@ -88,6 +88,14 @@ func TestTemplateFile(t *testing.T) {
 		},
 		{
 			cty.StringVal("testdata/hello.tmpl"),
+			cty.MapVal(map[string]cty.Value{
+				"name!": cty.StringVal("Jodie"),
+			}),
+			cty.NilVal,
+			`invalid template variable name "name!": must start with a letter, followed by zero or more letters, digits, and underscores`,
+		},
+		{
+			cty.StringVal("testdata/hello.tmpl"),
 			cty.ObjectVal(map[string]cty.Value{
 				"name": cty.StringVal("Jimbo"),
 			}),
