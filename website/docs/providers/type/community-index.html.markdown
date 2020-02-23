@@ -184,7 +184,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Zendesk](https://github.com/nukosuke/terraform-provider-zendesk)
 - [ZeroTier](https://github.com/cormacrelf/terraform-provider-zerotier)
 - [Zipper](https://github.com/ArthurHlt/terraform-provider-zipper)
-
+- [Flowdock](https://github.com/sirenfei/terraform-provider-flowdock)
 
 </div>
 
