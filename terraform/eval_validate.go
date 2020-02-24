@@ -67,7 +67,7 @@ RETURN:
 // EvalValidateProvider is an EvalNode implementation that validates
 // a provider configuration.
 type EvalValidateProvider struct {
-	Addr     addrs.ProviderConfig
+	Addr     addrs.AbsProviderConfig
 	Provider *providers.Interface
 	Config   *configs.Provider
 }

@@ -80,6 +80,12 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	// Find the things that reference things and connect them
 	for _, v := range vs {
+		if _, ok := v.(GraphNodeDestroyer); ok {
+			// destroy nodes references are not connected, since they can only
+			// use their own state.
+			continue
+		}
+
 		parents, _ := m.References(v)
 		parentsDbg := make([]string, len(parents))
 		for i, v := range parents {
@@ -131,7 +137,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		// dedupe addrs when there's multiple instances involved, or
 		// multiple paths in the un-reduced graph
 		depMap := map[string]addrs.AbsResource{}
-		for _, d := range ans.List() {
+		for _, d := range ans {
 			var addr addrs.AbsResource
 
 			switch d := d.(type) {
@@ -170,57 +176,30 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// DestroyReferenceTransformer is a GraphTransformer that reverses the edges
-// for locals and outputs that depend on other nodes which will be
-// removed during destroy. If a destroy node is evaluated before the local or
-// output value, it will be removed from the state, and the later interpolation
-// will fail.
-type DestroyValueReferenceTransformer struct{}
-
-func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
-	vs := g.Vertices()
-	for _, v := range vs {
-		switch v.(type) {
-		case *NodeApplyableOutput, *NodeLocal:
-			// OK
-		default:
-			continue
-		}
-
-		// reverse any outgoing edges so that the value is evaluated first.
-		for _, e := range g.EdgesFrom(v) {
-			target := e.Target()
-
-			// only destroy nodes will be evaluated in reverse
-			if _, ok := target.(GraphNodeDestroyer); !ok {
-				continue
-			}
-
-			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
-
-			g.RemoveEdge(e)
-			g.Connect(&DestroyEdge{S: target, T: v})
-		}
-	}
-
-	return nil
+// PruneUnusedValuesTransformer is a GraphTransformer that removes local,
+// variable, and output values which are not referenced in the graph. If these
+// values reference a resource that is no longer in the state the interpolation
+// could fail.
+type PruneUnusedValuesTransformer struct {
+	Destroy bool
 }
 
-// PruneUnusedValuesTransformer is s GraphTransformer that removes local and
-// output values which are not referenced in the graph. Since outputs and
-// locals always need to be evaluated, if they reference a resource that is not
-// available in the state the interpolation could fail.
-type PruneUnusedValuesTransformer struct{}
-
 func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
-	// this might need multiple runs in order to ensure that pruning a value
-	// doesn't effect a previously checked value.
+	// Pruning a value can effect previously checked edges, so loop until there
+	// are no more changes.
 	for removed := 0; ; removed = 0 {
 		for _, v := range g.Vertices() {
-			switch v.(type) {
-			case *NodeApplyableOutput, *NodeLocal:
+			switch v := v.(type) {
+			case *NodeApplyableOutput:
+				// If we're not certain this is a full destroy, we need to keep any
+				// root module outputs
+				if v.Addr.Module.IsRoot() && !t.Destroy {
+					continue
+				}
+			case *NodeLocal, *NodeApplyableModuleVariable:
 				// OK
 			default:
+				// We're only concerned with variables, locals and outputs
 				continue
 			}
 
@@ -229,6 +208,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 			switch dependants.Len() {
 			case 0:
 				// nothing at all depends on this
+				log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
 				g.Remove(v)
 				removed++
 			case 1:
@@ -236,6 +216,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				// we need to check for the case of a single destroy node.
 				d := dependants.List()[0]
 				if _, ok := d.(*NodeDestroyableOutput); ok {
+					log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
 					g.Remove(v)
 					removed++
 				}

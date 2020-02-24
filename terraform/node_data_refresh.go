@@ -53,6 +53,19 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
 
+	// Inform our instance expander about our expansion results above,
+	// and then use it to calculate the instance addresses we'll expand for.
+	expander := ctx.InstanceExpander()
+	switch {
+	case count >= 0:
+		expander.SetResourceCount(ctx.Path(), n.ResourceAddr().Resource, count)
+	case forEachMap != nil:
+		expander.SetResourceForEach(ctx.Path(), n.ResourceAddr().Resource, forEachMap)
+	default:
+		expander.SetResourceSingle(ctx.Path(), n.ResourceAddr().Resource)
+	}
+	instanceAddrs := expander.ExpandResource(ctx.Path().Module(), n.ResourceAddr().Resource)
+
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
 	state := ctx.State().Lock()
@@ -85,21 +98,19 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	steps := []GraphTransformer{
 		// Expand the count.
 		&ResourceCountTransformer{
-			Concrete: concreteResource,
-			Schema:   n.Schema,
-			Count:    count,
-			ForEach:  forEachMap,
-			Addr:     n.ResourceAddr(),
+			Concrete:      concreteResource,
+			Schema:        n.Schema,
+			Addr:          n.ResourceAddr(),
+			InstanceAddrs: instanceAddrs,
 		},
 
 		// Add the count orphans. As these are orphaned refresh nodes, we add them
 		// directly as NodeDestroyableDataResource.
 		&OrphanResourceCountTransformer{
-			Concrete: concreteResourceDestroyable,
-			Count:    count,
-			ForEach:  forEachMap,
-			Addr:     n.ResourceAddr(),
-			State:    state,
+			Concrete:      concreteResourceDestroyable,
+			Addr:          n.ResourceAddr(),
+			InstanceAddrs: instanceAddrs,
+			State:         state,
 		},
 
 		// Attach the state

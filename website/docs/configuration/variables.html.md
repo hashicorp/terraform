@@ -23,7 +23,7 @@ When you declare them in [child modules](./modules.html),
 the calling module should pass values in the `module` block.
 
 Input variable usage is introduced in the Getting Started guide section
-[_Input Variables_](/intro/getting-started/variables.html).
+[_Input Variables_](https://learn.hashicorp.com/terraform/getting-started/variables).
 
 -> **Note:** For brevity, input variables are often referred to as just
 "variables" or "Terraform variables" when it is clear from context what sort of
@@ -163,6 +163,64 @@ of the variable and what kind of value is expected. This description string
 might be included in documentation about the module, and so it should be written
 from the perspective of the user of the module rather than its maintainer. For
 commentary for module maintainers, use comments.
+
+## Custom Validation Rules
+
+~> *Warning:* This feature is currently experimental and is subject to breaking
+changes even in minor releases. We welcome your feedback, but cannot
+recommend using this feature in production modules yet.
+
+In addition to Type Constraints as described above, a module author can specify
+arbitrary custom validation rules for a particular variable using a `validation`
+block nested within the corresponding `variable` block:
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+The `condition` argument is an expression that must use the value of the
+variable to return `true` if the value is valid, or `false` if it is invalid.
+The expression can refer only to the variable that the condition applies to,
+and _must not_ produce errors.
+
+If the failure of an expression is the basis of the validation decision, use
+[the `can` function](./functions/can.html) to detect such errors. For example:
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    # regex(...) fails if it cannot find a match
+    condition     = can(regex("^ami-", var.image_id))
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+If `condition` evaluates to `false`, Terraform will produce an error message
+that includes the sentences given in `error_message`. The error message string
+should be at least one full sentence explaining the constraint that failed,
+using a sentence structure similar to the above examples.
+
+This is [an experimental language feature](./terraform.html#experimental-language-features)
+that currently requires an explicit opt-in using the experiment keyword
+`variable_validation`:
+
+```hcl
+terraform {
+  experiments = [variable_validation]
+}
+```
 
 ## Assigning Values to Root Module Variables
 

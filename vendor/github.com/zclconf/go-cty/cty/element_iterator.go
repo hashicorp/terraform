@@ -23,6 +23,8 @@ type ElementIterator interface {
 
 func canElementIterator(val Value) bool {
 	switch {
+	case val.IsMarked():
+		return false
 	case val.ty.IsListType():
 		return true
 	case val.ty.IsMapType():
@@ -39,6 +41,7 @@ func canElementIterator(val Value) bool {
 }
 
 func elementIterator(val Value) ElementIterator {
+	val.assertUnmarked()
 	switch {
 	case val.ty.IsListType():
 		return &listElementIterator{

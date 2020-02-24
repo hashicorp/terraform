@@ -229,19 +229,24 @@ func TestBackendExtraPaths(t *testing.T) {
 		ddbTable:             b.ddbTable,
 	}
 
+	// Write the first state
 	stateMgr := &remote.State{Client: client}
 	stateMgr.WriteState(s1)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
 
+	// Write the second state
+	// Note a new state manager - otherwise, because these
+	// states are equal, the state will not Put to the remote
 	client.path = b.path("s2")
-	stateMgr.WriteState(s2)
-	if err := stateMgr.PersistState(); err != nil {
+	stateMgr2 := &remote.State{Client: client}
+	stateMgr2.WriteState(s2)
+	if err := stateMgr2.PersistState(); err != nil {
 		t.Fatal(err)
 	}
 
-	s2Lineage := stateMgr.StateSnapshotMeta().Lineage
+	s2Lineage := stateMgr2.StateSnapshotMeta().Lineage
 
 	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
 		t.Fatal(err)

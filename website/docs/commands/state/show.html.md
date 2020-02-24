@@ -19,10 +19,6 @@ Usage: `terraform state show [options] ADDRESS`
 The command will show the attributes of a single resource in the
 state file that matches the given address.
 
-The attributes are listed in alphabetical order (with the except of "id"
-which is always at the top). They are outputted in a way that is easy
-to parse on the command-line.
-
 This command requires an address that points to a single resource in the
 state. Addresses are
 in [resource addressing format](/docs/commands/state/addressing.html).
@@ -31,6 +27,11 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
   Ignored when [remote state](/docs/state/remote.html) is used.
+
+The output of `terraform state show` is intended for human consumption, not
+programmatic consumption. To extract state data for use in other software, use
+[`terraform show -json`](../show.html#json-output) and decode the result
+using the documented structure.
 
 ## Example: Show a Resource
 

@@ -100,6 +100,12 @@ func tempDir(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	dir, err = filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if err := os.RemoveAll(dir); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -114,8 +120,8 @@ func testFixturePath(name string) string {
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": providers.FactoryFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
 			},
 		),
 	}
@@ -124,8 +130,8 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
 	return &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": providers.FactoryFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
 			},
 		),
 		Provisioners: map[string]provisioners.Factory{
@@ -265,9 +271,10 @@ func testState() *states.State {
 				Dependencies: []addrs.AbsResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 		// DeepCopy is used here to ensure our synthetic state matches exactly
 		// with a state that will have been copied during the command
@@ -484,6 +491,11 @@ func testTempDir(t *testing.T) string {
 	d, err := ioutil.TempDir(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	d, err = filepath.EvalSymlinks(d)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	return d
@@ -867,4 +879,12 @@ func normalizeJSON(t *testing.T, src []byte) string {
 		t.Fatalf("error normalizing JSON: %s", err)
 	}
 	return buf.String()
+}
+
+func mustResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
 }

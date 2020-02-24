@@ -109,12 +109,9 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 					}
 				}
 
-				inst := moduledeps.ProviderInstance(name)
-				if alias != "" {
-					inst = moduledeps.ProviderInstance(name + "." + alias)
-				}
-				log.Printf("[TRACE] Provider block requires provider %q", inst)
-				m.Providers[inst] = moduledeps.ProviderDependency{
+				fqn := addrs.NewLegacyProvider(name)
+				log.Printf("[TRACE] Provider block requires provider %q", fqn.LegacyString())
+				m.Providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: constraints,
 					Reason:      moduledeps.ProviderDependencyExplicit,
 				}
@@ -178,18 +175,23 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 					}
 				}
 
+				var fqn addrs.Provider
 				if providerKey == "" {
-					providerKey = rAddr.DefaultProviderConfig().StringCompact()
+					fqn = rAddr.DefaultProvider()
+				} else {
+					// ProviderDependencies only need to know the provider FQN
+					// strip any alias from the providerKey
+					parts := strings.Split(providerKey, ".")
+					fqn = addrs.NewLegacyProvider(parts[0])
 				}
 
-				inst := moduledeps.ProviderInstance(providerKey)
-				log.Printf("[TRACE] Resource block for %s requires provider %q", rAddr, inst)
-				if _, exists := m.Providers[inst]; !exists {
-					m.Providers[inst] = moduledeps.ProviderDependency{
+				log.Printf("[TRACE] Resource block for %s requires provider %q", rAddr, fqn)
+				if _, exists := m.Providers[fqn]; !exists {
+					m.Providers[fqn] = moduledeps.ProviderDependency{
 						Reason: moduledeps.ProviderDependencyImplicit,
 					}
 				}
-				ret.ResourceProviderType[rAddr] = inst.Type()
+				ret.ResourceProviderType[rAddr] = fqn.Type
 			}
 		}
 
@@ -241,11 +243,11 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		return nil, fmt.Errorf("error resolving providers:\n%s", errorsMsg)
 	}
 
-	for name, fn := range providerFactories {
-		log.Printf("[TRACE] Fetching schema from provider %q", name)
+	for fqn, fn := range providerFactories {
+		log.Printf("[TRACE] Fetching schema from provider %q", fqn.LegacyString())
 		provider, err := fn()
 		if err != nil {
-			return nil, fmt.Errorf("failed to load provider %q: %s", name, err)
+			return nil, fmt.Errorf("failed to load provider %q: %s", fqn.LegacyString(), err)
 		}
 
 		resp := provider.GetSchema()
@@ -264,7 +266,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		for t, s := range resp.DataSources {
 			schema.DataSources[t] = s.Block
 		}
-		ret.ProviderSchemas[name] = schema
+		ret.ProviderSchemas[fqn.LegacyString()] = schema
 	}
 
 	for name, fn := range u.Provisioners {

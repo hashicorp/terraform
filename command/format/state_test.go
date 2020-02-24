@@ -138,8 +138,8 @@ func testProviderSchema() *terraform.ProviderSchema {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": provider.GetSchemaReturn,
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
 		},
 	}
 }
@@ -243,9 +243,10 @@ func basicState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -258,9 +259,10 @@ func basicState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"compute":"sure"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	return state
 }
@@ -293,9 +295,10 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	return state
 }
@@ -319,9 +322,10 @@ func nestedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	return state
 }
@@ -341,9 +345,10 @@ func deposedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	return state
 }
@@ -369,9 +374,10 @@ func onlyDeposedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	rootModule.SetResourceInstanceDeposed(
 		addrs.Resource{
@@ -385,9 +391,10 @@ func onlyDeposedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModuleInstance,
+		},
 	)
 	return state
 }

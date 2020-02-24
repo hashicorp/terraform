@@ -21,7 +21,7 @@ will behave as expected.
 
 The optional `-out` argument can be used to save the generated plan to a file
 for later execution with `terraform apply`, which can be useful when
-[running Terraform in automation](/guides/running-terraform-in-automation.html).
+[running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
 
 ## Usage
 
@@ -36,6 +36,10 @@ the `plan` command will not modify the given plan. This can be used to
 inspect a planfile.
 
 The command-line flags are all optional. The list of available flags are:
+
+* `-compact-warnings` - If Terraform produces any warnings that are not
+  accompanied by errors, show them in a more compact form that includes only
+  the summary messages.
 
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 

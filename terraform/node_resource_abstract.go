@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -195,6 +194,11 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
 		result = append(result, refs...)
 		if c.Managed != nil {
+			if c.Managed.Connection != nil {
+				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
+				result = append(result, refs...)
+			}
+
 			for _, p := range c.Managed.Provisioners {
 				if p.When != configs.ProvisionerWhenCreate {
 					continue
@@ -234,46 +238,6 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 			return nil
 		}
 		return n.NodeAbstractResource.References()
-	}
-
-	// FIXME: remove once the deprecated DependsOn values have been removed from state
-	// The state dependencies are now connected in a separate transformation as
-	// absolute addresses, but we need to keep this here until we can be sure
-	// that no state will need to use the old depends_on references.
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
-			// State is still storing dependencies as old-style strings, so we'll
-			// need to do a little work here to massage this to the form we now
-			// want.
-			var result []*addrs.Reference
-
-			// It is (apparently) possible for s.Current to be nil. This proved
-			// difficult to reproduce, so we will fix the symptom here and hope
-			// to find the root cause another time.
-			//
-			// https://github.com/hashicorp/terraform/issues/21407
-			if s.Current == nil {
-				log.Printf("[WARN] no current state found for %s", n.Name())
-				return nil
-			}
-			for _, addr := range s.Current.DependsOn {
-				if addr == nil {
-					// Should never happen; indicates a bug in the state loader
-					panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
-				}
-
-				// This is a little weird: we need to manufacture an addrs.Reference
-				// with a fake range here because the state isn't something we can
-				// make source references into.
-				result = append(result, &addrs.Reference{
-					Subject: addr,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "(state file)",
-					},
-				})
-			}
-			return result
-		}
 	}
 
 	// If we have neither config nor state then we have no references.
@@ -316,11 +280,26 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		return relAddr.Absolute(n.Path()), false
+		// FIXME: this will need to lookup the provider and see if there's an
+		// FQN associated with the local config
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+		return addrs.AbsProviderConfig{
+			Provider: fqn,
+			Module:   n.Path(),
+			Alias:    relAddr.Alias,
+		}, false
 	}
 
-	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Addr.Module), false
+	// Use our type and containing module path to guess a provider configuration address.
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.AbsProviderConfig{
+		Provider: defaultFQN,
+		Module:   n.Addr.Module,
+	}, false
 }
 
 // GraphNodeProviderConsumer
@@ -328,7 +307,16 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		return relAddr.Absolute(n.Path()), false
+		// Use our type and containing module path to guess a provider configuration address.
+		// FIXME: This is relying on the FQN-to-local matching true only of legacy
+		// addresses.
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+
+		return addrs.AbsProviderConfig{
+			Provider: fqn,
+			Module:   n.Path(),
+			Alias:    relAddr.Alias,
+		}, false
 	}
 
 	// If we have state, then we will use the provider from there
@@ -340,7 +328,15 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	}
 
 	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Path()), false
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.AbsProviderConfig{
+		Provider: defaultFQN,
+		Module:   n.Addr.Module,
+	}, false
 }
 
 // GraphNodeProvisionerConsumer

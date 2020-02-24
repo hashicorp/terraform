@@ -22,7 +22,7 @@ using the most appropriate issue template. Please do fill in all of the
 information the issue templates request, because we've seen from experience that
 this will maximize the chance that we'll be able to act on your feedback.
 
-Please not that we _don't_ use GitHub issues for usage questions. If you have
+Please note that we _don't_ use GitHub issues for usage questions. If you have
 a question about how to use Terraform in general or how to solve a specific
 problem with Terraform, please start a topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core),

@@ -1,13 +1,17 @@
 package command
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform/addrs"
+)
 
 func TestInternalPlugin_InternalProviders(t *testing.T) {
 	m := new(Meta)
 	providers := m.internalProviders()
 	// terraform is the only provider moved back to internal
 	for _, name := range []string{"terraform"} {
-		pf, ok := providers[name]
+		pf, ok := providers[addrs.NewLegacyProvider(name)]
 		if !ok {
 			t.Errorf("Expected to find %s in InternalProviders", name)
 		}
@@ -40,5 +44,14 @@ func TestInternalPlugin_BuildPluginCommandString(t *testing.T) {
 	expected := "-TFSPACE-internal-plugin-TFSPACE-provisioner-TFSPACE-remote-exec"
 	if actual[len(actual)-len(expected):] != expected {
 		t.Errorf("Expected command to end with %s; got:\n%s\n", expected, actual)
+	}
+}
+
+func TestInternalPlugin_StripArgFlags(t *testing.T) {
+	actual := StripArgFlags([]string{"provisioner", "remote-exec", "-var-file=my_vars.tfvars", "-flag"})
+	expected := []string{"provisioner", "remote-exec"}
+	// Must be same length and order.
+	if len(actual) != len(expected) || expected[0] != actual[0] || actual[1] != actual[1] {
+		t.Fatalf("Expected args to be exactly '%s', got '%s'", expected, actual)
 	}
 }

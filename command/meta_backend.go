@@ -562,6 +562,75 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
+// backendFromState returns the initialized (not configured) backend directly
+// from the state. This should be used only when a user runs `terraform init
+// -backend=false`. This function returns a local backend if there is no state
+// or no backend configured.
+func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	// Get the path to where we store a local cache of backend configuration
+	// if we're using a remote backend. This may not yet exist which means
+	// we haven't used a non-local backend before. That is okay.
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &state.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		return nil, diags
+	}
+	s := sMgr.State()
+	if s == nil {
+		// no state, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
+		return backendLocal.New(), diags
+	}
+	if s.Backend == nil {
+		// s.Backend is nil, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
+		return backendLocal.New(), diags
+	}
+	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+
+	//backend init function
+	if s.Backend.Type == "" {
+		return backendLocal.New(), diags
+	}
+	f := backendInit.Backend(s.Backend.Type)
+	if f == nil {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
+		return nil, diags
+	}
+	b := f()
+
+	// The configuration saved in the working directory state file is used
+	// in this case, since it will contain any additional values that
+	// were provided via -backend-config arguments on terraform init.
+	schema := b.ConfigSchema()
+	configVal, err := s.Backend.Config(schema)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to decode current backend config",
+			fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
+		))
+		return nil, diags
+	}
+
+	// Validate the config and then configure the backend
+	newVal, validDiags := b.PrepareConfig(configVal)
+	diags = diags.Append(validDiags)
+	if validDiags.HasErrors() {
+		return nil, diags
+	}
+
+	configDiags := b.Configure(newVal)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return b, diags
+}
+
 //-------------------------------------------------------------------
 // Backend Config Scenarios
 //

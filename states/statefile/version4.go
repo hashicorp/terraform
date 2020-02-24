@@ -84,7 +84,15 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
 		diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
-			continue
+			// If ParseAbsProviderConfigStr returns an error, the state may have
+			// been written before Provider FQNs were introduced and the
+			// AbsProviderConfig string format will need normalization. If so,
+			// we assume it is a default (hashicorp) provider.
+			var legacyAddrDiags tfdiags.Diagnostics
+			providerAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
+			if legacyAddrDiags.HasErrors() {
+				continue
+			}
 		}
 
 		var eachMode states.EachMode

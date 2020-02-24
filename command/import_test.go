@@ -258,6 +258,75 @@ func TestImport_remoteState(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
+// early failure on import should not leave stale lock
+func TestImport_initializationErrorShouldUnlock(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := "imported.tfstate"
+
+	// init our backend
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	ic := &InitCommand{
+		Meta: m,
+		providerInstaller: &mockProviderInstaller{
+			Providers: map[string][]string{
+				"test": []string{"1.2.3"},
+			},
+
+			Dir: m.pluginDir(),
+		},
+	}
+
+	// (Using log here rather than t.Log so that these messages interleave with other trace logs)
+	log.Print("[TRACE] TestImport_initializationErrorShouldUnlock running: terraform init")
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// overwrite the config with one including a resource from an invalid provider
+	copy.CopyFile(filepath.Join(testFixturePath("import-provider-invalid"), "main.tf"), filepath.Join(td, "main.tf"))
+
+	p := testProvider()
+	ui = new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"unknown_instance.baz",
+		"bar",
+	}
+	log.Printf("[TRACE] TestImport_initializationErrorShouldUnlock running: terraform import %s %s", args[0], args[1])
+
+	// this should fail
+	if code := c.Run(args); code != 1 {
+		fmt.Println(ui.OutputWriter)
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// specifically, it should fail due to a missing provider
+	msg := ui.ErrorWriter.String()
+	if want := "Could not satisfy plugin requirements"; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+
+	// verify that the local state was unlocked after initialization error
+	if _, err := os.Stat(filepath.Join(td, fmt.Sprintf(".%s.lock.info", statePath))); !os.IsNotExist(err) {
+		t.Fatal("state left locked after import")
+	}
+}
+
 func TestImport_providerConfigWithVar(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-provider-var"))()
 
@@ -330,6 +399,63 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	}
 
 	testStateOutput(t, statePath, testImportStr)
+}
+
+func TestImport_providerConfigWithDataSource(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-provider-datasource"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+				},
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad, wanted error: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
 }
 
 func TestImport_providerConfigWithVarDefault(t *testing.T) {
@@ -479,156 +605,6 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
-func TestImport_customProvider(t *testing.T) {
-	defer testChdir(t, testFixturePath("import-provider-aliased"))()
-
-	statePath := testTempFile(t)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &ImportCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
-
-	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_instance",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("yay"),
-				}),
-			},
-		},
-	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
-			},
-		},
-		ResourceTypes: map[string]*configschema.Block{
-			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
-				},
-			},
-		},
-	}
-
-	args := []string{
-		"-provider", "test.alias",
-		"-state", statePath,
-		"test_instance.foo",
-		"bar",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if !p.ImportResourceStateCalled {
-		t.Fatal("ImportResourceState should be called")
-	}
-
-	testStateOutput(t, statePath, testImportCustomProviderStr)
-}
-
-// This tests behavior when the provider name does not match the implied
-// provider name
-func TestImport_providerNameMismatch(t *testing.T) {
-	defer testChdir(t, testFixturePath("import-provider-mismatch"))()
-
-	statePath := testTempFile(t)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	c := &ImportCommand{
-		Meta: Meta{
-			testingOverrides: &testingOverrides{
-				ProviderResolver: providers.ResolverFixed(
-					map[string]providers.Factory{
-						"test-beta": providers.FactoryFixed(p),
-					},
-				),
-			},
-			Ui: ui,
-		},
-	}
-
-	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
-		configured = true
-
-		cfg := req.Config
-		if !cfg.Type().HasAttribute("foo") {
-			return providers.ConfigureResponse{
-				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("configuration has no foo argument")),
-			}
-		}
-		if got, want := cfg.GetAttr("foo"), cty.StringVal("baz"); !want.RawEquals(got) {
-			return providers.ConfigureResponse{
-				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("foo argument is %#v, but want %#v", got, want)),
-			}
-		}
-
-		return providers.ConfigureResponse{}
-	}
-
-	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_instance",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("yay"),
-				}),
-			},
-		},
-	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
-			},
-		},
-		ResourceTypes: map[string]*configschema.Block{
-			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
-				},
-			},
-		},
-	}
-
-	args := []string{
-		"-provider", "test-beta",
-		"-state", statePath,
-		"test_instance.foo",
-		"bar",
-	}
-
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	// Verify that the test-beta provider was configured
-	if !configured {
-		t.Fatal("Configure should be called")
-	}
-
-	if !p.ImportResourceStateCalled {
-		t.Fatal("ImportResourceState (provider 'test-beta') should be called")
-	}
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource (provider 'test-beta' should be called")
-	}
-
-	testStateOutput(t, statePath, testImportProviderMismatchStr)
-}
 func TestImport_allowMissingResourceConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
@@ -890,17 +866,18 @@ func TestImport_pluginDir(t *testing.T) {
 
 	// Now we need to go through some plugin init.
 	// This discovers our fake plugin and writes the lock file.
+	initUi := new(cli.MockUi)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			pluginPath: []string{"./plugins"},
-			Ui:         cli.NewMockUi(),
+			Ui:         initUi,
 		},
 		providerInstaller: &discovery.ProviderInstaller{
 			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 		},
 	}
 	if code := initCmd.Run(nil); code != 0 {
-		t.Fatal(initCmd.Meta.Ui.(*cli.MockUi).ErrorWriter.String())
+		t.Fatal(initUi.ErrorWriter.String())
 	}
 
 	args := []string{
@@ -930,17 +907,17 @@ func TestImport_pluginDir(t *testing.T) {
 const testImportStr = `
 test_instance.foo:
   ID = yay
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 `
 
 const testImportCustomProviderStr = `
 test_instance.foo:
   ID = yay
-  provider = provider.test.alias
+  provider = provider["registry.terraform.io/-/test"].alias
 `
 
 const testImportProviderMismatchStr = `
 test_instance.foo:
   ID = yay
-  provider = provider.test-beta
+  provider = provider["registry.terraform.io/-/test-beta"]
 `

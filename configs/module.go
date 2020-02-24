@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/experiments"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -25,9 +26,12 @@ type Module struct {
 
 	CoreVersionConstraints []VersionConstraint
 
+	ActiveExperiments experiments.Set
+
 	Backend              *Backend
 	ProviderConfigs      map[string]*Provider
-	ProviderRequirements map[string][]VersionConstraint
+	ProviderRequirements map[string]ProviderRequirements
+	ProviderLocalNames   map[addrs.Provider]string
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -53,9 +57,11 @@ type Module struct {
 type File struct {
 	CoreVersionConstraints []VersionConstraint
 
-	Backends             []*Backend
-	ProviderConfigs      []*Provider
-	ProviderRequirements []*ProviderRequirement
+	ActiveExperiments experiments.Set
+
+	Backends          []*Backend
+	ProviderConfigs   []*Provider
+	RequiredProviders []*RequiredProvider
 
 	Variables []*Variable
 	Locals    []*Local
@@ -79,7 +85,8 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
 		ProviderConfigs:      map[string]*Provider{},
-		ProviderRequirements: map[string][]VersionConstraint{},
+		ProviderRequirements: map[string]ProviderRequirements{},
+		ProviderLocalNames:   map[addrs.Provider]string{},
 		Variables:            map[string]*Variable{},
 		Locals:               map[string]*Local{},
 		Outputs:              map[string]*Output{},
@@ -97,6 +104,11 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		fileDiags := mod.mergeFile(file)
 		diags = append(diags, fileDiags...)
 	}
+
+	diags = append(diags, checkModuleExperiments(mod)...)
+
+	// Generate the FQN -> LocalProviderName map
+	mod.gatherProviderLocalNames()
 
 	return mod, diags
 }
@@ -123,6 +135,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		// when we actually check these constraints.
 		m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
 	}
+
+	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
 	for _, b := range file.Backends {
 		if m.Backend != nil {
@@ -160,8 +174,25 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.ProviderConfigs[key] = pc
 	}
 
-	for _, reqd := range file.ProviderRequirements {
-		m.ProviderRequirements[reqd.Name] = append(m.ProviderRequirements[reqd.Name], reqd.Requirement)
+	for _, reqd := range file.RequiredProviders {
+		// As an interim *testing* step, we will accept a source argument
+		// but assume that the source is a legacy provider. This allows us to
+		// exercise the provider local names -> fqn logic without changing
+		// terraform's behavior.
+		if reqd.Source != "" {
+			// Fixme: once the rest of the provider source logic is implemented,
+			// update this to get the addrs.Provider by using
+			// addrs.ParseProviderSourceString()
+		}
+		fqn := addrs.NewLegacyProvider(reqd.Name)
+		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
+			if existing.Type != fqn {
+				panic("provider fqn mismatch")
+			}
+			existing.VersionConstraints = append(existing.VersionConstraints, reqd.Requirement)
+		} else {
+			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
+		}
 	}
 
 	for _, v := range file.Variables {
@@ -304,8 +335,8 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	if len(file.ProviderRequirements) != 0 {
-		mergeProviderVersionConstraints(m.ProviderRequirements, file.ProviderRequirements)
+	if len(file.RequiredProviders) != 0 {
+		mergeProviderVersionConstraints(m.ProviderRequirements, file.RequiredProviders)
 	}
 
 	for _, v := range file.Variables {
@@ -401,4 +432,36 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	}
 
 	return diags
+}
+
+// gatherProviderLocalNames is a helper function that populatesA a map of
+// provider FQNs -> provider local names. This information is useful for
+// user-facing output, which should include both the FQN and LocalName. It must
+// only be populated after the module has been parsed.
+func (m *Module) gatherProviderLocalNames() {
+	providers := make(map[addrs.Provider]string)
+	for k, v := range m.ProviderRequirements {
+		providers[v.Type] = k
+	}
+	m.ProviderLocalNames = providers
+}
+
+// LocalNameForProvider returns the module-specific user-supplied local name for
+// a given provider FQN, or the default local name if none was supplied.
+func (m *Module) LocalNameForProvider(p addrs.Provider) string {
+	if existing, exists := m.ProviderLocalNames[p]; exists {
+		return existing
+	} else {
+		// If there isn't a map entry, fall back to the default:
+		// Type = LocalName
+		return p.Type
+	}
+}
+
+// ProviderForLocalConfig returns the provider FQN for a given LocalProviderConfig
+func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
+	if provider, exists := m.ProviderRequirements[pc.String()]; exists {
+		return provider.Type
+	}
+	return addrs.NewLegacyProvider(pc.LocalName)
 }

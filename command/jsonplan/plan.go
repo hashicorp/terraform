@@ -178,7 +178,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.ProviderConfig.Type,
+			rc.ProviderAddr.Provider,
 			addr.Resource.Resource.Mode,
 			addr.Resource.Resource.Type,
 		)
@@ -252,7 +252,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.ModuleAddress = addr.Module.String()
 		r.Name = addr.Resource.Resource.Name
 		r.Type = addr.Resource.Resource.Type
-		r.ProviderName = rc.ProviderAddr.ProviderConfig.StringCompact()
+		r.ProviderName = rc.ProviderAddr.Provider.LegacyString()
 
 		p.ResourceChanges = append(p.ResourceChanges, r)
 

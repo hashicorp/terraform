@@ -18,6 +18,7 @@ func TestInit_backend(t *testing.T) {
 		{"atlas", "*atlas.Backend"},
 		{"azurerm", "*azure.Backend"},
 		{"consul", "*consul.Backend"},
+		{"cos", "*cos.Backend"},
 		{"etcdv3", "*etcd.Backend"},
 		{"gcs", "*gcs.Backend"},
 		{"inmem", "*inmem.Backend"},

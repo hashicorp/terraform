@@ -29,7 +29,7 @@ This will create a container called `terraform-state` and an object within that 
 For the access credentials we recommend using a
 [partial configuration](/docs/backends/config.html).
 
-## Example Referencing
+## Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {

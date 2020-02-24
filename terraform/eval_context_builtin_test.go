@@ -24,16 +24,23 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
 
-	providerAddr := addrs.ProviderConfig{Type: "foo"}
+	providerAddr1 := addrs.AbsProviderConfig{
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("foo"),
+	}
+	providerAddr2 := addrs.AbsProviderConfig{
+		Module:   addrs.RootModuleInstance.Child("child", addrs.NoKey),
+		Provider: addrs.NewLegacyProvider("foo"),
+	}
 
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
-	ctx1.SetProviderInput(providerAddr, expected1)
+	ctx1.SetProviderInput(providerAddr1, expected1)
 
 	try2 := map[string]cty.Value{"value": cty.StringVal("bar")}
-	ctx2.SetProviderInput(providerAddr, try2) // ignored because not a root module
+	ctx2.SetProviderInput(providerAddr2, try2) // ignored because not a root module
 
-	actual1 := ctx1.ProviderInput(providerAddr)
-	actual2 := ctx2.ProviderInput(providerAddr)
+	actual1 := ctx1.ProviderInput(providerAddr1)
+	actual2 := ctx2.ProviderInput(providerAddr2)
 
 	if !reflect.DeepEqual(actual1, expected1) {
 		t.Errorf("wrong result 1\ngot:  %#v\nwant: %#v", actual1, expected1)
@@ -52,19 +59,26 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": providers.FactoryFixed(testP),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(testP),
 		},
 	}
 
-	providerAddrDefault := addrs.ProviderConfig{Type: "test"}
-	providerAddrAlias := addrs.ProviderConfig{Type: "test", Alias: "foo"}
+	providerAddrDefault := addrs.AbsProviderConfig{
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("test"),
+	}
+	providerAddrAlias := addrs.AbsProviderConfig{
+		Module:   addrs.RootModuleInstance,
+		Provider: addrs.NewLegacyProvider("test"),
+		Alias:    "foo",
+	}
 
-	_, err := ctx.InitProvider("test", providerAddrDefault)
+	_, err := ctx.InitProvider(providerAddrDefault)
 	if err != nil {
 		t.Fatalf("error initializing provider test: %s", err)
 	}
-	_, err = ctx.InitProvider("test", providerAddrAlias)
+	_, err = ctx.InitProvider(providerAddrAlias)
 	if err != nil {
 		t.Fatalf("error initializing provider test.foo: %s", err)
 	}
