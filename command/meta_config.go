@@ -42,6 +42,11 @@ func (m *Meta) normalizePath(path string) string {
 		return path
 	}
 
+	cwd, err = filepath.EvalSymlinks(cwd)
+	if err != nil {
+		return path
+	}
+
 	ret, err := filepath.Rel(cwd, path)
 	if err != nil {
 		return path
