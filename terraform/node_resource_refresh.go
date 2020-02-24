@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// NodeRefreshableManagedResource represents a resource that is expanabled into
+// NodeRefreshableManagedResource represents a resource that is expandable into
 // NodeRefreshableManagedResourceInstance. Resource count orphans are also added.
 type NodeRefreshableManagedResource struct {
 	*NodeAbstractResource
@@ -61,13 +61,16 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-	switch {
-	case count >= 0:
-		expander.SetResourceCount(ctx.Path(), n.ResourceAddr().Resource, count)
-	case forEachMap != nil:
-		expander.SetResourceForEach(ctx.Path(), n.ResourceAddr().Resource, forEachMap)
-	default:
-		expander.SetResourceSingle(ctx.Path(), n.ResourceAddr().Resource)
+
+	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+		switch {
+		case count >= 0:
+			expander.SetResourceCount(module, n.ResourceAddr().Resource, count)
+		case forEachMap != nil:
+			expander.SetResourceForEach(module, n.ResourceAddr().Resource, forEachMap)
+		default:
+			expander.SetResourceSingle(module, n.ResourceAddr().Resource)
+		}
 	}
 	instanceAddrs := expander.ExpandResource(ctx.Path().Module(), n.ResourceAddr().Resource)
 

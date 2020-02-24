@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
@@ -110,15 +111,17 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			}
 		}
 
-		// For now we treat all module variables as "applyable", even though
-		// such nodes are valid to use on other walks too. We may specialize
-		// this in future if we find reasons to employ different behaviors
-		// in different scenarios.
-		node := &NodeApplyableModuleVariable{
-			Addr:   path.InputVariable(v.Name),
+		// Add a plannable node, as the variable may expand
+		// during module expansion
+		node := &NodePlannableModuleVariable{
+			Addr: addrs.InputVariable{
+				Name: v.Name,
+			},
+			Module: c.Path,
 			Config: v,
 			Expr:   expr,
 		}
+
 		g.Add(node)
 	}
 

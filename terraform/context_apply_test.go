@@ -767,6 +767,7 @@ aws_instance.foo:
 }
 
 func TestContext2Apply_emptyModule(t *testing.T) {
+	// A module with only outputs (no resources)
 	m := testModule(t, "apply-empty-module")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn

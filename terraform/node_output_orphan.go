@@ -23,7 +23,7 @@ func (n *NodeOutputOrphan) Name() string {
 }
 
 // GraphNodeReferenceOutside implementation
-func (n *NodeOutputOrphan) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+func (n *NodeOutputOrphan) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	return referenceOutsideForOutput(n.Addr)
 }
 

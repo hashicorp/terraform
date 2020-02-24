@@ -113,55 +113,7 @@ func TestReferenceMapReferences(t *testing.T) {
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
 			rm := NewReferenceMap(tc.Nodes)
-			result, _ := rm.References(tc.Check)
-
-			var resultStr []string
-			for _, v := range result {
-				resultStr = append(resultStr, dag.VertexName(v))
-			}
-
-			sort.Strings(resultStr)
-			sort.Strings(tc.Result)
-			if !reflect.DeepEqual(resultStr, tc.Result) {
-				t.Fatalf("bad: %#v", resultStr)
-			}
-		})
-	}
-}
-
-func TestReferenceMapReferencedBy(t *testing.T) {
-	cases := map[string]struct {
-		Nodes  []dag.Vertex
-		Check  dag.Vertex
-		Result []string
-	}{
-		"simple": {
-			Nodes: []dag.Vertex{
-				&graphNodeRefChildTest{
-					NameValue: "A",
-					Refs:      []string{"A"},
-				},
-				&graphNodeRefChildTest{
-					NameValue: "B",
-					Refs:      []string{"A"},
-				},
-				&graphNodeRefChildTest{
-					NameValue: "C",
-					Refs:      []string{"B"},
-				},
-			},
-			Check: &graphNodeRefParentTest{
-				NameValue: "foo",
-				Names:     []string{"A"},
-			},
-			Result: []string{"A", "B"},
-		},
-	}
-
-	for tn, tc := range cases {
-		t.Run(tn, func(t *testing.T) {
-			rm := NewReferenceMap(tc.Nodes)
-			result := rm.Referrers(tc.Check)
+			result := rm.References(tc.Check)
 
 			var resultStr []string
 			for _, v := range result {

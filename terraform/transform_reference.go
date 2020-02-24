@@ -66,7 +66,7 @@ type GraphNodeAttachDependencies interface {
 type GraphNodeReferenceOutside interface {
 	// ReferenceOutside returns a path in which any references from this node
 	// are resolved.
-	ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance)
+	ReferenceOutside() (selfPath, referencePath addrs.Module)
 }
 
 // ReferenceTransformer is a GraphTransformer that connects all the
@@ -85,8 +85,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 			// use their own state.
 			continue
 		}
-
-		parents, _ := m.References(v)
+		parents := m.References(v)
 		parentsDbg := make([]string, len(parents))
 		for i, v := range parents {
 			parentsDbg[i] = dag.VertexName(v)
@@ -196,7 +195,12 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				if v.Addr.Module.IsRoot() && !t.Destroy {
 					continue
 				}
-			case *NodeLocal, *NodeApplyableModuleVariable:
+			case *NodePlannableOutput:
+				// Have similar guardrails for plannable outputs as applyable above
+				if v.Module.IsRoot() && !t.Destroy {
+					continue
+				}
+			case *NodeLocal, *NodeApplyableModuleVariable, *NodePlannableModuleVariable:
 				// OK
 			default:
 				// We're only concerned with variables, locals and outputs
@@ -239,27 +243,20 @@ type ReferenceMap struct {
 	// A particular reference key might actually identify multiple vertices,
 	// e.g. in situations where one object is contained inside another.
 	vertices map[string][]dag.Vertex
-
-	// edges is a map whose keys are a subset of the internal reference keys
-	// from "vertices", and whose values are the nodes that refer to each
-	// key. The values in this map are the referrers, while values in
-	// "verticies" are the referents. The keys in both cases are referents.
-	edges map[string][]dag.Vertex
 }
 
 // References returns the set of vertices that the given vertex refers to,
 // and any referenced addresses that do not have corresponding vertices.
-func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Referenceable) {
+func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	rn, ok := v.(GraphNodeReferencer)
 	if !ok {
-		return nil, nil
+		return nil
 	}
 	if _, ok := v.(GraphNodeSubPath); !ok {
-		return nil, nil
+		return nil
 	}
 
 	var matches []dag.Vertex
-	var missing []addrs.Referenceable
 
 	for _, ref := range rn.References() {
 		subject := ref.Subject
@@ -278,7 +275,6 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Reference
 			}
 			key = m.referenceMapKey(v, subject)
 		}
-
 		vertices := m.vertices[key]
 		for _, rv := range vertices {
 			// don't include self-references
@@ -287,47 +283,6 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Reference
 			}
 			matches = append(matches, rv)
 		}
-		if len(vertices) == 0 {
-			missing = append(missing, ref.Subject)
-		}
-	}
-
-	return matches, missing
-}
-
-// Referrers returns the set of vertices that refer to the given vertex.
-func (m *ReferenceMap) Referrers(v dag.Vertex) []dag.Vertex {
-	rn, ok := v.(GraphNodeReferenceable)
-	if !ok {
-		return nil
-	}
-	sp, ok := v.(GraphNodeSubPath)
-	if !ok {
-		return nil
-	}
-
-	var matches []dag.Vertex
-	for _, addr := range rn.ReferenceableAddrs() {
-		key := m.mapKey(sp.Path(), addr)
-		referrers, ok := m.edges[key]
-		if !ok {
-			continue
-		}
-
-		// If the referrer set includes our own given vertex then we skip,
-		// since we don't want to return self-references.
-		selfRef := false
-		for _, p := range referrers {
-			if p == v {
-				selfRef = true
-				break
-			}
-		}
-		if selfRef {
-			continue
-		}
-
-		matches = append(matches, referrers...)
 	}
 
 	return matches
@@ -354,7 +309,7 @@ func (m *ReferenceMap) vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstanc
 		// Vertex is referenced from a different module than where it was
 		// declared.
 		path, _ := outside.ReferenceOutside()
-		return path
+		return path.UnkeyedInstanceShim()
 	}
 
 	// Vertex is referenced from the same module as where it was declared.
@@ -373,12 +328,11 @@ func vertexReferencePath(referrer dag.Vertex) addrs.ModuleInstance {
 		panic(fmt.Errorf("vertexReferencePath on vertex type %T which doesn't implement GraphNodeSubPath", sp))
 	}
 
-	var path addrs.ModuleInstance
 	if outside, ok := referrer.(GraphNodeReferenceOutside); ok {
 		// Vertex makes references to objects in a different module than where
 		// it was declared.
-		_, path = outside.ReferenceOutside()
-		return path
+		_, path := outside.ReferenceOutside()
+		return path.UnkeyedInstanceShim()
 	}
 
 	// Vertex makes references to objects in the same module as where it
@@ -443,34 +397,7 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 		}
 	}
 
-	// Build the lookup table for referenced by
-	edges := make(map[string][]dag.Vertex)
-	for _, v := range vs {
-		_, ok := v.(GraphNodeSubPath)
-		if !ok {
-			// Only nodes with paths can participate in a reference map.
-			continue
-		}
-
-		rn, ok := v.(GraphNodeReferencer)
-		if !ok {
-			// We're only looking for referenceable nodes
-			continue
-		}
-
-		// Go through and cache them
-		for _, ref := range rn.References() {
-			if ref.Subject == nil {
-				// Should never happen
-				panic(fmt.Sprintf("%T.References returned reference with nil subject", rn))
-			}
-			key := m.referenceMapKey(v, ref.Subject)
-			edges[key] = append(edges[key], v)
-		}
-	}
-
 	m.vertices = vertices
-	m.edges = edges
 	return &m
 }
 
@@ -503,6 +430,8 @@ func appendResourceDestroyReferences(refs []*addrs.Reference) []*addrs.Reference
 			newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
 			refs = append(refs, &newRef)
 		}
+		// FIXME: Using this method in module expansion references,
+		// May want to refactor this method beyond resources
 	}
 	return refs
 }

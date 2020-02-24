@@ -490,15 +490,18 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
-	// can refer to it.
+	// can refer to it. Since this node represents the abstract module, we need
+	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
-	switch eachMode {
-	case states.EachList:
-		expander.SetResourceCount(ctx.Path(), n.Addr, count)
-	case states.EachMap:
-		expander.SetResourceForEach(ctx.Path(), n.Addr, forEach)
-	default:
-		expander.SetResourceSingle(ctx.Path(), n.Addr)
+	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+		switch eachMode {
+		case states.EachList:
+			expander.SetResourceCount(module, n.Addr, count)
+		case states.EachMap:
+			expander.SetResourceForEach(module, n.Addr, forEach)
+		default:
+			expander.SetResourceSingle(module, n.Addr)
+		}
 	}
 
 	return nil, nil
