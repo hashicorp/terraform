@@ -8,6 +8,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/function/stdlib"
 )
 
 func TestFile(t *testing.T) {
@@ -150,7 +151,7 @@ func TestTemplateFile(t *testing.T) {
 
 	templateFileFn := MakeTemplateFileFunc(".", func() map[string]function.Function {
 		return map[string]function.Function{
-			"join":         JoinFunc,
+			"join":         stdlib.JoinFunc,
 			"templatefile": MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
 		}
 	})

@@ -9,44 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// CeilFunc contructs a function that returns the closest whole number greater
-// than or equal to the given value.
-var CeilFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "num",
-			Type: cty.Number,
-		},
-	},
-	Type: function.StaticReturnType(cty.Number),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		var val float64
-		if err := gocty.FromCtyValue(args[0], &val); err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-		return cty.NumberIntVal(int64(math.Ceil(val))), nil
-	},
-})
-
-// FloorFunc contructs a function that returns the closest whole number lesser
-// than or equal to the given value.
-var FloorFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "num",
-			Type: cty.Number,
-		},
-	},
-	Type: function.StaticReturnType(cty.Number),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		var val float64
-		if err := gocty.FromCtyValue(args[0], &val); err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-		return cty.NumberIntVal(int64(math.Floor(val))), nil
-	},
-})
-
 // LogFunc contructs a function that returns the logarithm of a given number in a given base.
 var LogFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -184,16 +146,6 @@ var ParseIntFunc = function.New(&function.Spec{
 		return parsedNum, nil
 	},
 })
-
-// Ceil returns the closest whole number greater than or equal to the given value.
-func Ceil(num cty.Value) (cty.Value, error) {
-	return CeilFunc.Call([]cty.Value{num})
-}
-
-// Floor returns the closest whole number lesser than or equal to the given value.
-func Floor(num cty.Value) (cty.Value, error) {
-	return FloorFunc.Call([]cty.Value{num})
-}
 
 // Log returns returns the logarithm of a given number in a given base.
 func Log(num, base cty.Value) (cty.Value, error) {
