@@ -43,10 +43,12 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	fullAddr := c.Path.UnkeyedInstanceShim()
 	callerAddr, callAddr := fullAddr.Call()
 
+	modulecall := c.Parent.Module.ModuleCalls["child"]
 	v := &nodeExpandModule{
 		CallerAddr: callerAddr,
 		Call:       callAddr,
 		Config:     c.Module,
+		ModuleCall: modulecall,
 	}
 	g.Add(v)
 	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", fullAddr, v)

@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -36,20 +37,16 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		}
 	}
 
-	// Our addressing system distinguishes between modules and module instances,
-	// but we're not yet ready to make that distinction here (since we don't
-	// support "count"/"for_each" on modules) and so we just do a naive
-	// transform of the module path into a module instance path, assuming that
-	// no keys are in use. This should be removed when "count" and "for_each"
-	// are implemented for modules.
-	path := c.Path.UnkeyedInstanceShim()
-
+	// Add plannable outputs to the graph, which will be dynamically expanded
+	// into NodeApplyableOutputs to reflect possible expansion
+	// through the presence of "count" or "for_each" on the modules.
 	for _, o := range c.Module.Outputs {
-		addr := path.OutputValue(o.Name)
-		node := &NodeApplyableOutput{
-			Addr:   addr,
+		node := &NodePlannableOutput{
+			Addr:   addrs.OutputValue{Name: o.Name},
+			Module: c.Path,
 			Config: o,
 		}
+		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
 		g.Add(node)
 	}
 
@@ -70,7 +67,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 	}
 
 	for _, v := range g.Vertices() {
-		output, ok := v.(*NodeApplyableOutput)
+		output, ok := v.(*NodePlannableOutput)
 		if !ok {
 			continue
 		}
@@ -78,6 +75,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 		// create the destroy node for this output
 		node := &NodeDestroyableOutput{
 			Addr:   output.Addr,
+			Module: output.Module,
 			Config: output.Config,
 		}
 

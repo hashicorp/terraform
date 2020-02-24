@@ -9,6 +9,98 @@ import (
 	"github.com/hashicorp/terraform/lang"
 )
 
+// NodePlannableOutput is the placeholder for an output that has not yet had
+// its module path expanded.
+type NodePlannableOutput struct {
+	Addr   addrs.OutputValue
+	Module addrs.Module
+	Config *configs.Output
+}
+
+var (
+	_ GraphNodeSubPath       = (*NodePlannableOutput)(nil)
+	_ RemovableIfNotTargeted = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferenceable = (*NodePlannableOutput)(nil)
+	//_ GraphNodeEvalable          = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
+	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
+)
+
+func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+		o := &NodeApplyableOutput{
+			Addr:   n.Addr.Absolute(module),
+			Config: n.Config,
+		}
+		// log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
+		g.Add(o)
+	}
+	return &g, nil
+}
+
+func (n *NodePlannableOutput) Name() string {
+	return n.Addr.Absolute(n.Module.UnkeyedInstanceShim()).String()
+}
+
+// GraphNodeSubPath
+func (n *NodePlannableOutput) Path() addrs.ModuleInstance {
+	// Return an UnkeyedInstanceShim as our placeholder,
+	// given that modules will be unexpanded at this point in the walk
+	return n.Module.UnkeyedInstanceShim()
+}
+
+// GraphNodeReferenceable
+func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
+	// An output in the root module can't be referenced at all.
+	if n.Module.IsRoot() {
+		return nil
+	}
+
+	// the output is referenced through the module call, and via the
+	// module itself.
+	_, call := n.Module.Call()
+
+	// FIXME: make something like ModuleCallOutput for this type of reference
+	// that doesn't need an instance shim
+	callOutput := addrs.ModuleCallOutput{
+		Call: call.Instance(addrs.NoKey),
+		Name: n.Addr.Name,
+	}
+
+	// Otherwise, we can reference the output via the
+	// module call itself
+	return []addrs.Referenceable{call, callOutput}
+}
+
+// GraphNodeReferenceOutside implementation
+func (n *NodePlannableOutput) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+	// Output values have their expressions resolved in the context of the
+	// module where they are defined.
+	referencePath = n.Module
+
+	// ...but they are referenced in the context of their calling module.
+	selfPath = referencePath.Parent()
+
+	return // uses named return values
+}
+
+// GraphNodeReferencer
+func (n *NodePlannableOutput) References() []*addrs.Reference {
+	return appendResourceDestroyReferences(referencesForOutput(n.Config))
+}
+
+// RemovableIfNotTargeted
+func (n *NodePlannableOutput) RemoveIfNotTargeted() bool {
+	return true
+}
+
+// GraphNodeTargetDownstream
+func (n *NodePlannableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
+	return true
+}
+
 // NodeApplyableOutput represents an output that is "applyable":
 // it is ready to be applied.
 type NodeApplyableOutput struct {
@@ -51,21 +143,19 @@ func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.
 	return true
 }
 
-func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePath addrs.ModuleInstance) {
-
+func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePath addrs.Module) {
 	// Output values have their expressions resolved in the context of the
 	// module where they are defined.
-	referencePath = addr.Module
+	referencePath = addr.Module.Module()
 
 	// ...but they are referenced in the context of their calling module.
-	selfPath = addr.Module.Parent()
+	selfPath = addr.Module.Parent().Module()
 
 	return // uses named return values
-
 }
 
 // GraphNodeReferenceOutside implementation
-func (n *NodeApplyableOutput) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+func (n *NodeApplyableOutput) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	return referenceOutsideForOutput(n.Addr)
 }
 
@@ -83,8 +173,8 @@ func referenceableAddrsForOutput(addr addrs.AbsOutputValue) []addrs.Referenceabl
 	// was declared.
 	_, outp := addr.ModuleCallOutput()
 	_, call := addr.Module.CallInstance()
-	return []addrs.Referenceable{outp, call}
 
+	return []addrs.Referenceable{outp, call}
 }
 
 // GraphNodeReferenceable
@@ -141,7 +231,8 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 // NodeDestroyableOutput represents an output that is "destroybale":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
-	Addr   addrs.AbsOutputValue
+	Addr   addrs.OutputValue
+	Module addrs.Module
 	Config *configs.Output // Config is the output in the config
 }
 
@@ -160,7 +251,7 @@ func (n *NodeDestroyableOutput) Name() string {
 
 // GraphNodeSubPath
 func (n *NodeDestroyableOutput) Path() addrs.ModuleInstance {
-	return n.Addr.Module
+	return n.Module.UnkeyedInstanceShim()
 }
 
 // RemovableIfNotTargeted
@@ -184,7 +275,7 @@ func (n *NodeDestroyableOutput) References() []*addrs.Reference {
 // GraphNodeEvalable
 func (n *NodeDestroyableOutput) EvalTree() EvalNode {
 	return &EvalDeleteOutput{
-		Addr: n.Addr.OutputValue,
+		Addr: n.Addr,
 	}
 }
 
