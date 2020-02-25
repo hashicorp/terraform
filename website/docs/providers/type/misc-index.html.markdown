@@ -26,3 +26,5 @@ by the vendors and the Terraform community, and are tested by HashiCorp.
 - [Random](/docs/providers/random/index.html)
 - [Template](/docs/providers/template/index.html)
 - [TLS](/docs/providers/tls/index.html)
+- [Quorum](/docs/providers/quorum/index.html)
+

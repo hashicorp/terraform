@@ -118,6 +118,7 @@ down to see all providers.
 - [PowerDNS](/docs/providers/powerdns/index.html)
 - [ProfitBricks](/docs/providers/profitbricks/index.html)
 - [Pureport](/docs/providers/pureport/index.html)
+- [Quorum](/docs/providers/quorum/index.html)
 - [RabbitMQ](/docs/providers/rabbitmq/index.html)
 - [Rancher](/docs/providers/rancher/index.html)
 - [Rancher2](/docs/providers/rancher2/index.html)
