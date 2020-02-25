@@ -7,6 +7,8 @@ BREAKING CHANGES:
 * config: Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such `provisioner` blocks, it is now an error to refer to any objects other than `self`, `count`, or `each` [GH-24083]
 * config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
 
+ENHANCEMENTS:
+* config: `templatefile` function will now return a helpful error message if a given variable has an invalid name, rather than relying on a syntax error in the template parsing itself. [GH-24184]
 
 BUG FIXES: 
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
