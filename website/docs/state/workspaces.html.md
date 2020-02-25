@@ -55,7 +55,7 @@ it cannot ever be deleted. If you've never explicitly used workspaces, then
 you've only ever worked on the "default" workspace.
 
 Workspaces are managed with the `terraform workspace` set of commands. To
-create a new workspace and switch to it, you can use `terraform workspace new`;
+create a new workspace, you can use `terraform workspace new`;
 to switch workspaces you can use `terraform workspace select`; etc.
 
 For example, creating a new workspace:
