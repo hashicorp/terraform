@@ -54,6 +54,7 @@ $ terraform output
 ```
 
 Note that outputs with the `sensitive` attribute will be redacted:
+
 ```shell
 $ terraform output password
 password = <sensitive>
