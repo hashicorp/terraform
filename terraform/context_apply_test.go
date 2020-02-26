@@ -10745,7 +10745,6 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	//p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	schema := p.GetSchemaReturn
 	schema.ProviderMeta = &configschema.Block{
@@ -10822,7 +10821,6 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
 	m := testModule(t, "provider-meta-unset")
 	p := testProvider("test")
-	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	schema := p.GetSchemaReturn
 	schema.ProviderMeta = &configschema.Block{
@@ -10832,6 +10830,15 @@ func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
 				Required: true,
 			},
 		},
+	}
+	arcPMs := map[string]cty.Value{}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		arcPMs[req.TypeName] = req.ProviderMeta
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("ID")
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(s),
+		}
 	}
 	p.GetSchemaReturn = schema
 	ctx := testContext2(t, &ContextOpts{
@@ -10852,8 +10859,17 @@ func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
 	if !p.ApplyResourceChangeCalled {
 		t.Fatalf("ApplyResourceChange not called")
 	}
-	if !p.ApplyResourceChangeRequest.ProviderMeta.IsNull() {
-		t.Fatalf("Expected ProviderMeta in ApplyResourceChange to be null, got %v", p.ApplyResourceChangeRequest.ProviderMeta)
+
+	if pm, ok := arcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module ApplyResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in sub-module ApplyResourceChange: %+v", pm)
+	}
+
+	if pm, ok := arcPMs["test_instance"]; !ok {
+		t.Fatalf("root module ApplyResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in root module ApplyResourceChange: %+v", pm)
 	}
 }
 
@@ -10861,7 +10877,6 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
 	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
 	schema := p.GetSchemaReturn
 	schema.ProviderMeta = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -10870,6 +10885,13 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 				Required: true,
 			},
 		},
+	}
+	prcPMs := map[string]cty.Value{}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		prcPMs[req.TypeName] = req.ProviderMeta
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
 	}
 	p.GetSchemaReturn = schema
 	ctx := testContext2(t, &ContextOpts{
@@ -10887,19 +10909,38 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 	if !p.PlanResourceChangeCalled {
 		t.Fatalf("PlanResourceChange not called")
 	}
-	if p.PlanResourceChangeRequest.ProviderMeta.IsNull() {
-		t.Fatalf("null ProviderMeta in PlanResourceChange")
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := prcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module PlanResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module PlanResourceChange")
+	} else {
+		expectations["quux-submodule"] = pm
 	}
+
+	if pm, ok := prcPMs["test_instance"]; !ok {
+		t.Fatalf("root module PlanResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module PlanResourceChange")
+	} else {
+		expectations["quux"] = pm
+	}
+
 	type metaStruct struct {
 		Baz string `cty:"baz"`
 	}
-	var meta metaStruct
-	err := gocty.FromCtyValue(p.PlanResourceChangeRequest.ProviderMeta, &meta)
-	if err != nil {
-		t.Fatalf("Error parsing cty value: %s", err)
-	}
-	if meta.Baz != "quux" {
-		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
 	}
 }
 
@@ -10907,7 +10948,6 @@ func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 	m := testModule(t, "provider-meta-unset")
 	p := testProvider("test")
 	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
 	schema := p.GetSchemaReturn
 	schema.ProviderMeta = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -10916,6 +10956,13 @@ func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 				Required: true,
 			},
 		},
+	}
+	prcPMs := map[string]cty.Value{}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		prcPMs[req.TypeName] = req.ProviderMeta
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
 	}
 	p.GetSchemaReturn = schema
 	ctx := testContext2(t, &ContextOpts{
@@ -10933,8 +10980,17 @@ func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 	if !p.PlanResourceChangeCalled {
 		t.Fatalf("PlanResourceChange not called")
 	}
-	if !p.PlanResourceChangeRequest.ProviderMeta.IsNull() {
-		t.Fatalf("Expected ProviderMeta in PlanResourceChange to be null, got %v", p.PlanResourceChangeRequest.ProviderMeta)
+
+	if pm, ok := prcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module PlanResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in sub-module PlanResourceChange: %+v", pm)
+	}
+
+	if pm, ok := prcPMs["test_instance"]; !ok {
+		t.Fatalf("root module PlanResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in root module PlanResourceChange: %+v", pm)
 	}
 }
 
@@ -11050,6 +11106,17 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 			},
 		},
 	}
+	rrcPMs := map[string]cty.Value{}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		rrcPMs[req.TypeName] = req.ProviderMeta
+		newState, err := p.GetSchemaReturn.ResourceTypes[req.TypeName].CoerceValue(p.ReadResourceResponse.NewState)
+		if err != nil {
+			panic(err)
+		}
+		resp := p.ReadResourceResponse
+		resp.NewState = newState
+		return resp
+	}
 	p.GetSchemaReturn = schema
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -11072,19 +11139,38 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 	if !p.ReadResourceCalled {
 		t.Fatalf("ReadResource not called")
 	}
-	if p.ReadResourceRequest.ProviderMeta.IsNull() {
-		t.Fatalf("null ProviderMeta in ReadResource")
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := rrcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module ReadResource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ReadResource")
+	} else {
+		expectations["quux-submodule"] = pm
 	}
+
+	if pm, ok := rrcPMs["test_instance"]; !ok {
+		t.Fatalf("root module ReadResource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ReadResource")
+	} else {
+		expectations["quux"] = pm
+	}
+
 	type metaStruct struct {
 		Baz string `cty:"baz"`
 	}
-	var meta metaStruct
-	err := gocty.FromCtyValue(p.ReadResourceRequest.ProviderMeta, &meta)
-	if err != nil {
-		t.Fatalf("Error parsing cty value: %s", err)
-	}
-	if meta.Baz != "quux" {
-		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
 	}
 }
 
@@ -11309,11 +11395,31 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 			},
 		),
 	})
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
-		State: cty.ObjectVal(map[string]cty.Value{
-			"id":  cty.StringVal("yo"),
-			"foo": cty.StringVal("bar"),
-		}),
+	rdsPMs := map[string]cty.Value{}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		rdsPMs[req.TypeName] = req.ProviderMeta
+		switch req.TypeName {
+		case "test_data_source":
+			log.Printf("[TRACE] test_data_source RDSR returning")
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":  cty.StringVal("yo"),
+					"foo": cty.StringVal("bar"),
+				}),
+			}
+		case "test_file":
+			log.Printf("[TRACE] test_file RDSR returning")
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":       cty.StringVal("bar"),
+					"rendered": cty.StringVal("baz"),
+				}),
+			}
+		default:
+			// config drift, oops
+			log.Printf("[TRACE] unknown request TypeName: %q", req.TypeName)
+			return providers.ReadDataSourceResponse{}
+		}
 	}
 
 	_, diags := ctx.Plan()
@@ -11328,19 +11434,38 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 	if !p.ReadDataSourceCalled {
 		t.Fatalf("ReadDataSource not called")
 	}
-	if p.ReadDataSourceRequest.ProviderMeta.IsNull() {
-		t.Fatalf("null ProviderMeta in ReadDataSource")
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := rdsPMs["test_file"]; !ok {
+		t.Fatalf("sub-module ReadDataSource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ReadDataSource")
+	} else {
+		expectations["quux-submodule"] = pm
 	}
+
+	if pm, ok := rdsPMs["test_data_source"]; !ok {
+		t.Fatalf("root module ReadDataSource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ReadDataSource")
+	} else {
+		expectations["quux"] = pm
+	}
+
 	type metaStruct struct {
 		Baz string `cty:"baz"`
 	}
-	var meta metaStruct
-	err := gocty.FromCtyValue(p.ReadDataSourceRequest.ProviderMeta, &meta)
-	if err != nil {
-		t.Fatalf("Error parsing cty value: %s", err)
-	}
-	if meta.Baz != "quux" {
-		t.Fatalf("Expected meta.Baz to be \"quux\", got %q", meta.Baz)
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
 	}
 }
 
@@ -11367,11 +11492,28 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 			},
 		),
 	})
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
-		State: cty.ObjectVal(map[string]cty.Value{
-			"id":  cty.StringVal("yo"),
-			"foo": cty.StringVal("bar"),
-		}),
+	rdsPMs := map[string]cty.Value{}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		rdsPMs[req.TypeName] = req.ProviderMeta
+		switch req.TypeName {
+		case "test_data_source":
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":  cty.StringVal("yo"),
+					"foo": cty.StringVal("bar"),
+				}),
+			}
+		case "test_file":
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":       cty.StringVal("bar"),
+					"rendered": cty.StringVal("baz"),
+				}),
+			}
+		default:
+			// config drift, oops
+			return providers.ReadDataSourceResponse{}
+		}
 	}
 
 	_, diags := ctx.Refresh()
@@ -11386,8 +11528,38 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 	if !p.ReadDataSourceCalled {
 		t.Fatalf("ReadDataSource not called")
 	}
-	if !p.ReadDataSourceRequest.ProviderMeta.IsNull() {
-		t.Fatalf("Expected null ProviderMeta in ReadDataSource, got %v", p.ReadDataSourceRequest.ProviderMeta)
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := rdsPMs["test_file"]; !ok {
+		t.Fatalf("sub-module ReadDataSource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ReadDataSource")
+	} else {
+		expectations["quux-submodule"] = pm
+	}
+
+	if pm, ok := rdsPMs["test_data_source"]; !ok {
+		t.Fatalf("root module ReadDataSource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ReadDataSource")
+	} else {
+		expectations["quux"] = pm
+	}
+
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
 	}
 }
 

@@ -1,5 +1,5 @@
-data "test_data_source" "foo" {
-  foo = "bar"
+data "test_file" "foo" {
+  id = "bar"
 }
 
 terraform {
