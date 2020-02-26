@@ -108,12 +108,12 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ProviderAddr.ProviderConfig.Type]; ok && m != nil {
+		if m, ok := n.ProviderMetas[n.ProviderAddr.Provider]; ok && m != nil {
 			// if the provider doesn't support this feature, throw an error
 			if (*n.ProviderSchema).ProviderMeta == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr().StringCompact()),
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
 					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
 					Subject:  &m.ProviderRange,
 				})
@@ -362,7 +362,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		if (*n.ProviderSchema).ProviderMeta == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", (*n.Config).ProviderConfigAddr()),
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
 				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
 				Subject:  &n.ProviderMeta.ProviderRange,
 			})

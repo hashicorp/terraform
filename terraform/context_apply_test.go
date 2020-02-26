@@ -11016,7 +11016,7 @@ func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
 	var rootErr, subErr bool
 	errorSummary := "The resource test_%s.bar belongs to a provider that doesn't support provider_meta blocks"
 	for _, diag := range diags {
-		if diag.Description().Summary != "Provider test doesn't support provider_meta" {
+		if diag.Description().Summary != "Provider registry.terraform.io/-/test doesn't support provider_meta" {
 			t.Errorf("Unexpected error: %+v", diag.Description())
 		}
 		switch diag.Description().Detail {
@@ -11268,7 +11268,7 @@ func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 	var rootErr, subErr bool
 	errorSummary := "The resource test_%s.bar belongs to a provider that doesn't support provider_meta blocks"
 	for _, diag := range diags {
-		if diag.Description().Summary != "Provider test doesn't support provider_meta" {
+		if diag.Description().Summary != "Provider registry.terraform.io/-/test doesn't support provider_meta" {
 			t.Errorf("Unexpected error: %+v", diag.Description())
 		}
 		switch diag.Description().Detail {
@@ -11572,7 +11572,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
 	var rootErr, subErr bool
 	errorSummary := "The resource data.test_%s.foo belongs to a provider that doesn't support provider_meta blocks"
 	for _, diag := range diags {
-		if diag.Description().Summary != "Provider test doesn't support provider_meta" {
+		if diag.Description().Summary != "Provider registry.terraform.io/-/test doesn't support provider_meta" {
 			t.Errorf("Unexpected error: %+v", diag.Description())
 		}
 		switch diag.Description().Detail {
