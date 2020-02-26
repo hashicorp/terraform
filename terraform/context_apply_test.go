@@ -11413,6 +11413,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 				State: cty.ObjectVal(map[string]cty.Value{
 					"id":       cty.StringVal("bar"),
 					"rendered": cty.StringVal("baz"),
+					"template": cty.StringVal(""),
 				}),
 			}
 		default:
@@ -11508,6 +11509,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 				State: cty.ObjectVal(map[string]cty.Value{
 					"id":       cty.StringVal("bar"),
 					"rendered": cty.StringVal("baz"),
+					"template": cty.StringVal(""),
 				}),
 			}
 		default:
@@ -11529,37 +11531,16 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 		t.Fatalf("ReadDataSource not called")
 	}
 
-	expectations := map[string]cty.Value{}
-
 	if pm, ok := rdsPMs["test_file"]; !ok {
 		t.Fatalf("sub-module ReadDataSource not called")
-	} else if pm.IsNull() {
-		t.Fatalf("null ProviderMeta in sub-module ReadDataSource")
-	} else {
-		expectations["quux-submodule"] = pm
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in sub-module ReadDataSource")
 	}
 
 	if pm, ok := rdsPMs["test_data_source"]; !ok {
 		t.Fatalf("root module ReadDataSource not called")
-	} else if pm.IsNull() {
-		t.Fatalf("null ProviderMeta in root module ReadDataSource")
-	} else {
-		expectations["quux"] = pm
-	}
-
-	type metaStruct struct {
-		Baz string `cty:"baz"`
-	}
-
-	for expected, v := range expectations {
-		var meta metaStruct
-		err := gocty.FromCtyValue(v, &meta)
-		if err != nil {
-			t.Fatalf("Error parsing cty value: %s", err)
-		}
-		if meta.Baz != expected {
-			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
-		}
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in root module ReadDataSource")
 	}
 }
 
@@ -11588,22 +11569,26 @@ func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
 		t.Fatalf("refresh supposed to error, has no errors")
 	}
 
-	var summary, detail bool
-	errorSummary := "The resource data.test_data_source.foo belongs to a provider that doesn't support provider_meta blocks"
+	var rootErr, subErr bool
+	errorSummary := "The resource data.test_%s.foo belongs to a provider that doesn't support provider_meta blocks"
 	for _, diag := range diags {
 		if diag.Description().Summary != "Provider test doesn't support provider_meta" {
 			t.Errorf("Unexpected error: %+v", diag.Description())
-		} else {
-			summary = true
 		}
-		if diag.Description().Detail != errorSummary {
+		switch diag.Description().Detail {
+		case fmt.Sprintf(errorSummary, "data_source"):
+			rootErr = true
+		case fmt.Sprintf(errorSummary, "file"):
+			subErr = true
+		default:
 			t.Errorf("Unexpected error: %s", diag.Description())
-		} else {
-			detail = true
 		}
 	}
-	if !summary || !detail {
-		t.Errorf("Expected unsupported provider_meta block error, got none")
+	if !rootErr {
+		t.Errorf("Expected unsupported provider_meta block error for root module, none received")
+	}
+	if !subErr {
+		t.Errorf("Expected unsupported provider_meta block error for sub-module, none received")
 	}
 }
 

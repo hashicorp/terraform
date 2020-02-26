@@ -1,3 +1,3 @@
-resource "test_instance" "bar" {
-  foo = "bar"
+resource "test_resource" "bar" {
+  value = "bar"
 }
