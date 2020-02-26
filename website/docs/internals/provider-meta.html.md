@@ -66,6 +66,6 @@ provider metadata supplied matches the schema defined in the provider, and
 that the version of Terraform that is being run has support for the provider
 metadata functionality. It's therefore recommended that any module taking
 advantage of this functionality should specify a minimum Terraform version of
-0.12.14 or higher, and a minimum version of each of the providers it specifies
+0.13.0 or higher, and a minimum version of each of the providers it specifies
 metadata as the first version the schema being used was supported by the
 provider.
