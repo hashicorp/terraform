@@ -9,14 +9,17 @@
                         "attributes": {
                             "ami": {
                                 "type": "string",
-                                "optional": true
+                                "optional": true,
+																"description_kind": "plain"
                             },
                             "id": {
                                 "type": "string",
                                 "optional": true,
-                                "computed": true
+                                "computed": true,
+																"description_kind": "plain"
                             }
-                        }
+                        },
+												"description_kind": "plain"
                     }
                 }
             }
