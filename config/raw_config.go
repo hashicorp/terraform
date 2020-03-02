@@ -162,6 +162,7 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	// Create the evaluation configuration we use to execute
 	config := &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
 			VarMap: vs,
