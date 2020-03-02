@@ -162,7 +162,12 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	config := langEvalConfig(vs)
+	// Create the evaluation configuration we use to execute
+	config := &hil.EvalConfig{
+		GlobalScope: &ast.BasicScope{
+			VarMap: vs,
+		},
+	}
 	return r.interpolate(func(root ast.Node) (interface{}, error) {
 		// None of the variables we need are computed, meaning we should
 		// be able to properly evaluate.
@@ -398,22 +403,4 @@ func (r *RawConfig) GobEncode() ([]byte, error) {
 type gobRawConfig struct {
 	Key string
 	Raw map[string]interface{}
-}
-
-// langEvalConfig returns the evaluation configuration we use to execute.
-//
-// The interpolation functions are no longer available here, because this
-// codepath is no longer used. Instead, see ../lang/functions.go .
-func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
-	funcMap := make(map[string]ast.Function)
-	for k, v := range Funcs() {
-		funcMap[k] = v
-	}
-
-	return &hil.EvalConfig{
-		GlobalScope: &ast.BasicScope{
-			VarMap:  vs,
-			FuncMap: funcMap,
-		},
-	}
 }
