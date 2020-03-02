@@ -162,7 +162,11 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	config := langEvalConfig(vs)
+	config := &hil.EvalConfig{
+		GlobalScope: &ast.BasicScope{
+			VarMap: vs,
+		},
+	}
 	return r.interpolate(func(root ast.Node) (interface{}, error) {
 		// None of the variables we need are computed, meaning we should
 		// be able to properly evaluate.
@@ -398,13 +402,4 @@ func (r *RawConfig) GobEncode() ([]byte, error) {
 type gobRawConfig struct {
 	Key string
 	Raw map[string]interface{}
-}
-
-// langEvalConfig returns the evaluation configuration we use to execute.
-func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
-	return &hil.EvalConfig{
-		GlobalScope: &ast.BasicScope{
-			VarMap: vs,
-		},
-	}
 }
