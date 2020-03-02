@@ -280,9 +280,12 @@ func (c *StateMvCommand) Run(args []string) int {
 				fromResourceAddr := addrFrom.ContainingResource()
 				fromResource := ssFrom.Resource(fromResourceAddr)
 				fromProviderAddr := fromResource.ProviderConfig
-				fromEachMode := fromResource.EachMode
 				ssFrom.ForgetResourceInstanceAll(addrFrom)
 				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
+
+				// since this is moving an instance, we can infer the target
+				// mode from the address.
+				toEachMode := eachModeForInstanceKey(addrTo.Resource.Key)
 
 				rs := stateTo.Resource(addrTo.ContainingResource())
 				if rs == nil {
@@ -290,21 +293,17 @@ func (c *StateMvCommand) Run(args []string) int {
 					// suggests the user's intent is to establish both the
 					// resource and the instance at the same time (since the
 					// address covers both). If there's an index in the
-					// target then allow creating the new instance here,
-					// inferring the mode from how the new address was parsed.
-					if addrTo.Resource.Key != addrs.NoKey {
-						fromEachMode = eachModeForInstanceKey(addrTo.Resource.Key)
-					}
-
+					// target then allow creating the new instance here.
 					resourceAddr := addrTo.ContainingResource()
 					stateTo.SyncWrapper().SetResourceMeta(
 						resourceAddr,
-						fromEachMode,
+						toEachMode,
 						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
 					)
 					rs = stateTo.Resource(resourceAddr)
 				}
 
+				rs.EachMode = toEachMode
 				rs.Instances[addrTo.Resource.Key] = is
 			}
 		default:
