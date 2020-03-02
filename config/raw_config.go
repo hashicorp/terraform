@@ -401,19 +401,10 @@ type gobRawConfig struct {
 }
 
 // langEvalConfig returns the evaluation configuration we use to execute.
-//
-// The interpolation functions are no longer available here, because this
-// codepath is no longer used. Instead, see ../lang/functions.go .
 func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
-	funcMap := make(map[string]ast.Function)
-	for k, v := range Funcs() {
-		funcMap[k] = v
-	}
-
 	return &hil.EvalConfig{
 		GlobalScope: &ast.BasicScope{
-			VarMap:  vs,
-			FuncMap: funcMap,
+			VarMap: vs,
 		},
 	}
 }
