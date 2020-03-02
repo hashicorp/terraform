@@ -211,7 +211,7 @@ The `.terraformignore` file can include rules as one would include in a
 
 
 * Comments (starting with `#`) or blank lines are ignored
-* End a pattern with aforward slash / to specify a directory
+* End a pattern with a forward slash / to specify a directory
 * Negate a pattern by starting it with an exclamation point `!`
 
 Note that unlike `.gitignore`, only the `.terraformignore` at the root of the configuration
