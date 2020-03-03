@@ -67,11 +67,10 @@ func TestConfigureRegistryClientTimeout(t *testing.T) {
 	})
 
 	t.Run("configured timeout", func(t *testing.T) {
-		defer func() {
-			os.Setenv(registryClientTimeoutEnvName,
-				os.Getenv(registryClientTimeoutEnvName))
+		defer func(timeoutEnv string) {
+			os.Setenv(registryClientTimeoutEnvName, timeoutEnv)
 			requestTimeout = defaultRequestTimeout
-		}()
+		}(os.Getenv(registryClientTimeoutEnvName))
 		os.Setenv(registryClientTimeoutEnvName, "20")
 
 		configureRequestTimeout()
