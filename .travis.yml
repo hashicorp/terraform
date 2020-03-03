@@ -44,6 +44,7 @@ branches:
   only:
   - master
   - v0.11
+  - v0.12
 notifications:
   irc:
     channels:
