@@ -138,6 +138,15 @@ func getConversionKnown(in cty.Type, out cty.Type, unsafe bool) conversion {
 		outEty := out.ElementType()
 		return conversionObjectToMap(in, outEty, unsafe)
 
+	case out.IsObjectType() && in.IsMapType():
+		if !unsafe {
+			// Converting a map to an object is an "unsafe" conversion,
+			// because we don't know if all the map keys will correspond to
+			// object attributes.
+			return nil
+		}
+		return conversionMapToObject(in, out, unsafe)
+
 	case in.IsCapsuleType() || out.IsCapsuleType():
 		if !unsafe {
 			// Capsule types can only participate in "unsafe" conversions,

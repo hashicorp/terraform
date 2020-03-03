@@ -338,3 +338,63 @@ func conversionObjectToMap(objectType cty.Type, mapEty cty.Type, unsafe bool) co
 		return cty.MapVal(elems), nil
 	}
 }
+
+// conversionMapToObject returns a conversion that will take a value of the
+// given map type and return an object of the given type. The object attribute
+// types must all be compatible with the map element type.
+//
+// Will panic if the given mapType and objType are not maps and objects
+// respectively.
+func conversionMapToObject(mapType cty.Type, objType cty.Type, unsafe bool) conversion {
+	objectAtys := objType.AttributeTypes()
+	mapEty := mapType.ElementType()
+
+	elemConvs := make(map[string]conversion, len(objectAtys))
+	for name, objectAty := range objectAtys {
+		if objectAty.Equals(mapEty) {
+			// no conversion required
+			continue
+		}
+
+		elemConvs[name] = getConversion(mapEty, objectAty, unsafe)
+		if elemConvs[name] == nil {
+			// If any of our element conversions are impossible, then the our
+			// whole conversion is impossible.
+			return nil
+		}
+	}
+
+	// If we fall out here then a conversion is possible, using the
+	// element conversions in elemConvs
+	return func(val cty.Value, path cty.Path) (cty.Value, error) {
+		elems := make(map[string]cty.Value, len(elemConvs))
+		path = append(path, nil)
+		it := val.ElementIterator()
+		for it.Next() {
+			name, val := it.Element()
+
+			// if there is no corresponding attribute, we skip this key
+			if _, ok := objectAtys[name.AsString()]; !ok {
+				continue
+			}
+
+			var err error
+
+			path[len(path)-1] = cty.IndexStep{
+				Key: name,
+			}
+
+			conv := elemConvs[name.AsString()]
+			if conv != nil {
+				val, err = conv(val, path)
+				if err != nil {
+					return cty.NilVal, err
+				}
+			}
+
+			elems[name.AsString()] = val
+		}
+
+		return cty.ObjectVal(elems), nil
+	}
+}
