@@ -178,9 +178,7 @@ func ConfigValueFromHCL2(v cty.Value) interface{} {
 		for it.Next() {
 			ek, ev := it.Element()
 			cv := ConfigValueFromHCL2(ev)
-			if cv != nil {
-				l[ek.AsString()] = cv
-			}
+			l[ek.AsString()] = cv
 		}
 		return l
 	}

@@ -271,8 +271,9 @@ func TestConfigValueFromHCL2(t *testing.T) {
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
-				"name": cty.StringVal("Ermintrude"),
-				"age":  cty.NumberIntVal(19),
+				"name":  cty.StringVal("Ermintrude"),
+				"age":   cty.NumberIntVal(19),
+				"email": cty.NullVal(cty.DynamicPseudoType),
 				"address": cty.ObjectVal(map[string]cty.Value{
 					"street": cty.ListVal([]cty.Value{cty.StringVal("421 Shoreham Loop")}),
 					"city":   cty.StringVal("Fridgewater"),
@@ -281,8 +282,9 @@ func TestConfigValueFromHCL2(t *testing.T) {
 				}),
 			}),
 			map[string]interface{}{
-				"name": "Ermintrude",
-				"age":  int(19),
+				"name":  "Ermintrude",
+				"age":   int(19),
+				"email": nil,
 				"address": map[string]interface{}{
 					"street": []interface{}{"421 Shoreham Loop"},
 					"city":   "Fridgewater",
