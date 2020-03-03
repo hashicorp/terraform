@@ -68,7 +68,7 @@ func TestStateMv(t *testing.T) {
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
 	// Test it is correct
@@ -80,6 +80,70 @@ func TestStateMv(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+
+	// Change the single instance to a counted instance
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar",
+		"test_instance.bar[0]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// extract the resource and verify the mode
+	s := testStateRead(t, statePath)
+	addr, diags := addrs.ParseAbsResourceStr("test_instance.bar")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	i := s.Resource(addr)
+	if i.EachMode != states.EachList {
+		t.Fatalf("expected each mode List, got %s", i.EachMode)
+	}
+
+	// change from list to map
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar[0]",
+		"test_instance.bar[\"baz\"]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// extract the resource and verify the mode
+	s = testStateRead(t, statePath)
+	addr, diags = addrs.ParseAbsResourceStr("test_instance.bar")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	i = s.Resource(addr)
+	if i.EachMode != states.EachMap {
+		t.Fatalf("expected each mode Map, got %s", i.EachMode)
+	}
+
+	// change from from map back to single
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar[\"baz\"]",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// extract the resource and verify the mode
+	s = testStateRead(t, statePath)
+	addr, diags = addrs.ParseAbsResourceStr("test_instance.bar")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	i = s.Resource(addr)
+	if i.EachMode != states.NoEach {
+		t.Fatalf("expected each mode NoEach, got %s", i.EachMode)
+	}
+
 }
 
 func TestStateMv_resourceToInstance(t *testing.T) {
