@@ -11,6 +11,7 @@ ENHANCEMENTS:
 * config: `templatefile` function will now return a helpful error message if a given variable has an invalid name, rather than relying on a syntax error in the template parsing itself. [GH-24184]
 
 BUG FIXES: 
+* cli: Fix `terraform state mv` to correctly set the resource each mode based on the target address [GH-24254]
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
 * core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
 
