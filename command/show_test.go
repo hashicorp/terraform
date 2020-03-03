@@ -323,9 +323,7 @@ func TestShow_json_output(t *testing.T) {
 			if !cmp.Equal(got, want) {
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
-
 		})
-
 	}
 }
 
@@ -405,9 +403,7 @@ func TestShow_json_output_state(t *testing.T) {
 			if !cmp.Equal(got, want) {
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
-
 		})
-
 	}
 }
 
