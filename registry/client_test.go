@@ -30,11 +30,10 @@ func TestConfigureDiscoveryRetry(t *testing.T) {
 	})
 
 	t.Run("configured retry", func(t *testing.T) {
-		defer func() {
-			os.Setenv(registryDiscoveryRetryEnvName,
-				os.Getenv(registryDiscoveryRetryEnvName))
+		defer func(retryEnv string) {
+			os.Setenv(registryDiscoveryRetryEnvName, retryEnv)
 			discoveryRetry = defaultRetry
-		}()
+		}(os.Getenv(registryDiscoveryRetryEnvName))
 		os.Setenv(registryDiscoveryRetryEnvName, "2")
 
 		configureDiscoveryRetry()
