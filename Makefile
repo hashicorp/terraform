@@ -27,7 +27,7 @@ plugin-dev: generate
 # we run this one package at a time here because running the entire suite in
 # one command creates memory usage issues when running in Travis-CI.
 test: fmtcheck generate
-	go list -mod=vendor $(TEST) | xargs -t -n4 go test $(TESTARGS) -mod=vendor -timeout=2m -parallel=4
+	go list -mod=vendor $(TEST) | xargs -t -n4 go test $(TESTARGS) -mod=vendor -timeout=2m -parallel=4 -coverprofile=coverage.txt -covermode=atomic
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
