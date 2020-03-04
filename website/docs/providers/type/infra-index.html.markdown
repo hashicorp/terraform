@@ -26,6 +26,7 @@ and are tested by HashiCorp.
 - [Mailgun](/docs/providers/mailgun/index.html)
 - [Nomad](/docs/providers/nomad/index.html)
 - [Okta](/docs/providers/okta/index.html)
+- [Okta ASA](/docs/providers/oktaasa/index.html)
 - [RabbitMQ](/docs/providers/rabbitmq/index.html)
 - [Rancher](/docs/providers/rancher/index.html)
 - [Rancher2](/docs/providers/rancher2/index.html)

@@ -103,6 +103,7 @@ down to see all providers.
 - [Nutanix](/docs/providers/nutanix/index.html)
 - [1&1](/docs/providers/oneandone/index.html)
 - [Okta](/docs/providers/okta/index.html)
+- [Okta ASA](/docs/providers/oktaasa/index.html)
 - [OpenNebula](/docs/providers/opennebula/index.html)
 - [OpenStack](/docs/providers/openstack/index.html)
 - [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
