@@ -28,6 +28,7 @@ BUG FIXES:
 * command/show: Fix an issue with show and aliased providers ([#23848](https://github.com/hashicorp/terraform/issues/23848))
 * core: Always clean up empty resources before empty modules ([#23822](https://github.com/hashicorp/terraform/issues/23822))
 * internal/modsdir/manifest: Fix CLI issue with Windows machines ([#23865](https://github.com/hashicorp/terraform/issues/23865))
+* backend: Fixed an issue where variable values are no longer output to the console when the variables are undeclared [[#22782](https://github.com/hashicorp/terraform/issues/22782)]
 
 EXPERIMENTS:
 
