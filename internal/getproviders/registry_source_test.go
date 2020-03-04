@@ -52,7 +52,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 		{
 			"fails.example.com/foo/bar",
 			nil,
-			`could not query provider registry for fails.example.com/foo/bar: Get ` + baseURL + `/fails-immediately/foo/bar/versions: EOF`,
+			`could not query provider registry for fails.example.com/foo/bar: Get "` + baseURL + `/fails-immediately/foo/bar/versions": EOF`,
 		},
 	}
 
@@ -155,7 +155,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
-			`could not query provider registry for fails.example.com/awesomesauce/happycloud: Get http://placeholder-origin/fails-immediately/awesomesauce/happycloud/1.2.0/download/linux/amd64: EOF`,
+			`could not query provider registry for fails.example.com/awesomesauce/happycloud: Get "http://placeholder-origin/fails-immediately/awesomesauce/happycloud/1.2.0/download/linux/amd64": EOF`,
 		},
 	}
 
