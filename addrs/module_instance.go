@@ -383,8 +383,7 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 // is contained within the reciever.
 func (m ModuleInstance) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
-
-	case ModuleInstance:
+	case Module:
 		if len(to) < len(m) {
 			// Can't be contained if the path is shorter
 			return false
@@ -392,11 +391,23 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 		// Other is contained if its steps match for the length of our own path.
 		for i, ourStep := range m {
 			otherStep := to[i]
-			if ourStep != otherStep {
+			if ourStep.Name != otherStep {
 				return false
 			}
 		}
 		// If we fall out here then the prefixed matched, so it's contained.
+		return true
+
+	case ModuleInstance:
+		if len(to) < len(m) {
+			return false
+		}
+		for i, ourStep := range m {
+			otherStep := to[i]
+			if ourStep != otherStep {
+				return false
+			}
+		}
 		return true
 
 	case AbsResource:
