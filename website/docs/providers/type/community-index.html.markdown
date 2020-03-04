@@ -173,7 +173,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Unifi](https://github.com/paultyng/terraform-provider-unifi)
 - [UpCloud](https://github.com/UpCloudLtd/terraform-provider-upcloud/)
 - [Updown.io](https://github.com/mvisonneau/terraform-provider-updown)
-- [Uptimerobot](https://github.com/SpamapS/terraform-provider-uptimerobot)
+- [Uptimerobot](https://github.com/louy/terraform-provider-uptimerobot)
 - [Vaulted](https://github.com/sumup-oss/terraform-provider-vaulted)
 - [Veeam](https://github.com/GSLabDev/terraform-provider-veeam)
 - [Venafi](https://github.com/Venafi/terraform-provider-venafi)
