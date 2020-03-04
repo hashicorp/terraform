@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 )
 
 func TestLength(t *testing.T) {
@@ -730,6 +731,19 @@ func TestMap(t *testing.T) {
 			}),
 			false,
 		},
+		{ // convert number keys to strings
+			[]cty.Value{
+				cty.NumberIntVal(1),
+				cty.StringVal("hello"),
+				cty.NumberIntVal(2),
+				cty.StringVal("goodbye"),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"1": cty.StringVal("hello"),
+				"2": cty.StringVal("goodbye"),
+			}),
+			false,
+		},
 		{ // map of lists is okay
 			[]cty.Value{
 				cty.StringVal("hello"),
@@ -785,6 +799,14 @@ func TestMap(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // null key returns an error
+			[]cty.Value{
+				cty.NullVal(cty.DynamicPseudoType),
+				cty.NumberIntVal(5),
+			},
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {
@@ -793,6 +815,9 @@ func TestMap(t *testing.T) {
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				if _, ok := err.(function.PanicError); ok {
+					t.Fatalf("unexpected panic: %s", err)
 				}
 				return
 			} else if err != nil {
