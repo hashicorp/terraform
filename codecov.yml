@@ -1,0 +1,11 @@
+comment:
+  layout: "flags, files"
+  behavior: default
+  require_changes: true   # only comment on changes in coverage
+  require_base: yes       # [yes :: must have a base report to post]
+  require_head: yes       # [yes :: must have a head report to post]
+  branches:               # branch names that can post comment
+    - "master"
+    - "v0.12"
+
+
