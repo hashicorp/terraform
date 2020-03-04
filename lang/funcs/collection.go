@@ -346,12 +346,14 @@ var MapFunc = function.New(&function.Spec{
 
 		for i := 0; i < len(args); i += 2 {
 
-			key := args[i].AsString()
-
-			err := gocty.FromCtyValue(args[i], &key)
+			keyVal, err := convert.Convert(args[i], cty.String)
 			if err != nil {
 				return cty.NilVal, err
 			}
+			if keyVal.IsNull() {
+				return cty.NilVal, fmt.Errorf("argument %d is a null key", i+1)
+			}
+			key := keyVal.AsString()
 
 			val := args[i+1]
 
