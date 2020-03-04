@@ -14,12 +14,12 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -267,12 +267,17 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Return an error if we still don't have a token at this point.
 	if token == "" {
+		loginCommand := "terraform login"
+		if b.hostname != defaultHostname {
+			loginCommand = loginCommand + " " + b.hostname
+		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Required token could not be found",
 			fmt.Sprintf(
-				"Make sure you configured a credentials block for %s in your CLI Config File.",
+				"Run the following command to generate a token for %s:\n    %s",
 				b.hostname,
+				loginCommand,
 			),
 		))
 		return diags

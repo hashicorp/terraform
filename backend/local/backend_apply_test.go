@@ -59,7 +59,7 @@ func TestLocal_applyBasic(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   ami = bar
 `)
 }
@@ -176,7 +176,7 @@ func TestLocal_applyError(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   ami = bar
 	`)
 }
@@ -226,7 +226,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	checkState(t, "errored.tfstate", `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   ami = bar
 	`)
 }
@@ -259,26 +259,6 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 	}, configCleanup
-}
-
-// testApplyState is just a common state that we use for testing refresh.
-func testApplyState() *terraform.State {
-	return &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
 }
 
 // applyFixtureSchema returns a schema suitable for processing the

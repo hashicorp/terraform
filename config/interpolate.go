@@ -29,10 +29,6 @@ func (r varRange) SourceRange() tfdiags.SourceRange {
 	return r.rng
 }
 
-func makeVarRange(rng tfdiags.SourceRange) varRange {
-	return varRange{rng}
-}
-
 // CountVariable is a variable for referencing information about
 // the count.
 type CountVariable struct {

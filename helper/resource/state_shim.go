@@ -48,14 +48,14 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 
 		for _, res := range newMod.Resources {
 			resType := res.Addr.Type
-			providerType := res.ProviderConfig.ProviderConfig.Type
+			providerType := res.ProviderConfig.Provider.Type
 
 			resource := getResource(providers, providerType, res.Addr)
 
 			for key, i := range res.Instances {
 				resState := &terraform.ResourceState{
 					Type:     resType,
-					Provider: res.ProviderConfig.String(),
+					Provider: res.ProviderConfig.LegacyString(),
 				}
 
 				// We should always have a Current instance here, but be safe about checking.
@@ -87,7 +87,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 						resState.Primary.Meta["schema_version"] = i.Current.SchemaVersion
 					}
 
-					for _, dep := range i.Current.Dependencies {
+					for _, dep := range i.Current.DependsOn {
 						resState.Dependencies = append(resState.Dependencies, dep.String())
 					}
 

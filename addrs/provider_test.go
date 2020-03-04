@@ -1,0 +1,245 @@
+package addrs
+
+import (
+	"testing"
+
+	"github.com/go-test/deep"
+	svchost "github.com/hashicorp/terraform-svchost"
+)
+
+func TestParseProviderSourceStr(t *testing.T) {
+	tests := map[string]struct {
+		Want Provider
+		Err  bool
+	}{
+		"registry.terraform.io/hashicorp/aws": {
+			Provider{
+				Type:      "aws",
+				Namespace: "hashicorp",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"registry.Terraform.io/HashiCorp/AWS": {
+			Provider{
+				Type:      "aws",
+				Namespace: "hashicorp",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"hashicorp/aws": {
+			Provider{
+				Type:      "aws",
+				Namespace: "hashicorp",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"HashiCorp/AWS": {
+			Provider{
+				Type:      "aws",
+				Namespace: "hashicorp",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"aws": {
+			Provider{
+				Type:      "aws",
+				Namespace: "-",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"AWS": {
+			Provider{
+				// No case folding here because we're currently handling this
+				// as a legacy one. When this changes to be a _default_
+				// address in future (registry.terraform.io/hashicorp/aws)
+				// then we should start applying case folding to it, making
+				// Type appear as "aws" here instead.
+				Type:      "AWS",
+				Namespace: "-",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"example.com/foo-bar/baz-boop": {
+			Provider{
+				Type:      "baz-boop",
+				Namespace: "foo-bar",
+				Hostname:  svchost.Hostname("example.com"),
+			},
+			false,
+		},
+		"foo-bar/baz-boop": {
+			Provider{
+				Type:      "baz-boop",
+				Namespace: "foo-bar",
+				Hostname:  DefaultRegistryHost,
+			},
+			false,
+		},
+		"localhost:8080/foo/bar": {
+			Provider{
+				Type:      "bar",
+				Namespace: "foo",
+				Hostname:  svchost.Hostname("localhost:8080"),
+			},
+			false,
+		},
+		"example.com/too/many/parts/here": {
+			Provider{},
+			true,
+		},
+		"/too///many//slashes": {
+			Provider{},
+			true,
+		},
+		"///": {
+			Provider{},
+			true,
+		},
+		"badhost!/hashicorp/aws": {
+			Provider{},
+			true,
+		},
+		"example.com/badnamespace!/aws": {
+			Provider{},
+			true,
+		},
+		"example.com/bad--namespace/aws": {
+			Provider{},
+			true,
+		},
+		"example.com/-badnamespace/aws": {
+			Provider{},
+			true,
+		},
+		"example.com/badnamespace-/aws": {
+			Provider{},
+			true,
+		},
+		"example.com/bad.namespace/aws": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/badtype!": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/bad--type": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/-badtype": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/badtype-": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/bad.type": {
+			Provider{},
+			true,
+		},
+	}
+
+	for name, test := range tests {
+		got, diags := ParseProviderSourceString(name)
+		for _, problem := range deep.Equal(got, test.Want) {
+			t.Errorf(problem)
+		}
+		if len(diags) > 0 {
+			if test.Err == false {
+				t.Errorf("got error, expected success")
+			}
+		} else {
+			if test.Err {
+				t.Errorf("got success, expected error")
+			}
+		}
+	}
+}
+
+func TestParseProviderPart(t *testing.T) {
+	tests := map[string]struct {
+		Want  string
+		Error string
+	}{
+		`foo`: {
+			`foo`,
+			``,
+		},
+		`FOO`: {
+			`foo`,
+			``,
+		},
+		`Foo`: {
+			`foo`,
+			``,
+		},
+		`abc-123`: {
+			`abc-123`,
+			``,
+		},
+		`Испытание`: {
+			`испытание`,
+			``,
+		},
+		`münchen`: { // this is a precomposed u with diaeresis
+			`münchen`, // this is a precomposed u with diaeresis
+			``,
+		},
+		`münchen`: { // this is a separate u and combining diaeresis
+			`münchen`, // this is a precomposed u with diaeresis
+			``,
+		},
+		`abc--123`: {
+			``,
+			`cannot use multiple consecutive dashes`,
+		},
+		`xn--80akhbyknj4f`: { // this is the punycode form of "испытание", but we don't accept punycode here
+			``,
+			`cannot use multiple consecutive dashes`,
+		},
+		`abc.123`: {
+			``,
+			`dots are not allowed`,
+		},
+		`-abc123`: {
+			``,
+			`must contain only letters, digits, and dashes, and may not use leading or trailing dashes`,
+		},
+		`abc123-`: {
+			``,
+			`must contain only letters, digits, and dashes, and may not use leading or trailing dashes`,
+		},
+		``: {
+			``,
+			`must have at least one character`,
+		},
+	}
+
+	for given, test := range tests {
+		t.Run(given, func(t *testing.T) {
+			got, err := ParseProviderPart(given)
+			if test.Error != "" {
+				if err == nil {
+					t.Errorf("unexpected success\ngot:  %s\nwant: %s", err, test.Error)
+				} else if got := err.Error(); got != test.Error {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, test.Error)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error\ngot:  %s\nwant: <nil>", err)
+				} else if got != test.Want {
+					t.Errorf("wrong result\ngot:  %s\nwant: %s", got, test.Want)
+				}
+			}
+		})
+	}
+
+}

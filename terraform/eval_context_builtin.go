@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
@@ -53,16 +54,17 @@ type BuiltinEvalContext struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	Components          contextComponentFactory
-	Hooks               []Hook
-	InputValue          UIInput
-	ProviderCache       map[string]providers.Interface
-	ProviderInputConfig map[string]map[string]cty.Value
-	ProviderLock        *sync.Mutex
-	ProvisionerCache    map[string]provisioners.Interface
-	ProvisionerLock     *sync.Mutex
-	ChangesValue        *plans.ChangesSync
-	StateValue          *states.SyncState
+	Components            contextComponentFactory
+	Hooks                 []Hook
+	InputValue            UIInput
+	ProviderCache         map[string]providers.Interface
+	ProviderInputConfig   map[string]map[string]cty.Value
+	ProviderLock          *sync.Mutex
+	ProvisionerCache      map[string]provisioners.Interface
+	ProvisionerLock       *sync.Mutex
+	ChangesValue          *plans.ChangesSync
+	StateValue            *states.SyncState
+	InstanceExpanderValue *instances.Expander
 
 	once sync.Once
 }
@@ -103,9 +105,14 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.ProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
-	absAddr := addr.Absolute(ctx.Path())
+	absAddr := addr
+	if !absAddr.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of InitProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s initialized by wrong module %s", absAddr, ctx.Path()))
+	}
 
 	// If we already initialized, it is an error
 	if p := ctx.Provider(absAddr); p != nil {
@@ -119,12 +126,12 @@ func (ctx *BuiltinEvalContext) InitProvider(typeName string, addr addrs.Provider
 
 	key := absAddr.String()
 
-	p, err := ctx.Components.ResourceProvider(typeName, key)
+	p, err := ctx.Components.ResourceProvider(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", typeName, absAddr)
+	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.LegacyString(), absAddr)
 	ctx.ProviderCache[key] = p
 
 	return p, nil
@@ -141,17 +148,21 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 
 func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
 	ctx.once.Do(ctx.init)
-
-	return ctx.Schemas.ProviderSchema(addr.ProviderConfig.Type)
+	return ctx.Schemas.ProviderSchema(addr.Provider)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
+func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
 	ctx.once.Do(ctx.init)
+	if !addr.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of CloseProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s closed by wrong module %s", addr, ctx.Path()))
+	}
 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	key := addr.Absolute(ctx.Path()).String()
+	key := addr.String()
 	provider := ctx.ProviderCache[key]
 	if provider != nil {
 		delete(ctx.ProviderCache, key)
@@ -161,9 +172,15 @@ func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
 	return nil
 }
 
-func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
+func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	absAddr := addr.Absolute(ctx.Path())
+	absAddr := addr
+	if !absAddr.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of ConfigureProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s configured by wrong module %s", absAddr, ctx.Path()))
+	}
+
 	p := ctx.Provider(absAddr)
 	if p == nil {
 		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
@@ -185,9 +202,15 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg 
 	return resp.Diagnostics
 }
 
-func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string]cty.Value {
+func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[string]cty.Value {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
+
+	if !pc.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of InitProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s initialized by wrong module %s", pc, ctx.Path()))
+	}
 
 	if !ctx.Path().IsRoot() {
 		// Only root module provider configurations can have input.
@@ -197,8 +220,13 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.ProviderConfig) map[string
 	return ctx.ProviderInputConfig[pc.String()]
 }
 
-func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.ProviderConfig, c map[string]cty.Value) {
-	absProvider := pc.Absolute(ctx.Path())
+func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c map[string]cty.Value) {
+	absProvider := pc
+	if !absProvider.Module.Equal(ctx.Path()) {
+		// This indicates incorrect use of InitProvider: it should be used
+		// only from the module that the provider configuration belongs to.
+		panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
+	}
 
 	if !ctx.Path().IsRoot() {
 		// Only root module provider configurations can have input.
@@ -225,7 +253,7 @@ func (ctx *BuiltinEvalContext) InitProvisioner(n string) (provisioners.Interface
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	p, err := ctx.Components.ResourceProvisioner(n, "")
+	p, err := ctx.Components.ResourceProvisioner(n)
 	if err != nil {
 		return nil, err
 	}
@@ -312,12 +340,26 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 	}
 }
 
+func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
+	modKey := addr.Module.String()
+	modVars := ctx.VariableValues[modKey]
+	val, ok := modVars[addr.Variable.Name]
+	if !ok {
+		return cty.DynamicVal
+	}
+	return val
+}
+
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
 	return ctx.ChangesValue
 }
 
 func (ctx *BuiltinEvalContext) State() *states.SyncState {
 	return ctx.StateValue
+}
+
+func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
+	return ctx.InstanceExpanderValue
 }
 
 func (ctx *BuiltinEvalContext) init() {

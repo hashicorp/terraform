@@ -72,6 +72,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	// Build the operation (required to get the schemas)
 	opReq := c.Operation(b)
+	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -114,11 +115,18 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// check if the resource has a configured provider, otherwise this will use the default provider
+	rs := state.Resource(addr.ContainingResource())
+	absPc := addrs.AbsProviderConfig{
+		Provider: rs.ProviderConfig.Provider,
+		Alias:    rs.ProviderConfig.Alias,
+		Module:   addrs.RootModuleInstance,
+	}
 	singleInstance := states.NewState()
 	singleInstance.EnsureModule(addr.Module).SetResourceInstanceCurrent(
 		addr.Resource,
 		is.Current,
-		addr.Resource.Resource.DefaultProviderConfig().Absolute(addr.Module),
+		absPc,
 	)
 
 	output := format.State(&format.StateOpts{

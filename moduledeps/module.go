@@ -109,17 +109,14 @@ func (s sortModules) Swap(i, j int) {
 // and apply no particular SHA256 hash constraint.
 func (m *Module) PluginRequirements() discovery.PluginRequirements {
 	ret := make(discovery.PluginRequirements)
-	for inst, dep := range m.Providers {
-		// m.Providers is keyed on provider names, such as "aws.foo".
-		// a PluginRequirements wants keys to be provider *types*, such
-		// as "aws". If there are multiple aliases for the same
-		// provider then we will flatten them into a single requirement
-		// by combining their constraint sets.
-		pty := inst.Type()
-		if existing, exists := ret[pty]; exists {
-			ret[pty].Versions = existing.Versions.Append(dep.Constraints)
+	for pFqn, dep := range m.Providers {
+		// TODO: discovery.PluginRequirements should be refactored and use
+		// addrs.Provider as the map keys
+		provider := pFqn.LegacyString()
+		if existing, exists := ret[provider]; exists {
+			ret[provider].Versions = existing.Versions.Append(dep.Constraints)
 		} else {
-			ret[pty] = &discovery.PluginConstraints{
+			ret[provider] = &discovery.PluginConstraints{
 				Versions: dep.Constraints,
 			}
 		}

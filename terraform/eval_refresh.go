@@ -78,7 +78,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr, tfdiags.FormatError(err),
+				n.ProviderAddr.Provider.LegacyString(), absAddr, tfdiags.FormatError(err),
 			),
 		))
 	}
@@ -89,6 +89,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	newState := state.DeepCopy()
 	newState.Value = resp.NewState
 	newState.Private = resp.Private
+	newState.Dependencies = state.Dependencies
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {

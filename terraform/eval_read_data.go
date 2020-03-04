@@ -21,7 +21,6 @@ import (
 type EvalReadData struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Dependencies   []addrs.Referenceable
 	Provider       *providers.Interface
 	ProviderAddr   addrs.AbsProviderConfig
 	ProviderSchema **ProviderSchema
@@ -86,7 +85,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.ProviderConfig.Type, n.Addr.Resource.Type)
+		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.LegacyString(), n.Addr.Resource.Type)
 	}
 
 	// We'll always start by evaluating the configuration. What we do after
@@ -161,9 +160,8 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		if n.OutputState != nil {
 			state := &states.ResourceInstanceObject{
-				Value:        change.After,
-				Status:       states.ObjectPlanned, // because the partial value in the plan must be used for now
-				Dependencies: n.Dependencies,
+				Value:  change.After,
+				Status: states.ObjectPlanned, // because the partial value in the plan must be used for now
 			}
 			*n.OutputState = state
 		}
@@ -225,7 +223,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -239,7 +237,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced null object",
 			fmt.Sprintf(
 				"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr,
+				n.ProviderAddr.Provider.LegacyString(), absAddr,
 			),
 		))
 	}
@@ -249,7 +247,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr,
+				n.ProviderAddr.Provider.LegacyString(), absAddr,
 			),
 		))
 
@@ -275,9 +273,8 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		},
 	}
 	state := &states.ResourceInstanceObject{
-		Value:        change.After,
-		Status:       states.ObjectReady, // because we completed the read from the provider
-		Dependencies: n.Dependencies,
+		Value:  change.After,
+		Status: states.ObjectReady, // because we completed the read from the provider
 	}
 
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
@@ -306,14 +303,13 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 // EvalReadDataApply is an EvalNode implementation that executes a data
 // resource's ReadDataApply method to read data from the data source.
 type EvalReadDataApply struct {
-	Addr            addrs.ResourceInstance
-	Provider        *providers.Interface
-	ProviderAddr    addrs.AbsProviderConfig
-	ProviderSchema  **ProviderSchema
-	Output          **states.ResourceInstanceObject
-	Config          *configs.Resource
-	Change          **plans.ResourceInstanceChange
-	StateReferences []addrs.Referenceable
+	Addr           addrs.ResourceInstance
+	Provider       *providers.Interface
+	ProviderAddr   addrs.AbsProviderConfig
+	ProviderSchema **ProviderSchema
+	Output         **states.ResourceInstanceObject
+	Config         *configs.Resource
+	Change         **plans.ResourceInstanceChange
 }
 
 func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
@@ -368,7 +364,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s. The result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -385,9 +381,8 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	if n.Output != nil {
 		*n.Output = &states.ResourceInstanceObject{
-			Value:        newVal,
-			Status:       states.ObjectReady,
-			Dependencies: n.StateReferences,
+			Value:  newVal,
+			Status: states.ObjectReady,
 		}
 	}
 

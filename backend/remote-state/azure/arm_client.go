@@ -13,9 +13,9 @@ import (
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
+	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform/httpclient"
 )
 
@@ -75,12 +75,12 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, armConfig.TenantID)
+	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
+	auth, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}

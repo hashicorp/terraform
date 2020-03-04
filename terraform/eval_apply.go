@@ -24,7 +24,6 @@ import (
 type EvalApply struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Dependencies   []addrs.Referenceable
 	State          **states.ResourceInstanceObject
 	Change         **plans.ResourceInstanceChange
 	ProviderAddr   addrs.AbsProviderConfig
@@ -129,7 +128,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -199,7 +198,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				// to notice in the logs if an inconsistency beyond the type system
 				// leads to a downstream provider failure.
 				var buf strings.Builder
-				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.ProviderConfig.Type, absAddr)
+				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ProviderAddr.Provider.LegacyString(), absAddr)
 				for _, err := range errs {
 					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 				}
@@ -219,7 +218,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 						"Provider produced inconsistent result after apply",
 						fmt.Sprintf(
 							"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-							absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
+							absAddr, n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatError(err),
 						),
 					))
 				}
@@ -254,6 +253,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	newStatus := states.ObjectReady
+
 	// Sometimes providers return a null value when an operation fails for some
 	// reason, but we'd rather keep the prior state so that the error can be
 	// corrected on a subsequent run. We must only do this for null new value
@@ -266,15 +267,20 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// If change.Action is Create then change.Before will also be null,
 		// which is fine.
 		newVal = change.Before
+
+		// If we're recovering the previous state, we also want to restore the
+		// the tainted status of the object.
+		if state.Status == states.ObjectTainted {
+			newStatus = states.ObjectTainted
+		}
 	}
 
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:       states.ObjectReady,
-			Value:        newVal,
-			Private:      resp.Private,
-			Dependencies: n.Dependencies, // Should be populated by the caller from the StateDependencies method on the resource instance node
+			Status:  newStatus,
+			Value:   newVal,
+			Private: resp.Private,
 		}
 	}
 
@@ -378,40 +384,39 @@ type EvalMaybeTainted struct {
 	Change **plans.ResourceInstanceChange
 	State  **states.ResourceInstanceObject
 	Error  *error
-
-	// If StateOutput is not nil, its referent will be assigned either the same
-	// pointer as State or a new object with its status set as Tainted,
-	// depending on whether an error is given and if this was a create action.
-	StateOutput **states.ResourceInstanceObject
 }
 
-// TODO: test
 func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
+	if n.State == nil || n.Change == nil || n.Error == nil {
+		return nil, nil
+	}
+
 	state := *n.State
 	change := *n.Change
 	err := *n.Error
+
+	// nothing to do if everything went as planned
+	if err == nil {
+		return nil, nil
+	}
 
 	if state != nil && state.Status == states.ObjectTainted {
 		log.Printf("[TRACE] EvalMaybeTainted: %s was already tainted, so nothing to do", n.Addr.Absolute(ctx.Path()))
 		return nil, nil
 	}
 
-	if n.StateOutput != nil {
-		if err != nil && change.Action == plans.Create {
-			// If there are errors during a _create_ then the object is
-			// in an undefined state, and so we'll mark it as tainted so
-			// we can try again on the next run.
-			//
-			// We don't do this for other change actions because errors
-			// during updates will often not change the remote object at all.
-			// If there _were_ changes prior to the error, it's the provider's
-			// responsibility to record the effect of those changes in the
-			// object value it returned.
-			log.Printf("[TRACE] EvalMaybeTainted: %s encountered an error during creation, so it is now marked as tainted", n.Addr.Absolute(ctx.Path()))
-			*n.StateOutput = state.AsTainted()
-		} else {
-			*n.StateOutput = state
-		}
+	if change.Action == plans.Create {
+		// If there are errors during a _create_ then the object is
+		// in an undefined state, and so we'll mark it as tainted so
+		// we can try again on the next run.
+		//
+		// We don't do this for other change actions because errors
+		// during updates will often not change the remote object at all.
+		// If there _were_ changes prior to the error, it's the provider's
+		// responsibility to record the effect of those changes in the
+		// object value it returned.
+		log.Printf("[TRACE] EvalMaybeTainted: %s encountered an error during creation, so it is now marked as tainted", n.Addr.Absolute(ctx.Path()))
+		*n.State = state.AsTainted()
 	}
 
 	return nil, nil
@@ -556,8 +561,18 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
-		forEach, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
-		diags = diags.Append(forEachDiags)
+		var forEach map[string]cty.Value
+
+		// For a destroy-time provisioner forEach is intentionally nil here,
+		// which EvalDataForInstanceKey responds to by not populating EachValue
+		// in its result. That's okay because each.value is prohibited for
+		// destroy-time provisioners.
+		if n.When != configs.ProvisionerWhenDestroy {
+			m, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
+			diags = diags.Append(forEachDiags)
+			forEach = m
+		}
+
 		keyData := EvalDataForInstanceKey(instanceAddr.Key, forEach)
 
 		// Evaluate the main provisioner configuration.

@@ -6,13 +6,14 @@ import (
 
 	"github.com/mitchellh/cli"
 
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -37,7 +38,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *Config, services *disco.Disco) {
+func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -67,6 +68,7 @@ func initCommands(config *Config, services *disco.Disco) {
 		Ui:               Ui,
 
 		Services:        services,
+		ProviderSource:  providerSrc,
 		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
@@ -182,15 +184,17 @@ func initCommands(config *Config, services *disco.Disco) {
 			}, nil
 		},
 
-		// "terraform login" is disabled until Terraform Cloud is ready to
-		// support it.
-		/*
-			"login": func() (cli.Command, error) {
-				return &command.LoginCommand{
-					Meta: meta,
-				}, nil
-			},
-		*/
+		"login": func() (cli.Command, error) {
+			return &command.LoginCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"logout": func() (cli.Command, error) {
+			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
 
 		"output": func() (cli.Command, error) {
 			return &command.OutputCommand{
@@ -314,12 +318,6 @@ func initCommands(config *Config, services *disco.Disco) {
 			}, nil
 		},
 
-		"debug json2dot": func() (cli.Command, error) {
-			return &command.DebugJSON2DotCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"force-unlock": func() (cli.Command, error) {
 			return &command.UnlockCommand{
 				Meta: meta,
@@ -390,7 +388,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *Config) (auth.CredentialsSource, error) {
+func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
 	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
 	return config.CredentialsSource(helperPlugins)
 }

@@ -212,11 +212,8 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		return diags
 	}
 
-	// Normally accessing this directly is wrong because it doesn't take into
-	// account provider inheritance, etc but it's okay here because we're only
-	// paying attention to the type anyway.
-	providerType := cfg.ProviderConfigAddr().Type
-	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
+	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerFqn, addr.Mode, addr.Type)
 
 	if schema == nil {
 		// Prior validation should've taken care of a resource block with an
@@ -225,7 +222,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid resource type`,
-			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerType),
+			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerFqn.LegacyString()),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags

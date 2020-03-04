@@ -77,6 +77,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.AllowUnsetVariables = true // we'll just evaluate them as unknown
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
@@ -95,18 +96,20 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Get the context
 	ctx, _, ctxDiags := local.Context(opReq)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
 
+	// Creating the context can result in a lock, so ensure we release it
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}()
+
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	// Setup the UI so we can output directly to stdout
 	ui := &cli.BasicUi{

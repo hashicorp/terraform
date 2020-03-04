@@ -200,6 +200,25 @@ provider configuration must be destroyed before that provider configuration is
 removed, unless the related resources are re-configured to use a different
 provider configuration first.
 
+### Provider Version Constraints in Modules
+
+To declare that a module requires particular versions of a specific provider,
+use a [`required_providers`](terraform.html#specifying-required-provider-versions)
+block inside a `terraform` block:
+
+```hcl
+terraform {
+  required_providers {
+    aws = ">= 2.7.0"
+  }
+}
+```
+
+Shared modules should constrain only the minimum allowed version, using a `>=`
+constraint. This specifies the minimum version the provider is compatible
+with while allowing users to upgrade to newer provider versions without
+altering the module source code.
+
 ### Implicit Provider Inheritance
 
 For convenience in simple configurations, a child module automatically inherits
@@ -238,7 +257,7 @@ or a child module may need to use different provider settings than
 its parent. For such situations, it's necessary to pass providers explicitly
 as we will see in the next section.
 
-## Passing Providers Explicitly
+### Passing Providers Explicitly
 
 When child modules each need a different configuration of a particular
 provider, or where the child module requires a different provider configuration
@@ -328,19 +347,17 @@ provider "aws" {
 Each resource should then have its own `provider` attribute set to either
 `"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
-At this time it is required to write an explicit proxy configuration block
-even for default (un-aliased) provider configurations when they will be passed
-via an explicit `providers` block:
+A proxy configuration block is one that is either completely empty or that
+contains only the `alias` argument. It serves as a placeholder for
+provider configurations passed between modules. Although an empty proxy
+configuration block is valid, it is not necessary: proxy configuration blocks
+are needed only to establish which _alias_ provider configurations a child
+module is expecting.
 
-```hcl
-provider "aws" {
-}
-```
-
-If such a block is not present, the child module will behave as if it has no
-configurations of this type at all, which may cause input prompts to supply
-any required provider configuration arguments. This limitation will be
-addressed in a future version of Terraform.
+A proxy configuration block must not include the `version` argument. To specify
+version constraints for a particular child module without creating a local
+module configuration, use the [`required_providers`](/docs/configuration/terraform.html#specifying-required-provider-versions)
+setting inside a `terraform` block.
 
 ## Multiple Instances of a Module
 

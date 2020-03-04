@@ -13,7 +13,7 @@ topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, this section of the documentation is 
 not necessary to read. For general use of Terraform, please see our
 [Intro to Terraform](/intro/index.html) and [Getting
-Started](/intro/getting-started/install.html) guides.
+Started](https://learn.hashicorp.com/terraform/getting-started/install) guides.
 
 A provider in Terraform is responsible for the lifecycle of a resource:
 create, read, update, delete. An example of a provider is AWS, which

@@ -150,9 +150,10 @@ func TestBackendStates(t *testing.T, b Backend) {
 				Status:        states.ObjectReady,
 				SchemaVersion: 0,
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 
 		// write a distinct known state to bar

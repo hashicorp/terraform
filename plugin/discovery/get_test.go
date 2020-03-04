@@ -17,11 +17,13 @@ import (
 	"strings"
 	"testing"
 
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -150,7 +152,7 @@ func TestVersionListing(t *testing.T) {
 
 	i := newProviderInstaller(server)
 
-	allVersions, err := i.listProviderVersions(addrs.ProviderType{Name: "test"})
+	allVersions, err := i.listProviderVersions(addrs.Provider{Type: "test"})
 
 	if err != nil {
 		t.Fatal(err)
@@ -417,7 +419,7 @@ func TestProviderInstallerGet(t *testing.T) {
 		registry:              registry.NewClient(Disco(server), nil),
 	}
 
-	_, _, err = i.Get(addrs.ProviderType{Name: "test"}, AllVersions)
+	_, _, err = i.Get(addrs.NewLegacyProvider("test"), AllVersions)
 
 	if err != ErrorNoVersionCompatibleWithPlatform {
 		t.Fatal("want error for incompatible version")
@@ -434,21 +436,21 @@ func TestProviderInstallerGet(t *testing.T) {
 	}
 
 	{
-		_, _, err := i.Get(addrs.ProviderType{Name: "test"}, ConstraintStr(">9.0.0").MustParse())
+		_, _, err := i.Get(addrs.NewLegacyProvider("test"), ConstraintStr(">9.0.0").MustParse())
 		if err != ErrorNoSuitableVersion {
 			t.Fatal("want error for mismatching constraints")
 		}
 	}
 
 	{
-		provider := addrs.ProviderType{Name: "nonexist"}
+		provider := addrs.NewLegacyProvider("nonexist")
 		_, _, err := i.Get(provider, AllVersions)
 		if err != ErrorNoSuchProvider {
 			t.Fatal("want error for no such provider")
 		}
 	}
 
-	gotMeta, _, err := i.Get(addrs.ProviderType{Name: "test"}, AllVersions)
+	gotMeta, _, err := i.Get(addrs.NewLegacyProvider("test"), AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -506,7 +508,7 @@ func TestProviderInstallerGet_cache(t *testing.T) {
 		Arch:                  "mockarch",
 	}
 
-	gotMeta, _, err := i.Get(addrs.ProviderType{Name: "test"}, AllVersions)
+	gotMeta, _, err := i.Get(addrs.NewLegacyProvider("test"), AllVersions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -741,6 +743,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.New()
+	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)

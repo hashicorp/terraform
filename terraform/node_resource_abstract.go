@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -11,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -35,12 +33,20 @@ type ConcreteResourceInstanceNodeFunc func(*NodeAbstractResourceInstance) dag.Ve
 // configuration.
 type GraphNodeResourceInstance interface {
 	ResourceInstanceAddr() addrs.AbsResourceInstance
+
+	// StateDependencies returns any inter-resource dependencies that are
+	// stored in the state.
+	StateDependencies() []addrs.AbsResource
 }
 
 // NodeAbstractResource represents a resource that has no associated
 // operations. It registers all the interfaces for a resource that common
 // across multiple operation types.
 type NodeAbstractResource struct {
+	//FIXME: AbstractResources are no longer absolute, because modules are not expanded.
+	// Addr addrs.Resource
+	// Module addrs.Module
+
 	Addr addrs.AbsResource // Addr is the address for this resource
 
 	// The fields below will be automatically set using the Attach
@@ -93,8 +99,8 @@ type NodeAbstractResourceInstance struct {
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
-
 	ResourceState *states.Resource
+	Dependencies  []addrs.AbsResource
 }
 
 var (
@@ -167,12 +173,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		var result []*addrs.Reference
 
 		for _, traversal := range c.DependsOn {
-			ref, err := addrs.ParseRef(traversal)
-			if err != nil {
+			ref, diags := addrs.ParseRef(traversal)
+			if diags.HasErrors() {
 				// We ignore this here, because this isn't a suitable place to return
 				// errors. This situation should be caught and rejected during
 				// validation.
-				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, err)
+				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
 				continue
 			}
 
@@ -192,6 +198,11 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
 		result = append(result, refs...)
 		if c.Managed != nil {
+			if c.Managed.Connection != nil {
+				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
+				result = append(result, refs...)
+			}
+
 			for _, p := range c.Managed.Provisioners {
 				if p.When != configs.ProvisionerWhenCreate {
 					continue
@@ -220,7 +231,8 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 	// If we have a configuration attached then we'll delegate to our
 	// embedded abstract resource, which knows how to extract dependencies
-	// from configuration.
+	// from configuration. If there is no config, then the dependencies will
+	// be connected during destroy from those stored in the state.
 	if n.Config != nil {
 		if n.Schema == nil {
 			// We'll produce a log message about this out here so that
@@ -230,44 +242,6 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 			return nil
 		}
 		return n.NodeAbstractResource.References()
-	}
-
-	// Otherwise, if we have state then we'll use the values stored in state
-	// as a fallback.
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
-			// State is still storing dependencies as old-style strings, so we'll
-			// need to do a little work here to massage this to the form we now
-			// want.
-			var result []*addrs.Reference
-
-			// It is (apparently) possible for s.Current to be nil. This proved
-			// difficult to reproduce, so we will fix the symptom here and hope
-			// to find the root cause another time.
-			//
-			// https://github.com/hashicorp/terraform/issues/21407
-			if s.Current == nil {
-				log.Printf("[WARN] no current state found for %s", n.Name())
-			} else {
-				for _, addr := range s.Current.Dependencies {
-					if addr == nil {
-						// Should never happen; indicates a bug in the state loader
-						panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
-					}
-
-					// This is a little weird: we need to manufacture an addrs.Reference
-					// with a fake range here because the state isn't something we can
-					// make source references into.
-					result = append(result, &addrs.Reference{
-						Subject: addr,
-						SourceRange: tfdiags.SourceRange{
-							Filename: "(state file)",
-						},
-					})
-				}
-			}
-			return result
-		}
 	}
 
 	// If we have neither config nor state then we have no references.
@@ -288,67 +262,17 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 	return tr.Resource.String() + suffix
 }
 
-// StateReferences returns the dependencies to put into the state for
-// this resource.
-func (n *NodeAbstractResourceInstance) StateReferences() []addrs.Referenceable {
-	selfAddrs := n.ReferenceableAddrs()
-
-	// Since we don't include the source location references in our
-	// results from this method, we'll also filter out duplicates:
-	// there's no point in listing the same object twice without
-	// that additional context.
-	seen := map[string]struct{}{}
-
-	// Pretend that we've already "seen" all of our own addresses so that we
-	// won't record self-references in the state. This can arise if, for
-	// example, a provisioner for a resource refers to the resource itself,
-	// which is valid (since provisioners always run after apply) but should
-	// not create an explicit dependency edge.
-	for _, selfAddr := range selfAddrs {
-		seen[selfAddr.String()] = struct{}{}
-		if riAddr, ok := selfAddr.(addrs.ResourceInstance); ok {
-			seen[riAddr.ContainingResource().String()] = struct{}{}
+// StateDependencies returns the dependencies saved in the state.
+func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.AbsResource {
+	if rs := n.ResourceState; rs != nil {
+		if s := rs.Instance(n.InstanceKey); s != nil {
+			if s.Current != nil {
+				return s.Current.Dependencies
+			}
 		}
 	}
 
-	depsRaw := n.References()
-	deps := make([]addrs.Referenceable, 0, len(depsRaw))
-	for _, d := range depsRaw {
-		subj := d.Subject
-		if mco, isOutput := subj.(addrs.ModuleCallOutput); isOutput {
-			// For state dependencies, we simplify outputs to just refer
-			// to the module as a whole. It's not really clear why we do this,
-			// but this logic is preserved from before the 0.12 rewrite of
-			// this function.
-			subj = mco.Call
-		}
-
-		k := subj.String()
-		if _, exists := seen[k]; exists {
-			continue
-		}
-		seen[k] = struct{}{}
-		switch tr := subj.(type) {
-		case addrs.ResourceInstance:
-			deps = append(deps, tr)
-		case addrs.Resource:
-			deps = append(deps, tr)
-		case addrs.ModuleCallInstance:
-			deps = append(deps, tr)
-		default:
-			// No other reference types are recorded in the state.
-		}
-	}
-
-	// We'll also sort them, since that'll avoid creating changes in the
-	// serialized state that make no semantic difference.
-	sort.Slice(deps, func(i, j int) bool {
-		// Simple string-based sort because we just care about consistency,
-		// not user-friendliness.
-		return deps[i].String() < deps[j].String()
-	})
-
-	return deps
+	return nil
 }
 
 func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
@@ -360,11 +284,26 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		return relAddr.Absolute(n.Path()), false
+		// FIXME: this will need to lookup the provider and see if there's an
+		// FQN associated with the local config
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+		return addrs.AbsProviderConfig{
+			Provider: fqn,
+			Module:   n.Path(),
+			Alias:    relAddr.Alias,
+		}, false
 	}
 
-	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Addr.Module), false
+	// Use our type and containing module path to guess a provider configuration address.
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.AbsProviderConfig{
+		Provider: defaultFQN,
+		Module:   n.Addr.Module,
+	}, false
 }
 
 // GraphNodeProviderConsumer
@@ -372,7 +311,16 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		return relAddr.Absolute(n.Path()), false
+		// Use our type and containing module path to guess a provider configuration address.
+		// FIXME: This is relying on the FQN-to-local matching true only of legacy
+		// addresses.
+		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
+
+		return addrs.AbsProviderConfig{
+			Provider: fqn,
+			Module:   n.Path(),
+			Alias:    relAddr.Alias,
+		}, false
 	}
 
 	// If we have state, then we will use the provider from there
@@ -384,7 +332,15 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	}
 
 	// Use our type and containing module path to guess a provider configuration address
-	return n.Addr.Resource.DefaultProviderConfig().Absolute(n.Path()), false
+	// FIXME: This is relying on the FQN-to-local matching true only of legacy
+	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
+	// with the local name here, once we've done the work elsewhere to make
+	// that possible.
+	defaultFQN := n.Addr.Resource.DefaultProvider()
+	return addrs.AbsProviderConfig{
+		Provider: defaultFQN,
+		Module:   n.Addr.Module,
+	}, false
 }
 
 // GraphNodeProvisionerConsumer

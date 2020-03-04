@@ -39,12 +39,12 @@ func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	}
 }
 
-func (n *NodeModuleRemoved) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+func (n *NodeModuleRemoved) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	// Our "References" implementation indicates that this node depends on
 	// the call to the module it represents, which implicitly depends on
 	// everything inside the module. That reference must therefore be
 	// interpreted in terms of our parent module.
-	return n.Addr, n.Addr.Parent()
+	return n.Addr.Module(), n.Addr.Parent().Module()
 }
 
 func (n *NodeModuleRemoved) References() []*addrs.Reference {

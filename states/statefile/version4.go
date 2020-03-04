@@ -84,7 +84,15 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
 		diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
-			continue
+			// If ParseAbsProviderConfigStr returns an error, the state may have
+			// been written before Provider FQNs were introduced and the
+			// AbsProviderConfig string format will need normalization. If so,
+			// we assume it is a default (hashicorp) provider.
+			var legacyAddrDiags tfdiags.Diagnostics
+			providerAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
+			if legacyAddrDiags.HasErrors() {
+				continue
+			}
 		}
 
 		var eachMode states.EachMode
@@ -181,7 +189,10 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			{
-				depsRaw := isV4.Dependencies
+				// Allow both the deprecated `depends_on` and new
+				// `dependencies` to coexist for now so resources can be
+				// upgraded as they are refreshed.
+				depsRaw := isV4.DependsOn
 				deps := make([]addrs.Referenceable, 0, len(depsRaw))
 				for _, depRaw := range depsRaw {
 					ref, refDiags := addrs.ParseRefStr(depRaw)
@@ -201,6 +212,20 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 						panic(fmt.Sprintf("parsing dependency %q for instance %s returned a nil address", depRaw, instAddr.Absolute(moduleAddr)))
 					}
 					deps = append(deps, ref.Subject)
+				}
+				obj.DependsOn = deps
+			}
+
+			{
+				depsRaw := isV4.Dependencies
+				deps := make([]addrs.AbsResource, 0, len(depsRaw))
+				for _, depRaw := range depsRaw {
+					addr, addrDiags := addrs.ParseAbsResourceStr(depRaw)
+					diags = diags.Append(addrDiags)
+					if addrDiags.HasErrors() {
+						continue
+					}
+					deps = append(deps, addr)
 				}
 				obj.Dependencies = deps
 			}
@@ -466,6 +491,11 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		deps[i] = depAddr.String()
 	}
 
+	depOn := make([]string, len(obj.DependsOn))
+	for i, depAddr := range obj.DependsOn {
+		depOn[i] = depAddr.String()
+	}
+
 	var rawKey interface{}
 	switch tk := key.(type) {
 	case addrs.IntKey:
@@ -491,6 +521,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		AttributesRaw:  obj.AttrsJSON,
 		PrivateRaw:     privateRaw,
 		Dependencies:   deps,
+		DependsOn:      depOn,
 	}), diags
 }
 
@@ -540,7 +571,8 @@ type instanceObjectStateV4 struct {
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty"`
+	DependsOn    []string `json:"depends_on,omitempty"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded
