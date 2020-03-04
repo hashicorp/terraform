@@ -89,6 +89,22 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 		if !forEachVal.IsWhollyKnown() {
 			return map[string]cty.Value{}, false, diags
 		}
+
+		// A set of strings may contain null, which makes it impossible to
+		// convert to a map, so we must return an error
+		it := forEachVal.ElementIterator()
+		for it.Next() {
+			item, _ := it.Element()
+			if item.IsNull() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid for_each set argument",
+					Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" sets must not contain null values.`),
+					Subject:  expr.Range().Ptr(),
+				})
+				return nil, true, diags
+			}
+		}
 	}
 
 	return forEachVal.AsValueMap(), true, nil

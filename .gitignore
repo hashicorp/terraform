@@ -29,3 +29,6 @@ website/vendor
 # Test exclusions
 !command/testdata/**/*.tfstate
 !command/testdata/**/.terraform/
+
+# Coverage
+coverage.txt

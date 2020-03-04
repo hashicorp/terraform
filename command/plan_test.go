@@ -124,7 +124,10 @@ func TestPlan_destroy(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	outPath := testTempFile(t)
@@ -240,7 +243,10 @@ func TestPlan_outPathNoChange(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","ami":"bar","network_interface":[{"description":"Main network interface","device_index":"0"}]}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -575,6 +581,10 @@ func TestPlan_varsUnset(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
+	// The plan command will prompt for interactive input of var.foo.
+	// We'll answer "bar" to that prompt, which should then allow this
+	// configuration to apply even though var.foo doesn't have a
+	// default value and there are no -var arguments on our command line.
 	defaultInputReader = bytes.NewBufferString("bar\n")
 
 	p := planVarsFixtureProvider()

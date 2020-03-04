@@ -4,7 +4,7 @@ services:
   - docker
 language: go
 go:
-- "1.12.9"
+- "1.12.13"
 
 # add TF_CONSUL_TEST=1 to run consul tests
 # they were causing timouts in travis
@@ -33,17 +33,22 @@ before_script:
 - git config --global url.https://github.com/.insteadOf ssh://git@github.com/
 
 script:
-- make test
+- make fmtcheck generate
+- bash scripts/travis.sh
 - go mod verify
 - make e2etest
 - GOOS=windows go build -mod=vendor
 # website-test is temporarily disabled while we get the website build back in shape after the v0.12 reorganization
 #- make website-test
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 branches:
   only:
   - master
   - v0.11
+  - v0.12
 notifications:
   irc:
     channels:

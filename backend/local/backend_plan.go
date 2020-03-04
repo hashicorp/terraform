@@ -8,6 +8,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
@@ -83,9 +86,9 @@ func (b *Local) opPlan(
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
 		}
 
-		refreshedState, err := tfCtx.Refresh()
-		if err != nil {
-			diags = diags.Append(err)
+		refreshedState, refreshDiags := tfCtx.Refresh()
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
 			b.ReportResult(runningOp, diags)
 			return
 		}
@@ -159,6 +162,8 @@ func (b *Local) opPlan(
 
 		if plan.Changes.Empty() {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			// Even if there are no changes, there still could be some warnings
+			b.ShowDiagnostics(diags)
 			return
 		}
 
@@ -190,6 +195,21 @@ func (b *Local) opPlan(
 }
 
 func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas) {
+	RenderPlan(plan, state, schemas, b.CLI, b.Colorize())
+}
+
+// RenderPlan renders the given plan to the given UI.
+//
+// This is exported only so that the "terraform show" command can re-use it.
+// Ideally it would be somewhere outside of this backend code so that both
+// can call into it, but we're leaving it here for now in order to avoid
+// disruptive refactoring.
+//
+// If you find yourself wanting to call this function from a third callsite,
+// please consider whether it's time to do the more disruptive refactoring
+// so that something other than the local backend package is offering this
+// functionality.
+func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -223,9 +243,9 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 	}
 
-	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
+	ui.Output(colorize.Color(headerBuf.String()))
 
-	b.CLI.Output("Terraform will perform the following actions:\n")
+	ui.Output("Terraform will perform the following actions:\n")
 
 	// Note: we're modifying the backing slice of this plan object in-place
 	// here. The ordering of resource changes in a plan is not significant,
@@ -244,16 +264,17 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 		if rcs.Action == plans.NoOp {
 			continue
 		}
-		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
 		if providerSchema == nil {
 			// Should never happen
-			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
+			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
 			continue
 		}
 		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
 		if rSchema == nil {
 			// Should never happen
-			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
+			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
 			continue
 		}
 
@@ -267,11 +288,11 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 			}
 		}
 
-		b.CLI.Output(format.ResourceChange(
+		ui.Output(format.ResourceChange(
 			rcs,
 			tainted,
 			rSchema,
-			b.CLIColor,
+			colorize,
 		))
 	}
 
@@ -288,22 +309,12 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 			stats[change.Action]++
 		}
 	}
-	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+	ui.Output(colorize.Color(fmt.Sprintf(
 		"[reset][bold]Plan:[reset] "+
 			"%d to add, %d to change, %d to destroy.",
 		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
 }
-
-const planErrNoConfig = `
-No configuration files found!
-
-Plan requires configuration to be present. Planning without a configuration
-would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run plan with the "-destroy"
-flag or create a single empty configuration file. Otherwise, please create
-a Terraform configuration file in the path being executed and try again.
-`
 
 const planHeaderIntro = `
 An execution plan has been generated and is shown below.

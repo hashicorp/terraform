@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"sort"
 
 	version "github.com/hashicorp/go-version"
@@ -162,7 +163,7 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
-// ProviderTypes returns the names of each distinct provider type referenced
+// ProviderTypes returns the FQNs of each distinct provider type referenced
 // in the receiving configuration.
 //
 // This is a helper for easily determining which provider types are required
@@ -170,36 +171,97 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 // information and so callers are expected to have already dealt with
 // provider version selection in an earlier step and have identified suitable
 // versions for each provider.
-func (c *Config) ProviderTypes() []string {
-	m := make(map[string]struct{})
+func (c *Config) ProviderTypes() []addrs.Provider {
+	m := make(map[addrs.Provider]struct{})
 	c.gatherProviderTypes(m)
 
-	ret := make([]string, 0, len(m))
+	ret := make([]addrs.Provider, 0, len(m))
 	for k := range m {
 		ret = append(ret, k)
 	}
-	sort.Strings(ret)
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].String() < ret[j].String()
+	})
 	return ret
 }
-func (c *Config) gatherProviderTypes(m map[string]struct{}) {
+
+func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 	if c == nil {
 		return
 	}
 
+	// FIXME: These are currently all assuming legacy provider addresses.
+	// As part of phasing those out we'll need to change this to look up
+	// the true provider addresses via the local-to-FQN mapping table
+	// stored inside c.Module.
 	for _, pc := range c.Module.ProviderConfigs {
-		m[pc.Name] = struct{}{}
+		m[addrs.NewLegacyProvider(pc.Name)] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		m[addrs.NewLegacyProvider(providerAddr.LocalName)] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		m[addrs.NewLegacyProvider(providerAddr.LocalName)] = struct{}{}
 	}
 
 	// Must also visit our child modules, recursively.
 	for _, cc := range c.Children {
 		cc.gatherProviderTypes(m)
 	}
+}
+
+// ResolveAbsProviderAddr returns the AbsProviderConfig represented by the given
+// ProviderConfig address, which must not be nil or this method will panic.
+//
+// If the given address is already an AbsProviderConfig then this method returns
+// it verbatim, and will always succeed. If it's a LocalProviderConfig then
+// it will consult the local-to-FQN mapping table for the given module
+// to find the absolute address corresponding to the given local one.
+//
+// The module address to resolve local addresses in must be given in the second
+// argument, and must refer to a module that exists under the receiver or
+// else this method will panic.
+func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.ModuleInstance) addrs.AbsProviderConfig {
+	switch addr := addr.(type) {
+
+	case addrs.AbsProviderConfig:
+		return addr
+
+	case addrs.LocalProviderConfig:
+		// Find the descendent Config that contains the module that this
+		// local config belongs to.
+		mc := c.DescendentForInstance(inModule)
+		if mc == nil {
+			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
+		}
+
+		var provider addrs.Provider
+		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
+			provider = providerReq.Type
+		} else {
+			// FIXME: For now we're returning a _legacy_ address as fallback here,
+			// but once we remove legacy addresses this should actually be a
+			// _default_ provider address.
+			provider = addrs.NewLegacyProvider(addr.LocalName)
+		}
+
+		return addrs.AbsProviderConfig{
+			Module:   inModule,
+			Provider: provider,
+			Alias:    addr.Alias,
+		}
+
+	default:
+		panic(fmt.Sprintf("cannot ResolveAbsProviderAddr(%v, ...)", addr))
+	}
+
+}
+
+// ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
+// by checking for the provider in module.ProviderRequirements and falling
+// back to addrs.NewLegacyProvider if it is not found.
+func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+	return c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).Provider
 }

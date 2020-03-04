@@ -3,9 +3,11 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -200,6 +202,10 @@ type EvalWriteState struct {
 	// ProviderAddr is the address of the provider configuration that
 	// produced the given object.
 	ProviderAddr addrs.AbsProviderConfig
+
+	// Dependencies are the inter-resource dependencies to be stored in the
+	// state.
+	Dependencies *[]addrs.AbsResource
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -212,10 +218,9 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := ctx.State()
 
-	if n.ProviderAddr.ProviderConfig.Type == "" {
-		return nil, fmt.Errorf("failed to write state for %s, missing provider type", absAddr)
+	if n.ProviderAddr.Provider.Type == "" {
+		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
 	}
-
 	obj := *n.State
 	if obj == nil || obj.Value.IsNull() {
 		// No need to encode anything: we'll just write it directly.
@@ -223,6 +228,13 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
 		return nil, nil
 	}
+
+	// store the new deps in the state
+	if n.Dependencies != nil {
+		log.Printf("[TRACE] EvalWriteState: recording %d dependencies for %s", len(*n.Dependencies), absAddr)
+		obj.Dependencies = *n.Dependencies
+	}
+
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		// Should never happen, unless our state object is nil
 		panic("EvalWriteState used with pointer to nil ProviderSchema object")
@@ -377,6 +389,12 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalMaybeRestoreDeposedObject struct {
 	Addr addrs.ResourceInstance
 
+	// PlannedChange might be the action we're performing that includes
+	// the possiblity of restoring a deposed object. However, it might also
+	// be nil. It's here only for use in error messages and must not be
+	// used for business logic.
+	PlannedChange **plans.ResourceInstanceChange
+
 	// Key is a pointer to the deposed object key that should be forgotten
 	// from the state, which must be non-nil.
 	Key *states.DeposedKey
@@ -387,6 +405,33 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 	absAddr := n.Addr.Absolute(ctx.Path())
 	dk := *n.Key
 	state := ctx.State()
+
+	if dk == states.NotDeposed {
+		// This should never happen, and so it always indicates a bug.
+		// We should evaluate this node only if we've previously deposed
+		// an object as part of the same operation.
+		var diags tfdiags.Diagnostics
+		if n.PlannedChange != nil && *n.PlannedChange != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Attempt to restore non-existent deposed object",
+				fmt.Sprintf(
+					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
+					absAddr, (*n.PlannedChange).Action,
+				),
+			))
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Attempt to restore non-existent deposed object",
+				fmt.Sprintf(
+					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
+					absAddr,
+				),
+			))
+		}
+		return nil, diags.Err()
+	}
 
 	restored := state.MaybeRestoreResourceInstanceDeposed(absAddr, dk)
 	if restored {
@@ -443,6 +488,22 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	// while ensuring that any existing instances are preserved, etc.
 	state.SetResourceMeta(absAddr, eachMode, n.ProviderAddr)
 
+	// We'll record our expansion decision in the shared "expander" object
+	// so that later operations (i.e. DynamicExpand and expression evaluation)
+	// can refer to it. Since this node represents the abstract module, we need
+	// to expand the module here to create all resources.
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+		switch eachMode {
+		case states.EachList:
+			expander.SetResourceCount(module, n.Addr, count)
+		case states.EachMap:
+			expander.SetResourceForEach(module, n.Addr, forEach)
+		default:
+			expander.SetResourceSingle(module, n.Addr)
+		}
+	}
+
 	return nil, nil
 }
 
@@ -470,6 +531,52 @@ func (n *EvalForgetResourceState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("orphan resource %s still has a non-empty state after apply; this is a bug in Terraform", absAddr)
 	}
 	log.Printf("[TRACE] EvalForgetResourceState: Pruned husk of %s from state", absAddr)
+
+	return nil, nil
+}
+
+// EvalRefreshDependencies is an EvalNode implementation that appends any newly
+// found dependencies to those saved in the state. The existing dependencies
+// are retained, as they may be missing from the config, and will be required
+// for the updates and destroys during the next apply.
+type EvalRefreshDependencies struct {
+	// Prior State
+	State **states.ResourceInstanceObject
+	// Dependencies to write to the new state
+	Dependencies *[]addrs.AbsResource
+}
+
+func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
+	if state == nil {
+		// no existing state to append
+		return nil, nil
+	}
+
+	depMap := make(map[string]addrs.AbsResource)
+	for _, d := range *n.Dependencies {
+		depMap[d.String()] = d
+	}
+
+	// We have already dependencies in state, so we need to trust those for
+	// refresh. We can't write out new dependencies until apply time in case
+	// the configuration has been changed in a manner the conflicts with the
+	// stored dependencies.
+	if len(state.Dependencies) > 0 {
+		*n.Dependencies = state.Dependencies
+		return nil, nil
+	}
+
+	deps := make([]addrs.AbsResource, 0, len(depMap))
+	for _, d := range depMap {
+		deps = append(deps, d)
+	}
+
+	sort.Slice(deps, func(i, j int) bool {
+		return deps[i].String() < deps[j].String()
+	})
+
+	*n.Dependencies = deps
 
 	return nil, nil
 }

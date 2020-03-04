@@ -12,12 +12,10 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 	var provider providers.Interface
 
 	addr := n.Addr
-	relAddr := addr.ProviderConfig
 
 	seq := make([]EvalNode, 0, 5)
 	seq = append(seq, &EvalInitProvider{
-		TypeName: relAddr.Type,
-		Addr:     addr.ProviderConfig,
+		Addr: addr,
 	})
 
 	// Input stuff
@@ -42,7 +40,7 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 					Output: &provider,
 				},
 				&EvalValidateProvider{
-					Addr:     relAddr,
+					Addr:     addr,
 					Provider: &provider,
 					Config:   config,
 				},
@@ -70,7 +68,7 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalConfigProvider{
-					Addr:     relAddr,
+					Addr:     addr,
 					Provider: &provider,
 					Config:   config,
 				},
@@ -84,5 +82,5 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 // CloseProviderEvalTree returns the evaluation tree for closing
 // provider connections that aren't needed anymore.
 func CloseProviderEvalTree(addr addrs.AbsProviderConfig) EvalNode {
-	return &EvalCloseProvider{Addr: addr.ProviderConfig}
+	return &EvalCloseProvider{Addr: addr}
 }

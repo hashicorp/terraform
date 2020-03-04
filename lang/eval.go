@@ -240,15 +240,19 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			// Self is an exception in that it must always resolve to a
 			// particular instance. We will still insert the full resource into
 			// the context below.
+			var hclDiags hcl.Diagnostics
+			// We should always have a valid self index by this point, but in
+			// the case of an error, self may end up as a cty.DynamicValue.
 			switch k := subj.Key.(type) {
 			case addrs.IntKey:
-				self = val.Index(cty.NumberIntVal(int64(k)))
+				self, hclDiags = hcl.Index(val, cty.NumberIntVal(int64(k)), ref.SourceRange.ToHCL().Ptr())
+				diags.Append(hclDiags)
 			case addrs.StringKey:
-				self = val.Index(cty.StringVal(string(k)))
+				self, hclDiags = hcl.Index(val, cty.StringVal(string(k)), ref.SourceRange.ToHCL().Ptr())
+				diags.Append(hclDiags)
 			default:
 				self = val
 			}
-
 			continue
 		}
 

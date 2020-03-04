@@ -28,11 +28,14 @@ func unify(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
 	// a subset of that type, which would be a much less useful conversion for
 	// unification purposes.
 	{
+		mapCt := 0
 		objectCt := 0
 		tupleCt := 0
 		dynamicCt := 0
 		for _, ty := range types {
 			switch {
+			case ty.IsMapType():
+				mapCt++
 			case ty.IsObjectType():
 				objectCt++
 			case ty.IsTupleType():
@@ -44,6 +47,8 @@ func unify(types []cty.Type, unsafe bool) (cty.Type, []Conversion) {
 			}
 		}
 		switch {
+		case mapCt > 0 && (mapCt+dynamicCt) == len(types):
+			return unifyMapTypes(types, unsafe, dynamicCt > 0)
 		case objectCt > 0 && (objectCt+dynamicCt) == len(types):
 			return unifyObjectTypes(types, unsafe, dynamicCt > 0)
 		case tupleCt > 0 && (tupleCt+dynamicCt) == len(types):
@@ -93,6 +98,44 @@ Preferences:
 
 	// If we fall out here, no unification is possible
 	return cty.NilType, nil
+}
+
+func unifyMapTypes(types []cty.Type, unsafe bool, hasDynamic bool) (cty.Type, []Conversion) {
+	// If we had any dynamic types in the input here then we can't predict
+	// what path we'll take through here once these become known types, so
+	// we'll conservatively produce DynamicVal for these.
+	if hasDynamic {
+		return unifyAllAsDynamic(types)
+	}
+
+	elemTypes := make([]cty.Type, 0, len(types))
+	for _, ty := range types {
+		elemTypes = append(elemTypes, ty.ElementType())
+	}
+	retElemType, _ := unify(elemTypes, unsafe)
+	if retElemType == cty.NilType {
+		return cty.NilType, nil
+	}
+
+	retTy := cty.Map(retElemType)
+
+	conversions := make([]Conversion, len(types))
+	for i, ty := range types {
+		if ty.Equals(retTy) {
+			continue
+		}
+		if unsafe {
+			conversions[i] = GetConversionUnsafe(ty, retTy)
+		} else {
+			conversions[i] = GetConversion(ty, retTy)
+		}
+		if conversions[i] == nil {
+			// Shouldn't be reachable, since we were able to unify
+			return cty.NilType, nil
+		}
+	}
+
+	return retTy, conversions
 }
 
 func unifyObjectTypes(types []cty.Type, unsafe bool, hasDynamic bool) (cty.Type, []Conversion) {

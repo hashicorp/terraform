@@ -70,22 +70,7 @@ func ResourceChange(
 	}
 	buf.WriteString(color.Color("[reset]\n"))
 
-	switch change.Action {
-	case plans.Create:
-		buf.WriteString(color.Color("[green]  +[reset] "))
-	case plans.Read:
-		buf.WriteString(color.Color("[cyan] <=[reset] "))
-	case plans.Update:
-		buf.WriteString(color.Color("[yellow]  ~[reset] "))
-	case plans.DeleteThenCreate:
-		buf.WriteString(color.Color("[red]-[reset]/[green]+[reset] "))
-	case plans.CreateThenDelete:
-		buf.WriteString(color.Color("[green]+[reset]/[red]-[reset] "))
-	case plans.Delete:
-		buf.WriteString(color.Color("[red]  -[reset] "))
-	default:
-		buf.WriteString(color.Color("??? "))
-	}
+	buf.WriteString(color.Color(DiffActionSymbol(change.Action)) + " ")
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
@@ -502,7 +487,7 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 				ty, err := ctyjson.ImpliedType(src)
 				// check for the special case of "null", which decodes to nil,
 				// and just allow it to be printed out directly
-				if err == nil && !ty.IsPrimitiveType() && val.AsString() != "null" {
+				if err == nil && !ty.IsPrimitiveType() && strings.TrimSpace(val.AsString()) != "null" {
 					jv, err := ctyjson.Unmarshal(src, ty)
 					if err == nil {
 						p.buf.WriteString("jsonencode(")
@@ -520,6 +505,21 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 					}
 				}
 			}
+
+			if strings.Contains(val.AsString(), "\n") {
+				// It's a multi-line string, so we want to use the multi-line
+				// rendering so it'll be readable. Rather than re-implement
+				// that here, we'll just re-use the multi-line string diff
+				// printer with no changes, which ends up producing the
+				// result we want here.
+				// The path argument is nil because we don't track path
+				// information into strings and we know that a string can't
+				// have any indices or attributes that might need to be marked
+				// as (requires replacement), which is what that argument is for.
+				p.writeValueDiff(val, val, indent, nil)
+				break
+			}
+
 			fmt.Fprintf(p.buf, "%q", val.AsString())
 		case cty.Bool:
 			if val.True() {
@@ -1014,8 +1014,9 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 }
 
 func (p *blockBodyDiffPrinter) pathForcesNewResource(path cty.Path) bool {
-	if !p.action.IsReplace() {
-		// "requiredReplace" only applies when the instance is being replaced
+	if !p.action.IsReplace() || p.requiredReplace.Empty() {
+		// "requiredReplace" only applies when the instance is being replaced,
+		// and we should only inspect that set if it is not empty
 		return false
 	}
 	return p.requiredReplace.Has(path)
@@ -1071,8 +1072,8 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	var oldI, newI, lcsI int
 	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
 		for oldI < len(old) && (lcsI >= len(lcs) || !old[oldI].RawEquals(lcs[lcsI])) {
-			isObjectDiff := old[oldI].Type().IsObjectType() && (newI >= len(new) || new[newI].Type().IsObjectType())
-			if isObjectDiff && newI < len(new) {
+			isObjectDiff := old[oldI].Type().IsObjectType() && newI < len(new) && new[newI].Type().IsObjectType() && (lcsI >= len(lcs) || !new[newI].RawEquals(lcs[lcsI]))
+			if isObjectDiff {
 				ret = append(ret, &plans.Change{
 					Action: plans.Update,
 					Before: old[oldI],
@@ -1189,4 +1190,27 @@ func ctyNullBlockSetAsEmpty(in cty.Value) cty.Value {
 	// Dynamically-typed attributes are not supported inside blocks backed by
 	// sets, so our result here is always a set.
 	return cty.SetValEmpty(in.Type().ElementType())
+}
+
+// DiffActionSymbol returns a string that, once passed through a
+// colorstring.Colorize, will produce a result that can be written
+// to a terminal to produce a symbol made of three printable
+// characters, possibly interspersed with VT100 color codes.
+func DiffActionSymbol(action plans.Action) string {
+	switch action {
+	case plans.DeleteThenCreate:
+		return "[red]-[reset]/[green]+[reset]"
+	case plans.CreateThenDelete:
+		return "[green]+[reset]/[red]-[reset]"
+	case plans.Create:
+		return "  [green]+[reset]"
+	case plans.Delete:
+		return "  [red]-[reset]"
+	case plans.Read:
+		return " [cyan]<=[reset]"
+	case plans.Update:
+		return "  [yellow]~[reset]"
+	default:
+		return "  ?"
+	}
 }

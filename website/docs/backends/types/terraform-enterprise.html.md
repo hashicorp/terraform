@@ -42,7 +42,7 @@ terraform {
 We recommend using a [partial configuration](/docs/backends/config.html) and
 omitting the access token, which can be provided as an environment variable.
 
-## Example Referencing
+## Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {

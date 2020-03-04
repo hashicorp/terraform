@@ -58,9 +58,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// The main way to declare a provider dependency is explicitly inside
 		// the "terraform" block, which allows declaring a requirement without
 		// also creating a configuration.
-		for fullName, constraints := range module.ProviderRequirements {
-			inst := moduledeps.ProviderInstance(fullName)
-
+		for localName, req := range module.ProviderRequirements {
 			// The handling here is a bit fiddly because the moduledeps package
 			// was designed around the legacy (pre-0.12) configuration model
 			// and hasn't yet been revised to handle the new model. As a result,
@@ -69,12 +67,16 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 			// can also retain the source location of each constraint, for
 			// more informative output from the "terraform providers" command.
 			var rawConstraints version.Constraints
-			for _, constraint := range constraints {
+			for _, constraint := range req.VersionConstraints {
 				rawConstraints = append(rawConstraints, constraint.Required...)
 			}
 			discoConstraints := discovery.NewConstraints(rawConstraints)
+			fqn := req.Type
+			if fqn.IsZero() {
+				fqn = addrs.NewLegacyProvider(localName)
+			}
 
-			providers[inst] = moduledeps.ProviderDependency{
+			providers[req.Type] = moduledeps.ProviderDependency{
 				Constraints: discoConstraints,
 				Reason:      moduledeps.ProviderDependencyExplicit,
 			}
@@ -83,16 +85,21 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// Provider configurations can also include version constraints,
 		// allowing for more terse declaration in situations where both a
 		// configuration and a constraint are defined in the same module.
-		for fullName, pCfg := range module.ProviderConfigs {
-			inst := moduledeps.ProviderInstance(fullName)
+		for _, pCfg := range module.ProviderConfigs {
+			fqn := module.ProviderForLocalConfig(pCfg.Addr())
+
 			discoConstraints := discovery.AllVersions
 			if pCfg.Version.Required != nil {
 				discoConstraints = discovery.NewConstraints(pCfg.Version.Required)
 			}
-			if existing, exists := providers[inst]; exists {
-				existing.Constraints = existing.Constraints.Append(discoConstraints)
+			if existing, exists := providers[fqn]; exists {
+				constraints := existing.Constraints.Append(discoConstraints)
+				providers[fqn] = moduledeps.ProviderDependency{
+					Constraints: constraints,
+					Reason:      moduledeps.ProviderDependencyExplicit,
+				}
 			} else {
-				providers[inst] = moduledeps.ProviderDependency{
+				providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: discoConstraints,
 					Reason:      moduledeps.ProviderDependencyExplicit,
 				}
@@ -104,8 +111,9 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// an explicit dependency on the same provider.
 		for _, rc := range module.ManagedResources {
 			addr := rc.ProviderConfigAddr()
-			inst := moduledeps.ProviderInstance(addr.StringCompact())
-			if _, exists := providers[inst]; exists {
+			fqn := module.ProviderForLocalConfig(addr)
+
+			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
 			}
@@ -115,15 +123,16 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
-			providers[inst] = moduledeps.ProviderDependency{
+			providers[fqn] = moduledeps.ProviderDependency{
 				Constraints: discovery.AllVersions,
 				Reason:      reason,
 			}
 		}
 		for _, rc := range module.DataResources {
 			addr := rc.ProviderConfigAddr()
-			inst := moduledeps.ProviderInstance(addr.StringCompact())
-			if _, exists := providers[inst]; exists {
+			fqn := module.ProviderForLocalConfig(addr)
+
+			if _, exists := providers[fqn]; exists {
 				// Explicit dependency already present
 				continue
 			}
@@ -133,7 +142,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 				reason = moduledeps.ProviderDependencyInherited
 			}
 
-			providers[inst] = moduledeps.ProviderDependency{
+			providers[fqn] = moduledeps.ProviderDependency{
 				Constraints: discovery.AllVersions,
 				Reason:      reason,
 			}
@@ -190,9 +199,9 @@ func configTreeMergeStateDependencies(root *moduledeps.Module, state *states.Sta
 		module := findModule(ms.Addr)
 
 		for _, rs := range ms.Resources {
-			inst := moduledeps.ProviderInstance(rs.ProviderConfig.ProviderConfig.StringCompact())
-			if _, exists := module.Providers[inst]; !exists {
-				module.Providers[inst] = moduledeps.ProviderDependency{
+			fqn := rs.ProviderConfig.Provider
+			if _, exists := module.Providers[fqn]; !exists {
+				module.Providers[fqn] = moduledeps.ProviderDependency{
 					Constraints: discovery.AllVersions,
 					Reason:      moduledeps.ProviderDependencyFromState,
 				}

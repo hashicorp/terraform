@@ -127,21 +127,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
-		},
-		GraphTransformIf(
-			func() bool { return !b.Destroy },
-			&CBDEdgeTransformer{
-				Config:  b.Config,
-				State:   b.State,
-				Schemas: b.Schemas,
-			},
-		),
-
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
@@ -168,23 +153,36 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Schemas: b.Schemas},
 
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{Config: b.Config},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
 
-		// Handle destroy time transformations for output and local values.
-		// Reverse the edges from outputs and locals, so that
-		// interpolations don't fail during destroy.
+		// Destruction ordering
+		&DestroyEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+		},
+
+		&CBDEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+		},
+
 		// Create a destroy node for outputs to remove them from the state.
+		&DestroyOutputTransformer{Destroy: b.Destroy},
+
 		// Prune unreferenced values, which may have interpolations that can't
 		// be resolved.
-		GraphTransformIf(
-			func() bool { return b.Destroy },
-			GraphTransformMulti(
-				&DestroyValueReferenceTransformer{},
-				&DestroyOutputTransformer{},
-				&PruneUnusedValuesTransformer{},
-			),
-		),
+		&PruneUnusedValuesTransformer{
+			Destroy: b.Destroy,
+		},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{

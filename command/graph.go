@@ -96,6 +96,7 @@ func (c *GraphCommand) Run(args []string) int {
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.PlanFile = planFile
+	opReq.AllowUnsetVariables = true
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
@@ -109,13 +110,6 @@ func (c *GraphCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-
-	defer func() {
-		err := opReq.StateLocker.Unlock(nil)
-		if err != nil {
-			c.Ui.Error(err.Error())
-		}
-	}()
 
 	// Determine the graph type
 	graphType := terraform.GraphTypePlan
@@ -190,12 +184,11 @@ Options:
   -draw-cycles     Highlight any cycles in the graph with colored edges.
                    This helps when diagnosing cycle errors.
 
-  -module-depth=n  Specifies the depth of modules to show in the output.	
-                   By default this is -1, which will expand all.
-
   -type=plan       Type of graph to output. Can be: plan, plan-destroy, apply,
                    validate, input, refresh.
 
+  -module-depth=n  (deprecated) In prior versions of Terraform, specified the
+				   depth of modules to show in the output.
 `
 	return strings.TrimSpace(helpText)
 }

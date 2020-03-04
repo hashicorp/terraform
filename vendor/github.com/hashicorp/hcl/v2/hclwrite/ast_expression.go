@@ -21,6 +21,29 @@ func newExpression() *Expression {
 	}
 }
 
+// NewExpressionRaw constructs an expression containing the given raw tokens.
+//
+// There is no automatic validation that the given tokens produce a valid
+// expression. Callers of thus function must take care to produce invalid
+// expression tokens. Where possible, use the higher-level functions
+// NewExpressionLiteral or NewExpressionAbsTraversal instead.
+//
+// Because NewExpressionRaw does not interpret the given tokens in any way,
+// an expression created by NewExpressionRaw will produce an empty result
+// for calls to its method Variables, even if the given token sequence
+// contains a subslice that would normally be interpreted as a traversal under
+// parsing.
+func NewExpressionRaw(tokens Tokens) *Expression {
+	expr := newExpression()
+	// We copy the tokens here in order to make sure that later mutations
+	// by the caller don't inadvertently cause our expression to become
+	// invalid.
+	copyTokens := make(Tokens, len(tokens))
+	copy(copyTokens, tokens)
+	expr.children.AppendUnstructuredTokens(copyTokens)
+	return expr
+}
+
 // NewExpressionLiteral constructs an an expression that represents the given
 // literal value.
 //

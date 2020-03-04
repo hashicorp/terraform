@@ -66,9 +66,6 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
 
-		// This validates that the providers only depend on variables
-		&ImportProviderValidateTransformer{},
-
 		// Add the local values
 		&LocalTransformer{Config: b.Config},
 
@@ -85,6 +82,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+
+		// This validates that the providers only depend on variables
+		&ImportProviderValidateTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

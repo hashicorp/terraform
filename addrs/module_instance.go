@@ -57,7 +57,7 @@ func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagn
 // If a reference string is coming from a source that should be identified in
 // error messages then the caller should instead parse it directly using a
 // suitable function from the HCL API and pass the traversal itself to
-// ParseProviderConfigCompact.
+// ParseModuleInstance.
 //
 // Error diagnostics are returned if either the parsing fails or the analysis
 // of the traversal fails. There is no way for the caller to distinguish the
@@ -410,6 +410,26 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 	}
 }
 
+// Module returns the address of the module that this instance is an instance
+// of.
+func (m ModuleInstance) Module() Module {
+	if len(m) == 0 {
+		return nil
+	}
+	ret := make(Module, len(m))
+	for i, step := range m {
+		ret[i] = step.Name
+	}
+	return ret
+}
+
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
+}
+
+func (s ModuleInstanceStep) String() string {
+	if s.InstanceKey != NoKey {
+		return s.Name + s.InstanceKey.String()
+	}
+	return s.Name
 }

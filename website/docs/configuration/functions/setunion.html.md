@@ -45,3 +45,4 @@ the ordering of the given elements is not preserved.
   multiple sets.
 * [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
+* [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets

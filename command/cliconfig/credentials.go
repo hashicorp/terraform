@@ -12,10 +12,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform-svchost"
+	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/svchost"
-	svcauth "github.com/hashicorp/terraform/svchost/auth"
 )
 
 // credentialsConfigFile returns the path for the special configuration file

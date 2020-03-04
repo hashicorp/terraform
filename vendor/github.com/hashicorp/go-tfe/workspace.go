@@ -179,6 +179,9 @@ type WorkspaceCreateOptions struct {
 	// organization.
 	Name *string `jsonapi:"attr,name"`
 
+	// Whether the workspace will use remote or local execution mode.
+	Operations *bool `jsonapi:"attr,operations,omitempty"`
+
 	// Whether to queue all runs. Unless this is set to true, runs triggered by
 	// a webhook will not be queued until at least one run is manually queued.
 	QueueAllRuns *bool `jsonapi:"attr,queue-all-runs,omitempty"`
@@ -315,6 +318,9 @@ type WorkspaceUpdateOptions struct {
 	// paths which must contain changes for a VCS push to trigger a run. If
 	// disabled, any push will trigger a run.
 	FileTriggersEnabled *bool `jsonapi:"attr,file-triggers-enabled,omitempty"`
+
+	// Whether the workspace will use remote or local execution mode.
+	Operations *bool `jsonapi:"attr,operations,omitempty"`
 
 	// Whether to queue all runs. Unless this is set to true, runs triggered by
 	// a webhook will not be queued until at least one run is manually queued.

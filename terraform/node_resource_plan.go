@@ -71,19 +71,25 @@ func (n *NodePlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var diags tfdiags.Diagnostics
 
+	// Our instance expander should already have been informed about the
+	// expansion of this resource and of all of its containing modules, so
+	// it can tell us which instance addresses we need to process.
+	module := ctx.Path().Module()
+	expander := ctx.InstanceExpander()
+	instanceAddrs := expander.ExpandResource(module, n.ResourceAddr().Resource)
+
+	// We need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	//
+	// FIXME: We're re-evaluating count here, even though the InstanceExpander
+	// has already dealt with our expansion above, because we need it to
+	// call fixResourceCountSetTransition; the expander API and that function
+	// are not compatible yet.
 	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
 	diags = diags.Append(countDiags)
 	if countDiags.HasErrors() {
 		return nil, diags.Err()
 	}
-
-	forEachMap, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
-	// Next we need to potentially rename an instance address in the state
-	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
 
 	// Our graph transformers require access to the full state, so we'll
@@ -126,20 +132,18 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	steps := []GraphTransformer{
 		// Expand the count or for_each (if present)
 		&ResourceCountTransformer{
-			Concrete: concreteResource,
-			Schema:   n.Schema,
-			Count:    count,
-			ForEach:  forEachMap,
-			Addr:     n.ResourceAddr(),
+			Concrete:      concreteResource,
+			Schema:        n.Schema,
+			Addr:          n.ResourceAddr(),
+			InstanceAddrs: instanceAddrs,
 		},
 
 		// Add the count/for_each orphans
 		&OrphanResourceCountTransformer{
-			Concrete: concreteResourceOrphan,
-			Count:    count,
-			ForEach:  forEachMap,
-			Addr:     n.ResourceAddr(),
-			State:    state,
+			Concrete:      concreteResourceOrphan,
+			Addr:          n.ResourceAddr(),
+			InstanceAddrs: instanceAddrs,
+			State:         state,
 		},
 
 		// Attach the state

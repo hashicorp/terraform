@@ -52,6 +52,26 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
     }
 `,
 		},
+		"creation (null string with extra whitespace)": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal("null "),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"string": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + string = "null "
+    }
+`,
+		},
 		"deletion": {
 			Action: plans.Delete,
 			Mode:   addrs.ManagedResourceMode,
@@ -205,6 +225,37 @@ new line
       ~ more_lines = <<~EOT
             original
           + new line
+        EOT
+    }
+`,
+		},
+		"addition of multi-line string field": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"more_lines": cty.NullVal(cty.String),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"more_lines": cty.StringVal(`original
+new line
+`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"more_lines": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      + more_lines = <<~EOT
+            original
+            new line
         EOT
     }
 `,
@@ -857,11 +908,11 @@ func TestResourceChange_JSON(t *testing.T) {
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.StringVal("i-02ae66f368e8518a9"),
-				"json_field": cty.StringVal(`[{"one": "111"}, {"two": "222"}]`),
+				"json_field": cty.StringVal(`[{"one": "111"}, {"two": "222"}, {"three": "333"}]`),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.UnknownVal(cty.String),
-				"json_field": cty.StringVal(`[{"one": "111"}]`),
+				"json_field": cty.StringVal(`[{"one": "111"}, {"three": "333"}]`),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -881,6 +932,9 @@ func TestResourceChange_JSON(t *testing.T) {
                 },
               - {
                   - two = "222"
+                },
+                {
+                    three = "333"
                 },
             ]
         )
@@ -3103,7 +3157,10 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Type: "test_instance",
 					Name: "example",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewLegacyProvider("test"),
+					Module:   addrs.RootModuleInstance,
+				},
 				ChangeSrc: plans.ChangeSrc{
 					Action: tc.Action,
 					Before: before,

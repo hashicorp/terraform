@@ -29,6 +29,10 @@ The command-line flags are all optional. The list of available flags are:
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
 
+* `-compact-warnings` - If Terraform produces any warnings that are not
+  accompanied by errors, show them in a more compact form that includes only
+  the summary messages.
+
 * `-input=true` - Ask for input for variables if not directly set.
 
 * `-lock=true` - Lock the state file when locking is supported.

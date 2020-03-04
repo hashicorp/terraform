@@ -136,6 +136,8 @@ func (b *Backend) configure(ctx context.Context) error {
 		})
 	} else if v, ok := data.GetOk("credentials"); ok {
 		creds = v.(string)
+	} else if v := os.Getenv("GOOGLE_BACKEND_CREDENTIALS"); v != "" {
+		creds = v
 	} else {
 		creds = os.Getenv("GOOGLE_CREDENTIALS")
 	}

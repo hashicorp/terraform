@@ -206,7 +206,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		}
 
 		log.Printf("[DEBUG] Setting up a session to request agent forwarding")
-		session, err := c.newSession()
+		session, err := c.client.NewSession()
 		if err != nil {
 			return err
 		}

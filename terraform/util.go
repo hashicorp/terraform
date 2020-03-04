@@ -12,8 +12,8 @@ type Semaphore chan struct{}
 // NewSemaphore creates a semaphore that allows up
 // to a given limit of simultaneous acquisitions
 func NewSemaphore(n int) Semaphore {
-	if n == 0 {
-		panic("semaphore with limit 0")
+	if n <= 0 {
+		panic("semaphore with limit <=0")
 	}
 	ch := make(chan struct{}, n)
 	return Semaphore(ch)

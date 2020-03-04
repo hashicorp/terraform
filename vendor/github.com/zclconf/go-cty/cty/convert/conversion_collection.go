@@ -15,18 +15,18 @@ func conversionCollectionToList(ety cty.Type, conv conversion) conversion {
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make([]cty.Value, 0, val.LengthInt())
 		i := int64(0)
-		path = append(path, nil)
+		elemPath := append(path.Copy(), nil)
 		it := val.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
 			var err error
 
-			path[len(path)-1] = cty.IndexStep{
+			elemPath[len(elemPath)-1] = cty.IndexStep{
 				Key: cty.NumberIntVal(i),
 			}
 
 			if conv != nil {
-				val, err = conv(val, path)
+				val, err = conv(val, elemPath)
 				if err != nil {
 					return cty.NilVal, err
 				}
@@ -37,6 +37,9 @@ func conversionCollectionToList(ety cty.Type, conv conversion) conversion {
 		}
 
 		if len(elems) == 0 {
+			if ety == cty.DynamicPseudoType {
+				ety = val.Type().ElementType()
+			}
 			return cty.ListValEmpty(ety), nil
 		}
 
@@ -55,18 +58,18 @@ func conversionCollectionToSet(ety cty.Type, conv conversion) conversion {
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make([]cty.Value, 0, val.LengthInt())
 		i := int64(0)
-		path = append(path, nil)
+		elemPath := append(path.Copy(), nil)
 		it := val.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
 			var err error
 
-			path[len(path)-1] = cty.IndexStep{
+			elemPath[len(elemPath)-1] = cty.IndexStep{
 				Key: cty.NumberIntVal(i),
 			}
 
 			if conv != nil {
-				val, err = conv(val, path)
+				val, err = conv(val, elemPath)
 				if err != nil {
 					return cty.NilVal, err
 				}
@@ -77,6 +80,11 @@ func conversionCollectionToSet(ety cty.Type, conv conversion) conversion {
 		}
 
 		if len(elems) == 0 {
+			// Prefer a concrete type over a dynamic type when returning an
+			// empty set
+			if ety == cty.DynamicPseudoType {
+				ety = val.Type().ElementType()
+			}
 			return cty.SetValEmpty(ety), nil
 		}
 
@@ -93,13 +101,13 @@ func conversionCollectionToSet(ety cty.Type, conv conversion) conversion {
 func conversionCollectionToMap(ety cty.Type, conv conversion) conversion {
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make(map[string]cty.Value, 0)
-		path = append(path, nil)
+		elemPath := append(path.Copy(), nil)
 		it := val.ElementIterator()
 		for it.Next() {
 			key, val := it.Element()
 			var err error
 
-			path[len(path)-1] = cty.IndexStep{
+			elemPath[len(elemPath)-1] = cty.IndexStep{
 				Key: key,
 			}
 
@@ -107,11 +115,11 @@ func conversionCollectionToMap(ety cty.Type, conv conversion) conversion {
 			if err != nil {
 				// Should never happen, because keys can only be numbers or
 				// strings and both can convert to string.
-				return cty.DynamicVal, path.NewErrorf("cannot convert key type %s to string for map", key.Type().FriendlyName())
+				return cty.DynamicVal, elemPath.NewErrorf("cannot convert key type %s to string for map", key.Type().FriendlyName())
 			}
 
 			if conv != nil {
-				val, err = conv(val, path)
+				val, err = conv(val, elemPath)
 				if err != nil {
 					return cty.NilVal, err
 				}
@@ -121,7 +129,23 @@ func conversionCollectionToMap(ety cty.Type, conv conversion) conversion {
 		}
 
 		if len(elems) == 0 {
+			// Prefer a concrete type over a dynamic type when returning an
+			// empty map
+			if ety == cty.DynamicPseudoType {
+				ety = val.Type().ElementType()
+			}
 			return cty.MapValEmpty(ety), nil
+		}
+
+		if ety.IsCollectionType() || ety.IsObjectType() {
+			var err error
+			if elems, err = conversionUnifyCollectionElements(elems, path, false); err != nil {
+				return cty.NilVal, err
+			}
+		}
+
+		if err := conversionCheckMapElementTypes(elems, path); err != nil {
+			return cty.NilVal, err
 		}
 
 		return cty.MapVal(elems), nil
@@ -171,20 +195,20 @@ func conversionTupleToSet(tupleType cty.Type, listEty cty.Type, unsafe bool) con
 	// element conversions in elemConvs
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make([]cty.Value, 0, len(elemConvs))
-		path = append(path, nil)
+		elemPath := append(path.Copy(), nil)
 		i := int64(0)
 		it := val.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
 			var err error
 
-			path[len(path)-1] = cty.IndexStep{
+			elemPath[len(elemPath)-1] = cty.IndexStep{
 				Key: cty.NumberIntVal(i),
 			}
 
 			conv := elemConvs[i]
 			if conv != nil {
-				val, err = conv(val, path)
+				val, err = conv(val, elemPath)
 				if err != nil {
 					return cty.NilVal, err
 				}
@@ -241,20 +265,20 @@ func conversionTupleToList(tupleType cty.Type, listEty cty.Type, unsafe bool) co
 	// element conversions in elemConvs
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make([]cty.Value, 0, len(elemConvs))
-		path = append(path, nil)
+		elemPath := append(path.Copy(), nil)
 		i := int64(0)
 		it := val.ElementIterator()
 		for it.Next() {
 			_, val := it.Element()
 			var err error
 
-			path[len(path)-1] = cty.IndexStep{
+			elemPath[len(elemPath)-1] = cty.IndexStep{
 				Key: cty.NumberIntVal(i),
 			}
 
 			conv := elemConvs[i]
 			if conv != nil {
-				val, err = conv(val, path)
+				val, err = conv(val, elemPath)
 				if err != nil {
 					return cty.NilVal, err
 				}
@@ -315,19 +339,19 @@ func conversionObjectToMap(objectType cty.Type, mapEty cty.Type, unsafe bool) co
 	// element conversions in elemConvs
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make(map[string]cty.Value, len(elemConvs))
-		path = append(path, nil)
+		elemPath := append(path.Copy(), nil)
 		it := val.ElementIterator()
 		for it.Next() {
 			name, val := it.Element()
 			var err error
 
-			path[len(path)-1] = cty.IndexStep{
+			elemPath[len(elemPath)-1] = cty.IndexStep{
 				Key: name,
 			}
 
 			conv := elemConvs[name.AsString()]
 			if conv != nil {
-				val, err = conv(val, path)
+				val, err = conv(val, elemPath)
 				if err != nil {
 					return cty.NilVal, err
 				}
@@ -335,6 +359,130 @@ func conversionObjectToMap(objectType cty.Type, mapEty cty.Type, unsafe bool) co
 			elems[name.AsString()] = val
 		}
 
+		if mapEty.IsCollectionType() || mapEty.IsObjectType() {
+			var err error
+			if elems, err = conversionUnifyCollectionElements(elems, path, unsafe); err != nil {
+				return cty.NilVal, err
+			}
+		}
+
+		if err := conversionCheckMapElementTypes(elems, path); err != nil {
+			return cty.NilVal, err
+		}
+
 		return cty.MapVal(elems), nil
 	}
+}
+
+// conversionMapToObject returns a conversion that will take a value of the
+// given map type and return an object of the given type. The object attribute
+// types must all be compatible with the map element type.
+//
+// Will panic if the given mapType and objType are not maps and objects
+// respectively.
+func conversionMapToObject(mapType cty.Type, objType cty.Type, unsafe bool) conversion {
+	objectAtys := objType.AttributeTypes()
+	mapEty := mapType.ElementType()
+
+	elemConvs := make(map[string]conversion, len(objectAtys))
+	for name, objectAty := range objectAtys {
+		if objectAty.Equals(mapEty) {
+			// no conversion required
+			continue
+		}
+
+		elemConvs[name] = getConversion(mapEty, objectAty, unsafe)
+		if elemConvs[name] == nil {
+			// If any of our element conversions are impossible, then the our
+			// whole conversion is impossible.
+			return nil
+		}
+	}
+
+	// If we fall out here then a conversion is possible, using the
+	// element conversions in elemConvs
+	return func(val cty.Value, path cty.Path) (cty.Value, error) {
+		elems := make(map[string]cty.Value, len(elemConvs))
+		elemPath := append(path.Copy(), nil)
+		it := val.ElementIterator()
+		for it.Next() {
+			name, val := it.Element()
+
+			// if there is no corresponding attribute, we skip this key
+			if _, ok := objectAtys[name.AsString()]; !ok {
+				continue
+			}
+
+			var err error
+
+			elemPath[len(elemPath)-1] = cty.IndexStep{
+				Key: name,
+			}
+
+			conv := elemConvs[name.AsString()]
+			if conv != nil {
+				val, err = conv(val, elemPath)
+				if err != nil {
+					return cty.NilVal, err
+				}
+			}
+
+			elems[name.AsString()] = val
+		}
+
+		return cty.ObjectVal(elems), nil
+	}
+}
+
+func conversionUnifyCollectionElements(elems map[string]cty.Value, path cty.Path, unsafe bool) (map[string]cty.Value, error) {
+	elemTypes := make([]cty.Type, 0, len(elems))
+	for _, elem := range elems {
+		elemTypes = append(elemTypes, elem.Type())
+	}
+	unifiedType, _ := unify(elemTypes, unsafe)
+	if unifiedType == cty.NilType {
+	}
+
+	unifiedElems := make(map[string]cty.Value)
+	elemPath := append(path.Copy(), nil)
+
+	for name, elem := range elems {
+		if elem.Type().Equals(unifiedType) {
+			unifiedElems[name] = elem
+			continue
+		}
+		conv := getConversion(elem.Type(), unifiedType, unsafe)
+		if conv == nil {
+		}
+		elemPath[len(elemPath)-1] = cty.IndexStep{
+			Key: cty.StringVal(name),
+		}
+		val, err := conv(elem, elemPath)
+		if err != nil {
+			return nil, err
+		}
+		unifiedElems[name] = val
+	}
+
+	return unifiedElems, nil
+}
+
+func conversionCheckMapElementTypes(elems map[string]cty.Value, path cty.Path) error {
+	elementType := cty.NilType
+	elemPath := append(path.Copy(), nil)
+
+	for name, elem := range elems {
+		if elementType == cty.NilType {
+			elementType = elem.Type()
+			continue
+		}
+		if !elementType.Equals(elem.Type()) {
+			elemPath[len(elemPath)-1] = cty.IndexStep{
+				Key: cty.StringVal(name),
+			}
+			return elemPath.NewErrorf("%s is required", elementType.FriendlyName())
+		}
+	}
+
+	return nil
 }

@@ -154,9 +154,9 @@ func IsEmptyDir(path string) (bool, error) {
 	}
 
 	p := NewParser(nil)
-	fs, os, err := p.dirFiles(path)
-	if err != nil {
-		return false, err
+	fs, os, diags := p.dirFiles(path)
+	if diags.HasErrors() {
+		return false, diags
 	}
 
 	return len(fs) == 0 && len(os) == 0, nil

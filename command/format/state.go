@@ -139,13 +139,14 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				}
 
 				var schema *configschema.Block
-				provider := m.Resources[key].ProviderConfig.ProviderConfig.StringCompact()
+
+				provider := m.Resources[key].ProviderConfig.Provider
 				if _, exists := schemas.Providers[provider]; !exists {
 					// This should never happen in normal use because we should've
 					// loaded all of the schemas and checked things prior to this
 					// point. We can't return errors here, but since this is UI code
 					// we will try to do _something_ reasonable.
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider))
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.LegacyString()))
 					continue
 				}
 

@@ -3,6 +3,7 @@ package artifactory
 import (
 	"context"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
@@ -65,9 +66,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	subpath := data.Get("subpath").(string)
 
 	clientConf := &artifactory.ClientConfig{
-		BaseURL:  url,
-		Username: userName,
-		Password: password,
+		BaseURL:   url,
+		Username:  userName,
+		Password:  password,
+		Transport: cleanhttp.DefaultPooledTransport(),
 	}
 	nativeClient := artifactory.NewClient(clientConf)
 

@@ -5,7 +5,6 @@ import (
 	"hash/crc32"
 	"io"
 	"io/ioutil"
-	"math"
 	"strconv"
 	"time"
 
@@ -14,15 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
 )
-
-type retryer struct {
-	client.DefaultRetryer
-}
-
-func (d retryer) RetryRules(r *request.Request) time.Duration {
-	delay := time.Duration(math.Pow(2, float64(r.RetryCount))) * 50
-	return delay * time.Millisecond
-}
 
 func init() {
 	initClient = func(c *client.Client) {
@@ -43,10 +33,9 @@ func setCustomRetryer(c *client.Client) {
 		maxRetries = 10
 	}
 
-	c.Retryer = retryer{
-		DefaultRetryer: client.DefaultRetryer{
-			NumMaxRetries: maxRetries,
-		},
+	c.Retryer = client.DefaultRetryer{
+		NumMaxRetries: maxRetries,
+		MinRetryDelay: 50 * time.Millisecond,
 	}
 }
 

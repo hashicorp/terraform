@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -30,7 +31,7 @@ type MockEvalContext struct {
 
 	InitProviderCalled   bool
 	InitProviderType     string
-	InitProviderAddr     addrs.ProviderConfig
+	InitProviderAddr     addrs.AbsProviderConfig
 	InitProviderProvider providers.Interface
 	InitProviderError    error
 
@@ -43,19 +44,19 @@ type MockEvalContext struct {
 	ProviderSchemaSchema *ProviderSchema
 
 	CloseProviderCalled   bool
-	CloseProviderAddr     addrs.ProviderConfig
+	CloseProviderAddr     addrs.AbsProviderConfig
 	CloseProviderProvider providers.Interface
 
 	ProviderInputCalled bool
-	ProviderInputAddr   addrs.ProviderConfig
+	ProviderInputAddr   addrs.AbsProviderConfig
 	ProviderInputValues map[string]cty.Value
 
 	SetProviderInputCalled bool
-	SetProviderInputAddr   addrs.ProviderConfig
+	SetProviderInputAddr   addrs.AbsProviderConfig
 	SetProviderInputValues map[string]cty.Value
 
 	ConfigureProviderCalled bool
-	ConfigureProviderAddr   addrs.ProviderConfig
+	ConfigureProviderAddr   addrs.AbsProviderConfig
 	ConfigureProviderConfig cty.Value
 	ConfigureProviderDiags  tfdiags.Diagnostics
 
@@ -115,11 +116,18 @@ type MockEvalContext struct {
 	SetModuleCallArgumentsModule addrs.ModuleCallInstance
 	SetModuleCallArgumentsValues map[string]cty.Value
 
+	GetVariableValueCalled bool
+	GetVariableValueAddr   addrs.AbsInputVariableInstance
+	GetVariableValueValue  cty.Value
+
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
 
 	StateCalled bool
 	StateState  *states.SyncState
+
+	InstanceExpanderCalled   bool
+	InstanceExpanderExpander *instances.Expander
 }
 
 // MockEvalContext implements EvalContext
@@ -146,9 +154,9 @@ func (c *MockEvalContext) Input() UIInput {
 	return c.InputInput
 }
 
-func (c *MockEvalContext) InitProvider(t string, addr addrs.ProviderConfig) (providers.Interface, error) {
+func (c *MockEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	c.InitProviderCalled = true
-	c.InitProviderType = t
+	c.InitProviderType = addr.LegacyString()
 	c.InitProviderAddr = addr
 	return c.InitProviderProvider, c.InitProviderError
 }
@@ -165,26 +173,26 @@ func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *Provider
 	return c.ProviderSchemaSchema
 }
 
-func (c *MockEvalContext) CloseProvider(addr addrs.ProviderConfig) error {
+func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
 	c.CloseProviderCalled = true
 	c.CloseProviderAddr = addr
 	return nil
 }
 
-func (c *MockEvalContext) ConfigureProvider(addr addrs.ProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
+func (c *MockEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
 	c.ConfigureProviderCalled = true
 	c.ConfigureProviderAddr = addr
 	c.ConfigureProviderConfig = cfg
 	return c.ConfigureProviderDiags
 }
 
-func (c *MockEvalContext) ProviderInput(addr addrs.ProviderConfig) map[string]cty.Value {
+func (c *MockEvalContext) ProviderInput(addr addrs.AbsProviderConfig) map[string]cty.Value {
 	c.ProviderInputCalled = true
 	c.ProviderInputAddr = addr
 	return c.ProviderInputValues
 }
 
-func (c *MockEvalContext) SetProviderInput(addr addrs.ProviderConfig, vals map[string]cty.Value) {
+func (c *MockEvalContext) SetProviderInput(addr addrs.AbsProviderConfig, vals map[string]cty.Value) {
 	c.SetProviderInputCalled = true
 	c.SetProviderInputAddr = addr
 	c.SetProviderInputValues = vals
@@ -308,6 +316,12 @@ func (c *MockEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, val
 	c.SetModuleCallArgumentsValues = values
 }
 
+func (c *MockEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
+	c.GetVariableValueCalled = true
+	c.GetVariableValueAddr = addr
+	return c.GetVariableValueValue
+}
+
 func (c *MockEvalContext) Changes() *plans.ChangesSync {
 	c.ChangesCalled = true
 	return c.ChangesChanges
@@ -316,4 +330,9 @@ func (c *MockEvalContext) Changes() *plans.ChangesSync {
 func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
 	return c.StateState
+}
+
+func (c *MockEvalContext) InstanceExpander() *instances.Expander {
+	c.InstanceExpanderCalled = true
+	return c.InstanceExpanderExpander
 }

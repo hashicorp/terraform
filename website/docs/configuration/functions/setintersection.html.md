@@ -40,5 +40,6 @@ the ordering of the given elements is not preserved.
   a given element value.
 * [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
+* [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets
 * [`setunion`](./setunion.html) computes the _union_ of
   multiple sets.
