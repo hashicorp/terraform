@@ -7,7 +7,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
-* cli: Fix terraform state mv to correctly set the resource each mode based on the target address [#24254]
+* cli: Fix terraform state mv to correctly set the resource each mode based on the target address ([#24254](https://github.com/hashicorp/terraform/issues/24254))
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. ([#24095](https://github.com/hashicorp/terraform/issues/24095))
 
 ## 0.12.21 (February 19, 2020)
