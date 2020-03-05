@@ -126,16 +126,17 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 					break
 				}
 
+				// if there is no config at all, the assumed default provider
+				// must be correct.
+				if t.Config == nil {
+					break
+				}
+
 				// If `exact` is false, an AbsProviderConfig indicates that
 				// ProvidedBy() returned an inferred default FQN. We must check
 				// if the inferred type name matches a non-default provider
 				// source in the config.
-				var modConfig *configs.Config
-				if pv.Path().IsRoot() {
-					modConfig = t.Config
-				} else {
-					modConfig = t.Config.DescendentForInstance(pv.Path())
-				}
+				modConfig := t.Config.DescendentForInstance(pv.Path())
 				if modConfig != nil {
 					providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{
 						LocalName: p.(addrs.AbsProviderConfig).Provider.Type,
@@ -148,12 +149,15 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			case addrs.LocalProviderConfig:
 				// ProvidedBy() return a LocalProviderConfig when the resource
 				// contains a `provider` attribute
-				var modConfig *configs.Config
-				if pv.Path().IsRoot() {
-					modConfig = t.Config
-				} else {
-					modConfig = t.Config.DescendentForInstance(pv.Path())
+				modPath := pv.Path()
+				if t.Config == nil {
+					absPc.Provider = addrs.NewLegacyProvider(p.(addrs.LocalProviderConfig).LocalName)
+					absPc.Module = modPath
+					absPc.Alias = p.(addrs.LocalProviderConfig).Alias
+					break
 				}
+
+				modConfig := t.Config.DescendentForInstance(modPath)
 				if modConfig == nil {
 					absPc.Provider = addrs.NewLegacyProvider(p.(addrs.LocalProviderConfig).LocalName)
 				} else {
