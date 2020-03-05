@@ -120,6 +120,14 @@ Set `TF_REGISTRY_DISCOVERY_RETRY` to configure the max number of request retries
 the remote registry client will attempt for client connection errors or
 500-range responses that are safe to retry.
 
+## TF_REGISTRY_CLIENT_TIMEOUT
+
+The default client timeout for requests to the remote registry is 10s. `TF_REGISTRY_CLIENT_TIMEOUT` can be configured and increased during extraneous circumstances.
+
+```shell
+export TF_REGISTRY_CLIENT_TIMEOUT=15
+```
+
 ## TF_CLI_CONFIG_FILE
 
 The location of the [Terraform CLI configuration file](/docs/commands/cli-config.html).

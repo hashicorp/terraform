@@ -26,7 +26,6 @@ import (
 const (
 	xTerraformGet      = "X-Terraform-Get"
 	xTerraformVersion  = "X-Terraform-Version"
-	requestTimeout     = 10 * time.Second
 	modulesServiceID   = "modules.v1"
 	providersServiceID = "providers.v1"
 
@@ -35,14 +34,27 @@ const (
 	// discovery requests with the remote registry.
 	registryDiscoveryRetryEnvName = "TF_REGISTRY_DISCOVERY_RETRY"
 	defaultRetry                  = 1
+
+	// registryClientTimeoutEnvName is the name of the environment variable that
+	// can be configured to customize the timeout duration (seconds) for module
+	// and provider discovery with the remote registry.
+	registryClientTimeoutEnvName = "TF_REGISTRY_CLIENT_TIMEOUT"
+
+	// defaultRequestTimeout is the default timeout duration for requests to the
+	// remote registry.
+	defaultRequestTimeout = 10 * time.Second
 )
 
-var discoveryRetry int
+var (
+	tfVersion = version.String()
 
-var tfVersion = version.String()
+	discoveryRetry int
+	requestTimeout time.Duration
+)
 
 func init() {
 	configureDiscoveryRetry()
+	configureRequestTimeout()
 }
 
 // Client provides methods to query Terraform Registries.
@@ -410,4 +422,17 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 			numTries, resp.StatusCode, errMsg)
 	}
 	return resp, fmt.Errorf("the request failed, please try again later: %d%s", resp.StatusCode, errMsg)
+}
+
+// configureRequestTimeout configures the registry client request timeout from
+// environment variables
+func configureRequestTimeout() {
+	requestTimeout = defaultRequestTimeout
+
+	if v := os.Getenv(registryClientTimeoutEnvName); v != "" {
+		timeout, err := strconv.Atoi(v)
+		if err == nil && timeout > 0 {
+			requestTimeout = time.Duration(timeout) * time.Second
+		}
+	}
 }
