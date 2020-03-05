@@ -191,7 +191,7 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	var err error
 
 	ret.Address = ""
-	ret.Resources, err = marshalResources(s.RootModule().Resources, schemas)
+	ret.Resources, err = marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
 	if err != nil {
 		return ret, err
 	}
@@ -225,7 +225,7 @@ func marshalModules(
 		stateMod := s.Module(child)
 		// cm for child module, naming things is hard.
 		cm := module{Address: stateMod.Addr.String()}
-		rs, err := marshalResources(stateMod.Resources, schemas)
+		rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
 		if err != nil {
 			return nil, err
 		}
@@ -244,14 +244,14 @@ func marshalModules(
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
+func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]resource, error) {
 	var ret []resource
 
 	for _, r := range resources {
 		for k, ri := range r.Instances {
 
 			current := resource{
-				Address:      r.Addr.String(),
+				Address:      r.Addr.Absolute(module).Instance(k).String(),
 				Type:         r.Addr.Type,
 				Name:         r.Addr.Name,
 				ProviderName: r.ProviderConfig.Provider.LegacyString(),

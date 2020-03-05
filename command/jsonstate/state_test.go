@@ -191,9 +191,9 @@ func TestMarshalResources(t *testing.T) {
 						Type: "test_thing",
 						Name: "bar",
 					},
-					EachMode: states.EachList,
+					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
-						addrs.IntKey(0): {
+						addrs.NoKey: {
 							Current: &states.ResourceInstanceObjectSrc{
 								SchemaVersion: 1,
 								Status:        states.ObjectReady,
@@ -214,7 +214,91 @@ func TestMarshalResources(t *testing.T) {
 					Mode:          "managed",
 					Type:          "test_thing",
 					Name:          "bar",
+					Index:         addrs.InstanceKey(nil),
+					ProviderName:  "test",
+					SchemaVersion: 1,
+					AttributeValues: attributeValues{
+						"foozles": json.RawMessage(`null`),
+						"woozles": json.RawMessage(`"confuzles"`),
+					},
+				},
+			},
+			false,
+		},
+		"resource with count": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "bar",
+					},
+					EachMode: states.EachList,
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.IntKey(0): {
+							Current: &states.ResourceInstanceObjectSrc{
+								SchemaVersion: 1,
+								Status:        states.ObjectReady,
+								AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewLegacyProvider("test"),
+						Module:   addrs.RootModuleInstance,
+					},
+				},
+			},
+			testSchemas(),
+			[]resource{
+				resource{
+					Address:       "test_thing.bar[0]",
+					Mode:          "managed",
+					Type:          "test_thing",
+					Name:          "bar",
 					Index:         addrs.IntKey(0),
+					ProviderName:  "test",
+					SchemaVersion: 1,
+					AttributeValues: attributeValues{
+						"foozles": json.RawMessage(`null`),
+						"woozles": json.RawMessage(`"confuzles"`),
+					},
+				},
+			},
+			false,
+		},
+		"resource with for_each": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "bar",
+					},
+					EachMode: states.EachMap,
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.StringKey("rockhopper"): {
+							Current: &states.ResourceInstanceObjectSrc{
+								SchemaVersion: 1,
+								Status:        states.ObjectReady,
+								AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewLegacyProvider("test"),
+						Module:   addrs.RootModuleInstance,
+					},
+				},
+			},
+			testSchemas(),
+			[]resource{
+				resource{
+					Address:       "test_thing.bar[\"rockhopper\"]",
+					Mode:          "managed",
+					Type:          "test_thing",
+					Name:          "bar",
+					Index:         addrs.StringKey("rockhopper"),
 					ProviderName:  "test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
@@ -233,9 +317,9 @@ func TestMarshalResources(t *testing.T) {
 						Type: "test_thing",
 						Name: "bar",
 					},
-					EachMode: states.EachList,
+					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
-						addrs.IntKey(0): {
+						addrs.NoKey: {
 							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
 								states.DeposedKey(deposedKey): &states.ResourceInstanceObjectSrc{
 									SchemaVersion: 1,
@@ -258,7 +342,7 @@ func TestMarshalResources(t *testing.T) {
 					Mode:         "managed",
 					Type:         "test_thing",
 					Name:         "bar",
-					Index:        addrs.IntKey(0),
+					Index:        addrs.InstanceKey(nil),
 					ProviderName: "test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: attributeValues{
@@ -277,9 +361,9 @@ func TestMarshalResources(t *testing.T) {
 						Type: "test_thing",
 						Name: "bar",
 					},
-					EachMode: states.EachList,
+					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
-						addrs.IntKey(0): {
+						addrs.NoKey: {
 							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
 								states.DeposedKey(deposedKey): &states.ResourceInstanceObjectSrc{
 									SchemaVersion: 1,
@@ -307,7 +391,7 @@ func TestMarshalResources(t *testing.T) {
 					Mode:          "managed",
 					Type:          "test_thing",
 					Name:          "bar",
-					Index:         addrs.IntKey(0),
+					Index:         addrs.InstanceKey(nil),
 					ProviderName:  "test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
@@ -320,7 +404,7 @@ func TestMarshalResources(t *testing.T) {
 					Mode:         "managed",
 					Type:         "test_thing",
 					Name:         "bar",
-					Index:        addrs.IntKey(0),
+					Index:        addrs.InstanceKey(nil),
 					ProviderName: "test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: attributeValues{
@@ -335,7 +419,7 @@ func TestMarshalResources(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, err := marshalResources(test.Resources, test.Schemas)
+			got, err := marshalResources(test.Resources, addrs.RootModuleInstance, test.Schemas)
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")
