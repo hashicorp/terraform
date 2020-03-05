@@ -5,7 +5,8 @@ ENHANCEMENTS:
 * registry: Add configurable request timeout for the remote registry client ([#24259](https://github.com/hashicorp/terraform/pull/24259))
 
 BUG FIXES:
-cli: Fix terraform state mv to correctly set the resource each mode based on the target address [#24254]
+
+* cli: Fix terraform state mv to correctly set the resource each mode based on the target address [#24254]
 
 ## 0.12.21 (February 19, 2020)
 
