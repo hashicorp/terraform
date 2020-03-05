@@ -26,7 +26,7 @@ type NodeAbstractProvider struct {
 }
 
 var (
-	_ GraphNodeSubPath                    = (*NodeAbstractProvider)(nil)
+	_ GraphNodeModuleInstance             = (*NodeAbstractProvider)(nil)
 	_ RemovableIfNotTargeted              = (*NodeAbstractProvider)(nil)
 	_ GraphNodeReferencer                 = (*NodeAbstractProvider)(nil)
 	_ GraphNodeProvider                   = (*NodeAbstractProvider)(nil)
@@ -39,7 +39,7 @@ func (n *NodeAbstractProvider) Name() string {
 	return n.Addr.String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeAbstractProvider) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }

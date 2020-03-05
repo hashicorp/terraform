@@ -25,7 +25,7 @@ var (
 	_ GraphNodeReferenceOutside  = (*NodePlannableModuleVariable)(nil)
 	_ GraphNodeReferenceable     = (*NodePlannableModuleVariable)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableModuleVariable)(nil)
-	_ GraphNodeSubPath           = (*NodePlannableModuleVariable)(nil)
+	_ GraphNodeModuleInstance    = (*NodePlannableModuleVariable)(nil)
 	_ RemovableIfNotTargeted     = (*NodePlannableModuleVariable)(nil)
 )
 
@@ -47,7 +47,7 @@ func (n *NodePlannableModuleVariable) Name() string {
 	return fmt.Sprintf("%s.%s", n.Module, n.Addr.String())
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodePlannableModuleVariable) Path() addrs.ModuleInstance {
 	// Return an UnkeyedInstanceShim as our placeholder,
 	// given that modules will be unexpanded at this point in the walk
@@ -122,7 +122,7 @@ type NodeApplyableModuleVariable struct {
 // Ensure that we are implementing all of the interfaces we think we are
 // implementing.
 var (
-	_ GraphNodeSubPath          = (*NodeApplyableModuleVariable)(nil)
+	_ GraphNodeModuleInstance   = (*NodeApplyableModuleVariable)(nil)
 	_ RemovableIfNotTargeted    = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeReferenceable    = (*NodeApplyableModuleVariable)(nil)
@@ -135,7 +135,7 @@ func (n *NodeApplyableModuleVariable) Name() string {
 	return n.Addr.String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeApplyableModuleVariable) Path() addrs.ModuleInstance {
 	// We execute in the parent scope (above our own module) because
 	// expressions in our value are resolved in that context.

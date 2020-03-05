@@ -52,9 +52,9 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 		// vertexCtx is the context that we use when evaluating. This
 		// is normally the context of our graph but can be overridden
-		// with a GraphNodeSubPath impl.
+		// with a GraphNodeModuleInstance impl.
 		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeSubPath); ok && len(pn.Path()) > 0 {
+		if pn, ok := v.(GraphNodeModuleInstance); ok && len(pn.Path()) > 0 {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
 		}

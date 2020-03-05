@@ -17,19 +17,19 @@ type NodeLocal struct {
 }
 
 var (
-	_ GraphNodeSubPath       = (*NodeLocal)(nil)
-	_ RemovableIfNotTargeted = (*NodeLocal)(nil)
-	_ GraphNodeReferenceable = (*NodeLocal)(nil)
-	_ GraphNodeReferencer    = (*NodeLocal)(nil)
-	_ GraphNodeEvalable      = (*NodeLocal)(nil)
-	_ dag.GraphNodeDotter    = (*NodeLocal)(nil)
+	_ GraphNodeModuleInstance = (*NodeLocal)(nil)
+	_ RemovableIfNotTargeted  = (*NodeLocal)(nil)
+	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
+	_ GraphNodeReferencer     = (*NodeLocal)(nil)
+	_ GraphNodeEvalable       = (*NodeLocal)(nil)
+	_ dag.GraphNodeDotter     = (*NodeLocal)(nil)
 )
 
 func (n *NodeLocal) Name() string {
 	return n.Addr.String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeLocal) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
