@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 * registry: Add configurable retries for module and provider discovery requests to the remote registry ([#24260](https://github.com/hashicorp/terraform/pull/24260))
+* registry: Add configurable request timeout for the remote registry client ([#24259](https://github.com/hashicorp/terraform/pull/24259))
 
 ## 0.12.21 (February 19, 2020)
 
