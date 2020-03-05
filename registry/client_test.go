@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -47,6 +48,42 @@ func TestConfigureDiscoveryRetry(t *testing.T) {
 		if rc.client.RetryMax != expected {
 			t.Fatalf("expected client retry %q, got %q",
 				expected, rc.client.RetryMax)
+		}
+	})
+}
+
+func TestConfigureRegistryClientTimeout(t *testing.T) {
+	t.Run("default timeout", func(t *testing.T) {
+		if requestTimeout != defaultRequestTimeout {
+			t.Fatalf("expected timeout %q, got %q",
+				defaultRequestTimeout.String(), requestTimeout.String())
+		}
+
+		rc := NewClient(nil, nil)
+		if rc.client.HTTPClient.Timeout != defaultRequestTimeout {
+			t.Fatalf("expected client timeout %q, got %q",
+				defaultRequestTimeout.String(), rc.client.HTTPClient.Timeout.String())
+		}
+	})
+
+	t.Run("configured timeout", func(t *testing.T) {
+		defer func(timeoutEnv string) {
+			os.Setenv(registryClientTimeoutEnvName, timeoutEnv)
+			requestTimeout = defaultRequestTimeout
+		}(os.Getenv(registryClientTimeoutEnvName))
+		os.Setenv(registryClientTimeoutEnvName, "20")
+
+		configureRequestTimeout()
+		expected := 20 * time.Second
+		if requestTimeout != expected {
+			t.Fatalf("expected timeout %q, got %q",
+				expected, requestTimeout.String())
+		}
+
+		rc := NewClient(nil, nil)
+		if rc.client.HTTPClient.Timeout != expected {
+			t.Fatalf("expected client timeout %q, got %q",
+				expected, rc.client.HTTPClient.Timeout.String())
 		}
 	})
 }
