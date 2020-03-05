@@ -1,6 +1,12 @@
 ## 0.12.22 (Unreleased)
 
+ENHANCEMENTS:
+* registry: Add configurable retries for module and provider discovery requests to the remote registry ([#24260](https://github.com/hashicorp/terraform/pull/24260))
+* registry: Add configurable request timeout for the remote registry client ([#24259](https://github.com/hashicorp/terraform/pull/24259))
+
 BUG FIXES:
+
+* cli: Fix terraform state mv to correctly set the resource each mode based on the target address [#24254]
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
 
 ## 0.12.21 (February 19, 2020)
@@ -31,6 +37,7 @@ BUG FIXES:
 * command/show: Fix an issue with show and aliased providers ([#23848](https://github.com/hashicorp/terraform/issues/23848))
 * core: Always clean up empty resources before empty modules ([#23822](https://github.com/hashicorp/terraform/issues/23822))
 * internal/modsdir/manifest: Fix CLI issue with Windows machines ([#23865](https://github.com/hashicorp/terraform/issues/23865))
+* backend: Variable values are no longer output to the console when variables are undeclared ([#23293](https://github.com/hashicorp/terraform/issues/23293))
 
 EXPERIMENTS:
 
