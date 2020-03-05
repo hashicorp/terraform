@@ -153,6 +153,10 @@ func (n *graphNodeRefParentTest) Path() addrs.ModuleInstance {
 	return normalizeModulePath(n.PathValue)
 }
 
+func (n *graphNodeRefParentTest) ModulePath() addrs.Module {
+	return normalizeModulePath(n.PathValue).Module()
+}
+
 type graphNodeRefChildTest struct {
 	NameValue string
 	PathValue []string
@@ -177,6 +181,10 @@ func (n *graphNodeRefChildTest) References() []*addrs.Reference {
 
 func (n *graphNodeRefChildTest) Path() addrs.ModuleInstance {
 	return normalizeModulePath(n.PathValue)
+}
+
+func (n *graphNodeRefChildTest) ModulePath() addrs.Module {
+	return normalizeModulePath(n.PathValue).Module()
 }
 
 const testTransformRefBasicStr = `

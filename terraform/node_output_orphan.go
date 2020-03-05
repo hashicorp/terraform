@@ -37,6 +37,11 @@ func (n *NodeOutputOrphan) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
+// GraphNodeModulePath
+func (n *NodeOutputOrphan) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
+}
+
 // GraphNodeEvalable
 func (n *NodeOutputOrphan) EvalTree() EvalNode {
 	return &EvalOpFilter{

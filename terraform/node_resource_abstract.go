@@ -153,6 +153,11 @@ func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
+// GraphNodeModulePath
+func (n *NodeAbstractResource) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
+}
+
 // GraphNodeReferenceable
 func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
