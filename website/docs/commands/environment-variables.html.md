@@ -114,6 +114,12 @@ exact output differences can change between minor Terraform versions.
 
 For more details see [Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
 
+## TF_REGISTRY_DISCOVERY_RETRY
+
+Set `TF_REGISTRY_DISCOVERY_RETRY` to configure the max number of request retries
+the remote registry client will attempt for client connection errors or
+500-range responses that are safe to retry.
+
 ## TF_CLI_CONFIG_FILE
 
 The location of the [Terraform CLI configuration file](/docs/commands/cli-config.html).
