@@ -20,6 +20,7 @@ BUG FIXES:
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
 * command/show (json output): fix inconsistency in resource addresses between plan and prior state output [GH-24256]
 * core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
+* lang: Fix non-string key panics in map function [GH-24277]
 
 ---
 For information on prior major releases, see their changelogs:
