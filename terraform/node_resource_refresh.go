@@ -25,7 +25,7 @@ type NodeRefreshableManagedResource struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeModuleInstance       = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
@@ -142,7 +142,7 @@ type NodeRefreshableManagedResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeModuleInstance       = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeDestroyer            = (*NodeRefreshableManagedResourceInstance)(nil)

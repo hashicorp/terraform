@@ -13,7 +13,7 @@ type NodeModuleRemoved struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeModuleRemoved)(nil)
+	_ GraphNodeModuleInstance   = (*NodeModuleRemoved)(nil)
 	_ RemovableIfNotTargeted    = (*NodeModuleRemoved)(nil)
 	_ GraphNodeEvalable         = (*NodeModuleRemoved)(nil)
 	_ GraphNodeReferencer       = (*NodeModuleRemoved)(nil)
@@ -24,7 +24,7 @@ func (n *NodeModuleRemoved) Name() string {
 	return fmt.Sprintf("%s (removed)", n.Addr.String())
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeModuleRemoved) Path() addrs.ModuleInstance {
 	return n.Addr
 }

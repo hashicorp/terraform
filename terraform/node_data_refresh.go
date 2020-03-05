@@ -15,7 +15,7 @@ type NodeRefreshableDataResource struct {
 }
 
 var (
-	_ GraphNodeSubPath                   = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeModuleInstance            = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeDynamicExpandable         = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferencer                = (*NodeRefreshableDataResource)(nil)

@@ -12,7 +12,7 @@ type NodeOutputOrphan struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeOutputOrphan)(nil)
+	_ GraphNodeModuleInstance   = (*NodeOutputOrphan)(nil)
 	_ GraphNodeReferenceable    = (*NodeOutputOrphan)(nil)
 	_ GraphNodeReferenceOutside = (*NodeOutputOrphan)(nil)
 	_ GraphNodeEvalable         = (*NodeOutputOrphan)(nil)
@@ -32,7 +32,7 @@ func (n *NodeOutputOrphan) ReferenceableAddrs() []addrs.Referenceable {
 	return referenceableAddrsForOutput(n.Addr)
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeOutputOrphan) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }

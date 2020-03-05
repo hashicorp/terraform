@@ -293,7 +293,7 @@ func (m *ReferenceMap) mapKey(path addrs.Module, addr addrs.Referenceable) strin
 // referenced. This is the path that its results from ReferenceableAddrs
 // are considered to be relative to.
 //
-// Only GraphNodeSubPath implementations can be referenced, so this method will
+// Only GraphNodeModuleInstance implementations can be referenced, so this method will
 // panic if the given vertex does not implement that interface.
 func vertexReferenceablePath(v dag.Vertex) addrs.Module {
 	sp, ok := v.(GraphNodeModulePath)
@@ -316,7 +316,7 @@ func vertexReferenceablePath(v dag.Vertex) addrs.Module {
 // vertexReferencePath returns the path in which references _from_ the given
 // vertex must be interpreted.
 //
-// Only GraphNodeSubPath implementations can have references, so this method
+// Only GraphNodeModuleInstance implementations can have references, so this method
 // will panic if the given vertex does not implement that interface.
 func vertexReferencePath(v dag.Vertex) addrs.Module {
 	sp, ok := v.(GraphNodeModulePath)
@@ -344,7 +344,7 @@ func vertexReferencePath(v dag.Vertex) addrs.Module {
 // The result is an opaque string that includes both the address of the given
 // object and the address of the module instance that object belongs to.
 //
-// Only GraphNodeSubPath implementations can be referrers, so this method will
+// Only GraphNodeModuleInstance implementations can be referrers, so this method will
 // panic if the given vertex does not implement that interface.
 func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Referenceable) string {
 	path := vertexReferencePath(referrer)
@@ -359,7 +359,7 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 	// Build the lookup table
 	vertices := make(map[string][]dag.Vertex)
 	for _, v := range vs {
-		_, ok := v.(GraphNodeSubPath)
+		_, ok := v.(GraphNodeModuleInstance)
 		if !ok {
 			// Only nodes with paths can participate in a reference map.
 			continue
