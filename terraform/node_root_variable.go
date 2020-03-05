@@ -27,6 +27,10 @@ func (n *NodeRootVariable) Path() addrs.ModuleInstance {
 	return addrs.RootModuleInstance
 }
 
+func (n *NodeRootVariable) ModulePath() addrs.Module {
+	return addrs.RootModule
+}
+
 // GraphNodeReferenceable
 func (n *NodeRootVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}

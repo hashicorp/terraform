@@ -44,6 +44,11 @@ func (n *NodeAbstractProvider) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
+// GraphNodeModulePath
+func (n *NodeAbstractProvider) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
+}
+
 // RemovableIfNotTargeted
 func (n *NodeAbstractProvider) RemoveIfNotTargeted() bool {
 	// We need to add this so that this node will be removed if

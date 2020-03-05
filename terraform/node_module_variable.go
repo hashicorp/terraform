@@ -54,6 +54,11 @@ func (n *NodePlannableModuleVariable) Path() addrs.ModuleInstance {
 	return n.Module.UnkeyedInstanceShim()
 }
 
+// GraphNodeModulePath
+func (n *NodePlannableModuleVariable) ModulePath() addrs.Module {
+	return n.Module
+}
+
 // GraphNodeReferencer
 func (n *NodePlannableModuleVariable) References() []*addrs.Reference {
 
@@ -135,6 +140,11 @@ func (n *NodeApplyableModuleVariable) Path() addrs.ModuleInstance {
 	// We execute in the parent scope (above our own module) because
 	// expressions in our value are resolved in that context.
 	return n.Addr.Module.Parent()
+}
+
+// GraphNodeModulePath
+func (n *NodeApplyableModuleVariable) ModulePath() addrs.Module {
+	return n.Addr.Module.Parent().Module()
 }
 
 // RemovableIfNotTargeted
