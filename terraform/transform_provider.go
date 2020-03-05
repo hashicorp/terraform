@@ -177,7 +177,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				absPc.Alias = p.(addrs.LocalProviderConfig).Alias
 
 			default:
-				// should never happen
+				// This should never happen, the case statements are exhaustive
 				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), p))
 			}
 
@@ -383,8 +383,8 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		case addrs.AbsProviderConfig:
 			providerFqn = p.(addrs.AbsProviderConfig).Provider
 		default:
-			// FIXME: return an error; this is unexpected
-			panic("no pls")
+			// This should never happen, the case statements are exhaustive
+			panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), p))
 		}
 
 		// We're going to create an implicit _default_ configuration for the
