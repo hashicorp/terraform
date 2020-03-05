@@ -1,5 +1,9 @@
 ## 0.12.24 (Unreleased)
 ## 0.12.23 (March 05, 2020)
+
+BUG FIXES:
+* cli: Fix wrong version returned by `terraform version`
+
 ## 0.12.22 (March 05, 2020)
 
 ENHANCEMENTS:
