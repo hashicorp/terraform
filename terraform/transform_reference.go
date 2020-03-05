@@ -285,7 +285,7 @@ func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	return matches
 }
 
-func (m *ReferenceMap) mapKey(path addrs.ModuleInstance, addr addrs.Referenceable) string {
+func (m *ReferenceMap) mapKey(path addrs.Module, addr addrs.Referenceable) string {
 	return fmt.Sprintf("%s|%s", path.String(), addr.String())
 }
 
@@ -295,7 +295,7 @@ func (m *ReferenceMap) mapKey(path addrs.ModuleInstance, addr addrs.Referenceabl
 //
 // Only GraphNodeSubPath implementations can be referenced, so this method will
 // panic if the given vertex does not implement that interface.
-func vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstance {
+func vertexReferenceablePath(v dag.Vertex) addrs.Module {
 	sp, ok := v.(GraphNodeModulePath)
 	if !ok {
 		// Only nodes with paths can participate in a reference map.
@@ -306,11 +306,11 @@ func vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstance {
 		// Vertex is referenced from a different module than where it was
 		// declared.
 		path, _ := outside.ReferenceOutside()
-		return path.UnkeyedInstanceShim()
+		return path
 	}
 
 	// Vertex is referenced from the same module as where it was declared.
-	return sp.ModulePath().UnkeyedInstanceShim()
+	return sp.ModulePath()
 }
 
 // vertexReferencePath returns the path in which references _from_ the given
@@ -318,7 +318,7 @@ func vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstance {
 //
 // Only GraphNodeSubPath implementations can have references, so this method
 // will panic if the given vertex does not implement that interface.
-func vertexReferencePath(v dag.Vertex) addrs.ModuleInstance {
+func vertexReferencePath(v dag.Vertex) addrs.Module {
 	sp, ok := v.(GraphNodeModulePath)
 	if !ok {
 		// Only nodes with paths can participate in a reference map.
@@ -329,12 +329,12 @@ func vertexReferencePath(v dag.Vertex) addrs.ModuleInstance {
 		// Vertex makes references to objects in a different module than where
 		// it was declared.
 		_, path := outside.ReferenceOutside()
-		return path.UnkeyedInstanceShim()
+		return path
 	}
 
 	// Vertex makes references to objects in the same module as where it
 	// was declared.
-	return sp.ModulePath().UnkeyedInstanceShim()
+	return sp.ModulePath()
 }
 
 // referenceMapKey produces keys for the "edges" map. "referrer" is the vertex
@@ -386,11 +386,8 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 			// an instance key) or as the bare module call itself (the "module"
 			// block in the parent module that created the instance).
 			callPath, call := addr.Call()
-			callInstPath, callInst := addr.CallInstance()
 			callKey := m.mapKey(callPath, call)
-			callInstKey := m.mapKey(callInstPath, callInst)
 			vertices[callKey] = append(vertices[callKey], v)
-			vertices[callInstKey] = append(vertices[callInstKey], v)
 		}
 	}
 
