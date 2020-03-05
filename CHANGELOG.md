@@ -1,5 +1,8 @@
 ## 0.12.22 (Unreleased)
 
+ENHANCEMENTS:
+* registry: Add configurable retries for module and provider discovery requests to the remote registry ([#24260](https://github.com/hashicorp/terraform/pull/24260))
+
 ## 0.12.21 (February 19, 2020)
 
 NEW FEATURES:
