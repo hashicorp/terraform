@@ -77,3 +77,17 @@ func (m Module) Call() (Module, ModuleCall) {
 		Name: callName,
 	}
 }
+
+// Ancestors returns a slice containing the receiver and all of its ancestor
+// modules, all the way up to (and including) the root module.  The result is
+// ordered by depth, with the root module always first.
+//
+// Since the result always includes the root module, a caller may choose to
+// ignore it by slicing the result with [1:].
+func (m Module) Ancestors() []Module {
+	ret := make([]Module, 0, len(m)+1)
+	for i := 0; i <= len(m); i++ {
+		ret = append(ret, m[:i])
+	}
+	return ret
+}
