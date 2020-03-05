@@ -126,12 +126,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 					break
 				}
 
-				// if there is no config at all, the assumed default provider
-				// must be correct.
-				if t.Config == nil {
-					break
-				}
-
 				// If `exact` is false, an AbsProviderConfig indicates that
 				// ProvidedBy() returned an inferred default FQN. We must check
 				// if the inferred type name matches a non-default provider
@@ -154,14 +148,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			case addrs.LocalProviderConfig:
 				// ProvidedBy() return a LocalProviderConfig when the resource
 				// contains a `provider` attribute
-				modPath := pv.Path()
-				if t.Config == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.(addrs.LocalProviderConfig).LocalName)
-					absPc.Module = modPath
-					absPc.Alias = p.(addrs.LocalProviderConfig).Alias
-					break
-				}
-
 				var modConfig *configs.Config
 				if pv.Path().IsRoot() {
 					modConfig = t.Config
