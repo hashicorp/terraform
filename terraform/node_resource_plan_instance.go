@@ -20,7 +20,7 @@ type NodePlannableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeModuleInstance       = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeResource             = (*NodePlannableResourceInstance)(nil)

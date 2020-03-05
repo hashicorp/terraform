@@ -69,7 +69,7 @@ type NodeAbstractResource struct {
 }
 
 var (
-	_ GraphNodeSubPath                   = (*NodeAbstractResource)(nil)
+	_ GraphNodeModuleInstance            = (*NodeAbstractResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeAbstractResource)(nil)
 	_ GraphNodeReferencer                = (*NodeAbstractResource)(nil)
 	_ GraphNodeProviderConsumer          = (*NodeAbstractResource)(nil)
@@ -108,7 +108,7 @@ type NodeAbstractResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath                   = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeModuleInstance            = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeReferenceable             = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeReferencer                = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeProviderConsumer          = (*NodeAbstractResourceInstance)(nil)
@@ -148,7 +148,7 @@ func (n *NodeAbstractResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }

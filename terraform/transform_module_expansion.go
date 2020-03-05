@@ -65,7 +65,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	// work to properly support "count" and "for_each" for modules. Nodes
 	// in the plan graph actually belong to modules, not to module instances.
 	for _, childV := range g.Vertices() {
-		pather, ok := childV.(GraphNodeSubPath)
+		pather, ok := childV.(GraphNodeModuleInstance)
 		if !ok {
 			continue
 		}

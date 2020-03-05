@@ -21,17 +21,17 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ GraphNodeSubPath       = (*nodeExpandModule)(nil)
-	_ RemovableIfNotTargeted = (*nodeExpandModule)(nil)
-	_ GraphNodeEvalable      = (*nodeExpandModule)(nil)
-	_ GraphNodeReferencer    = (*nodeExpandModule)(nil)
+	_ GraphNodeModuleInstance = (*nodeExpandModule)(nil)
+	_ RemovableIfNotTargeted  = (*nodeExpandModule)(nil)
+	_ GraphNodeEvalable       = (*nodeExpandModule)(nil)
+	_ GraphNodeReferencer     = (*nodeExpandModule)(nil)
 )
 
 func (n *nodeExpandModule) Name() string {
 	return n.CallerAddr.Child(n.Call.Name, addrs.NoKey).String()
 }
 
-// GraphNodeSubPath implementation
+// GraphNodeModuleInstance implementation
 func (n *nodeExpandModule) Path() addrs.ModuleInstance {
 	// This node represents the module call within a module,
 	// so return the CallerAddr as the path as the module

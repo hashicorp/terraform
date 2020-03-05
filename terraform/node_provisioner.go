@@ -14,9 +14,9 @@ type NodeProvisioner struct {
 }
 
 var (
-	_ GraphNodeSubPath     = (*NodeProvisioner)(nil)
-	_ GraphNodeProvisioner = (*NodeProvisioner)(nil)
-	_ GraphNodeEvalable    = (*NodeProvisioner)(nil)
+	_ GraphNodeModuleInstance = (*NodeProvisioner)(nil)
+	_ GraphNodeProvisioner    = (*NodeProvisioner)(nil)
+	_ GraphNodeEvalable       = (*NodeProvisioner)(nil)
 )
 
 func (n *NodeProvisioner) Name() string {
@@ -28,7 +28,7 @@ func (n *NodeProvisioner) Name() string {
 	return result
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeProvisioner) Path() addrs.ModuleInstance {
 	return n.PathValue
 }

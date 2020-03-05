@@ -18,9 +18,9 @@ type NodePlannableOutput struct {
 }
 
 var (
-	_ GraphNodeSubPath       = (*NodePlannableOutput)(nil)
-	_ RemovableIfNotTargeted = (*NodePlannableOutput)(nil)
-	_ GraphNodeReferenceable = (*NodePlannableOutput)(nil)
+	_ GraphNodeModuleInstance = (*NodePlannableOutput)(nil)
+	_ RemovableIfNotTargeted  = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferenceable  = (*NodePlannableOutput)(nil)
 	//_ GraphNodeEvalable          = (*NodePlannableOutput)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
 	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
@@ -44,7 +44,7 @@ func (n *NodePlannableOutput) Name() string {
 	return n.Addr.Absolute(n.Module.UnkeyedInstanceShim()).String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodePlannableOutput) Path() addrs.ModuleInstance {
 	// Return an UnkeyedInstanceShim as our placeholder,
 	// given that modules will be unexpanded at this point in the walk
@@ -114,7 +114,7 @@ type NodeApplyableOutput struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeApplyableOutput)(nil)
+	_ GraphNodeModuleInstance   = (*NodeApplyableOutput)(nil)
 	_ RemovableIfNotTargeted    = (*NodeApplyableOutput)(nil)
 	_ GraphNodeTargetDownstream = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceable    = (*NodeApplyableOutput)(nil)
@@ -128,7 +128,7 @@ func (n *NodeApplyableOutput) Name() string {
 	return n.Addr.String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeApplyableOutput) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
@@ -247,7 +247,7 @@ type NodeDestroyableOutput struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeDestroyableOutput)(nil)
+	_ GraphNodeModuleInstance   = (*NodeDestroyableOutput)(nil)
 	_ RemovableIfNotTargeted    = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeTargetDownstream = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeReferencer       = (*NodeDestroyableOutput)(nil)
@@ -259,7 +259,7 @@ func (n *NodeDestroyableOutput) Name() string {
 	return fmt.Sprintf("%s (destroy)", n.Addr.String())
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeDestroyableOutput) Path() addrs.ModuleInstance {
 	return n.Module.UnkeyedInstanceShim()
 }

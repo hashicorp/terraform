@@ -48,7 +48,7 @@ type graphNodeImportState struct {
 }
 
 var (
-	_ GraphNodeSubPath           = (*graphNodeImportState)(nil)
+	_ GraphNodeModuleInstance    = (*graphNodeImportState)(nil)
 	_ GraphNodeEvalable          = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
@@ -83,7 +83,7 @@ func (n *graphNodeImportState) SetProvider(addr addrs.AbsProviderConfig) {
 	n.ResolvedProvider = addr
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *graphNodeImportState) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
@@ -199,8 +199,8 @@ type graphNodeImportStateSub struct {
 }
 
 var (
-	_ GraphNodeSubPath  = (*graphNodeImportStateSub)(nil)
-	_ GraphNodeEvalable = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeModuleInstance = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeEvalable       = (*graphNodeImportStateSub)(nil)
 )
 
 func (n *graphNodeImportStateSub) Name() string {
