@@ -29,6 +29,14 @@ func (n *NodeModuleRemoved) Path() addrs.ModuleInstance {
 	return n.Addr
 }
 
+// GraphNodeModulePath implementation
+func (n *NodeModuleRemoved) ModulePath() addrs.Module {
+	// This node represents the module call within a module,
+	// so return the CallerAddr as the path as the module
+	// call may expand into multiple child instances
+	return n.Addr.Module()
+}
+
 // GraphNodeEvalable
 func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	return &EvalOpFilter{

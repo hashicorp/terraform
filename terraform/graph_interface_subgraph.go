@@ -9,3 +9,9 @@ import (
 type GraphNodeSubPath interface {
 	Path() addrs.ModuleInstance
 }
+
+// GraphNodeModulePath is implemented by all referenceable nodes, to indicate
+// their configuration path in unexpanded modules.
+type GraphNodeModulePath interface {
+	ModulePath() addrs.Module
+}

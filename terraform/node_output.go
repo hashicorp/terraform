@@ -51,6 +51,11 @@ func (n *NodePlannableOutput) Path() addrs.ModuleInstance {
 	return n.Module.UnkeyedInstanceShim()
 }
 
+// GraphNodeModulePath
+func (n *NodePlannableOutput) ModulePath() addrs.Module {
+	return n.Module
+}
+
 // GraphNodeReferenceable
 func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
 	// An output in the root module can't be referenced at all.
@@ -126,6 +131,11 @@ func (n *NodeApplyableOutput) Name() string {
 // GraphNodeSubPath
 func (n *NodeApplyableOutput) Path() addrs.ModuleInstance {
 	return n.Addr.Module
+}
+
+// GraphNodeModulePath
+func (n *NodeApplyableOutput) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
 }
 
 // RemovableIfNotTargeted
@@ -252,6 +262,11 @@ func (n *NodeDestroyableOutput) Name() string {
 // GraphNodeSubPath
 func (n *NodeDestroyableOutput) Path() addrs.ModuleInstance {
 	return n.Module.UnkeyedInstanceShim()
+}
+
+// GraphNodeModulePath
+func (n *NodeDestroyableOutput) ModulePath() addrs.Module {
+	return n.Module
 }
 
 // RemovableIfNotTargeted

@@ -34,6 +34,11 @@ func (n *NodeLocal) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
+// GraphNodeModulePath
+func (n *NodeLocal) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
+}
+
 // RemovableIfNotTargeted
 func (n *NodeLocal) RemoveIfNotTargeted() bool {
 	return true
