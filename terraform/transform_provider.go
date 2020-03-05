@@ -111,13 +111,13 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			requested[v] = make(map[string]ProviderRequest)
 
-			p, exact := pv.ProvidedBy()
+			providerAddr, exact := pv.ProvidedBy()
 			var absPc addrs.AbsProviderConfig
 			var providerFqn addrs.Provider
 
-			switch p.(type) {
+			switch p := providerAddr.(type) {
 			case addrs.AbsProviderConfig:
-				absPc = p.(addrs.AbsProviderConfig)
+				absPc = p
 				// ProvidedBy() returns an AbsProviderConfig + exact == true
 				// when the provider configuration is set in state, so we do not
 				// need to verify the FQN matches.
@@ -139,7 +139,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				modConfig := t.Config.DescendentForInstance(pv.Path())
 				if modConfig != nil {
 					providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{
-						LocalName: p.(addrs.AbsProviderConfig).Provider.Type,
+						LocalName: p.Provider.Type,
 					})
 					// This is only a change to the absPc if
 					// ProviderForLocalConfig returns a different Provider
@@ -151,24 +151,24 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				// contains a `provider` attribute
 				modPath := pv.Path()
 				if t.Config == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.(addrs.LocalProviderConfig).LocalName)
+					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
 					absPc.Module = modPath
-					absPc.Alias = p.(addrs.LocalProviderConfig).Alias
+					absPc.Alias = p.Alias
 					break
 				}
 
 				modConfig := t.Config.DescendentForInstance(modPath)
 				if modConfig == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.(addrs.LocalProviderConfig).LocalName)
+					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
 				} else {
-					absPc.Provider = modConfig.Module.ProviderForLocalConfig(p.(addrs.LocalProviderConfig))
+					absPc.Provider = modConfig.Module.ProviderForLocalConfig(p)
 				}
 				absPc.Module = modPath
-				absPc.Alias = p.(addrs.LocalProviderConfig).Alias
+				absPc.Alias = p.Alias
 
 			default:
 				// This should never happen, the case statements are exhaustive
-				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), p))
+				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
 			}
 
 			if !exact {

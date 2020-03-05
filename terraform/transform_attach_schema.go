@@ -62,11 +62,12 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			providerAddr, _ := tv.ProvidedBy()
 			var providerFqn addrs.Provider
 
-			switch providerAddr.(type) {
+			switch p := providerAddr.(type) {
 			case addrs.LocalProviderConfig:
-				providerFqn = addrs.NewLegacyProvider(providerAddr.(addrs.LocalProviderConfig).LocalName)
+				// FIXME: need to look up the providerFQN in the config
+				providerFqn = addrs.NewLegacyProvider(p.LocalName)
 			case addrs.AbsProviderConfig:
-				providerFqn = providerAddr.(addrs.AbsProviderConfig).Provider
+				providerFqn = p.Provider
 			}
 
 			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
