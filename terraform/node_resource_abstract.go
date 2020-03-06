@@ -285,25 +285,17 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		// FIXME: this will need to lookup the provider and see if there's an
-		// FQN associated with the local config
-		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
-		return addrs.AbsProviderConfig{
-			Provider: fqn,
-			Module:   n.Path(),
-			Alias:    relAddr.Alias,
+		return addrs.LocalProviderConfig{
+			LocalName: relAddr.LocalName,
+			Alias:     relAddr.Alias,
 		}, false
 	}
 
 	// Use our type and containing module path to guess a provider configuration address.
-	// FIXME: This is relying on the FQN-to-local matching true only of legacy
-	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
-	// with the local name here, once we've done the work elsewhere to make
-	// that possible.
 	defaultFQN := n.Addr.Resource.DefaultProvider()
 	return addrs.AbsProviderConfig{
 		Provider: defaultFQN,
@@ -312,19 +304,13 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		// Use our type and containing module path to guess a provider configuration address.
-		// FIXME: This is relying on the FQN-to-local matching true only of legacy
-		// addresses.
-		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
-
-		return addrs.AbsProviderConfig{
-			Provider: fqn,
-			Module:   n.Path(),
-			Alias:    relAddr.Alias,
+		return addrs.LocalProviderConfig{
+			LocalName: relAddr.LocalName,
+			Alias:     relAddr.Alias,
 		}, false
 	}
 
@@ -337,10 +323,6 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 	}
 
 	// Use our type and containing module path to guess a provider configuration address
-	// FIXME: This is relying on the FQN-to-local matching true only of legacy
-	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
-	// with the local name here, once we've done the work elsewhere to make
-	// that possible.
 	defaultFQN := n.Addr.Resource.DefaultProvider()
 	return addrs.AbsProviderConfig{
 		Provider: defaultFQN,
