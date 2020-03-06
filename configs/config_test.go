@@ -80,14 +80,8 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
 		want := addrs.AbsProviderConfig{
-			Module: addrs.RootModuleInstance,
-			// FIXME: At the time of writing we're not actually supporting
-			// the explicit mapping to FQNs because we're still in
-			// legacy-only mode, so this is temporarily correct. However,
-			// once we are fully supporting this we should expect to see
-			// the "registry.terraform.io/foo/test" FQN here, while still
-			// preserving the "boop" alias.
-			Provider: addrs.NewLegacyProvider("foo-test"),
+			Module:   addrs.RootModuleInstance,
+			Provider: addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {

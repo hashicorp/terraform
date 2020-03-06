@@ -21,6 +21,7 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, c
 		},
 		// Add any remaining missing providers
 		&MissingProviderTransformer{
+			Config:    config,
 			Providers: providers,
 			Concrete:  concrete,
 		},
@@ -68,7 +69,12 @@ type GraphNodeProviderConsumer interface {
 	// be taken exactly. If "exact" is false, a provider configuration from
 	// an ancestor module may be selected instead.
 	ProvidedBy() (addr addrs.ProviderConfig, exact bool)
-	DefaultProvider() (addrs addrs.Provider)
+
+	// ImpliedProvider returns the provider FQN implied by the resource type
+	// name (for eg the "null" in "null_resource"). This should only be used
+	// when ProvidedBy() returns nil.
+	ImpliedProvider() (addrs addrs.Provider)
+
 	// Set the resolved provider address for this resource.
 	SetProvider(addrs.AbsProviderConfig)
 }
@@ -146,17 +152,14 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				absPc.Alias = p.Alias
 
 			case nil:
-				// No provider found in config or state; fall back to default
-				absPc.Provider = pv.DefaultProvider()
+				// No provider found in config or state; fall back to implied default provider.
+				absPc.Provider = pv.ImpliedProvider()
 				absPc.Module = pv.Path()
+				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
 
 			default:
-				// This should never happen, the case statements are exhaustive
+				// This should never happen; the case statements are meant to be exhaustive
 				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
-			}
-
-			if !exact {
-				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
 			}
 
 			requested[v][absPc.String()] = ProviderRequest{
@@ -312,6 +315,9 @@ type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
 
+	// MissingProviderTransformer needs the config to rule out _implied_ default providers
+	Config *configs.Config
+
 	// Concrete, if set, overrides how the providers are made.
 	Concrete ConcreteProviderNodeFunc
 }
@@ -353,13 +359,18 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 				log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
 				continue
 			}
-			providerFqn = addrs.NewLegacyProvider(p.LocalName)
+			modConfig := t.Config.DescendentForInstance(pv.Path())
+			if modConfig == nil {
+				providerFqn = addrs.NewLegacyProvider(p.LocalName)
+			} else {
+				providerFqn = modConfig.Module.ProviderForLocalConfig(p)
+			}
 
 		case addrs.AbsProviderConfig:
 			providerFqn = p.Provider
 
 		case nil:
-			providerFqn = pv.DefaultProvider()
+			providerFqn = pv.ImpliedProvider()
 
 		default:
 			// This should never happen, the case statements are exhaustive

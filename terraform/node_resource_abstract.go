@@ -300,7 +300,7 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResource) DefaultProvider() addrs.Provider {
+func (n *NodeAbstractResource) ImpliedProvider() addrs.Provider {
 	return n.Addr.Resource.DefaultProvider()
 }
 
@@ -328,7 +328,7 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool)
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) DefaultProvider() addrs.Provider {
+func (n *NodeAbstractResourceInstance) ImpliedProvider() addrs.Provider {
 	return n.Addr.Resource.DefaultProvider()
 }
 
