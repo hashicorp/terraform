@@ -131,7 +131,7 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (provi
 		return nil, err
 	}
 
-	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.LegacyString(), absAddr)
+	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.String(), absAddr)
 	ctx.ProviderCache[key] = p
 
 	return p, nil

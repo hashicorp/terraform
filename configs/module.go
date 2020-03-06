@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -178,16 +179,20 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, reqd := range file.RequiredProviders {
-		// As an interim *testing* step, we will accept a source argument
-		// but assume that the source is a legacy provider. This allows us to
-		// exercise the provider local names -> fqn logic without changing
-		// terraform's behavior.
+		var fqn addrs.Provider
+		var parseDiags tfdiags.Diagnostics
 		if reqd.Source != "" {
-			// Fixme: once the rest of the provider source logic is implemented,
-			// update this to get the addrs.Provider by using
-			// addrs.ParseProviderSourceString()
+			fqn, parseDiags = addrs.ParseProviderSourceString(reqd.Source)
+			if parseDiags.HasErrors() {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider source string",
+					Detail:   parseDiags.Err().Error(),
+				})
+			}
+		} else {
+			fqn = addrs.NewDefaultProvider(reqd.Name)
 		}
-		fqn := addrs.NewLegacyProvider(reqd.Name)
 		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
 			if existing.Type != fqn {
 				panic("provider fqn mismatch")
@@ -200,7 +205,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 	for _, pm := range file.ProviderMetas {
 		// TODO(paddy): pm.Provider is a string, but we need to build an addrs.Provider out of it somehow
-		if existing, exists := m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)]; exists {
+		if existing, exists := m.ProviderMetas[addrs.NewDefaultProvider(pm.Provider)]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate provider_meta block",
@@ -208,7 +213,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				Subject:  &pm.DeclRange,
 			})
 		}
-		m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)] = pm
+		m.ProviderMetas[addrs.NewDefaultProvider(pm.Provider)] = pm
 	}
 
 	for _, v := range file.Variables {
@@ -476,8 +481,8 @@ func (m *Module) LocalNameForProvider(p addrs.Provider) string {
 
 // ProviderForLocalConfig returns the provider FQN for a given LocalProviderConfig
 func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
-	if provider, exists := m.ProviderRequirements[pc.String()]; exists {
+	if provider, exists := m.ProviderRequirements[pc.LocalName]; exists {
 		return provider.Type
 	}
-	return addrs.NewLegacyProvider(pc.LocalName)
+	return addrs.NewDefaultProvider(pc.LocalName)
 }

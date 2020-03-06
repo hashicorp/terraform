@@ -112,7 +112,7 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 	for pFqn, dep := range m.Providers {
 		// TODO: discovery.PluginRequirements should be refactored and use
 		// addrs.Provider as the map keys
-		provider := pFqn.LegacyString()
+		provider := pFqn.String()
 		if existing, exists := ret[provider]; exists {
 			ret[provider].Versions = existing.Versions.Append(dep.Constraints)
 		} else {

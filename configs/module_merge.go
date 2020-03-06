@@ -44,6 +44,7 @@ func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd 
 	}
 	for _, reqd := range ovrd {
 		fqn := addrs.NewLegacyProvider(reqd.Name)
+		fmt.Printf("reqd: %#v\n", reqd)
 		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 	}
 }

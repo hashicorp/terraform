@@ -21,6 +21,7 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, c
 		},
 		// Add any remaining missing providers
 		&MissingProviderTransformer{
+			Config:    config,
 			Providers: providers,
 			Concrete:  concrete,
 		},
@@ -130,7 +131,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				// contains a `provider` attribute
 				modPath := pv.Path()
 				if t.Config == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
+					absPc.Provider = addrs.NewDefaultProvider(p.LocalName)
 					absPc.Module = modPath
 					absPc.Alias = p.Alias
 					break
@@ -138,7 +139,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 				modConfig := t.Config.DescendentForInstance(modPath)
 				if modConfig == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
+					absPc.Provider = addrs.NewDefaultProvider(p.LocalName)
 				} else {
 					absPc.Provider = modConfig.Module.ProviderForLocalConfig(p)
 				}
@@ -149,14 +150,11 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				// No provider found in config or state; fall back to default
 				absPc.Provider = pv.DefaultProvider()
 				absPc.Module = pv.Path()
+				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
 
 			default:
 				// This should never happen, the case statements are exhaustive
 				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
-			}
-
-			if !exact {
-				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
 			}
 
 			requested[v][absPc.String()] = ProviderRequest{
@@ -312,6 +310,10 @@ type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
 
+	// FIXME no?
+	// MissingProviderTransformer needs the config to rule out _implied_ default providers
+	Config *configs.Config
+
 	// Concrete, if set, overrides how the providers are made.
 	Concrete ConcreteProviderNodeFunc
 }
@@ -353,7 +355,13 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 				log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
 				continue
 			}
-			providerFqn = addrs.NewLegacyProvider(p.LocalName)
+			modConfig := t.Config.DescendentForInstance(pv.Path())
+
+			if modConfig == nil {
+				providerFqn = addrs.NewDefaultProvider(p.LocalName)
+			} else {
+				providerFqn = modConfig.Module.ProviderForLocalConfig(p)
+			}
 
 		case addrs.AbsProviderConfig:
 			providerFqn = p.Provider

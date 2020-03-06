@@ -73,11 +73,11 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
 			var providerFqn addrs.Provider
 			if t.Config == nil {
-				providerFqn = addrs.NewLegacyProvider(providerTypeName)
+				providerFqn = addrs.NewDefaultProvider(providerTypeName)
 			} else {
 				modConfig := t.Config.DescendentForInstance(tv.Path())
 				if modConfig == nil {
-					providerFqn = addrs.NewLegacyProvider(providerTypeName)
+					providerFqn = addrs.NewDefaultProvider(providerTypeName)
 				} else {
 					providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: providerTypeName})
 				}

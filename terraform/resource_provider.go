@@ -239,7 +239,7 @@ func ResourceProviderResolverFixed(factories map[addrs.Provider]ResourceProvider
 		for name := range reqd {
 			// FIXME: discovery.PluginRequirements should use addrs.Provider as
 			// the map keys instead of a string
-			fqn := addrs.NewLegacyProvider(name)
+			fqn := addrs.NewDefaultProvider(name)
 			if factory, exists := factories[fqn]; exists {
 				ret[fqn] = factory
 			} else {

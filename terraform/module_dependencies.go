@@ -73,7 +73,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 			discoConstraints := discovery.NewConstraints(rawConstraints)
 			fqn := req.Type
 			if fqn.IsZero() {
-				fqn = addrs.NewLegacyProvider(localName)
+				fqn = addrs.NewDefaultProvider(localName)
 			}
 
 			providers[req.Type] = moduledeps.ProviderDependency{
