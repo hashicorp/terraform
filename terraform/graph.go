@@ -101,19 +101,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 				log.Printf("[TRACE] vertex %q: produced no dynamic subgraph", dag.VertexName(v))
 			}
 		}
-
-		// If the node has a subgraph, then walk the subgraph
-		if sn, ok := v.(GraphNodeSubgraph); ok {
-			log.Printf("[TRACE] vertex %q: entering static subgraph", dag.VertexName(v))
-
-			subDiags := sn.Subgraph().(*Graph).walk(walker)
-			if subDiags.HasErrors() {
-				log.Printf("[TRACE] vertex %q: static subgraph encountered errors", dag.VertexName(v))
-				return
-			}
-			log.Printf("[TRACE] vertex %q: static subgraph completed successfully", dag.VertexName(v))
-		}
-
 		return
 	}
 
