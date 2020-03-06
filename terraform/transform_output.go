@@ -72,6 +72,11 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		// We only destroy root outputs
+		if !output.Module.Equal(addrs.RootModule) {
+			continue
+		}
+
 		// create the destroy node for this output
 		node := &NodeDestroyableOutput{
 			Addr:   output.Addr,
