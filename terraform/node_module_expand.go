@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/lang"
@@ -13,9 +11,7 @@ import (
 // might expand into multiple module instances depending on how it is
 // configured.
 type nodeExpandModule struct {
-	CallerAddr addrs.ModuleInstance
 	Addr       addrs.Module
-	Call       addrs.ModuleCall
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
 }
@@ -28,7 +24,7 @@ var (
 )
 
 func (n *nodeExpandModule) Name() string {
-	return n.CallerAddr.Child(n.Call.Name, addrs.NoKey).String()
+	return n.Addr.String()
 }
 
 // GraphNodeModuleInstance implementation
@@ -36,7 +32,8 @@ func (n *nodeExpandModule) Path() addrs.ModuleInstance {
 	// This node represents the module call within a module,
 	// so return the CallerAddr as the path as the module
 	// call may expand into multiple child instances
-	return n.CallerAddr
+	// FIXME:
+	return n.Addr.Parent().UnkeyedInstanceShim()
 }
 
 // GraphNodeModulePath implementation
@@ -44,7 +41,7 @@ func (n *nodeExpandModule) ModulePath() addrs.Module {
 	// This node represents the module call within a module,
 	// so return the CallerAddr as the path as the module
 	// call may expand into multiple child instances
-	return n.Addr
+	return n.Addr.Parent()
 }
 
 // GraphNodeReferencer implementation
@@ -85,8 +82,7 @@ func (n *nodeExpandModule) RemoveIfNotTargeted() bool {
 // GraphNodeEvalable
 func (n *nodeExpandModule) EvalTree() EvalNode {
 	return &evalPrepareModuleExpansion{
-		CallerAddr: n.CallerAddr,
-		Call:       n.Call,
+		Addr:       n.Addr,
 		Config:     n.Config,
 		ModuleCall: n.ModuleCall,
 	}
@@ -95,22 +91,17 @@ func (n *nodeExpandModule) EvalTree() EvalNode {
 // evalPrepareModuleExpansion is an EvalNode implementation
 // that sets the count or for_each on the instance expander
 type evalPrepareModuleExpansion struct {
-	CallerAddr addrs.ModuleInstance
-	Call       addrs.ModuleCall
+	Addr       addrs.Module
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
 }
 
 func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) {
+	path := ctx.Path()
 	eachMode := states.NoEach
 	expander := ctx.InstanceExpander()
 
-	if n.ModuleCall == nil {
-		// FIXME: should we have gotten here with no module call?
-		log.Printf("[TRACE] evalPrepareModuleExpansion: %s is a singleton", n.CallerAddr.Child(n.Call.Name, addrs.NoKey))
-		expander.SetModuleSingle(n.CallerAddr, n.Call)
-		return nil, nil
-	}
+	_, call := n.Addr.Call()
 
 	count, countDiags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
 	if countDiags.HasErrors() {
@@ -132,11 +123,11 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 
 	switch eachMode {
 	case states.EachList:
-		expander.SetModuleCount(ctx.Path(), n.Call, count)
+		expander.SetModuleCount(path, call, count)
 	case states.EachMap:
-		expander.SetModuleForEach(ctx.Path(), n.Call, forEach)
+		expander.SetModuleForEach(path, call, forEach)
 	default:
-		expander.SetModuleSingle(n.CallerAddr, n.Call)
+		expander.SetModuleSingle(path, call)
 	}
 
 	return nil, nil
