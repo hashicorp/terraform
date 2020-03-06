@@ -10,16 +10,16 @@
                             "ami": {
                                 "type": "string",
                                 "optional": true,
-																"description_kind": "plain"
+                                "description_kind": "plain"
                             },
                             "id": {
                                 "type": "string",
                                 "optional": true,
                                 "computed": true,
-																"description_kind": "plain"
+                                "description_kind": "plain"
                             }
                         },
-												"description_kind": "plain"
+                        "description_kind": "plain"
                     }
                 }
             }
