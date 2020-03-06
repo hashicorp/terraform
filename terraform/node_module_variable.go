@@ -25,14 +25,13 @@ var (
 	_ GraphNodeReferenceOutside  = (*NodePlannableModuleVariable)(nil)
 	_ GraphNodeReferenceable     = (*NodePlannableModuleVariable)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableModuleVariable)(nil)
-	_ GraphNodeModuleInstance    = (*NodePlannableModuleVariable)(nil)
 	_ RemovableIfNotTargeted     = (*NodePlannableModuleVariable)(nil)
 )
 
 func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+	for _, module := range expander.ExpandModule(n.Module) {
 		o := &NodeApplyableModuleVariable{
 			Addr:   n.Addr.Absolute(module),
 			Config: n.Config,
@@ -45,13 +44,6 @@ func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, er
 
 func (n *NodePlannableModuleVariable) Name() string {
 	return fmt.Sprintf("%s.%s", n.Module, n.Addr.String())
-}
-
-// GraphNodeModuleInstance
-func (n *NodePlannableModuleVariable) Path() addrs.ModuleInstance {
-	// Return an UnkeyedInstanceShim as our placeholder,
-	// given that modules will be unexpanded at this point in the walk
-	return n.Module.UnkeyedInstanceShim()
 }
 
 // GraphNodeModulePath
