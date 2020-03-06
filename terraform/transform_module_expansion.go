@@ -33,25 +33,16 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 }
 
 func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, parentNode dag.Vertex) error {
-	// FIXME: We're using addrs.ModuleInstance to represent the paths here
-	// because the rest of Terraform Core is expecting that, but in practice
-	// thus is representing a path through the static module instances (not
-	// expanded yet), and so as we weave in support for repetition of module
-	// calls we'll need to make the plan processing actually use addrs.Module
-	// to represent that our graph nodes are actually representing unexpanded
-	// static configuration objects, not instances.
-	fullAddr := c.Path.UnkeyedInstanceShim()
-	callerAddr, callAddr := fullAddr.Call()
+	_, call := c.Path.Call()
+	modCall := c.Parent.Module.ModuleCalls[call.Name]
 
-	modulecall := c.Parent.Module.ModuleCalls["child"]
 	v := &nodeExpandModule{
-		CallerAddr: callerAddr,
-		Call:       callAddr,
+		Addr:       c.Path,
 		Config:     c.Module,
-		ModuleCall: modulecall,
+		ModuleCall: modCall,
 	}
 	g.Add(v)
-	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", fullAddr, v)
+	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, v)
 
 	if parentNode != nil {
 		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(v), dag.VertexName(parentNode))
@@ -65,12 +56,12 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	// work to properly support "count" and "for_each" for modules. Nodes
 	// in the plan graph actually belong to modules, not to module instances.
 	for _, childV := range g.Vertices() {
-		pather, ok := childV.(GraphNodeModuleInstance)
+		pather, ok := childV.(GraphNodeModulePath)
 		if !ok {
 			continue
 		}
-		if pather.Path().Equal(fullAddr) {
-			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), fullAddr)
+		if pather.ModulePath().Equal(c.Path) {
+			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
 			g.Connect(dag.BasicEdge(childV, v))
 		}
 	}
