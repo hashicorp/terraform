@@ -160,7 +160,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
