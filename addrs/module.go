@@ -40,6 +40,10 @@ func (m Module) String() string {
 	return strings.Join(steps, ".")
 }
 
+func (m Module) Equal(other Module) bool {
+	return m.String() == other.String()
+}
+
 // Child returns the address of a child call in the receiver, identified by the
 // given name.
 func (m Module) Child(name string) Module {
