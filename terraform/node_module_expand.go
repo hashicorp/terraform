@@ -17,23 +17,13 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ GraphNodeModuleInstance = (*nodeExpandModule)(nil)
-	_ RemovableIfNotTargeted  = (*nodeExpandModule)(nil)
-	_ GraphNodeEvalable       = (*nodeExpandModule)(nil)
-	_ GraphNodeReferencer     = (*nodeExpandModule)(nil)
+	_ RemovableIfNotTargeted = (*nodeExpandModule)(nil)
+	_ GraphNodeEvalable      = (*nodeExpandModule)(nil)
+	_ GraphNodeReferencer    = (*nodeExpandModule)(nil)
 )
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String()
-}
-
-// GraphNodeModuleInstance implementation
-func (n *nodeExpandModule) Path() addrs.ModuleInstance {
-	// This node represents the module call within a module,
-	// so return the CallerAddr as the path as the module
-	// call may expand into multiple child instances
-	// FIXME:
-	return n.Addr.Parent().UnkeyedInstanceShim()
 }
 
 // GraphNodeModulePath implementation
@@ -97,7 +87,6 @@ type evalPrepareModuleExpansion struct {
 }
 
 func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) {
-	path := ctx.Path()
 	eachMode := states.NoEach
 	expander := ctx.InstanceExpander()
 
@@ -121,13 +110,18 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 		eachMode = states.EachMap
 	}
 
-	switch eachMode {
-	case states.EachList:
-		expander.SetModuleCount(path, call, count)
-	case states.EachMap:
-		expander.SetModuleForEach(path, call, forEach)
-	default:
-		expander.SetModuleSingle(path, call)
+	// nodeExpandModule itself does not have visibility into how it's ancestors
+	// were expended, so we use the expander here to provide all possible paths
+	// to our module, and register module instances with each of them.
+	for _, path := range expander.ExpandModule(n.Addr.Parent()) {
+		switch eachMode {
+		case states.EachList:
+			expander.SetModuleCount(path, call, count)
+		case states.EachMap:
+			expander.SetModuleForEach(path, call, forEach)
+		default:
+			expander.SetModuleSingle(path, call)
+		}
 	}
 
 	return nil, nil
