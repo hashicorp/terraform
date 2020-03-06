@@ -4,6 +4,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+type StringKind int
+
+const (
+	StringPlain StringKind = iota
+	StringMarkdown
+)
+
 // Block represents a configuration block.
 //
 // "Block" here is a logical grouping construct, though it happens to map
@@ -21,6 +28,11 @@ type Block struct {
 	// BlockTypes describes any nested block types that may appear directly
 	// inside the block.
 	BlockTypes map[string]*NestedBlock
+
+	Description     string
+	DescriptionKind StringKind
+
+	Deprecated bool
 }
 
 // Attribute represents a configuration attribute, within a block.
@@ -32,7 +44,8 @@ type Attribute struct {
 	// usage of the attribute. A description should be concise and use only
 	// one or two sentences, leaving full definition to longer-form
 	// documentation defined elsewhere.
-	Description string
+	Description     string
+	DescriptionKind StringKind
 
 	// Required, if set to true, specifies that an omitted or null value is
 	// not permitted.
@@ -55,6 +68,8 @@ type Attribute struct {
 	// future to help Terraform mask sensitive information. (Terraform
 	// currently achieves this in a limited sense via other mechanisms.)
 	Sensitive bool
+
+	Deprecated bool
 }
 
 // NestedBlock represents the embedding of one block within another.

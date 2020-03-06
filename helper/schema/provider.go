@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -49,6 +49,14 @@ type Provider struct {
 	// Resource instances for data sources must have a Read function
 	// and must *not* implement Create, Update or Delete.
 	DataSourcesMap map[string]*Resource
+
+	// ProviderMetaSchema is the schema for the configuration of the meta
+	// information for this provider. If this provider has no meta info,
+	// this can be omitted. This functionality is currently experimental
+	// and subject to change or break without warning; it should only be
+	// used by providers that are collaborating on its use with the
+	// Terraform team.
+	ProviderMetaSchema map[string]*Schema
 
 	// ConfigureFunc is a function for configuring the provider. If the
 	// provider doesn't need to be configured, this can be omitted.

@@ -1634,6 +1634,8 @@ type InstanceState struct {
 	// and collections.
 	Meta map[string]interface{} `json:"meta"`
 
+	ProviderMeta cty.Value
+
 	// Tainted is used to mark a resource for recreation.
 	Tainted bool `json:"tainted"`
 

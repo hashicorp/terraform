@@ -93,6 +93,7 @@ type EvalDiff struct {
 	Config         *configs.Resource
 	Provider       *providers.Interface
 	ProviderAddr   addrs.AbsProviderConfig
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 	State          **states.ResourceInstanceObject
 	PreviousDiff   **plans.ResourceInstanceChange
@@ -138,6 +139,28 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMetas != nil {
+		if m, ok := n.ProviderMetas[n.ProviderAddr.Provider]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if (*n.ProviderSchema).ProviderMeta == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+				if configDiags.HasErrors() {
+					return nil, diags.Err()
+				}
+			}
+		}
 	}
 
 	absAddr := n.Addr.Absolute(ctx.Path())
@@ -204,6 +227,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		PriorState:       priorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
+		ProviderMeta:     metaConfigVal,
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
 	if diags.HasErrors() {
@@ -382,6 +406,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			PriorState:       nullPriorVal,
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     plannedPrivate,
+			ProviderMeta:     metaConfigVal,
 		})
 		// We need to tread carefully here, since if there are any warnings
 		// in here they probably also came out of our previous call to

@@ -15,12 +15,13 @@ type NodeRefreshableDataResource struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeRefreshableDataResource)(nil)
-	_ GraphNodeDynamicExpandable    = (*NodeRefreshableDataResource)(nil)
-	_ GraphNodeReferenceable        = (*NodeRefreshableDataResource)(nil)
-	_ GraphNodeReferencer           = (*NodeRefreshableDataResource)(nil)
-	_ GraphNodeResource             = (*NodeRefreshableDataResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeSubPath                   = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeDynamicExpandable         = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeReferenceable             = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeReferencer                = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeResource                  = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResource)(nil)
 )
 
 // GraphNodeDynamicExpandable
@@ -76,6 +77,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.ProviderMetas = n.ProviderMetas
 
 		return &NodeRefreshableDataResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -182,6 +184,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Config:            n.Config,
 				Provider:          &provider,
 				ProviderAddr:      n.ResolvedProvider,
+				ProviderMetas:     n.ProviderMetas,
 				ProviderSchema:    &providerSchema,
 				OutputChange:      &change,
 				OutputConfigValue: &configVal,

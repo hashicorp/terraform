@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -28,6 +28,7 @@ type EvalApply struct {
 	Change         **plans.ResourceInstanceChange
 	ProviderAddr   addrs.AbsProviderConfig
 	Provider       *providers.Interface
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 	Output         **states.ResourceInstanceObject
 	CreateNew      *bool
@@ -76,6 +77,31 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		)
 	}
 
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMetas != nil {
+		log.Printf("[DEBUG] EvalApply: ProviderMeta config value set")
+		if m, ok := n.ProviderMetas[n.ProviderAddr.Provider]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if (*n.ProviderSchema).ProviderMeta == nil {
+				log.Printf("[DEBUG] EvalApply: no ProviderMeta schema")
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				log.Printf("[DEBUG] EvalApply: ProviderMeta schema found")
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+				if configDiags.HasErrors() {
+					return nil, diags.Err()
+				}
+			}
+		}
+	}
+
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
@@ -83,6 +109,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		Config:         configVal,
 		PlannedState:   change.After,
 		PlannedPrivate: change.Private,
+		ProviderMeta:   metaConfigVal,
 	})
 	applyDiags := resp.Diagnostics
 	if n.Config != nil {

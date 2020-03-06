@@ -179,3 +179,11 @@ The introduction and completion of experiments is reported in
 [Terraform's changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md),
 so you can watch the release notes there to discover which experiment keywords,
 if any, are available in a particular Terraform release.
+
+## Passing Metadata to Providers
+
+The `terraform` block can have a nested `provider_meta` block for each
+provider a module is using, if the provider defines a schema for it. This
+allows the provider to receive module-specific information. No interpolations
+are performed on this block. For more information, see the
+[`provider_meta` page](/docs/internals/provider-meta.html).

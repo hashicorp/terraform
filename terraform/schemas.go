@@ -164,6 +164,10 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		schemas[fqn] = s
+
+		if resp.ProviderMeta.Block != nil {
+			s.ProviderMeta = resp.ProviderMeta.Block
+		}
 	}
 
 	if config != nil {
@@ -246,6 +250,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 // resource types and data sources used by that configuration.
 type ProviderSchema struct {
 	Provider      *configschema.Block
+	ProviderMeta  *configschema.Block
 	ResourceTypes map[string]*configschema.Block
 	DataSources   map[string]*configschema.Block
 
