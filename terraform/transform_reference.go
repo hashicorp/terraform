@@ -359,12 +359,6 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 	// Build the lookup table
 	vertices := make(map[string][]dag.Vertex)
 	for _, v := range vs {
-		_, ok := v.(GraphNodeModuleInstance)
-		if !ok {
-			// Only nodes with paths can participate in a reference map.
-			continue
-		}
-
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
 		if !ok {
