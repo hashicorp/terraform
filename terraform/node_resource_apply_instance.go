@@ -180,6 +180,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Planned:        &change, // setting this indicates that the result must be complete
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				OutputState:    &state,
 			},
@@ -287,6 +288,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				PreviousDiff:   &diff,
@@ -350,6 +352,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Change:         &diffApply,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				Output:         &state,
 				Error:          &err,

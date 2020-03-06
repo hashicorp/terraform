@@ -32,6 +32,7 @@ type Module struct {
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements map[string]ProviderRequirements
 	ProviderLocalNames   map[addrs.Provider]string
+	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -61,6 +62,7 @@ type File struct {
 
 	Backends          []*Backend
 	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
 	RequiredProviders []*RequiredProvider
 
 	Variables []*Variable
@@ -93,6 +95,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:          map[string]*ModuleCall{},
 		ManagedResources:     map[string]*Resource{},
 		DataResources:        map[string]*Resource{},
+		ProviderMetas:        map[addrs.Provider]*ProviderMeta{},
 	}
 
 	for _, file := range primaryFiles {
@@ -193,6 +196,19 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		} else {
 			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 		}
+	}
+
+	for _, pm := range file.ProviderMetas {
+		// TODO(paddy): pm.Provider is a string, but we need to build an addrs.Provider out of it somehow
+		if existing, exists := m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate provider_meta block",
+				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
+				Subject:  &pm.DeclRange,
+			})
+		}
+		m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)] = pm
 	}
 
 	for _, v := range file.Variables {

@@ -55,6 +55,10 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 		Block: convert.ConfigSchemaToProto(s.getProviderSchemaBlock()),
 	}
 
+	resp.ProviderMeta = &proto.Schema{
+		Block: convert.ConfigSchemaToProto(s.getProviderMetaSchemaBlock()),
+	}
+
 	for typ, res := range s.provider.ResourcesMap {
 		resp.ResourceSchemas[typ] = &proto.Schema{
 			Version: int64(res.SchemaVersion),
@@ -74,6 +78,10 @@ func (s *GRPCProviderServer) GetSchema(_ context.Context, req *proto.GetProvider
 
 func (s *GRPCProviderServer) getProviderSchemaBlock() *configschema.Block {
 	return schema.InternalMap(s.provider.Schema).CoreConfigSchema()
+}
+
+func (s *GRPCProviderServer) getProviderMetaSchemaBlock() *configschema.Block {
+	return schema.InternalMap(s.provider.ProviderMetaSchema).CoreConfigSchema()
 }
 
 func (s *GRPCProviderServer) getResourceSchemaBlock(name string) *configschema.Block {
@@ -522,6 +530,16 @@ func (s *GRPCProviderServer) ReadResource(_ context.Context, req *proto.ReadReso
 	}
 	instanceState.Meta = private
 
+	pmSchemaBlock := s.getProviderMetaSchemaBlock()
+	if pmSchemaBlock != nil && req.ProviderMeta != nil {
+		providerSchemaVal, err := msgpack.Unmarshal(req.ProviderMeta.Msgpack, pmSchemaBlock.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		instanceState.ProviderMeta = providerSchemaVal
+	}
+
 	newInstanceState, err := res.RefreshWithoutUpgrade(instanceState, s.provider.Meta())
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -620,6 +638,16 @@ func (s *GRPCProviderServer) PlanResourceChange(_ context.Context, req *proto.Pl
 	}
 
 	priorState.Meta = priorPrivate
+
+	pmSchemaBlock := s.getProviderMetaSchemaBlock()
+	if pmSchemaBlock != nil && req.ProviderMeta != nil {
+		providerSchemaVal, err := msgpack.Unmarshal(req.ProviderMeta.Msgpack, pmSchemaBlock.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		priorState.ProviderMeta = providerSchemaVal
+	}
 
 	// Ensure there are no nulls that will cause helper/schema to panic.
 	if err := validateConfigNulls(proposedNewStateVal, nil); err != nil {
@@ -880,6 +908,16 @@ func (s *GRPCProviderServer) ApplyResourceChange(_ context.Context, req *proto.A
 				delete(diff.Attributes, k)
 			}
 		}
+	}
+
+	pmSchemaBlock := s.getProviderMetaSchemaBlock()
+	if pmSchemaBlock != nil && req.ProviderMeta != nil {
+		providerSchemaVal, err := msgpack.Unmarshal(req.ProviderMeta.Msgpack, pmSchemaBlock.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		priorState.ProviderMeta = providerSchemaVal
 	}
 
 	newInstanceState, err := s.provider.Apply(info, priorState, diff)

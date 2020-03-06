@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -10174,7 +10175,6 @@ func TestContext2Apply_invalidIndexRef(t *testing.T) {
 			},
 		),
 	})
-
 	diags := c.Validate()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
@@ -10739,5 +10739,917 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 	_, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
+	}
+}
+
+func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	arcPMs := map[string]cty.Value{}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		arcPMs[req.TypeName] = req.ProviderMeta
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("ID")
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(s),
+		}
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	if !p.ApplyResourceChangeCalled {
+		t.Fatalf("ApplyResourceChange not called")
+	}
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := arcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module ApplyResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ApplyResourceChange")
+	} else {
+		expectations["quux-submodule"] = pm
+	}
+
+	if pm, ok := arcPMs["test_instance"]; !ok {
+		t.Fatalf("root module ApplyResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ApplyResourceChange")
+	} else {
+		expectations["quux"] = pm
+	}
+
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
+	}
+}
+
+func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	arcPMs := map[string]cty.Value{}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		arcPMs[req.TypeName] = req.ProviderMeta
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("ID")
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(s),
+		}
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	if !p.ApplyResourceChangeCalled {
+		t.Fatalf("ApplyResourceChange not called")
+	}
+
+	if pm, ok := arcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module ApplyResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in sub-module ApplyResourceChange: %+v", pm)
+	}
+
+	if pm, ok := arcPMs["test_instance"]; !ok {
+		t.Fatalf("root module ApplyResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in root module ApplyResourceChange: %+v", pm)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	prcPMs := map[string]cty.Value{}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		prcPMs[req.TypeName] = req.ProviderMeta
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatalf("PlanResourceChange not called")
+	}
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := prcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module PlanResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module PlanResourceChange")
+	} else {
+		expectations["quux-submodule"] = pm
+	}
+
+	if pm, ok := prcPMs["test_instance"]; !ok {
+		t.Fatalf("root module PlanResourceChange not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module PlanResourceChange")
+	} else {
+		expectations["quux"] = pm
+	}
+
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
+	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	prcPMs := map[string]cty.Value{}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		prcPMs[req.TypeName] = req.ProviderMeta
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatalf("PlanResourceChange not called")
+	}
+
+	if pm, ok := prcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module PlanResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in sub-module PlanResourceChange: %+v", pm)
+	}
+
+	if pm, ok := prcPMs["test_instance"]; !ok {
+		t.Fatalf("root module PlanResourceChange not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in root module PlanResourceChange: %+v", pm)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	var rootErr, subErr bool
+	errorSummary := "The resource test_%s.bar belongs to a provider that doesn't support provider_meta blocks"
+	for _, diag := range diags {
+		if diag.Description().Summary != "Provider registry.terraform.io/-/test doesn't support provider_meta" {
+			t.Errorf("Unexpected error: %+v", diag.Description())
+		}
+		switch diag.Description().Detail {
+		case fmt.Sprintf(errorSummary, "instance"):
+			rootErr = true
+		case fmt.Sprintf(errorSummary, "resource"):
+			subErr = true
+		default:
+			t.Errorf("Unexpected error: %s", diag.Description())
+		}
+	}
+	if !rootErr {
+		t.Errorf("Expected unsupported provider_meta block error for root module, none received")
+	}
+	if !subErr {
+		t.Errorf("Expected unsupported provider_meta block error for sub-module, none received")
+	}
+}
+
+func TestContext2Apply_ProviderMeta_plan_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatalf("plan supposed to error, has no errors")
+	}
+
+	var reqErr, invalidErr bool
+	for _, diag := range diags {
+		switch diag.Description().Summary {
+		case "Missing required argument":
+			if diag.Description().Detail == `The argument "quux" is required, but no definition was found.` {
+				reqErr = true
+			} else {
+				t.Errorf("Unexpected error %+v", diag.Description())
+			}
+		case "Unsupported argument":
+			if diag.Description().Detail == `An argument named "baz" is not expected here.` {
+				invalidErr = true
+			} else {
+				t.Errorf("Unexpected error %+v", diag.Description())
+			}
+		default:
+			t.Errorf("Unexpected error %+v", diag.Description())
+		}
+	}
+	if !reqErr {
+		t.Errorf("Expected missing required argument error, none received")
+	}
+	if !invalidErr {
+		t.Errorf("Expected unsupported argument error, none received")
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	rrcPMs := map[string]cty.Value{}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		rrcPMs[req.TypeName] = req.ProviderMeta
+		newState, err := p.GetSchemaReturn.ResourceTypes[req.TypeName].CoerceValue(p.ReadResourceResponse.NewState)
+		if err != nil {
+			panic(err)
+		}
+		resp := p.ReadResourceResponse
+		resp.NewState = newState
+		return resp
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	if !p.ReadResourceCalled {
+		t.Fatalf("ReadResource not called")
+	}
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := rrcPMs["test_resource"]; !ok {
+		t.Fatalf("sub-module ReadResource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ReadResource")
+	} else {
+		expectations["quux-submodule"] = pm
+	}
+
+	if pm, ok := rrcPMs["test_instance"]; !ok {
+		t.Fatalf("root module ReadResource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ReadResource")
+	} else {
+		expectations["quux"] = pm
+	}
+
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refresh_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	if !p.ReadResourceCalled {
+		t.Fatalf("ReadResource not called")
+	}
+	if !p.ReadResourceRequest.ProviderMeta.IsNull() {
+		t.Fatalf("Expected null ProviderMeta in ReadResource, got %v", p.ReadResourceRequest.ProviderMeta)
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// we need a schema for plan/apply so they don't error
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// drop the schema before refresh, to test that it errors
+	schema.ProviderMeta = nil
+	p.GetSchemaReturn = schema
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+		State: ctx.State(),
+	})
+
+	_, diags = ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	var rootErr, subErr bool
+	errorSummary := "The resource test_%s.bar belongs to a provider that doesn't support provider_meta blocks"
+	for _, diag := range diags {
+		if diag.Description().Summary != "Provider registry.terraform.io/-/test doesn't support provider_meta" {
+			t.Errorf("Unexpected error: %+v", diag.Description())
+		}
+		switch diag.Description().Detail {
+		case fmt.Sprintf(errorSummary, "instance"):
+			rootErr = true
+		case fmt.Sprintf(errorSummary, "resource"):
+			subErr = true
+		default:
+			t.Errorf("Unexpected error: %s", diag.Description())
+		}
+	}
+	if !rootErr {
+		t.Errorf("Expected unsupported provider_meta block error for root module, none received")
+	}
+	if !subErr {
+		t.Errorf("Expected unsupported provider_meta block error for sub-module, none received")
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refresh_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// we need a matching schema for plan/apply so they don't error
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	// change the schema before refresh, to test that it errors
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+		State: ctx.State(),
+	})
+
+	_, diags = ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	var reqErr, invalidErr bool
+	for _, diag := range diags {
+		switch diag.Description().Summary {
+		case "Missing required argument":
+			if diag.Description().Detail == `The argument "quux" is required, but no definition was found.` {
+				reqErr = true
+			} else {
+				t.Errorf("Unexpected error %+v", diag.Description())
+			}
+		case "Unsupported argument":
+			if diag.Description().Detail == `An argument named "baz" is not expected here.` {
+				invalidErr = true
+			} else {
+				t.Errorf("Unexpected error %+v", diag.Description())
+			}
+		default:
+			t.Errorf("Unexpected error %+v", diag.Description())
+		}
+	}
+	if !reqErr {
+		t.Errorf("Expected missing required argument error, none received")
+	}
+	if !invalidErr {
+		t.Errorf("Expected unsupported argument error, none received")
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
+	m := testModule(t, "provider-meta-data-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+	rdsPMs := map[string]cty.Value{}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		rdsPMs[req.TypeName] = req.ProviderMeta
+		switch req.TypeName {
+		case "test_data_source":
+			log.Printf("[TRACE] test_data_source RDSR returning")
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":  cty.StringVal("yo"),
+					"foo": cty.StringVal("bar"),
+				}),
+			}
+		case "test_file":
+			log.Printf("[TRACE] test_file RDSR returning")
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":       cty.StringVal("bar"),
+					"rendered": cty.StringVal("baz"),
+					"template": cty.StringVal(""),
+				}),
+			}
+		default:
+			// config drift, oops
+			log.Printf("[TRACE] unknown request TypeName: %q", req.TypeName)
+			return providers.ReadDataSourceResponse{}
+		}
+	}
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	if !p.ReadDataSourceCalled {
+		t.Fatalf("ReadDataSource not called")
+	}
+
+	expectations := map[string]cty.Value{}
+
+	if pm, ok := rdsPMs["test_file"]; !ok {
+		t.Fatalf("sub-module ReadDataSource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in sub-module ReadDataSource")
+	} else {
+		expectations["quux-submodule"] = pm
+	}
+
+	if pm, ok := rdsPMs["test_data_source"]; !ok {
+		t.Fatalf("root module ReadDataSource not called")
+	} else if pm.IsNull() {
+		t.Fatalf("null ProviderMeta in root module ReadDataSource")
+	} else {
+		expectations["quux"] = pm
+	}
+
+	type metaStruct struct {
+		Baz string `cty:"baz"`
+	}
+
+	for expected, v := range expectations {
+		var meta metaStruct
+		err := gocty.FromCtyValue(v, &meta)
+		if err != nil {
+			t.Fatalf("Error parsing cty value: %s", err)
+		}
+		if meta.Baz != expected {
+			t.Fatalf("Expected meta.Baz to be %q, got %q", expected, meta.Baz)
+		}
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
+	m := testModule(t, "provider-meta-data-unset")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"baz": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+	rdsPMs := map[string]cty.Value{}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		rdsPMs[req.TypeName] = req.ProviderMeta
+		switch req.TypeName {
+		case "test_data_source":
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":  cty.StringVal("yo"),
+					"foo": cty.StringVal("bar"),
+				}),
+			}
+		case "test_file":
+			return providers.ReadDataSourceResponse{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id":       cty.StringVal("bar"),
+					"rendered": cty.StringVal("baz"),
+					"template": cty.StringVal(""),
+				}),
+			}
+		default:
+			// config drift, oops
+			return providers.ReadDataSourceResponse{}
+		}
+	}
+
+	_, diags := ctx.Refresh()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Plan()
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply()
+	assertNoErrors(t, diags)
+
+	if !p.ReadDataSourceCalled {
+		t.Fatalf("ReadDataSource not called")
+	}
+
+	if pm, ok := rdsPMs["test_file"]; !ok {
+		t.Fatalf("sub-module ReadDataSource not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in sub-module ReadDataSource")
+	}
+
+	if pm, ok := rdsPMs["test_data_source"]; !ok {
+		t.Fatalf("root module ReadDataSource not called")
+	} else if !pm.IsNull() {
+		t.Fatalf("non-null ProviderMeta in root module ReadDataSource")
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
+	m := testModule(t, "provider-meta-data-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("yo"),
+			"foo": cty.StringVal("bar"),
+		}),
+	}
+
+	_, diags := ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	var rootErr, subErr bool
+	errorSummary := "The resource data.test_%s.foo belongs to a provider that doesn't support provider_meta blocks"
+	for _, diag := range diags {
+		if diag.Description().Summary != "Provider registry.terraform.io/-/test doesn't support provider_meta" {
+			t.Errorf("Unexpected error: %+v", diag.Description())
+		}
+		switch diag.Description().Detail {
+		case fmt.Sprintf(errorSummary, "data_source"):
+			rootErr = true
+		case fmt.Sprintf(errorSummary, "file"):
+			subErr = true
+		default:
+			t.Errorf("Unexpected error: %s", diag.Description())
+		}
+	}
+	if !rootErr {
+		t.Errorf("Expected unsupported provider_meta block error for root module, none received")
+	}
+	if !subErr {
+		t.Errorf("Expected unsupported provider_meta block error for sub-module, none received")
+	}
+}
+
+func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
+	m := testModule(t, "provider-meta-data-set")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	schema := p.GetSchemaReturn
+	schema.ProviderMeta = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"quux": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	p.GetSchemaReturn = schema
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+			},
+		),
+	})
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("yo"),
+			"foo": cty.StringVal("bar"),
+		}),
+	}
+
+	_, diags := ctx.Refresh()
+	if !diags.HasErrors() {
+		t.Fatalf("refresh supposed to error, has no errors")
+	}
+
+	var reqErr, invalidErr bool
+	for _, diag := range diags {
+		switch diag.Description().Summary {
+		case "Missing required argument":
+			if diag.Description().Detail == `The argument "quux" is required, but no definition was found.` {
+				reqErr = true
+			} else {
+				t.Errorf("Unexpected error %+v", diag.Description())
+			}
+		case "Unsupported argument":
+			if diag.Description().Detail == `An argument named "baz" is not expected here.` {
+				invalidErr = true
+			} else {
+				t.Errorf("Unexpected error %+v", diag.Description())
+			}
+		default:
+			t.Errorf("Unexpected error %+v", diag.Description())
+		}
+	}
+	if !reqErr {
+		t.Errorf("Expected missing required argument error, none received")
+	}
+	if !invalidErr {
+		t.Errorf("Expected unsupported argument error, none received")
 	}
 }
