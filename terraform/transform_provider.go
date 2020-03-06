@@ -62,11 +62,12 @@ type GraphNodeCloseProvider interface {
 // or in an ancestor module, with the resulting absolute address passed to
 // SetProvider.
 type GraphNodeProviderConsumer interface {
+	GraphNodeSubPath
 	// ProvidedBy returns the address of the provider configuration the node
 	// refers to. If the returned "exact" value is true, this address will
 	// be taken exactly. If "exact" is false, a provider configuration from
 	// an ancestor module may be selected instead.
-	ProvidedBy() (addr addrs.AbsProviderConfig, exact bool)
+	ProvidedBy() (addr addrs.ProviderConfig, exact bool)
 	// Set the resolved provider address for this resource.
 	SetProvider(addrs.AbsProviderConfig)
 }
@@ -110,20 +111,77 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			requested[v] = make(map[string]ProviderRequest)
 
-			p, exact := pv.ProvidedBy()
-			if exact {
-				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), p)
-			} else {
-				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), p)
+			providerAddr, exact := pv.ProvidedBy()
+			var absPc addrs.AbsProviderConfig
+			var providerFqn addrs.Provider
+
+			switch p := providerAddr.(type) {
+			case addrs.AbsProviderConfig:
+				absPc = p
+				// ProvidedBy() returns an AbsProviderConfig + exact == true
+				// when the provider configuration is set in state, so we do not
+				// need to verify the FQN matches.
+				if exact {
+					log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), absPc)
+					break
+				}
+
+				// if there is no config at all, the assumed default provider
+				// must be correct.
+				if t.Config == nil {
+					break
+				}
+
+				// If `exact` is false, an AbsProviderConfig indicates that
+				// ProvidedBy() returned an inferred default FQN. We must check
+				// if the inferred type name matches a non-default provider
+				// source in the config.
+				modConfig := t.Config.DescendentForInstance(pv.Path())
+				if modConfig != nil {
+					providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{
+						LocalName: p.Provider.Type,
+					})
+					// This is only a change to the absPc if
+					// ProviderForLocalConfig returns a different Provider
+					absPc.Provider = providerFqn
+				}
+
+			case addrs.LocalProviderConfig:
+				// ProvidedBy() return a LocalProviderConfig when the resource
+				// contains a `provider` attribute
+				modPath := pv.Path()
+				if t.Config == nil {
+					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
+					absPc.Module = modPath
+					absPc.Alias = p.Alias
+					break
+				}
+
+				modConfig := t.Config.DescendentForInstance(modPath)
+				if modConfig == nil {
+					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
+				} else {
+					absPc.Provider = modConfig.Module.ProviderForLocalConfig(p)
+				}
+				absPc.Module = modPath
+				absPc.Alias = p.Alias
+
+			default:
+				// This should never happen, the case statements are exhaustive
+				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), absPc))
 			}
 
-			requested[v][p.String()] = ProviderRequest{
-				Addr:  p,
+			if !exact {
+				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
+			}
+
+			requested[v][absPc.String()] = ProviderRequest{
+				Addr:  absPc,
 				Exact: exact,
 			}
 
 			// Direct references need the provider configured as well as initialized
-			needConfigured[p.String()] = p
+			needConfigured[absPc.String()] = absPc
 		}
 	}
 
@@ -303,16 +361,26 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		// the later proper resolution of provider inheritance done by
 		// ProviderTransformer.
 		p, _ := pv.ProvidedBy()
-		if p.Alias != "" {
-			// We do not create default aliased configurations.
-			log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
-			continue
+		var providerFqn addrs.Provider
+		switch p.(type) {
+		case addrs.LocalProviderConfig:
+			if p.(addrs.LocalProviderConfig).Alias != "" {
+				// We do not create default aliased configurations.
+				log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
+				continue
+			}
+			providerFqn = addrs.NewLegacyProvider(p.(addrs.LocalProviderConfig).LocalName)
+		case addrs.AbsProviderConfig:
+			providerFqn = p.(addrs.AbsProviderConfig).Provider
+		default:
+			// This should never happen, the case statements are exhaustive
+			panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), p))
 		}
 
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other
 		// aspects of the resource's declared provider address.
-		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(p.Provider)
+		defaultAddr := addrs.RootModuleInstance.ProviderConfigDefault(providerFqn)
 		key := defaultAddr.String()
 		provider := m[key]
 
