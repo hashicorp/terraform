@@ -350,7 +350,7 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 		if err := comm.Upload(fmt.Sprintf("/tmp/user-%s.toml", service.getServiceNameChecksum()), userToml); err != nil {
 			return err
 		}
-		command = p.linuxGetCommand(fmt.Sprintf("mv /tmp/user-%s.toml %s/user.toml", service.getServiceNameChecksum(), destDir))
+		command = p.linuxGetCommand(fmt.Sprintf("mv /tmp/user-%s.toml %s/user.toml && chmod o-r %s/user.toml", service.getServiceNameChecksum(), destDir, destDir))
 		return p.runCommand(o, comm, command)
 	}
 
