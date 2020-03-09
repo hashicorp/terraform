@@ -53,19 +53,16 @@ func (n *NodeApplyableResource) References() []*addrs.Reference {
 
 // GraphNodeEvalable
 func (n *NodeApplyableResource) EvalTree() EvalNode {
-	addr := n.ResourceAddr()
-	config := n.Config
-	providerAddr := n.ResolvedProvider
-
-	if config == nil {
+	if n.Config == nil {
 		// Nothing to do, then.
-		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", addr)
+		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
 		return &EvalNoop{}
 	}
 
 	return &EvalWriteResourceState{
-		Addr:         addr.Resource,
-		Config:       config,
-		ProviderAddr: providerAddr,
+		Addr:         n.Addr,
+		Module:       n.Module,
+		Config:       n.Config,
+		ProviderAddr: n.ResolvedProvider,
 	}
 }
