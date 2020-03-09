@@ -56,12 +56,21 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 		return *n.CreateBeforeDestroyOverride
 	}
 
-	// If we have no config, we just assume no
-	if n.Config == nil || n.Config.Managed == nil {
-		return false
+	// Config takes precedence
+	if n.Config != nil && n.Config.Managed != nil {
+		return n.Config.Managed.CreateBeforeDestroy
 	}
 
-	return n.Config.Managed.CreateBeforeDestroy
+	// Otherwise check the state for a stored destroy order
+	if rs := n.ResourceState; rs != nil {
+		if s := rs.Instance(n.InstanceKey); s != nil {
+			if s.Current != nil {
+				return s.Current.CreateBeforeDestroy
+			}
+		}
+	}
+
+	return false
 }
 
 // GraphNodeDestroyerCBD

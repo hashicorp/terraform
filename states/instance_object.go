@@ -36,6 +36,13 @@ type ResourceInstanceObject struct {
 	// altogether, or is now deposed.
 	Dependencies []addrs.AbsResource
 
+	// CreateBeforeDestroy reflects the status of the lifecycle
+	// create_before_destroy option when this instance was last updated.
+	// Because create_before_destroy also effects the overall ordering of the
+	// destroy operations, we need to record the status to ensure a resource
+	// removed from the config will still be destroyed in the same manner.
+	CreateBeforeDestroy bool
+
 	// DependsOn corresponds to the deprecated `depends_on` field in the state.
 	// This field contained the configuration `depends_on` values, and some of
 	// the references from within a single module.
