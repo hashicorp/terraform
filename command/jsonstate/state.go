@@ -241,6 +241,11 @@ func marshalModules(
 		ret = append(ret, cm)
 	}
 
+	// sort the child modules by address for consistency.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Address < ret[j].Address
+	})
+
 	return ret, nil
 }
 
