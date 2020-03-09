@@ -222,7 +222,7 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 // The module address to resolve local addresses in must be given in the second
 // argument, and must refer to a module that exists under the receiver or
 // else this method will panic.
-func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.ModuleInstance) addrs.AbsProviderConfig {
+func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.Module) addrs.AbsProviderConfig {
 	switch addr := addr.(type) {
 
 	case addrs.AbsProviderConfig:
@@ -231,7 +231,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 	case addrs.LocalProviderConfig:
 		// Find the descendent Config that contains the module that this
 		// local config belongs to.
-		mc := c.DescendentForInstance(inModule)
+		mc := c.Descendent(inModule)
 		if mc == nil {
 			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
 		}
@@ -265,5 +265,5 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 	if provider, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
 		return provider.Type
 	}
-	return c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).Provider
+	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
 }

@@ -18,7 +18,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		{
 			`provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
-				Module: RootModuleInstance,
+				Module: RootModule,
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
@@ -30,7 +30,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		{
 			`provider["registry.terraform.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
-				Module: RootModuleInstance,
+				Module: RootModule,
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
@@ -43,11 +43,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		{
 			`module.baz.provider["registry.terraform.io/hashicorp/aws"]`,
 			AbsProviderConfig{
-				Module: ModuleInstance{
-					{
-						Name: "baz",
-					},
-				},
+				Module: Module{"baz"},
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
@@ -59,11 +55,7 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		{
 			`module.baz.provider["registry.terraform.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
-				Module: ModuleInstance{
-					{
-						Name: "baz",
-					},
-				},
+				Module: Module{"baz"},
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
@@ -75,57 +67,18 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		},
 		{
 			`module.baz["foo"].provider["registry.terraform.io/hashicorp/aws"]`,
-			AbsProviderConfig{
-				Module: ModuleInstance{
-					{
-						Name:        "baz",
-						InstanceKey: StringKey("foo"),
-					},
-				},
-				Provider: Provider{
-					Type:      "aws",
-					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
-				},
-			},
-			``,
+			AbsProviderConfig{},
+			`Provider address cannot contain module indexes`,
 		},
 		{
 			`module.baz[1].provider["registry.terraform.io/hashicorp/aws"]`,
-			AbsProviderConfig{
-				Module: ModuleInstance{
-					{
-						Name:        "baz",
-						InstanceKey: IntKey(1),
-					},
-				},
-				Provider: Provider{
-					Type:      "aws",
-					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
-				},
-			},
-			``,
+			AbsProviderConfig{},
+			`Provider address cannot contain module indexes`,
 		},
 		{
 			`module.baz[1].module.bar.provider["registry.terraform.io/hashicorp/aws"]`,
-			AbsProviderConfig{
-				Module: ModuleInstance{
-					{
-						Name:        "baz",
-						InstanceKey: IntKey(1),
-					},
-					{
-						Name: "bar",
-					},
-				},
-				Provider: Provider{
-					Type:      "aws",
-					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
-				},
-			},
-			``,
+			AbsProviderConfig{},
+			`Provider address cannot contain module indexes`,
 		},
 		{
 			`aws`,
@@ -206,21 +159,21 @@ func TestAbsProviderConfigString(t *testing.T) {
 	}{
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance,
+				Module:   RootModule,
 				Provider: NewLegacyProvider("foo"),
 			},
 			`provider["registry.terraform.io/-/foo"]`,
 		},
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance.Child("child_module", NoKey),
+				Module:   RootModule.Child("child_module"),
 				Provider: NewLegacyProvider("foo"),
 			},
 			`module.child_module.provider["registry.terraform.io/-/foo"]`,
 		},
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance,
+				Module:   RootModule,
 				Alias:    "bar",
 				Provider: NewLegacyProvider("foo"),
 			},
@@ -228,7 +181,7 @@ func TestAbsProviderConfigString(t *testing.T) {
 		},
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance.Child("child_module", NoKey),
+				Module:   RootModule.Child("child_module"),
 				Alias:    "bar",
 				Provider: NewLegacyProvider("foo"),
 			},
@@ -251,21 +204,21 @@ func TestAbsProviderConfigLegacyString(t *testing.T) {
 	}{
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance,
+				Module:   RootModule,
 				Provider: NewLegacyProvider("foo"),
 			},
 			`provider.foo`,
 		},
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance.Child("child_module", NoKey),
+				Module:   RootModule.Child("child_module"),
 				Provider: NewLegacyProvider("foo"),
 			},
 			`module.child_module.provider.foo`,
 		},
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance,
+				Module:   RootModule,
 				Alias:    "bar",
 				Provider: NewLegacyProvider("foo"),
 			},
@@ -273,7 +226,7 @@ func TestAbsProviderConfigLegacyString(t *testing.T) {
 		},
 		{
 			AbsProviderConfig{
-				Module:   RootModuleInstance.Child("child_module", NoKey),
+				Module:   RootModule.Child("child_module"),
 				Alias:    "bar",
 				Provider: NewLegacyProvider("foo"),
 			},

@@ -43,11 +43,11 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("test"),
 			Alias:    "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
+		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		if got, want := got.String(), addr.String(); got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
@@ -57,9 +57,9 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			LocalName: "implied",
 			Alias:     "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
+		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
-			Module: addrs.RootModuleInstance,
+			Module: addrs.RootModule,
 			// FIXME: At the time of writing we still have LocalProviderConfig
 			// nested inside AbsProviderConfig, but a future change will
 			// stop tis embedding and just have an addrs.Provider and an alias
@@ -78,9 +78,9 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			LocalName: "foo-test", // this is explicitly set in the config
 			Alias:     "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
+		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
 			Alias:    "boop",
 		}
