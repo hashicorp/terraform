@@ -19,7 +19,6 @@ type NodePlannableResource struct {
 }
 
 var (
-	_ GraphNodeModuleInstance       = (*NodePlannableResource)(nil)
 	_ GraphNodeDestroyerCBD         = (*NodePlannableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
@@ -30,19 +29,17 @@ var (
 
 // GraphNodeEvalable
 func (n *NodePlannableResource) EvalTree() EvalNode {
-	addr := n.ResourceAddr()
-	config := n.Config
-
-	if config == nil {
+	if n.Config == nil {
 		// Nothing to do, then.
-		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", addr)
+		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
 		return &EvalNoop{}
 	}
 
 	// this ensures we can reference the resource even if the count is 0
 	return &EvalWriteResourceState{
-		Addr:         addr.Resource,
-		Config:       config,
+		Addr:         n.Addr,
+		Module:       n.Module,
+		Config:       n.Config,
 		ProviderAddr: n.ResolvedProvider,
 	}
 }

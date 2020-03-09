@@ -25,7 +25,6 @@ type NodeRefreshableManagedResource struct {
 }
 
 var (
-	_ GraphNodeModuleInstance       = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
@@ -61,8 +60,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-
-	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+	for _, module := range expander.ExpandModule(n.Module) {
 		switch {
 		case count >= 0:
 			expander.SetResourceCount(module, n.ResourceAddr().Resource, count)
@@ -72,7 +70,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 			expander.SetResourceSingle(module, n.ResourceAddr().Resource)
 		}
 	}
-	instanceAddrs := expander.ExpandResource(ctx.Path().Module(), n.ResourceAddr().Resource)
+	instanceAddrs := expander.ExpandResource(n.Module, n.ResourceAddr().Resource)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -131,7 +129,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		Name:     "NodeRefreshableManagedResource",
 	}
 
-	graph, diags := b.Build(ctx.Path())
+	graph, diags := b.Build(nil)
 	return graph, diags.ErrWithWarnings()
 }
 
