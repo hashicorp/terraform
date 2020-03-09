@@ -212,8 +212,8 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	return ret, err
 }
 
-// marshalModules is an ungainly recursive function to build a module
-// structure out of a teraform state.
+// marshalModules is an ungainly recursive function to build a module structure
+// out of terraform state.
 func marshalModules(
 	s *states.State,
 	schemas *terraform.Schemas,
