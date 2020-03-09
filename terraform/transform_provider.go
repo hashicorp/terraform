@@ -65,14 +65,18 @@ type GraphNodeCloseProvider interface {
 type GraphNodeProviderConsumer interface {
 	GraphNodeSubPath
 	// ProvidedBy returns the address of the provider configuration the node
-	// refers to. If the returned "exact" value is true, this address will
-	// be taken exactly. If "exact" is false, a provider configuration from
-	// an ancestor module may be selected instead.
+	// refers to, if available. The following value types may be returned:
+	//
+	// * addrs.LocalProviderConfig: the provider was set in the resource config
+	// * addrs.AbsProviderConfig: the provider configuration was taken from the
+	//   instance state.
+	// * nil: provider was not set in config or state. It is the caller's
+	//   responsibility to determine the implied default provider (see ImpliedProvider())
 	ProvidedBy() (addr addrs.ProviderConfig, exact bool)
 
 	// ImpliedProvider returns the provider FQN implied by the resource type
-	// name (for eg the "null" in "null_resource"). This should only be used
-	// when ProvidedBy() returns nil.
+	// name (for eg the "null" in "null_resource"). This should be used when
+	// ProvidedBy() returns nil.
 	ImpliedProvider() (addrs addrs.Provider)
 
 	// Set the resolved provider address for this resource.
@@ -123,14 +127,15 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 
 			switch p := providerAddr.(type) {
 			case addrs.AbsProviderConfig:
-				absPc = p
 				// ProvidedBy() returns an AbsProviderConfig when the provider
 				// configuration is set in state, so we do not need to verify
 				// the FQN matches.
+				absPc = p
+
 				if exact {
 					log.Printf("[TRACE] ProviderTransformer: %s is provided by %s exactly", dag.VertexName(v), absPc)
-					break
 				}
+
 			case addrs.LocalProviderConfig:
 				// ProvidedBy() return a LocalProviderConfig when the resource
 				// contains a `provider` attribute

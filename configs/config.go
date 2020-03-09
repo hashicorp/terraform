@@ -190,10 +190,6 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 		return
 	}
 
-	// FIXME: These are currently all assuming legacy provider addresses.
-	// As part of phasing those out we'll need to change this to look up
-	// the true provider addresses via the local-to-FQN mapping table
-	// stored inside c.Module.
 	for _, pc := range c.Module.ProviderConfigs {
 		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pc.Name})
 		m[fqn] = struct{}{}
