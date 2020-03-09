@@ -436,6 +436,148 @@ func TestMarshalResources(t *testing.T) {
 	}
 }
 
+func TestMarshalModules_basic(t *testing.T) {
+	childModule, _ := addrs.ParseModuleInstanceStr("module.child")
+	subModule, _ := addrs.ParseModuleInstanceStr("module.submodule")
+	testState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(childModule),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   childModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(subModule),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   subModule,
+			},
+		)
+	})
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+	moduleMap[""] = []addrs.ModuleInstance{childModule, subModule}
+
+	got, err := marshalModules(testState, testSchemas(), moduleMap[""], moduleMap)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	if len(got) != 2 {
+		t.Fatalf("wrong result! got %d modules, expected 2", len(got))
+	}
+
+	if got[0].Address != "module.child" || got[1].Address != "module.submodule" {
+		t.Fatalf("wrong result! got %#v\n", got)
+	}
+
+}
+
+func TestMarshalModules_nested(t *testing.T) {
+	childModule, _ := addrs.ParseModuleInstanceStr("module.child")
+	subModule, _ := addrs.ParseModuleInstanceStr("module.child.module.submodule")
+	testState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModuleInstance,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(childModule),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   childModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(subModule),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   subModule,
+			},
+		)
+	})
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+	moduleMap[""] = []addrs.ModuleInstance{childModule}
+	moduleMap[childModule.String()] = []addrs.ModuleInstance{subModule}
+
+	got, err := marshalModules(testState, testSchemas(), moduleMap[""], moduleMap)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("wrong result! got %d modules, expected 1", len(got))
+	}
+
+	if got[0].Address != "module.child" {
+		t.Fatalf("wrong result! got %#v\n", got)
+	}
+
+	if got[0].ChildModules[0].Address != "module.child.module.submodule" {
+		t.Fatalf("wrong result! got %#v\n", got)
+	}
+}
+
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
@@ -445,6 +587,13 @@ func testSchemas() *terraform.Schemas {
 						Attributes: map[string]*configschema.Attribute{
 							"woozles": {Type: cty.String, Optional: true, Computed: true},
 							"foozles": {Type: cty.String, Optional: true},
+						},
+					},
+					"test_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"id":  {Type: cty.String, Optional: true, Computed: true},
+							"foo": {Type: cty.String, Optional: true},
+							"bar": {Type: cty.String, Optional: true},
 						},
 					},
 				},
