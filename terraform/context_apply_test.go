@@ -10230,8 +10230,9 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 				Name: "a",
 			}.Instance(addrs.NoKey),
 			&states.ResourceInstanceObjectSrc{
-				Status:    states.ObjectReady,
-				AttrsJSON: []byte(`{"id":"a","require_new":"old"}`),
+				Status:              states.ObjectReady,
+				AttrsJSON:           []byte(`{"id":"a","require_new":"old"}`),
+				CreateBeforeDestroy: mode == "cbd",
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
