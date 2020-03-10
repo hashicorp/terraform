@@ -27,6 +27,7 @@ tested by HashiCorp.
 - [Oracle Cloud Infrastructure](/docs/providers/oci/index.html)
 - [Oracle Cloud Platform](/docs/providers/oraclepaas/index.html)
 - [Oracle Public Cloud](/docs/providers/opc/index.html)
+- [VMware Cloud](/docs/providers/vmc/index.html)
 - [VMware NSX-T](/docs/providers/nsxt/index.html)
 - [vCloud Director](/docs/providers/vcd/index.html)
 - [VMware vRA7](/docs/providers/vra7/index.html)
