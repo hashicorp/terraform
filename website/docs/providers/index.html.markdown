@@ -146,6 +146,7 @@ down to see all providers.
 - [UltraDNS](/docs/providers/ultradns/index.html)
 - [Vault](/docs/providers/vault/index.html)
 - [Venafi](/docs/providers/venafi/index.html)
+- [VMware Cloud](/docs/providers/vmc/index.html)
 - [VMware NSX-T](/docs/providers/nsxt/index.html)
 - [VMware vCloud Director](/docs/providers/vcd/index.html)
 - [VMware vRA7](/docs/providers/vra7/index.html)
