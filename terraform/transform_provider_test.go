@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -93,6 +94,46 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 	expected := strings.TrimSpace(testTransformProviderModuleChildStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
+// Test providers with FQNs that do not match the typeName
+func TestProviderTransformer_fqns(t *testing.T) {
+	for _, mod := range []string{"fqns", "fqns-module"} {
+		mod := testModule(t, fmt.Sprintf("transform-provider-%s", mod))
+
+		g := Graph{Path: addrs.RootModuleInstance}
+		{
+			tf := &ConfigTransformer{Config: mod}
+			if err := tf.Transform(&g); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		{
+			transform := &AttachResourceConfigTransformer{Config: mod}
+			if err := transform.Transform(&g); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		{
+			transform := &MissingProviderTransformer{Providers: []string{"aws"}, Config: mod}
+			if err := transform.Transform(&g); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		transform := &ProviderTransformer{Config: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := strings.TrimSpace(g.String())
+		expected := strings.TrimSpace(testTransformProviderBasicStr)
+		if actual != expected {
+			t.Fatalf("bad:\n\n%s", actual)
+		}
 	}
 }
 

@@ -43,7 +43,13 @@ func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd 
 		delete(recv, reqd.Name)
 	}
 	for _, reqd := range ovrd {
-		fqn := addrs.NewLegacyProvider(reqd.Name)
+		var fqn addrs.Provider
+		if reqd.Source != "" {
+			// FIXME: capture errors
+			fqn, _ = addrs.ParseProviderSourceString(reqd.Source)
+		} else {
+			fqn = addrs.NewLegacyProvider(reqd.Name)
+		}
 		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 	}
 }
