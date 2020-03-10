@@ -1,4 +1,12 @@
 ## 0.12.24 (Unreleased)
+
+NOTES:
+
+* cli: Windows executable signing.
+
+Our Windows 32-bit and 64-bit executables for this version and up will be signed with a HashiCorp cert. Windows users will no longer see a warning about an "unknown publisher" when running our software.
+
+
 ## 0.12.23 (March 05, 2020)
 
 BUG FIXES:
