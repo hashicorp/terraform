@@ -63,24 +63,26 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			typeName := addr.Resource.Type
 			providerAddr, _ := tv.ProvidedBy()
 
-			var providerTypeName string
+			var providerFqn addrs.Provider
 			switch p := providerAddr.(type) {
 			case addrs.LocalProviderConfig:
-				providerTypeName = p.LocalName
-			case addrs.AbsProviderConfig:
-				providerTypeName = p.Provider.Type
-			}
-
-			var providerFqn addrs.Provider
-			if t.Config == nil {
-				providerFqn = addrs.NewLegacyProvider(providerTypeName)
-			} else {
-				modConfig := t.Config.DescendentForInstance(tv.Path())
-				if modConfig == nil {
-					providerFqn = addrs.NewLegacyProvider(providerTypeName)
+				if t.Config == nil {
+					providerFqn = addrs.NewLegacyProvider(p.LocalName)
 				} else {
-					providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: providerTypeName})
+					modConfig := t.Config.DescendentForInstance(tv.Path())
+					if modConfig == nil {
+						providerFqn = addrs.NewLegacyProvider(p.LocalName)
+					} else {
+						providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: p.LocalName})
+					}
 				}
+			case addrs.AbsProviderConfig:
+				providerFqn = p.Provider
+			case nil:
+				providerFqn = tv.ImpliedProvider()
+			default:
+				// This should never happen; the case statements are meant to be exhaustive
+				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), addr))
 			}
 
 			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
