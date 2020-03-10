@@ -295,12 +295,13 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 		}, false
 	}
 
-	// Use our type and containing module path to guess a provider configuration address.
-	defaultFQN := n.Addr.Resource.DefaultProvider()
-	return addrs.AbsProviderConfig{
-		Provider: defaultFQN,
-		Module:   n.Addr.Module,
-	}, false
+	// No provider configuration found
+	return nil, false
+}
+
+// GraphNodeProviderConsumer
+func (n *NodeAbstractResource) ImpliedProvider() addrs.Provider {
+	return n.Addr.Resource.DefaultProvider()
 }
 
 // GraphNodeProviderConsumer
@@ -322,12 +323,13 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool)
 		return n.ResourceState.ProviderConfig, true
 	}
 
-	// Use our type and containing module path to guess a provider configuration address
-	defaultFQN := n.Addr.Resource.DefaultProvider()
-	return addrs.AbsProviderConfig{
-		Provider: defaultFQN,
-		Module:   n.Addr.Module,
-	}, false
+	// No provider configuration found
+	return nil, false
+}
+
+// GraphNodeProviderConsumer
+func (n *NodeAbstractResourceInstance) ImpliedProvider() addrs.Provider {
+	return n.Addr.Resource.DefaultProvider()
 }
 
 // GraphNodeProvisionerConsumer
