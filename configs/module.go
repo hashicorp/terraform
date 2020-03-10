@@ -178,16 +178,13 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, reqd := range file.RequiredProviders {
-		// As an interim *testing* step, we will accept a source argument
-		// but assume that the source is a legacy provider. This allows us to
-		// exercise the provider local names -> fqn logic without changing
-		// terraform's behavior.
+		var fqn addrs.Provider
 		if reqd.Source != "" {
-			// Fixme: once the rest of the provider source logic is implemented,
-			// update this to get the addrs.Provider by using
-			// addrs.ParseProviderSourceString()
+			// FIXME: capture errors
+			fqn, _ = addrs.ParseProviderSourceString(reqd.Source)
+		} else {
+			fqn = addrs.NewLegacyProvider(reqd.Name)
 		}
-		fqn := addrs.NewLegacyProvider(reqd.Name)
 		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
 			if existing.Type != fqn {
 				panic("provider fqn mismatch")
@@ -476,7 +473,7 @@ func (m *Module) LocalNameForProvider(p addrs.Provider) string {
 
 // ProviderForLocalConfig returns the provider FQN for a given LocalProviderConfig
 func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
-	if provider, exists := m.ProviderRequirements[pc.String()]; exists {
+	if provider, exists := m.ProviderRequirements[pc.LocalName]; exists {
 		return provider.Type
 	}
 	return addrs.NewLegacyProvider(pc.LocalName)

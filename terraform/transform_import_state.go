@@ -69,6 +69,16 @@ func (n *graphNodeImportState) ProvidedBy() (addrs.ProviderConfig, bool) {
 }
 
 // GraphNodeProviderConsumer
+func (n *graphNodeImportState) ImpliedProvider() addrs.Provider {
+	// We assume that n.ProviderAddr has been properly populated here.
+	// It's the responsibility of the code creating a graphNodeImportState
+	// to populate this, possibly by calling DefaultProviderConfig() on the
+	// resource address to infer an implied provider from the resource type
+	// name.
+	return n.ProviderAddr.Provider
+}
+
+// GraphNodeProviderConsumer
 func (n *graphNodeImportState) SetProvider(addr addrs.AbsProviderConfig) {
 	n.ResolvedProvider = addr
 }

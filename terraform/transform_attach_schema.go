@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -44,6 +45,7 @@ type GraphNodeAttachProvisionerSchema interface {
 // and then passes them to a method implemented by the node.
 type AttachSchemaTransformer struct {
 	Schemas *Schemas
+	Config  *configs.Config
 }
 
 func (t *AttachSchemaTransformer) Transform(g *Graph) error {
@@ -60,14 +62,27 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
 			providerAddr, _ := tv.ProvidedBy()
-			var providerFqn addrs.Provider
 
+			var providerFqn addrs.Provider
 			switch p := providerAddr.(type) {
 			case addrs.LocalProviderConfig:
-				// FIXME: need to look up the providerFQN in the config
-				providerFqn = addrs.NewLegacyProvider(p.LocalName)
+				if t.Config == nil {
+					providerFqn = addrs.NewLegacyProvider(p.LocalName)
+				} else {
+					modConfig := t.Config.DescendentForInstance(tv.Path())
+					if modConfig == nil {
+						providerFqn = addrs.NewLegacyProvider(p.LocalName)
+					} else {
+						providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: p.LocalName})
+					}
+				}
 			case addrs.AbsProviderConfig:
 				providerFqn = p.Provider
+			case nil:
+				providerFqn = tv.ImpliedProvider()
+			default:
+				// This should never happen; the case statements are meant to be exhaustive
+				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), addr))
 			}
 
 			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
