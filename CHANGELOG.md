@@ -2,6 +2,7 @@
 
 BREAKING CHANGES:
 
+* backend/oss: Changes to the TableStore schema now require a primary key named `LockID` of type `String` [GH-24149]
 * command/import: remove the deprecated `-provider` command line argument [GH-24090]
 #22862 fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. 
 * config: Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such `provisioner` blocks, it is now an error to refer to any objects other than `self`, `count`, or `each` [GH-24083]
@@ -16,7 +17,8 @@ ENHANCEMENTS:
 * Terraform CLI now supports TLS 1.3 and supports Ed25519 certificates when making outgoing connections to remote TLS servers. While both of these changes are backwards compatible in principle, certain legacy TLS server implementations can reportedly encounter problems when attempting to negotiate TLS 1.3. (These changes affects only requests made by Terraform CLI itself, such as to module registries or backends. Provider plugins have separate TLS implementations that will gain these features on a separate release schedule.)
 * On Unix systems where `use-vc` is set in `resolv.conf`, Terraform will now use TCP for DNS resolution. We don't expect this to cause any problem for most users, but if you find you are seeing DNS resolution failures after upgrading please verify that you can either reach your configured nameservers using TCP or that your resolver configuration does not include the `use-vc` directive.
 
-BUG FIXES: 
+BUG FIXES:
+* backend/oss: Allow locking of multiple different state files [GH-24149]
 * cli: Fix `terraform state mv` to correctly set the resource each mode based on the target address [GH-24254]
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
 * command/show (json output): fix inconsistency in resource addresses between plan and prior state output [GH-24256]
