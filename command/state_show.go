@@ -120,7 +120,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	absPc := addrs.AbsProviderConfig{
 		Provider: rs.ProviderConfig.Provider,
 		Alias:    rs.ProviderConfig.Alias,
-		Module:   addrs.RootModuleInstance,
+		Module:   addrs.RootModule,
 	}
 	singleInstance := states.NewState()
 	singleInstance.EnsureModule(addr.Module).SetResourceInstanceCurrent(

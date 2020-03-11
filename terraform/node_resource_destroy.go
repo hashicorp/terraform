@@ -288,6 +288,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 // all been destroyed.
 type NodeDestroyResource struct {
 	*NodeAbstractResource
+	Addr addrs.AbsResource
 }
 
 var (
@@ -340,11 +341,6 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 // GraphNodeResource
 func (n *NodeDestroyResource) ResourceAddr() addrs.AbsResource {
 	return n.NodeAbstractResource.ResourceAddr()
-}
-
-// GraphNodeSubpath
-func (n *NodeDestroyResource) Path() addrs.ModuleInstance {
-	return n.NodeAbstractResource.Path()
 }
 
 // GraphNodeNoProvider

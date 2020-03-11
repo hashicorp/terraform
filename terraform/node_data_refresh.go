@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -15,7 +16,6 @@ type NodeRefreshableDataResource struct {
 }
 
 var (
-	_ GraphNodeModuleInstance            = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeDynamicExpandable         = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferencer                = (*NodeRefreshableDataResource)(nil)
@@ -54,18 +54,22 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
 
+	var instanceAddrs []addrs.AbsResourceInstance
+
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-	switch {
-	case count >= 0:
-		expander.SetResourceCount(ctx.Path(), n.ResourceAddr().Resource, count)
-	case forEachMap != nil:
-		expander.SetResourceForEach(ctx.Path(), n.ResourceAddr().Resource, forEachMap)
-	default:
-		expander.SetResourceSingle(ctx.Path(), n.ResourceAddr().Resource)
+	for _, path := range expander.ExpandModule(n.Module) {
+		switch {
+		case count >= 0:
+			expander.SetResourceCount(path, n.ResourceAddr().Resource, count)
+		case forEachMap != nil:
+			expander.SetResourceForEach(path, n.ResourceAddr().Resource, forEachMap)
+		default:
+			expander.SetResourceSingle(path, n.ResourceAddr().Resource)
+		}
+		instanceAddrs = append(instanceAddrs, expander.ExpandResource(path.Module(), n.ResourceAddr().Resource)...)
 	}
-	instanceAddrs := expander.ExpandResource(ctx.Path().Module(), n.ResourceAddr().Resource)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -135,7 +139,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		Name:     "NodeRefreshableDataResource",
 	}
 
-	graph, diags := b.Build(ctx.Path())
+	graph, diags := b.Build(nil)
 	return graph, diags.ErrWithWarnings()
 }
 

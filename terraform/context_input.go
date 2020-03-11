@@ -160,7 +160,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 			absConfigAddr := addrs.AbsProviderConfig{
 				Provider: providerFqn,
 				Alias:    pa.Alias,
-				Module:   c.Config().Path.UnkeyedInstanceShim(),
+				Module:   c.Config().Path,
 			}
 			c.providerInputConfig[absConfigAddr.String()] = vals
 

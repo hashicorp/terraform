@@ -37,7 +37,7 @@ func TestState(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 
@@ -81,7 +81,7 @@ func TestState(t *testing.T) {
 						},
 						ProviderConfig: addrs.AbsProviderConfig{
 							Provider: addrs.NewDefaultProvider("test"),
-							Module:   addrs.RootModuleInstance,
+							Module:   addrs.RootModule,
 						},
 					},
 				},
@@ -144,7 +144,7 @@ func TestStateDeepCopy(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -171,7 +171,7 @@ func TestStateDeepCopy(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 
