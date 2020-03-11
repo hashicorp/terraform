@@ -111,6 +111,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"split":            stdlib.SplitFunc,
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
+			"sum":              funcs.SumFunc,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
 			"title":            stdlib.TitleFunc,
