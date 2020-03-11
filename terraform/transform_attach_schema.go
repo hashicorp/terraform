@@ -69,7 +69,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				if t.Config == nil {
 					providerFqn = addrs.NewLegacyProvider(p.LocalName)
 				} else {
-					modConfig := t.Config.DescendentForInstance(tv.Path())
+					modConfig := t.Config.Descendent(tv.ModulePath())
 					if modConfig == nil {
 						providerFqn = addrs.NewLegacyProvider(p.LocalName)
 					} else {

@@ -554,7 +554,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	root.SetResourceInstanceCurrent(
@@ -579,7 +579,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 

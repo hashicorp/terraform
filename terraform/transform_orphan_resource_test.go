@@ -28,7 +28,7 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 
@@ -47,7 +47,7 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -96,7 +96,7 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -113,7 +113,7 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -161,7 +161,7 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -178,7 +178,7 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -226,7 +226,7 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -243,7 +243,7 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
