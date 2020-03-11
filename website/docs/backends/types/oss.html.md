@@ -18,9 +18,6 @@ the `tablestore_table` field to an existing TableStore table name.
 
 -> **Note:** The OSS backend is available from terraform version 0.12.2.
 
-!> **Warning:** If you set `tablestore_table`, please ensure the table does not contain primary key named
-`LockID`, `Info` and `Digest`. Otherwise, there will throw an error `OTSParameterInvalid Duplicated attribute column ...`.
-
 ## Example Configuration
 
 ```hcl
@@ -39,7 +36,7 @@ terraform {
 This assumes we have a [OSS Bucket](https://www.terraform.io/docs/providers/alicloud/r/oss_bucket.html) created called `bucket-for-terraform-state`,
 a [OTS Instance](https://www.terraform.io/docs/providers/alicloud/r/ots_instance.html) called `terraform-remote` and
 a [OTS TableStore](https://www.terraform.io/docs/providers/alicloud/r/ots_table.html) called `statelock`. The
-Terraform state will be written into the file `path/mystate/version-1.tfstate`. The `TableStore` must have a primary key of type `string`.
+Terraform state will be written into the file `path/mystate/version-1.tfstate`. The `TableStore` must have a primary key named `LockID` of type `String`.
 
 
 ## Data Source Configuration
@@ -90,7 +87,7 @@ The following configuration options or environment variables are supported:
  * `prefix` - (Opeional) The path directory of the state file will be stored. Default to "env:".
  * `key` - (Optional) The name of the state file. Defaults to `terraform.tfstate`.
  * `tablestore_endpoint` / `ALICLOUD_TABLESTORE_ENDPOINT` - (Optional) A custom endpoint for the TableStore API.
- * `tablestore_table` - (Optional) A TableStore table for state locking and consistency.
+ * `tablestore_table` - (Optional) A TableStore table for state locking and consistency. The table must have a primary key named `LockID` of type `String`.
  * `encrypt` - (Optional) Whether to enable server side
    encryption of the state file. If it is true, OSS will use 'AES256' encryption algorithm to encrypt state file.
  * `acl` - (Optional) [Object
@@ -113,4 +110,3 @@ The nested `assume_role` block supports the following:
 * `session_expiration` - (Optional) The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 3600 (in this case Alibaba Cloud use own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
 
 -> **Note:** If you want to store state in the custom OSS endpoint, you can specify a environment variable `OSS_ENDPOINT`, like "oss-cn-beijing-internal.aliyuncs.com"
-
