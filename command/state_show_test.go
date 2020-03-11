@@ -27,7 +27,7 @@ func TestStateShow(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -85,7 +85,7 @@ func TestStateShow_multi(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -100,7 +100,7 @@ func TestStateShow_multi(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   submod,
+				Module:   submod.Module(),
 			},
 		)
 	})
@@ -206,7 +206,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test-beta"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})

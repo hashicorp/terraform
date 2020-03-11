@@ -245,7 +245,7 @@ func basicState(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -261,7 +261,7 @@ func basicState(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
@@ -297,7 +297,7 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
@@ -324,7 +324,7 @@ func nestedState(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
@@ -347,7 +347,7 @@ func deposedState(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
@@ -376,7 +376,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	rootModule.SetResourceInstanceDeposed(
@@ -393,7 +393,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
