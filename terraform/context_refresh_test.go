@@ -105,7 +105,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -1742,7 +1742,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -1828,7 +1828,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -1999,7 +1999,7 @@ func TestRefresh_updateDependencies(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("aws"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	root.SetResourceInstanceCurrent(
@@ -2014,7 +2014,7 @@ func TestRefresh_updateDependencies(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("aws"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 

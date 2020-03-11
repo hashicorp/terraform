@@ -26,7 +26,7 @@ type NodeAbstractProvider struct {
 }
 
 var (
-	_ GraphNodeModuleInstance             = (*NodeAbstractProvider)(nil)
+	_ GraphNodeModulePath                 = (*NodeAbstractProvider)(nil)
 	_ RemovableIfNotTargeted              = (*NodeAbstractProvider)(nil)
 	_ GraphNodeReferencer                 = (*NodeAbstractProvider)(nil)
 	_ GraphNodeProvider                   = (*NodeAbstractProvider)(nil)
@@ -41,12 +41,12 @@ func (n *NodeAbstractProvider) Name() string {
 
 // GraphNodeModuleInstance
 func (n *NodeAbstractProvider) Path() addrs.ModuleInstance {
-	return n.Addr.Module
+	return n.Addr.Module.UnkeyedInstanceShim()
 }
 
 // GraphNodeModulePath
 func (n *NodeAbstractProvider) ModulePath() addrs.Module {
-	return n.Addr.Module.Module()
+	return n.Addr.Module
 }
 
 // RemovableIfNotTargeted

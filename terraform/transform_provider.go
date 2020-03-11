@@ -44,7 +44,7 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, c
 //
 // Name returns the full name of the provider in the config.
 type GraphNodeProvider interface {
-	GraphNodeModuleInstance
+	GraphNodeModulePath
 	ProviderAddr() addrs.AbsProviderConfig
 	Name() string
 }
@@ -53,7 +53,7 @@ type GraphNodeProvider interface {
 // provider must implement. The CloseProviderName returned is the name of
 // the provider they satisfy.
 type GraphNodeCloseProvider interface {
-	GraphNodeModuleInstance
+	GraphNodeModulePath
 	CloseProviderAddr() addrs.AbsProviderConfig
 }
 
@@ -63,7 +63,7 @@ type GraphNodeCloseProvider interface {
 // or in an ancestor module, with the resulting absolute address passed to
 // SetProvider.
 type GraphNodeProviderConsumer interface {
-	GraphNodeModuleInstance
+	GraphNodeModulePath
 	// ProvidedBy returns the address of the provider configuration the node
 	// refers to, if available. The following value types may be returned:
 	//
@@ -139,7 +139,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			case addrs.LocalProviderConfig:
 				// ProvidedBy() return a LocalProviderConfig when the resource
 				// contains a `provider` attribute
-				modPath := pv.Path()
+				modPath := pv.ModulePath()
 				if t.Config == nil {
 					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
 					absPc.Module = modPath
@@ -147,7 +147,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 					break
 				}
 
-				modConfig := t.Config.DescendentForInstance(modPath)
+				modConfig := t.Config.Descendent(modPath)
 				if modConfig == nil {
 					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
 				} else {
@@ -159,7 +159,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			case nil:
 				// No provider found in config or state; fall back to implied default provider.
 				absPc.Provider = pv.ImpliedProvider()
-				absPc.Module = pv.Path()
+				absPc.Module = pv.ModulePath()
 				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
 
 			default:
@@ -216,7 +216,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			// start up the provider and fetch its schema.
 			if _, exists := needConfigured[key]; target == nil && !exists {
 				stubAddr := addrs.AbsProviderConfig{
-					Module:   addrs.RootModuleInstance,
+					Module:   addrs.RootModule,
 					Provider: p.Provider,
 				}
 				stub := &NodeEvalableProvider{
@@ -364,7 +364,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 				log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
 				continue
 			}
-			modConfig := t.Config.DescendentForInstance(pv.Path())
+			modConfig := t.Config.Descendent(pv.ModulePath())
 			if modConfig == nil {
 				providerFqn = addrs.NewLegacyProvider(p.LocalName)
 			} else {
@@ -427,7 +427,7 @@ func (t *ParentProviderTransformer) Transform(g *Graph) error {
 
 		// Also require non-empty path, since otherwise we're in the root
 		// module and so cannot have a parent.
-		if len(pn.Path()) <= 1 {
+		if len(pn.ModulePath()) <= 1 {
 			continue
 		}
 
@@ -513,6 +513,11 @@ func (n *graphNodeCloseProvider) Name() string {
 
 // GraphNodeModuleInstance impl.
 func (n *graphNodeCloseProvider) Path() addrs.ModuleInstance {
+	return n.Addr.Module.UnkeyedInstanceShim()
+}
+
+// GraphNodeModulePath
+func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
@@ -562,7 +567,8 @@ type graphNodeProxyProvider struct {
 }
 
 var (
-	_ GraphNodeProvider = (*graphNodeProxyProvider)(nil)
+	_ GraphNodeModulePath = (*graphNodeProxyProvider)(nil)
+	_ GraphNodeProvider   = (*graphNodeProxyProvider)(nil)
 )
 
 func (n *graphNodeProxyProvider) ProviderAddr() addrs.AbsProviderConfig {
@@ -570,6 +576,10 @@ func (n *graphNodeProxyProvider) ProviderAddr() addrs.AbsProviderConfig {
 }
 
 func (n *graphNodeProxyProvider) Path() addrs.ModuleInstance {
+	return n.addr.Module.UnkeyedInstanceShim()
+}
+
+func (n *graphNodeProxyProvider) ModulePath() addrs.Module {
 	return n.addr.Module
 }
 
@@ -644,19 +654,7 @@ func (t *ProviderConfigTransformer) transform(g *Graph, c *configs.Config) error
 func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config) error {
 	// Get the module associated with this configuration tree node
 	mod := c.Module
-	staticPath := c.Path
-
-	// We actually need a dynamic module path here, but we've not yet updated
-	// our graph builders enough to support expansion of module calls with
-	// "count" and "for_each" set, so for now we'll shim this by converting to
-	// a dynamic path with no keys. At the time of writing this is the only
-	// possible kind of dynamic path anyway.
-	path := make(addrs.ModuleInstance, len(staticPath))
-	for i, name := range staticPath {
-		path[i] = addrs.ModuleInstanceStep{
-			Name: name,
-		}
-	}
+	path := c.Path
 
 	// add all providers from the configuration
 	for _, p := range mod.ProviderConfigs {
@@ -720,19 +718,6 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 		}
 	}
 
-	// We currently don't support count/for_each for modules and so we must
-	// shim our path and parentPath into module instances here so that the
-	// rest of Terraform can behave as if we do. This shimming should be
-	// removed later as part of implementing count/for_each for modules.
-	instPath := make(addrs.ModuleInstance, len(path))
-	for i, name := range path {
-		instPath[i] = addrs.ModuleInstanceStep{Name: name}
-	}
-	parentInstPath := make(addrs.ModuleInstance, len(parentPath))
-	for i, name := range parentPath {
-		parentInstPath[i] = addrs.ModuleInstanceStep{Name: name}
-	}
-
 	if parentCfg == nil {
 		// this can't really happen during normal execution.
 		return fmt.Errorf("parent module config not found for %s", c.Path.String())
@@ -744,13 +729,13 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 		fqn := c.Module.ProviderForLocalConfig(pair.InChild.Addr())
 		fullAddr := addrs.AbsProviderConfig{
 			Provider: fqn,
-			Module:   instPath,
+			Module:   path,
 			Alias:    pair.InChild.Addr().Alias,
 		}
 
 		fullParentAddr := addrs.AbsProviderConfig{
 			Provider: fqn,
-			Module:   parentInstPath,
+			Module:   parentPath,
 			Alias:    pair.InParent.Addr().Alias,
 		}
 
@@ -802,7 +787,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		addr := apn.ProviderAddr()
 
 		// Get the configuration.
-		mc := t.Config.DescendentForInstance(addr.Module)
+		mc := t.Config.Descendent(addr.Module)
 		if mc == nil {
 			log.Printf("[TRACE] ProviderConfigTransformer: no configuration available for %s", addr.String())
 			continue
