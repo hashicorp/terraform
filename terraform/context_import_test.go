@@ -117,7 +117,7 @@ func TestContextImport_collision(t *testing.T) {
 				},
 				addrs.AbsProviderConfig{
 					Provider: addrs.NewLegacyProvider("aws"),
-					Module:   addrs.RootModuleInstance,
+					Module:   addrs.RootModule,
 				},
 			)
 		}),
@@ -606,7 +606,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 				},
 				addrs.AbsProviderConfig{
 					Provider: addrs.NewLegacyProvider("aws"),
-					Module:   addrs.RootModuleInstance,
+					Module:   addrs.RootModule,
 				},
 			)
 		}),
@@ -667,7 +667,7 @@ func TestContextImport_moduleExisting(t *testing.T) {
 				},
 				addrs.AbsProviderConfig{
 					Provider: addrs.NewLegacyProvider("aws"),
-					Module:   addrs.RootModuleInstance,
+					Module:   addrs.RootModule,
 				},
 			)
 		}),

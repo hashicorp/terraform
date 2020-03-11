@@ -166,13 +166,14 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 	}
 
 	return &ResourceInstanceObjectSrc{
-		Status:        obj.Status,
-		SchemaVersion: obj.SchemaVersion,
-		Private:       private,
-		AttrsFlat:     attrsFlat,
-		AttrsJSON:     attrsJSON,
-		Dependencies:  dependencies,
-		DependsOn:     dependsOn,
+		Status:              obj.Status,
+		SchemaVersion:       obj.SchemaVersion,
+		Private:             private,
+		AttrsFlat:           attrsFlat,
+		AttrsJSON:           attrsJSON,
+		Dependencies:        dependencies,
+		DependsOn:           dependsOn,
+		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}
 }
 

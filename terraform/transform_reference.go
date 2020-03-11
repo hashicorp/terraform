@@ -22,7 +22,7 @@ import (
 // be referenced and other methods of referencing may still be possible (such
 // as by path!)
 type GraphNodeReferenceable interface {
-	GraphNodeSubPath
+	GraphNodeModulePath
 
 	// ReferenceableAddrs returns a list of addresses through which this can be
 	// referenced.
@@ -32,7 +32,7 @@ type GraphNodeReferenceable interface {
 // GraphNodeReferencer must be implemented by nodes that reference other
 // Terraform items and therefore depend on them.
 type GraphNodeReferencer interface {
-	GraphNodeSubPath
+	GraphNodeModulePath
 
 	// References returns a list of references made by this node, which
 	// include both a referenced address and source location information for
@@ -252,9 +252,6 @@ func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	if !ok {
 		return nil
 	}
-	if _, ok := v.(GraphNodeSubPath); !ok {
-		return nil
-	}
 
 	var matches []dag.Vertex
 
@@ -288,7 +285,7 @@ func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	return matches
 }
 
-func (m *ReferenceMap) mapKey(path addrs.ModuleInstance, addr addrs.Referenceable) string {
+func (m *ReferenceMap) mapKey(path addrs.Module, addr addrs.Referenceable) string {
 	return fmt.Sprintf("%s|%s", path.String(), addr.String())
 }
 
@@ -296,48 +293,48 @@ func (m *ReferenceMap) mapKey(path addrs.ModuleInstance, addr addrs.Referenceabl
 // referenced. This is the path that its results from ReferenceableAddrs
 // are considered to be relative to.
 //
-// Only GraphNodeSubPath implementations can be referenced, so this method will
+// Only GraphNodeModulePath implementations can be referenced, so this method will
 // panic if the given vertex does not implement that interface.
-func (m *ReferenceMap) vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstance {
-	sp, ok := v.(GraphNodeSubPath)
+func vertexReferenceablePath(v dag.Vertex) addrs.Module {
+	sp, ok := v.(GraphNodeModulePath)
 	if !ok {
 		// Only nodes with paths can participate in a reference map.
-		panic(fmt.Errorf("vertexMapKey on vertex type %T which doesn't implement GraphNodeSubPath", sp))
+		panic(fmt.Errorf("vertexMapKey on vertex type %T which doesn't implement GraphNodeModulePath", sp))
 	}
 
 	if outside, ok := v.(GraphNodeReferenceOutside); ok {
 		// Vertex is referenced from a different module than where it was
 		// declared.
 		path, _ := outside.ReferenceOutside()
-		return path.UnkeyedInstanceShim()
+		return path
 	}
 
 	// Vertex is referenced from the same module as where it was declared.
-	return sp.Path()
+	return sp.ModulePath()
 }
 
 // vertexReferencePath returns the path in which references _from_ the given
 // vertex must be interpreted.
 //
-// Only GraphNodeSubPath implementations can have references, so this method
+// Only GraphNodeModulePath implementations can have references, so this method
 // will panic if the given vertex does not implement that interface.
-func vertexReferencePath(referrer dag.Vertex) addrs.ModuleInstance {
-	sp, ok := referrer.(GraphNodeSubPath)
+func vertexReferencePath(v dag.Vertex) addrs.Module {
+	sp, ok := v.(GraphNodeModulePath)
 	if !ok {
 		// Only nodes with paths can participate in a reference map.
-		panic(fmt.Errorf("vertexReferencePath on vertex type %T which doesn't implement GraphNodeSubPath", sp))
+		panic(fmt.Errorf("vertexReferencePath on vertex type %T which doesn't implement GraphNodeModulePath", v))
 	}
 
-	if outside, ok := referrer.(GraphNodeReferenceOutside); ok {
+	if outside, ok := v.(GraphNodeReferenceOutside); ok {
 		// Vertex makes references to objects in a different module than where
 		// it was declared.
 		_, path := outside.ReferenceOutside()
-		return path.UnkeyedInstanceShim()
+		return path
 	}
 
 	// Vertex makes references to objects in the same module as where it
 	// was declared.
-	return sp.Path()
+	return sp.ModulePath()
 }
 
 // referenceMapKey produces keys for the "edges" map. "referrer" is the vertex
@@ -347,7 +344,7 @@ func vertexReferencePath(referrer dag.Vertex) addrs.ModuleInstance {
 // The result is an opaque string that includes both the address of the given
 // object and the address of the module instance that object belongs to.
 //
-// Only GraphNodeSubPath implementations can be referrers, so this method will
+// Only GraphNodeModulePath implementations can be referrers, so this method will
 // panic if the given vertex does not implement that interface.
 func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Referenceable) string {
 	path := vertexReferencePath(referrer)
@@ -362,19 +359,13 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 	// Build the lookup table
 	vertices := make(map[string][]dag.Vertex)
 	for _, v := range vs {
-		_, ok := v.(GraphNodeSubPath)
-		if !ok {
-			// Only nodes with paths can participate in a reference map.
-			continue
-		}
-
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
 		if !ok {
 			continue
 		}
 
-		path := m.vertexReferenceablePath(v)
+		path := vertexReferenceablePath(v)
 
 		// Go through and cache them
 		for _, addr := range rn.ReferenceableAddrs() {
@@ -389,11 +380,8 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 			// an instance key) or as the bare module call itself (the "module"
 			// block in the parent module that created the instance).
 			callPath, call := addr.Call()
-			callInstPath, callInst := addr.CallInstance()
 			callKey := m.mapKey(callPath, call)
-			callInstKey := m.mapKey(callInstPath, callInst)
 			vertices[callKey] = append(vertices[callKey], v)
-			vertices[callInstKey] = append(vertices[callInstKey], v)
 		}
 	}
 

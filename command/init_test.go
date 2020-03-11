@@ -50,6 +50,12 @@ func TestInit_empty(t *testing.T) {
 }
 
 func TestInit_multipleArgs(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
@@ -68,11 +74,10 @@ func TestInit_multipleArgs(t *testing.T) {
 }
 
 func TestInit_fromModule_explicitDest(t *testing.T) {
-	dir := tempDir(t)
-	err := os.Mkdir(dir, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
 	c := &InitCommand{
@@ -93,13 +98,13 @@ func TestInit_fromModule_explicitDest(t *testing.T) {
 
 	args := []string{
 		"-from-module=" + testFixturePath("init"),
-		dir,
+		td,
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "hello.tf")); err != nil {
+	if _, err := os.Stat(filepath.Join(td, "hello.tf")); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -137,6 +142,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer os.RemoveAll(dir)
 
 	// Change to the temporary directory
 	cwd, err := os.Getwd()
@@ -208,7 +214,6 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
-	// copy.CopyDir(testFixturePath("init-get"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

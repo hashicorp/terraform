@@ -11,24 +11,24 @@ import (
 func TestAddressedTypesAbs(t *testing.T) {
 	providerAddrs := []addrs.AbsProviderConfig{
 		addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("aws"),
 		},
 		addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("aws"),
 			Alias:    "foo",
 		},
 		addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("azure"),
 		},
 		addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("null"),
 		},
 		addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("null"),
 		},
 	}

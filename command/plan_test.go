@@ -126,7 +126,7 @@ func TestPlan_destroy(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -245,7 +245,7 @@ func TestPlan_outPathNoChange(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})

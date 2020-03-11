@@ -13,6 +13,23 @@
                 {
                     "resources": [
                         {
+                            "address": "module.module_test_bar.test_instance.example",
+                            "mode": "managed",
+                            "type": "test_instance",
+                            "name": "example",
+                            "provider_name": "test",
+                            "schema_version": 0,
+                            "values": {
+                                "ami": "bar-var",
+                                "id": null
+                            }
+                        }
+                    ],
+                    "address": "module.module_test_bar"
+                },
+                {
+                    "resources": [
+                        {
                             "address": "module.module_test_foo.test_instance.example[0]",
                             "mode": "managed",
                             "type": "test_instance",
@@ -27,23 +44,6 @@
                         }
                     ],
                     "address": "module.module_test_foo"
-                },
-                {
-                    "resources": [
-                        {
-                            "address": "module.module_test_bar.test_instance.example",
-                            "mode": "managed",
-                            "type": "test_instance",
-                            "name": "example",
-                            "provider_name": "test",
-                            "schema_version": 0,
-                            "values": {
-                                "ami": "bar-var",
-                                "id": null
-                            }
-                        }
-                    ],
-                    "address": "module.module_test_bar"
                 }
             ]
         }

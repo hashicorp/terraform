@@ -190,20 +190,19 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 		return
 	}
 
-	// FIXME: These are currently all assuming legacy provider addresses.
-	// As part of phasing those out we'll need to change this to look up
-	// the true provider addresses via the local-to-FQN mapping table
-	// stored inside c.Module.
 	for _, pc := range c.Module.ProviderConfigs {
-		m[addrs.NewLegacyProvider(pc.Name)] = struct{}{}
+		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pc.Name})
+		m[fqn] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[addrs.NewLegacyProvider(providerAddr.LocalName)] = struct{}{}
+		fqn := c.Module.ProviderForLocalConfig(providerAddr)
+		m[fqn] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[addrs.NewLegacyProvider(providerAddr.LocalName)] = struct{}{}
+		fqn := c.Module.ProviderForLocalConfig(providerAddr)
+		m[fqn] = struct{}{}
 	}
 
 	// Must also visit our child modules, recursively.
@@ -223,7 +222,7 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 // The module address to resolve local addresses in must be given in the second
 // argument, and must refer to a module that exists under the receiver or
 // else this method will panic.
-func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.ModuleInstance) addrs.AbsProviderConfig {
+func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.Module) addrs.AbsProviderConfig {
 	switch addr := addr.(type) {
 
 	case addrs.AbsProviderConfig:
@@ -232,7 +231,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 	case addrs.LocalProviderConfig:
 		// Find the descendent Config that contains the module that this
 		// local config belongs to.
-		mc := c.DescendentForInstance(inModule)
+		mc := c.Descendent(inModule)
 		if mc == nil {
 			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
 		}
@@ -263,5 +262,8 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 // by checking for the provider in module.ProviderRequirements and falling
 // back to addrs.NewLegacyProvider if it is not found.
 func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
-	return c.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance).Provider
+	if provider, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
+		return provider.Type
+	}
+	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
 }

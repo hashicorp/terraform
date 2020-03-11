@@ -40,11 +40,12 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 
 	n := &NodeRefreshableDataResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.DataResourceMode,
-				"aws_instance",
-				"foo",
-			),
+			Addr: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+			Module: addrs.RootModule,
 			Config: m.Module.DataResources["data.aws_instance.foo"],
 		},
 	}
@@ -124,15 +125,16 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 
 	n := &NodeRefreshableDataResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.DataResourceMode,
-				"aws_instance",
-				"foo",
-			),
+			Addr: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+			Module: addrs.RootModule,
 			Config: m.Module.DataResources["data.aws_instance.foo"],
 			ResolvedProvider: addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("aws"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		},
 	}

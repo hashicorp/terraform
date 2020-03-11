@@ -243,7 +243,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})

@@ -43,11 +43,11 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("test"),
 			Alias:    "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
+		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		if got, want := got.String(), addr.String(); got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
@@ -57,9 +57,9 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			LocalName: "implied",
 			Alias:     "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
+		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
-			Module: addrs.RootModuleInstance,
+			Module: addrs.RootModule,
 			// FIXME: At the time of writing we still have LocalProviderConfig
 			// nested inside AbsProviderConfig, but a future change will
 			// stop tis embedding and just have an addrs.Provider and an alias
@@ -78,16 +78,10 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			LocalName: "foo-test", // this is explicitly set in the config
 			Alias:     "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModuleInstance)
+		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
-			Module: addrs.RootModuleInstance,
-			// FIXME: At the time of writing we're not actually supporting
-			// the explicit mapping to FQNs because we're still in
-			// legacy-only mode, so this is temporarily correct. However,
-			// once we are fully supporting this we should expect to see
-			// the "registry.terraform.io/foo/test" FQN here, while still
-			// preserving the "boop" alias.
-			Provider: addrs.NewLegacyProvider("foo-test"),
+			Module:   addrs.RootModule,
+			Provider: addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {

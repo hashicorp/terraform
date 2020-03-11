@@ -2,6 +2,7 @@ package addrs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -86,7 +87,7 @@ func (pc LocalProviderConfig) StringCompact() string {
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
-	Module   ModuleInstance
+	Module   Module
 	Provider Provider
 	Alias    string
 }
@@ -101,7 +102,6 @@ var _ ProviderConfig = AbsProviderConfig{}
 //     provider["registry.terraform.io/hashicorp/aws"].foo
 //     module.bar.provider["registry.terraform.io/hashicorp/aws"]
 //     module.bar.module.baz.provider["registry.terraform.io/hashicorp/aws"].foo
-//     module.foo[1].provider["registry.terraform.io/hashicorp/aws"].foo
 //
 // This type of address is used, for example, to record the relationships
 // between resources and provider configurations in the state structure.
@@ -109,9 +109,23 @@ var _ ProviderConfig = AbsProviderConfig{}
 // messages that refer to provider configurations.
 func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
 	modInst, remain, diags := parseModuleInstancePrefix(traversal)
-	ret := AbsProviderConfig{
-		Module: modInst,
+	var ret AbsProviderConfig
+
+	// Providers cannot resolve within module instances, so verify that there
+	// are no instance keys in the module path before converting to a Module.
+	for _, step := range modInst {
+		if step.InstanceKey != NoKey {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider configuration address",
+				Detail:   "Provider address cannot contain module indexes",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return ret, diags
+		}
 	}
+	ret.Module = modInst.Module()
+
 	if len(remain) < 2 || remain.RootName() != "provider" {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -223,16 +237,28 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 //     provider.aws.foo
 //     module.bar.provider.aws
 //     module.bar.module.baz.provider.aws.foo
-//     module.foo[1].provider.aws.foo
 //
 // This type of address is used in legacy state and may appear in state v4 if
 // the provider config addresses have not been normalized to include provider
 // FQN.
 func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
 	modInst, remain, diags := parseModuleInstancePrefix(traversal)
-	ret := AbsProviderConfig{
-		Module: modInst,
+	var ret AbsProviderConfig
+
+	// Providers cannot resolve within module instances, so verify that there
+	// are no instance keys in the module path before converting to a Module.
+	for _, step := range modInst {
+		if step.InstanceKey != NoKey {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider configuration address",
+				Detail:   "Provider address cannot contain module indexes",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return ret, diags
+		}
 	}
+	ret.Module = modInst.Module()
 
 	if len(remain) < 2 || remain.RootName() != "provider" {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -287,7 +313,7 @@ func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, t
 // the given type inside the recieving module instance.
 func (m ModuleInstance) ProviderConfigDefault(provider Provider) AbsProviderConfig {
 	return AbsProviderConfig{
-		Module:   m,
+		Module:   m.Module(),
 		Provider: provider,
 	}
 }
@@ -296,7 +322,7 @@ func (m ModuleInstance) ProviderConfigDefault(provider Provider) AbsProviderConf
 // the given type and alias inside the recieving module instance.
 func (m ModuleInstance) ProviderConfigAliased(provider Provider, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
-		Module:   m,
+		Module:   m.Module(),
 		Provider: provider,
 		Alias:    alias,
 	}
@@ -359,16 +385,16 @@ func (pc AbsProviderConfig) LegacyString() string {
 // 	module.module-name.provider["example.com/namespace/name"]
 // 	module.module-name.provider["example.com/namespace/name"].alias
 func (pc AbsProviderConfig) String() string {
-	if pc.Alias != "" {
-		if len(pc.Module) == 0 {
-			return fmt.Sprintf("%s[%q].%s", "provider", pc.Provider.String(), pc.Alias)
-		} else {
-			return fmt.Sprintf("%s.%s[%q].%s", pc.Module.String(), "provider", pc.Provider.String(), pc.Alias)
-		}
-	}
-	if len(pc.Module) == 0 {
-		return fmt.Sprintf("%s[%q]", "provider", pc.Provider.String())
+	var parts []string
+	if len(pc.Module) > 0 {
+		parts = append(parts, pc.Module.String())
 	}
 
-	return fmt.Sprintf("%s.%s[%q]", pc.Module.String(), "provider", pc.Provider.String())
+	parts = append(parts, fmt.Sprintf("provider[%q]", pc.Provider))
+
+	if pc.Alias != "" {
+		parts = append(parts, pc.Alias)
+	}
+
+	return strings.Join(parts, ".")
 }

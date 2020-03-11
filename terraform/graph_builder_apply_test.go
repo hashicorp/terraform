@@ -209,7 +209,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 			continue
 		}
 
-		switch tv.Addr.Resource.Name {
+		switch tv.Addr.Name {
 		case "A":
 			destroyA = fmt.Sprintf("test_object.A (destroy deposed %s)", tv.DeposedKey)
 		case "B":
@@ -554,7 +554,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	root.SetResourceInstanceCurrent(
@@ -579,7 +579,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 
@@ -600,6 +600,107 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 test_object.a (destroy)
 test_object.b
   test_object.a (destroy)
+`)
+
+	instanceGraph := filterInstances(g)
+	got := strings.TrimSpace(instanceGraph.String())
+
+	if got != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, got)
+	}
+}
+
+// Ensure that an update resulting from the removal of a resource happens before
+// a CBD resource is destroyed.
+func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
+	schemas := simpleTestSchemas()
+	instanceSchema := schemas.Providers[addrs.NewLegacyProvider("test")].ResourceTypes["test_object"]
+
+	bBefore, _ := plans.NewDynamicValue(
+		cty.ObjectVal(map[string]cty.Value{
+			"id":          cty.StringVal("b_id"),
+			"test_string": cty.StringVal("a_id"),
+		}), instanceSchema.ImpliedType())
+	bAfter, _ := plans.NewDynamicValue(
+		cty.ObjectVal(map[string]cty.Value{
+			"id":          cty.StringVal("b_id"),
+			"test_string": cty.StringVal("changed"),
+		}), instanceSchema.ImpliedType())
+
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.a"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.b"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
+					Before: bBefore,
+					After:  bAfter,
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_object",
+			Name: "a",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"a_id"}`),
+			CreateBeforeDestroy: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_object",
+			Name: "b",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
+			Dependencies: []addrs.AbsResource{
+				addrs.AbsResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					},
+					Module: root.Addr,
+				},
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+	)
+
+	b := &ApplyGraphBuilder{
+		Config:     testModule(t, "graph-builder-apply-orphan-update"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    schemas,
+		State:      state,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := strings.TrimSpace(`
+test_object.a (destroy)
+  test_object.b
+test_object.b
 `)
 
 	instanceGraph := filterInstances(g)

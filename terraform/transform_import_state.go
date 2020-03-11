@@ -24,7 +24,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 			defaultFQN := target.Addr.Resource.Resource.DefaultProvider()
 			providerAddr = addrs.AbsProviderConfig{
 				Provider: defaultFQN,
-				Module:   target.Addr.Module,
+				Module:   target.Addr.Module.Module(),
 			}
 		}
 
@@ -48,7 +48,7 @@ type graphNodeImportState struct {
 }
 
 var (
-	_ GraphNodeSubPath           = (*graphNodeImportState)(nil)
+	_ GraphNodeModulePath        = (*graphNodeImportState)(nil)
 	_ GraphNodeEvalable          = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
@@ -69,13 +69,28 @@ func (n *graphNodeImportState) ProvidedBy() (addrs.ProviderConfig, bool) {
 }
 
 // GraphNodeProviderConsumer
+func (n *graphNodeImportState) ImpliedProvider() addrs.Provider {
+	// We assume that n.ProviderAddr has been properly populated here.
+	// It's the responsibility of the code creating a graphNodeImportState
+	// to populate this, possibly by calling DefaultProviderConfig() on the
+	// resource address to infer an implied provider from the resource type
+	// name.
+	return n.ProviderAddr.Provider
+}
+
+// GraphNodeProviderConsumer
 func (n *graphNodeImportState) SetProvider(addr addrs.AbsProviderConfig) {
 	n.ResolvedProvider = addr
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *graphNodeImportState) Path() addrs.ModuleInstance {
 	return n.Addr.Module
+}
+
+// GraphNodeModulePath
+func (n *graphNodeImportState) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
 }
 
 // GraphNodeEvalable impl.
@@ -189,8 +204,8 @@ type graphNodeImportStateSub struct {
 }
 
 var (
-	_ GraphNodeSubPath  = (*graphNodeImportStateSub)(nil)
-	_ GraphNodeEvalable = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeModuleInstance = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeEvalable       = (*graphNodeImportStateSub)(nil)
 )
 
 func (n *graphNodeImportStateSub) Name() string {

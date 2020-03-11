@@ -12,9 +12,10 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 
-	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"log"
 	"path"
+
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 )
 
 const (
@@ -38,27 +39,11 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		otsClient:            b.otsClient,
 	}
 	if b.otsEndpoint != "" && b.otsTable != "" {
-		table, err := b.otsClient.DescribeTable(&tablestore.DescribeTableRequest{
+		_, err := b.otsClient.DescribeTable(&tablestore.DescribeTableRequest{
 			TableName: b.otsTable,
 		})
 		if err != nil {
 			return client, fmt.Errorf("Error describing table store %s: %#v", b.otsTable, err)
-		}
-		for _, t := range table.TableMeta.SchemaEntry {
-			pkMeta := TableStorePrimaryKeyMeta{
-				PKName: *t.Name,
-			}
-			if *t.Type == tablestore.PrimaryKeyType_INTEGER {
-				pkMeta.PKType = "Integer"
-			} else if *t.Type == tablestore.PrimaryKeyType_STRING {
-				pkMeta.PKType = "String"
-			} else if *t.Type == tablestore.PrimaryKeyType_BINARY {
-				pkMeta.PKType = "Binary"
-			} else {
-				return client, fmt.Errorf("Unsupported PrimaryKey type: %d.", *t.Type)
-			}
-			client.otsTabkePK = pkMeta
-			break
 		}
 	}
 

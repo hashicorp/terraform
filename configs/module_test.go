@@ -13,11 +13,7 @@ func TestNewModule_provider_local_name(t *testing.T) {
 		t.Fatal(diags.Error())
 	}
 
-	// FIXME: while the provider source is set to "foo/test", terraform
-	// currently assumes everything is a legacy provider and the localname and
-	// type match. This test will be updated when provider source is fully
-	// implemented.
-	p := addrs.NewLegacyProvider("foo-test")
+	p := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
 		t.Fatal("provider FQN foo/test not found")
 	} else {

@@ -260,7 +260,7 @@ func TestMarshalPlanResources(t *testing.T) {
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 						ProviderAddr: addrs.AbsProviderConfig{
 							Provider: addrs.NewLegacyProvider("test"),
-							Module:   addrs.RootModuleInstance,
+							Module:   addrs.RootModule,
 						},
 						ChangeSrc: plans.ChangeSrc{
 							Action: test.Action,

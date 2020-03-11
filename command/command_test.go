@@ -273,7 +273,7 @@ func testState() *states.State {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		// DeepCopy is used here to ensure our synthetic state matches exactly

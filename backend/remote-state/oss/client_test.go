@@ -8,6 +8,7 @@ import (
 
 	"bytes"
 	"crypto/md5"
+
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -82,6 +83,52 @@ func TestRemoteClientLocks(t *testing.T) {
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
+}
+
+// verify that the backend can handle more than one state in the same table
+func TestRemoteClientLocks_multipleStates(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("tf-remote-oss-test-force-%x", time.Now().Unix())
+	tableName := fmt.Sprintf("tfRemoteTestForce%x", time.Now().Unix())
+	path := "testState"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":              bucketName,
+		"prefix":              path,
+		"encrypt":             true,
+		"tablestore_table":    tableName,
+		"tablestore_endpoint": RemoteTestUsedOTSEndpoint,
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":              bucketName,
+		"prefix":              path,
+		"encrypt":             true,
+		"tablestore_table":    tableName,
+		"tablestore_endpoint": RemoteTestUsedOTSEndpoint,
+	})).(*Backend)
+
+	createOSSBucket(t, b1.ossClient, bucketName)
+	defer deleteOSSBucket(t, b1.ossClient, bucketName)
+	createTablestoreTable(t, b1.otsClient, tableName)
+	defer deleteTablestoreTable(t, b1.otsClient, tableName)
+
+	s1, err := b1.StateMgr("s1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s1.Lock(state.NewLockInfo()); err != nil {
+		t.Fatal("failed to get lock for s1:", err)
+	}
+
+	// s1 is now locked, s2 should not be locked as it's a different state file
+	s2, err := b2.StateMgr("s2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s2.Lock(state.NewLockInfo()); err != nil {
+		t.Fatal("failed to get lock for s2:", err)
+	}
 }
 
 // verify that we can unlock a state with an existing lock

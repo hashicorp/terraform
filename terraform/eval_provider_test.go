@@ -17,7 +17,7 @@ func TestBuildProviderConfig(t *testing.T) {
 		"set_in_config": cty.StringVal("config"),
 	})
 	providerAddr := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
+		Module:   addrs.RootModule,
 		Provider: addrs.NewLegacyProvider("foo"),
 	}
 
@@ -69,7 +69,7 @@ func TestEvalConfigProvider(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	rp := providers.Interface(provider)
 	providerAddr := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
+		Module:   addrs.RootModule,
 		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	n := &EvalConfigProvider{
@@ -103,7 +103,7 @@ func TestEvalInitProvider_impl(t *testing.T) {
 
 func TestEvalInitProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
+		Module:   addrs.RootModule,
 		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	n := &EvalInitProvider{
@@ -125,7 +125,7 @@ func TestEvalInitProvider(t *testing.T) {
 
 func TestEvalCloseProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
+		Module:   addrs.RootModule,
 		Provider: addrs.NewLegacyProvider("foo"),
 	}
 	n := &EvalCloseProvider{

@@ -108,7 +108,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	ctx.once.Do(ctx.init)
 	absAddr := addr
-	if !absAddr.Module.Equal(ctx.Path()) {
+	if !absAddr.Module.Equal(ctx.Path().Module()) {
 		// This indicates incorrect use of InitProvider: it should be used
 		// only from the module that the provider configuration belongs to.
 		panic(fmt.Sprintf("%s initialized by wrong module %s", absAddr, ctx.Path()))
@@ -153,7 +153,7 @@ func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *Pro
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
 	ctx.once.Do(ctx.init)
-	if !addr.Module.Equal(ctx.Path()) {
+	if !addr.Module.Equal(ctx.Path().Module()) {
 		// This indicates incorrect use of CloseProvider: it should be used
 		// only from the module that the provider configuration belongs to.
 		panic(fmt.Sprintf("%s closed by wrong module %s", addr, ctx.Path()))
@@ -175,7 +175,7 @@ func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error
 func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	absAddr := addr
-	if !absAddr.Module.Equal(ctx.Path()) {
+	if !absAddr.Module.Equal(ctx.Path().Module()) {
 		// This indicates incorrect use of ConfigureProvider: it should be used
 		// only from the module that the provider configuration belongs to.
 		panic(fmt.Sprintf("%s configured by wrong module %s", absAddr, ctx.Path()))
@@ -206,7 +206,7 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[str
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	if !pc.Module.Equal(ctx.Path()) {
+	if !pc.Module.Equal(ctx.Path().Module()) {
 		// This indicates incorrect use of InitProvider: it should be used
 		// only from the module that the provider configuration belongs to.
 		panic(fmt.Sprintf("%s initialized by wrong module %s", pc, ctx.Path()))
@@ -222,7 +222,7 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[str
 
 func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c map[string]cty.Value) {
 	absProvider := pc
-	if !absProvider.Module.Equal(ctx.Path()) {
+	if !absProvider.Module.Equal(ctx.Path().Module()) {
 		// This indicates incorrect use of InitProvider: it should be used
 		// only from the module that the provider configuration belongs to.
 		panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
