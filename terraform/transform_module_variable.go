@@ -58,15 +58,7 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, c *configs.Confi
 }
 
 func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs.Config) error {
-
-	// Our addressing system distinguishes between modules and module instances,
-	// but we're not yet ready to make that distinction here (since we don't
-	// support "count"/"for_each" on modules) and so we just do a naive
-	// transform of the module path into a module instance path, assuming that
-	// no keys are in use. This should be removed when "count" and "for_each"
-	// are implemented for modules.
-	path := c.Path.UnkeyedInstanceShim()
-	_, call := path.Call()
+	_, call := c.Path.Call()
 
 	// Find the call in the parent module configuration, so we can get the
 	// expressions given for each input variable at the call site.
@@ -74,7 +66,7 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 	if !exists {
 		// This should never happen, since it indicates an improperly-constructed
 		// configuration tree.
-		panic(fmt.Errorf("no module call block found for %s", path))
+		panic(fmt.Errorf("no module call block found for %s", c.Path))
 	}
 
 	// We need to construct a schema for the expected call arguments based on

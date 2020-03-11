@@ -42,9 +42,12 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+			Addr: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+			Module: addrs.RootModule,
 			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
 	}
@@ -124,9 +127,12 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+			Addr: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "foo",
+			},
+			Module: addrs.RootModule,
 			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
 	}
@@ -166,9 +172,12 @@ func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
 	n := &NodeRefreshableManagedResourceInstance{
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			NodeAbstractResource: NodeAbstractResource{
-				Addr: addrs.RootModuleInstance.Resource(
-					addrs.ManagedResourceMode, "aws_instance", "foo",
-				),
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "foo",
+				},
+				Module: addrs.RootModule,
 				Config: m.Module.ManagedResources["aws_instance.foo"],
 			},
 			InstanceKey: addrs.IntKey(2),
