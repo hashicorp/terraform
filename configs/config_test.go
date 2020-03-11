@@ -9,12 +9,7 @@ import (
 )
 
 func TestConfigProviderTypes(t *testing.T) {
-	mod, diags := testModuleFromFile("testdata/valid-files/providers-explicit-implied.tf")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
-	}
-
-	cfg, diags := BuildConfig(mod, nil)
+	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -30,13 +25,33 @@ func TestConfigProviderTypes(t *testing.T) {
 	}
 }
 
-func TestConfigResolveAbsProviderAddr(t *testing.T) {
-	mod, diags := testModuleFromDir("testdata/providers-explicit-fqn")
+func TestConfigProviderTypes_nested(t *testing.T) {
+	// basic test with a nil config
+	c := NewEmptyConfig()
+	got := c.ProviderTypes()
+	if len(got) != 0 {
+		t.Fatalf("wrong result!\ngot: %#v\nwant: nil\n", got)
+	}
+
+	// config with two provider sources
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/nested-providers-fqns")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
-	cfg, diags := BuildConfig(mod, nil)
+	got = cfg.ProviderTypes()
+	want := []addrs.Provider{
+		addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test"),
+		addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
+	}
+
+	for _, problem := range deep.Equal(got, want) {
+		t.Error(problem)
+	}
+}
+
+func TestConfigResolveAbsProviderAddr(t *testing.T) {
+	cfg, diags := testModuleConfigFromDir("testdata/providers-explicit-fqn")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -88,4 +103,22 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
 	})
+}
+
+func TestProviderForConfigAddr(t *testing.T) {
+	cfg, diags := testModuleConfigFromDir("testdata/valid-modules/providers-fqns")
+	assertNoDiagnostics(t, diags)
+
+	got := cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("foo-test"))
+	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	if !got.Equals(want) {
+		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// now check a provider that isn't in the configuration. It should return a NewLegacyProvider.
+	got = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("bar-test"))
+	want = addrs.NewLegacyProvider("bar-test")
+	if !got.Equals(want) {
+		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+	}
 }

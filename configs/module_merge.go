@@ -44,9 +44,9 @@ func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd 
 	}
 	for _, reqd := range ovrd {
 		var fqn addrs.Provider
-		if reqd.Source != "" {
-			// FIXME: capture errors
-			fqn, _ = addrs.ParseProviderSourceString(reqd.Source)
+		if reqd.Source.SourceStr != "" {
+			// any errors parsing the source string will have already been captured.
+			fqn, _ = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
 		} else {
 			fqn = addrs.NewLegacyProvider(reqd.Name)
 		}

@@ -60,6 +60,12 @@ func TestDecodeRequiredProvidersBlock_legacy(t *testing.T) {
 }
 
 func TestDecodeRequiredProvidersBlock_provider_source(t *testing.T) {
+	mockRange := hcl.Range{
+		Filename: "mock.tf",
+		Start:    hcl.Pos{Line: 3, Column: 12, Byte: 27},
+		End:      hcl.Pos{Line: 3, Column: 19, Byte: 34},
+	}
+
 	block := &hcl.Block{
 		Type: "required_providers",
 		Body: hcltest.MockBody(&hcl.BodyContent{
@@ -70,6 +76,7 @@ func TestDecodeRequiredProvidersBlock_provider_source(t *testing.T) {
 						"source":  cty.StringVal("mycloud/test"),
 						"version": cty.StringVal("2.0.0"),
 					})),
+					Range: mockRange,
 				},
 			},
 		}),
@@ -77,7 +84,7 @@ func TestDecodeRequiredProvidersBlock_provider_source(t *testing.T) {
 
 	want := &RequiredProvider{
 		Name:        "my_test",
-		Source:      "mycloud/test",
+		Source:      Source{SourceStr: "mycloud/test", DeclRange: mockRange},
 		Requirement: testVC("2.0.0"),
 	}
 	got, diags := decodeRequiredProvidersBlock(block)
@@ -119,7 +126,7 @@ func TestDecodeRequiredProvidersBlock_mixed(t *testing.T) {
 		},
 		{
 			Name:        "my_test",
-			Source:      "mycloud/test",
+			Source:      Source{SourceStr: "mycloud/test", DeclRange: hcl.Range{}},
 			Requirement: testVC("2.0.0"),
 		},
 	}
@@ -162,7 +169,7 @@ func TestDecodeRequiredProvidersBlock_version_error(t *testing.T) {
 	want := []*RequiredProvider{
 		{
 			Name:   "my_test",
-			Source: "mycloud/test",
+			Source: Source{SourceStr: "mycloud/test", DeclRange: hcl.Range{}},
 		},
 	}
 

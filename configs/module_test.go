@@ -28,3 +28,17 @@ func TestNewModule_provider_local_name(t *testing.T) {
 		t.Fatal("provider local name not found")
 	}
 }
+
+func TestProviderForLocalConfig(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/providers-explicit-fqn")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+	lc := addrs.LocalProviderConfig{LocalName: "foo-test"}
+	got := mod.ProviderForLocalConfig(lc)
+	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	if !got.Equals(want) {
+		t.Fatalf("wrong result! got %#v, want %#v\n", got, want)
+	}
+
+}
