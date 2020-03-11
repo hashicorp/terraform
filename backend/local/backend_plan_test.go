@@ -217,7 +217,7 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	}))
@@ -661,7 +661,7 @@ func testPlanState() *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
@@ -688,7 +688,7 @@ func testPlanState_withDataSource() *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -705,7 +705,7 @@ func testPlanState_withDataSource() *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
@@ -732,7 +732,7 @@ func testPlanState_tainted() *states.State {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	return state
