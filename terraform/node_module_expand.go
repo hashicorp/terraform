@@ -110,8 +110,8 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 		eachMode = states.EachMap
 	}
 
-	// nodeExpandModule itself does not have visibility into how it's ancestors
-	// were expended, so we use the expander here to provide all possible paths
+	// nodeExpandModule itself does not have visibility into how its ancestors
+	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
 	for _, path := range expander.ExpandModule(n.Addr.Parent()) {
 		switch eachMode {
