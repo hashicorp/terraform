@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"runtime"
+	"strings"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
@@ -12,10 +17,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/jmespath/go-jmespath"
-	"io/ioutil"
-	"os"
-	"runtime"
-	"strings"
+
+	"log"
+	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
@@ -24,10 +30,6 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/go-homedir"
-	"log"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 // New creates a new backend for OSS remote state.
