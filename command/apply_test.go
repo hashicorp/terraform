@@ -835,7 +835,7 @@ func TestApply_refresh(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -992,7 +992,7 @@ func TestApply_state(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -1359,7 +1359,7 @@ func TestApply_backup(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -1663,7 +1663,7 @@ func applyFixturePlanFile(t *testing.T) string {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		ProviderAddr: addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Create,

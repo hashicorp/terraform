@@ -152,7 +152,7 @@ func TestFullInitialState() *states.State {
 	}
 	providerAddr := addrs.AbsProviderConfig{
 		Provider: rAddr.DefaultProvider(),
-		Module:   addrs.RootModuleInstance,
+		Module:   addrs.RootModule,
 	}
 	childMod.SetResourceMeta(rAddr, states.EachList, providerAddr)
 	return state

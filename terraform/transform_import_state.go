@@ -24,7 +24,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 			defaultFQN := target.Addr.Resource.Resource.DefaultProvider()
 			providerAddr = addrs.AbsProviderConfig{
 				Provider: defaultFQN,
-				Module:   target.Addr.Module,
+				Module:   target.Addr.Module.Module(),
 			}
 		}
 
@@ -48,7 +48,7 @@ type graphNodeImportState struct {
 }
 
 var (
-	_ GraphNodeModuleInstance    = (*graphNodeImportState)(nil)
+	_ GraphNodeModulePath        = (*graphNodeImportState)(nil)
 	_ GraphNodeEvalable          = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
@@ -86,6 +86,11 @@ func (n *graphNodeImportState) SetProvider(addr addrs.AbsProviderConfig) {
 // GraphNodeModuleInstance
 func (n *graphNodeImportState) Path() addrs.ModuleInstance {
 	return n.Addr.Module
+}
+
+// GraphNodeModulePath
+func (n *graphNodeImportState) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
 }
 
 // GraphNodeEvalable impl.

@@ -203,7 +203,7 @@ func TestMarshalResources(t *testing.T) {
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
 						Provider: addrs.NewLegacyProvider("test"),
-						Module:   addrs.RootModuleInstance,
+						Module:   addrs.RootModule,
 					},
 				},
 			},
@@ -245,7 +245,7 @@ func TestMarshalResources(t *testing.T) {
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
 						Provider: addrs.NewLegacyProvider("test"),
-						Module:   addrs.RootModuleInstance,
+						Module:   addrs.RootModule,
 					},
 				},
 			},
@@ -287,7 +287,7 @@ func TestMarshalResources(t *testing.T) {
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
 						Provider: addrs.NewLegacyProvider("test"),
-						Module:   addrs.RootModuleInstance,
+						Module:   addrs.RootModule,
 					},
 				},
 			},
@@ -331,7 +331,7 @@ func TestMarshalResources(t *testing.T) {
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
 						Provider: addrs.NewLegacyProvider("test"),
-						Module:   addrs.RootModuleInstance,
+						Module:   addrs.RootModule,
 					},
 				},
 			},
@@ -380,7 +380,7 @@ func TestMarshalResources(t *testing.T) {
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
 						Provider: addrs.NewLegacyProvider("test"),
-						Module:   addrs.RootModuleInstance,
+						Module:   addrs.RootModule,
 					},
 				},
 			},
@@ -452,7 +452,7 @@ func TestMarshalModules_basic(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -467,7 +467,7 @@ func TestMarshalModules_basic(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   childModule,
+				Module:   childModule.Module(),
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -482,7 +482,7 @@ func TestMarshalModules_basic(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   subModule,
+				Module:   subModule.Module(),
 			},
 		)
 	})
@@ -521,7 +521,7 @@ func TestMarshalModules_nested(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -536,7 +536,7 @@ func TestMarshalModules_nested(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   childModule,
+				Module:   childModule.Module(),
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -551,7 +551,7 @@ func TestMarshalModules_nested(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   subModule,
+				Module:   subModule.Module(),
 			},
 		)
 	})

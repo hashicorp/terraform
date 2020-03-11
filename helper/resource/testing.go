@@ -729,7 +729,7 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("placeholder"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 

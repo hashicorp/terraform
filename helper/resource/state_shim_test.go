@@ -43,7 +43,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -59,7 +59,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 
@@ -78,7 +78,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   childInstance,
+			Module:   childInstance.Module(),
 		},
 	)
 	childModule.SetResourceInstanceCurrent(
@@ -102,7 +102,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   childInstance,
+			Module:   childInstance.Module(),
 		},
 	)
 
@@ -128,7 +128,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   childInstance,
+			Module:   childInstance.Module(),
 		},
 	)
 
@@ -145,7 +145,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   childInstance,
+			Module:   childInstance.Module(),
 		},
 	)
 	childModule.SetResourceInstanceCurrent(
@@ -161,7 +161,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   childInstance,
+			Module:   childInstance.Module(),
 		},
 	)
 
@@ -178,7 +178,7 @@ func TestStateShim(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
-			Module:   childInstance,
+			Module:   childInstance.Module(),
 		},
 	)
 

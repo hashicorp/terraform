@@ -99,7 +99,8 @@ func NewNodeAbstractResource(addr addrs.AbsResource) *NodeAbstractResource {
 // the "count" or "for_each" arguments.
 type NodeAbstractResourceInstance struct {
 	NodeAbstractResource
-	InstanceKey addrs.InstanceKey
+	ModuleInstance addrs.ModuleInstance
+	InstanceKey    addrs.InstanceKey
 
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
@@ -138,7 +139,8 @@ func NewNodeAbstractResourceInstance(addr addrs.AbsResourceInstance) *NodeAbstra
 			Addr:   addr.Resource.Resource,
 			Module: addr.Module.Module(),
 		},
-		InstanceKey: addr.Resource.Key,
+		ModuleInstance: addr.Module,
+		InstanceKey:    addr.Resource.Key,
 	}
 }
 
@@ -153,6 +155,10 @@ func (n *NodeAbstractResourceInstance) Name() string {
 // GraphNodeModuleInstance
 func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
 	return n.Module.UnkeyedInstanceShim()
+}
+
+func (n *NodeAbstractResourceInstance) Path() addrs.ModuleInstance {
+	return n.ModuleInstance
 }
 
 // GraphNodeModulePath
