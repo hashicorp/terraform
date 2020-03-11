@@ -52,9 +52,9 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 		// vertexCtx is the context that we use when evaluating. This
 		// is normally the context of our graph but can be overridden
-		// with a GraphNodeSubPath impl.
+		// with a GraphNodeModuleInstance impl.
 		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeSubPath); ok && len(pn.Path()) > 0 {
+		if pn, ok := v.(GraphNodeModuleInstance); ok && len(pn.Path()) > 0 {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
 		}
@@ -101,19 +101,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 				log.Printf("[TRACE] vertex %q: produced no dynamic subgraph", dag.VertexName(v))
 			}
 		}
-
-		// If the node has a subgraph, then walk the subgraph
-		if sn, ok := v.(GraphNodeSubgraph); ok {
-			log.Printf("[TRACE] vertex %q: entering static subgraph", dag.VertexName(v))
-
-			subDiags := sn.Subgraph().(*Graph).walk(walker)
-			if subDiags.HasErrors() {
-				log.Printf("[TRACE] vertex %q: static subgraph encountered errors", dag.VertexName(v))
-				return
-			}
-			log.Printf("[TRACE] vertex %q: static subgraph completed successfully", dag.VertexName(v))
-		}
-
 		return
 	}
 

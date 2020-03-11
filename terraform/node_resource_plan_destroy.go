@@ -17,7 +17,7 @@ type NodePlanDestroyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeModuleInstance       = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeReferenceable        = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeDestroyer            = (*NodePlanDestroyableResourceInstance)(nil)

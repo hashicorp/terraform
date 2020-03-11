@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -18,10 +19,8 @@ type NodePlannableOutput struct {
 }
 
 var (
-	_ GraphNodeSubPath       = (*NodePlannableOutput)(nil)
-	_ RemovableIfNotTargeted = (*NodePlannableOutput)(nil)
-	_ GraphNodeReferenceable = (*NodePlannableOutput)(nil)
-	//_ GraphNodeEvalable          = (*NodePlannableOutput)(nil)
+	_ RemovableIfNotTargeted     = (*NodePlannableOutput)(nil)
+	_ GraphNodeReferenceable     = (*NodePlannableOutput)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
 	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
 )
@@ -29,26 +28,29 @@ var (
 func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(ctx.Path().Module()) {
+	for _, module := range expander.ExpandModule(n.Module) {
 		o := &NodeApplyableOutput{
 			Addr:   n.Addr.Absolute(module),
 			Config: n.Config,
 		}
-		// log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
+		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	}
 	return &g, nil
 }
 
 func (n *NodePlannableOutput) Name() string {
-	return n.Addr.Absolute(n.Module.UnkeyedInstanceShim()).String()
+	path := n.Module.String()
+	addr := n.Addr.String()
+	if path != "" {
+		return path + "." + addr
+	}
+	return addr
 }
 
-// GraphNodeSubPath
-func (n *NodePlannableOutput) Path() addrs.ModuleInstance {
-	// Return an UnkeyedInstanceShim as our placeholder,
-	// given that modules will be unexpanded at this point in the walk
-	return n.Module.UnkeyedInstanceShim()
+// GraphNodeModulePath
+func (n *NodePlannableOutput) ModulePath() addrs.Module {
+	return n.Module
 }
 
 // GraphNodeReferenceable
@@ -61,9 +63,6 @@ func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
 	// the output is referenced through the module call, and via the
 	// module itself.
 	_, call := n.Module.Call()
-
-	// FIXME: make something like ModuleCallOutput for this type of reference
-	// that doesn't need an instance shim
 	callOutput := addrs.ModuleCallOutput{
 		Call: call.Instance(addrs.NoKey),
 		Name: n.Addr.Name,
@@ -109,7 +108,7 @@ type NodeApplyableOutput struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeApplyableOutput)(nil)
+	_ GraphNodeModuleInstance   = (*NodeApplyableOutput)(nil)
 	_ RemovableIfNotTargeted    = (*NodeApplyableOutput)(nil)
 	_ GraphNodeTargetDownstream = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceable    = (*NodeApplyableOutput)(nil)
@@ -123,9 +122,14 @@ func (n *NodeApplyableOutput) Name() string {
 	return n.Addr.String()
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeApplyableOutput) Path() addrs.ModuleInstance {
 	return n.Addr.Module
+}
+
+// GraphNodeModulePath
+func (n *NodeApplyableOutput) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
 }
 
 // RemovableIfNotTargeted
@@ -237,7 +241,6 @@ type NodeDestroyableOutput struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeDestroyableOutput)(nil)
 	_ RemovableIfNotTargeted    = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeTargetDownstream = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeReferencer       = (*NodeDestroyableOutput)(nil)
@@ -249,9 +252,9 @@ func (n *NodeDestroyableOutput) Name() string {
 	return fmt.Sprintf("%s (destroy)", n.Addr.String())
 }
 
-// GraphNodeSubPath
-func (n *NodeDestroyableOutput) Path() addrs.ModuleInstance {
-	return n.Module.UnkeyedInstanceShim()
+// GraphNodeModulePath
+func (n *NodeDestroyableOutput) ModulePath() addrs.Module {
+	return n.Module
 }
 
 // RemovableIfNotTargeted

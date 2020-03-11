@@ -15,7 +15,7 @@ type NodeValidatableResource struct {
 }
 
 var (
-	_ GraphNodeSubPath                   = (*NodeValidatableResource)(nil)
+	_ GraphNodeModuleInstance            = (*NodeValidatableResource)(nil)
 	_ GraphNodeEvalable                  = (*NodeValidatableResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeValidatableResource)(nil)
 	_ GraphNodeReferencer                = (*NodeValidatableResource)(nil)

@@ -40,6 +40,10 @@ func (m Module) String() string {
 	return strings.Join(steps, ".")
 }
 
+func (m Module) Equal(other Module) bool {
+	return m.String() == other.String()
+}
+
 // Child returns the address of a child call in the receiver, identified by the
 // given name.
 func (m Module) Child(name string) Module {
@@ -76,4 +80,18 @@ func (m Module) Call() (Module, ModuleCall) {
 	return caller, ModuleCall{
 		Name: callName,
 	}
+}
+
+// Ancestors returns a slice containing the receiver and all of its ancestor
+// modules, all the way up to (and including) the root module.  The result is
+// ordered by depth, with the root module always first.
+//
+// Since the result always includes the root module, a caller may choose to
+// ignore it by slicing the result with [1:].
+func (m Module) Ancestors() []Module {
+	ret := make([]Module, 0, len(m)+1)
+	for i := 0; i <= len(m); i++ {
+		ret = append(ret, m[:i])
+	}
+	return ret
 }
