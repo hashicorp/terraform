@@ -48,7 +48,7 @@ func testModuleFromFile(filename string) (*Module, hcl.Diagnostics) {
 	return mod, modDiags
 }
 
-// testModuleFromDir reads configuration from the given directory path as a
+// testModuleConfigFrom File reads a single file from the given path as a
 // module and returns its configuration. This is a helper for use in unit tests.
 func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	parser := NewParser(nil)

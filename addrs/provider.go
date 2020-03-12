@@ -128,16 +128,7 @@ func (pt Provider) LessThan(other Provider) bool {
 
 // Equals returns true if the receiver and other provider have the same attributes.
 func (pt Provider) Equals(other Provider) bool {
-	if pt.Namespace != other.Namespace {
-		return false
-	}
-	if pt.Hostname != other.Hostname {
-		return false
-	}
-	if pt.Type != other.Type {
-		return false
-	}
-	return true
+	return pt == other
 }
 
 // ParseProviderSourceString parses the source attribute and returns a provider.
