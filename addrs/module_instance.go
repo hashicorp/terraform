@@ -391,6 +391,16 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 		// Other is contained if its steps match for the length of our own path.
 		for i, ourStep := range m {
 			otherStep := to[i]
+
+			// We can't contain an entire module if we have a specific instance
+			// key. The case of NoKey is OK because this address is either
+			// meant to address an unexpanded module, or a single instance of
+			// that module, and both of those are a covered in-full by the
+			// Module address.
+			if ourStep.InstanceKey != NoKey {
+				return false
+			}
+
 			if ourStep.Name != otherStep {
 				return false
 			}

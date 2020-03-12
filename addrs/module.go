@@ -71,17 +71,7 @@ func (m Module) TargetContains(other Targetable) bool {
 		return true
 
 	case ModuleInstance:
-		if len(to) < len(m) {
-			return false
-		}
-		for i, ourStep := range m {
-			otherStep := to[i]
-			// This is where ModuleInstance differs from Module
-			if ourStep != otherStep.Name {
-				return false
-			}
-		}
-		return true
+		return m.TargetContains(to.Module())
 
 	case AbsResource:
 		return m.TargetContains(to.Module)
