@@ -1,4 +1,4 @@
-package initwd
+package copydir
 
 import (
 	"io"
@@ -7,9 +7,32 @@ import (
 	"strings"
 )
 
-// copyDir copies the src directory contents into dst. Both directories
-// should already exist.
-func copyDir(dst, src string) error {
+// CopyDir recursively copies all of the files within the directory given in
+// src to the directory given in dst.
+//
+// Both directories should already exist. If the destination directory is
+// non-empty then the new files will merge in with the old, overwriting any
+// files that have a relative path in common between source and destination.
+//
+// Recursive copying of directories is inevitably a rather opinionated sort of
+// operation, so this function won't be appropriate for all use-cases. Some
+// of the "opinions" it has are described in the following paragraphs:
+//
+// Symlinks in the source directory are recreated with the same target in the
+// destination directory. If the symlink is to a directory itself, that
+// directory is not recursively visited for further copying.
+//
+// File and directory modes are not preserved exactly, but the executable
+// flag is preserved for files on operating systems where it is significant.
+//
+// Any "dot files" it encounters along the way are skipped, even on platforms
+// that do not normally ascribe special meaning to files with names starting
+// with dots.
+//
+// Callers may rely on the above details and other undocumented details of
+// this function, so if you intend to change it be sure to review the callers
+// first and make sure they are compatible with the change you intend to make.
+func CopyDir(dst, src string) error {
 	src, err := filepath.EvalSymlinks(src)
 	if err != nil {
 		return err
@@ -38,7 +61,7 @@ func copyDir(dst, src string) error {
 		dstPath := filepath.Join(dst, path[len(src):])
 
 		// we don't want to try and copy the same file over itself.
-		if eq, err := sameFile(path, dstPath); eq {
+		if eq, err := SameFile(path, dstPath); eq {
 			return nil
 		} else if err != nil {
 			return err
@@ -94,14 +117,16 @@ func copyDir(dst, src string) error {
 	return filepath.Walk(src, walkFn)
 }
 
-// sameFile tried to determine if to paths are the same file.
-// If the paths don't match, we lookup the inode on supported systems.
-func sameFile(a, b string) (bool, error) {
+// SameFile returns true if the two given paths refer to the same physical
+// file on disk, using the unique file identifiers from the underlying
+// operating system. For example, on Unix systems this checks whether the
+// two files are on the same device and have the same inode.
+func SameFile(a, b string) (bool, error) {
 	if a == b {
 		return true, nil
 	}
 
-	aIno, err := inode(a)
+	aInfo, err := os.Lstat(a)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -109,7 +134,7 @@ func sameFile(a, b string) (bool, error) {
 		return false, err
 	}
 
-	bIno, err := inode(b)
+	bInfo, err := os.Lstat(b)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -117,9 +142,5 @@ func sameFile(a, b string) (bool, error) {
 		return false, err
 	}
 
-	if aIno > 0 && aIno == bIno {
-		return true, nil
-	}
-
-	return false, nil
+	return os.SameFile(aInfo, bInfo), nil
 }

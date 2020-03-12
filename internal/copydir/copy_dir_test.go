@@ -1,4 +1,4 @@
-package initwd
+package copydir
 
 import (
 	"io/ioutil"
@@ -52,7 +52,7 @@ func TestCopyDir_symlinks(t *testing.T) {
 	targetDir := filepath.Join(tmpdir, "target")
 	os.Mkdir(targetDir, os.ModePerm)
 
-	err = copyDir(targetDir, moduleDir)
+	err = CopyDir(targetDir, moduleDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestCopyDir_symlink_file(t *testing.T) {
 	targetDir := filepath.Join(tmpdir, "target")
 	os.Mkdir(targetDir, os.ModePerm)
 
-	err = copyDir(targetDir, moduleDir)
+	err = CopyDir(targetDir, moduleDir)
 	if err != nil {
 		t.Fatal(err)
 	}

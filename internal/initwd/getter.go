@@ -9,6 +9,7 @@ import (
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/internal/copydir"
 	"github.com/hashicorp/terraform/registry/regsrc"
 )
 
@@ -112,7 +113,7 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to create directory %s: %s", instPath, err)
 		}
-		err = copyDir(instPath, prevDir)
+		err = copydir.CopyDir(instPath, prevDir)
 		if err != nil {
 			return "", fmt.Errorf("failed to copy from %s to %s: %s", prevDir, instPath, err)
 		}
