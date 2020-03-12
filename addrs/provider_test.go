@@ -101,6 +101,10 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{},
 			true,
 		},
+		"/ / /": { // empty strings
+			Provider{},
+			true,
+		},
 		"badhost!/hashicorp/aws": {
 			Provider{},
 			true,
@@ -241,5 +245,41 @@ func TestParseProviderPart(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestProviderEquals(t *testing.T) {
+	tests := []struct {
+		InputP Provider
+		OtherP Provider
+		Want   bool
+	}{
+		{
+			NewProvider(DefaultRegistryHost, "foo", "test"),
+			NewProvider(DefaultRegistryHost, "foo", "test"),
+			true,
+		},
+		{
+			NewProvider(DefaultRegistryHost, "foo", "test"),
+			NewProvider(DefaultRegistryHost, "bar", "test"),
+			false,
+		},
+		{
+			NewProvider(DefaultRegistryHost, "foo", "test"),
+			NewProvider(DefaultRegistryHost, "foo", "my-test"),
+			false,
+		},
+		{
+			NewProvider(DefaultRegistryHost, "foo", "test"),
+			NewProvider("example.com", "foo", "test"),
+			false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.InputP.String(), func(t *testing.T) {
+			got := test.InputP.Equals(test.OtherP)
+			if got != test.Want {
+				t.Errorf("wrong result\ngot:  %v\nwant: %v", got, test.Want)
+			}
+		})
+	}
 }

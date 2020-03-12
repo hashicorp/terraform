@@ -126,6 +126,11 @@ func (pt Provider) LessThan(other Provider) bool {
 	}
 }
 
+// Equals returns true if the receiver and other provider have the same attributes.
+func (pt Provider) Equals(other Provider) bool {
+	return pt == other
+}
+
 // ParseProviderSourceString parses the source attribute and returns a provider.
 // This is intended primarily to parse the FQN-like strings returned by
 // terraform-config-inspect.

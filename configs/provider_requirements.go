@@ -7,12 +7,18 @@ import (
 )
 
 // RequiredProvider represents a declaration of a dependency on a particular
-// provider version without actually configuring that provider. This is used in
-// child modules that expect a provider to be passed in from their parent.
+// provider version or source without actually configuring that provider. This
+// is used in child modules that expect a provider to be passed in from their
+// parent.
 type RequiredProvider struct {
 	Name        string
-	Source      string // TODO
+	Source      Source
 	Requirement VersionConstraint
+}
+
+type Source struct {
+	SourceStr string
+	DeclRange hcl.Range
 }
 
 // ProviderRequirements represents merged provider version constraints.
@@ -63,7 +69,8 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 				}
 			}
 			if expr.Type().HasAttribute("source") {
-				ret.Source = expr.GetAttr("source").AsString()
+				ret.Source.SourceStr = expr.GetAttr("source").AsString()
+				ret.Source.DeclRange = attr.Range
 			}
 			reqs = append(reqs, ret)
 		default:

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -179,9 +180,21 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 	for _, reqd := range file.RequiredProviders {
 		var fqn addrs.Provider
-		if reqd.Source != "" {
-			// FIXME: capture errors
-			fqn, _ = addrs.ParseProviderSourceString(reqd.Source)
+		if reqd.Source.SourceStr != "" {
+			var sourceDiags tfdiags.Diagnostics
+			fqn, sourceDiags = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
+			if sourceDiags.HasErrors() {
+				for i := range sourceDiags {
+					if sourceDiags[i].Severity() == tfdiags.Error {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid provider source string",
+							Detail:   sourceDiags[i].Description().Detail,
+							Subject:  &reqd.Source.DeclRange,
+						})
+					}
+				}
+			}
 		} else {
 			fqn = addrs.NewLegacyProvider(reqd.Name)
 		}
