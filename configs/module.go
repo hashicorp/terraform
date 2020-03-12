@@ -184,12 +184,16 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			var sourceDiags tfdiags.Diagnostics
 			fqn, sourceDiags = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
 			if sourceDiags.HasErrors() {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid provider source string",
-					Detail:   sourceDiags[0].Description().Detail,
-					Subject:  &reqd.Source.DeclRange,
-				})
+				for i := range sourceDiags {
+					if sourceDiags[i].Severity() == tfdiags.Error {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid provider source string",
+							Detail:   sourceDiags[i].Description().Detail,
+							Subject:  &reqd.Source.DeclRange,
+						})
+					}
+				}
 			}
 		} else {
 			fqn = addrs.NewLegacyProvider(reqd.Name)
