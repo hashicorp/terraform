@@ -111,8 +111,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 
 		abstract := &NodeAbstractResource{
-			Addr:   relAddr,
-			Module: path,
+			Addr: addrs.ConfigResource{
+				Resource: relAddr,
+				Module:   path,
+			},
 		}
 
 		if _, ok := t.uniqueMap[abstract.Name()]; ok {

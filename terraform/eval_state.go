@@ -452,8 +452,7 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 // in that case, allowing expression evaluation to see it as a zero-element
 // list rather than as not set at all.
 type EvalWriteResourceState struct {
-	Addr         addrs.Resource
-	Module       addrs.Module
+	Addr         addrs.ConfigResource
 	Config       *configs.Resource
 	ProviderAddr addrs.AbsProviderConfig
 }
@@ -489,18 +488,18 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	// can refer to it. Since this node represents the abstract module, we need
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Module) {
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
 		state.SetResourceMeta(n.Addr.Absolute(module), eachMode, n.ProviderAddr)
 
 		switch eachMode {
 		case states.EachList:
-			expander.SetResourceCount(module, n.Addr, count)
+			expander.SetResourceCount(module, n.Addr.Resource, count)
 		case states.EachMap:
-			expander.SetResourceForEach(module, n.Addr, forEach)
+			expander.SetResourceForEach(module, n.Addr.Resource, forEach)
 		default:
-			expander.SetResourceSingle(module, n.Addr)
+			expander.SetResourceSingle(module, n.Addr.Resource)
 		}
 	}
 

@@ -38,7 +38,6 @@ func (n *NodePlannableResource) EvalTree() EvalNode {
 	// this ensures we can reference the resource even if the count is 0
 	return &EvalWriteResourceState{
 		Addr:         n.Addr,
-		Module:       n.Module,
 		Config:       n.Config,
 		ProviderAddr: n.ResolvedProvider,
 	}
