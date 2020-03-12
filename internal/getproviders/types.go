@@ -18,6 +18,11 @@ type Version = versions.Version
 // extra methods for convenient filtering.
 type VersionList = versions.List
 
+// VersionSet represents a set of versions, usually describing the acceptable
+// versions that can be selected under a particular version constraint provided
+// by the end-user.
+type VersionSet = versions.Set
+
 // ParseVersion parses a "semver"-style version string into a Version value,
 // which is the version syntax we use for provider versions.
 func ParseVersion(str string) (Version, error) {
