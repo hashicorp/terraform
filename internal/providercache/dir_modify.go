@@ -9,6 +9,14 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
+// InstallPackage takes a metadata object describing a package available for
+// installation, retrieves that package, and installs it into the receiving
+// cache directory.
+func (d *Dir) InstallPackage(meta getproviders.PackageMeta) error {
+	// TODO: Implement this
+	return fmt.Errorf("InstallPackage is not yet implemented")
+}
+
 // LinkFromOtherCache takes a CachedProvider value produced from another Dir
 // and links it into the cache represented by the receiver Dir.
 //
