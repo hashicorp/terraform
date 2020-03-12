@@ -183,18 +183,17 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		if reqd.Source.SourceStr != "" {
 			var sourceDiags tfdiags.Diagnostics
 			fqn, sourceDiags = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
-			if sourceDiags.HasErrors() {
-				for i := range sourceDiags {
-					if sourceDiags[i].Severity() == tfdiags.Error {
-						diags = append(diags, &hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid provider source string",
-							Detail:   sourceDiags[i].Description().Detail,
-							Subject:  &reqd.Source.DeclRange,
-						})
-					}
+			hclDiags := sourceDiags.ToHCL()
+			// The diagnostics from ParseProviderSourceString don't contain
+			// source location information because it has no context to compute
+			// them from, and so we'll add those in quickly here before we
+			// return.
+			for _, diag := range hclDiags {
+				if diag.Subject == nil {
+					diag.Subject = reqd.Source.DeclRange.Ptr()
 				}
 			}
+			diags = append(diags, hclDiags...)
 		} else {
 			fqn = addrs.NewLegacyProvider(reqd.Name)
 		}
