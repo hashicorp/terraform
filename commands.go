@@ -91,6 +91,7 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		"force-unlock": struct{}{},
 		"push":         struct{}{},
 		"0.12upgrade":  struct{}{},
+		"0.13upgrade":  struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -308,6 +309,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 
 		"0.12upgrade": func() (cli.Command, error) {
 			return &command.ZeroTwelveUpgradeCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"0.13upgrade": func() (cli.Command, error) {
+			return &command.ZeroThirteenUpgradeCommand{
 				Meta: meta,
 			}, nil
 		},
