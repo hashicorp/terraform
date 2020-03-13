@@ -345,7 +345,7 @@ func (err InstallerError) Error() string {
 	b.WriteString("some providers could not be installed:\n")
 	for _, addr := range addrs {
 		providerErr := err.ProviderErrors[addr]
-		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr.Error())
+		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
 	return b.String()
 }
