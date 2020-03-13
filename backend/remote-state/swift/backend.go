@@ -9,12 +9,18 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/utils/terraform/auth"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	tf_openstack "github.com/terraform-providers/terraform-provider-openstack/openstack"
+	"github.com/hashicorp/terraform/version"
 )
+
+// Use openstackbase.Config as the base/foundation of this provider's
+// Config struct.
+type Config struct {
+	auth.Config
+}
 
 // New creates a new backend for Swift remote state.
 func New() backend.Backend {
@@ -22,22 +28,29 @@ func New() backend.Backend {
 		Schema: map[string]*schema.Schema{
 			"auth_url": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", ""),
 				Description: descriptions["auth_url"],
 			},
 
-			"user_id": {
+			"region_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_USER_ID", ""),
-				Description: descriptions["user_name"],
+				Description: descriptions["region_name"],
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 
 			"user_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", ""),
+				Description: descriptions["user_name"],
+			},
+
+			"user_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_USER_ID", ""),
 				Description: descriptions["user_name"],
 			},
 
@@ -149,20 +162,6 @@ func New() backend.Backend {
 				Description: descriptions["default_domain"],
 			},
 
-			"cloud": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_CLOUD", ""),
-				Description: descriptions["cloud"],
-			},
-
-			"region_name": {
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
-				Description: descriptions["region_name"],
-			},
-
 			"insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -195,6 +194,41 @@ func New() backend.Backend {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
 				Description: descriptions["key"],
+			},
+
+			"swauth": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_SWAUTH", false),
+				Description: descriptions["swauth"],
+			},
+
+			"allow_reauth": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_ALLOW_REAUTH", false),
+				Description: descriptions["allow_reauth"],
+			},
+
+			"cloud": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_CLOUD", ""),
+				Description: descriptions["cloud"],
+			},
+
+			"max_retries": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     0,
+				Description: descriptions["max_retries"],
+			},
+
+			"disable_no_cache_header": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["disable_no_cache_header"],
 			},
 
 			"path": {
@@ -258,6 +292,8 @@ func init() {
 	descriptions = map[string]string{
 		"auth_url": "The Identity authentication URL.",
 
+		"region_name": "The name of the Region to use.",
+
 		"user_name": "Username to login with.",
 
 		"user_id": "User ID to login with.",
@@ -292,10 +328,6 @@ func init() {
 
 		"default_domain": "The name of the Domain ID to scope to if no other domain is specified. Defaults to `default` (Identity v3).",
 
-		"cloud": "An entry in a `clouds.yaml` file to use.",
-
-		"region_name": "The name of the Region to use.",
-
 		"insecure": "Trust self-signed certificates.",
 
 		"cacert_file": "A Custom CA certificate.",
@@ -305,6 +337,19 @@ func init() {
 		"cert": "A client certificate to authenticate with.",
 
 		"key": "A client private key to authenticate with.",
+
+		"swauth": "Use Swift's authentication system instead of Keystone.",
+
+		"allow_reauth": "If set to `true`, OpenStack authorization will be perfomed\n" +
+			"automatically, if the initial auth token get expired. This is useful,\n" +
+			"when the token TTL is low or the overall Terraform provider execution\n" +
+			"time expected to be greater than the initial token TTL.",
+
+		"cloud": "An entry in a `clouds.yaml` file to use.",
+
+		"max_retries": "How many times HTTP connection should be retried until giving up.",
+
+		"disable_no_cache_header": "If set to `true`, the HTTP `Cache-Control: no-cache` header will not be added by default to all API requests.",
 
 		"path": "Swift container path to use.",
 
@@ -340,29 +385,37 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
-	config := &tf_openstack.Config{
-		CACertFile:                  data.Get("cacert_file").(string),
-		ClientCertFile:              data.Get("cert").(string),
-		ClientKeyFile:               data.Get("key").(string),
-		Cloud:                       data.Get("cloud").(string),
-		DefaultDomain:               data.Get("default_domain").(string),
-		DomainID:                    data.Get("domain_id").(string),
-		DomainName:                  data.Get("domain_name").(string),
-		EndpointType:                data.Get("endpoint_type").(string),
-		IdentityEndpoint:            data.Get("auth_url").(string),
-		Password:                    data.Get("password").(string),
-		ProjectDomainID:             data.Get("project_domain_id").(string),
-		ProjectDomainName:           data.Get("project_domain_name").(string),
-		Token:                       data.Get("token").(string),
-		TenantID:                    data.Get("tenant_id").(string),
-		TenantName:                  data.Get("tenant_name").(string),
-		UserDomainID:                data.Get("user_domain_id").(string),
-		UserDomainName:              data.Get("user_domain_name").(string),
-		Username:                    data.Get("user_name").(string),
-		UserID:                      data.Get("user_id").(string),
-		ApplicationCredentialID:     data.Get("application_credential_id").(string),
-		ApplicationCredentialName:   data.Get("application_credential_name").(string),
-		ApplicationCredentialSecret: data.Get("application_credential_secret").(string),
+	config := &Config{
+		auth.Config{
+			CACertFile:                  data.Get("cacert_file").(string),
+			ClientCertFile:              data.Get("cert").(string),
+			ClientKeyFile:               data.Get("key").(string),
+			Cloud:                       data.Get("cloud").(string),
+			DefaultDomain:               data.Get("default_domain").(string),
+			DomainID:                    data.Get("domain_id").(string),
+			DomainName:                  data.Get("domain_name").(string),
+			EndpointType:                data.Get("endpoint_type").(string),
+			IdentityEndpoint:            data.Get("auth_url").(string),
+			Password:                    data.Get("password").(string),
+			ProjectDomainID:             data.Get("project_domain_id").(string),
+			ProjectDomainName:           data.Get("project_domain_name").(string),
+			Region:                      data.Get("region_name").(string),
+			Swauth:                      data.Get("swauth").(bool),
+			Token:                       data.Get("token").(string),
+			TenantID:                    data.Get("tenant_id").(string),
+			TenantName:                  data.Get("tenant_name").(string),
+			UserDomainID:                data.Get("user_domain_id").(string),
+			UserDomainName:              data.Get("user_domain_name").(string),
+			Username:                    data.Get("user_name").(string),
+			UserID:                      data.Get("user_id").(string),
+			ApplicationCredentialID:     data.Get("application_credential_id").(string),
+			ApplicationCredentialName:   data.Get("application_credential_name").(string),
+			ApplicationCredentialSecret: data.Get("application_credential_secret").(string),
+			AllowReauth:                 data.Get("allow_reauth").(bool),
+			MaxRetries:                  data.Get("max_retries").(int),
+			DisableNoCacheHeader:        data.Get("disable_no_cache_header").(bool),
+			TerraformVersion:            version.Version,
+		},
 	}
 
 	if v, ok := data.GetOkExists("insecure"); ok {
@@ -423,14 +476,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.expireSecs = int(expireDur.Seconds())
 	}
 
-	objClient, err := openstack.NewObjectStorageV1(config.OsClient, gophercloud.EndpointOpts{
-		Region: data.Get("region_name").(string),
-	})
-	if err != nil {
+	var err error
+	if b.client, err = config.ObjectStorageV1Client(config.Region); err != nil {
 		return err
 	}
-
-	b.client = objClient
 
 	return nil
 }
