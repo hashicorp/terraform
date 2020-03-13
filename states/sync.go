@@ -246,40 +246,48 @@ func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
 // The state is modified in-place if necessary, moving a resource instance
 // between the two addresses. The return value is true if a change was made,
 // and false otherwise.
-func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.AbsResource, countEnabled bool) bool {
+func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.ConfigResource, countEnabled bool) bool {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	ms := s.state.Module(addr.Module)
-	if ms == nil {
+	// get all modules instances that may match this state
+	modules := s.state.ModuleInstances(addr.Module)
+	if len(modules) == 0 {
 		return false
 	}
 
-	relAddr := addr.Resource
-	rs := ms.Resource(relAddr)
-	if rs == nil {
-		return false
-	}
-	huntKey := addrs.NoKey
-	replaceKey := addrs.InstanceKey(addrs.IntKey(0))
-	if !countEnabled {
-		huntKey, replaceKey = replaceKey, huntKey
+	changed := false
+
+	for _, ms := range modules {
+		relAddr := addr.Resource
+		rs := ms.Resource(relAddr)
+		if rs == nil {
+			continue
+		}
+
+		huntKey := addrs.NoKey
+		replaceKey := addrs.InstanceKey(addrs.IntKey(0))
+		if !countEnabled {
+			huntKey, replaceKey = replaceKey, huntKey
+		}
+
+		is, exists := rs.Instances[huntKey]
+		if !exists {
+			continue
+		}
+
+		if _, exists := rs.Instances[replaceKey]; exists {
+			// If the replacement key also exists then we'll do nothing and keep both.
+			continue
+		}
+
+		// If we get here then we need to "rename" from hunt to replace
+		rs.Instances[replaceKey] = is
+		delete(rs.Instances, huntKey)
+		changed = true
 	}
 
-	is, exists := rs.Instances[huntKey]
-	if !exists {
-		return false
-	}
-
-	if _, exists := rs.Instances[replaceKey]; exists {
-		// If the replacement key also exists then we'll do nothing and keep both.
-		return false
-	}
-
-	// If we get here then we need to "rename" from hunt to replace
-	rs.Instances[replaceKey] = is
-	delete(rs.Instances, huntKey)
-	return true
+	return changed
 }
 
 // SetResourceInstanceCurrent saves the given instance object as the current
