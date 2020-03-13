@@ -30,6 +30,10 @@ var _ Source = MultiSource(nil)
 // that are available across all of the underlying selectors, while respecting
 // each selector's matching patterns.
 func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+	if len(s) == 0 { // Easy case: there can be no available versions
+		return nil, nil
+	}
+
 	// TODO: Implement
 	panic("MultiSource.AvailableVersions not yet implemented")
 }
@@ -37,6 +41,10 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 // PackageMeta retrieves the package metadata for the given provider from the
 // first selector that indicates support for it.
 func (s MultiSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+	if len(s) == 0 { // Easy case: no providers exist at all
+		return PackageMeta{}, ErrProviderNotKnown{provider}
+	}
+
 	// TODO: Implement
 	panic("MultiSource.PackageMeta not yet implemented")
 }
