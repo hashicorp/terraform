@@ -253,6 +253,61 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 	}
 }
 
+// ConfigResource is an address for a resource within a configuration.
+type ConfigResource struct {
+	targetable
+	Module   Module
+	Resource Resource
+}
+
+// Resource returns the address of a particular resource within the module.
+func (m Module) Resource(mode ResourceMode, typeName string, name string) ConfigResource {
+	return ConfigResource{
+		Module: m,
+		Resource: Resource{
+			Mode: mode,
+			Type: typeName,
+			Name: name,
+		},
+	}
+}
+
+// Absolute produces the address for the receiver within a specific module instance.
+func (r ConfigResource) Absolute(module ModuleInstance) AbsResource {
+	return AbsResource{
+		Module:   module,
+		Resource: r.Resource,
+	}
+}
+
+// TargetContains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
+func (r ConfigResource) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+	case ConfigResource:
+		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+	case AbsResource:
+		return r.TargetContains(ConfigResource{Module: to.Module.Module(), Resource: to.Resource})
+	case AbsResourceInstance:
+		return r.TargetContains(to.ContainingResource())
+	default:
+		return false
+	}
+}
+
+func (r ConfigResource) String() string {
+	if len(r.Module) == 0 {
+		return r.Resource.String()
+	}
+	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+}
+
+func (r ConfigResource) Equal(o ConfigResource) bool {
+	return r.String() == o.String()
+}
+
 // ResourceMode defines which lifecycle applies to a given resource. Each
 // resource lifecycle has a slightly different address format.
 type ResourceMode rune

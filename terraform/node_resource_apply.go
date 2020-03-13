@@ -61,7 +61,6 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 
 	return &EvalWriteResourceState{
 		Addr:         n.Addr,
-		Module:       n.Module,
 		Config:       n.Config,
 		ProviderAddr: n.ResolvedProvider,
 	}

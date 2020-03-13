@@ -59,7 +59,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-	for _, path := range expander.ExpandModule(n.Module) {
+	for _, path := range expander.ExpandModule(n.Addr.Module) {
 		switch {
 		case count >= 0:
 			expander.SetResourceCount(path, n.ResourceAddr().Resource, count)

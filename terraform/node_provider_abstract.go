@@ -41,6 +41,8 @@ func (n *NodeAbstractProvider) Name() string {
 
 // GraphNodeModuleInstance
 func (n *NodeAbstractProvider) Path() addrs.ModuleInstance {
+	// Providers cannot be contained inside an expanded module, so this shim
+	// converts our module path to the correct ModuleInstance.
 	return n.Addr.Module.UnkeyedInstanceShim()
 }
 

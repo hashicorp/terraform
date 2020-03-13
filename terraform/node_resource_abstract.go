@@ -43,8 +43,7 @@ type GraphNodeResourceInstance interface {
 // operations. It registers all the interfaces for a resource that common
 // across multiple operation types.
 type NodeAbstractResource struct {
-	Addr   addrs.Resource
-	Module addrs.Module
+	Addr addrs.ConfigResource
 
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
@@ -80,15 +79,18 @@ var (
 )
 
 func (n *NodeAbstractResource) addr() addrs.AbsResource {
-	return n.Addr.Absolute(n.Module.UnkeyedInstanceShim())
+	return n.Addr.Absolute(n.Addr.Module.UnkeyedInstanceShim())
 }
 
 // NewNodeAbstractResource creates an abstract resource graph node for
 // the given absolute resource address.
 func NewNodeAbstractResource(addr addrs.AbsResource) *NodeAbstractResource {
+	// FIXME: this should probably accept a ConfigResource
 	return &NodeAbstractResource{
-		Addr:   addr.Resource,
-		Module: addr.Module.Module(),
+		Addr: addrs.ConfigResource{
+			Resource: addr.Resource,
+			Module:   addr.Module.Module(),
+		},
 	}
 }
 
@@ -136,8 +138,10 @@ func NewNodeAbstractResourceInstance(addr addrs.AbsResourceInstance) *NodeAbstra
 	// request.
 	return &NodeAbstractResourceInstance{
 		NodeAbstractResource: NodeAbstractResource{
-			Addr:   addr.Resource.Resource,
-			Module: addr.Module.Module(),
+			Addr: addrs.ConfigResource{
+				Resource: addr.Resource.Resource,
+				Module:   addr.Module.Module(),
+			},
 		},
 		ModuleInstance: addr.Module,
 		InstanceKey:    addr.Resource.Key,
@@ -154,7 +158,7 @@ func (n *NodeAbstractResourceInstance) Name() string {
 
 // GraphNodeModuleInstance
 func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
-	return n.Module.UnkeyedInstanceShim()
+	return n.Addr.Module.UnkeyedInstanceShim()
 }
 
 func (n *NodeAbstractResourceInstance) Path() addrs.ModuleInstance {
@@ -163,12 +167,12 @@ func (n *NodeAbstractResourceInstance) Path() addrs.ModuleInstance {
 
 // GraphNodeModulePath
 func (n *NodeAbstractResource) ModulePath() addrs.Module {
-	return n.Module
+	return n.Addr.Module
 }
 
 // GraphNodeReferenceable
 func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
-	return []addrs.Referenceable{n.Addr}
+	return []addrs.Referenceable{n.Addr.Resource}
 }
 
 // GraphNodeReferenceable
@@ -314,7 +318,7 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 
 // GraphNodeProviderConsumer
 func (n *NodeAbstractResource) ImpliedProvider() addrs.Provider {
-	return n.Addr.DefaultProvider()
+	return n.Addr.Resource.DefaultProvider()
 }
 
 // GraphNodeProviderConsumer
@@ -342,7 +346,7 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool)
 
 // GraphNodeProviderConsumer
 func (n *NodeAbstractResourceInstance) ImpliedProvider() addrs.Provider {
-	return n.Addr.DefaultProvider()
+	return n.Addr.Resource.DefaultProvider()
 }
 
 // GraphNodeProvisionerConsumer

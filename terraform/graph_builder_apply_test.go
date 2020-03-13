@@ -209,7 +209,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 			continue
 		}
 
-		switch tv.Addr.Name {
+		switch tv.Addr.Resource.Name {
 		case "A":
 			destroyA = fmt.Sprintf("test_object.A (destroy deposed %s)", tv.DeposedKey)
 		case "B":

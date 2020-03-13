@@ -60,7 +60,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Module) {
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
 		switch {
 		case count >= 0:
 			expander.SetResourceCount(module, n.ResourceAddr().Resource, count)
@@ -70,7 +70,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 			expander.SetResourceSingle(module, n.ResourceAddr().Resource)
 		}
 	}
-	instanceAddrs := expander.ExpandResource(n.Module, n.ResourceAddr().Resource)
+	instanceAddrs := expander.ExpandResource(n.Addr.Module, n.ResourceAddr().Resource)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.

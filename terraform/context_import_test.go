@@ -597,7 +597,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 					Mode: addrs.ManagedResourceMode,
 					Type: "aws_instance",
 					Name: "bar",
-				}.Instance(addrs.NoKey).Absolute(addrs.Module{"bar"}.UnkeyedInstanceShim()),
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("bar", addrs.NoKey)),
 				&states.ResourceInstanceObjectSrc{
 					AttrsFlat: map[string]string{
 						"id": "bar",
@@ -658,7 +658,7 @@ func TestContextImport_moduleExisting(t *testing.T) {
 					Mode: addrs.ManagedResourceMode,
 					Type: "aws_instance",
 					Name: "bar",
-				}.Instance(addrs.NoKey).Absolute(addrs.Module{"foo"}.UnkeyedInstanceShim()),
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("foo", addrs.NoKey)),
 				&states.ResourceInstanceObjectSrc{
 					AttrsFlat: map[string]string{
 						"id": "bar",
