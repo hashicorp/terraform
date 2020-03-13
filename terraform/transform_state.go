@@ -43,10 +43,8 @@ func (t *StateTransformer) Transform(g *Graph) error {
 	}
 
 	for _, ms := range t.State.Modules {
-		moduleAddr := ms.Addr
-
 		for _, rs := range ms.Resources {
-			resourceAddr := rs.Addr.Absolute(moduleAddr)
+			resourceAddr := rs.Addr
 
 			for key, is := range rs.Instances {
 				addr := resourceAddr.Instance(key)
