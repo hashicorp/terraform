@@ -472,7 +472,7 @@ func (s *SyncState) RemovePlannedResourceInstanceObjects() {
 		moduleAddr := ms.Addr
 
 		for _, rs := range ms.Resources {
-			resAddr := rs.Addr
+			resAddr := rs.Addr.Resource
 
 			for ik, is := range rs.Instances {
 				instAddr := resAddr.Instance(ik)

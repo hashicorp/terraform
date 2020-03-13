@@ -371,7 +371,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 	for _, ms := range file.State.Modules {
 		moduleAddr := ms.Addr
 		for _, rs := range ms.Resources {
-			resourceAddr := rs.Addr
+			resourceAddr := rs.Addr.Resource
 
 			var mode string
 			switch resourceAddr.Mode {

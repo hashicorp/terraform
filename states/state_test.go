@@ -67,7 +67,8 @@ func TestState(t *testing.T) {
 							Mode: addrs.ManagedResourceMode,
 							Type: "test_thing",
 							Name: "baz",
-						},
+						}.Absolute(addrs.RootModuleInstance),
+
 						EachMode: EachList,
 						Instances: map[addrs.InstanceKey]*ResourceInstance{
 							addrs.IntKey(0): {
