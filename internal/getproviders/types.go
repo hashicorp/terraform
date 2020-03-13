@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
+	"github.com/apparentlymart/go-versions/versions/constraints"
+
 	"github.com/hashicorp/terraform/addrs"
 )
 
@@ -22,6 +24,10 @@ type VersionList = versions.List
 // versions that can be selected under a particular version constraint provided
 // by the end-user.
 type VersionSet = versions.Set
+
+// VersionConstraints represents a set of version constraints, which can
+// define the membership of a VersionSet by exclusion.
+type VersionConstraints = constraints.IntersectionSpec
 
 // ParseVersion parses a "semver"-style version string into a Version value,
 // which is the version syntax we use for provider versions.
@@ -245,4 +251,57 @@ func (l PackageMetaList) FilterProviderPlatformExactVersion(provider addrs.Provi
 		}
 	}
 	return ret
+}
+
+// VersionConstraintsString returns a UI-oriented string representation of
+// a VersionConstraints value.
+func VersionConstraintsString(spec VersionConstraints) string {
+	// (we have our own function for this because the upstream versions
+	// library prefers to use npm/cargo-style constraint syntax, but
+	// Terraform prefers Ruby-like. Maybe we can upstream a "RubyLikeString")
+	// function to do this later, but having this in here avoids blocking on
+	// that and this is the sort of thing that is unlikely to need ongoing
+	// maintenance because the version constraint syntax is unlikely to change.)
+
+	var b strings.Builder
+	for i, sel := range spec {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		switch sel.Operator {
+		case constraints.OpGreaterThan:
+			b.WriteString("> ")
+		case constraints.OpLessThan:
+			b.WriteString("< ")
+		case constraints.OpGreaterThanOrEqual:
+			b.WriteString(">= ")
+		case constraints.OpGreaterThanOrEqualPatchOnly, constraints.OpGreaterThanOrEqualMinorOnly:
+			// These two differ in how the version is written, not in the symbol.
+			b.WriteString("~> ")
+		case constraints.OpLessThanOrEqual:
+			b.WriteString("<= ")
+		case constraints.OpEqual:
+			b.WriteString("")
+		case constraints.OpNotEqual:
+			b.WriteString("!= ")
+		default:
+			// The above covers all of the operators we support during
+			// parsing, so we should not get here.
+			b.WriteString("??? ")
+		}
+
+		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
+			// The minor-pessimistic syntax uses only two version components.
+			fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+		} else {
+			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
+		}
+		if sel.Boundary.Prerelease != "" {
+			b.WriteString("-" + sel.Boundary.Prerelease)
+		}
+		if sel.Boundary.Metadata != "" {
+			b.WriteString("+" + sel.Boundary.Metadata)
+		}
+	}
+	return b.String()
 }

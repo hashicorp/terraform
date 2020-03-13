@@ -29,11 +29,15 @@ type InstallerEvents struct {
 	// A recipient driving a UI might, for example, use this to pre-allocate
 	// UI space for status reports for all of the providers and then update
 	// those positions in-place as other events arrive.
-	PendingProviders func(provider addrs.Provider)
+	PendingProviders func(reqs map[addrs.Provider]getproviders.VersionConstraints)
 
 	// ProviderAlreadyInstalled is called for any provider that was included
 	// in PendingProviders but requires no further action because a suitable
 	// version is already present in the local provider cache directory.
+	//
+	// This event can also appear after the QueryPackages... series if
+	// querying determines that a version already available is the newest
+	// available version.
 	ProviderAlreadyInstalled func(provider addrs.Provider, selectedVersion getproviders.Version)
 
 	// The QueryPackages... family of events delimit the operation of querying
@@ -44,8 +48,13 @@ type InstallerEvents struct {
 	// A particular install operation includes only one query per distinct
 	// provider, so a caller can use the provider argument as a unique
 	// identifier to correlate between successive events.
-	QueryPackagesBegin   func(provider addrs.Provider, versionSet getproviders.VersionSet)
+	//
+	// The Begin, Success, and Failure events will each occur only once per
+	// distinct provider. The Retry event can occur zero or more times, and
+	// signals a failure that the installer is considering transient.
+	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints)
 	QueryPackagesSuccess func(provider addrs.Provider, selectedVersion getproviders.Version)
+	QueryPackagesRetry   func(provider addrs.Provider, err error)
 	QueryPackagesFailure func(provider addrs.Provider, err error)
 
 	// The LinkFromCache... family of events delimit the operation of linking
@@ -75,8 +84,14 @@ type InstallerEvents struct {
 	//
 	// A particular provider will either notify the LinkFromCache... events
 	// or the FetchPackage... events, never both in the same install operation.
+	//
+	// The Query, Begin, Success, and Failure events will each occur only once
+	// per distinct provider. The Retry event can occur zero or more times, and
+	// signals a failure that the installer is considering transient.
+	FetchPackageMeta    func(provider addrs.Provider, version getproviders.Version) // fetching metadata prior to real download
 	FetchPackageBegin   func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
 	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string)
+	FetchPackageRetry   func(provider addrs.Provider, version getproviders.Version, err error)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 }
 
