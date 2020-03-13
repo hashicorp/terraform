@@ -95,7 +95,8 @@ func TestTargetContains(t *testing.T) {
 			false,
 		},
 
-		// Config paths, while never returned from parsing a target, must still be targetable
+		// Config paths, while never returned from parsing a target, must still
+		// be targetable
 		{
 			ConfigResource{
 				Module: []string{"bar"},
@@ -130,6 +131,45 @@ func TestTargetContains(t *testing.T) {
 			},
 			mustParseTarget("module.bar[0].test_resource.foo"),
 			true,
+		},
+
+		// Modules are also never the result of parsing a target, but also need
+		// to be targetable
+		{
+			Module{"bar"},
+			Module{"bar", "baz"},
+			true,
+		},
+		{
+			Module{"bar"},
+			mustParseTarget("module.bar[0]"),
+			true,
+		},
+		{
+			// Parsing an ambiguous module path needs to ensure the
+			// ModuleInstance could contain the Module. This is safe because if
+			// the module could be expanded, it must have an index, meaning no
+			// index indicates that the module instance and module are
+			// functionally equivalent.
+			mustParseTarget("module.bar"),
+			Module{"bar"},
+			true,
+		},
+		{
+			// A specific ModuleInstance cannot contain a module
+			mustParseTarget("module.bar[0]"),
+			Module{"bar"},
+			false,
+		},
+		{
+			Module{"bar", "baz"},
+			mustParseTarget("module.bar[0].module.baz.test_resource.foo[1]"),
+			true,
+		},
+		{
+			mustParseTarget("module.bar[0].module.baz"),
+			Module{"bar", "baz"},
+			false,
 		},
 	} {
 		t.Run(fmt.Sprintf("%s-in-%s", test.other, test.addr), func(t *testing.T) {
