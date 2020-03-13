@@ -35,6 +35,12 @@ func ParseVersion(str string) (Version, error) {
 	return versions.ParseVersion(str)
 }
 
+// ParseVersionConstraints parses a "Ruby-like" version constraint string
+// into a VersionConstraints value.
+func ParseVersionConstraints(str string) (VersionConstraints, error) {
+	return constraints.ParseRubyStyleMulti(str)
+}
+
 // Platform represents a target platform that a provider is or might be
 // available for.
 type Platform struct {
