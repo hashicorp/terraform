@@ -40,11 +40,11 @@ func ResolverFixed(factories map[addrs.Provider]Factory) Resolver {
 		ret := make(map[addrs.Provider]Factory, len(reqd))
 		var errs []error
 		for name := range reqd {
-			fqn := addrs.NewLegacyProvider(name)
+			fqn, _ := addrs.ParseProviderSourceString(name)
 			if factory, exists := factories[fqn]; exists {
 				ret[fqn] = factory
 			} else {
-				errs = append(errs, fmt.Errorf("provider %q is not available", name))
+				errs = append(errs, fmt.Errorf("provider %q is not available", fqn.String()))
 			}
 		}
 		return ret, errs

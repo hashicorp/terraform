@@ -60,31 +60,6 @@ func (r *Resource) Addr() addrs.Resource {
 	}
 }
 
-// ProviderConfigAddr returns the address for the provider configuration
-// that should be used for this resource. This function implements the
-// default behavior of extracting the type from the resource type name if
-// an explicit "provider" argument was not provided.
-func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
-	if r.ProviderConfigRef == nil {
-		// TODO: This will become incorrect once we move away from legacy
-		// provider addresses, and we'll need to refactor here so that
-		// this lookup is on the Module type rather than the Resource
-		// type and can thus look at the local-to-FQN mapping table
-		// to find a suitable local name to use here.
-		fqn := r.Addr().DefaultProvider()
-		return addrs.LocalProviderConfig{
-			// This will panic once non-legacy addresses are in play.
-			// See the TODO comment above ^^
-			LocalName: fqn.LegacyString(),
-		}
-	}
-
-	return addrs.LocalProviderConfig{
-		LocalName: r.ProviderConfigRef.Name,
-		Alias:     r.ProviderConfigRef.Alias,
-	}
-}
-
 func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{

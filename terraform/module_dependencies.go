@@ -110,7 +110,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 		// dependency, though we'll only record it if there isn't already
 		// an explicit dependency on the same provider.
 		for _, rc := range module.ManagedResources {
-			addr := rc.ProviderConfigAddr()
+			addr := module.ProviderForResource(rc)
 			fqn := module.ProviderForLocalConfig(addr)
 
 			if _, exists := providers[fqn]; exists {
@@ -129,7 +129,7 @@ func configTreeConfigDependencies(root *configs.Config, inheritProviders map[str
 			}
 		}
 		for _, rc := range module.DataResources {
-			addr := rc.ProviderConfigAddr()
+			addr := module.ProviderForResource(rc)
 			fqn := module.ProviderForLocalConfig(addr)
 
 			if _, exists := providers[fqn]; exists {

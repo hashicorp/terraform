@@ -195,12 +195,12 @@ func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 		m[fqn] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
-		providerAddr := rc.ProviderConfigAddr()
+		providerAddr := c.Module.ProviderForResource(rc)
 		fqn := c.Module.ProviderForLocalConfig(providerAddr)
 		m[fqn] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
-		providerAddr := rc.ProviderConfigAddr()
+		providerAddr := c.Module.ProviderForResource(rc)
 		fqn := c.Module.ProviderForLocalConfig(providerAddr)
 		m[fqn] = struct{}{}
 	}

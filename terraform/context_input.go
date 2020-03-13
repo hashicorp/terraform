@@ -64,7 +64,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 		// These won't have *configs.Provider objects, but they will still
 		// exist in the map and we'll just treat them as empty below.
 		for _, rc := range c.config.Module.ManagedResources {
-			pa := rc.ProviderConfigAddr()
+			pa := c.config.Module.ProviderForResource(rc)
 			if pa.Alias != "" {
 				continue // alias configurations cannot be implied
 			}
@@ -75,7 +75,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 			}
 		}
 		for _, rc := range c.config.Module.DataResources {
-			pa := rc.ProviderConfigAddr()
+			pa := c.config.Module.ProviderForResource(rc)
 			if pa.Alias != "" {
 				continue // alias configurations cannot be implied
 			}

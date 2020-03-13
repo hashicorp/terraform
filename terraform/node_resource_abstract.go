@@ -301,11 +301,13 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
-		relAddr := n.Config.ProviderConfigAddr()
-		return addrs.LocalProviderConfig{
-			LocalName: relAddr.LocalName,
-			Alias:     relAddr.Alias,
-		}, false
+		relAddr := n.Config.ProviderConfigRef
+		if relAddr != nil {
+			return addrs.LocalProviderConfig{
+				LocalName: relAddr.Name,
+				Alias:     relAddr.Alias,
+			}, false
+		}
 	}
 
 	// No provider configuration found
@@ -321,11 +323,17 @@ func (n *NodeAbstractResource) ImpliedProvider() addrs.Provider {
 func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
-		relAddr := n.Config.ProviderConfigAddr()
-		return addrs.LocalProviderConfig{
-			LocalName: relAddr.LocalName,
-			Alias:     relAddr.Alias,
-		}, false
+		relAddr := n.Config.ProviderConfigRef
+		if relAddr != nil {
+			return addrs.LocalProviderConfig{
+				LocalName: relAddr.Name,
+				Alias:     relAddr.Alias,
+			}, false
+		} else {
+			return addrs.LocalProviderConfig{
+				LocalName: n.ImpliedProvider().Type,
+			}, false
+		}
 	}
 
 	// If we have state, then we will use the provider from there

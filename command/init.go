@@ -527,7 +527,11 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		}
 
 		for provider, reqd := range missing {
-			pty := addrs.NewLegacyProvider(provider)
+			pty, diags := addrs.ParseProviderSourceString(provider)
+
+			if diags.HasErrors() {
+				panic(diags.Err().Error())
+			}
 			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
 			diags = diags.Append(providerDiags)
 

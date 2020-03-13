@@ -97,7 +97,7 @@ func (s sortModules) Swap(i, j int) {
 	s.modules[i], s.modules[j] = s.modules[j], s.modules[i]
 }
 
-// PluginRequirements produces a PluginRequirements structure that can
+// ProviderRequirements produces a ProviderRequirements structure that can
 // be used with discovery.PluginMetaSet.ConstrainVersions to identify
 // suitable plugins to satisfy the module's provider dependencies.
 //
@@ -107,16 +107,13 @@ func (s sortModules) Swap(i, j int) {
 //
 // Requirements returned by this method include only version constraints,
 // and apply no particular SHA256 hash constraint.
-func (m *Module) PluginRequirements() discovery.PluginRequirements {
+func (m *Module) ProviderRequirements() discovery.PluginRequirements {
 	ret := make(discovery.PluginRequirements)
 	for pFqn, dep := range m.Providers {
-		// TODO: discovery.PluginRequirements should be refactored and use
-		// addrs.Provider as the map keys
-		provider := pFqn.LegacyString()
-		if existing, exists := ret[provider]; exists {
-			ret[provider].Versions = existing.Versions.Append(dep.Constraints)
+		if existing, exists := ret[pFqn.String()]; exists {
+			ret[pFqn.String()].Versions = existing.Versions.Append(dep.Constraints)
 		} else {
-			ret[provider] = &discovery.PluginConstraints{
+			ret[pFqn.String()] = &discovery.PluginConstraints{
 				Versions: dep.Constraints,
 			}
 		}
@@ -133,7 +130,7 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 func (m *Module) AllPluginRequirements() discovery.PluginRequirements {
 	var ret discovery.PluginRequirements
 	m.WalkTree(func(path []string, parent *Module, current *Module) error {
-		ret = ret.Merge(current.PluginRequirements())
+		ret = ret.Merge(current.ProviderRequirements())
 		return nil
 	})
 	return ret

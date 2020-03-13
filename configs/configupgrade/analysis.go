@@ -234,7 +234,7 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 		}
 	}
 
-	providerFactories, errs := u.Providers.ResolveProviders(m.PluginRequirements())
+	providerFactories, errs := u.Providers.ResolveProviders(m.ProviderRequirements())
 	if len(errs) > 0 {
 		var errorsMsg string
 		for _, err := range errs {

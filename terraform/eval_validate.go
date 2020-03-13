@@ -468,7 +468,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid resource type",
-				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.", cfg.ProviderConfigAddr(), cfg.Type),
+				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.", provider, cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
 			return nil, diags.Err()
@@ -505,7 +505,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid data source",
-				Detail:   fmt.Sprintf("The provider %s does not support data source %q.", cfg.ProviderConfigAddr(), cfg.Type),
+				Detail:   fmt.Sprintf("The provider %s does not support data source %q.", provider, cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
 			return nil, diags.Err()

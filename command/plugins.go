@@ -64,30 +64,35 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	var errs []error
 
 	chosen := chooseProviders(r.Available, r.Internal, reqd)
-	for name, req := range reqd {
-		if factory, isInternal := r.Internal[addrs.NewLegacyProvider(name)]; isInternal {
+	for fqnStr, req := range reqd {
+		// the map keys are addrs.Provider strings, so an error here is unexpected.
+		fqn, err := addrs.ParseProviderSourceString(fqnStr)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s is not a valid provider string", fqnStr))
+		}
+		if factory, isInternal := r.Internal[fqn]; isInternal {
 			if !req.Versions.Unconstrained() {
-				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", name))
+				errs = append(errs, fmt.Errorf("provider.%s: this provider is built in to Terraform and so it does not support version constraints", fqn))
 				continue
 			}
-			factories[addrs.NewLegacyProvider(name)] = factory
+			factories[fqn] = factory
 			continue
 		}
 
-		if newest, available := chosen[name]; available {
+		if newest, available := chosen[fqn.String()]; available {
 			digest, err := newest.SHA256()
 			if err != nil {
-				errs = append(errs, fmt.Errorf("provider.%s: failed to load plugin to verify its signature: %s", name, err))
+				errs = append(errs, fmt.Errorf("provider.%s: failed to load plugin to verify its signature: %s", fqn, err))
 				continue
 			}
-			if !reqd[name].AcceptsSHA256(digest) {
-				errs = append(errs, fmt.Errorf("provider.%s: new or changed plugin executable", name))
+			if !reqd[fqnStr].AcceptsSHA256(digest) {
+				errs = append(errs, fmt.Errorf("provider.%s: new or changed plugin executable", fqn))
 				continue
 			}
 
-			factories[addrs.NewLegacyProvider(name)] = providerFactory(newest)
+			factories[fqn] = providerFactory(newest)
 		} else {
-			msg := fmt.Sprintf("provider.%s: no suitable version installed", name)
+			msg := fmt.Sprintf("provider.%s: no suitable version installed", fqn)
 
 			required := req.Versions.String()
 			// no version is unconstrained
@@ -96,7 +101,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 			}
 
 			foundVersions := []string{}
-			for meta := range r.Available.WithName(name) {
+			for meta := range r.Available.WithName(fqn.String()) {
 				foundVersions = append(foundVersions, fmt.Sprintf("%q", meta.Version))
 			}
 
@@ -298,8 +303,11 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 
 	for name, versionSet := range reqd {
 		// internal providers can't be missing
-		if _, ok := internal[addrs.NewLegacyProvider(name)]; ok {
-			continue
+		fqn, err := addrs.ParseProviderSourceString(name)
+		if err == nil {
+			if _, ok := internal[fqn]; ok {
+				continue
+			}
 		}
 
 		log.Printf("[DEBUG] plugin requirements: %q=%q", name, versionSet.Versions)

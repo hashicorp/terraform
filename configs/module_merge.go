@@ -48,7 +48,7 @@ func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd 
 			// any errors parsing the source string will have already been captured.
 			fqn, _ = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
 		} else {
-			fqn = addrs.NewLegacyProvider(reqd.Name)
+			fqn = addrs.NewDefaultProvider(reqd.Name)
 		}
 		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 	}

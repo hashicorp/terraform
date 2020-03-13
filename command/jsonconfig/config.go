@@ -277,11 +277,19 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
+
+		var providerConfig string
+
+		if v.ProviderConfigRef != nil {
+			providerConfig = v.ProviderConfigRef.String()
+		} else {
+			providerConfig = addrs.LocalProviderConfig{LocalName: v.Type}.StringCompact()
+		}
 		r := resource{
 			Address:           v.Addr().String(),
 			Type:              v.Type,
 			Name:              v.Name,
-			ProviderConfigKey: opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr),
+			ProviderConfigKey: opaqueProviderKey(providerConfig, moduleAddr),
 		}
 
 		switch v.Mode {
@@ -304,7 +312,7 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		}
 
 		// TODO: get actual providerFqn
-		providerFqn := addrs.NewLegacyProvider(v.ProviderConfigAddr().LocalName)
+		providerFqn := addrs.NewLegacyProvider(v.Type)
 		schema, schemaVer := schemas.ResourceTypeConfig(
 			providerFqn,
 			v.Mode,

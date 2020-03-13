@@ -491,3 +491,16 @@ func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Prov
 	}
 	return addrs.NewLegacyProvider(pc.LocalName)
 }
+
+func (m *Module) ProviderForResource(r *Resource) addrs.LocalProviderConfig {
+	if r.ProviderConfigRef == nil {
+		return addrs.LocalProviderConfig{
+			LocalName: m.LocalNameForProvider(r.Addr().DefaultProvider()),
+		}
+	}
+
+	return addrs.LocalProviderConfig{
+		LocalName: r.ProviderConfigRef.Name,
+		Alias:     r.ProviderConfigRef.Alias,
+	}
+}

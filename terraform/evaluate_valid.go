@@ -212,7 +212,9 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		return diags
 	}
 
-	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
+	lc := modCfg.Module.ProviderForResource(cfg)
+	providerFqn := modCfg.Module.ProviderForLocalConfig(lc)
+
 	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerFqn, addr.Mode, addr.Type)
 
 	if schema == nil {
