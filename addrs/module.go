@@ -73,6 +73,9 @@ func (m Module) TargetContains(other Targetable) bool {
 	case ModuleInstance:
 		return m.TargetContains(to.Module())
 
+	case ConfigResource:
+		return m.TargetContains(to.Module)
+
 	case AbsResource:
 		return m.TargetContains(to.Module)
 

@@ -94,6 +94,11 @@ func TestTargetContains(t *testing.T) {
 			mustParseTarget("module.bar[0].test_resource.foo[2]"),
 			false,
 		},
+		{
+			mustParseTarget("module.bar.test_resource.foo"),
+			mustParseTarget("module.bar.test_resource.foo[0]"),
+			true,
+		},
 
 		// Config paths, while never returned from parsing a target, must still
 		// be targetable
@@ -107,6 +112,30 @@ func TestTargetContains(t *testing.T) {
 				},
 			},
 			mustParseTarget("module.bar.test_resource.foo[2]"),
+			true,
+		},
+		{
+			mustParseTarget("module.bar"),
+			ConfigResource{
+				Module: []string{"bar"},
+				Resource: Resource{
+					Mode: ManagedResourceMode,
+					Type: "test_resource",
+					Name: "foo",
+				},
+			},
+			true,
+		},
+		{
+			mustParseTarget("module.bar.test_resource.foo"),
+			ConfigResource{
+				Module: []string{"bar"},
+				Resource: Resource{
+					Mode: ManagedResourceMode,
+					Type: "test_resource",
+					Name: "foo",
+				},
+			},
 			true,
 		},
 		{

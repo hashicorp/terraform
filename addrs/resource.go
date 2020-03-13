@@ -145,6 +145,11 @@ func (r AbsResource) TargetContains(other Targetable) bool {
 		// We'll use our stringification as a cheat-ish way to test for equality.
 		return to.String() == r.String()
 
+	case ConfigResource:
+		// if an absolute resource from parsing a target address contains a
+		// ConfigResource, the string representation will match
+		return to.String() == r.String()
+
 	case AbsResourceInstance:
 		return r.TargetContains(to.ContainingResource())
 
@@ -203,8 +208,14 @@ func (r AbsResourceInstance) ContainingResource() AbsResource {
 func (r AbsResourceInstance) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
 
+	// while we currently don't start with an AbsResourceInstance as a target
+	// address, check all resource types for consistency.
 	case AbsResourceInstance:
 		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+	case ConfigResource:
+		return to.String() == r.String()
+	case AbsResource:
 		return to.String() == r.String()
 
 	default:
