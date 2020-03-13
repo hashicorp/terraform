@@ -135,6 +135,14 @@ func (r AbsResource) Instance(key InstanceKey) AbsResourceInstance {
 	}
 }
 
+// Config returns the unexpanded ConfigResource for this AbsResource.
+func (r AbsResource) Config() ConfigResource {
+	return ConfigResource{
+		Module:   r.Module.Module(),
+		Resource: r.Resource,
+	}
+}
+
 // TargetContains implements Targetable by returning true if the given other
 // address is either equal to the receiver or is an instance of the
 // receiver.
@@ -300,7 +308,7 @@ func (r ConfigResource) TargetContains(other Targetable) bool {
 		// We'll use our stringification as a cheat-ish way to test for equality.
 		return to.String() == r.String()
 	case AbsResource:
-		return r.TargetContains(ConfigResource{Module: to.Module.Module(), Resource: to.Resource})
+		return r.TargetContains(to.Config())
 	case AbsResourceInstance:
 		return r.TargetContains(to.ContainingResource())
 	default:
