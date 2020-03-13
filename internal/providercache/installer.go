@@ -89,12 +89,10 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 // in the final returned error value so callers should show either one or the
 // other, and not both.
 func (i *Installer) EnsureProviderVersions(ctx context.Context, reqs map[addrs.Provider]getproviders.VersionConstraints, mode InstallMode) (map[addrs.Provider]getproviders.Version, error) {
-	// FIXME: Currently the context isn't actually propagated into the
+	// FIXME: Currently the context isn't actually propagated into all of the
 	// other functions we call here, because they are not context-aware.
-	// Right now the context is used only for the InstallerEvents object.
-	// Before considering this "finished" we should update the functions
-	// we're calling below that might perform external network requests
-	// and make them also take a context and respect cancellation of it.
+	// Anything that could be making network requests here should take a
+	// context and ideally respond to the cancellation of that context.
 
 	errs := map[addrs.Provider]error{}
 	evts := installerEventsForContext(ctx)
@@ -256,7 +254,7 @@ NeedProvider:
 			installTo = i.targetDir
 			linkTo = nil // no linking needed
 		}
-		err = installTo.InstallPackage(meta)
+		err = installTo.InstallPackage(ctx, meta)
 		if err != nil {
 			// TODO: Consider retrying for certain kinds of error that seem
 			// likely to be transient. For now, we just treat all errors equally.

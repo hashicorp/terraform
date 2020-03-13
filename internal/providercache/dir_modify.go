@@ -1,6 +1,7 @@
 package providercache
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,9 +13,26 @@ import (
 // InstallPackage takes a metadata object describing a package available for
 // installation, retrieves that package, and installs it into the receiving
 // cache directory.
-func (d *Dir) InstallPackage(meta getproviders.PackageMeta) error {
-	// TODO: Implement this
-	return fmt.Errorf("InstallPackage is not yet implemented")
+func (d *Dir) InstallPackage(ctx context.Context, meta getproviders.PackageMeta) error {
+	if meta.TargetPlatform != d.targetPlatform {
+		return fmt.Errorf("can't install %s package into cache directory expecting %s", meta.TargetPlatform, d.targetPlatform)
+	}
+	newPath := getproviders.UnpackedDirectoryPathForPackage(
+		d.baseDir, meta.Provider, meta.Version, d.targetPlatform,
+	)
+
+	switch location := meta.Location.(type) {
+	case getproviders.PackageHTTPURL:
+		return installFromHTTPURL(ctx, string(location), newPath)
+	case getproviders.PackageLocalArchive:
+		return installFromLocalArchive(ctx, string(location), newPath)
+	case getproviders.PackageLocalDir:
+		return installFromLocalDir(ctx, string(location), newPath)
+	default:
+		// Should not get here, because the above should be exhaustive for
+		// all implementations of getproviders.Location.
+		return fmt.Errorf("don't know how to install from a %T location", location)
+	}
 }
 
 // LinkFromOtherCache takes a CachedProvider value produced from another Dir
