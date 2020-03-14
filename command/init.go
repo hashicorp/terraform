@@ -494,20 +494,75 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		inst.SetGlobalCacheDir(globalCacheDir)
 	}
 
+	// Because we're currently just streaming a series of events sequentially
+	// into the terminal, we're showing only a subset of the events to keep
+	// things relatively concise. Later it'd be nice to have a progress UI
+	// where statuses update in-place, but we can't do that as long as we
+	// are shimming our vt100 output to the legacy console API on Windows.
+	evts := &providercache.InstallerEvents{
+		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
+			c.Ui.Output(c.Colorize().Color(
+				"\n[reset][bold]Initializing provider plugins...",
+			))
+		},
+		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
+			c.Ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider, selectedVersion))
+		},
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+			if len(versionConstraints) > 0 {
+				c.Ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider, getproviders.VersionConstraintsString(versionConstraints)))
+			} else {
+				c.Ui.Info(fmt.Sprintf("- Finding latest version of %s...", provider))
+			}
+		},
+		LinkFromCacheBegin: func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+			c.Ui.Info(fmt.Sprintf("- Using %s v%s from the shared cache directory", provider, version))
+		},
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider, version))
+		},
+		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to query available provider packages",
+				fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider, err),
+			))
+		},
+		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install provider from shared cache",
+				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider, version, err),
+			))
+		},
+		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install provider",
+				fmt.Sprintf("Error while installing %s v%s: %s.", provider, version, err),
+			))
+		},
+	}
+
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
 		mode = providercache.InstallUpgrades
 	}
-	// TODO: Use the context-based InstallerEvents API to get notifications
-	// about ongoing progress here, so we can update the UI along the way.
-	_, err = inst.EnsureProviderVersions(context.TODO(), reqs, mode)
+	// TODO: Use a context that will be cancelled when the Terraform
+	// process receives SIGINT.
+	ctx := evts.OnContext(context.TODO())
+	_, err = inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
-		// Temporary clumsy error handling, because we'll replace this with
-		// ongoing progress via InstallerEvents before we ship it.
-		diags = diags.Append(err)
+		// The errors captured in "err" should be redundant with what we
+		// received via the InstallerEvents callbacks above, so we'll
+		// just return those as long as we have some.
+		if !diags.HasErrors() {
+			diags = diags.Append(err)
+		}
+		return true, diags
 	}
 
-	return false, diags
+	return true, diags
 
 	// TODO: Write the selections into the plugins lock file so we can be
 	// sure that future commands will use exactly those provider packages.
