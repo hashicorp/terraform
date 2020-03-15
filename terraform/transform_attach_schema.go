@@ -13,7 +13,7 @@ import (
 // GraphNodeAttachResourceSchema is an interface implemented by node types
 // that need a resource schema attached.
 type GraphNodeAttachResourceSchema interface {
-	GraphNodeResource
+	GraphNodeConfigResource
 	GraphNodeProviderConsumer
 
 	AttachResourceSchema(schema *configschema.Block, version uint64)

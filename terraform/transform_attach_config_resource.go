@@ -10,7 +10,7 @@ import (
 // GraphNodeAttachResourceConfig is an interface that must be implemented by nodes
 // that want resource configurations attached.
 type GraphNodeAttachResourceConfig interface {
-	GraphNodeResource
+	GraphNodeConfigResource
 
 	// Sets the configuration
 	AttachResourceConfig(*configs.Resource)
@@ -40,7 +40,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 		addr := arn.ResourceAddr()
 
 		// Get the configuration.
-		config := t.Config.DescendentForInstance(addr.Module)
+		config := t.Config.Descendent(addr.Module)
 		if config == nil {
 			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", dag.VertexName(v), v)
 			continue

@@ -69,7 +69,7 @@ func (n *EvalCountFixZeroOneBoundaryGlobal) fixModule(ctx EvalContext, moduleAdd
 			continue
 		}
 		hasCount := rCfg.Count != nil
-		fixResourceCountSetTransition(ctx, r.Addr, hasCount)
+		fixResourceCountSetTransition(ctx, r.Addr.Config(), hasCount)
 	}
 
 	return nil

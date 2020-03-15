@@ -18,44 +18,39 @@ import (
 type OrphanResourceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 
-	Addr          addrs.AbsResource           // Addr of the resource to look for orphans
+	Addr          addrs.ConfigResource        // Addr of the resource to look for orphans
 	InstanceAddrs []addrs.AbsResourceInstance // Addresses that currently exist in config
 	State         *states.State               // Full global state
 }
 
 func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
-	// FIXME: This is currently assuming that all of the instances of
-	// this resource belong to a single module instance, which is true
-	// at the time of writing this because Terraform Core doesn't support
-	// repetition of module calls yet, but this will need to be corrected
-	// in order to support count and for_each on module calls, where
-	// our t.InstanceAddrs may contain resource instances from many different
-	// module instances.
-	rs := t.State.Resource(t.Addr)
-	if rs == nil {
+	resources := t.State.Resources(t.Addr)
+	if len(resources) == 0 {
 		return nil // Resource doesn't exist in state, so nothing to do!
 	}
 
-	// This is an O(n*m) analysis, which we accept for now because the
-	// number of instances of a single resource ought to always be small in any
-	// reasonable Terraform configuration.
-Have:
-	for key := range rs.Instances {
-		thisAddr := t.Addr.Instance(key)
-		for _, wantAddr := range t.InstanceAddrs {
-			if wantAddr.Equal(thisAddr) {
-				continue Have
+	for _, rs := range resources {
+		// This is an O(n*m) analysis, which we accept for now because the
+		// number of instances of a single resource ought to always be small in any
+		// reasonable Terraform configuration.
+	Have:
+		for key := range rs.Instances {
+			thisAddr := rs.Addr.Instance(key)
+			for _, wantAddr := range t.InstanceAddrs {
+				if wantAddr.Equal(thisAddr) {
+					continue Have
+				}
 			}
-		}
-		// If thisAddr is not in t.InstanceAddrs then we've found an "orphan"
+			// If thisAddr is not in t.InstanceAddrs then we've found an "orphan"
 
-		abstract := NewNodeAbstractResourceInstance(thisAddr)
-		var node dag.Vertex = abstract
-		if f := t.Concrete; f != nil {
-			node = f(abstract)
+			abstract := NewNodeAbstractResourceInstance(thisAddr)
+			var node dag.Vertex = abstract
+			if f := t.Concrete; f != nil {
+				node = f(abstract)
+			}
+			log.Printf("[TRACE] OrphanResourceCountTransformer: adding %s as %T", thisAddr, node)
+			g.Add(node)
 		}
-		log.Printf("[TRACE] OrphanResourceCountTransformer: adding %s as %T", thisAddr, node)
-		g.Add(node)
 	}
 
 	return nil

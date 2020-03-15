@@ -28,7 +28,7 @@ type NodeApplyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeResource           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
@@ -99,8 +99,13 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 }
 
 // GraphNodeAttachDependencies
-func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.AbsResource) {
-	n.Dependencies = deps
+func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigResource) {
+	var shimmed []addrs.AbsResource
+	for _, r := range deps {
+		shimmed = append(shimmed, r.Absolute(r.Module.UnkeyedInstanceShim()))
+	}
+
+	n.Dependencies = shimmed
 }
 
 // GraphNodeEvalable

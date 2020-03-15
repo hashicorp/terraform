@@ -26,7 +26,7 @@ type NodeDestroyResourceInstance struct {
 }
 
 var (
-	_ GraphNodeResource            = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeConfigResource      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeResourceInstance    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyer           = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyerCBD        = (*NodeDestroyResourceInstance)(nil)
@@ -292,10 +292,10 @@ type NodeDestroyResource struct {
 }
 
 var (
-	_ GraphNodeResource      = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
-	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
+	_ GraphNodeConfigResource = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferenceable  = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferencer     = (*NodeDestroyResource)(nil)
+	_ GraphNodeEvalable       = (*NodeDestroyResource)(nil)
 
 	// FIXME: this is here to document that this node is both
 	// GraphNodeProviderConsumer by virtue of the embedded
@@ -339,7 +339,7 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 }
 
 // GraphNodeResource
-func (n *NodeDestroyResource) ResourceAddr() addrs.AbsResource {
+func (n *NodeDestroyResource) ResourceAddr() addrs.ConfigResource {
 	return n.NodeAbstractResource.ResourceAddr()
 }
 

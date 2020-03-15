@@ -137,7 +137,7 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 		case GraphNodeResourceInstance:
 			k := tv.ResourceInstanceAddr().ContainingResource().String()
 			deps[k] = append(deps[k], v)
-		case GraphNodeResource:
+		case GraphNodeConfigResource:
 			k := tv.ResourceAddr().String()
 			deps[k] = append(deps[k], v)
 		case GraphNodeDestroyer:

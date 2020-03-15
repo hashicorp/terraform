@@ -33,7 +33,7 @@ type NodePlanDeposedResourceInstanceObject struct {
 
 var (
 	_ GraphNodeDeposedResourceInstanceObject = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeResource                      = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeConfigResource                = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeResourceInstance              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodePlanDeposedResourceInstanceObject)(nil)
@@ -167,7 +167,7 @@ type NodeDestroyDeposedResourceInstanceObject struct {
 
 var (
 	_ GraphNodeDeposedResourceInstanceObject = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeResource                      = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeConfigResource                = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeResourceInstance              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyer                     = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyerCBD                  = (*NodeDestroyDeposedResourceInstanceObject)(nil)

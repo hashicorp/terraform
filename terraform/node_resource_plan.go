@@ -23,7 +23,7 @@ var (
 	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
 	_ GraphNodeReferencer           = (*NodePlannableResource)(nil)
-	_ GraphNodeResource             = (*NodePlannableResource)(nil)
+	_ GraphNodeConfigResource       = (*NodePlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
 )
 

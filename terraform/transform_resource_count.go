@@ -16,7 +16,7 @@ type ResourceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	Schema   *configschema.Block
 
-	Addr          addrs.AbsResource
+	Addr          addrs.ConfigResource
 	InstanceAddrs []addrs.AbsResourceInstance
 }
 
