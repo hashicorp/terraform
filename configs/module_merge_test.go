@@ -220,8 +220,17 @@ func TestModuleOverrideResourceFQNs(t *testing.T) {
 	if !got.Provider.Equals(wantProvider) {
 		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
 	}
-
 	assertResultDeepEqual(t, got.ProviderConfigRef, wantProviderCfg)
+
+	// now verify that a resource with no provider config falls back to default
+	got = mod.ManagedResources["test_instance.default"]
+	wantProvider = addrs.NewLegacyProvider("test")
+	if !got.Provider.Equals(wantProvider) {
+		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
+	}
+	if got.ProviderConfigRef != nil {
+		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
+	}
 }
 
 func TestMergeProviderVersionConstraints(t *testing.T) {
