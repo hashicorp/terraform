@@ -192,7 +192,7 @@ func (c *StateMeta) collectModuleResourceInstances(ms *states.Module) []addrs.Ab
 func (c *StateMeta) collectResourceInstances(moduleAddr addrs.ModuleInstance, rs *states.Resource) []addrs.AbsResourceInstance {
 	var ret []addrs.AbsResourceInstance
 	for key := range rs.Instances {
-		ret = append(ret, rs.Addr.Instance(key).Absolute(moduleAddr))
+		ret = append(ret, rs.Addr.Instance(key))
 	}
 	return ret
 }

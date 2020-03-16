@@ -255,22 +255,24 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	for _, r := range resources {
 		for k, ri := range r.Instances {
 
+			resAddr := r.Addr.Resource
+
 			current := resource{
-				Address:      r.Addr.Absolute(module).Instance(k).String(),
-				Type:         r.Addr.Type,
-				Name:         r.Addr.Name,
+				Address:      r.Addr.Instance(k).String(),
+				Type:         resAddr.Type,
+				Name:         resAddr.Name,
 				ProviderName: r.ProviderConfig.Provider.LegacyString(),
 			}
 
-			switch r.Addr.Mode {
+			switch resAddr.Mode {
 			case addrs.ManagedResourceMode:
 				current.Mode = "managed"
 			case addrs.DataResourceMode:
 				current.Mode = "data"
 			default:
 				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
-					r.Addr.String(),
-					r.Addr.Mode.String(),
+					resAddr.String(),
+					resAddr.Mode.String(),
 				)
 			}
 
@@ -280,8 +282,8 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			schema, _ := schemas.ResourceTypeConfig(
 				r.ProviderConfig.Provider,
-				r.Addr.Mode,
-				r.Addr.Type,
+				resAddr.Mode,
+				resAddr.Type,
 			)
 
 			// It is possible that the only instance is deposed
@@ -289,7 +291,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				current.SchemaVersion = ri.Current.SchemaVersion
 
 				if schema == nil {
-					return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+					return nil, fmt.Errorf("no schema found for %s", resAddr.String())
 				}
 				riObj, err := ri.Current.Decode(schema.ImpliedType())
 				if err != nil {

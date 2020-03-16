@@ -226,7 +226,7 @@ func (c *StateMvCommand) Run(args []string) int {
 				ssFrom.RemoveResource(addrFrom)
 
 				// Update the address before adding it to the state.
-				rs.Addr = addrTo.Resource
+				rs.Addr = addrTo
 				stateTo.Module(addrTo.Module).Resources[addrTo.Resource.String()] = rs
 			}
 

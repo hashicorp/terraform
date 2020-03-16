@@ -47,10 +47,10 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 		}
 
 		for _, res := range newMod.Resources {
-			resType := res.Addr.Type
+			resType := res.Addr.Resource.Type
 			providerType := res.ProviderConfig.Provider.Type
 
-			resource := getResource(providers, providerType, res.Addr)
+			resource := getResource(providers, providerType, res.Addr.Resource)
 
 			for key, i := range res.Instances {
 				resState := &terraform.ResourceState{
@@ -103,7 +103,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 						idx = "." + key.String()
 					}
 
-					mod.Resources[res.Addr.String()+idx] = resState
+					mod.Resources[res.Addr.Resource.String()+idx] = resState
 				}
 
 				// add any deposed instances
