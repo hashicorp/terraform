@@ -280,6 +280,21 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ManagedResources[key] = r
+
+		// set the provider FQN for the resource
+		var provider addrs.Provider
+		if r.ProviderConfigRef != nil {
+			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
+				provider = existing.Type
+			} else {
+				// FIXME: This will be a NewDefaultProvider
+				provider = addrs.NewLegacyProvider(r.ProviderConfigAddr().LocalName)
+			}
+			r.Provider = provider
+			continue
+		}
+		// FIXME: r.Addr().DefaultProvider() will be refactored to return a string
+		r.Provider = r.Addr().DefaultProvider()
 	}
 
 	for _, r := range file.DataResources {
@@ -294,6 +309,21 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+
+		// set the provider FQN for the resource
+		var provider addrs.Provider
+		if r.ProviderConfigRef != nil {
+			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
+				provider = existing.Type
+			} else {
+				// FIXME: This will be a NewDefaultProvider
+				provider = addrs.NewLegacyProvider(r.ProviderConfigAddr().LocalName)
+			}
+			r.Provider = provider
+			continue
+		}
+		// FIXME: r.Addr().DefaultProvider() will be refactored to return a string
+		r.Provider = r.Addr().DefaultProvider()
 	}
 
 	return diags
@@ -436,7 +466,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r)
+		mergeDiags := existing.merge(r, m.ProviderRequirements)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -452,7 +482,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r)
+		mergeDiags := existing.merge(r, m.ProviderRequirements)
 		diags = append(diags, mergeDiags...)
 	}
 

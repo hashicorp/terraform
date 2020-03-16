@@ -202,6 +202,37 @@ func TestModuleOverrideDynamic(t *testing.T) {
 	})
 }
 
+func TestModuleOverrideResourceFQNs(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-resource-provider")
+	assertNoDiagnostics(t, diags)
+
+	got := mod.ManagedResources["test_instance.explicit"]
+	wantProvider := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
+	wantProviderCfg := &ProviderConfigRef{
+		Name: "bar-test",
+		NameRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-resource-provider/a_override.tf",
+			Start:    hcl.Pos{Line: 2, Column: 14, Byte: 51},
+			End:      hcl.Pos{Line: 2, Column: 22, Byte: 59},
+		},
+	}
+
+	if !got.Provider.Equals(wantProvider) {
+		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
+	}
+	assertResultDeepEqual(t, got.ProviderConfigRef, wantProviderCfg)
+
+	// now verify that a resource with no provider config falls back to default
+	got = mod.ManagedResources["test_instance.default"]
+	wantProvider = addrs.NewLegacyProvider("test")
+	if !got.Provider.Equals(wantProvider) {
+		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
+	}
+	if got.ProviderConfigRef != nil {
+		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
+	}
+}
+
 func TestMergeProviderVersionConstraints(t *testing.T) {
 	v1, _ := version.NewConstraint("1.0.0")
 	vc1 := VersionConstraint{

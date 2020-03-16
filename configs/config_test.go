@@ -33,7 +33,7 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 		t.Fatalf("wrong result!\ngot: %#v\nwant: nil\n", got)
 	}
 
-	// config with two provider sources
+	// config with two provider sources, and one implicit (default) provider
 	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/nested-providers-fqns")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
@@ -41,6 +41,8 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
+		// FIXME: this will be updated to NewDefaultProvider as we remove `Legacy*`
+		addrs.NewLegacyProvider("test"),
 		addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test"),
 		addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
 	}

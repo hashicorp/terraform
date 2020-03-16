@@ -20,6 +20,7 @@ type Resource struct {
 	ForEach hcl.Expression
 
 	ProviderConfigRef *ProviderConfigRef
+	Provider          addrs.Provider
 
 	DependsOn []hcl.Traversal
 

@@ -197,7 +197,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func (r *Resource) merge(or *Resource) hcl.Diagnostics {
+func (r *Resource) merge(or *Resource, prs map[string]ProviderRequirements) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -212,9 +212,18 @@ func (r *Resource) merge(or *Resource) hcl.Diagnostics {
 	if or.ForEach != nil {
 		r.ForEach = or.ForEach
 	}
+
 	if or.ProviderConfigRef != nil {
 		r.ProviderConfigRef = or.ProviderConfigRef
+		if existing, exists := prs[or.ProviderConfigRef.Name]; exists {
+			r.Provider = existing.Type
+		} else {
+			r.Provider = addrs.NewLegacyProvider(r.ProviderConfigRef.Name)
+		}
 	}
+
+	// Provider FQN is set by Terraform during Merge
+
 	if r.Mode == addrs.ManagedResourceMode {
 		// or.Managed is always non-nil for managed resource mode
 
