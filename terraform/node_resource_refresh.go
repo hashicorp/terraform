@@ -28,14 +28,19 @@ var (
 	_ GraphNodeDynamicExpandable    = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
-	_ GraphNodeResource             = (*NodeRefreshableManagedResource)(nil)
+	_ GraphNodeConfigResource       = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeAttachDependencies   = (*NodeRefreshableManagedResource)(nil)
 )
 
 // GraphNodeAttachDependencies
-func (n *NodeRefreshableManagedResource) AttachDependencies(deps []addrs.AbsResource) {
-	n.Dependencies = deps
+func (n *NodeRefreshableManagedResource) AttachDependencies(deps []addrs.ConfigResource) {
+	var shimmed []addrs.AbsResource
+	for _, r := range deps {
+		shimmed = append(shimmed, r.Absolute(r.Module.UnkeyedInstanceShim()))
+	}
+
+	n.Dependencies = shimmed
 }
 
 // GraphNodeDynamicExpandable
@@ -144,7 +149,7 @@ var (
 	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeDestroyer            = (*NodeRefreshableManagedResourceInstance)(nil)
-	_ GraphNodeResource             = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeConfigResource       = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeResourceInstance     = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodeRefreshableManagedResourceInstance)(nil)

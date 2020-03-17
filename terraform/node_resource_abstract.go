@@ -16,11 +16,11 @@ import (
 // abstract resource to a concrete one of some type.
 type ConcreteResourceNodeFunc func(*NodeAbstractResource) dag.Vertex
 
-// GraphNodeResource is implemented by any nodes that represent a resource.
+// GraphNodeConfigResource is implemented by any nodes that represent a resource.
 // The type of operation cannot be assumed, only that this node represents
 // the given resource.
-type GraphNodeResource interface {
-	ResourceAddr() addrs.AbsResource
+type GraphNodeConfigResource interface {
+	ResourceAddr() addrs.ConfigResource
 }
 
 // ConcreteResourceInstanceNodeFunc is a callback type used to convert an
@@ -69,7 +69,7 @@ var (
 	_ GraphNodeReferencer                = (*NodeAbstractResource)(nil)
 	_ GraphNodeProviderConsumer          = (*NodeAbstractResource)(nil)
 	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResource)(nil)
-	_ GraphNodeResource                  = (*NodeAbstractResource)(nil)
+	_ GraphNodeConfigResource            = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResource)(nil)
@@ -117,7 +117,7 @@ var (
 	_ GraphNodeReferencer                = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeProviderConsumer          = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResource                  = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeConfigResource            = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeResourceInstance          = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceState       = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResourceInstance)(nil)
@@ -375,18 +375,13 @@ func (n *NodeAbstractResource) AttachProvisionerSchema(name string, schema *conf
 }
 
 // GraphNodeResource
-func (n *NodeAbstractResource) ResourceAddr() addrs.AbsResource {
-	return n.addr()
+func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
+	return n.Addr
 }
 
 // GraphNodeResourceInstance
 func (n *NodeAbstractResourceInstance) ResourceInstanceAddr() addrs.AbsResourceInstance {
 	return n.NodeAbstractResource.addr().Instance(n.InstanceKey)
-}
-
-// GraphNodeAddressable, TODO: remove, used by target, should unify
-func (n *NodeAbstractResource) ResourceAddress() *ResourceAddress {
-	return NewLegacyResourceAddress(n.addr())
 }
 
 // GraphNodeTargetable

@@ -70,6 +70,17 @@ func (s *State) Module(addr addrs.ModuleInstance) *Module {
 	return s.Modules[addr.String()]
 }
 
+// ModuleInstances returns the set of Module states that matches the given path.
+func (s *State) ModuleInstances(addr addrs.Module) []*Module {
+	var ms []*Module
+	for _, m := range s.Modules {
+		if m.Addr.Module().Equal(addr) {
+			ms = append(ms, m)
+		}
+	}
+	return ms
+}
+
 // RemoveModule removes the module with the given address from the state,
 // unless it is the root module. The root module cannot be deleted, and so
 // this method will panic if that is attempted.
@@ -131,6 +142,18 @@ func (s *State) Resource(addr addrs.AbsResource) *Resource {
 		return nil
 	}
 	return ms.Resource(addr.Resource)
+}
+
+// Resources returns the set of resources that match the given configuration path.
+func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
+	var ret []*Resource
+	for _, m := range s.ModuleInstances(addr.Module) {
+		r := m.Resource(addr.Resource)
+		if r != nil {
+			ret = append(ret, r)
+		}
+	}
+	return ret
 }
 
 // ResourceInstance returns the state for the resource instance with the given

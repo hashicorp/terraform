@@ -41,8 +41,8 @@ type GraphNodeReferencer interface {
 }
 
 type GraphNodeAttachDependencies interface {
-	GraphNodeResource
-	AttachDependencies([]addrs.AbsResource)
+	GraphNodeConfigResource
+	AttachDependencies([]addrs.ConfigResource)
 }
 
 // GraphNodeReferenceOutside is an interface that can optionally be implemented.
@@ -116,6 +116,8 @@ type AttachDependenciesTransformer struct {
 }
 
 func (t AttachDependenciesTransformer) Transform(g *Graph) error {
+	// FIXME: this is only working with ResourceConfigAddr for now
+
 	for _, v := range g.Vertices() {
 		attacher, ok := v.(GraphNodeAttachDependencies)
 		if !ok {
@@ -135,15 +137,15 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 
 		// dedupe addrs when there's multiple instances involved, or
 		// multiple paths in the un-reduced graph
-		depMap := map[string]addrs.AbsResource{}
+		depMap := map[string]addrs.ConfigResource{}
 		for _, d := range ans {
-			var addr addrs.AbsResource
+			var addr addrs.ConfigResource
 
 			switch d := d.(type) {
 			case GraphNodeResourceInstance:
 				instAddr := d.ResourceInstanceAddr()
-				addr = instAddr.Resource.Resource.Absolute(instAddr.Module)
-			case GraphNodeResource:
+				addr = instAddr.ContainingResource().Config()
+			case GraphNodeConfigResource:
 				addr = d.ResourceAddr()
 			default:
 				continue
@@ -160,7 +162,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			depMap[addr.String()] = addr
 		}
 
-		deps := make([]addrs.AbsResource, 0, len(depMap))
+		deps := make([]addrs.ConfigResource, 0, len(depMap))
 		for _, d := range depMap {
 			deps = append(deps, d)
 		}

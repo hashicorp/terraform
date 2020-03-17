@@ -18,7 +18,7 @@ var (
 	_ GraphNodeEvalable                  = (*NodeValidatableResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeValidatableResource)(nil)
 	_ GraphNodeReferencer                = (*NodeValidatableResource)(nil)
-	_ GraphNodeResource                  = (*NodeValidatableResource)(nil)
+	_ GraphNodeConfigResource            = (*NodeValidatableResource)(nil)
 	_ GraphNodeAttachResourceConfig      = (*NodeValidatableResource)(nil)
 	_ GraphNodeAttachProviderMetaConfigs = (*NodeValidatableResource)(nil)
 )

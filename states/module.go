@@ -58,7 +58,7 @@ func (ms *Module) SetResourceMeta(addr addrs.Resource, eachMode EachMode, provid
 	rs := ms.Resource(addr)
 	if rs == nil {
 		rs = &Resource{
-			Addr:      addr,
+			Addr:      addr.Absolute(ms.Addr),
 			Instances: map[addrs.InstanceKey]*ResourceInstance{},
 		}
 		ms.Resources[addr.String()] = rs
@@ -295,7 +295,7 @@ func (ms *Module) RemoveLocalValue(name string) {
 func (ms *Module) PruneResourceHusks() {
 	for _, rs := range ms.Resources {
 		if len(rs.Instances) == 0 {
-			ms.RemoveResource(rs.Addr)
+			ms.RemoveResource(rs.Addr.Resource)
 		}
 	}
 }

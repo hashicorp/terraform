@@ -19,7 +19,7 @@ var (
 	_ GraphNodeDynamicExpandable         = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferencer                = (*NodeRefreshableDataResource)(nil)
-	_ GraphNodeResource                  = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeConfigResource            = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeAttachResourceConfig      = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResource)(nil)
 )

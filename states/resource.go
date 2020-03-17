@@ -10,9 +10,9 @@ import (
 
 // Resource represents the state of a resource.
 type Resource struct {
-	// Addr is the module-relative address for the resource this state object
+	// Addr is the absolute address for the resource this state object
 	// belongs to.
-	Addr addrs.Resource
+	Addr addrs.AbsResource
 
 	// EachMode is the multi-instance mode currently in use for this resource,
 	// or NoEach if this is a single-instance resource. This dictates what

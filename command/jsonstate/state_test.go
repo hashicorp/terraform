@@ -186,10 +186,12 @@ func TestMarshalResources(t *testing.T) {
 		"single resource": {
 			map[string]*states.Resource{
 				"test_thing.baz": {
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "bar",
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
 					},
 					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
@@ -228,10 +230,12 @@ func TestMarshalResources(t *testing.T) {
 		"resource with count": {
 			map[string]*states.Resource{
 				"test_thing.bar": {
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "bar",
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
 					},
 					EachMode: states.EachList,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
@@ -270,10 +274,12 @@ func TestMarshalResources(t *testing.T) {
 		"resource with for_each": {
 			map[string]*states.Resource{
 				"test_thing.bar": {
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "bar",
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
 					},
 					EachMode: states.EachMap,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
@@ -312,10 +318,12 @@ func TestMarshalResources(t *testing.T) {
 		"deposed resource": {
 			map[string]*states.Resource{
 				"test_thing.baz": {
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "bar",
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
 					},
 					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
@@ -356,10 +364,12 @@ func TestMarshalResources(t *testing.T) {
 		"deposed and current resource": {
 			map[string]*states.Resource{
 				"test_thing.baz": {
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_thing",
-						Name: "bar",
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
 					},
 					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{

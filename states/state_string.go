@@ -91,7 +91,7 @@ func (m *Module) testString() string {
 	addrsOrder := make([]addrs.AbsResourceInstance, 0, len(m.Resources))
 	for _, rs := range m.Resources {
 		for ik := range rs.Instances {
-			addrsOrder = append(addrsOrder, rs.Addr.Instance(ik).Absolute(addrs.RootModuleInstance))
+			addrsOrder = append(addrsOrder, rs.Addr.Instance(ik))
 		}
 	}
 

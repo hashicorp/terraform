@@ -21,7 +21,7 @@ var (
 	_ GraphNodeReferenceable        = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeDestroyer            = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeResource             = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeConfigResource       = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeResourceInstance     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)

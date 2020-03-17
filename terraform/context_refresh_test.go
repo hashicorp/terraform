@@ -1422,7 +1422,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 	}
 
 	for _, r := range mod.Resources {
-		if r.Addr.Type == "" {
+		if r.Addr.Resource.Type == "" {
 			t.Fatalf("no type: %#v", r)
 		}
 	}
