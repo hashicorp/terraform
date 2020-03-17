@@ -312,13 +312,20 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 		}, false
 	}
 
-	// No provider configuration found
-	return nil, false
+	// No provider configuration found; return a default address
+	return addrs.AbsProviderConfig{
+		Provider: n.Provider(),
+		Module:   n.ModulePath(),
+	}, false
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResource) ImpliedProvider() addrs.Provider {
-	return n.Addr.Resource.DefaultProvider()
+func (n *NodeAbstractResource) Provider() addrs.Provider {
+	if n.Config != nil {
+		return n.Config.Provider
+	}
+	// FIXME: this will be a default provider
+	return addrs.NewLegacyProvider(n.Addr.Resource.ImpliedProvider())
 }
 
 // GraphNodeProviderConsumer
@@ -340,13 +347,20 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool)
 		return n.ResourceState.ProviderConfig, true
 	}
 
-	// No provider configuration found
-	return nil, false
+	// No provider configuration found; return a default address
+	return addrs.AbsProviderConfig{
+		Provider: n.Provider(),
+		Module:   n.ModulePath(),
+	}, false
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) ImpliedProvider() addrs.Provider {
-	return n.Addr.Resource.DefaultProvider()
+func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
+	if n.Config != nil {
+		return n.Config.Provider
+	}
+	// FIXME: this will be a default provider
+	return addrs.NewLegacyProvider(n.Addr.Resource.ImpliedProvider())
 }
 
 // GraphNodeProvisionerConsumer

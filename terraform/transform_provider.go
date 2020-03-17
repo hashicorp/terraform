@@ -68,24 +68,23 @@ type GraphNodeProviderConsumer interface {
 	// refers to, if available. The following value types may be returned:
 	//
 	// * addrs.LocalProviderConfig: the provider was set in the resource config
-	// * addrs.AbsProviderConfig: the provider configuration was taken from the
-	//   instance state.
-	// * nil: provider was not set in config or state. It is the caller's
-	//   responsibility to determine the implied default provider (see ImpliedProvider())
+	// * addrs.AbsProviderConfig + exact true: the provider configuration was
+	//   taken from the instance state.
+	// * addrs.AbsProviderConfig + exact false: no config or state; the returned
+	//   value is a default provider configuration address for the resource's
+	//   Provider
 	ProvidedBy() (addr addrs.ProviderConfig, exact bool)
 
-	// ImpliedProvider returns the provider FQN implied by the resource type
-	// name (for eg the "null" in "null_resource"). This should be used when
-	// ProvidedBy() returns nil.
-	ImpliedProvider() (addrs addrs.Provider)
+	// Provider() returns the Provider FQN for the node.
+	Provider() (provider addrs.Provider)
 
 	// Set the resolved provider address for this resource.
 	SetProvider(addrs.AbsProviderConfig)
 }
 
-// ProviderTransformer is a GraphTransformer that maps resources to
-// providers within the graph. This will error if there are any resources
-// that don't map to proper resources.
+// ProviderTransformer is a GraphTransformer that maps resources to providers
+// within the graph. This will error if there are any resources that don't map
+// to proper resources.
 type ProviderTransformer struct {
 	Config *configs.Config
 }
@@ -139,28 +138,16 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			case addrs.LocalProviderConfig:
 				// ProvidedBy() return a LocalProviderConfig when the resource
 				// contains a `provider` attribute
+				absPc.Provider = pv.Provider()
 				modPath := pv.ModulePath()
 				if t.Config == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
 					absPc.Module = modPath
 					absPc.Alias = p.Alias
 					break
 				}
 
-				modConfig := t.Config.Descendent(modPath)
-				if modConfig == nil {
-					absPc.Provider = addrs.NewLegacyProvider(p.LocalName)
-				} else {
-					absPc.Provider = modConfig.Module.ProviderForLocalConfig(p)
-				}
 				absPc.Module = modPath
 				absPc.Alias = p.Alias
-
-			case nil:
-				// No provider found in config or state; fall back to implied default provider.
-				absPc.Provider = pv.ImpliedProvider()
-				absPc.Module = pv.ModulePath()
-				log.Printf("[TRACE] ProviderTransformer: %s is provided by %s or inherited equivalent", dag.VertexName(v), absPc)
 
 			default:
 				// This should never happen; the case statements are meant to be exhaustive
@@ -351,36 +338,8 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 		}
 
 		// For our work here we actually care only about the provider type and
-		// we plan to place all default providers in the root module, and so
-		// it's safe for us to rely on ProvidedBy here rather than waiting for
-		// the later proper resolution of provider inheritance done by
-		// ProviderTransformer.
-		providerAddr, _ := pv.ProvidedBy()
-		var providerFqn addrs.Provider
-		switch p := providerAddr.(type) {
-		case addrs.LocalProviderConfig:
-			if p.Alias != "" {
-				// We do not create default aliased configurations.
-				log.Println("[TRACE] MissingProviderTransformer: skipping implication of aliased config", p)
-				continue
-			}
-			modConfig := t.Config.Descendent(pv.ModulePath())
-			if modConfig == nil {
-				providerFqn = addrs.NewLegacyProvider(p.LocalName)
-			} else {
-				providerFqn = modConfig.Module.ProviderForLocalConfig(p)
-			}
-
-		case addrs.AbsProviderConfig:
-			providerFqn = p.Provider
-
-		case nil:
-			providerFqn = pv.ImpliedProvider()
-
-		default:
-			// This should never happen, the case statements are exhaustive
-			panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), p))
-		}
+		// we plan to place all default providers in the root module.
+		providerFqn := pv.Provider()
 
 		// We're going to create an implicit _default_ configuration for the
 		// referenced provider type in the _root_ module, ignoring all other

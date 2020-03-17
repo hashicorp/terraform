@@ -21,7 +21,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		// may not specify implied provider addresses.
 		providerAddr := target.ProviderAddr
 		if providerAddr.Provider.Type == "" {
-			defaultFQN := target.Addr.Resource.Resource.DefaultProvider()
+			defaultFQN := addrs.NewLegacyProvider(target.Addr.Resource.Resource.ImpliedProvider())
 			providerAddr = addrs.AbsProviderConfig{
 				Provider: defaultFQN,
 				Module:   target.Addr.Module.Module(),
@@ -69,7 +69,7 @@ func (n *graphNodeImportState) ProvidedBy() (addrs.ProviderConfig, bool) {
 }
 
 // GraphNodeProviderConsumer
-func (n *graphNodeImportState) ImpliedProvider() addrs.Provider {
+func (n *graphNodeImportState) Provider() addrs.Provider {
 	// We assume that n.ProviderAddr has been properly populated here.
 	// It's the responsibility of the code creating a graphNodeImportState
 	// to populate this, possibly by calling DefaultProviderConfig() on the
