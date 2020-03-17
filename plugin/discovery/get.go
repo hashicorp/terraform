@@ -424,20 +424,13 @@ func (i *ProviderInstaller) getProviderChecksum(resp *response.TerraformProvider
 
 	// Verify the GPG signature returned from the Registry.
 	asciiArmor := resp.SigningKeys.GPGASCIIArmor()
-	signer, err := verifySig(shasums, signature, asciiArmor)
+	signer, tier, err := verifyProviderSignature(shasums, signature, asciiArmor, "")
 	if err != nil {
 		log.Printf("[ERROR] error verifying signature: %s", err)
 		return "", ErrorSignatureVerification
 	}
-
-	// Also verify the GPG signature against the HashiCorp public key. This is
-	// a temporary additional check until a more robust key verification
-	// process is added in a future release.
-	_, err = verifySig(shasums, signature, HashicorpPublicKey)
-	if err != nil {
-		log.Printf("[ERROR] error verifying signature against HashiCorp public key: %s", err)
-		return "", ErrorSignatureVerification
-	}
+	log.Printf("[DEBUG] Verified %s provider signed by %s",
+		tier, entityString(signer))
 
 	// Display identity for GPG key which succeeded verifying the signature.
 	// This could also be used to display to the user with i.Ui.Info().
