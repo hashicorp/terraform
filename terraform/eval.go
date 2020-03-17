@@ -46,12 +46,16 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 // signal something normal such as EvalEarlyExitError.
 func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
 	path := "unknown"
-	if ctx != nil {
-		path = ctx.Path().String()
-	}
-	if path == "" {
-		path = "<root>"
-	}
+
+	// FIXME: restore the path here somehow or log this in another manner
+	// We cannot call Path here, since the context may not yet have the path
+	// set.
+	//if ctx != nil {
+	//    path = ctx.Path().String()
+	//}
+	//if path == "" {
+	//    path = "<root>"
+	//}
 
 	log.Printf("[TRACE] %s: eval: %T", path, n)
 	output, err := n.Eval(ctx)

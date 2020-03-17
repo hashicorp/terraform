@@ -9,6 +9,7 @@ import (
 // GraphWalker is an interface that can be implemented that when used
 // with Graph.Walk will invoke the given callbacks under certain events.
 type GraphWalker interface {
+	EvalContext() EvalContext
 	EnterPath(addrs.ModuleInstance) EvalContext
 	ExitPath(addrs.ModuleInstance)
 	EnterVertex(dag.Vertex)
@@ -22,6 +23,7 @@ type GraphWalker interface {
 // implementing all the required functions.
 type NullGraphWalker struct{}
 
+func (NullGraphWalker) EvalContext() EvalContext                        { return new(MockEvalContext) }
 func (NullGraphWalker) EnterPath(addrs.ModuleInstance) EvalContext      { return new(MockEvalContext) }
 func (NullGraphWalker) ExitPath(addrs.ModuleInstance)                   {}
 func (NullGraphWalker) EnterVertex(dag.Vertex)                          {}
