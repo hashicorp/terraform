@@ -35,8 +35,7 @@ func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
 
 func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	// The callbacks for enter/exiting a graph
-	ctx := walker.EnterPath(g.Path)
-	defer walker.ExitPath(g.Path)
+	ctx := walker.EvalContext()
 
 	// Walk the graph.
 	var walkFn dag.WalkFunc
@@ -54,7 +53,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		// is normally the context of our graph but can be overridden
 		// with a GraphNodeModuleInstance impl.
 		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeModuleInstance); ok && len(pn.Path()) > 0 {
+		if pn, ok := v.(GraphNodeModuleInstance); ok {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
 		}

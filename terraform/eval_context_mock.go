@@ -305,6 +305,12 @@ func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, keyData Inst
 	return c.EvaluationScopeScope
 }
 
+func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+	newC := *c
+	newC.PathPath = path
+	return &newC
+}
+
 func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
 	return c.PathPath
