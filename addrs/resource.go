@@ -50,6 +50,8 @@ func (r Resource) Absolute(module ModuleInstance) AbsResource {
 	}
 }
 
+// ImpliedProvider returns the implied provider type name, for e.g. the "aws" in
+// "aws_instance"
 func (r Resource) ImpliedProvider() string {
 	typeName := r.Type
 	if under := strings.Index(typeName, "_"); under != -1 {
