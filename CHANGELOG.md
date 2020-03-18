@@ -6,6 +6,8 @@ NOTES:
 
 Our Windows 32-bit and 64-bit executables for this version and up will be signed with a HashiCorp cert. Windows users will no longer see a warning about an "unknown publisher" when running our software.
 
+BUG FIXES:
+* command/login: Fix bug when using terraform login on Windows [GH-24397]
 
 ## 0.12.23 (March 05, 2020)
 
