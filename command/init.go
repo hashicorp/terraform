@@ -167,34 +167,44 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	// First use the early config to do a general compatibility
-	// check with dependencies, producing version-oriented error messages if
-	// dependencies aren't right.
-	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	diags = diags.Append(earlyConfDiags)
-	if earlyConfDiags.HasErrors() {
-		// Errors from the early loader are generally not as high-quality since
-		// it has less context to work with.
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-	}
-
-	// Now that we've processed the results from the early config, use the real
-	// loader to deal with the backend configuration.
+	// Before we do anything else, we'll try loading configuration with both
+	// our "normal" and "early" configuration codepaths. If early succeeds
+	// while normal fails, that strongly suggests that the configuration is
+	// using syntax that worked in 0.11 but no longer in v0.12.
 	rootMod, confDiags := c.loadSingleModule(path)
-	diags = diags.Append(confDiags)
+	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
 	if confDiags.HasErrors() {
 		if earlyConfDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		} else {
-			// If _only_ the main loader produced errors then that suggests the
-			// configuration is written in 0.11-style syntax. We will return an
-			// error suggesting the user upgrade their config manually or with
-			// Terraform v0.12
-			c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
+			// If both parsers produced errors then we'll assume the config
+			// is _truly_ invalid and produce error messages as normal.
+			// Since this may be the user's first ever interaction with Terraform,
+			// we'll provide some additional context in this case.
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			diags = diags.Append(confDiags)
 			c.showDiagnostics(diags)
 			return 1
 		}
+		// If _only_ the main loader produced errors then that suggests the
+		// configuration is written in 0.11-style syntax. We will return an
+		// error suggesting the user upgrade their config manually or with
+		// Terraform v0.12
+		c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
+		c.showDiagnostics(earlyConfDiags)
+		return 1
+	}
+
+	// If _only_ the early loader encountered errors then that's unusual
+	// (it should generally be a superset of the normal loader) but we'll
+	// return those errors anyway since otherwise we'll probably get
+	// some weird behavior downstream. Errors from the early loader are
+	// generally not as high-quality since it has less context to work with.
+	if earlyConfDiags.HasErrors() {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		// Errors from the early loader are generally not as high-quality since
+		// it has less context to work with.
+		diags = diags.Append(confDiags)
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	if flagGet {
