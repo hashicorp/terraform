@@ -177,7 +177,9 @@ func (u *Upgrader) analyze(ms ModuleSources) (*analysis, error) {
 
 				var fqn addrs.Provider
 				if providerKey == "" {
-					fqn = rAddr.DefaultProvider()
+					// we are assuming a default, legacy provider for 012
+					// configurations
+					fqn = addrs.NewLegacyProvider(rAddr.ImpliedProvider())
 				} else {
 					// ProviderDependencies only need to know the provider FQN
 					// strip any alias from the providerKey

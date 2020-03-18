@@ -143,7 +143,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					} else {
 						providerAddr = addrs.AbsProviderConfig{
 							Module:   moduleAddr.Module(),
-							Provider: resAddr.DefaultProvider(),
+							Provider: addrs.NewLegacyProvider(resAddr.ImpliedProvider()),
 						}
 					}
 				}

@@ -50,28 +50,15 @@ func (r Resource) Absolute(module ModuleInstance) AbsResource {
 	}
 }
 
-// DefaultProvider returns the address of the provider whose default
-// configuration shouldbe used for the resource identified by the reciever if
-// it does not have a provider configuration address explicitly set in
-// configuration.
-//
-// This method is not able to verify that such a configuration exists, nor
-// represent the behavior of automatically inheriting certain provider
-// configurations from parent modules. It just does a static analysis of the
-// receiving address and returns an address to start from, relative to the
-// same module that contains the resource.
-func (r Resource) DefaultProvider() Provider {
+// ImpliedProvider returns the implied provider type name, for e.g. the "aws" in
+// "aws_instance"
+func (r Resource) ImpliedProvider() string {
 	typeName := r.Type
 	if under := strings.Index(typeName, "_"); under != -1 {
 		typeName = typeName[:under]
 	}
 
-	// TODO: For now we're returning a _legacy_ provider address here
-	// because the rest of Terraform isn't yet prepared to deal with
-	// non-legacy ones. Once we phase out legacy addresses this should
-	// switch to being a _default_ provider address, i.e. one in the
-	// releases.hashicorp.com/hashicorp/... namespace.
-	return NewLegacyProvider(typeName)
+	return typeName
 }
 
 // ResourceInstance is an address for a specific instance of a resource.

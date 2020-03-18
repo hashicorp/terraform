@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
@@ -61,29 +60,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			addr := tv.ResourceAddr()
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
-			providerAddr, _ := tv.ProvidedBy()
-
-			var providerFqn addrs.Provider
-			switch p := providerAddr.(type) {
-			case addrs.LocalProviderConfig:
-				if t.Config == nil {
-					providerFqn = addrs.NewLegacyProvider(p.LocalName)
-				} else {
-					modConfig := t.Config.Descendent(tv.ModulePath())
-					if modConfig == nil {
-						providerFqn = addrs.NewLegacyProvider(p.LocalName)
-					} else {
-						providerFqn = modConfig.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: p.LocalName})
-					}
-				}
-			case addrs.AbsProviderConfig:
-				providerFqn = p.Provider
-			case nil:
-				providerFqn = tv.ImpliedProvider()
-			default:
-				// This should never happen; the case statements are meant to be exhaustive
-				panic(fmt.Sprintf("%s: provider for %s couldn't be determined", dag.VertexName(v), addr))
-			}
+			providerFqn := tv.Provider()
 
 			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
 			if schema == nil {

@@ -293,8 +293,9 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			r.Provider = provider
 			continue
 		}
-		// FIXME: r.Addr().DefaultProvider() will be refactored to return a string
-		r.Provider = r.Addr().DefaultProvider()
+		// FIXME: this will replaced with NewDefaultProvider when provider
+		// source is fully implemented.
+		r.Provider = addrs.NewLegacyProvider(r.Addr().ImpliedProvider())
 	}
 
 	for _, r := range file.DataResources {
@@ -322,8 +323,9 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			r.Provider = provider
 			continue
 		}
-		// FIXME: r.Addr().DefaultProvider() will be refactored to return a string
-		r.Provider = r.Addr().DefaultProvider()
+		// FIXME: this will replaced with NewDefaultProvider when provider
+		// source is fully implemented.
+		r.Provider = addrs.NewLegacyProvider(r.Addr().ImpliedProvider())
 	}
 
 	return diags

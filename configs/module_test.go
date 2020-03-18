@@ -57,6 +57,14 @@ func TestNewModule_resource_providers(t *testing.T) {
 		)
 	}
 
+	// a data source
+	if !cfg.Module.DataResources["data.test_resource.explicit"].Provider.Equals(wantFoo) {
+		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
+			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
+			wantBar,
+		)
+	}
+
 	// child module
 	cm := cfg.Children["child"].Module
 	if !cm.ManagedResources["test_instance.explicit"].Provider.Equals(wantBar) {
@@ -84,5 +92,4 @@ func TestProviderForLocalConfig(t *testing.T) {
 	if !got.Equals(want) {
 		t.Fatalf("wrong result! got %#v, want %#v\n", got, want)
 	}
-
 }
