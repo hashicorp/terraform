@@ -1,4 +1,4 @@
-## 0.12.24 (Unreleased)
+## 0.12.24 (March 19, 2020)
 
 NOTES:
 
@@ -7,8 +7,8 @@ NOTES:
 Our Windows 32-bit and 64-bit executables for this version and up will be signed with a HashiCorp cert. Windows users will no longer see a warning about an "unknown publisher" when running our software.
 
 BUG FIXES:
-* command/login: Fix bug when using terraform login on Windows [GH-24397]
-* registry: Fix panic when server is unreachable [GH-24411]
+* command/login: Fix bug when using terraform login on Windows ([#24397](https://github.com/hashicorp/terraform/issues/24397))
+* registry: Fix panic when server is unreachable ([#24411](https://github.com/hashicorp/terraform/issues/24411))
 
 ## 0.12.23 (March 05, 2020)
 
