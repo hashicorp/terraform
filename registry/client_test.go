@@ -314,6 +314,61 @@ func TestLookupModuleRetryError(t *testing.T) {
 	}
 }
 
+func TestLookupModuleNoRetryError(t *testing.T) {
+	// Disable retries
+	discoveryRetry = 0
+	defer configureDiscoveryRetry()
+
+	server := test.RegistryRetryableErrorsServer()
+	defer server.Close()
+
+	client := NewClient(test.Disco(server), nil)
+
+	src := "example.com/test-versions/name/provider"
+	modsrc, err := regsrc.ParseModuleSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.ModuleVersions(modsrc)
+	if err == nil {
+		t.Fatal("expected request to fail", err)
+	}
+	if resp != nil {
+		t.Fatal("unexpected response", *resp)
+	}
+
+	// verify maxRetryErrorHandler handler returned the error
+	if !strings.Contains(err.Error(), "the request failed, please try again later") {
+		t.Fatal("unexpected error, got:", err)
+	}
+}
+
+func TestLookupModuleNetworkError(t *testing.T) {
+	server := test.RegistryRetryableErrorsServer()
+	client := NewClient(test.Disco(server), nil)
+
+	// Shut down the server to simulate network failure
+	server.Close()
+
+	src := "example.com/test-versions/name/provider"
+	modsrc, err := regsrc.ParseModuleSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.ModuleVersions(modsrc)
+	if err == nil {
+		t.Fatal("expected request to fail", err)
+	}
+	if resp != nil {
+		t.Fatal("unexpected response", *resp)
+	}
+
+	// verify maxRetryErrorHandler handler returned the correct error
+	if !strings.Contains(err.Error(), "the request failed after 2 attempts, please try again later") {
+		t.Fatal("unexpected error, got:", err)
+	}
+}
+
 func TestLookupProviderVersions(t *testing.T) {
 	server := test.Registry()
 	defer server.Close()
