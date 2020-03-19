@@ -605,7 +605,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
-func TestImport_allowMissingResourceConfig(t *testing.T) {
+func TestImport_disallowMissingResourceConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
 	statePath := testTempFile(t)
@@ -646,15 +646,16 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 		"test_instance.foo",
 		"bar",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("import succeeded; expected failure")
 	}
 
-	if !p.ImportResourceStateCalled {
-		t.Fatal("ImportResourceState should be called")
-	}
+	msg := ui.ErrorWriter.String()
 
-	testStateOutput(t, statePath, testImportStr)
+	if want := `Error: Resource test_instance.foo not found in the configuration.`; !strings.Contains(msg, want) {
+		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
 }
 
 func TestImport_emptyConfig(t *testing.T) {

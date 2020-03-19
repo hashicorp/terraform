@@ -19,30 +19,29 @@ type ImportStateTransformer struct {
 func (t *ImportStateTransformer) Transform(g *Graph) error {
 	for _, target := range t.Targets {
 
-		// QUESTION: I think this is only possible in tests?
+		// This is only likely to happen in misconfigured tests
 		if t.Config == nil {
-			return fmt.Errorf("cannot import into an empty configuration")
+			return fmt.Errorf("Cannot import into an empty configuration.")
 		}
 
 		// Get the module config
 		modCfg := t.Config.Descendent(target.Addr.Module.Module())
 		if modCfg == nil {
-			return fmt.Errorf("module %s not found", target.Addr.Module.Module())
+			return fmt.Errorf("Module %s not found.", target.Addr.Module.Module())
 		}
 
-		// FIXME: If this works, consider adding function to configs.Module to
-		// get the absPC in one step.
-		//
 		// Get the resource config
 		rsCfg := modCfg.Module.ResourceByAddr(target.Addr.Resource.Resource)
 		if rsCfg == nil {
-			return fmt.Errorf("resource %s not found in configuration", target.Addr)
+			return fmt.Errorf("Resource %s not found in the configuration.", target.Addr)
 		}
 
-		// Get the provider for the resource
+		// Get the provider FQN for the resource from the resource configuration
 		providerFqn := rsCfg.Provider
+
+		// This is only likely to happen in misconfigured tests.
 		if rsCfg == nil {
-			return fmt.Errorf("provider for resource %s not found in configuration", target.Addr)
+			return fmt.Errorf("provider for resource %s not found in the configuration.", target.Addr)
 		}
 
 		// Get the provider local config for the resource
