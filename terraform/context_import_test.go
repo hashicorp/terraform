@@ -226,7 +226,6 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
-		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -283,7 +282,6 @@ func TestContextImport_providerModule(t *testing.T) {
 	}
 
 	_, diags := ctx.Import(&ImportOpts{
-		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
