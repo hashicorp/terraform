@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -12,20 +13,45 @@ import (
 // graph to represent the imports we want to do for resources.
 type ImportStateTransformer struct {
 	Targets []*ImportTarget
+	Config  *configs.Config
 }
 
 func (t *ImportStateTransformer) Transform(g *Graph) error {
 	for _, target := range t.Targets {
-		// The ProviderAddr may not be supplied for non-aliased providers.
-		// This will be populated if the targets come from the cli, but tests
-		// may not specify implied provider addresses.
-		providerAddr := target.ProviderAddr
-		if providerAddr.Provider.Type == "" {
-			defaultFQN := addrs.NewLegacyProvider(target.Addr.Resource.Resource.ImpliedProvider())
-			providerAddr = addrs.AbsProviderConfig{
-				Provider: defaultFQN,
-				Module:   target.Addr.Module.Module(),
-			}
+
+		// QUESTION: I think this is only possible in tests?
+		if t.Config == nil {
+			return fmt.Errorf("cannot import into an empty configuration")
+		}
+
+		// Get the module config
+		modCfg := t.Config.Descendent(target.Addr.Module.Module())
+		if modCfg == nil {
+			return fmt.Errorf("module %s not found", target.Addr.Module.Module())
+		}
+
+		// FIXME: If this works, consider adding function to configs.Module to
+		// get the absPC in one step.
+		//
+		// Get the resource config
+		rsCfg := modCfg.Module.ResourceByAddr(target.Addr.Resource.Resource)
+		if rsCfg == nil {
+			return fmt.Errorf("resource %s not found in configuration", target.Addr)
+		}
+
+		// Get the provider for the resource
+		providerFqn := rsCfg.Provider
+		if rsCfg == nil {
+			return fmt.Errorf("provider for resource %s not found in configuration", target.Addr)
+		}
+
+		// Get the provider local config for the resource
+		localpCfg := rsCfg.ProviderConfigAddr()
+
+		providerAddr := addrs.AbsProviderConfig{
+			Provider: providerFqn,
+			Alias:    localpCfg.Alias,
+			Module:   target.Addr.Module.Module(),
 		}
 
 		node := &graphNodeImportState{

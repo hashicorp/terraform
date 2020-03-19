@@ -59,7 +59,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// Add the import steps
-		&ImportStateTransformer{Targets: b.ImportTargets},
+		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
