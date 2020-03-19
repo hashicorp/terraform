@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
@@ -413,15 +413,23 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 		resp.Body.Close()
 	}
 
+	// Additional error detail: if we have a response, use the status code;
+	// if we have an error, use that; otherwise nothing. We will never have
+	// both response and error.
 	var errMsg string
-	if err != nil {
-		errMsg = fmt.Sprintf(" %s", err)
+	if resp != nil {
+		errMsg = fmt.Sprintf(": %d", resp.StatusCode)
+	} else if err != nil {
+		errMsg = fmt.Sprintf(": %s", err)
 	}
+
+	// This function is always called with numTries=RetryMax+1. If we made any
+	// retry attempts, include that in the error message.
 	if numTries > 1 {
-		return resp, fmt.Errorf("the request failed after %d attempts, please try again later: %d%s",
-			numTries, resp.StatusCode, errMsg)
+		return resp, fmt.Errorf("the request failed after %d attempts, please try again later%s",
+			numTries, errMsg)
 	}
-	return resp, fmt.Errorf("the request failed, please try again later: %d%s", resp.StatusCode, errMsg)
+	return resp, fmt.Errorf("the request failed, please try again later%s", errMsg)
 }
 
 // configureRequestTimeout configures the registry client request timeout from
