@@ -18,7 +18,6 @@ import (
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/configs/configupgrade"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -171,18 +170,9 @@ func (c *InitCommand) Run(args []string) int {
 	// Before we do anything else, we'll try loading configuration with both
 	// our "normal" and "early" configuration codepaths. If early succeeds
 	// while normal fails, that strongly suggests that the configuration is
-	// using syntax that worked in 0.11 but no longer in 0.12, which requires
-	// some special behavior here to get the directory initialized just enough
-	// to run "terraform 0.12upgrade".
-	//
-	// FIXME: Once we reach 0.13 and remove 0.12upgrade, we should rework this
-	// so that we first use the early config to do a general compatibility
-	// check with dependencies, producing version-oriented error messages if
-	// dependencies aren't right, and only then use the real loader to deal
-	// with the backend configuration.
+	// using syntax that worked in 0.11 but no longer in v0.12.
 	rootMod, confDiags := c.loadSingleModule(path)
 	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	configUpgradeProbablyNeeded := false
 	if confDiags.HasErrors() {
 		if earlyConfDiags.HasErrors() {
 			// If both parsers produced errors then we'll assume the config
@@ -194,33 +184,25 @@ func (c *InitCommand) Run(args []string) int {
 			c.showDiagnostics(diags)
 			return 1
 		}
-
-		// If _only_ the main loader produced errors then that suggests an
-		// upgrade may help. To give us more certainty here, we'll use the
-		// same heuristic that "terraform 0.12upgrade" uses to guess if a
-		// configuration has already been upgraded, to reduce the risk that
-		// we'll produce a misleading message if the problem is just a regular
-		// syntax error that the early loader just didn't catch.
-		sources, err := configupgrade.LoadModule(path)
-		if err == nil {
-			if already, _ := sources.MaybeAlreadyUpgraded(); already {
-				// Just report the errors as normal, then.
-				c.Ui.Error(strings.TrimSpace(errInitConfigError))
-				diags = diags.Append(confDiags)
-				c.showDiagnostics(diags)
-				return 1
-			}
-		}
-		configUpgradeProbablyNeeded = true
+		// If _only_ the main loader produced errors then that suggests the
+		// configuration is written in 0.11-style syntax. We will return an
+		// error suggesting the user upgrade their config manually or with
+		// Terraform v0.12
+		c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
+		c.showDiagnostics(earlyConfDiags)
+		return 1
 	}
+
+	// If _only_ the early loader encountered errors then that's unusual
+	// (it should generally be a superset of the normal loader) but we'll
+	// return those errors anyway since otherwise we'll probably get
+	// some weird behavior downstream. Errors from the early loader are
+	// generally not as high-quality since it has less context to work with.
 	if earlyConfDiags.HasErrors() {
-		// If _only_ the early loader encountered errors then that's unusual
-		// (it should generally be a superset of the normal loader) but we'll
-		// return those errors anyway since otherwise we'll probably get
-		// some weird behavior downstream. Errors from the early loader are
-		// generally not as high-quality since it has less context to work with.
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(earlyConfDiags)
+		// Errors from the early loader are generally not as high-quality since
+		// it has less context to work with.
+		diags = diags.Append(confDiags)
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -237,21 +219,15 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
-	// With all of the modules (hopefully) installed, we can now try to load
-	// the whole configuration tree.
+	// With all of the modules (hopefully) installed, we can now try to load the
+	// whole configuration tree.
 	//
 	// Just as above, we'll try loading both with the early and normal config
-	// loaders here. Subsequent work will only use the early config, but
-	// loading both gives us an opportunity to prefer the better error messages
-	// from the normal loader if both fail.
-	_, confDiags = c.loadConfig(path)
+	// loaders here. Subsequent work will only use the early config, but loading
+	// both gives us an opportunity to prefer the better error messages from the
+	// normal loader if both fail.
+
 	earlyConfig, earlyConfDiags := c.loadConfigEarly(path)
-	if confDiags.HasErrors() && !configUpgradeProbablyNeeded {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(confDiags)
-		c.showDiagnostics(diags)
-		return 1
-	}
 	if earlyConfDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
 		diags = diags.Append(earlyConfDiags)
@@ -259,43 +235,38 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	{
-		// Before we go further, we'll check to make sure none of the modules
-		// in the configuration declare that they don't support this Terraform
-		// version, so we can produce a version-related error message rather
-		// than potentially-confusing downstream errors.
-		versionDiags := initwd.CheckCoreVersionRequirements(earlyConfig)
-		diags = diags.Append(versionDiags)
-		if versionDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
+	_, confDiags = c.loadConfig(path)
+	if confDiags.HasErrors() {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		diags = diags.Append(confDiags)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Before we go further, we'll check to make sure none of the modules in the
+	// configuration declare that they don't support this Terraform version, so
+	// we can produce a version-related error message rather than
+	// potentially-confusing downstream errors.
+	versionDiags := initwd.CheckCoreVersionRequirements(earlyConfig)
+	diags = diags.Append(versionDiags)
+	if versionDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	var back backend.Backend
 	if flagBackend {
-		switch {
-		case configUpgradeProbablyNeeded:
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Skipping backend initialization pending configuration upgrade",
-				// The "below" in this message is referring to the special
-				// note about running "terraform 0.12upgrade" that we'll
-				// print out at the end when configUpgradeProbablyNeeded is set.
-				"The root module configuration contains errors that may be fixed by running the configuration upgrade tool, so Terraform is skipping backend initialization. See below for more information.",
-			))
-		default:
-			be, backendOutput, backendDiags := c.initBackend(rootMod, flagConfigExtra)
-			diags = diags.Append(backendDiags)
-			if backendDiags.HasErrors() {
-				c.showDiagnostics(diags)
-				return 1
-			}
-			if backendOutput {
-				header = true
-			}
-			back = be
+
+		be, backendOutput, backendDiags := c.initBackend(rootMod, flagConfigExtra)
+		diags = diags.Append(backendDiags)
+		if backendDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
 		}
+		if backendOutput {
+			header = true
+		}
+		back = be
 	} else {
 		// load the previously-stored backend config
 		be, backendDiags := c.Meta.backendFromState()
@@ -365,16 +336,6 @@ func (c *InitCommand) Run(args []string) int {
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
 	c.showDiagnostics(diags)
-
-	if configUpgradeProbablyNeeded {
-		switch {
-		case c.RunningInAutomation:
-			c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessConfigUpgrade)))
-		default:
-			c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessConfigUpgradeCLI)))
-		}
-		return 0
-	}
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
@@ -382,7 +343,6 @@ func (c *InitCommand) Run(args []string) int {
 		// shell usage.
 		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessCLI)))
 	}
-
 	return 0
 }
 
@@ -853,6 +813,19 @@ The Terraform configuration must be valid before initialization so that
 Terraform can determine which modules and providers need to be installed.
 `
 
+const errInitConfigErrorMaybeLegacySyntax = `
+There are some problems with the configuration, described below.
+
+Terraform found syntax errors in the configuration that prevented full
+initialization. If you've recently upgraded to Terraform v0.13 from Terraform
+v0.11, this may be because your configuration uses syntax constructs that are no
+longer valid, and so must be updated before full initialization is possible.
+
+Manually update your configuration syntax, or install Terraform v0.12 and run
+terraform init for this configuration at a shell prompt for more information
+on how to update it for Terraform v0.12+ compatibility.
+`
+
 const errInitCopyNotEmpty = `
 The working directory already contains files. The -from-module option requires
 an empty directory into which a copy of the referenced module will be placed.
@@ -880,34 +853,6 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
-`
-
-const outputInitSuccessConfigUpgrade = `
-[reset][bold]Terraform has initialized, but configuration upgrades may be needed.[reset]
-
-Terraform found syntax errors in the configuration that prevented full
-initialization. If you've recently upgraded to Terraform v0.12, this may be
-because your configuration uses syntax constructs that are no longer valid,
-and so must be updated before full initialization is possible.
-
-Run terraform init for this configuration at a shell prompt for more information
-on how to update it for Terraform v0.12 compatibility.
-`
-
-const outputInitSuccessConfigUpgradeCLI = `[reset][green]
-[reset][bold]Terraform has initialized, but configuration upgrades may be needed.[reset]
-
-Terraform found syntax errors in the configuration that prevented full
-initialization. If you've recently upgraded to Terraform v0.12, this may be
-because your configuration uses syntax constructs that are no longer valid,
-and so must be updated before full initialization is possible.
-
-Terraform has installed the required providers to support the configuration
-upgrade process. To begin upgrading your configuration, run the following:
-    terraform 0.12upgrade
-
-To see the full set of errors that led to this message, run:
-    terraform validate
 `
 
 const outputInitProvidersUnconstrained = `
