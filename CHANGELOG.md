@@ -8,6 +8,7 @@ Our Windows 32-bit and 64-bit executables for this version and up will be signed
 
 BUG FIXES:
 * command/login: Fix bug when using terraform login on Windows [GH-24397]
+* registry: Fix panic when server is unreachable [GH-24411]
 
 ## 0.12.23 (March 05, 2020)
 
