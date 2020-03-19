@@ -3,8 +3,9 @@
 BREAKING CHANGES:
 
 * backend/oss: Changes to the TableStore schema now require a primary key named `LockID` of type `String` [GH-24149]
+* command/0.12upgrade: this command has been replaced with a deprecation notice directing users to install terraform v0.12 to run `terraform 0.12upgrade`.  [GH-24403]
 * command/import: remove the deprecated `-provider` command line argument [GH-24090]
-#22862 fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. 
+* command/import: fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. [GH-22862]
 * config: Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such `provisioner` blocks, it is now an error to refer to any objects other than `self`, `count`, or `each` [GH-24083]
 * config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
 * The official MacOS builds of Terraform CLI are no longer compatible with Mac OS 10.10 Yosemite; Terraform now requires at least Mac OS 10.11 El Capitan. Terraform 0.13 is the last major release that will support 10.11 El Capitan, so if you are upgrading your OS we recommend upgrading to Mac OS 10.12 Sierra or later.
