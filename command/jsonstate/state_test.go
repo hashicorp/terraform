@@ -217,7 +217,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.InstanceKey(nil),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/-/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -261,7 +261,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.IntKey(0),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/-/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -305,7 +305,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.StringKey("rockhopper"),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/-/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -351,7 +351,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        addrs.InstanceKey(nil),
-					ProviderName: "test",
+					ProviderName: "registry.terraform.io/-/test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -402,7 +402,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.InstanceKey(nil),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/-/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -415,7 +415,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        addrs.InstanceKey(nil),
-					ProviderName: "test",
+					ProviderName: "registry.terraform.io/-/test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),

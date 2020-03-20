@@ -136,7 +136,7 @@ func providersCommandPopulateTreeNode(node treeprint.Tree, deps *moduledeps.Modu
 		case moduledeps.ProviderDependencyFromState:
 			reasonStr = " (from state)"
 		}
-		node.AddNode(fmt.Sprintf("provider.%s%s%s", fqn.LegacyString(), versionsStr, reasonStr))
+		node.AddNode(fmt.Sprintf("provider[%s]%s%s", fqn.String(), versionsStr, reasonStr))
 	}
 
 	for _, child := range deps.Children {

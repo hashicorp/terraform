@@ -360,7 +360,6 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 		Module:   parentMod,
 		Provider: pc.Provider,
 	}, true
-
 }
 
 // LegacyString() returns a legacy-style AbsProviderConfig string and should only be used for legacy state shimming.

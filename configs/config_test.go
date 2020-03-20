@@ -41,10 +41,14 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
+		// FIXME: when provider source is fully implemented and the limitation
+		// on source namespace lifted, the test configuration should be updated
+		// to use an arbitrary localname which does not match the typename.
+		addrs.NewLegacyProvider("bar"),
+		addrs.NewLegacyProvider("foo"),
+
 		// FIXME: this will be updated to NewDefaultProvider as we remove `Legacy*`
 		addrs.NewLegacyProvider("test"),
-		addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test"),
-		addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
 	}
 
 	for _, problem := range deep.Equal(got, want) {
@@ -76,13 +80,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
-			Module: addrs.RootModule,
-			// FIXME: At the time of writing we still have LocalProviderConfig
-			// nested inside AbsProviderConfig, but a future change will
-			// stop tis embedding and just have an addrs.Provider and an alias
-			// string here, at which point the correct result will be:
-			//    Provider as the addrs repr of "registry.terraform.io/hashicorp/implied"
-			//    Alias as "boop".
+			Module:   addrs.RootModule,
 			Provider: addrs.NewLegacyProvider("implied"),
 			Alias:    "boop",
 		}
@@ -98,7 +96,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
+			Provider: addrs.NewLegacyProvider("foo"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {
@@ -112,14 +110,14 @@ func TestProviderForConfigAddr(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	got := cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("foo-test"))
-	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	want := addrs.NewLegacyProvider("test")
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}
 
 	// now check a provider that isn't in the configuration. It should return a NewLegacyProvider.
-	got = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("bar-test"))
-	want = addrs.NewLegacyProvider("bar-test")
+	got = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("other-test"))
+	want = addrs.NewLegacyProvider("other-test")
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}

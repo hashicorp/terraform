@@ -164,7 +164,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			Address:      r.Addr.String(),
 			Type:         r.Addr.Resource.Resource.Type,
 			Name:         r.Addr.Resource.Resource.Name,
-			ProviderName: r.ProviderAddr.Provider.LegacyString(),
+			ProviderName: r.ProviderAddr.Provider.String(),
 			Index:        r.Addr.Resource.Key,
 		}
 

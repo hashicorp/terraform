@@ -1,10 +1,10 @@
 terraform {
   required_providers {
     foo-test = {
-      source = "foo/test"
+      source = "-/foo"
     }
     bar-test = {
-      source = "bar/test"
+      source = "-/bar"
     }
   }
 }

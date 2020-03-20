@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -13,8 +14,9 @@ func TestNewModule_provider_local_name(t *testing.T) {
 		t.Fatal(diags.Error())
 	}
 
-	p := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	p := addrs.NewLegacyProvider("foo")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
+		fmt.Printf("%#v\n", mod.ProviderLocalNames)
 		t.Fatal("provider FQN foo/test not found")
 	} else {
 		if name != "foo-test" {
@@ -40,8 +42,8 @@ func TestNewModule_resource_providers(t *testing.T) {
 	// the default implied provider and one explicitly using a provider set in
 	// required_providers
 	wantImplicit := addrs.NewLegacyProvider("test")
-	wantFoo := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
-	wantBar := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
+	wantFoo := addrs.NewLegacyProvider("foo")
+	wantBar := addrs.NewLegacyProvider("bar")
 
 	// root module
 	if !cfg.Module.ManagedResources["test_instance.explicit"].Provider.Equals(wantFoo) {
@@ -88,7 +90,7 @@ func TestProviderForLocalConfig(t *testing.T) {
 	}
 	lc := addrs.LocalProviderConfig{LocalName: "foo-test"}
 	got := mod.ProviderForLocalConfig(lc)
-	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	want := addrs.NewLegacyProvider("foo")
 	if !got.Equals(want) {
 		t.Fatalf("wrong result! got %#v, want %#v\n", got, want)
 	}

@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     bar-test = {
-      source = "bar/test"
+      source = "bar"
     }
   }
 }

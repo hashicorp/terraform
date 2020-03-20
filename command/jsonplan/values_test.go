@@ -198,7 +198,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Type:            "test_thing",
 				Name:            "example",
 				Index:           addrs.InstanceKey(nil),
-				ProviderName:    "test",
+				ProviderName:    "registry.terraform.io/-/test",
 				SchemaVersion:   1,
 				AttributeValues: attributeValues{},
 			}},
@@ -227,7 +227,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Type:          "test_thing",
 				Name:          "example",
 				Index:         addrs.InstanceKey(nil),
-				ProviderName:  "test",
+				ProviderName:  "registry.terraform.io/-/test",
 				SchemaVersion: 1,
 				AttributeValues: attributeValues{
 

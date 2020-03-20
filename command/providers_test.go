@@ -31,14 +31,14 @@ func TestProviders(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "provider.foo") {
-		t.Errorf("output missing provider.foo\n\n%s", output)
+	if !strings.Contains(output, "provider[registry.terraform.io/-/foo]") {
+		t.Errorf("output missing provider[registry.terraform.io/-/foo]\n\n%s", output)
 	}
-	if !strings.Contains(output, "provider.bar") {
-		t.Errorf("output missing provider.bar\n\n%s", output)
+	if !strings.Contains(output, "provider[registry.terraform.io/-/bar]") {
+		t.Errorf("output missing provider[registry.terraform.io/-/bar]\n\n%s", output)
 	}
-	if !strings.Contains(output, "provider.baz") {
-		t.Errorf("output missing provider.baz\n\n%s", output)
+	if !strings.Contains(output, "provider[registry.terraform.io/-/baz]") {
+		t.Errorf("output missing provider[registry.terraform.io/-/baz]\n\n%s", output)
 	}
 }
 

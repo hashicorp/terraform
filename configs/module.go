@@ -197,9 +197,24 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		} else {
 			fqn = addrs.NewLegacyProvider(reqd.Name)
 		}
+		if !fqn.IsDefault() && !fqn.IsLegacy() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider source",
+				Detail:   fmt.Sprintf("%s is an invalid source. Provider source may only be used with Hashicorp providers.", fqn.String()),
+				Subject:  reqd.Source.DeclRange.Ptr(),
+			})
+			continue
+		}
+
 		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
 			if existing.Type != fqn {
-				panic("provider fqn mismatch")
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate provider local name",
+					Detail:   fmt.Sprintf("A provider named %s was already defined in a required_providers block.", reqd.Name),
+					Subject:  reqd.Source.DeclRange.Ptr(),
+				})
 			}
 			existing.VersionConstraints = append(existing.VersionConstraints, reqd.Requirement)
 		} else {

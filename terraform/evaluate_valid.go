@@ -222,7 +222,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid resource type`,
-			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerFqn.LegacyString()),
+			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerFqn.String()),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags
