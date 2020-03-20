@@ -201,7 +201,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid provider source",
-				Detail:   fmt.Sprintf("%s is an invalid source. Provider source may only be used with Hashicorp providers.", fqn.String()),
+				Detail:   fmt.Sprintf("%s is an invalid source. Provider source may only be used with HashiCorp providers.", fqn.String()),
 				Subject:  reqd.Source.DeclRange.Ptr(),
 			})
 			continue
