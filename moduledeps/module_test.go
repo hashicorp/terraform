@@ -188,7 +188,7 @@ func TestModuleSortChildren(t *testing.T) {
 	}
 }
 
-func TestModulePluginRequirements(t *testing.T) {
+func TestModuleProviderRequirements(t *testing.T) {
 	m := &Module{
 		Name: "root",
 		Providers: Providers{
@@ -201,7 +201,7 @@ func TestModulePluginRequirements(t *testing.T) {
 		},
 	}
 
-	reqd := m.PluginRequirements()
+	reqd := m.ProviderRequirements()
 	if len(reqd) != 2 {
 		t.Errorf("wrong number of elements in %#v; want 2", reqd)
 	}

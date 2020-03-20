@@ -788,7 +788,7 @@ func TestInit_getProvider(t *testing.T) {
 			// looking for an exact version
 			"exact": []string{"1.2.3"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
@@ -817,9 +817,9 @@ func TestInit_getProvider(t *testing.T) {
 	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
 		t.Fatal("provider 'exact' not downloaded")
 	}
-	greaterThanPath := filepath.Join(c.pluginDir(), installer.FileName("greater_than", "2.3.4"))
+	greaterThanPath := filepath.Join(c.pluginDir(), installer.FileName("greater-than", "2.3.4"))
 	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
-		t.Fatal("provider 'greater_than' not downloaded")
+		t.Fatal("provider 'greater-than' not downloaded")
 	}
 	betweenPath := filepath.Join(c.pluginDir(), installer.FileName("between", "2.3.4"))
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
@@ -893,7 +893,7 @@ func TestInit_findVendoredProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the vendor path
-	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater_than_v2.3.4_x4")
+	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater-than_v2.3.4_x4")
 	if err := ioutil.WriteFile(greaterThanPath, []byte("test bin"), 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -1020,7 +1020,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			// looking for an exact version
 			"exact": []string{"1.2.3"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
@@ -1037,7 +1037,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	greaterThanUnwanted := filepath.Join(m.pluginDir(), installer.FileName("greater_than", "2.3.3"))
+	greaterThanUnwanted := filepath.Join(m.pluginDir(), installer.FileName("greater-than", "2.3.3"))
 	err = ioutil.WriteFile(greaterThanUnwanted, []byte{}, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
@@ -1084,8 +1084,8 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		// includes both our old and new versions.
 		"terraform-provider-exact_v0.0.1_x4",
 		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater_than_v2.3.3_x4",
-		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-greater-than_v2.3.3_x4",
+		"terraform-provider-greater-than_v2.3.4_x4",
 	}
 
 	if !reflect.DeepEqual(gotFilenames, wantFilenames) {
@@ -1112,7 +1112,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 			// looking for exact version 1.2.3
 			"exact": []string{"1.2.4"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
@@ -1331,7 +1331,7 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	// add some dummy providers in our plugin dirs
 	for i, name := range []string{
 		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-greater-than_v2.3.4_x4",
 		"terraform-provider-between_v2.3.4_x4",
 	} {
 
@@ -1382,7 +1382,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	// add some dummy providers in our plugin dirs
 	for i, name := range []string{
 		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-greater-than_v2.3.4_x4",
 	} {
 
 		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {

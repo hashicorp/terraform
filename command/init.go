@@ -463,11 +463,11 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		return false, diags
 	}
 
-	configReqs := configDeps.AllPluginRequirements()
+	configReqs := configDeps.AllProviderRequirements()
 	// FIXME: This is weird because ConfigTreeDependencies was written before
 	// we switched over to using earlyConfig as the main source of dependencies.
 	// In future we should clean this up to be a more reasonable API.
-	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllPluginRequirements()
+	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllProviderRequirements()
 
 	requirements := configReqs.Merge(stateReqs)
 	if len(requirements) == 0 {
@@ -479,7 +479,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		"\n[reset][bold]Initializing provider plugins...",
 	))
 
-	missing := c.missingPlugins(available, requirements)
+	missing := c.missingProviders(available, requirements)
 
 	if c.getPlugins {
 		if len(missing) > 0 {

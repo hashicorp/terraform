@@ -290,7 +290,7 @@ func (m *Meta) internalProviders() map[addrs.Provider]providers.Factory {
 }
 
 // filter the requirements returning only the providers that we can't resolve
-func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
+func (m *Meta) missingProviders(avail discovery.PluginMetaSet, reqd discovery.PluginRequirements) discovery.PluginRequirements {
 	missing := make(discovery.PluginRequirements)
 
 	candidates := avail.ConstrainVersions(reqd)
