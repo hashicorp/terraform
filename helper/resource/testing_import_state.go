@@ -77,9 +77,6 @@ func testStepImportState(
 
 	// Do the import
 	importedState, stepDiags := ctx.Import(&terraform.ImportOpts{
-		// Set the module so that any provider config is loaded
-		Config: cfg,
-
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
 				Addr: importAddr,

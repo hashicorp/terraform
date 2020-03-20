@@ -46,28 +46,43 @@ func TestProviderTransformer(t *testing.T) {
 	}
 }
 
-func TestProviderTransformer_moduleChild(t *testing.T) {
+func TestProviderTransformer_ImportModuleChild(t *testing.T) {
+	mod := testModule(t, "import-module")
+
 	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
+		{
+			tf := &ConfigTransformer{Config: mod}
+			if err := tf.Transform(&g); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		{
+			transform := &AttachResourceConfigTransformer{Config: mod}
+			if err := transform.Transform(&g); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
 		tf := &ImportStateTransformer{
+			Config: mod,
 			Targets: []*ImportTarget{
 				&ImportTarget{
 					Addr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
+						Child("child", addrs.NoKey).
 						ResourceInstance(
 							addrs.ManagedResourceMode,
-							"foo_instance",
-							"qux",
+							"aws_instance",
+							"foo",
 							addrs.NoKey,
 						),
-					ProviderAddr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
 					ID: "bar",
 				},
 			},
 		}
+
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -91,7 +106,7 @@ func TestProviderTransformer_moduleChild(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformProviderModuleChildStr)
+	expected := strings.TrimSpace(testTransformImportModuleChildStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
@@ -295,199 +310,6 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformMissingGrandchildProviderStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-}
-
-func TestMissingProviderTransformer_moduleChild(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	// We use the import state transformer since at the time of writing
-	// this test it is the first and only transformer that will introduce
-	// multiple module-path nodes at a single go.
-	{
-		tf := &ImportStateTransformer{
-			Targets: []*ImportTarget{
-				&ImportTarget{
-					Addr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ResourceInstance(
-							addrs.ManagedResourceMode,
-							"foo_instance",
-							"qux",
-							addrs.NoKey,
-						),
-					ProviderAddr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
-					ID: "bar",
-				},
-			},
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformMissingProviderModuleChildStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	// We use the import state transformer since at the time of writing
-	// this test it is the first and only transformer that will introduce
-	// multiple module-path nodes at a single go.
-	{
-		tf := &ImportStateTransformer{
-			Targets: []*ImportTarget{
-				&ImportTarget{
-					Addr: addrs.RootModuleInstance.
-						Child("a", addrs.NoKey).
-						Child("b", addrs.NoKey).
-						ResourceInstance(
-							addrs.ManagedResourceMode,
-							"foo_instance",
-							"qux",
-							addrs.NoKey,
-						),
-					ProviderAddr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
-					ID: "bar",
-				},
-			},
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformMissingProviderModuleGrandchildStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-}
-
-func TestParentProviderTransformer(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	// Introduce a cihld module
-	{
-		tf := &ImportStateTransformer{
-			Targets: []*ImportTarget{
-				&ImportTarget{
-					Addr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ResourceInstance(
-							addrs.ManagedResourceMode,
-							"foo_instance",
-							"qux",
-							addrs.NoKey,
-						),
-					ProviderAddr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
-					ID: "bar",
-				},
-			},
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	// Add the missing modules
-	{
-		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	// Connect parents
-	{
-		tf := &ParentProviderTransformer{}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformParentProviderStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-}
-
-func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	// We use the import state transformer since at the time of writing
-	// this test it is the first and only transformer that will introduce
-	// multiple module-path nodes at a single go.
-	{
-		tf := &ImportStateTransformer{
-			Targets: []*ImportTarget{
-				&ImportTarget{
-					Addr: addrs.RootModuleInstance.
-						Child("a", addrs.NoKey).
-						Child("b", addrs.NoKey).
-						ResourceInstance(
-							addrs.ManagedResourceMode,
-							"foo_instance",
-							"qux",
-							addrs.NoKey,
-						),
-					ProviderAddr: addrs.RootModuleInstance.
-						Child("moo", addrs.NoKey).
-						ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
-					ID: "bar",
-				},
-			},
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	// Connect parents
-	{
-		tf := &ParentProviderTransformer{}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformParentProviderModuleGrandchildStr)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
@@ -714,32 +536,6 @@ module.sub.provider["registry.terraform.io/-/foo"]
 provider["registry.terraform.io/-/bar"]
 `
 
-const testTransformMissingProviderModuleChildStr = `
-module.moo.foo_instance.qux (import id "bar")
-provider["registry.terraform.io/-/foo"]
-`
-
-const testTransformMissingProviderModuleGrandchildStr = `
-module.a.module.b.foo_instance.qux (import id "bar")
-provider["registry.terraform.io/-/foo"]
-`
-
-const testTransformParentProviderStr = `
-module.moo.foo_instance.qux (import id "bar")
-provider["registry.terraform.io/-/foo"]
-`
-
-const testTransformParentProviderModuleGrandchildStr = `
-module.a.module.b.foo_instance.qux (import id "bar")
-provider["registry.terraform.io/-/foo"]
-`
-
-const testTransformProviderModuleChildStr = `
-module.moo.foo_instance.qux (import id "bar")
-  provider["registry.terraform.io/-/foo"]
-provider["registry.terraform.io/-/foo"]
-`
-
 const testTransformPruneProviderBasicStr = `
 foo_instance.web
   provider["registry.terraform.io/-/foo"]
@@ -785,3 +581,12 @@ module.child.module.grandchild.aws_instance.baz
   provider["registry.terraform.io/-/aws"].foo
 provider["registry.terraform.io/-/aws"].foo
 `
+
+const testTransformImportModuleChildStr = `        
+module.child.aws_instance.foo
+  provider["registry.terraform.io/-/aws"]
+module.child.aws_instance.foo (import id "bar")
+  provider["registry.terraform.io/-/aws"]
+module.child.module.nested.aws_instance.foo
+  provider["registry.terraform.io/-/aws"]
+provider["registry.terraform.io/-/aws"]`

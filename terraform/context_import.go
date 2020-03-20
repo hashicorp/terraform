@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -11,11 +10,6 @@ import (
 type ImportOpts struct {
 	// Targets are the targets to import
 	Targets []*ImportTarget
-
-	// Config is optional, and specifies a config tree that will be loaded
-	// into the graph and evaluated. This is the source for provider
-	// configurations.
-	Config *configs.Config
 }
 
 // ImportTarget is a single resource to import.
@@ -50,17 +44,10 @@ func (c *Context) Import(opts *ImportOpts) (*states.State, tfdiags.Diagnostics) 
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// If no module is given, default to the module configured with
-	// the Context.
-	config := opts.Config
-	if config == nil {
-		config = c.config
-	}
-
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
-		Config:        config,
+		Config:        c.config,
 		Components:    c.components,
 		Schemas:       c.schemas,
 	}
