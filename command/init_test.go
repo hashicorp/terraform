@@ -986,6 +986,10 @@ func TestInit_providerSource(t *testing.T) {
 	if err := ioutil.WriteFile(testPath, []byte("test bin"), 0755); err != nil {
 		t.Fatal(err)
 	}
+	randomPath := filepath.Join(c.pluginDir(), "terraform-provider-random_v1.2.3_x4")
+	if err := ioutil.WriteFile(randomPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	// the vendor path
 	sourcePath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-source_v1.2.3_x4")
 	if err := ioutil.WriteFile(sourcePath, []byte("test bin"), 0755); err != nil {

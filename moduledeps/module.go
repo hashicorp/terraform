@@ -110,7 +110,9 @@ func (s sortModules) Swap(i, j int) {
 func (m *Module) ProviderRequirements() discovery.PluginRequirements {
 	ret := make(discovery.PluginRequirements)
 	for pFqn, dep := range m.Providers {
-		providerStr := pFqn.LegacyString()
+		// FIXME: when provider source is fully implemented the map keys will be
+		// addrs.Provider instead of strings.
+		providerStr := pFqn.Type
 		if existing, exists := ret[providerStr]; exists {
 			ret[providerStr].Versions = existing.Versions.Append(dep.Constraints)
 		} else {
