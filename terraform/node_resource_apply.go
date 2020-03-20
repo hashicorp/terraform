@@ -60,7 +60,7 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 	}
 
 	return &EvalWriteResourceState{
-		Addr:         n.Addr,
+		Addr:         n.Addr.Resource.Absolute(n.Addr.Module.UnkeyedInstanceShim()),
 		Config:       n.Config,
 		ProviderAddr: n.ResolvedProvider,
 	}
