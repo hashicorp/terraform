@@ -126,6 +126,25 @@ func (pt Provider) LessThan(other Provider) bool {
 	}
 }
 
+// IsLegacy returns true if the provider is a legacy-style provider
+func (pt Provider) IsLegacy() bool {
+	if pt.IsZero() {
+		panic("called IsLegacy() on zero-value addrs.Provider")
+	}
+
+	return pt.Hostname == DefaultRegistryHost && pt.Namespace == LegacyProviderNamespace
+
+}
+
+// IsDefault returns true if the provider is a default hashicorp provider
+func (pt Provider) IsDefault() bool {
+	if pt.IsZero() {
+		panic("called IsDefault() on zero-value addrs.Provider")
+	}
+
+	return pt.Hostname == DefaultRegistryHost && pt.Namespace == "hashicorp"
+}
+
 // Equals returns true if the receiver and other provider have the same attributes.
 func (pt Provider) Equals(other Provider) bool {
 	return pt == other
