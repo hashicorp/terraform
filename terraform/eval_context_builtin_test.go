@@ -15,12 +15,12 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	cache := make(map[string]map[string]cty.Value)
 
 	ctx1 := testBuiltinEvalContext(t)
-	ctx1.PathValue = addrs.RootModuleInstance
+	ctx1 = ctx1.WithPath(addrs.RootModuleInstance).(*BuiltinEvalContext)
 	ctx1.ProviderInputConfig = cache
 	ctx1.ProviderLock = &lock
 
 	ctx2 := testBuiltinEvalContext(t)
-	ctx2.PathValue = addrs.RootModuleInstance.Child("child", addrs.NoKey)
+	ctx2 = ctx2.WithPath(addrs.RootModuleInstance.Child("child", addrs.NoKey)).(*BuiltinEvalContext)
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
 
@@ -56,6 +56,7 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	testP := &MockProvider{}
 
 	ctx := testBuiltinEvalContext(t)
+	ctx = ctx.WithPath(addrs.RootModuleInstance).(*BuiltinEvalContext)
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{

@@ -3,14 +3,81 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/tfdiags"
 )
+
+// nodeExpandPlannableResource handles the first layer of resource
+// expansion.  We need this extra layer so DynamicExpand is called twice for
+// the resource, the first to expand the Resource for each module instance, and
+// the second to expand each ResourceInstnace for the expanded Resources.
+//
+// Even though the Expander can handle this recursive expansion, the
+// EvalWriteState nodes need to be expanded and Evaluated first, and our
+// current graph doesn't allow evaluation within DynamicExpand, and doesn't
+// call it recursively.
+type nodeExpandPlannableResource struct {
+	*NodeAbstractResource
+
+	// TODO: can we eliminate the need for this flag and combine this with the
+	// apply expander?
+	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
+	// during graph construction, if dependencies require us to force this
+	// on regardless of what the configuration says.
+	ForceCreateBeforeDestroy *bool
+}
+
+var (
+	_ GraphNodeDestroyerCBD         = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeReferenceable        = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
+)
+
+// GraphNodeDestroyerCBD
+func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
+	if n.ForceCreateBeforeDestroy != nil {
+		return *n.ForceCreateBeforeDestroy
+	}
+
+	// If we have no config, we just assume no
+	if n.Config == nil || n.Config.Managed == nil {
+		return false
+	}
+
+	return n.Config.Managed.CreateBeforeDestroy
+}
+
+// GraphNodeDestroyerCBD
+func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
+	n.ForceCreateBeforeDestroy = &v
+	return nil
+}
+
+func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
+		g.Add(&NodePlannableResource{
+			NodeAbstractResource:     n.NodeAbstractResource,
+			Addr:                     n.Addr.Resource.Absolute(module),
+			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+		})
+	}
+
+	return &g, nil
+}
 
 // NodePlannableResource represents a resource that is "plannable":
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
 	*NodeAbstractResource
+
+	Addr addrs.AbsResource
 
 	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
 	// during graph construction, if dependencies require us to force this
@@ -19,6 +86,7 @@ type NodePlannableResource struct {
 }
 
 var (
+	_ GraphNodeModuleInstance       = (*NodePlannableResource)(nil)
 	_ GraphNodeDestroyerCBD         = (*NodePlannableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
@@ -26,6 +94,11 @@ var (
 	_ GraphNodeConfigResource       = (*NodePlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
 )
+
+// GraphNodeModuleInstance
+func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
+	return n.Addr.Module
+}
 
 // GraphNodeEvalable
 func (n *NodePlannableResource) EvalTree() EvalNode {
@@ -85,7 +158,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	if countDiags.HasErrors() {
 		return nil, diags.Err()
 	}
-	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+	fixResourceCountSetTransition(ctx, n.Addr.Config(), count != -1)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.

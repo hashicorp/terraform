@@ -235,8 +235,7 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 // NodeDestroyableOutput represents an output that is "destroybale":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
-	Addr   addrs.OutputValue
-	Module addrs.Module
+	Addr   addrs.AbsOutputValue
 	Config *configs.Output // Config is the output in the config
 }
 
@@ -254,7 +253,7 @@ func (n *NodeDestroyableOutput) Name() string {
 
 // GraphNodeModulePath
 func (n *NodeDestroyableOutput) ModulePath() addrs.Module {
-	return n.Module
+	return n.Addr.Module.Module()
 }
 
 // RemovableIfNotTargeted
