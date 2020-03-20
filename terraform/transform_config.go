@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"log"
-	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -32,36 +31,12 @@ type ConfigTransformer struct {
 	// Mode will only add resources that match the given mode
 	ModeFilter bool
 	Mode       addrs.ResourceMode
-
-	l         sync.Mutex
-	uniqueMap map[string]struct{}
-}
-
-// FIXME: should we have an addr.Module + addr.Resource type?
-type configName interface {
-	Name() string
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
-	// Lock since we use some internal state
-	t.l.Lock()
-	defer t.l.Unlock()
-
 	// If no configuration is available, we don't do anything
 	if t.Config == nil {
 		return nil
-	}
-
-	// Reset the uniqueness map. If we're tracking uniques, then populate
-	// it with addresses.
-	t.uniqueMap = make(map[string]struct{})
-	defer func() { t.uniqueMap = nil }()
-	if t.Unique {
-		for _, v := range g.Vertices() {
-			if rn, ok := v.(configName); ok {
-				t.uniqueMap[rn.Name()] = struct{}{}
-			}
-		}
 	}
 
 	// Start the transformation process
@@ -115,12 +90,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 				Resource: relAddr,
 				Module:   path,
 			},
-		}
-
-		if _, ok := t.uniqueMap[abstract.Name()]; ok {
-			// We've already seen a resource with this address. This should
-			// never happen, because we enforce uniqueness in the config loader.
-			continue
 		}
 
 		var node dag.Vertex = abstract

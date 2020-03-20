@@ -278,7 +278,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	}
 }
 
-// NodeDestroyResourceInstance represents a resource that is to be destroyed.
+// NodeDestroyResource represents a resource that is to be destroyed.
 //
 // Destroying a resource is a state-only operation: it is the individual
 // instances being destroyed that affects remote objects. During graph
