@@ -55,7 +55,7 @@ resources.
 ]
 ```
 
-You must past at least two arguments to this function.
+You must pass at least two arguments to this function.
 
 Although defined primarily for sets, this function can also work with lists.
 If all of the given arguments are lists then the result is a list, preserving
