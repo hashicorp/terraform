@@ -479,7 +479,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		"\n[reset][bold]Initializing provider plugins...",
 	))
 
-	missing := c.missingPlugins(available, requirements)
+	missing := c.missingProviders(available, requirements)
 
 	if c.getPlugins {
 		if len(missing) > 0 {
