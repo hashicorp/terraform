@@ -84,13 +84,9 @@ func (n *NodeAbstractResource) addr() addrs.AbsResource {
 
 // NewNodeAbstractResource creates an abstract resource graph node for
 // the given absolute resource address.
-func NewNodeAbstractResource(addr addrs.AbsResource) *NodeAbstractResource {
-	// FIXME: this should probably accept a ConfigResource
+func NewNodeAbstractResource(addr addrs.ConfigResource) *NodeAbstractResource {
 	return &NodeAbstractResource{
-		Addr: addrs.ConfigResource{
-			Resource: addr.Resource,
-			Module:   addr.Module.Module(),
-		},
+		Addr: addr,
 	}
 }
 
