@@ -7,6 +7,84 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 )
 
+func TestProviderIsDefault(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  bool
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "hashicorp",
+			},
+			true,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  "registry.terraform.com",
+				Namespace: "hashicorp",
+			},
+			false,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "othercorp",
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.IsDefault()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\n", test.Input.String())
+		}
+	}
+}
+
+func TestProviderIsLegacy(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  bool
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: LegacyProviderNamespace,
+			},
+			true,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  "registry.terraform.com",
+				Namespace: LegacyProviderNamespace,
+			},
+			false,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "hashicorp",
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.IsLegacy()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\n", test.Input.String())
+		}
+	}
+}
+
 func TestParseProviderSourceStr(t *testing.T) {
 	tests := map[string]struct {
 		Want Provider
