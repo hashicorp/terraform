@@ -8,6 +8,47 @@ import (
 	"github.com/hashicorp/terraform/lang"
 )
 
+// nodeExpandApplyableResource handles the first layer of resource
+// expansion during apply. This is required because EvalTree does now have a
+// context which which to expand the resource into multiple instances.
+// This type should be a drop in replacement for NodeApplyableResource, and
+// needs to mirror any non-evaluation methods exactly.
+// TODO: We may want to simplify this later by passing EvalContext to EvalTree,
+//       and returning an EvalEquence.
+type nodeExpandApplyableResource struct {
+	*NodeAbstractResource
+}
+
+var (
+	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeReferenceable        = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
+)
+
+func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
+	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
+}
+
+func (n *nodeExpandApplyableResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (prepare state)"
+}
+
+func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
+		g.Add(&NodeApplyableResource{
+			NodeAbstractResource: n.NodeAbstractResource,
+			Addr:                 n.Addr.Resource.Absolute(module),
+		})
+	}
+
+	return &g, nil
+}
+
 // NodeApplyableResource represents a resource that is "applyable":
 // it may need to have its record in the state adjusted to match configuration.
 //
@@ -18,6 +59,8 @@ import (
 // in the state is suitably prepared to receive any updates to instances.
 type NodeApplyableResource struct {
 	*NodeAbstractResource
+
+	Addr addrs.AbsResource
 }
 
 var (
@@ -60,7 +103,7 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 	}
 
 	return &EvalWriteResourceState{
-		Addr:         n.Addr.Resource.Absolute(n.Addr.Module.UnkeyedInstanceShim()),
+		Addr:         n.Addr,
 		Config:       n.Config,
 		ProviderAddr: n.ResolvedProvider,
 	}
