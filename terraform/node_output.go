@@ -64,7 +64,7 @@ func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
 	// module itself.
 	_, call := n.Module.Call()
 	callOutput := addrs.ModuleCallOutput{
-		Call: call.Instance(addrs.NoKey),
+		Call: call,
 		Name: n.Addr.Name,
 	}
 
