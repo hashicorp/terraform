@@ -1,7 +1,6 @@
 package configs
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -16,7 +15,6 @@ func TestNewModule_provider_local_name(t *testing.T) {
 
 	p := addrs.NewLegacyProvider("foo")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
-		fmt.Printf("%#v\n", mod.ProviderLocalNames)
 		t.Fatal("provider FQN foo/test not found")
 	} else {
 		if name != "foo-test" {
@@ -28,6 +26,12 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	localName := mod.LocalNameForProvider(p)
 	if localName != "foo-test" {
 		t.Fatal("provider local name not found")
+	}
+
+	// if the provider is not found, it should return the type name
+	localName = mod.LocalNameForProvider(addrs.NewLegacyProvider("nonexist"))
+	if localName != "nonexist" {
+		t.Error("wrong local name returned for a non-local provider")
 	}
 }
 
