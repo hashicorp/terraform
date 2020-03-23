@@ -277,7 +277,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.AbsResource{},
+		Dependencies: []addrs.ConfigResource{},
 		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
@@ -342,7 +342,7 @@ func TestRefresh_outPath(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.AbsResource{},
+		Dependencies: []addrs.ConfigResource{},
 		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
@@ -572,7 +572,7 @@ func TestRefresh_backup(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"changed\"\n          }"),
-		Dependencies: []addrs.AbsResource{},
+		Dependencies: []addrs.ConfigResource{},
 		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
@@ -639,7 +639,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.AbsResource{},
+		Dependencies: []addrs.ConfigResource{},
 		DependsOn:    []addrs.Referenceable{},
 	}
 	if !reflect.DeepEqual(actual, expected) {

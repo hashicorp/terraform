@@ -218,14 +218,14 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 
 			{
 				depsRaw := isV4.Dependencies
-				deps := make([]addrs.AbsResource, 0, len(depsRaw))
+				deps := make([]addrs.ConfigResource, 0, len(depsRaw))
 				for _, depRaw := range depsRaw {
 					addr, addrDiags := addrs.ParseAbsResourceStr(depRaw)
 					diags = diags.Append(addrDiags)
 					if addrDiags.HasErrors() {
 						continue
 					}
-					deps = append(deps, addr)
+					deps = append(deps, addr.Config())
 				}
 				obj.Dependencies = deps
 			}

@@ -298,7 +298,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"parent"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.aws_instance.child")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
@@ -1273,7 +1273,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
@@ -1329,7 +1329,7 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo"}`),
-			Dependencies: []addrs.AbsResource{},
+			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("aws"),
@@ -1345,14 +1345,14 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "foo",
 					},
-					Module: root.Addr,
+					Module: root.Addr.Module(),
 				},
 			},
 		},
@@ -1427,7 +1427,7 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo"}`),
-			Dependencies: []addrs.AbsResource{},
+			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("aws"),
@@ -1443,14 +1443,14 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "foo",
 					},
-					Module: child.Addr,
+					Module: child.Addr.Module(),
 				},
 			},
 		},
@@ -2708,7 +2708,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"b"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.aws_instance.a")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.a")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
@@ -3170,8 +3170,8 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 			},
 		),
 		Targets: []addrs.Targetable{
-			addrs.AbsResource{
-				Module: addrs.RootModuleInstance,
+			addrs.ConfigResource{
+				Module: addrs.RootModule,
 				Resource: addrs.Resource{
 					Mode: addrs.ManagedResourceMode,
 					Type: "nonexistent",
@@ -8025,7 +8025,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"i-abc123"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
 	)
@@ -8631,14 +8631,14 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"baz","instance":"bar"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "web",
 					},
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 				},
 			},
 		},
@@ -8764,14 +8764,14 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"baz","instance":"bar"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "web",
 					},
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 				},
 			},
 		},
@@ -10639,22 +10639,22 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"a","require_new":"old","foo":"b"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_instance",
 						Name: "b",
 					},
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 				},
-				addrs.AbsResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_instance",
 						Name: "c",
 					},
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 				},
 			},
 		},
@@ -10672,14 +10672,14 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b","require_new":"old","foo":"c"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_instance",
 						Name: "c",
 					},
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 				},
 			},
 		},

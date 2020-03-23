@@ -268,7 +268,7 @@ func testState() *states.State {
 				// of all of the containing wrapping objects and arrays.
 				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{},
+				Dependencies: []addrs.ConfigResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.AbsProviderConfig{
@@ -881,10 +881,10 @@ func normalizeJSON(t *testing.T, src []byte) string {
 	return buf.String()
 }
 
-func mustResourceAddr(s string) addrs.AbsResource {
+func mustResourceAddr(s string) addrs.ConfigResource {
 	addr, diags := addrs.ParseAbsResourceStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
-	return addr
+	return addr.Config()
 }

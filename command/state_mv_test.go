@@ -41,7 +41,7 @@ func TestStateMv(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
@@ -172,7 +172,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
@@ -549,7 +549,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
@@ -1068,7 +1068,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),

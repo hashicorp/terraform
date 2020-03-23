@@ -36,7 +36,7 @@ type GraphNodeResourceInstance interface {
 
 	// StateDependencies returns any inter-resource dependencies that are
 	// stored in the state.
-	StateDependencies() []addrs.AbsResource
+	StateDependencies() []addrs.ConfigResource
 }
 
 // NodeAbstractResource represents a resource that has no associated
@@ -99,7 +99,7 @@ type NodeAbstractResourceInstance struct {
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 	ResourceState *states.Resource
-	Dependencies  []addrs.AbsResource
+	Dependencies  []addrs.ConfigResource
 }
 
 var (
@@ -141,11 +141,6 @@ func (n *NodeAbstractResource) Name() string {
 func (n *NodeAbstractResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String()
 }
-
-//// GraphNodeModuleInstance
-//func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
-//    return n.Addr.Module.UnkeyedInstanceShim()
-//}
 
 func (n *NodeAbstractResourceInstance) Path() addrs.ModuleInstance {
 	return n.Addr.Module
@@ -271,7 +266,7 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 }
 
 // StateDependencies returns the dependencies saved in the state.
-func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.AbsResource {
+func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResource {
 	if rs := n.ResourceState; rs != nil {
 		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
 			if s.Current != nil {
