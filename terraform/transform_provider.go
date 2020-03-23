@@ -173,7 +173,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			p := req.Addr
 			target := m[key]
 
-			_, ok := v.(GraphNodeModuleInstance)
+			_, ok := v.(GraphNodeModulePath)
 			if !ok && target == nil {
 				// No target and no path to traverse up from
 				diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), p))
