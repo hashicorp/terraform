@@ -78,10 +78,6 @@ var (
 	_ dag.GraphNodeDotter                = (*NodeAbstractResource)(nil)
 )
 
-func (n *NodeAbstractResource) addr() addrs.AbsResource {
-	return n.Addr.Absolute(n.Addr.Module.UnkeyedInstanceShim())
-}
-
 // NewNodeAbstractResource creates an abstract resource graph node for
 // the given absolute resource address.
 func NewNodeAbstractResource(addr addrs.ConfigResource) *NodeAbstractResource {
@@ -97,8 +93,7 @@ func NewNodeAbstractResource(addr addrs.ConfigResource) *NodeAbstractResource {
 // the "count" or "for_each" arguments.
 type NodeAbstractResourceInstance struct {
 	NodeAbstractResource
-	ModuleInstance addrs.ModuleInstance
-	InstanceKey    addrs.InstanceKey
+	Addr addrs.AbsResourceInstance
 
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
@@ -132,15 +127,10 @@ func NewNodeAbstractResourceInstance(addr addrs.AbsResourceInstance) *NodeAbstra
 	// object and the InstanceKey field in our own struct. The
 	// ResourceInstanceAddr method will stick these back together again on
 	// request.
+	r := NewNodeAbstractResource(addr.ContainingResource().Config())
 	return &NodeAbstractResourceInstance{
-		NodeAbstractResource: NodeAbstractResource{
-			Addr: addrs.ConfigResource{
-				Resource: addr.Resource.Resource,
-				Module:   addr.Module.Module(),
-			},
-		},
-		ModuleInstance: addr.Module,
-		InstanceKey:    addr.Resource.Key,
+		NodeAbstractResource: *r,
+		Addr:                 addr,
 	}
 }
 
@@ -152,13 +142,13 @@ func (n *NodeAbstractResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String()
 }
 
-// GraphNodeModuleInstance
-func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
-	return n.Addr.Module.UnkeyedInstanceShim()
-}
+//// GraphNodeModuleInstance
+//func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
+//    return n.Addr.Module.UnkeyedInstanceShim()
+//}
 
 func (n *NodeAbstractResourceInstance) Path() addrs.ModuleInstance {
-	return n.ModuleInstance
+	return n.Addr.Module
 }
 
 // GraphNodeModulePath
@@ -283,7 +273,7 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 // StateDependencies returns the dependencies saved in the state.
 func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.AbsResource {
 	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
+		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
 			if s.Current != nil {
 				return s.Current.Dependencies
 			}
@@ -356,7 +346,7 @@ func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
 		return n.Config.Provider
 	}
 	// FIXME: this will be a default provider
-	return addrs.NewLegacyProvider(n.Addr.Resource.ImpliedProvider())
+	return addrs.NewLegacyProvider(n.Addr.Resource.ContainingResource().ImpliedProvider())
 }
 
 // GraphNodeProvisionerConsumer
@@ -391,7 +381,7 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 
 // GraphNodeResourceInstance
 func (n *NodeAbstractResourceInstance) ResourceInstanceAddr() addrs.AbsResourceInstance {
-	return n.NodeAbstractResource.addr().Instance(n.InstanceKey)
+	return n.Addr
 }
 
 // GraphNodeTargetable

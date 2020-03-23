@@ -26,6 +26,7 @@ type NodeDestroyResourceInstance struct {
 }
 
 var (
+	_ GraphNodeModuleInstance      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeConfigResource      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeResourceInstance    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyer           = (*NodeDestroyResourceInstance)(nil)
@@ -63,7 +64,7 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 
 	// Otherwise check the state for a stored destroy order
 	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
+		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
 			if s.Current != nil {
 				return s.Current.CreateBeforeDestroy
 			}
@@ -136,7 +137,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	rs := n.ResourceState
 	var is *states.ResourceInstance
 	if rs != nil {
-		is = rs.Instance(n.InstanceKey)
+		is = rs.Instance(n.Addr.Resource.Key)
 	}
 	if is == nil {
 		log.Printf("[WARN] NodeDestroyResourceInstance for %s with no state", addr)
@@ -292,6 +293,7 @@ type NodeDestroyResource struct {
 }
 
 var (
+	_ GraphNodeModuleInstance = (*NodeDestroyResource)(nil)
 	_ GraphNodeConfigResource = (*NodeDestroyResource)(nil)
 	_ GraphNodeReferenceable  = (*NodeDestroyResource)(nil)
 	_ GraphNodeReferencer     = (*NodeDestroyResource)(nil)
@@ -304,6 +306,10 @@ var (
 	_ GraphNodeProviderConsumer = (*NodeDestroyResource)(nil)
 	_ GraphNodeNoProvider       = (*NodeDestroyResource)(nil)
 )
+
+func (n *NodeDestroyResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
 
 func (n *NodeDestroyResource) Name() string {
 	return n.ResourceAddr().String() + " (clean up state)"

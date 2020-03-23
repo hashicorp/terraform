@@ -95,6 +95,10 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
 )
 
+func (n *NodePlannableResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
+
 // GraphNodeModuleInstance
 func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
 	return n.Addr.Module

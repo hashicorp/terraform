@@ -237,12 +237,7 @@ module.child.test_object.c (destroy)
 func testDestroyNode(addrString string) GraphNodeDestroyer {
 	instAddr := mustResourceInstanceAddr(addrString)
 
-	abs := NewNodeAbstractResource(instAddr.ContainingResource().Config())
-
-	inst := &NodeAbstractResourceInstance{
-		NodeAbstractResource: *abs,
-		InstanceKey:          instAddr.Resource.Key,
-	}
+	inst := NewNodeAbstractResourceInstance(instAddr)
 
 	return &NodeDestroyResourceInstance{NodeAbstractResourceInstance: inst}
 }

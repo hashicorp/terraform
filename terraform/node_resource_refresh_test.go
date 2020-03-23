@@ -160,14 +160,10 @@ func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
 	m := testModule(t, "refresh-resource-scale-inout")
 
 	n := &NodeRefreshableManagedResourceInstance{
-		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
-			NodeAbstractResource: NodeAbstractResource{
-				Addr:   addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo"),
-				Config: m.Module.ManagedResources["aws_instance.foo"],
-			},
-			InstanceKey: addrs.IntKey(2),
-		},
+		NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "aws_instance", "foo").Instance(addrs.IntKey(2))),
 	}
+
+	n.AttachResourceConfig(m.Module.ManagedResources["aws_instance.foo"])
 
 	actual := n.EvalTree()
 	expected := n.evalTreeManagedResourceNoState()

@@ -64,12 +64,17 @@ type NodeApplyableResource struct {
 }
 
 var (
+	_ GraphNodeModuleInstance       = (*NodeApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*NodeApplyableResource)(nil)
 	_ GraphNodeEvalable             = (*NodeApplyableResource)(nil)
 	_ GraphNodeProviderConsumer     = (*NodeApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeApplyableResource)(nil)
 	_ GraphNodeReferencer           = (*NodeApplyableResource)(nil)
 )
+
+func (n *NodeApplyableResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
 
 func (n *NodeApplyableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (prepare state)"
