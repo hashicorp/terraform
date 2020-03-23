@@ -27,6 +27,12 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	if localName != "foo-test" {
 		t.Fatal("provider local name not found")
 	}
+
+	// if there is not a local name for a provider, it should return the type name
+	localName = mod.LocalNameForProvider(addrs.NewLegacyProvider("nonexist"))
+	if localName != "nonexist" {
+		t.Error("wrong local name returned for a non-local provider")
+	}
 }
 
 // This test validates the provider FQNs set in each Resource

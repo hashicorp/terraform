@@ -9,12 +9,18 @@ import (
 )
 
 func TestConfigProviderTypes(t *testing.T) {
+	// nil cfg should return an empty map
+	got := NewEmptyConfig().ProviderTypes()
+	if len(got) != 0 {
+		t.Fatal("expected empty result from empty config")
+	}
+
 	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
 
-	got := cfg.ProviderTypes()
+	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
 		addrs.NewLegacyProvider("aws"),
 		addrs.NewLegacyProvider("null"),

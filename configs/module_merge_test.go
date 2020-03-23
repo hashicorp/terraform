@@ -297,6 +297,27 @@ func TestMergeProviderVersionConstraints(t *testing.T) {
 				},
 			},
 		},
+		"merge with source constraint": {
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{vc1},
+				},
+			},
+			[]*RequiredProvider{
+				&RequiredProvider{
+					Name:        "random",
+					Source:      Source{SourceStr: "hashicorp/random"},
+					Requirement: vc2,
+				},
+			},
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.NewDefaultProvider("random"),
+					VersionConstraints: []VersionConstraint{vc2},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
