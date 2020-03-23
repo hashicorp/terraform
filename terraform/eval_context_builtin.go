@@ -118,11 +118,11 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 }
 
 func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
-	if !addr.Module.Equal(ctx.Path().Module()) {
-		// This indicates incorrect use of InitProvider: it should be used
-		// only from the module that the provider configuration belongs to.
-		panic(fmt.Sprintf("%s initialized by wrong module %s", addr, ctx.Path()))
-	}
+	//if !addr.Module.Equal(ctx.Path().Module()) {
+	//    // This indicates incorrect use of InitProvider: it should be used
+	//    // only from the module that the provider configuration belongs to.
+	//    panic(fmt.Sprintf("%s initialized by wrong module %s", addr, ctx.Path()))
+	//}
 
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
