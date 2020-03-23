@@ -268,3 +268,13 @@ promptly to pull requests, particularly if they do not relate to an existing
 GitHub issue where the Terraform team has already participated. We _are_
 grateful for all contributions however, and will give feedback on pull requests
 as soon as we're able.
+
+### PR Checks
+
+The following checks run when a PR is opened:
+
+* Contributor License Agreement (CLA): If this is your first contribution to Terraform you will be asked to sign the CLA.
+* Tests: tests include unit tests and acceptance tests, and all tests must pass before a PR can be merged.
+* Test Coverage Report: We use [codecov](https://codecov.io/) to check both overall test coverage, and patch coverage. 
+
+-> **Note:** We are still deciding on the right targets for our code coverage check. A failure in `codecov` does not necessarily mean that your PR will not be approved or merged.  
