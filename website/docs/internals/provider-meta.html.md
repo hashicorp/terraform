@@ -10,8 +10,19 @@ description: |-
 
 In some situations it's beneficial for a provider to offer an interface
 through which modules can pass it information unrelated to the resources
-in the module, but scoped on a per-module basis. The provider metadata
-functionality allows a provider to do this in a straightforward way.
+in the module, but scoped on a per-module basis.
+
+Provider Metadata allows a provider to declare metadata fields it expects,
+which individual modules can then populate independently of any provider
+configuration. While provider configurations are often shared between modules,
+provider metadata is always module-specific.
+
+Provider Metadata is intended primarily for the situation where an official
+module is developed by the same vendor that produced the provider it is
+intended to work with, to allow the vendor to indirectly obtain usage
+statistics for each module via the provider. For that reason, this
+documentation is presented from the perspective of the provider developer
+rather than the module developer.
 
 ~> **Advanced Topic!** This page covers technical details
 of Terraform. You don't need to understand these details to

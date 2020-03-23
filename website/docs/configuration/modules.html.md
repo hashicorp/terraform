@@ -31,7 +31,7 @@ created, and published in [the dedicated _Modules_
 section](/docs/modules/index.html). You can also learn more about how to use and
 create modules with our hands-on [modules track on
 learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
- 
+
 ## Calling a Child Module
 
 To _call_ a module means to include the contents of that module into the
@@ -114,26 +114,14 @@ module "consul" {
 }
 ```
 
-The `version` attribute value may either be a single explicit version or
-a version constraint expression. Constraint expressions use the following
-syntax to specify a _range_ of versions that are acceptable:
-
-* `>= 1.2.0`: version 1.2.0 or newer
-* `<= 1.2.0`: version 1.2.0 or older
-* `~> 1.2.0`: any non-beta version `>= 1.2.0` and `< 1.3.0`, e.g. `1.2.X`
-* `~> 1.2`: any non-beta version `>= 1.2.0` and `< 2.0.0`, e.g. `1.X.Y`
-* `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
-
-When depending on third-party modules, references to specific versions are
-recommended since this ensures that updates only happen when convenient to you.
-
-For modules maintained within your organization, a version range strategy
-may be appropriate if a semantic versioning methodology is used consistently
-or if there is a well-defined release process that avoids unwanted updates.
+The `version` attribute accepts a [version constraint string](./version-constraints.html).
+Terraform will use the newest installed version of the module that meets the
+constraint; if no acceptable versions are installed, it will download the newest
+version that meets the constraint.
 
 Version constraints are supported only for modules installed from a module
-registry, such as the [Terraform Registry](https://registry.terraform.io/) or
-[Terraform Cloud's private module registry](/docs/cloud/registry/index.html).
+registry, such as the public [Terraform Registry](https://registry.terraform.io/)
+or [Terraform Cloud's private module registry](/docs/cloud/registry/index.html).
 Other module sources can provide their own versioning mechanisms within the
 source string itself, or might not support versions at all. In particular,
 modules sourced from local file paths do not support `version`; since
@@ -146,10 +134,8 @@ Along with the `source` meta-argument described above, module blocks have
 some more meta-arguments that have special meaning across all modules,
 described in more detail in other sections:
 
-* `version` - (Optional) A [version constraint](#module-versions)
-  string that specifies which versions of the referenced module are acceptable.
-  The newest version matching the constraint will be used. `version` is supported
-  only for modules retrieved from module registries.
+* `version` - (Optional) A [version constraint string](./version-constraints.html)
+  that specifies acceptable versions of the module. Described in detail above.
 
 * `providers` - (Optional) A map whose keys are provider configuration names
   that are expected by child module and whose values are corresponding
