@@ -118,12 +118,6 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 }
 
 func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
-	//if !addr.Module.Equal(ctx.Path().Module()) {
-	//    // This indicates incorrect use of InitProvider: it should be used
-	//    // only from the module that the provider configuration belongs to.
-	//    panic(fmt.Sprintf("%s initialized by wrong module %s", addr, ctx.Path()))
-	//}
-
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)
@@ -159,12 +153,6 @@ func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *Pro
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
-	if !addr.Module.Equal(ctx.Path().Module()) {
-		// This indicates incorrect use of CloseProvider: it should be used
-		// only from the module that the provider configuration belongs to.
-		panic(fmt.Sprintf("%s closed by wrong module %s", addr, ctx.Path()))
-	}
-
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
@@ -227,13 +215,13 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[str
 
 func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c map[string]cty.Value) {
 	absProvider := pc
-	if !absProvider.Module.Equal(ctx.Path().Module()) {
-		// This indicates incorrect use of InitProvider: it should be used
-		// only from the module that the provider configuration belongs to.
-		panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
-	}
+	//if !absProvider.Module.Equal(ctx.Path().Module()) {
+	//    // This indicates incorrect use of InitProvider: it should be used
+	//    // only from the module that the provider configuration belongs to.
+	//    panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
+	//}
 
-	if !ctx.Path().IsRoot() {
+	if !pc.Module.IsRoot() {
 		// Only root module provider configurations can have input.
 		log.Printf("[WARN] BuiltinEvalContext: attempt to SetProviderInput for non-root module")
 		return
