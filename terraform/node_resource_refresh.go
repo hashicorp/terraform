@@ -19,7 +19,7 @@ type nodeExpandRefreshableManagedResource struct {
 
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
-	Dependencies []addrs.AbsResource
+	Dependencies []addrs.ConfigResource
 }
 
 var (
@@ -33,12 +33,7 @@ var (
 
 // GraphNodeAttachDependencies
 func (n *nodeExpandRefreshableManagedResource) AttachDependencies(deps []addrs.ConfigResource) {
-	var shimmed []addrs.AbsResource
-	for _, r := range deps {
-		shimmed = append(shimmed, r.Absolute(r.Module.UnkeyedInstanceShim()))
-	}
-
-	n.Dependencies = shimmed
+	n.Dependencies = deps
 }
 
 func (n *nodeExpandRefreshableManagedResource) References() []*addrs.Reference {
@@ -69,7 +64,7 @@ type NodeRefreshableManagedResource struct {
 
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
-	Dependencies []addrs.AbsResource
+	Dependencies []addrs.ConfigResource
 }
 
 var (

@@ -205,7 +205,7 @@ type EvalWriteState struct {
 
 	// Dependencies are the inter-resource dependencies to be stored in the
 	// state.
-	Dependencies *[]addrs.AbsResource
+	Dependencies *[]addrs.ConfigResource
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -538,7 +538,7 @@ type EvalRefreshDependencies struct {
 	// Prior State
 	State **states.ResourceInstanceObject
 	// Dependencies to write to the new state
-	Dependencies *[]addrs.AbsResource
+	Dependencies *[]addrs.ConfigResource
 }
 
 func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
@@ -548,7 +548,7 @@ func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	depMap := make(map[string]addrs.AbsResource)
+	depMap := make(map[string]addrs.ConfigResource)
 	for _, d := range *n.Dependencies {
 		depMap[d.String()] = d
 	}
@@ -562,7 +562,7 @@ func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	deps := make([]addrs.AbsResource, 0, len(depMap))
+	deps := make([]addrs.ConfigResource, 0, len(depMap))
 	for _, d := range depMap {
 		deps = append(deps, d)
 	}

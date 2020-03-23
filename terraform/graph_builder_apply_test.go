@@ -104,7 +104,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -273,7 +273,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -378,7 +378,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo","value":"foo"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.A.test_object.foo")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.A.test_object.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -566,14 +566,14 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_object",
 						Name: "a",
 					},
-					Module: root.Addr,
+					Module: root.Addr.Module(),
 				},
 			},
 		},
@@ -670,14 +670,14 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_object",
 						Name: "a",
 					},
-					Module: root.Addr,
+					Module: root.Addr.Module(),
 				},
 			},
 		},
