@@ -96,13 +96,13 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	expander := ctx.InstanceExpander()
 	switch {
 	case count >= 0:
-		expander.SetResourceCount(n.Addr.Module, n.ResourceAddr().Resource, count)
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
 	case forEachMap != nil:
-		expander.SetResourceForEach(n.Addr.Module, n.ResourceAddr().Resource, forEachMap)
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
 	default:
-		expander.SetResourceSingle(n.Addr.Module, n.ResourceAddr().Resource)
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
-	instanceAddrs := expander.ExpandResource(n.ResourceAddr().Absolute(path))
+	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.

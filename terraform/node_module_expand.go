@@ -92,35 +92,36 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 
 	_, call := n.Addr.Call()
 
-	count, countDiags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
-	if countDiags.HasErrors() {
-		return nil, countDiags.Err()
-	}
-
-	if count >= 0 { // -1 signals "count not set"
-		eachMode = states.EachList
-	}
-
-	forEach, forEachDiags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
-	if forEachDiags.HasErrors() {
-		return nil, forEachDiags.Err()
-	}
-
-	if forEach != nil {
-		eachMode = states.EachMap
-	}
-
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
-	for _, path := range expander.ExpandModule(n.Addr.Parent()) {
+	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+		ctx = ctx.WithPath(module)
+		count, countDiags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
+		if countDiags.HasErrors() {
+			return nil, countDiags.Err()
+		}
+
+		if count >= 0 { // -1 signals "count not set"
+			eachMode = states.EachList
+		}
+
+		forEach, forEachDiags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
+		if forEachDiags.HasErrors() {
+			return nil, forEachDiags.Err()
+		}
+
+		if forEach != nil {
+			eachMode = states.EachMap
+		}
+
 		switch eachMode {
 		case states.EachList:
-			expander.SetModuleCount(path, call, count)
+			expander.SetModuleCount(module, call, count)
 		case states.EachMap:
-			expander.SetModuleForEach(path, call, forEach)
+			expander.SetModuleForEach(module, call, forEach)
 		default:
-			expander.SetModuleSingle(path, call)
+			expander.SetModuleSingle(module, call)
 		}
 	}
 

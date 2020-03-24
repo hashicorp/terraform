@@ -97,20 +97,20 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+	fixResourceCountSetTransition(ctx, n.Addr.Config(), count != -1)
 
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
 	switch {
 	case count >= 0:
-		expander.SetResourceCount(n.Addr.Module, n.ResourceAddr().Resource, count)
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
 	case forEachMap != nil:
-		expander.SetResourceForEach(n.Addr.Module, n.ResourceAddr().Resource, forEachMap)
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
 	default:
-		expander.SetResourceSingle(n.Addr.Module, n.ResourceAddr().Resource)
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
-	instanceAddrs := expander.ExpandModuleResource(n.Addr.Module, n.ResourceAddr().Resource)
+	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -136,7 +136,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		&ResourceCountTransformer{
 			Concrete:      concreteResource,
 			Schema:        n.Schema,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr.Config(),
 			InstanceAddrs: instanceAddrs,
 		},
 
@@ -144,7 +144,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		// during a scale in.
 		&OrphanResourceCountTransformer{
 			Concrete:      concreteResource,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr.Config(),
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},

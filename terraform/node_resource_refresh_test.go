@@ -40,11 +40,13 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 		},
 	}).SyncWrapper()
 
+	cfgAddr := addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo")
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr:   addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo"),
+			Addr:   cfgAddr,
 			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
+		Addr: cfgAddr.Absolute(addrs.RootModuleInstance),
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
@@ -120,11 +122,13 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 		},
 	}).SyncWrapper()
 
+	cfgAddr := addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo")
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr:   addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo"),
+			Addr:   cfgAddr,
 			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
+		Addr: cfgAddr.Absolute(addrs.RootModuleInstance),
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
