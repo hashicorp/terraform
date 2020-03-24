@@ -18,7 +18,11 @@ those who wish to learn about them without having to go
 spelunking through the source code.
 
 ## Prerequisites 
-You should be familiar with the following concepts before reading about provider FQNs:
+
+You should be familiar with the following concepts before continuing:
+
+### Terraform Registry
+modules, providers, provider auto-install
 
 ### Terraform Registry namespace 
 
@@ -30,7 +34,7 @@ moved all of the HashiCorp owned providers and partner providers into the
 `hashicorp` namespace, and the remaining providers will move into their own
 namespaces over time. 
 
-### Provider Type
+### Provider type
 
 The provider type is the designation used in the binary name and resource names.
 The terms _provider type_ and _provider name_ have been used interchangably in the past, but _provider name_ is deprecated in favor of _Provider Fully Qualified Name_. 
@@ -63,16 +67,37 @@ registry.terraform.io/hashicorp/random
 tfe.example.com/mycorp/random
 ```
 
-## Security Considerations 
+### FQNs and provider local name
+It is possible to have multiple providers with the same type in a single terraform configuration. To avoid ambiguity, you must declare unique local names for providers. These names do not need to be the same across modules; terraform references providers by their FQNs regardless of the local name.
 
-### HashiCorp provider binaries 
-HashiCorp provider binaries are signed with a gpg signing key and verified against a hard-coded public key stored in the terraform binary.
+In the following example, two providers with the type `random` are declared in `required_providers`:
 
-### Partner provider binaries  
-Partner providers are signed with their own signing keys. The public registry response includes the public keys so terraform can confirm that the binary matches the registry response. To protect against man-in-the-middle attacks, the partner keys are signed by HashiCorp so Terraform can confirm the validity of the partner signing key against a public key stored in the terraform binary. 
+```hcl
+terraform {
+    required_providers {
+      "random" {
+          source = "hashicorp/random"
+      }
+      "more-random" { 
+        source = "myorg/random"
+      }
+    }
+}
+```
 
-### Community provider binaries 
-Community provider binaries are signed and the terraform registry response includes the public keys so terraform can confirm that the binary matches the registry response. However these keys are not signed by HashiCorp and the provider code and binaries have not been vetter by HashiCorp. Proceed at your own risk. 
+The local names for the two providers are "random" and "more-random". The next example shows how to use these providers in resources:
+
+```
+resource "random_pet" "example1" {
+  // The local name for "myorg/random" is used here
+  provider = "more-random"
+}
+
+resource "random_pet" "example2" {
+  // `provider` is optional here. You may omit the `provider` in a resource
+  // when the resource type and provider local name are the same.
+  provider = "random"
+}
 
 References 
 Provider Source Doc link 
