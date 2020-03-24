@@ -215,6 +215,9 @@ github.com/dylanmei/iso8601
 github.com/dylanmei/winrmtest
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
+# github.com/go-sql-driver/mysql v1.5.0
+## explicit
+github.com/go-sql-driver/mysql
 # github.com/go-test/deep v1.0.3
 ## explicit
 github.com/go-test/deep
@@ -428,7 +431,6 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
 github.com/hashicorp/hcl/hcl/parser
-github.com/hashicorp/hcl/hcl/printer
 github.com/hashicorp/hcl/hcl/scanner
 github.com/hashicorp/hcl/hcl/strconv
 github.com/hashicorp/hcl/hcl/token
