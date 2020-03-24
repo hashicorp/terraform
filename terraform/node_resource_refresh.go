@@ -75,7 +75,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 			expander.SetResourceSingle(module, n.ResourceAddr().Resource)
 		}
 	}
-	instanceAddrs := expander.ExpandResource(n.Addr.Module, n.ResourceAddr().Resource)
+	instanceAddrs := expander.ExpandModuleResource(n.Addr.Module, n.ResourceAddr().Resource)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
