@@ -1,10 +1,9 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -12,19 +11,19 @@ import (
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/hashicorp/terraform/version"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -444,191 +443,150 @@ the backend configuration is present and valid.
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
 func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
-	var available discovery.PluginMetaSet
-	if upgrade {
-		// If we're in upgrade mode, we ignore any auto-installed plugins
-		// in "available", causing us to reinstall and possibly upgrade them.
-		available = c.providerPluginManuallyInstalledSet()
-	} else {
-		available = c.providerPluginSet()
-	}
-
+	// First we'll collect all the provider dependencies we can see in the
+	// configuration and the state.
+	reqs := make(map[addrs.Provider]getproviders.VersionConstraints)
 	configDeps, depsDiags := earlyConfig.ProviderDependencies()
 	diags = diags.Append(depsDiags)
 	if depsDiags.HasErrors() {
 		return false, diags
 	}
-
-	configReqs := configDeps.AllProviderRequirements()
-	// FIXME: This is weird because ConfigTreeDependencies was written before
-	// we switched over to using earlyConfig as the main source of dependencies.
-	// In future we should clean this up to be a more reasonable API.
-	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllProviderRequirements()
-
-	requirements := configReqs.Merge(stateReqs)
-	if len(requirements) == 0 {
-		// nothing to initialize
-		return false, nil
-	}
-
-	c.Ui.Output(c.Colorize().Color(
-		"\n[reset][bold]Initializing provider plugins...",
-	))
-
-	missing := c.missingProviders(available, requirements)
-
-	if c.getPlugins {
-		if len(missing) > 0 {
-			c.Ui.Output("- Checking for available provider plugins...")
-		}
-
-		for provider, reqd := range missing {
-			pty := addrs.NewLegacyProvider(provider)
-			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
-			diags = diags.Append(providerDiags)
-
+	err := configDeps.WalkTree(func(path []string, parent *moduledeps.Module, current *moduledeps.Module) error {
+		for addr, dep := range current.Providers {
+			// Our moduledeps API is still using the older model for capturing
+			// version constraints, so we need some light conversion here until
+			// we get everything else updated to use getproviders.VersionConstraints.
+			// This is gross but avoids doing lots of cross-cutting rework
+			// all at once.
+			constraintsStr := dep.Constraints.String()
+			constraints, err := getproviders.ParseVersionConstraints(constraintsStr)
 			if err != nil {
-				constraint := reqd.Versions.String()
-				if constraint == "" {
-					constraint = "(any version)"
-				}
-
-				switch {
-				case err == discovery.ErrorServiceUnreachable, err == discovery.ErrorPublicRegistryUnreachable:
-					c.Ui.Error(errDiscoveryServiceUnreachable)
-				case err == discovery.ErrorNoSuchProvider:
-					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
-				case err == discovery.ErrorNoSuitableVersion:
-					if reqd.Versions.Unconstrained() {
-						// This should never happen, but might crop up if we catch
-						// the releases server in a weird state where the provider's
-						// directory is present but does not yet contain any
-						// versions. We'll treat it like ErrorNoSuchProvider, then.
-						c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
-					} else {
-						c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
-					}
-				case errwrap.Contains(err, discovery.ErrorVersionIncompatible.Error()):
-					// Attempt to fetch nested error to display to the user which versions
-					// we considered and which versions might be compatible. Otherwise,
-					// we'll just display a generic version incompatible msg
-					incompatErr := errwrap.GetType(err, fmt.Errorf(""))
-					if incompatErr != nil {
-						c.Ui.Error(incompatErr.Error())
-					} else {
-						// Generic version incompatible msg
-						c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
-					}
-					// Reset nested errors
-					err = discovery.ErrorVersionIncompatible
-				case err == discovery.ErrorNoVersionCompatible:
-					// Generic version incompatible msg
-					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
-				case err == discovery.ErrorSignatureVerification:
-					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider, version.SemVer))
-				case err == discovery.ErrorChecksumVerification,
-					err == discovery.ErrorMissingChecksumVerification:
-					c.Ui.Error(fmt.Sprintf(errChecksumVerification, provider))
-				default:
-					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
-				}
-
-				diags = diags.Append(err)
+				return err
 			}
+			reqs[addr] = append(reqs[addr], constraints...)
 		}
-
-		if diags.HasErrors() {
-			return true, diags
-		}
-	} else if len(missing) > 0 {
-		// we have missing providers, but aren't going to try and download them
-		var lines []string
-		for provider, reqd := range missing {
-			if reqd.Versions.Unconstrained() {
-				lines = append(lines, fmt.Sprintf("* %s (any version)\n", provider))
-			} else {
-				lines = append(lines, fmt.Sprintf("* %s (%s)\n", provider, reqd.Versions))
-			}
-			diags = diags.Append(fmt.Errorf("missing provider %q", provider))
-		}
-		sort.Strings(lines)
-		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
-		return true, diags
-	}
-
-	// With all the providers downloaded, we'll generate our lock file
-	// that ensures the provider binaries remain unchanged until we init
-	// again. If anything changes, other commands that use providers will
-	// fail with an error instructing the user to re-run this command.
-	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-
-	// internal providers were already filtered out, since we don't need to get them.
-	chosen := chooseProviders(available, nil, requirements)
-
-	digests := map[string][]byte{}
-	for name, meta := range chosen {
-		digest, err := meta.SHA256()
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
-			return true, diags
-		}
-		digests[name] = digest
-		if c.ignorePluginChecksum {
-			digests[name] = nil
-		}
-	}
-	err := c.providerPluginsLock().Write(digests)
+		return nil
+	})
 	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
-		return true, diags
+		// This should never happen: indicates that our old version model
+		// produced a string representation of constraints that our new
+		// one couldn't parse. That's a bug.
+		diags = diags.Append(fmt.Errorf("internal error handling provider version constraints (this is a bug): %s", err))
+		return false, diags
 	}
-
-	{
-		// Purge any auto-installed plugins that aren't being used.
-		purged, err := c.providerInstaller.PurgeUnused(chosen)
-		if err != nil {
-			// Failure to purge old plugins is not a fatal error
-			c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
-		}
-		if purged != nil {
-			for meta := range purged {
-				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
+	if state != nil {
+		for _, configAddr := range state.ProviderAddrs() {
+			if _, ok := reqs[configAddr.Provider]; !ok {
+				reqs[configAddr.Provider] = nil // just needs to be present, unconstrained
 			}
 		}
 	}
 
-	// If any providers have "floating" versions (completely unconstrained)
-	// we'll suggest the user constrain with a pessimistic constraint to
-	// avoid implicitly adopting a later major release.
-	constraintSuggestions := make(map[string]discovery.ConstraintStr)
-	for name, meta := range chosen {
-		req := requirements[name]
-		if req == nil {
-			// should never happen, but we don't want to crash here, so we'll
-			// be cautious.
-			continue
-		}
-
-		if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
-			// meta.Version.MustParse is safe here because our "chosen" metas
-			// were already filtered for validity of versions.
-			constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
-		}
-	}
-	if len(constraintSuggestions) != 0 {
-		names := make([]string, 0, len(constraintSuggestions))
-		for name := range constraintSuggestions {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-
-		c.Ui.Output(outputInitProvidersUnconstrained)
-		for _, name := range names {
-			c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
-		}
+	// TODO: If the user gave at least one -plugin-dir option on the command
+	// line, we should construct a one-off getproviders.Source that consults
+	// only those directories and use that instead of c.providerInstallSource()
+	// here.
+	targetDir := c.providerLocalCacheDir()
+	globalCacheDir := c.providerGlobalCacheDir()
+	source := c.providerInstallSource()
+	inst := providercache.NewInstaller(targetDir, source)
+	if globalCacheDir != nil {
+		inst.SetGlobalCacheDir(globalCacheDir)
 	}
 
-	return true, diags
+	mode := providercache.InstallNewProvidersOnly
+	if upgrade {
+		mode = providercache.InstallUpgrades
+	}
+	// TODO: Use the context-based InstallerEvents API to get notifications
+	// about ongoing progress here, so we can update the UI along the way.
+	_, err = inst.EnsureProviderVersions(context.TODO(), reqs, mode)
+	if err != nil {
+		// Temporary clumsy error handling, because we'll replace this with
+		// ongoing progress via InstallerEvents before we ship it.
+		diags = diags.Append(err)
+	}
+
+	return false, diags
+
+	// TODO: Write the selections into the plugins lock file so we can be
+	// sure that future commands will use exactly those provider packages.
+	// TODO: Emit constraint suggestions for unconstrained providers.
+	/*
+		// With all the providers downloaded, we'll generate our lock file
+		// that ensures the provider binaries remain unchanged until we init
+		// again. If anything changes, other commands that use providers will
+		// fail with an error instructing the user to re-run this command.
+		available = c.providerPluginSet() // re-discover to see newly-installed plugins
+
+		// internal providers were already filtered out, since we don't need to get them.
+		chosen := chooseProviders(available, nil, requirements)
+
+		digests := map[string][]byte{}
+		for name, meta := range chosen {
+			digest, err := meta.SHA256()
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
+				return true, diags
+			}
+			digests[name] = digest
+			if c.ignorePluginChecksum {
+				digests[name] = nil
+			}
+		}
+		err := c.providerPluginsLock().Write(digests)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
+			return true, diags
+		}
+
+		{
+			// Purge any auto-installed plugins that aren't being used.
+			purged, err := c.providerInstaller.PurgeUnused(chosen)
+			if err != nil {
+				// Failure to purge old plugins is not a fatal error
+				c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
+			}
+			if purged != nil {
+				for meta := range purged {
+					log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
+				}
+			}
+		}
+
+		// If any providers have "floating" versions (completely unconstrained)
+		// we'll suggest the user constrain with a pessimistic constraint to
+		// avoid implicitly adopting a later major release.
+		constraintSuggestions := make(map[string]discovery.ConstraintStr)
+		for name, meta := range chosen {
+			req := requirements[name]
+			if req == nil {
+				// should never happen, but we don't want to crash here, so we'll
+				// be cautious.
+				continue
+			}
+
+			if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
+				// meta.Version.MustParse is safe here because our "chosen" metas
+				// were already filtered for validity of versions.
+				constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
+			}
+		}
+		if len(constraintSuggestions) != 0 {
+			names := make([]string, 0, len(constraintSuggestions))
+			for name := range constraintSuggestions {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+
+			c.Ui.Output(outputInitProvidersUnconstrained)
+			for _, name := range names {
+				c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
+			}
+		}
+
+		return true, diags
+	*/
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
