@@ -70,9 +70,8 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// Our instance expander should already have been informed about the
 	// expansion of this resource and of all of its containing modules, so
 	// it can tell us which instance addresses we need to process.
-	module := ctx.Path().Module()
 	expander := ctx.InstanceExpander()
-	instanceAddrs := expander.ExpandResource(module, n.ResourceAddr().Resource)
+	instanceAddrs := expander.ExpandResource(n.ResourceAddr().Absolute(ctx.Path()))
 
 	// We need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.

@@ -68,7 +68,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		default:
 			expander.SetResourceSingle(path, n.ResourceAddr().Resource)
 		}
-		instanceAddrs = append(instanceAddrs, expander.ExpandResource(path.Module(), n.ResourceAddr().Resource)...)
+		instanceAddrs = append(instanceAddrs, expander.ExpandResource(n.ResourceAddr().Absolute(path))...)
 	}
 
 	// Our graph transformers require access to the full state, so we'll
