@@ -484,6 +484,9 @@ github.com/hashicorp/vault/helper/jsonutil
 github.com/hashicorp/vault/helper/pgpkeys
 # github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
+# github.com/huaweicloud/golangsdk v0.0.0-20200323070305-98b64a3f37ba
+## explicit
+github.com/huaweicloud/golangsdk/openstack/obs
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 ## explicit
 github.com/jmespath/go-jmespath
