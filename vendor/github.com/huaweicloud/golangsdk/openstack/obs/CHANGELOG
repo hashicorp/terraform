@@ -1,0 +1,51 @@
+Version 3.19.11
+Updated the version ID format. The new version ID is named in the following format: Main version ID.Year ID.Month ID.
+
+New Features:
+
+Documentation & Demo:
+1. Added the description of WithMaxRedirectCount and WithSecurityToken in section "ObsClient Initialization" in the API Reference.
+2. Added descriptions about WithMaxRedirectCount and WithSecurityToken in section "Configuring an Instance of OBSClient" in the Developer Guide.
+3. Added methods for handling HTTP status code 405 in section "FAQs" in the Developer Guide.
+
+Resolved Issues:
+1. Fixed the issue that error code 400 is returned when DisplayName is carried in some circumstances.
+2. Fixed the issue that error code 400 is returned when the SetBucketNotification API is called.
+3. Fixed the issue that the SetObjectAcl API does not support the specified Delivered parameter.
+4. Fixed the issue that the SetBucketLoggingConfiguration API is incompatible with the Agency field in different protocols.
+5. Fixed the issue that the SetBucketLoggingConfiguration API incorrectly processes the Delivered field.
+6. Fixed the issue that the ContentMD5 configuration does not take effect when the UploadPart API is called.
+7. Fixed the issue that the SetBucketStoragePolicy API processes incorrect storage classes inconsistently in different protocols.
+8. Fixed the issue that error code 400 is returned because the CreateBucket API does not distinguish protocols.
+9. Fixed the syntax issue of the getBucketAclObs API.
+10. Rectified the error of the SetBucketWebsiteConfiguration API.
+11. Fixed the compatibility issue of the temporary authentication API in different protocols.
+12. Fixed the issue that the authentication information header is added when redirection is performed upon a 302 response returned for a GET request.
+13. Fixed the issue that the content-type cannot be obtained based on the file name extension if the extension is in uppercase.
+14. Changed the content-type of files with the .svg extension to image/svg+xml.
+15. Fixed the issue that an incorrect API is called in the sample code for deleting a bucket in examples/bucket_operations_sample.go.
+16. Fixed the issue in calculating the authentication value during the access using temporary access keys.
+17. Fixed the issue that some response fields are empty in anonymous access.
+
+-----------------------------------------------------------------------------------
+
+Version 3.1.2
+
+New Features:
+
+Documentation & Demo:
+
+Resolved Issues:
+1. Fixed the issue that the configuration of ContentType does not take effect when Obs.InitiateMultipartUpload is called.
+
+-----------------------------------------------------------------------------------
+
+Version 3.1.1
+
+New Features:
+1. Supports access to OBS using a user-defined domain name (obs.WithCustomDomainName).
+2. The API for object upload (ObsClient.PutObject) can automatically identify a wider MIME type.
+
+Resolved Issues:
+1. Fixed the issue that a null pointer error is reported when ObsClient.GetBucketStoragePolicy is called.
+2. Fixed the 400 error reported by ObsClient.SetBucketStoragePolicy.
