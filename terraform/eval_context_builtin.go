@@ -215,12 +215,6 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[str
 
 func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c map[string]cty.Value) {
 	absProvider := pc
-	//if !absProvider.Module.Equal(ctx.Path().Module()) {
-	//    // This indicates incorrect use of InitProvider: it should be used
-	//    // only from the module that the provider configuration belongs to.
-	//    panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
-	//}
-
 	if !pc.Module.IsRoot() {
 		// Only root module provider configurations can have input.
 		log.Printf("[WARN] BuiltinEvalContext: attempt to SetProviderInput for non-root module")

@@ -11,17 +11,10 @@ import (
 // nodeExpandPlannableResource handles the first layer of resource
 // expansion.  We need this extra layer so DynamicExpand is called twice for
 // the resource, the first to expand the Resource for each module instance, and
-// the second to expand each ResourceInstnace for the expanded Resources.
-//
-// Even though the Expander can handle this recursive expansion, the
-// EvalWriteState nodes need to be expanded and Evaluated first, and our
-// current graph doesn't allow evaluation within DynamicExpand, and doesn't
-// call it recursively.
+// the second to expand each ResourceInstance for the expanded Resources.
 type nodeExpandPlannableResource struct {
 	*NodeAbstractResource
 
-	// TODO: can we eliminate the need for this flag and combine this with the
-	// apply expander?
 	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
 	// during graph construction, if dependencies require us to force this
 	// on regardless of what the configuration says.

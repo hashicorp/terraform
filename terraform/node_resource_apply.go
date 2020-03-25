@@ -13,8 +13,6 @@ import (
 // context with which to expand the resource into multiple instances.
 // This type should be a drop in replacement for NodeApplyableResource, and
 // needs to mirror any non-evaluation methods exactly.
-// TODO: We may want to simplify this later by passing EvalContext to EvalTree,
-//       and returning an EvalEquence.
 type nodeExpandApplyableResource struct {
 	*NodeAbstractResource
 }

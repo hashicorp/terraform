@@ -14,6 +14,11 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+// nodeExpandRefreshableResource handles the first layer of resource
+// expansion durin refresh. We need this extra layer so DynamicExpand is called
+// twice for the resource, the first to expand the Resource for each module
+// instance, and the second to expand each ResourceInstance for the expanded
+// Resources.
 type nodeExpandRefreshableManagedResource struct {
 	*NodeAbstractResource
 
