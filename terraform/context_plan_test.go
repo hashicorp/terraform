@@ -429,12 +429,9 @@ func TestContext2Plan_modules(t *testing.T) {
 		checkVals(t, expected, ric.After)
 	}
 }
-func TestContext2Plan_moduleCount(t *testing.T) {
-	// This test is skipped with count disabled.
-	t.Skip()
-	//FIXME: add for_each and single modules to this test
-
-	m := testModule(t, "plan-modules-count")
+func TestContext2Plan_moduleExpand(t *testing.T) {
+	// Test a smattering of plan expansion behavior
+	m := testModule(t, "plan-modules-expand")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
@@ -451,31 +448,18 @@ func TestContext2Plan_moduleCount(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if len(plan.Changes.Resources) != 6 {
-		t.Error("expected 6 resource in plan, got", len(plan.Changes.Resources))
-	}
-
 	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
 	ty := schema.ImpliedType()
 
-	expectFoo := objectVal(t, schema, map[string]cty.Value{
-		"id":   cty.UnknownVal(cty.String),
-		"foo":  cty.StringVal("2"),
-		"type": cty.StringVal("aws_instance")},
-	)
-
-	expectNum := objectVal(t, schema, map[string]cty.Value{
-		"id":   cty.UnknownVal(cty.String),
-		"num":  cty.NumberIntVal(2),
-		"type": cty.StringVal("aws_instance"),
-	})
-
-	expectExpansion := objectVal(t, schema, map[string]cty.Value{
-		"bar":  cty.StringVal("baz"),
-		"id":   cty.UnknownVal(cty.String),
-		"num":  cty.NumberIntVal(2),
-		"type": cty.StringVal("aws_instance"),
-	})
+	expected := map[string]struct{}{
+		`aws_instance.foo["a"]`:                          struct{}{},
+		`module.count_child[1].aws_instance.foo[0]`:      struct{}{},
+		`module.count_child[1].aws_instance.foo[1]`:      struct{}{},
+		`module.count_child[0].aws_instance.foo[0]`:      struct{}{},
+		`module.count_child[0].aws_instance.foo[1]`:      struct{}{},
+		`module.for_each_child["a"].aws_instance.foo[1]`: struct{}{},
+		`module.for_each_child["a"].aws_instance.foo[0]`: struct{}{},
+	}
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.Create {
@@ -486,22 +470,14 @@ func TestContext2Plan_moduleCount(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var expected cty.Value
-		switch i := ric.Addr.String(); i {
-		case "aws_instance.bar":
-			expected = expectFoo
-		case "aws_instance.foo":
-			expected = expectNum
-		case "module.child[0].aws_instance.foo[0]",
-			"module.child[0].aws_instance.foo[1]",
-			"module.child[1].aws_instance.foo[0]",
-			"module.child[1].aws_instance.foo[1]":
-			expected = expectExpansion
-		default:
-			t.Fatal("unknown instance:", i)
+		_, ok := expected[ric.Addr.String()]
+		if !ok {
+			t.Fatal("unexpected resource:", ric.Addr.String())
 		}
-
-		checkVals(t, expected, ric.After)
+		delete(expected, ric.Addr.String())
+	}
+	for addr := range expected {
+		t.Error("missing resource", addr)
 	}
 }
 
