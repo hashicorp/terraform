@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
-func LinkFromOtherCache(t *testing.T) {
+func TestLinkFromOtherCache(t *testing.T) {
 	srcDirPath := "testdata/cachedir"
 	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
 	if err != nil {
@@ -82,13 +82,8 @@ func LinkFromOtherCache(t *testing.T) {
 				// still packed and thus not considered to be a cache member.
 				Version: versions.MustParseVersion("2.0.0"),
 
-				// These are still pointed into the testdata directory because
-				// we created a symlink in our tmpDir. (This part of the test
-				// is expected to fail if the temporary directory is on a
-				// filesystem that cannot support symlinks, in which case
-				// we should see the temporary directory paths here instead.)
-				PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
-				ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
+				PackageDir:     tmpDirPath + "/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
+				ExecutableFile: tmpDirPath + "/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
 			},
 		},
 	}
