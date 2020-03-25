@@ -36,7 +36,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		if err != nil {
 			// This should never happen because the filepath.Walk contract is
 			// for the paths to include the base path.
-			log.Printf("[TRACE] FilesystemMirrorSource: ignoring malformed path %q during walk: %s", fullPath, err)
+			log.Printf("[TRACE] getproviders.SearchLocalDirectory: ignoring malformed path %q during walk: %s", fullPath, err)
 			return nil
 		}
 		relPath := filepath.ToSlash(fsPath)
@@ -88,7 +88,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 				return nil
 			}
 
-			log.Printf("[TRACE] FilesystemMirrorSource: found %s v%s for %s at %s", providerAddr, version, platform, fullPath)
+			log.Printf("[TRACE] getproviders.SearchLocalDirectory: found %s v%s for %s at %s", providerAddr, version, platform, fullPath)
 
 			meta := PackageMeta{
 				Provider: providerAddr,
@@ -132,11 +132,11 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			prefix := "terraform-provider-" + providerAddr.Type + "_"
 			const suffix = ".zip"
 			if !strings.HasPrefix(normFilename, prefix) {
-				log.Printf("[WARN] ignoring file %q as possible package for %s: lacks expected prefix %q", filename, providerAddr, prefix)
+				log.Printf("[WARN] ignoring file %q as possible package for %s: filename lacks expected prefix %q", fsPath, providerAddr, prefix)
 				return nil
 			}
 			if !strings.HasSuffix(normFilename, suffix) {
-				log.Printf("[WARN] ignoring file %q as possible package for %s: lacks expected suffix %q", filename, providerAddr, suffix)
+				log.Printf("[WARN] ignoring file %q as possible package for %s: filename lacks expected suffix %q", fsPath, providerAddr, suffix)
 				return nil
 			}
 
@@ -145,7 +145,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			infoSlice := normFilename[len(prefix) : len(normFilename)-len(suffix)]
 			infoParts := strings.Split(infoSlice, "_")
 			if len(infoParts) < 3 {
-				log.Printf("[WARN] ignoring file %q as possible package for %s: filename does not include version number, target OS, and target architecture", filename, providerAddr)
+				log.Printf("[WARN] ignoring file %q as possible package for %s: filename does not include version number, target OS, and target architecture", fsPath, providerAddr)
 				return nil
 			}
 
@@ -165,7 +165,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 				return nil
 			}
 
-			log.Printf("[TRACE] FilesystemMirrorSource: found %s v%s for %s at %s", providerAddr, version, platform, fullPath)
+			log.Printf("[TRACE] getproviders.SearchLocalDirectory: found %s v%s for %s at %s", providerAddr, version, platform, fullPath)
 
 			meta := PackageMeta{
 				Provider: providerAddr,
