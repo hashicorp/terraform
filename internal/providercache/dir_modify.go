@@ -3,6 +3,7 @@ package providercache
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -21,6 +22,7 @@ func (d *Dir) InstallPackage(ctx context.Context, meta getproviders.PackageMeta)
 		d.baseDir, meta.Provider, meta.Version, d.targetPlatform,
 	)
 
+	log.Printf("[TRACE] providercache.Dir.InstallPackage: installing %s v%s from %s", meta.Provider, meta.Version, meta.Location)
 	switch location := meta.Location.(type) {
 	case getproviders.PackageHTTPURL:
 		return installFromHTTPURL(ctx, string(location), newPath)
@@ -50,6 +52,7 @@ func (d *Dir) LinkFromOtherCache(entry *CachedProvider) error {
 		d.baseDir, entry.Provider, entry.Version, d.targetPlatform,
 	)
 	currentPath := entry.PackageDir
+	log.Printf("[TRACE] providercache.Dir.LinkFromOtherCache: linking %s v%s from existing cache %s to %s", entry.Provider, entry.Version, currentPath, newPath)
 
 	absNew, err := filepath.Abs(newPath)
 	if err != nil {

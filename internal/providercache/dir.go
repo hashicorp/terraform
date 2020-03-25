@@ -2,6 +2,7 @@ package providercache
 
 import (
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -79,6 +80,7 @@ func newDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
 // way, even though the Go type system permits it.
 func (d *Dir) AllAvailablePackages() map[addrs.Provider][]CachedProvider {
 	if err := d.fillMetaCache(); err != nil {
+		log.Printf("[WARN] Failed to scan provider cache directory %s: %s", d.baseDir, err)
 		return nil
 	}
 
@@ -127,8 +129,10 @@ func (d *Dir) fillMetaCache() error {
 	// map, so we can distinguish between having scanned and got an empty
 	// result vs. not having scanned successfully at all yet.
 	if d.metaCache != nil {
+		log.Printf("[TRACE] providercache.fillMetaCache: using cached result from previous scan of %s", d.baseDir)
 		return nil
 	}
+	log.Printf("[TRACE] providercache.fillMetaCache: scanning directory %s", d.baseDir)
 
 	allData, err := getproviders.SearchLocalDirectory(d.baseDir)
 	if err != nil {
@@ -149,11 +153,13 @@ func (d *Dir) fillMetaCache() error {
 	for providerAddr, metas := range allData {
 		for _, meta := range metas {
 			if meta.TargetPlatform != d.targetPlatform {
+				log.Printf("[TRACE] providercache.fillMetaCache: ignoring %s because it is for %s, not %s", meta.Location, meta.TargetPlatform, d.targetPlatform)
 				continue
 			}
 			if _, ok := meta.Location.(getproviders.PackageLocalDir); !ok {
 				// PackageLocalDir indicates an unpacked provider package ready
 				// to execute.
+				log.Printf("[TRACE] providercache.fillMetaCache: ignoring %s because it is not an unpacked directory", meta.Location)
 				continue
 			}
 
@@ -162,9 +168,11 @@ func (d *Dir) fillMetaCache() error {
 			if execFile == "" {
 				// If the package doesn't contain a suitable executable then
 				// it isn't considered to be part of our cache.
+				log.Printf("[TRACE] providercache.fillMetaCache: ignoring %s because it is does not seem to contain a suitable plugin executable", meta.Location)
 				continue
 			}
 
+			log.Printf("[TRACE] providercache.fillMetaCache: including %s as a candidate package for %s %s", meta.Location, providerAddr, meta.Version)
 			data[providerAddr] = append(data[providerAddr], CachedProvider{
 				Provider:       providerAddr,
 				Version:        meta.Version,
@@ -174,7 +182,7 @@ func (d *Dir) fillMetaCache() error {
 		}
 	}
 
-	// After we've build our lists per provider, we'll also sort them by
+	// After we've built our lists per provider, we'll also sort them by
 	// version precedence so that the newest available version is always at
 	// index zero. If there are two versions that differ only in build metadata
 	// then it's undefined but deterministic which one we will select here,
