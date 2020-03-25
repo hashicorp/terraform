@@ -78,7 +78,7 @@ func (d *Dir) LinkFromOtherCache(entry *CachedProvider) error {
 	d.metaCache = nil
 
 	// Delete anything that's already present at this path first.
-	err = os.RemoveAll(currentPath)
+	err = os.RemoveAll(newPath)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove existing %s before linking it to %s: %s", currentPath, newPath, err)
 	}
