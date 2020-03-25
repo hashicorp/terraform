@@ -68,6 +68,15 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			providerAddr = addrs.NewProvider(hostname, namespace, typeName)
 		}
 
+		// The "info" passed to our function is an Lstat result, so it might
+		// be referring to a symbolic link. We'll do a full "Stat" on it
+		// now to make sure we're making tests against the real underlying
+		// filesystem object below.
+		info, err = os.Stat(fullPath)
+		if err != nil {
+			return fmt.Errorf("failed to read metadata about %s: %s", fullPath, err)
+		}
+
 		switch len(parts) {
 		case 5: // Might be unpacked layout
 			if !info.IsDir() {
