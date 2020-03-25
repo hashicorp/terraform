@@ -31,6 +31,7 @@ Multiple workspaces are currently supported by the following backends:
  * [GCS](/docs/backends/types/gcs.html)
  * [Local](/docs/backends/types/local.html)
  * [Manta](/docs/backends/types/manta.html)
+ * [OBS](/docs/backends/types/obs.html)
  * [Postgres](/docs/backends/types/pg.html)
  * [Remote](/docs/backends/types/remote.html)
  * [S3](/docs/backends/types/s3.html)
