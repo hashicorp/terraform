@@ -147,7 +147,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// directly as NodeDestroyableDataResource.
 		&OrphanResourceCountTransformer{
 			Concrete:      concreteResourceDestroyable,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},

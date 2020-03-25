@@ -209,7 +209,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Add the count/for_each orphans
 		&OrphanResourceCountTransformer{
 			Concrete:      concreteResourceOrphan,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},
