@@ -9,10 +9,9 @@ import (
 )
 
 // nodeExpandApplyableResource handles the first layer of resource
-// expansion during apply. This is required because EvalTree does not have a
-// context with which to expand the resource into multiple instances.
-// This type should be a drop in replacement for NodeApplyableResource, and
-// needs to mirror any non-evaluation methods exactly.
+// expansion during apply. Even though the resource instances themselves are
+// already expanded from the plan, we still need to expand the
+// NodeApplyableResource nodes into their respective modules.
 type nodeExpandApplyableResource struct {
 	*NodeAbstractResource
 }
@@ -72,10 +71,6 @@ var (
 
 func (n *NodeApplyableResource) Path() addrs.ModuleInstance {
 	return n.Addr.Module
-}
-
-func (n *NodeApplyableResource) Name() string {
-	return n.NodeAbstractResource.Name() + " (prepare state)"
 }
 
 func (n *NodeApplyableResource) References() []*addrs.Reference {
