@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -445,41 +444,14 @@ the backend configuration is present and valid.
 func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
-	reqs := make(map[addrs.Provider]getproviders.VersionConstraints)
-	configDeps, depsDiags := earlyConfig.ProviderDependencies()
-	diags = diags.Append(depsDiags)
-	if depsDiags.HasErrors() {
-		return false, diags
-	}
-	err := configDeps.WalkTree(func(path []string, parent *moduledeps.Module, current *moduledeps.Module) error {
-		for addr, dep := range current.Providers {
-			// Our moduledeps API is still using the older model for capturing
-			// version constraints, so we need some light conversion here until
-			// we get everything else updated to use getproviders.VersionConstraints.
-			// This is gross but avoids doing lots of cross-cutting rework
-			// all at once.
-			constraintsStr := dep.Constraints.String()
-			constraints, err := getproviders.ParseVersionConstraints(constraintsStr)
-			if err != nil {
-				return err
-			}
-			reqs[addr] = append(reqs[addr], constraints...)
-		}
-		return nil
-	})
-	if err != nil {
-		// This should never happen: indicates that our old version model
-		// produced a string representation of constraints that our new
-		// one couldn't parse. That's a bug.
-		diags = diags.Append(fmt.Errorf("internal error handling provider version constraints (this is a bug): %s", err))
+	reqs, moreDiags := earlyConfig.ProviderRequirements()
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		return false, diags
 	}
 	if state != nil {
-		for _, configAddr := range state.ProviderAddrs() {
-			if _, ok := reqs[configAddr.Provider]; !ok {
-				reqs[configAddr.Provider] = nil // just needs to be present, unconstrained
-			}
-		}
+		stateReqs := state.ProviderRequirements()
+		reqs = reqs.Merge(stateReqs)
 	}
 
 	// TODO: If the user gave at least one -plugin-dir option on the command
@@ -551,7 +523,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	// TODO: Use a context that will be cancelled when the Terraform
 	// process receives SIGINT.
 	ctx := evts.OnContext(context.TODO())
-	_, err = inst.EnsureProviderVersions(ctx, reqs, mode)
+	_, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
