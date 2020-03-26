@@ -161,4 +161,8 @@ type EvalContext interface {
 	// The InstanceExpander is a global object that is shared across all of the
 	// EvalContext objects for a given configuration.
 	InstanceExpander() *instances.Expander
+
+	// WithPath returns a copy of the context with the internal path set to the
+	// path argument.
+	WithPath(path addrs.ModuleInstance) EvalContext
 }

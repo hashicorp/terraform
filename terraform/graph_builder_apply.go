@@ -69,7 +69,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeApplyableResource{
+		return &nodeExpandApplyableResource{
 			NodeAbstractResource: a,
 		}
 	}

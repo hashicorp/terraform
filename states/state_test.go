@@ -141,7 +141,7 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies:  []addrs.AbsResource{},
+			Dependencies:  []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -159,9 +159,9 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies: []addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
 				{
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_thing",

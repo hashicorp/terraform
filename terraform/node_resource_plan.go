@@ -3,13 +3,16 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// NodePlannableResource represents a resource that is "plannable":
-// it is ready to be planned in order to create a diff.
-type NodePlannableResource struct {
+// nodeExpandPlannableResource handles the first layer of resource
+// expansion.  We need this extra layer so DynamicExpand is called twice for
+// the resource, the first to expand the Resource for each module instance, and
+// the second to expand each ResourceInstance for the expanded Resources.
+type nodeExpandPlannableResource struct {
 	*NodeAbstractResource
 
 	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
@@ -19,6 +22,64 @@ type NodePlannableResource struct {
 }
 
 var (
+	_ GraphNodeDestroyerCBD         = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeReferenceable        = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
+)
+
+// GraphNodeDestroyerCBD
+func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
+	if n.ForceCreateBeforeDestroy != nil {
+		return *n.ForceCreateBeforeDestroy
+	}
+
+	// If we have no config, we just assume no
+	if n.Config == nil || n.Config.Managed == nil {
+		return false
+	}
+
+	return n.Config.Managed.CreateBeforeDestroy
+}
+
+// GraphNodeDestroyerCBD
+func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
+	n.ForceCreateBeforeDestroy = &v
+	return nil
+}
+
+func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
+		g.Add(&NodePlannableResource{
+			NodeAbstractResource:     n.NodeAbstractResource,
+			Addr:                     n.Addr.Resource.Absolute(module),
+			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+		})
+	}
+
+	return &g, nil
+}
+
+// NodePlannableResource represents a resource that is "plannable":
+// it is ready to be planned in order to create a diff.
+type NodePlannableResource struct {
+	*NodeAbstractResource
+
+	Addr addrs.AbsResource
+
+	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
+	// during graph construction, if dependencies require us to force this
+	// on regardless of what the configuration says.
+	ForceCreateBeforeDestroy *bool
+}
+
+var (
+	_ GraphNodeModuleInstance       = (*NodePlannableResource)(nil)
 	_ GraphNodeDestroyerCBD         = (*NodePlannableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
@@ -26,6 +87,19 @@ var (
 	_ GraphNodeConfigResource       = (*NodePlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
 )
+
+func (n *NodePlannableResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
+
+func (n *NodePlannableResource) Name() string {
+	return n.Addr.String()
+}
+
+// GraphNodeModuleInstance
+func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
+	return n.Addr.Module
+}
 
 // GraphNodeEvalable
 func (n *NodePlannableResource) EvalTree() EvalNode {
@@ -67,25 +141,15 @@ func (n *NodePlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var diags tfdiags.Diagnostics
 
+	// We need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	fixResourceCountSetTransition(ctx, n.Addr.Config(), n.Config.Count != nil)
+
 	// Our instance expander should already have been informed about the
 	// expansion of this resource and of all of its containing modules, so
 	// it can tell us which instance addresses we need to process.
 	expander := ctx.InstanceExpander()
 	instanceAddrs := expander.ExpandResource(n.ResourceAddr().Absolute(ctx.Path()))
-
-	// We need to potentially rename an instance address in the state
-	// if we're transitioning whether "count" is set at all.
-	//
-	// FIXME: We're re-evaluating count here, even though the InstanceExpander
-	// has already dealt with our expansion above, because we need it to
-	// call fixResourceCountSetTransition; the expander API and that function
-	// are not compatible yet.
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -138,7 +202,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Add the count/for_each orphans
 		&OrphanResourceCountTransformer{
 			Concrete:      concreteResourceOrphan,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},

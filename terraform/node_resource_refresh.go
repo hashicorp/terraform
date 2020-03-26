@@ -14,33 +14,75 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+// nodeExpandRefreshableResource handles the first layer of resource
+// expansion durin refresh. We need this extra layer so DynamicExpand is called
+// twice for the resource, the first to expand the Resource for each module
+// instance, and the second to expand each ResourceInstance for the expanded
+// Resources.
+type nodeExpandRefreshableManagedResource struct {
+	*NodeAbstractResource
+
+	// We attach dependencies to the Resource during refresh, since the
+	// instances are instantiated during DynamicExpand.
+	Dependencies []addrs.ConfigResource
+}
+
+var (
+	_ GraphNodeDynamicExpandable    = (*nodeExpandRefreshableManagedResource)(nil)
+	_ GraphNodeReferenceable        = (*nodeExpandRefreshableManagedResource)(nil)
+	_ GraphNodeReferencer           = (*nodeExpandRefreshableManagedResource)(nil)
+	_ GraphNodeConfigResource       = (*nodeExpandRefreshableManagedResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*nodeExpandRefreshableManagedResource)(nil)
+	_ GraphNodeAttachDependencies   = (*nodeExpandRefreshableManagedResource)(nil)
+)
+
+// GraphNodeAttachDependencies
+func (n *nodeExpandRefreshableManagedResource) AttachDependencies(deps []addrs.ConfigResource) {
+	n.Dependencies = deps
+}
+
+func (n *nodeExpandRefreshableManagedResource) References() []*addrs.Reference {
+	return (&NodeRefreshableManagedResource{NodeAbstractResource: n.NodeAbstractResource}).References()
+}
+
+func (n *nodeExpandRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
+		g.Add(&NodeRefreshableManagedResource{
+			NodeAbstractResource: n.NodeAbstractResource,
+			Addr:                 n.Addr.Resource.Absolute(module),
+			Dependencies:         n.Dependencies,
+		})
+	}
+
+	return &g, nil
+}
+
 // NodeRefreshableManagedResource represents a resource that is expandable into
 // NodeRefreshableManagedResourceInstance. Resource count orphans are also added.
 type NodeRefreshableManagedResource struct {
 	*NodeAbstractResource
 
+	Addr addrs.AbsResource
+
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
-	Dependencies []addrs.AbsResource
+	Dependencies []addrs.ConfigResource
 }
 
 var (
+	_ GraphNodeModuleInstance       = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferenceable        = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeReferencer           = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeConfigResource       = (*NodeRefreshableManagedResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResource)(nil)
-	_ GraphNodeAttachDependencies   = (*NodeRefreshableManagedResource)(nil)
 )
 
-// GraphNodeAttachDependencies
-func (n *NodeRefreshableManagedResource) AttachDependencies(deps []addrs.ConfigResource) {
-	var shimmed []addrs.AbsResource
-	for _, r := range deps {
-		shimmed = append(shimmed, r.Absolute(r.Module.UnkeyedInstanceShim()))
-	}
-
-	n.Dependencies = shimmed
+func (n *NodeRefreshableManagedResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
 }
 
 // GraphNodeDynamicExpandable
@@ -60,22 +102,20 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+	fixResourceCountSetTransition(ctx, n.Addr.Config(), count != -1)
 
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Addr.Module) {
-		switch {
-		case count >= 0:
-			expander.SetResourceCount(module, n.ResourceAddr().Resource, count)
-		case forEachMap != nil:
-			expander.SetResourceForEach(module, n.ResourceAddr().Resource, forEachMap)
-		default:
-			expander.SetResourceSingle(module, n.ResourceAddr().Resource)
-		}
+	switch {
+	case count >= 0:
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
+	case forEachMap != nil:
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
+	default:
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
-	instanceAddrs := expander.ExpandModuleResource(n.Addr.Module, n.ResourceAddr().Resource)
+	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -101,7 +141,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		&ResourceCountTransformer{
 			Concrete:      concreteResource,
 			Schema:        n.Schema,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr.Config(),
 			InstanceAddrs: instanceAddrs,
 		},
 
@@ -109,7 +149,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 		// during a scale in.
 		&OrphanResourceCountTransformer{
 			Concrete:      concreteResource,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},

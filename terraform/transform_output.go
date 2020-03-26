@@ -79,8 +79,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 
 		// create the destroy node for this output
 		node := &NodeDestroyableOutput{
-			Addr:   output.Addr,
-			Module: output.Module,
+			Addr:   output.Addr.Absolute(addrs.RootModuleInstance),
 			Config: output.Config,
 		}
 

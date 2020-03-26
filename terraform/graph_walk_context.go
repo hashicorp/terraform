@@ -51,8 +51,6 @@ type ContextGraphWalker struct {
 }
 
 func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
-	w.once.Do(w.init)
-
 	w.contextLock.Lock()
 	defer w.contextLock.Unlock()
 
@@ -61,6 +59,14 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 	if ctx, ok := w.contexts[key]; ok {
 		return ctx
 	}
+
+	ctx := w.EvalContext().WithPath(path)
+	w.contexts[key] = ctx.(*BuiltinEvalContext)
+	return ctx
+}
+
+func (w *ContextGraphWalker) EvalContext() EvalContext {
+	w.once.Do(w.init)
 
 	// Our evaluator shares some locks with the main context and the walker
 	// so that we can safely run multiple evaluations at once across
@@ -78,7 +84,6 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 
 	ctx := &BuiltinEvalContext{
 		StopContext:           w.StopContext,
-		PathValue:             path,
 		Hooks:                 w.Context.hooks,
 		InputValue:            w.Context.uiInput,
 		InstanceExpanderValue: w.InstanceExpander,
@@ -96,7 +101,6 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		VariableValuesLock:    &w.variableValuesLock,
 	}
 
-	w.contexts[key] = ctx
 	return ctx
 }
 

@@ -160,7 +160,7 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 			}
 
 			addr := rs.Addr
-			abstract := NewNodeAbstractResource(addr)
+			abstract := NewNodeAbstractResource(addr.Config())
 			var node dag.Vertex = abstract
 			if f := t.Concrete; f != nil {
 				node = f(abstract)

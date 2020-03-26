@@ -173,7 +173,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			p := req.Addr
 			target := m[key]
 
-			_, ok := v.(GraphNodeModuleInstance)
+			_, ok := v.(GraphNodeModulePath)
 			if !ok && target == nil {
 				// No target and no path to traverse up from
 				diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), p))
@@ -470,11 +470,6 @@ func (n *graphNodeCloseProvider) Name() string {
 	return n.Addr.String() + " (close)"
 }
 
-// GraphNodeModuleInstance impl.
-func (n *graphNodeCloseProvider) Path() addrs.ModuleInstance {
-	return n.Addr.Module.UnkeyedInstanceShim()
-}
-
 // GraphNodeModulePath
 func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
@@ -532,10 +527,6 @@ var (
 
 func (n *graphNodeProxyProvider) ProviderAddr() addrs.AbsProviderConfig {
 	return n.addr
-}
-
-func (n *graphNodeProxyProvider) Path() addrs.ModuleInstance {
-	return n.addr.Module.UnkeyedInstanceShim()
 }
 
 func (n *graphNodeProxyProvider) ModulePath() addrs.Module {

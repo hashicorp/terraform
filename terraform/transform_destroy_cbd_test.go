@@ -94,7 +94,7 @@ func TestCBDEdgeTransformer(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -164,7 +164,7 @@ func TestCBDEdgeTransformerMulti(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"C","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
 				mustResourceAddr("test_object.A"),
 				mustResourceAddr("test_object.B"),
 			},
@@ -234,7 +234,7 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -243,7 +243,7 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -320,7 +320,7 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)
@@ -329,7 +329,7 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
 	)

@@ -67,7 +67,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteManagedResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeRefreshableManagedResource{
+		return &nodeExpandRefreshableManagedResource{
 			NodeAbstractResource: a,
 		}
 	}
@@ -87,7 +87,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeRefreshableDataResource{
+		return &nodeExpandRefreshableDataResource{
 			NodeAbstractResource: a,
 		}
 	}

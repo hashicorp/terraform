@@ -10,12 +10,45 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// NodeRefreshableDataResource represents a resource that is "refreshable".
-type NodeRefreshableDataResource struct {
+type nodeExpandRefreshableDataResource struct {
 	*NodeAbstractResource
 }
 
 var (
+	_ GraphNodeDynamicExpandable    = (*nodeExpandRefreshableDataResource)(nil)
+	_ GraphNodeReferenceable        = (*nodeExpandRefreshableDataResource)(nil)
+	_ GraphNodeReferencer           = (*nodeExpandRefreshableDataResource)(nil)
+	_ GraphNodeConfigResource       = (*nodeExpandRefreshableDataResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*nodeExpandRefreshableDataResource)(nil)
+)
+
+func (n *nodeExpandRefreshableDataResource) References() []*addrs.Reference {
+	return (&NodeRefreshableManagedResource{NodeAbstractResource: n.NodeAbstractResource}).References()
+}
+
+func (n *nodeExpandRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Addr.Module) {
+		g.Add(&NodeRefreshableDataResource{
+			NodeAbstractResource: n.NodeAbstractResource,
+			Addr:                 n.Addr.Resource.Absolute(module),
+		})
+	}
+
+	return &g, nil
+}
+
+// NodeRefreshableDataResource represents a resource that is "refreshable".
+type NodeRefreshableDataResource struct {
+	*NodeAbstractResource
+
+	Addr addrs.AbsResource
+}
+
+var (
+	_ GraphNodeModuleInstance            = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeDynamicExpandable         = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferenceable             = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeReferencer                = (*NodeRefreshableDataResource)(nil)
@@ -23,6 +56,10 @@ var (
 	_ GraphNodeAttachResourceConfig      = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResource)(nil)
 )
+
+func (n *NodeRefreshableDataResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
 
 // GraphNodeDynamicExpandable
 func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -54,22 +91,18 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// if we're transitioning whether "count" is set at all.
 	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
 
-	var instanceAddrs []addrs.AbsResourceInstance
-
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
-	for _, path := range expander.ExpandModule(n.Addr.Module) {
-		switch {
-		case count >= 0:
-			expander.SetResourceCount(path, n.ResourceAddr().Resource, count)
-		case forEachMap != nil:
-			expander.SetResourceForEach(path, n.ResourceAddr().Resource, forEachMap)
-		default:
-			expander.SetResourceSingle(path, n.ResourceAddr().Resource)
-		}
-		instanceAddrs = append(instanceAddrs, expander.ExpandResource(n.ResourceAddr().Absolute(path))...)
+	switch {
+	case count >= 0:
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
+	case forEachMap != nil:
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
+	default:
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
+	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -114,7 +147,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// directly as NodeDestroyableDataResource.
 		&OrphanResourceCountTransformer{
 			Concrete:      concreteResourceDestroyable,
-			Addr:          n.ResourceAddr(),
+			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},

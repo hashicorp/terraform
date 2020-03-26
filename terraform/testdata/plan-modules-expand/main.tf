@@ -1,6 +1,9 @@
 locals {
   val = 2
   bar = "baz"
+  m = {
+    "a" = "b"
+  }
 }
 
 variable "myvar" {
@@ -8,21 +11,20 @@ variable "myvar" {
 }
 
 
-module "child" {
+module "count_child" {
   count = local.val
   foo = 2
   bar = var.myvar
   source = "./child"
 }
 
-output "out" {
-  value = module.child[*].out
+module "for_each_child" {
+  for_each = aws_instance.foo
+  foo = 2
+  bar = var.myvar
+  source = "./child"
 }
 
 resource "aws_instance" "foo" {
-  num = 2
-}
-
-resource "aws_instance" "bar" {
-  foo = "${aws_instance.foo.num}"
+  for_each = local.m
 }
