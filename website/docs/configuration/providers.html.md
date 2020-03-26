@@ -134,7 +134,7 @@ to view the specified version constraints for all providers used in the
 current configuration.
 
 For more information on the `required_providers` block, see
-[Specifying Required Provider Versions](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions).
+[Specifying Required Provider Versions and Source](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions-and-source).
 
 When `terraform init` is re-run with providers already installed, it will
 use an already-installed provider that meets the constraints in preference
@@ -148,6 +148,27 @@ configuration that may cause problems particularly when writing shared modules.
 For that reason, we recommend using the `required_providers` block as described
 above, and _not_ using the `version` argument within `provider` blocks.
 `version` is still supported for compatibility with older Terraform versions.
+
+## Provider Source
+The `required_providers` block can be used to declare the source for a terraform provider. You do not need to declare the source of any provider owned by HashiCorp(official provider / link?), but it is required for all partner and community providers.
+
+To declare a provider's source, add a `required_providers` block inside a `terrafrom` block:
+
+```hcl
+terraform {
+  required_providers {
+    mycloud = {
+      version = "~> 1.0"
+      source = "mycorp/mycloud"
+    }
+  }
+}
+```
+
+// map keys are arbitrary but must match configuration block label
+
+For more information on the `required_providers` block, see
+[Specifying Required Provider Versions and Source](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions-and-source).
 
 ## `alias`: Multiple Provider Instances
 

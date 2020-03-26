@@ -98,10 +98,24 @@ as `>= 0.12.0`. This specifies the earliest version that the module is
 compatible with while leaving the user of the module flexibility to upgrade
 to newer versions of Terraform without altering the module.
 
-## Specifying Required Provider Versions
+## Specifying Required Provider Versions and Source
 
-The `required_providers` setting is a map specifying a version constraint for
+The `required_providers` setting is a map specifying a version constraint and source for
 each provider required by your configuration.
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      version = ">= 2.7.0"
+      source = "hashicorp/aws"
+    }
+  }
+}
+```
+
+You are not required to set the `source` attribute for providers in the `hashicorp`. In
+those cases, an optional, simplified syntax may be used:
 
 ```hcl
 terraform {
