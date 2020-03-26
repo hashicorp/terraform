@@ -386,7 +386,7 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	return cty.ObjectVal(vals), diags
 }
 
-func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Output results live in the module that declares them, which is one of

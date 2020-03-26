@@ -293,7 +293,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			}
 			wholeModules[subj.Call.Name][subj.Key] = val
 
-		case addrs.ModuleCallOutput:
+		case addrs.AbsModuleCallOutput:
 			val, valDiags := normalizeRefValue(s.Data.GetModuleInstanceOutput(subj, rng))
 			diags = diags.Append(valDiags)
 
