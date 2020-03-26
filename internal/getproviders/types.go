@@ -29,16 +29,70 @@ type VersionSet = versions.Set
 // define the membership of a VersionSet by exclusion.
 type VersionConstraints = constraints.IntersectionSpec
 
+// Requirements gathers together requirements for many different providers
+// into a single data structure, as a convenient way to represent the full
+// set of requirements for a particular configuration or state or both.
+//
+// If an entry in a Requirements has a zero-length VersionConstraints then
+// that indicates that the provider is required but that any version is
+// acceptable. That's different than a provider being absent from the map
+// altogether, which means that it is not required at all.
+type Requirements map[addrs.Provider]VersionConstraints
+
+// Merge takes the requirements in the receiever and the requirements in the
+// other given value and produces a new set of requirements that combines
+// all of the requirements of both.
+//
+// The resulting requirements will permit only selections that both of the
+// source requirements would've allowed.
+func (r Requirements) Merge(other Requirements) Requirements {
+	ret := make(Requirements)
+	for addr, constraints := range r {
+		ret[addr] = constraints
+	}
+	for addr, constraints := range other {
+		ret[addr] = append(ret[addr], constraints...)
+	}
+	return ret
+}
+
+// Selections gathers together version selections for many different providers.
+//
+// This is the result of provider installation: a specific version selected
+// for each provider given in the requested Requirements, selected based on
+// the given version constraints.
+type Selections map[addrs.Provider]Version
+
 // ParseVersion parses a "semver"-style version string into a Version value,
 // which is the version syntax we use for provider versions.
 func ParseVersion(str string) (Version, error) {
 	return versions.ParseVersion(str)
 }
 
+// MustParseVersion is a variant of ParseVersion that panics if it encounters
+// an error while parsing.
+func MustParseVersion(str string) Version {
+	ret, err := ParseVersion(str)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
 // ParseVersionConstraints parses a "Ruby-like" version constraint string
 // into a VersionConstraints value.
 func ParseVersionConstraints(str string) (VersionConstraints, error) {
 	return constraints.ParseRubyStyleMulti(str)
+}
+
+// MustParseVersionConstraints is a variant of ParseVersionConstraints that
+// panics if it encounters an error while parsing.
+func MustParseVersionConstraints(str string) VersionConstraints {
+	ret, err := ParseVersionConstraints(str)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }
 
 // Platform represents a target platform that a provider is or might be
