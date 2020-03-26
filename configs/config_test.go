@@ -4,8 +4,11 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 func TestConfigProviderTypes(t *testing.T) {
@@ -111,6 +114,42 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
 	})
+}
+
+func TestConfigProviderRequirements(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	assertNoDiagnostics(t, diags)
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultRegistryHost,
+		"hashicorp", "tls",
+	)
+	happycloudProvider := addrs.NewProvider(
+		svchost.Hostname("tf.example.com"),
+		"awesomecorp", "happycloud",
+	)
+	// FIXME: these two are legacy ones for now because the config loader
+	// isn't using default configurations fully yet.
+	// Once that changes, these should be default-shaped ones like tlsProvider
+	// above.
+	nullProvider := addrs.NewLegacyProvider("null")
+	randomProvider := addrs.NewLegacyProvider("random")
+	impliedProvider := addrs.NewLegacyProvider("implied")
+
+	got, diags := cfg.ProviderRequirements()
+	assertNoDiagnostics(t, diags)
+	want := getproviders.Requirements{
+		// the nullProvider constraints from the two modules are merged
+		nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0, 2.0.1"),
+		randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
+		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
+		impliedProvider:    nil,
+		happycloudProvider: nil,
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
 }
 
 func TestProviderForConfigAddr(t *testing.T) {

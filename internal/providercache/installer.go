@@ -88,7 +88,7 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 // failures then those notifications will be redundant with the ones included
 // in the final returned error value so callers should show either one or the
 // other, and not both.
-func (i *Installer) EnsureProviderVersions(ctx context.Context, reqs map[addrs.Provider]getproviders.VersionConstraints, mode InstallMode) (map[addrs.Provider]getproviders.Version, error) {
+func (i *Installer) EnsureProviderVersions(ctx context.Context, reqs getproviders.Requirements, mode InstallMode) (getproviders.Selections, error) {
 	// FIXME: Currently the context isn't actually propagated into all of the
 	// other functions we call here, because they are not context-aware.
 	// Anything that could be making network requests here should take a

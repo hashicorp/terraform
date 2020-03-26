@@ -7,6 +7,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 // A Config is a node in the tree of modules within a configuration.
@@ -161,6 +162,75 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 		}
 	}
 	return current
+}
+
+// ProviderRequirements searches the full tree of modules under the receiver
+// for both explicit and implicit dependencies on providers.
+//
+// The result is a full manifest of all of the providers that must be available
+// in order to work with the receiving configuration.
+//
+// If the returned diagnostics includes errors then the resulting Requirements
+// may be incomplete.
+func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnostics) {
+	reqs := make(getproviders.Requirements)
+	diags := c.addProviderRequirements(reqs)
+	return reqs, diags
+}
+
+// addProviderRequirements is the main part of the ProviderRequirements
+// implementation, gradually mutating a shared requirements object to
+// eventually return.
+func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// First we'll deal with the requirements directly in _our_ module...
+	for _, providerReqs := range c.Module.ProviderRequirements {
+		fqn := providerReqs.Type
+		if _, ok := reqs[fqn]; !ok {
+			// We'll at least have an unconstrained dependency then, but might
+			// add to this in the loop below.
+			reqs[fqn] = nil
+		}
+		for _, constraintsSrc := range providerReqs.VersionConstraints {
+			// The model of version constraints in this package is still the
+			// old one using a different upstream module to represent versions,
+			// so we'll need to shim that out here for now. We assume this
+			// will always succeed because these constraints already succeeded
+			// parsing with the other constraint parser, which uses the same
+			// syntax.
+			constraints := getproviders.MustParseVersionConstraints(constraintsSrc.Required.String())
+			reqs[fqn] = append(reqs[fqn], constraints...)
+		}
+	}
+	// Each resource in the configuration creates an *implicit* provider
+	// dependency, though we'll only record it if there isn't already
+	// an explicit dependency on the same provider.
+	for _, rc := range c.Module.ManagedResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+	for _, rc := range c.Module.DataResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	// ...and now we'll recursively visit all of the child modules to merge
+	// in their requirements too.
+	for _, childConfig := range c.Children {
+		moreDiags := childConfig.addProviderRequirements(reqs)
+		diags = append(diags, moreDiags...)
+	}
+
+	return diags
 }
 
 // ProviderTypes returns the FQNs of each distinct provider type referenced
