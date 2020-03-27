@@ -135,3 +135,13 @@ The location of the [Terraform CLI configuration file](/docs/commands/cli-config
 ```shell
 export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
 ```
+
+## TF_IGNORE
+
+If `TF_IGNORE` is set to "trace", Terraform will output debug messages to display ignored files and folders which is useful when debugging large repositories with `.terraformignore` file. For example:
+
+```shell
+export TF_IGNORE=trace
+```
+
+For more detals on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](docs/backends/types/remote.html#excluding-files-from-upload-with-terraformignore)
