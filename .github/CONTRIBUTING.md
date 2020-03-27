@@ -4,26 +4,28 @@ This repository contains only Terraform core, which includes the command line in
 
 ----
 
+
+This document provides guidance on Terraform contibution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
+
+To record a bug report, enhancement proposal, or give any other product feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) using the most appropriate issue template. Please do fill in all of the information the issue templates request, because we've seen from experience that this will maximize the chance that we'll be able to act on your feedback.
+
+----
+
 <!-- MarkdownTOC autolink="true" -->
 
 - [Proposing a Change](#proposing-a-change)
-	- [Caveats & Areas of special concern](#caveats--areas-of-special-concern)
-		- [State Storage Backends](#state-storage-backends)
-		- [Provisioners](#provisioners)
-	- [Pull Request Lifecycle](#pull-request-lifecycle)
-		- [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
-	- [PR Checks](#pr-checks)
+  - [Caveats & Areas of special concern](#caveats--areas-of-special-concern)
+    - [State Storage Backends](#state-storage-backends)
+    - [Provisioners](#provisioners)
+  - [Pull Request Lifecycle](#pull-request-lifecycle)
+    - [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
+  - [PR Checks](#pr-checks)
 - [Terraform CLI/Core Development Environment](#terraform-clicore-development-environment)
 - [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
 - [Generated Code](#generated-code)
 - [External Dependencies](#external-dependencies)
 
 <!-- /MarkdownTOC -->
-
-
-This document provides guidance on Terraform contibution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
-
-To record a bug report, enhancement proposal, or give any other product feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) using the most appropriate issue template. Please do fill in all of the information the issue templates request, because we've seen from experience that this will maximize the chance that we'll be able to act on your feedback.
 
 ## Proposing a Change
 
