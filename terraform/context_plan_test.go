@@ -6176,13 +6176,15 @@ resource "aws_instance" "foo" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	if len(plan.Changes.Resources) != 1 {
-		t.Fatalf("expected 1 change, got %d", len(plan.Changes.Resources))
+	expected := map[string]plans.Action{
+		`module.mod[1].aws_instance.foo`: plans.Delete,
+		`module.mod[0].aws_instance.foo`: plans.NoOp,
 	}
 
 	for _, res := range plan.Changes.Resources {
-		if res.Action != plans.Delete {
-			t.Fatalf("expected Delete action, got: %s", res.Action)
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
 		}
 	}
 }
