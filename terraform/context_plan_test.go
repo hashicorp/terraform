@@ -6126,3 +6126,63 @@ func TestContext2Plan_requiredModuleObject(t *testing.T) {
 		})
 	}
 }
+
+func TestContext2Plan_expandOrphan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 1
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	state := states.NewState()
+	state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.IntKey(0))).SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"child"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+	state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.IntKey(1))).SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"child"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+	)
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			},
+		),
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatalf("expected 1 change, got %d", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Delete {
+			t.Fatalf("expected Delete action, got: %s", res.Action)
+		}
+	}
+}
