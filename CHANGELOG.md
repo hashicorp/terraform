@@ -26,6 +26,7 @@ BUG FIXES:
 * command/format: Fix diagnostic output to show multi-line code snippets correctly [GH-24473]
 * command/show (json output): fix inconsistency in resource addresses between plan and prior state output [GH-24256]
 * core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
+* core: Destroy provisioners should not evaluate for_each expressions [GH-24163]
 * lang: Fix non-string key panics in map function [GH-24277]
 * provisioners/habitat: Fix permissions on user.toml [GH-24321]
 
