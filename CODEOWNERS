@@ -1,8 +1,17 @@
 # Each line is a file pattern followed by one or more owners.
 # More on CODEOWNERS files: https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
-# Remote-state backends
-/backend/remote-state/azure     @hashicorp/terraform-azure
-/backend/remote-state/gcs       @hashicorp/terraform-google
-/backend/remote-state/s3        @hashicorp/terraform-aws
-/backend/remote-state/cos       @likexian
+# Remote-state backend
+/backend/remote-state/artifactory   Unmaintained
+/backend/remote-state/azure         @hashicorp/terraform-azure
+/backend/remote-state/consul        @hashicorp/consul
+/backend/remote-state/cos           @likexian
+/backend/remote-state/etcdv2        Unmaintained
+/backend/remote-state/etcdv2        Unmaintained
+/backend/remote-state/gcs           @hashicorp/terraform-google
+/backend/remote-state/http          Unmaintained
+/backend/remote-state/manta         Unmaintained
+/backend/remote-state/oss           @xiaozhu36
+/backend/remote-state/pg            Unmaintained
+/backend/remote-state/s3            @hashicorp/terraform-aws
+/backend/remote-state/swift         Unmaintained
