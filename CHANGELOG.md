@@ -22,6 +22,8 @@ BUG FIXES:
 * backend/oss: Allow locking of multiple different state files [GH-24149]
 * cli: Fix `terraform state mv` to correctly set the resource each mode based on the target address [GH-24254]
 * cli: The `terraform plan` command (and the implied plan run by `terraform apply` with no arguments) will now print any warnings that were generated even if there are no changes to be made. [GH-24095]
+* command/fmt: Include source snippets in errors [GH-24471]
+* command/format: Fix diagnostic output to show multi-line code snippets correctly [GH-24473]
 * command/show (json output): fix inconsistency in resource addresses between plan and prior state output [GH-24256]
 * core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
 * lang: Fix non-string key panics in map function [GH-24277]
