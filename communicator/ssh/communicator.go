@@ -155,11 +155,13 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 					"  User: %s\n"+
 					"  Password: %t\n"+
 					"  Private key: %t\n"+
+					"  Certificate: %t\n"+
 					"  SSH Agent: %t\n"+
 					"  Checking Host Key: %t",
 				c.connInfo.BastionHost, c.connInfo.BastionUser,
 				c.connInfo.BastionPassword != "",
 				c.connInfo.BastionPrivateKey != "",
+				c.connInfo.BastionCertificate != "",
 				c.connInfo.Agent,
 				c.connInfo.BastionHostKey != "",
 			))
@@ -204,7 +206,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 		}
 
 		log.Printf("[DEBUG] Setting up a session to request agent forwarding")
-		session, err := c.newSession()
+		session, err := c.client.NewSession()
 		if err != nil {
 			return err
 		}
@@ -233,6 +235,10 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	// Start a keepalive goroutine to help maintain the connection for
 	// long-running commands.
 	log.Printf("[DEBUG] starting ssh KeepAlives")
+
+	// We want a local copy of the ssh client pointer, so that a reconnect
+	// doesn't race with the running keep-alive loop.
+	sshClient := c.client
 	go func() {
 		defer cancelKeepAlive()
 		// Along with the KeepAlives generating packets to keep the tcp
@@ -247,7 +253,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 			for {
 				select {
 				case <-t.C:
-					_, _, err := c.client.SendRequest("keepalive@terraform.io", true, nil)
+					_, _, err := sshClient.SendRequest("keepalive@terraform.io", true, nil)
 					respCh <- err
 				case <-ctx.Done():
 					return

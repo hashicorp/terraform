@@ -274,8 +274,8 @@
             }
         },
         "provider_config": {
-            "module_test_foo:test": {
-                "module_address": "module_test_foo",
+            "module.module_test_foo:test": {
+                "module_address": "module.module_test_foo",
                 "name": "test"
             }
         }

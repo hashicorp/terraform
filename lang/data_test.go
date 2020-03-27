@@ -7,13 +7,14 @@ import (
 )
 
 type dataForTests struct {
-	CountAttrs        map[string]cty.Value
-	ResourceInstances map[string]cty.Value
-	LocalValues       map[string]cty.Value
-	Modules           map[string]cty.Value
-	PathAttrs         map[string]cty.Value
-	TerraformAttrs    map[string]cty.Value
-	InputVariables    map[string]cty.Value
+	CountAttrs     map[string]cty.Value
+	ForEachAttrs   map[string]cty.Value
+	Resources      map[string]cty.Value
+	LocalValues    map[string]cty.Value
+	Modules        map[string]cty.Value
+	PathAttrs      map[string]cty.Value
+	TerraformAttrs map[string]cty.Value
+	InputVariables map[string]cty.Value
 }
 
 var _ Data = &dataForTests{}
@@ -26,8 +27,12 @@ func (d *dataForTests) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRang
 	return d.CountAttrs[addr.Name], nil
 }
 
-func (d *dataForTests) GetResourceInstance(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	return d.ResourceInstances[addr.String()], nil
+func (d *dataForTests) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.ForEachAttrs[addr.Name], nil
+}
+
+func (d *dataForTests) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.Resources[addr.String()], nil
 }
 
 func (d *dataForTests) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -42,7 +47,7 @@ func (d *dataForTests) GetModuleInstance(addr addrs.ModuleCallInstance, rng tfdi
 	return d.Modules[addr.String()], nil
 }
 
-func (d *dataForTests) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *dataForTests) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// This will panic if the module object does not have the requested attribute
 	obj := d.Modules[addr.Call.String()]
 	return obj.GetAttr(addr.Name), nil

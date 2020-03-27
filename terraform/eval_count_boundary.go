@@ -63,14 +63,13 @@ func (n *EvalCountFixZeroOneBoundaryGlobal) fixModule(ctx EvalContext, moduleAdd
 	}
 
 	for _, r := range ms.Resources {
-		addr := r.Addr.Absolute(moduleAddr)
-		rCfg := cfg.Module.ResourceByAddr(r.Addr)
+		rCfg := cfg.Module.ResourceByAddr(r.Addr.Resource)
 		if rCfg == nil {
-			log.Printf("[WARN] Not fixing up EachModes for %s because it has no config", addr)
+			log.Printf("[WARN] Not fixing up EachModes for %s because it has no config", r.Addr)
 			continue
 		}
 		hasCount := rCfg.Count != nil
-		fixResourceCountSetTransition(ctx, addr, hasCount)
+		fixResourceCountSetTransition(ctx, r.Addr.Config(), hasCount)
 	}
 
 	return nil

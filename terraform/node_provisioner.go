@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
 )
 
 // NodeProvisioner represents a provider that has no associated operations.
@@ -12,18 +11,12 @@ import (
 type NodeProvisioner struct {
 	NameValue string
 	PathValue addrs.ModuleInstance
-
-	// The fields below will be automatically set using the Attach
-	// interfaces if you're running those transforms, but also be explicitly
-	// set if you already have that information.
-
-	Config *config.ProviderConfig
 }
 
 var (
-	_ GraphNodeSubPath     = (*NodeProvisioner)(nil)
-	_ GraphNodeProvisioner = (*NodeProvisioner)(nil)
-	_ GraphNodeEvalable    = (*NodeProvisioner)(nil)
+	_ GraphNodeModuleInstance = (*NodeProvisioner)(nil)
+	_ GraphNodeProvisioner    = (*NodeProvisioner)(nil)
+	_ GraphNodeEvalable       = (*NodeProvisioner)(nil)
 )
 
 func (n *NodeProvisioner) Name() string {
@@ -35,7 +28,7 @@ func (n *NodeProvisioner) Name() string {
 	return result
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeProvisioner) Path() addrs.ModuleInstance {
 	return n.PathValue
 }

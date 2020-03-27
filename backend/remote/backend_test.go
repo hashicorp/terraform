@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 
@@ -63,6 +63,19 @@ func TestRemote_config(t *testing.T) {
 				}),
 			}),
 			confErr: "Failed to request discovery document",
+		},
+		// localhost advertises TFE services, but has no token in the credentials
+		"without_a_token": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("localhost"),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			confErr: "terraform login localhost",
 		},
 		"with_a_name": {
 			config: cty.ObjectVal(map[string]cty.Value{

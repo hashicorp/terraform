@@ -153,16 +153,27 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 
 	// Some addrs.Referencable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
-	dependencies := make([]addrs.Referenceable, len(obj.Dependencies))
-	copy(dependencies, obj.Dependencies)
+	var dependencies []addrs.ConfigResource
+	if obj.Dependencies != nil {
+		dependencies = make([]addrs.ConfigResource, len(obj.Dependencies))
+		copy(dependencies, obj.Dependencies)
+	}
+
+	var dependsOn []addrs.Referenceable
+	if obj.DependsOn != nil {
+		dependsOn = make([]addrs.Referenceable, len(obj.DependsOn))
+		copy(dependsOn, obj.DependsOn)
+	}
 
 	return &ResourceInstanceObjectSrc{
-		Status:        obj.Status,
-		SchemaVersion: obj.SchemaVersion,
-		Private:       private,
-		AttrsFlat:     attrsFlat,
-		AttrsJSON:     attrsJSON,
-		Dependencies:  dependencies,
+		Status:              obj.Status,
+		SchemaVersion:       obj.SchemaVersion,
+		Private:             private,
+		AttrsFlat:           attrsFlat,
+		AttrsJSON:           attrsJSON,
+		Dependencies:        dependencies,
+		DependsOn:           dependsOn,
+		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}
 }
 
@@ -187,9 +198,9 @@ func (obj *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
 
 	// Some addrs.Referenceable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
-	var dependencies []addrs.Referenceable
+	var dependencies []addrs.ConfigResource
 	if obj.Dependencies != nil {
-		dependencies = make([]addrs.Referenceable, len(obj.Dependencies))
+		dependencies = make([]addrs.ConfigResource, len(obj.Dependencies))
 		copy(dependencies, obj.Dependencies)
 	}
 

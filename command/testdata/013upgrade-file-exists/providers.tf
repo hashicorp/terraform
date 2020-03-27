@@ -1,0 +1,2 @@
+provider alpha {}
+provider beta {}

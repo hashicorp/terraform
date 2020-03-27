@@ -45,6 +45,9 @@ func (val Value) Type() Type {
 // operating on other unknown values, and so an application that never
 // introduces Unknown values can be guaranteed to never receive any either.
 func (val Value) IsKnown() bool {
+	if val.IsMarked() {
+		return val.unmarkForce().IsKnown()
+	}
 	return val.v != unknown
 }
 
@@ -53,6 +56,9 @@ func (val Value) IsKnown() bool {
 // produces null, so an application that never introduces Null values can
 // be guaranteed to never receive any either.
 func (val Value) IsNull() bool {
+	if val.IsMarked() {
+		return val.unmarkForce().IsNull()
+	}
 	return val.v == nil
 }
 
@@ -74,6 +80,10 @@ var NilVal = Value{
 // inside collections and structures to see if there are any nested unknown
 // values.
 func (val Value) IsWhollyKnown() bool {
+	if val.IsMarked() {
+		return val.unmarkForce().IsWhollyKnown()
+	}
+
 	if !val.IsKnown() {
 		return false
 	}

@@ -10,9 +10,9 @@ import (
 
 // Resource represents the state of a resource.
 type Resource struct {
-	// Addr is the module-relative address for the resource this state object
+	// Addr is the absolute address for the resource this state object
 	// belongs to.
-	Addr addrs.Resource
+	Addr addrs.AbsResource
 
 	// EachMode is the multi-instance mode currently in use for this resource,
 	// or NoEach if this is a single-instance resource. This dictates what
@@ -37,6 +37,13 @@ type Resource struct {
 // if no such instance is tracked within the state.
 func (rs *Resource) Instance(key addrs.InstanceKey) *ResourceInstance {
 	return rs.Instances[key]
+}
+
+// CreateInstance creates an instance and adds it to the resource
+func (rs *Resource) CreateInstance(key addrs.InstanceKey) *ResourceInstance {
+	is := NewResourceInstance()
+	rs.Instances[key] = is
+	return is
 }
 
 // EnsureInstance returns the state for the instance with the given key,
@@ -175,7 +182,7 @@ const (
 	EachMap  EachMode = 'M'
 )
 
-//go:generate stringer -type EachMode
+//go:generate go run golang.org/x/tools/cmd/stringer -type EachMode
 
 func eachModeForInstanceKey(key addrs.InstanceKey) EachMode {
 	switch key.(type) {

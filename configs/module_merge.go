@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -35,7 +35,7 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd []*ProviderRequirement) {
+func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd []*RequiredProvider) {
 	// Any provider name that's mentioned in the override gets nilled out in
 	// our map so that we'll rebuild it below. Any provider not mentioned is
 	// left unchanged.
@@ -43,7 +43,14 @@ func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd [
 		delete(recv, reqd.Name)
 	}
 	for _, reqd := range ovrd {
-		recv[reqd.Name] = append(recv[reqd.Name], reqd.Requirement)
+		var fqn addrs.Provider
+		if reqd.Source.SourceStr != "" {
+			// any errors parsing the source string will have already been captured.
+			fqn, _ = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
+		} else {
+			fqn = addrs.NewLegacyProvider(reqd.Name)
+		}
+		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 	}
 }
 
@@ -190,7 +197,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func (r *Resource) merge(or *Resource) hcl.Diagnostics {
+func (r *Resource) merge(or *Resource, prs map[string]ProviderRequirements) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -205,9 +212,18 @@ func (r *Resource) merge(or *Resource) hcl.Diagnostics {
 	if or.ForEach != nil {
 		r.ForEach = or.ForEach
 	}
+
 	if or.ProviderConfigRef != nil {
 		r.ProviderConfigRef = or.ProviderConfigRef
+		if existing, exists := prs[or.ProviderConfigRef.Name]; exists {
+			r.Provider = existing.Type
+		} else {
+			r.Provider = addrs.NewLegacyProvider(r.ProviderConfigRef.Name)
+		}
 	}
+
+	// Provider FQN is set by Terraform during Merge
+
 	if r.Mode == addrs.ManagedResourceMode {
 		// or.Managed is always non-nil for managed resource mode
 

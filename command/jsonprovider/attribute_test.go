@@ -18,17 +18,19 @@ func TestMarshalAttribute(t *testing.T) {
 		{
 			&configschema.Attribute{Type: cty.String, Optional: true, Computed: true},
 			&attribute{
-				AttributeType: json.RawMessage(`"string"`),
-				Optional:      true,
-				Computed:      true,
+				AttributeType:   json.RawMessage(`"string"`),
+				Optional:        true,
+				Computed:        true,
+				DescriptionKind: "plain",
 			},
 		},
 		{ // collection types look a little odd.
 			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true},
 			&attribute{
-				AttributeType: json.RawMessage(`["map","string"]`),
-				Optional:      true,
-				Computed:      true,
+				AttributeType:   json.RawMessage(`["map","string"]`),
+				Optional:        true,
+				Computed:        true,
+				DescriptionKind: "plain",
 			},
 		},
 	}

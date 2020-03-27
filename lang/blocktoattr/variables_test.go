@@ -5,9 +5,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	hcljson "github.com/hashicorp/hcl2/hcl/json"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -19,6 +19,10 @@ func TestExpandedVariables(t *testing.T) {
 				Type: cty.List(cty.Object(map[string]cty.Type{
 					"bar": cty.String,
 				})),
+				Optional: true,
+			},
+			"bar": {
+				Type:     cty.Map(cty.String),
 				Optional: true,
 			},
 		},
@@ -138,6 +142,29 @@ dynamic "foo" {
 							Filename: "test.tf",
 							Start:    hcl.Pos{Line: 5, Column: 11, Byte: 57},
 							End:      hcl.Pos{Line: 5, Column: 14, Byte: 60},
+						},
+					},
+				},
+			},
+		},
+		"misplaced dynamic block": {
+			src: `
+dynamic "bar" {
+  for_each = beep
+  content {
+    key = val
+  }
+}
+`,
+			schema: fooSchema,
+			want: []hcl.Traversal{
+				{
+					hcl.TraverseRoot{
+						Name: "beep",
+						SrcRange: hcl.Range{
+							Filename: "test.tf",
+							Start:    hcl.Pos{Line: 3, Column: 14, Byte: 30},
+							End:      hcl.Pos{Line: 3, Column: 18, Byte: 34},
 						},
 					},
 				},

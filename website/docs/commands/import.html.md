@@ -52,10 +52,9 @@ The command-line flags are all optional. The list of available flags are:
   [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
   to 10.
 
-* `-provider=provider` - Specified provider to use for import. The value should be a provider
-  alias in the form `TYPE.ALIAS`, such as "aws.eu". This defaults to the normal
-  provider based on the prefix of the resource being imported. You usually
-  don't need to specify this.
+* `-provider=provider` - **Deprecated** Override the provider configuration to
+use when importing the object. By default, Terraform uses the provider specified
+in the configuration for the target resource, and that is the best behavior in most cases.
 
 * `-state=path` - Path to the source state file to read from. Defaults to the
   configured backend, or "terraform.tfstate".
@@ -105,23 +104,50 @@ provider "aws" {
 }
 ```
 
-You can force Terraform to explicitly not load your configuration by
-specifying `-config=""` (empty string). This is useful in situations where
-you want to manually configure the provider because your configuration
-may not be valid.
+## Example: Import into Resource
 
-## Example: AWS Instance
-
-This example will import an AWS instance:
+This example will import an AWS instance into the `aws_instance` resource named `foo`:
 
 ```shell
 $ terraform import aws_instance.foo i-abcd1234
 ```
 
-## Example: Import to Module
+## Example: Import into Module
 
-The example below will import an AWS instance into a module:
+The example below will import an AWS instance into the `aws_instance` resource named `bar` into a module named `foo`:
 
 ```shell
 $ terraform import module.foo.aws_instance.bar i-abcd1234
+```
+
+## Example: Import into Resource configured with count
+
+The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
+[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+
+```shell
+$ terraform import 'aws_instance.baz[0]' i-abcd1234
+```
+
+## Example: Import into Resource configured with for_each
+
+The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+Linux, Mac OS, and UNIX:
+
+```shell
+$ terraform import 'aws_instance.baz["example"]' i-abcd1234
+```
+
+PowerShell:
+
+```shell
+$ terraform import 'aws_instance.baz[\"example\"]' i-abcd1234
+```
+
+Windows `cmd.exe`:
+
+```shell
+$ terraform import aws_instance.baz[\"example\"] i-abcd1234
 ```

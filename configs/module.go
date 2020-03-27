@@ -3,9 +3,11 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -25,9 +27,13 @@ type Module struct {
 
 	CoreVersionConstraints []VersionConstraint
 
+	ActiveExperiments experiments.Set
+
 	Backend              *Backend
 	ProviderConfigs      map[string]*Provider
-	ProviderRequirements map[string][]VersionConstraint
+	ProviderRequirements map[string]ProviderRequirements
+	ProviderLocalNames   map[addrs.Provider]string
+	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -53,9 +59,12 @@ type Module struct {
 type File struct {
 	CoreVersionConstraints []VersionConstraint
 
-	Backends             []*Backend
-	ProviderConfigs      []*Provider
-	ProviderRequirements []*ProviderRequirement
+	ActiveExperiments experiments.Set
+
+	Backends          []*Backend
+	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
+	RequiredProviders []*RequiredProvider
 
 	Variables []*Variable
 	Locals    []*Local
@@ -79,13 +88,15 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
 		ProviderConfigs:      map[string]*Provider{},
-		ProviderRequirements: map[string][]VersionConstraint{},
+		ProviderRequirements: map[string]ProviderRequirements{},
+		ProviderLocalNames:   map[addrs.Provider]string{},
 		Variables:            map[string]*Variable{},
 		Locals:               map[string]*Local{},
 		Outputs:              map[string]*Output{},
 		ModuleCalls:          map[string]*ModuleCall{},
 		ManagedResources:     map[string]*Resource{},
 		DataResources:        map[string]*Resource{},
+		ProviderMetas:        map[addrs.Provider]*ProviderMeta{},
 	}
 
 	for _, file := range primaryFiles {
@@ -97,6 +108,11 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		fileDiags := mod.mergeFile(file)
 		diags = append(diags, fileDiags...)
 	}
+
+	diags = append(diags, checkModuleExperiments(mod)...)
+
+	// Generate the FQN -> LocalProviderName map
+	mod.gatherProviderLocalNames()
 
 	return mod, diags
 }
@@ -123,6 +139,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		// when we actually check these constraints.
 		m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
 	}
+
+	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
 	for _, b := range file.Backends {
 		if m.Backend != nil {
@@ -160,8 +178,46 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.ProviderConfigs[key] = pc
 	}
 
-	for _, reqd := range file.ProviderRequirements {
-		m.ProviderRequirements[reqd.Name] = append(m.ProviderRequirements[reqd.Name], reqd.Requirement)
+	for _, reqd := range file.RequiredProviders {
+		var fqn addrs.Provider
+		if reqd.Source.SourceStr != "" {
+			var sourceDiags tfdiags.Diagnostics
+			fqn, sourceDiags = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
+			hclDiags := sourceDiags.ToHCL()
+			// The diagnostics from ParseProviderSourceString don't contain
+			// source location information because it has no context to compute
+			// them from, and so we'll add those in quickly here before we
+			// return.
+			for _, diag := range hclDiags {
+				if diag.Subject == nil {
+					diag.Subject = reqd.Source.DeclRange.Ptr()
+				}
+			}
+			diags = append(diags, hclDiags...)
+		} else {
+			fqn = addrs.NewLegacyProvider(reqd.Name)
+		}
+		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
+			if existing.Type != fqn {
+				panic("provider fqn mismatch")
+			}
+			existing.VersionConstraints = append(existing.VersionConstraints, reqd.Requirement)
+		} else {
+			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
+		}
+	}
+
+	for _, pm := range file.ProviderMetas {
+		// TODO(paddy): pm.Provider is a string, but we need to build an addrs.Provider out of it somehow
+		if existing, exists := m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate provider_meta block",
+				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
+				Subject:  &pm.DeclRange,
+			})
+		}
+		m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)] = pm
 	}
 
 	for _, v := range file.Variables {
@@ -224,6 +280,22 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ManagedResources[key] = r
+
+		// set the provider FQN for the resource
+		var provider addrs.Provider
+		if r.ProviderConfigRef != nil {
+			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
+				provider = existing.Type
+			} else {
+				// FIXME: This will be a NewDefaultProvider
+				provider = addrs.NewLegacyProvider(r.ProviderConfigAddr().LocalName)
+			}
+			r.Provider = provider
+			continue
+		}
+		// FIXME: this will replaced with NewDefaultProvider when provider
+		// source is fully implemented.
+		r.Provider = addrs.NewLegacyProvider(r.Addr().ImpliedProvider())
 	}
 
 	for _, r := range file.DataResources {
@@ -238,6 +310,22 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+
+		// set the provider FQN for the resource
+		var provider addrs.Provider
+		if r.ProviderConfigRef != nil {
+			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
+				provider = existing.Type
+			} else {
+				// FIXME: This will be a NewDefaultProvider
+				provider = addrs.NewLegacyProvider(r.ProviderConfigAddr().LocalName)
+			}
+			r.Provider = provider
+			continue
+		}
+		// FIXME: this will replaced with NewDefaultProvider when provider
+		// source is fully implemented.
+		r.Provider = addrs.NewLegacyProvider(r.Addr().ImpliedProvider())
 	}
 
 	return diags
@@ -304,8 +392,8 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	if len(file.ProviderRequirements) != 0 {
-		mergeProviderVersionConstraints(m.ProviderRequirements, file.ProviderRequirements)
+	if len(file.RequiredProviders) != 0 {
+		mergeProviderVersionConstraints(m.ProviderRequirements, file.RequiredProviders)
 	}
 
 	for _, v := range file.Variables {
@@ -380,7 +468,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r)
+		mergeDiags := existing.merge(r, m.ProviderRequirements)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -396,9 +484,41 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r)
+		mergeDiags := existing.merge(r, m.ProviderRequirements)
 		diags = append(diags, mergeDiags...)
 	}
 
 	return diags
+}
+
+// gatherProviderLocalNames is a helper function that populatesA a map of
+// provider FQNs -> provider local names. This information is useful for
+// user-facing output, which should include both the FQN and LocalName. It must
+// only be populated after the module has been parsed.
+func (m *Module) gatherProviderLocalNames() {
+	providers := make(map[addrs.Provider]string)
+	for k, v := range m.ProviderRequirements {
+		providers[v.Type] = k
+	}
+	m.ProviderLocalNames = providers
+}
+
+// LocalNameForProvider returns the module-specific user-supplied local name for
+// a given provider FQN, or the default local name if none was supplied.
+func (m *Module) LocalNameForProvider(p addrs.Provider) string {
+	if existing, exists := m.ProviderLocalNames[p]; exists {
+		return existing
+	} else {
+		// If there isn't a map entry, fall back to the default:
+		// Type = LocalName
+		return p.Type
+	}
+}
+
+// ProviderForLocalConfig returns the provider FQN for a given LocalProviderConfig
+func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
+	if provider, exists := m.ProviderRequirements[pc.LocalName]; exists {
+		return provider.Type
+	}
+	return addrs.NewLegacyProvider(pc.LocalName)
 }

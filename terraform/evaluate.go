@@ -2,20 +2,20 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 
 	"github.com/agext/levenshtein"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -98,43 +98,32 @@ type evaluationStateData struct {
 	Operation walkOperation
 }
 
-// InstanceKeyEvalData is used during evaluation to specify which values,
-// if any, should be produced for count.index, each.key, and each.value.
-type InstanceKeyEvalData struct {
-	// CountIndex is the value for count.index, or cty.NilVal if evaluating
-	// in a context where the "count" argument is not active.
-	//
-	// For correct operation, this should always be of type cty.Number if not
-	// nil.
-	CountIndex cty.Value
-
-	// EachKey and EachValue are the values for each.key and each.value
-	// respectively, or cty.NilVal if evaluating in a context where the
-	// "for_each" argument is not active. These must either both be set
-	// or neither set.
-	//
-	// For correct operation, EachKey must always be either of type cty.String
-	// or cty.Number if not nil.
-	EachKey, EachValue cty.Value
-}
+// InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
+// here for compatibility. In new code, use instances.RepetitionData instead.
+type InstanceKeyEvalData = instances.RepetitionData
 
 // EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
 // evaluating in a context that has the given instance key.
-func EvalDataForInstanceKey(key addrs.InstanceKey) InstanceKeyEvalData {
-	// At the moment we don't actually implement for_each, so we only
-	// ever populate CountIndex.
-	// (When we implement for_each later we may need to reorganize this some,
-	// so that we can resolve the ambiguity that an int key may either be
-	// a count.index or an each.key where for_each is over a list.)
-
-	var countIdx cty.Value
-	if intKey, ok := key.(addrs.IntKey); ok {
-		countIdx = cty.NumberIntVal(int64(intKey))
+//
+// The forEachMap argument can be nil when preparing for evaluation
+// in a context where each.value is prohibited, such as a destroy-time
+// provisioner. In that case, the returned EachValue will always be
+// cty.NilVal.
+func EvalDataForInstanceKey(key addrs.InstanceKey, forEachMap map[string]cty.Value) InstanceKeyEvalData {
+	var evalData InstanceKeyEvalData
+	if key == nil {
+		return evalData
 	}
 
-	return InstanceKeyEvalData{
-		CountIndex: countIdx,
+	keyValue := key.Value()
+	switch keyValue.Type() {
+	case cty.String:
+		evalData.EachKey = keyValue
+		evalData.EachValue = forEachMap[keyValue.AsString()]
+	case cty.Number:
+		evalData.CountIndex = keyValue
 	}
+	return evalData
 }
 
 // EvalDataForNoInstanceKey is a value of InstanceKeyData that sets no instance
@@ -171,6 +160,47 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 		})
 		return cty.DynamicVal, diags
 	}
+}
+
+func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var returnVal cty.Value
+	switch addr.Name {
+
+	case "key":
+		returnVal = d.InstanceKeyData.EachKey
+	case "value":
+		returnVal = d.InstanceKeyData.EachValue
+
+		if returnVal == cty.NilVal {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `each.value cannot be used in this context`,
+				Detail:   fmt.Sprintf(`A reference to "each.value" has been used in a context in which it unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+			return cty.UnknownVal(cty.DynamicPseudoType), diags
+		}
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Invalid "each" attribute`,
+			Detail:   fmt.Sprintf(`The "each" object does not have an attribute named %q. The supported attributes are each.key and each.value, the current key and value pair of the "for_each" attribute set.`, addr.Name),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
+	if returnVal == cty.NilVal {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to "each" in context without for_each`,
+			Detail:   fmt.Sprintf(`The "each" object can be used only in "resource" blocks, and only when the "for_each" argument is set.`),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.UnknownVal(cty.DynamicPseudoType), diags
+	}
+	return returnVal, diags
 }
 
 func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -356,7 +386,7 @@ func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, r
 	return cty.ObjectVal(vals), diags
 }
 
-func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Output results live in the module that declares them, which is one of
@@ -472,14 +502,8 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 	}
 }
 
-func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	// Although we are giving a ResourceInstance address here, if it has
-	// a key of addrs.NoKey then it might actually be a request for all of
-	// the instances of a particular resource. The reference resolver can't
-	// resolve the ambiguity itself, so we must do it in here.
-
 	// First we'll consult the configuration to see if an resource of this
 	// name is declared at all.
 	moduleAddr := d.ModulePath
@@ -490,36 +514,21 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		panic(fmt.Sprintf("resource value read from %s, which has no configuration", moduleAddr))
 	}
 
-	config := moduleConfig.Module.ResourceByAddr(addr.ContainingResource())
+	config := moduleConfig.Module.ResourceByAddr(addr)
 	if config == nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Resource.Type, addr.Resource.Name, moduleDisplayAddr(moduleAddr)),
+			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Type, addr.Name, moduleDisplayAddr(moduleAddr)),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
 	}
 
-	// First we'll find the state for the resource as a whole, and decide
-	// from there whether we're going to interpret the given address as a
-	// resource or a resource instance address.
-	rs := d.Evaluator.State.Resource(addr.ContainingResource().Absolute(d.ModulePath))
+	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
 	if rs == nil {
-		schema := d.getResourceSchema(addr.ContainingResource(), config.ProviderConfigAddr().Absolute(d.ModulePath))
-
-		// If it doesn't exist at all then we can't reliably determine whether
-		// single-instance or whole-resource interpretation was intended, but
-		// we can decide this partially...
-		if addr.Key != addrs.NoKey {
-			// If there's an instance key then the user must be intending
-			// single-instance interpretation, and so we can return a
-			// properly-typed unknown value to help with type checking.
-			return cty.UnknownVal(schema.ImpliedType()), diags
-		}
-
-		// otherwise we must return DynamicVal so that both interpretations
+		// we must return DynamicVal so that both interpretations
 		// can proceed without generating errors, and we'll deal with this
 		// in a later step where more information is gathered.
 		// (In practice we should only end up here during the validate walk,
@@ -534,135 +543,13 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, r
 		return cty.DynamicVal, diags
 	}
 
-	schema := d.getResourceSchema(addr.ContainingResource(), rs.ProviderConfig)
-
-	// If we are able to automatically convert to the "right" type of instance
-	// key for this each mode then we'll do so, to match with how we generally
-	// treat values elsewhere in the language. This allows code below to
-	// assume that any possible conversions have already been dealt with and
-	// just worry about validation.
-	key := d.coerceInstanceKey(addr.Key, rs.EachMode)
-
-	multi := false
-
-	switch rs.EachMode {
-	case states.NoEach:
-		if key != addrs.NoKey {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid resource index",
-				Detail:   fmt.Sprintf("Resource %s does not have either \"count\" or \"for_each\" set, so it cannot be indexed.", addr.ContainingResource()),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-			return cty.DynamicVal, diags
-		}
-	case states.EachList:
-		multi = key == addrs.NoKey
-		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid resource index",
-				Detail:   fmt.Sprintf("Resource %s must be indexed with a number value.", addr.ContainingResource()),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-			return cty.DynamicVal, diags
-		}
-	case states.EachMap:
-		multi = key == addrs.NoKey
-		if _, ok := addr.Key.(addrs.IntKey); !multi && !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid resource index",
-				Detail:   fmt.Sprintf("Resource %s must be indexed with a string value.", addr.ContainingResource()),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-			return cty.DynamicVal, diags
-		}
-	}
-
-	if !multi {
-		log.Printf("[TRACE] GetResourceInstance: %s is a single instance", addr)
-		is := rs.Instance(key)
-		if is == nil {
-			return cty.UnknownVal(schema.ImpliedType()), diags
-		}
-		return d.getResourceInstanceSingle(addr, rng, is, config, rs.ProviderConfig)
-	}
-
-	log.Printf("[TRACE] GetResourceInstance: %s has multiple keyed instances", addr)
-	return d.getResourceInstancesAll(addr.ContainingResource(), rng, config, rs, rs.ProviderConfig)
-}
-
-func (d *evaluationStateData) getResourceInstanceSingle(addr addrs.ResourceInstance, rng tfdiags.SourceRange, is *states.ResourceInstance, config *configs.Resource, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	schema := d.getResourceSchema(addr.ContainingResource(), providerAddr)
-	if schema == nil {
-		// This shouldn't happen, since validation before we get here should've
-		// taken care of it, but we'll show a reasonable error message anyway.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Missing resource type schema`,
-			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, providerAddr),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
-	}
-
-	ty := schema.ImpliedType()
-	if is == nil || is.Current == nil {
-		// Assume we're dealing with an instance that hasn't been created yet.
-		return cty.UnknownVal(ty), diags
-	}
-
-	if is.Current.Status == states.ObjectPlanned {
-		// If there's a pending change for this instance in our plan, we'll prefer
-		// that. This is important because the state can't represent unknown values
-		// and so its data is inaccurate when changes are pending.
-		if change := d.Evaluator.Changes.GetResourceInstanceChange(addr.Absolute(d.ModulePath), states.CurrentGen); change != nil {
-			val, err := change.After.Decode(ty)
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid resource instance data in plan",
-					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", addr.Absolute(d.ModulePath), err),
-					Subject:  &config.DeclRange,
-				})
-				return cty.UnknownVal(ty), diags
-			}
-			return val, diags
-		} else {
-			// If the object is in planned status then we should not
-			// get here, since we should've found a pending value
-			// in the plan above instead.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing pending object in plan",
-				Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", addr),
-				Subject:  &config.DeclRange,
-			})
-			return cty.UnknownVal(ty), diags
-		}
-	}
-
-	ios, err := is.Current.Decode(ty)
-	if err != nil {
-		// This shouldn't happen, since by the time we get here
-		// we should've upgraded the state data already.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid resource instance data in state",
-			Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Absolute(d.ModulePath), err),
-			Subject:  &config.DeclRange,
-		})
-		return cty.UnknownVal(ty), diags
-	}
-
-	return ios.Value, diags
+	return d.getResourceInstancesAll(addr, rng, config, rs, rs.ProviderConfig)
 }
 
 func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng tfdiags.SourceRange, config *configs.Resource, rs *states.Resource, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	instAddr := addrs.ResourceInstance{Resource: addr, Key: addrs.NoKey}
 
 	schema := d.getResourceSchema(addr, providerAddr)
 	if schema == nil {
@@ -678,6 +565,58 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 	}
 
 	switch rs.EachMode {
+	case states.NoEach:
+		ty := schema.ImpliedType()
+		is := rs.Instances[addrs.NoKey]
+		if is == nil || is.Current == nil {
+			// Assume we're dealing with an instance that hasn't been created yet.
+			return cty.UnknownVal(ty), diags
+		}
+
+		if is.Current.Status == states.ObjectPlanned {
+			// If there's a pending change for this instance in our plan, we'll prefer
+			// that. This is important because the state can't represent unknown values
+			// and so its data is inaccurate when changes are pending.
+			if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr.Absolute(d.ModulePath), states.CurrentGen); change != nil {
+				val, err := change.After.Decode(ty)
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid resource instance data in plan",
+						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", addr.Absolute(d.ModulePath), err),
+						Subject:  &config.DeclRange,
+					})
+					return cty.UnknownVal(ty), diags
+				}
+				return val, diags
+			} else {
+				// If the object is in planned status then we should not
+				// get here, since we should've found a pending value
+				// in the plan above instead.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing pending object in plan",
+					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", addr),
+					Subject:  &config.DeclRange,
+				})
+				return cty.UnknownVal(ty), diags
+			}
+		}
+
+		ios, err := is.Current.Decode(ty)
+		if err != nil {
+			// This shouldn't happen, since by the time we get here
+			// we should've upgraded the state data already.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid resource instance data in state",
+				Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Absolute(d.ModulePath), err),
+				Subject:  &config.DeclRange,
+			})
+			return cty.UnknownVal(ty), diags
+		}
+
+		return ios.Value, diags
 
 	case states.EachList:
 		// We need to infer the length of our resulting tuple by searching
@@ -695,60 +634,59 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 		for i := 0; i < length; i++ {
 			ty := schema.ImpliedType()
 			key := addrs.IntKey(i)
-			is, exists := rs.Instances[key]
-			if exists && is.Current != nil {
-				instAddr := addr.Instance(key).Absolute(d.ModulePath)
-
-				// Prefer pending value in plan if present. See getResourceInstanceSingle
-				// comment for the rationale.
-				if is.Current.Status == states.ObjectPlanned {
-					if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
-						val, err := change.After.Decode(ty)
-						if err != nil {
-							diags = diags.Append(&hcl.Diagnostic{
-								Severity: hcl.DiagError,
-								Summary:  "Invalid resource instance data in plan",
-								Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
-								Subject:  &config.DeclRange,
-							})
-							continue
-						}
-						vals[i] = val
-						continue
-					} else {
-						// If the object is in planned status then we should not
-						// get here, since we should've found a pending value
-						// in the plan above instead.
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Missing pending object in plan",
-							Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-							Subject:  &config.DeclRange,
-						})
-						continue
-					}
-				}
-
-				ios, err := is.Current.Decode(ty)
-				if err != nil {
-					// This shouldn't happen, since by the time we get here
-					// we should've upgraded the state data already.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid resource instance data in state",
-						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
-						Subject:  &config.DeclRange,
-					})
-					continue
-				}
-				vals[i] = ios.Value
-			} else {
+			is := rs.Instances[key]
+			if is == nil || is.Current == nil {
 				// There shouldn't normally be "gaps" in our list but we'll
 				// allow it under the assumption that we're in a weird situation
 				// where e.g. someone has run "terraform state mv" to reorder
 				// a list and left a hole behind.
 				vals[i] = cty.UnknownVal(schema.ImpliedType())
+				continue
 			}
+
+			instAddr := addr.Instance(key).Absolute(d.ModulePath)
+
+			if is.Current.Status == states.ObjectPlanned {
+				if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
+					val, err := change.After.Decode(ty)
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid resource instance data in plan",
+							Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+							Subject:  &config.DeclRange,
+						})
+						continue
+					}
+					vals[i] = val
+					continue
+				} else {
+					// If the object is in planned status then we should not
+					// get here, since we should've found a pending value
+					// in the plan above instead.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Missing pending object in plan",
+						Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
+						Subject:  &config.DeclRange,
+					})
+					continue
+				}
+			}
+
+			ios, err := is.Current.Decode(ty)
+			if err != nil {
+				// This shouldn't happen, since by the time we get here
+				// we should've upgraded the state data already.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid resource instance data in state",
+					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
+					Subject:  &config.DeclRange,
+				})
+				continue
+			}
+			vals[i] = ios.Value
 		}
 
 		// We use a tuple rather than a list here because resource schemas may
@@ -762,12 +700,14 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 		vals := make(map[string]cty.Value, len(rs.Instances))
 		for k, is := range rs.Instances {
 			if sk, ok := k.(addrs.StringKey); ok {
+				if is == nil || is.Current == nil {
+					// Assume we're dealing with an instance that hasn't been created yet.
+					vals[string(sk)] = cty.UnknownVal(schema.ImpliedType())
+					continue
+				}
+
 				instAddr := addr.Instance(k).Absolute(d.ModulePath)
 
-				// Prefer pending value in plan if present. See getResourceInstanceSingle
-				// comment for the rationale.
-				// Prefer pending value in plan if present. See getResourceInstanceSingle
-				// comment for the rationale.
 				if is.Current.Status == states.ObjectPlanned {
 					if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
 						val, err := change.After.Decode(ty)
@@ -825,9 +765,8 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	providerType := providerAddr.ProviderConfig.Type
 	schemas := d.Evaluator.Schemas
-	schema, _ := schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	schema, _ := schemas.ResourceTypeConfig(providerAddr.Provider, addr.Mode, addr.Type)
 	return schema
 }
 

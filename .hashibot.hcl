@@ -1,12 +1,38 @@
+behavior "pull_request_path_labeler" "sdk_cherrypicker" {
+  label_map = {
+    "sdkv1" = [
+      # 1-1 package mapping between core and sdk
+      "helper/**",
+      "httpclient/**",
+      "plugin/**",
+      "terraform/**",
+      "internal/earlyconfig/**",
+      "internal/initwd/**",
+      "internal/modsdir/**",
+      "internal/tfplugin5/**",
+      # these packages have been moved under internal/ in the sdk
+      "addrs/**",
+      "command/format/**",
+      "configs/**",
+      "dag/**",
+      "flatmap/**",
+      "lang/**",
+      "moduledeps/**",
+      "plans/**",
+      "providers/**",
+      "provisioners/**",
+      "registry/**",
+      "states/**",
+      "svchost/**",
+      "tfdiags/**",
+      "version/**"
+    ]
+  }
+}
+
 behavior "regexp_issue_labeler" "panic_label" {
     regexp = "panic:"
     labels = ["crash", "bug"]
-}
-
-behavior "regexp_issue_notifier" "panic_notify" {
-    regexp = "panic:"
-    slack_channel = env.TERRAFORM_SLACK_CHANNEL
-    message = "Panic report! https://github.com/${var.repository}/issues/${var.issue_number} has a panic in it."
 }
 
 behavior "remove_labels_on_reply" "remove_stale" {
@@ -33,4 +59,17 @@ poll "label_issue_migrater" "provider_migrater" {
     
     EOF
     migrated_comment = "This issue has been automatically migrated to ${var.repository}#${var.issue_number} because it looks like an issue with that provider. If you believe this is _not_ an issue with the provider, please reply to ${var.repository}#${var.issue_number}."
+}
+
+poll "closed_issue_locker" "locker" {
+  schedule             = "0 50 1 * * *"
+  closed_for           = "720h" # 30 days
+  max_issues           = 500
+  sleep_between_issues = "5s"
+
+  message = <<-EOF
+    I'm going to lock this issue because it has been closed for _30 days_ ⏳. This helps our maintainers find and focus on the active issues.
+
+    If you have found a problem that seems similar to this, please open a new issue and complete the issue template so we can capture all the details necessary to investigate further.
+  EOF
 }

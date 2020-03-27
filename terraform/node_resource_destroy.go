@@ -26,7 +26,8 @@ type NodeDestroyResourceInstance struct {
 }
 
 var (
-	_ GraphNodeResource            = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeModuleInstance      = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeConfigResource      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeResourceInstance    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyer           = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyerCBD        = (*NodeDestroyResourceInstance)(nil)
@@ -56,12 +57,21 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 		return *n.CreateBeforeDestroyOverride
 	}
 
-	// If we have no config, we just assume no
-	if n.Config == nil || n.Config.Managed == nil {
-		return false
+	// Config takes precedence
+	if n.Config != nil && n.Config.Managed != nil {
+		return n.Config.Managed.CreateBeforeDestroy
 	}
 
-	return n.Config.Managed.CreateBeforeDestroy
+	// Otherwise check the state for a stored destroy order
+	if rs := n.ResourceState; rs != nil {
+		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
+			if s.Current != nil {
+				return s.Current.CreateBeforeDestroy
+			}
+		}
+	}
+
+	return false
 }
 
 // GraphNodeDestroyerCBD
@@ -127,7 +137,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	rs := n.ResourceState
 	var is *states.ResourceInstance
 	if rs != nil {
-		is = rs.Instance(n.InstanceKey)
+		is = rs.Instance(n.Addr.Resource.Key)
 	}
 	if is == nil {
 		log.Printf("[WARN] NodeDestroyResourceInstance for %s with no state", addr)
@@ -246,6 +256,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 						Change:         &changeApply,
 						Provider:       &provider,
 						ProviderAddr:   n.ResolvedProvider,
+						ProviderMetas:  n.ProviderMetas,
 						ProviderSchema: &providerSchema,
 						Output:         &state,
 						Error:          &err,
@@ -268,7 +279,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	}
 }
 
-// NodeDestroyResourceInstance represents a resource that is to be destroyed.
+// NodeDestroyResource represents a resource that is to be destroyed.
 //
 // Destroying a resource is a state-only operation: it is the individual
 // instances being destroyed that affects remote objects. During graph
@@ -278,14 +289,27 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 // all been destroyed.
 type NodeDestroyResource struct {
 	*NodeAbstractResource
+	Addr addrs.AbsResource
 }
 
 var (
-	_ GraphNodeResource      = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
-	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
+	_ GraphNodeModuleInstance = (*NodeDestroyResource)(nil)
+	_ GraphNodeConfigResource = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferenceable  = (*NodeDestroyResource)(nil)
+	_ GraphNodeReferencer     = (*NodeDestroyResource)(nil)
+	_ GraphNodeEvalable       = (*NodeDestroyResource)(nil)
+
+	// FIXME: this is here to document that this node is both
+	// GraphNodeProviderConsumer by virtue of the embedded
+	// NodeAbstractResource, but that behavior is not desired and we skip it by
+	// checking for GraphNodeNoProvider.
+	_ GraphNodeProviderConsumer = (*NodeDestroyResource)(nil)
+	_ GraphNodeNoProvider       = (*NodeDestroyResource)(nil)
 )
+
+func (n *NodeDestroyResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
 
 func (n *NodeDestroyResource) Name() string {
 	return n.ResourceAddr().String() + " (clean up state)"
@@ -318,4 +342,19 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 	return &EvalForgetResourceState{
 		Addr: n.ResourceAddr().Resource,
 	}
+}
+
+// GraphNodeResource
+func (n *NodeDestroyResource) ResourceAddr() addrs.ConfigResource {
+	return n.NodeAbstractResource.ResourceAddr()
+}
+
+// GraphNodeNoProvider
+// FIXME: this should be removed once the node can be separated from the
+// Internal NodeAbstractResource behavior.
+func (n *NodeDestroyResource) NoProvider() {
+}
+
+type GraphNodeNoProvider interface {
+	NoProvider()
 }

@@ -215,9 +215,10 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 				}]
 			}`),
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	}))
 	b.CLI = cli.NewMockUi()
@@ -658,9 +659,10 @@ func testPlanState() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -684,9 +686,10 @@ func testPlanState_withDataSource() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -700,9 +703,10 @@ func testPlanState_withDataSource() *states.State {
 				"filter": "foo"
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -726,9 +730,10 @@ func testPlanState_tainted() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }

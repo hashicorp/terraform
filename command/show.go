@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	localBackend "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
 	"github.com/hashicorp/terraform/command/jsonstate"
@@ -33,6 +34,7 @@ func (c *ShowCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -90,6 +92,7 @@ func (c *ShowCommand) Run(args []string) int {
 	opReq.ConfigDir = cwd
 	opReq.PlanFile = planFile
 	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.AllowUnsetVariables = true
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
@@ -132,8 +135,8 @@ func (c *ShowCommand) Run(args []string) int {
 	} else {
 		env := c.Workspace()
 		stateFile, stateErr = getStateFromEnv(b, env)
-		if err != nil {
-			c.Ui.Error(err.Error())
+		if stateErr != nil {
+			c.Ui.Error(stateErr.Error())
 			return 1
 		}
 	}
@@ -150,8 +153,16 @@ func (c *ShowCommand) Run(args []string) int {
 			c.Ui.Output(string(jsonPlan))
 			return 0
 		}
-		dispPlan := format.NewPlan(plan.Changes)
-		c.Ui.Output(dispPlan.Format(c.Colorize()))
+
+		// FIXME: We currently call into the local backend for this, since
+		// the "terraform plan" logic lives there and our package call graph
+		// means we can't orient this dependency the other way around. In
+		// future we'll hopefully be able to refactor the backend architecture
+		// a little so that CLI UI rendering always happens in this "command"
+		// package rather than in the backends themselves, but for now we're
+		// accepting this oddity because "terraform show" is a less commonly
+		// used way to render a plan than "terraform plan" is.
+		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize())
 		return 0
 	}
 
@@ -214,7 +225,7 @@ func getPlanFromPath(path string) (*plans.Plan, *statefile.File, error) {
 	}
 
 	stateFile, err := pr.ReadStateFile()
-	return plan, stateFile, nil
+	return plan, stateFile, err
 }
 
 // getStateFromPath returns a statefile if the user-supplied path points to a statefile.

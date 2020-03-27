@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/copydir"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -232,7 +233,16 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/registry-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
 	defer done()
 
 	hooks := &testInstallHooks{}
@@ -318,6 +328,14 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		return
 	}
 
+	//check that the registry reponses were cached
+	if _, ok := inst.moduleVersions["hashicorp/module-installer-acctest/aws"]; !ok {
+		t.Fatal("module versions cache was not populated")
+	}
+	if _, ok := inst.moduleVersionsUrl[moduleVersion{module: "hashicorp/module-installer-acctest/aws", version: "0.0.1"}]; !ok {
+		t.Fatal("module download url cache was not populated")
+	}
+
 	loader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: modulesDir,
 	})
@@ -359,7 +377,15 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	}
 
 	fixtureDir := filepath.Clean("testdata/go-getter-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
 	defer done()
 
 	hooks := &testInstallHooks{}
@@ -518,7 +544,7 @@ func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 		return "", nil
 	}
 
-	if err := copyDir(tmpDir, sourceDir); err != nil {
+	if err := copydir.CopyDir(tmpDir, sourceDir); err != nil {
 		t.Fatalf("failed to copy fixture to temporary directory: %s", err)
 		return "", nil
 	}

@@ -3,8 +3,10 @@ package configs
 import (
 	"testing"
 
-	"github.com/hashicorp/hcl2/gohcl"
-	"github.com/hashicorp/hcl2/hcl"
+	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -198,4 +200,130 @@ func TestModuleOverrideDynamic(t *testing.T) {
 			t.Fatalf("wrong dynamic block label %q; want %q", got, want)
 		}
 	})
+}
+
+func TestModuleOverrideResourceFQNs(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-resource-provider")
+	assertNoDiagnostics(t, diags)
+
+	got := mod.ManagedResources["test_instance.explicit"]
+	wantProvider := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
+	wantProviderCfg := &ProviderConfigRef{
+		Name: "bar-test",
+		NameRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-resource-provider/a_override.tf",
+			Start:    hcl.Pos{Line: 2, Column: 14, Byte: 51},
+			End:      hcl.Pos{Line: 2, Column: 22, Byte: 59},
+		},
+	}
+
+	if !got.Provider.Equals(wantProvider) {
+		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
+	}
+	assertResultDeepEqual(t, got.ProviderConfigRef, wantProviderCfg)
+
+	// now verify that a resource with no provider config falls back to default
+	got = mod.ManagedResources["test_instance.default"]
+	wantProvider = addrs.NewLegacyProvider("test")
+	if !got.Provider.Equals(wantProvider) {
+		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
+	}
+	if got.ProviderConfigRef != nil {
+		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
+	}
+}
+
+func TestMergeProviderVersionConstraints(t *testing.T) {
+	v1, _ := version.NewConstraint("1.0.0")
+	vc1 := VersionConstraint{
+		Required: v1,
+	}
+	v2, _ := version.NewConstraint("2.0.0")
+	vc2 := VersionConstraint{
+		Required: v2,
+	}
+
+	tests := map[string]struct {
+		Input    map[string]ProviderRequirements
+		Override []*RequiredProvider
+		Want     map[string]ProviderRequirements
+	}{
+		"basic merge": {
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{},
+				},
+			},
+			[]*RequiredProvider{
+				&RequiredProvider{
+					Name:        "null",
+					Requirement: VersionConstraint{},
+				},
+			},
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{},
+				},
+				"null": ProviderRequirements{
+					Type: addrs.NewLegacyProvider("null"),
+					VersionConstraints: []VersionConstraint{
+						VersionConstraint{
+							Required:  version.Constraints(nil),
+							DeclRange: hcl.Range{},
+						},
+					},
+				},
+			},
+		},
+		"override version constraint": {
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{vc1},
+				},
+			},
+			[]*RequiredProvider{
+				&RequiredProvider{
+					Name:        "random",
+					Requirement: vc2,
+				},
+			},
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.NewLegacyProvider("random"),
+					VersionConstraints: []VersionConstraint{vc2},
+				},
+			},
+		},
+		"merge with source constraint": {
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.Provider{Type: "random"},
+					VersionConstraints: []VersionConstraint{vc1},
+				},
+			},
+			[]*RequiredProvider{
+				&RequiredProvider{
+					Name:        "random",
+					Source:      Source{SourceStr: "hashicorp/random"},
+					Requirement: vc2,
+				},
+			},
+			map[string]ProviderRequirements{
+				"random": ProviderRequirements{
+					Type:               addrs.NewDefaultProvider("random"),
+					VersionConstraints: []VersionConstraint{vc2},
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mergeProviderVersionConstraints(test.Input, test.Override)
+			assertResultDeepEqual(t, test.Input, test.Want)
+		})
+	}
 }

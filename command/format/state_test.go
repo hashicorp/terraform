@@ -49,6 +49,22 @@ func TestState(t *testing.T) {
 		},
 		{
 			&StateOpts{
+				State:   deposedState(t),
+				Color:   disabledColorize,
+				Schemas: testSchemas(),
+			},
+			deposedNestedStateOutput,
+		},
+		{
+			&StateOpts{
+				State:   onlyDeposedState(t),
+				Color:   disabledColorize,
+				Schemas: testSchemas(),
+			},
+			onlyDeposedOutput,
+		},
+		{
+			&StateOpts{
 				State:   stateWithMoreOutputs(t),
 				Color:   disabledColorize,
 				Schemas: testSchemas(),
@@ -122,8 +138,8 @@ func testProviderSchema() *terraform.ProviderSchema {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": provider.GetSchemaReturn,
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
 		},
 	}
 }
@@ -144,6 +160,43 @@ Outputs:
 bar = "bar value"`
 
 const nestedStateOutput = `# test_resource.baz[0]:
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+
+    nested {
+        value = "42"
+    }
+}`
+
+const deposedNestedStateOutput = `# test_resource.baz[0]:
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+
+    nested {
+        value = "42"
+    }
+}
+
+# test_resource.baz[0]: (deposed object 1234)
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+
+    nested {
+        value = "42"
+    }
+}`
+
+const onlyDeposedOutput = `# test_resource.baz[0]:
+# test_resource.baz[0]: (deposed object 1234)
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+
+    nested {
+        value = "42"
+    }
+}
+
+# test_resource.baz[0]: (deposed object 5678)
 resource "test_resource" "baz" {
     woozles = "confuzles"
 
@@ -190,9 +243,10 @@ func basicState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -205,9 +259,10 @@ func basicState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"compute":"sure"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -240,9 +295,10 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -266,9 +322,79 @@ func nestedState(t *testing.T) *states.State {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	return state
+}
+
+func deposedState(t *testing.T) *states.State {
+	state := nestedState(t)
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceDeposed(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_resource",
+			Name: "baz",
+		}.Instance(addrs.IntKey(0)),
+		states.DeposedKey("1234"),
+		&states.ResourceInstanceObjectSrc{
+			Status:        states.ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	return state
+}
+
+// replicate a corrupt resource where only a deposed exists
+func onlyDeposedState(t *testing.T) *states.State {
+	state := states.NewState()
+
+	rootModule := state.RootModule()
+	if rootModule == nil {
+		t.Errorf("root module is nil; want valid object")
+	}
+
+	rootModule.SetResourceInstanceDeposed(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_resource",
+			Name: "baz",
+		}.Instance(addrs.IntKey(0)),
+		states.DeposedKey("1234"),
+		&states.ResourceInstanceObjectSrc{
+			Status:        states.ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	rootModule.SetResourceInstanceDeposed(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_resource",
+			Name: "baz",
+		}.Instance(addrs.IntKey(0)),
+		states.DeposedKey("5678"),
+		&states.ResourceInstanceObjectSrc{
+			Status:        states.ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }

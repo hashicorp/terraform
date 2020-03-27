@@ -62,13 +62,13 @@ func (v AbsOutputValue) String() string {
 //
 // The root module does not have a call, and so this method cannot be used
 // with outputs in the root module, and will panic in that case.
-func (v AbsOutputValue) ModuleCallOutput() (ModuleInstance, ModuleCallOutput) {
+func (v AbsOutputValue) ModuleCallOutput() (ModuleInstance, AbsModuleCallOutput) {
 	if v.Module.IsRoot() {
 		panic("ReferenceFromCall used with root module output")
 	}
 
 	caller, call := v.Module.CallInstance()
-	return caller, ModuleCallOutput{
+	return caller, AbsModuleCallOutput{
 		Call: call,
 		Name: v.OutputValue.Name,
 	}

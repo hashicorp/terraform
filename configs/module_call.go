@@ -3,9 +3,9 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/gohcl"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 // ModuleCall represents a "module" block in a module or file.
@@ -68,26 +68,10 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 
 	if attr, exists := content.Attributes["count"]; exists {
 		mc.Count = attr.Expr
-
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in module block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
 	}
 
 	if attr, exists := content.Attributes["for_each"]; exists {
 		mc.ForEach = attr.Expr
-
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in module block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {

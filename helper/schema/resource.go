@@ -6,10 +6,28 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 )
+
+var ReservedDataSourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
+
+var ReservedResourceFields = []string{
+	"connection",
+	"count",
+	"depends_on",
+	"id",
+	"lifecycle",
+	"provider",
+	"provisioner",
+}
 
 // Resource represents a thing in Terraform that has a set of configurable
 // attributes and a lifecycle (create, read, update, delete).
@@ -95,9 +113,10 @@ type Resource struct {
 	//
 	// Exists is a function that is called to check if a resource still
 	// exists. If this returns false, then this will affect the diff
-	// accordingly. If this function isn't set, it will not be called. It
-	// is highly recommended to set it. The *ResourceData passed to Exists
-	// should _not_ be modified.
+	// accordingly. If this function isn't set, it will not be called. You
+	// can also signal existence in the Read method by calling d.SetId("")
+	// if the Resource is no longer present and should be removed from state.
+	// The *ResourceData passed to Exists should _not_ be modified.
 	Create CreateFunc
 	Read   ReadFunc
 	Update UpdateFunc
@@ -227,6 +246,9 @@ func (r *Resource) Apply(
 	data, err := schemaMap(r.Schema).Data(s, d)
 	if err != nil {
 		return s, err
+	}
+	if s != nil && data != nil {
+		data.providerMeta = s.ProviderMeta
 	}
 
 	// Instance Diff shoould have the timeout info, need to copy it over to the
@@ -418,6 +440,10 @@ func (r *Resource) RefreshWithoutUpgrade(
 			return s, err
 		}
 
+		if s != nil {
+			data.providerMeta = s.ProviderMeta
+		}
+
 		exists, err := r.Exists(data, meta)
 		if err != nil {
 			return s, err
@@ -431,6 +457,10 @@ func (r *Resource) RefreshWithoutUpgrade(
 	data.timeouts = &rt
 	if err != nil {
 		return s, err
+	}
+
+	if s != nil {
+		data.providerMeta = s.ProviderMeta
 	}
 
 	err = r.Read(data, meta)
@@ -681,7 +711,7 @@ func (r *Resource) InternalValidate(topSchemaMap schemaMap, writable bool) error
 }
 
 func isReservedDataSourceFieldName(name string) bool {
-	for _, reservedName := range config.ReservedDataSourceFields {
+	for _, reservedName := range ReservedDataSourceFields {
 		if name == reservedName {
 			return true
 		}
@@ -696,7 +726,7 @@ func isReservedResourceFieldName(name string, s *Schema) bool {
 		return false
 	}
 
-	for _, reservedName := range config.ReservedResourceFields {
+	for _, reservedName := range ReservedResourceFields {
 		if name == reservedName {
 			return true
 		}

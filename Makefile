@@ -1,14 +1,9 @@
 VERSION?="0.3.32"
 TEST?=./...
-GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
+GOFMT_FILES?=$$(find . -not -path "./vendor/*" -type f -name '*.go')
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 
 default: test
-
-tools:
-	GO111MODULE=off go get -u golang.org/x/tools/cmd/stringer
-	GO111MODULE=off go get -u golang.org/x/tools/cmd/cover
-	GO111MODULE=off go get -u github.com/golang/mock/mockgen
 
 # bin generates the releaseable binaries for Terraform
 bin: fmtcheck generate
@@ -44,10 +39,12 @@ testacc: fmtcheck generate
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -mod=vendor -timeout 120m
 
 # e2etest runs the end-to-end tests against a generated Terraform binary
+# and a generated terraform-bundle binary.
 # The TF_ACC here allows network access, but does not require any special
-# credentials since the e2etests use local-only providers such as "null".
+# credentials.
 e2etest: generate
 	TF_ACC=1 go test -mod=vendor -v ./command/e2etest
+	TF_ACC=1 go test -mod=vendor -v ./tools/terraform-bundle/e2etest
 
 test-compile: fmtcheck generate
 	@if [ "$(TEST)" = "./..." ]; then \
@@ -62,9 +59,6 @@ testrace: fmtcheck generate
 	TF_ACC= go test -mod=vendor -race $(TEST) $(TESTARGS)
 
 cover:
-	@go tool cover 2>/dev/null; if [ $$? -eq 3 ]; then \
-		go get -u golang.org/x/tools/cmd/cover; \
-	fi
 	go test $(TEST) -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 	rm coverage.out
@@ -72,7 +66,7 @@ cover:
 # generate runs `go generate` to build the dynamically generated
 # source files, except the protobuf stubs which are built instead with
 # "make protobuf".
-generate: tools
+generate:
 	GOFLAGS=-mod=vendor go generate ./...
 	# go fmt doesn't support -mod=vendor but it still wants to populate the
 	# module cache with everything in go.mod even though formatting requires
@@ -88,6 +82,7 @@ generate: tools
 # If you are working on changes to protobuf interfaces you may either use
 # this target or run the individual scripts below directly.
 protobuf:
+	bash scripts/protobuf-check.sh
 	bash internal/tfplugin5/generate.sh
 	bash plans/internal/planproto/generate.sh
 
@@ -146,4 +141,4 @@ endif
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: bin cover default dev e2etest fmt fmtcheck generate protobuf plugin-dev quickdev test-compile test testacc testrace tools vendor-status website website-test
+.PHONY: bin cover default dev e2etest fmt fmtcheck generate protobuf plugin-dev quickdev test-compile test testacc testrace vendor-status website website-test

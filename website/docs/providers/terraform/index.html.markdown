@@ -18,10 +18,13 @@ Use the navigation to the left to read about the available data sources.
 ```hcl
 # Shared infrastructure state stored in Atlas
 data "terraform_remote_state" "vpc" {
-  backend = "atlas"
+  backend = "remote"
 
   config {
-    name = "hashicorp/vpc-prod"
+    organization = "hashicorp"
+    workspaces = {
+      name = "vpc-prod"
+    }
   }
 }
 

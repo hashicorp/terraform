@@ -96,7 +96,6 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
-	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
@@ -201,6 +200,10 @@ Usage: terraform plan [options] [DIR]
   this plan exactly.
 
 Options:
+
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact form
+                      that includes only the summary messages.
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.

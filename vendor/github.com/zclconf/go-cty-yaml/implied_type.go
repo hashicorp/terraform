@@ -107,7 +107,7 @@ func (c *Converter) impliedTypeScalar(an *typeAnalysis, evt *yaml_event_t, p *ya
 		// Untagged explicit string
 		ty = cty.String
 	default:
-		v, err := c.resolveScalar(tag, string(src))
+		v, err := c.resolveScalar(tag, string(src), yaml_scalar_style_t(evt.style))
 		if err != nil {
 			return cty.NilType, parseEventErrorWrap(evt, err)
 		}
@@ -154,7 +154,7 @@ func (c *Converter) impliedTypeMapping(an *typeAnalysis, evt *yaml_event_t, p *y
 		if nextEvt.typ != yaml_SCALAR_EVENT {
 			return cty.NilType, parseEventErrorf(&nextEvt, "only strings are allowed as mapping keys")
 		}
-		keyVal, err := c.resolveScalar(string(nextEvt.tag), string(nextEvt.value))
+		keyVal, err := c.resolveScalar(string(nextEvt.tag), string(nextEvt.value), yaml_scalar_style_t(nextEvt.style))
 		if err != nil {
 			return cty.NilType, err
 		}

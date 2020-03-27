@@ -13,7 +13,8 @@ type NodeModuleRemoved struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeModuleRemoved)(nil)
+	_ GraphNodeModuleInstance   = (*NodeModuleRemoved)(nil)
+	_ RemovableIfNotTargeted    = (*NodeModuleRemoved)(nil)
 	_ GraphNodeEvalable         = (*NodeModuleRemoved)(nil)
 	_ GraphNodeReferencer       = (*NodeModuleRemoved)(nil)
 	_ GraphNodeReferenceOutside = (*NodeModuleRemoved)(nil)
@@ -23,9 +24,17 @@ func (n *NodeModuleRemoved) Name() string {
 	return fmt.Sprintf("%s (removed)", n.Addr.String())
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeModuleRemoved) Path() addrs.ModuleInstance {
 	return n.Addr
+}
+
+// GraphNodeModulePath implementation
+func (n *NodeModuleRemoved) ModulePath() addrs.Module {
+	// This node represents the module call within a module,
+	// so return the CallerAddr as the path, as the module
+	// call may expand into multiple child instances
+	return n.Addr.Module()
 }
 
 // GraphNodeEvalable
@@ -38,12 +47,12 @@ func (n *NodeModuleRemoved) EvalTree() EvalNode {
 	}
 }
 
-func (n *NodeModuleRemoved) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+func (n *NodeModuleRemoved) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	// Our "References" implementation indicates that this node depends on
 	// the call to the module it represents, which implicitly depends on
 	// everything inside the module. That reference must therefore be
 	// interpreted in terms of our parent module.
-	return n.Addr, n.Addr.Parent()
+	return n.Addr.Module(), n.Addr.Parent().Module()
 }
 
 func (n *NodeModuleRemoved) References() []*addrs.Reference {
@@ -61,6 +70,13 @@ func (n *NodeModuleRemoved) References() []*addrs.Reference {
 			// us to return.
 		},
 	}
+}
+
+// RemovableIfNotTargeted
+func (n *NodeModuleRemoved) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
 }
 
 // EvalCheckModuleRemoved is an EvalNode implementation that verifies that

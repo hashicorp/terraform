@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/hcl2shim"
-	"strings"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
 
 // verify that we are doing ACC tests or the OSS tests specifically
@@ -19,6 +20,9 @@ func testACC(t *testing.T) {
 	if skip {
 		t.Log("oss backend tests require setting TF_ACC or TF_OSS_TEST")
 		t.Skip()
+	}
+	if skip {
+		t.Fatal("oss backend tests require setting ALICLOUD_ACCESS_KEY or ALICLOUD_ACCESS_KEY_ID")
 	}
 	if os.Getenv("ALICLOUD_REGION") == "" {
 		os.Setenv("ALICLOUD_REGION", "cn-beijing")
@@ -38,6 +42,41 @@ func TestBackendConfig(t *testing.T) {
 		"key":                 "first.tfstate",
 		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
 		"tablestore_table":    "TableStore",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
+		t.Fatalf("Incorrect region was provided")
+	}
+	if b.bucketName != "terraform-backend-oss-test" {
+		t.Fatalf("Incorrect bucketName was provided")
+	}
+	if b.statePrefix != "mystate" {
+		t.Fatalf("Incorrect state file path was provided")
+	}
+	if b.stateKey != "first.tfstate" {
+		t.Fatalf("Incorrect keyName was provided")
+	}
+
+	if b.ossClient.Config.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was provided")
+	}
+	if b.ossClient.Config.AccessKeySecret == "" {
+		t.Fatalf("No Secret Access Key was provided")
+	}
+}
+
+func TestBackendConfigProfile(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"region":              "cn-beijing",
+		"bucket":              "terraform-backend-oss-test",
+		"prefix":              "mystate",
+		"key":                 "first.tfstate",
+		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_table":    "TableStore",
+		"profile":             "default",
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
@@ -112,7 +151,7 @@ func createOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
 }
 
 func deleteOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
-	warning := "WARNING: Failed to delete the test OSS bucket. It may have been left in your Alicloud account and may incur storage charges. (error was %s)"
+	warning := "WARNING: Failed to delete the test OSS bucket. It may have been left in your Alibaba Cloud account and may incur storage charges. (error was %s)"
 
 	// first we have to get rid of the env objects, or we can't delete the bucket
 	bucket, err := ossClient.Bucket(bucketName)
@@ -138,11 +177,11 @@ func deleteOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
 	}
 }
 
-// create the dynamoDB table, and wait until we can query it.
+// create the tablestore table, and wait until we can query it.
 func createTablestoreTable(t *testing.T, otsClient *tablestore.TableStoreClient, tableName string) {
 	tableMeta := new(tablestore.TableMeta)
 	tableMeta.TableName = tableName
-	tableMeta.AddPrimaryKeyColumn("testbackend", tablestore.PrimaryKeyType_STRING)
+	tableMeta.AddPrimaryKeyColumn(pkName, tablestore.PrimaryKeyType_STRING)
 
 	tableOption := new(tablestore.TableOption)
 	tableOption.TimeToAlive = -1

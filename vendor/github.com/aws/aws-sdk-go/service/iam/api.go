@@ -5420,12 +5420,6 @@ func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req
 //
 // See the AWS API reference guide for AWS Identity and Access Management's
 // API operation GetAccessKeyLastUsed for usage and error information.
-//
-// Returned Error Codes:
-//   * ErrCodeNoSuchEntityException "NoSuchEntity"
-//   The request was rejected because it referenced a resource entity that does
-//   not exist. The error message describes the resource.
-//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsed
 func (c *IAM) GetAccessKeyLastUsed(input *GetAccessKeyLastUsedInput) (*GetAccessKeyLastUsedOutput, error) {
 	req, out := c.GetAccessKeyLastUsedRequest(input)
@@ -16293,7 +16287,7 @@ func (s ChangePasswordOutput) GoString() string {
 // evaluating the Condition elements of the input policies.
 //
 // This data type is used as an input parameter to SimulateCustomPolicy and
-// SimulateCustomPolicy .
+// SimulatePrincipalPolicy .
 type ContextEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -17189,8 +17183,7 @@ type CreateRoleInput struct {
 	//    * The special characters tab (\u0009), line feed (\u000A), and carriage
 	//    return (\u000D)
 	//
-	// Upon success, the response includes the same trust policy as a URL-encoded
-	// JSON string.
+	// Upon success, the response includes the same trust policy in JSON format.
 	//
 	// AssumeRolePolicyDocument is a required field
 	AssumeRolePolicyDocument *string `min:"1" type:"string" required:"true"`

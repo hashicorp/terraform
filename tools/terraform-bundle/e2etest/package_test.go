@@ -31,10 +31,10 @@ func TestPackage_empty(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	if !strings.Contains(stdout, "Fetching Terraform 0.10.1 core package...") {
+	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Creating terraform_0.10.1-bundle") {
+	if !strings.Contains(stdout, "Creating terraform_0.12.0-bundle") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "All done!") {
@@ -65,36 +65,37 @@ func TestPackage_manyProviders(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	if !strings.Contains(stdout, "Checking for available provider plugins on ") {
-		t.Errorf("success message is missing from output:\n%s", stdout)
-	}
-
 	// Here we have to check each provider separately
 	// because it's internally held in a map (i.e. not guaranteed order)
 
-	if !strings.Contains(stdout, `- Resolving "aws" provider (~> 0.1)...
-- Downloading plugin for provider "aws" (0.1.4)...`) {
+	if !strings.Contains(stdout, `- Resolving "aws" provider (~> 2.26.0)...
+- Checking for provider plugin on https://releases.hashicorp.com...
+- Downloading plugin for provider "aws" (hashicorp/aws) 2.26.0...`) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, `- Resolving "kubernetes" provider (0.1.0)...
-- Downloading plugin for provider "kubernetes" (0.1.0)...
-- Resolving "kubernetes" provider (0.1.1)...
-- Downloading plugin for provider "kubernetes" (0.1.1)...
-- Resolving "kubernetes" provider (0.1.2)...
-- Downloading plugin for provider "kubernetes" (0.1.2)...`) {
+	if !strings.Contains(stdout, `- Resolving "kubernetes" provider (1.8.0)...
+- Checking for provider plugin on https://releases.hashicorp.com...
+- Downloading plugin for provider "kubernetes" (hashicorp/kubernetes) 1.8.0...
+- Resolving "kubernetes" provider (1.8.1)...
+- Checking for provider plugin on https://releases.hashicorp.com...
+- Downloading plugin for provider "kubernetes" (hashicorp/kubernetes) 1.8.1...
+- Resolving "kubernetes" provider (1.9.0)...
+- Checking for provider plugin on https://releases.hashicorp.com...
+- Downloading plugin for provider "kubernetes" (hashicorp/kubernetes) 1.9.0...`) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, `- Resolving "null" provider (0.1.0)...
-- Downloading plugin for provider "null" (0.1.0)...`) {
+	if !strings.Contains(stdout, `- Resolving "null" provider (2.1.0)...
+- Checking for provider plugin on https://releases.hashicorp.com...
+- Downloading plugin for provider "null" (hashicorp/null) 2.1.0...`) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "Fetching Terraform 0.10.1 core package...") {
+	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Creating terraform_0.10.1-bundle") {
+	if !strings.Contains(stdout, "Creating terraform_0.12.0-bundle") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "All done!") {

@@ -13,10 +13,10 @@ type NodePlannableResourceInstanceOrphan struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeModuleInstance       = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeReferencer           = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeResource             = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeConfigResource       = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)

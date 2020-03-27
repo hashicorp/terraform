@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -109,6 +109,27 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"can": {
+			{
+				`can(true)`,
+				cty.True,
+			},
+			{
+				// Note: "can" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "can" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference.
+				`can({}.baz)`,
+				cty.False,
+			},
+		},
+
 		"ceil": {
 			{
 				`ceil(1.2)`,
@@ -158,6 +179,18 @@ func TestFunctions(t *testing.T) {
 			{
 				`cidrsubnet("192.168.2.0/20", 4, 6)`,
 				cty.StringVal("192.168.6.0/24"),
+			},
+		},
+
+		"cidrsubnets": {
+			{
+				`cidrsubnets("10.0.0.0/8", 8, 8, 16, 8)`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("10.0.0.0/16"),
+					cty.StringVal("10.1.0.0/16"),
+					cty.StringVal("10.2.0.0/24"),
+					cty.StringVal("10.3.0.0/16"),
+				}),
 			},
 		},
 
@@ -276,6 +309,37 @@ func TestFunctions(t *testing.T) {
 			{
 				`fileexists("hello.txt")`,
 				cty.BoolVal(true),
+			},
+		},
+
+		"fileset": {
+			{
+				`fileset(".", "*/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "subdirectory/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+			{
+				`fileset("subdirectory", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
 			},
 		},
 
@@ -513,6 +577,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"parseint": {
+			{
+				`parseint("100", 10)`,
+				cty.NumberIntVal(100),
+			},
+		},
+
 		"pathexpand": {
 			{
 				`pathexpand("~/test-file")`,
@@ -551,6 +622,23 @@ func TestFunctions(t *testing.T) {
 					cty.NumberIntVal(3),
 					cty.NumberIntVal(5),
 					cty.NumberIntVal(7),
+				}),
+			},
+		},
+
+		"regex": {
+			{
+				`regex("(\\d+)([a-z]+)", "aaa111bbb222")`,
+				cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("bbb")}),
+			},
+		},
+
+		"regexall": {
+			{
+				`regexall("(\\d+)([a-z]+)", "...111aaa222bbb...")`,
+				cty.ListVal([]cty.Value{
+					cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("aaa")}),
+					cty.TupleVal([]cty.Value{cty.StringVal("222"), cty.StringVal("bbb")}),
 				}),
 			},
 		},
@@ -595,6 +683,15 @@ func TestFunctions(t *testing.T) {
 					cty.TupleVal([]cty.Value{cty.StringVal("staging"), cty.StringVal("app2")}),
 					cty.TupleVal([]cty.Value{cty.StringVal("production"), cty.StringVal("app1")}),
 					cty.TupleVal([]cty.Value{cty.StringVal("production"), cty.StringVal("app2")}),
+				}),
+			},
+		},
+
+		"setsubtract": {
+			{
+				`setsubtract(["a", "b", "c"], ["a", "c"])`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("b"),
 				}),
 			},
 		},
@@ -770,10 +867,55 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"trim": {
+			{
+				`trim("?!hello?!", "!?")`,
+				cty.StringVal("hello"),
+			},
+		},
+
+		"trimprefix": {
+			{
+				`trimprefix("helloworld", "hello")`,
+				cty.StringVal("world"),
+			},
+		},
+
 		"trimspace": {
 			{
 				`trimspace(" hello ")`,
 				cty.StringVal("hello"),
+			},
+		},
+
+		"trimsuffix": {
+			{
+				`trimsuffix("helloworld", "world")`,
+				cty.StringVal("hello"),
+			},
+		},
+
+		"try": {
+			{
+				// Note: "try" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "try" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference. That's okay because this
+				// function exists primarily to ease access to dynamically-typed
+				// structures that Terraform can't statically validate by
+				// definition.
+				`try({}.baz, "fallback")`,
+				cty.StringVal("fallback"),
+			},
+			{
+				`try("fallback")`,
+				cty.StringVal("fallback"),
 			},
 		},
 

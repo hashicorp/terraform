@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
@@ -24,8 +25,9 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context            *Context
-	State              *states.SyncState  // Used for safe concurrent access to state
-	Changes            *plans.ChangesSync // Used for safe concurrent writes to changes
+	State              *states.SyncState   // Used for safe concurrent access to state
+	Changes            *plans.ChangesSync  // Used for safe concurrent writes to changes
+	InstanceExpander   *instances.Expander // Tracks our gradual expansion of module and resource instances
 	Operation          walkOperation
 	StopContext        context.Context
 	RootVariableValues InputValues
@@ -49,8 +51,6 @@ type ContextGraphWalker struct {
 }
 
 func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
-	w.once.Do(w.init)
-
 	w.contextLock.Lock()
 	defer w.contextLock.Unlock()
 
@@ -59,6 +59,14 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 	if ctx, ok := w.contexts[key]; ok {
 		return ctx
 	}
+
+	ctx := w.EvalContext().WithPath(path)
+	w.contexts[key] = ctx.(*BuiltinEvalContext)
+	return ctx
+}
+
+func (w *ContextGraphWalker) EvalContext() EvalContext {
+	w.once.Do(w.init)
 
 	// Our evaluator shares some locks with the main context and the walker
 	// so that we can safely run multiple evaluations at once across
@@ -75,25 +83,24 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 	}
 
 	ctx := &BuiltinEvalContext{
-		StopContext:         w.StopContext,
-		PathValue:           path,
-		Hooks:               w.Context.hooks,
-		InputValue:          w.Context.uiInput,
-		Components:          w.Context.components,
-		Schemas:             w.Context.schemas,
-		ProviderCache:       w.providerCache,
-		ProviderInputConfig: w.Context.providerInputConfig,
-		ProviderLock:        &w.providerLock,
-		ProvisionerCache:    w.provisionerCache,
-		ProvisionerLock:     &w.provisionerLock,
-		ChangesValue:        w.Changes,
-		StateValue:          w.State,
-		Evaluator:           evaluator,
-		VariableValues:      w.variableValues,
-		VariableValuesLock:  &w.variableValuesLock,
+		StopContext:           w.StopContext,
+		Hooks:                 w.Context.hooks,
+		InputValue:            w.Context.uiInput,
+		InstanceExpanderValue: w.InstanceExpander,
+		Components:            w.Context.components,
+		Schemas:               w.Context.schemas,
+		ProviderCache:         w.providerCache,
+		ProviderInputConfig:   w.Context.providerInputConfig,
+		ProviderLock:          &w.providerLock,
+		ProvisionerCache:      w.provisionerCache,
+		ProvisionerLock:       &w.provisionerLock,
+		ChangesValue:          w.Changes,
+		StateValue:            w.State,
+		Evaluator:             evaluator,
+		VariableValues:        w.variableValues,
+		VariableValuesLock:    &w.variableValuesLock,
 	}
 
-	w.contexts[key] = ctx
 	return ctx
 }
 

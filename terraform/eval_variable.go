@@ -4,100 +4,14 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/configs"
-
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
-
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
-
-// EvalTypeCheckVariable is an EvalNode which ensures that the variable
-// values which are assigned as inputs to a module (including the root)
-// match the types which are either declared for the variables explicitly
-// or inferred from the default values.
-//
-// In order to achieve this three things are required:
-//     - a map of the proposed variable values
-//     - the configuration tree of the module in which the variable is
-//       declared
-//     - the path to the module (so we know which part of the tree to
-//       compare the values against).
-type EvalTypeCheckVariable struct {
-	Variables  map[string]interface{}
-	ModulePath []string
-	ModuleTree *module.Tree
-}
-
-func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
-	currentTree := n.ModuleTree
-	for _, pathComponent := range n.ModulePath[1:] {
-		currentTree = currentTree.Children()[pathComponent]
-	}
-	targetConfig := currentTree.Config()
-
-	prototypes := make(map[string]config.VariableType)
-	for _, variable := range targetConfig.Variables {
-		prototypes[variable.Name] = variable.Type()
-	}
-
-	// Only display a module in an error message if we are not in the root module
-	modulePathDescription := fmt.Sprintf(" in module %s", strings.Join(n.ModulePath[1:], "."))
-	if len(n.ModulePath) == 1 {
-		modulePathDescription = ""
-	}
-
-	for name, declaredType := range prototypes {
-		proposedValue, ok := n.Variables[name]
-		if !ok {
-			// This means the default value should be used as no overriding value
-			// has been set. Therefore we should continue as no check is necessary.
-			continue
-		}
-
-		if proposedValue == hcl2shim.UnknownVariableValue {
-			continue
-		}
-
-		switch declaredType {
-		case config.VariableTypeString:
-			switch proposedValue.(type) {
-			case string:
-				continue
-			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
-					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
-			}
-		case config.VariableTypeMap:
-			switch proposedValue.(type) {
-			case map[string]interface{}:
-				continue
-			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
-					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
-			}
-		case config.VariableTypeList:
-			switch proposedValue.(type) {
-			case []interface{}:
-				continue
-			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
-					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
-			}
-		default:
-			return nil, fmt.Errorf("variable %s%s should be type %s, got type string",
-				name, modulePathDescription, declaredType.Printable())
-		}
-	}
-
-	return nil, nil
-}
 
 // EvalSetModuleCallArguments is an EvalNode implementation that sets values
 // for arguments of a child module call, for later retrieval during
@@ -180,6 +94,117 @@ func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
 	if n.IgnoreDiagnostics {
 		return nil, nil
 	}
+	return nil, diags.ErrWithWarnings()
+}
+
+// evalVariableValidations is an EvalNode implementation that ensures that
+// all of the configured custom validations for a variable are passing.
+//
+// This must be used only after any side-effects that make the value of the
+// variable available for use in expression evaluation, such as
+// EvalModuleCallArgument for variables in descendent modules.
+type evalVariableValidations struct {
+	Addr   addrs.AbsInputVariableInstance
+	Config *configs.Variable
+
+	// Expr is the expression that provided the value for the variable, if any.
+	// This will be nil for root module variables, because their values come
+	// from outside the configuration.
+	Expr hcl.Expression
+
+	// If this flag is set, this node becomes a no-op.
+	// This is here for consistency with EvalModuleCallArgument so that it
+	// can be populated with the same value, where needed.
+	IgnoreDiagnostics bool
+}
+
+func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
+	if n.Config == nil || n.IgnoreDiagnostics || len(n.Config.Validations) == 0 {
+		log.Printf("[TRACE] evalVariableValidations: not active for %s, so skipping", n.Addr)
+		return nil, nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// Variable nodes evaluate in the parent module to where they were declared
+	// because the value expression (n.Expr, if set) comes from the calling
+	// "module" block in the parent module.
+	//
+	// Validation expressions are statically validated (during configuration
+	// loading) to refer only to the variable being validated, so we can
+	// bypass our usual evaluation machinery here and just produce a minimal
+	// evaluation context containing just the required value, and thus avoid
+	// the problem that ctx's evaluation functions refer to the wrong module.
+	val := ctx.GetVariableValue(n.Addr)
+	hclCtx := &hcl.EvalContext{
+		Variables: map[string]cty.Value{
+			"var": cty.ObjectVal(map[string]cty.Value{
+				n.Config.Name: val,
+			}),
+		},
+		Functions: ctx.EvaluationScope(nil, EvalDataForNoInstanceKey).Functions(),
+	}
+
+	for _, validation := range n.Config.Validations {
+		const errInvalidCondition = "Invalid variable validation result"
+		const errInvalidValue = "Invalid value for variable"
+
+		result, moreDiags := validation.Condition.Value(hclCtx)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition expression failed: %s", n.Addr, validation.DeclRange, diags.Err().Error())
+		}
+		if !result.IsKnown() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition value is unknown, so skipping validation for now", n.Addr, validation.DeclRange)
+			continue // We'll wait until we've learned more, then.
+		}
+		if result.IsNull() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidCondition,
+				Detail:      "Validation condition expression must return either true or false, not null.",
+				Subject:     validation.Condition.Range().Ptr(),
+				Expression:  validation.Condition,
+				EvalContext: hclCtx,
+			})
+			continue
+		}
+		var err error
+		result, err = convert.Convert(result, cty.Bool)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidCondition,
+				Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
+				Subject:     validation.Condition.Range().Ptr(),
+				Expression:  validation.Condition,
+				EvalContext: hclCtx,
+			})
+			continue
+		}
+
+		if result.False() {
+			if n.Expr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errInvalidValue,
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
+					Subject:  n.Expr.Range().Ptr(),
+				})
+			} else {
+				// Since we don't have a source expression for a root module
+				// variable, we'll just report the error from the perspective
+				// of the variable declaration itself.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errInvalidValue,
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
+					Subject:  n.Config.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
+
 	return nil, diags.ErrWithWarnings()
 }
 

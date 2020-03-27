@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -67,7 +67,7 @@ RETURN:
 // EvalValidateProvider is an EvalNode implementation that validates
 // a provider configuration.
 type EvalValidateProvider struct {
-	Addr     addrs.ProviderConfig
+	Addr     addrs.AbsProviderConfig
 	Provider *providers.Interface
 	Config   *configs.Provider
 }
@@ -112,11 +112,12 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 // the configuration of a provisioner belonging to a resource. The provisioner
 // config is expected to contain the merged connection configurations.
 type EvalValidateProvisioner struct {
-	ResourceAddr     addrs.Resource
-	Provisioner      *provisioners.Interface
-	Schema           **configschema.Block
-	Config           *configs.Provisioner
-	ResourceHasCount bool
+	ResourceAddr       addrs.Resource
+	Provisioner        *provisioners.Interface
+	Schema             **configschema.Block
+	Config             *configs.Provisioner
+	ResourceHasCount   bool
+	ResourceHasForEach bool
 }
 
 func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
@@ -198,6 +199,19 @@ func (n *EvalValidateProvisioner) evaluateBlock(ctx EvalContext, body hcl.Body, 
 		// expected type since none of these elements are known at this
 		// point anyway.
 		selfAddr = n.ResourceAddr.Instance(addrs.IntKey(0))
+	} else if n.ResourceHasForEach {
+		// For a resource that has for_each, we allow each.value and each.key
+		// but don't know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key "" here, which should return an unknown value of the
+		// expected type since none of these elements are known at
+		// this point anyway.
+		selfAddr = n.ResourceAddr.Instance(addrs.StringKey(""))
 	}
 
 	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
@@ -291,6 +305,10 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		"bastion_certificate": {
+			Type:     cty.String,
+			Optional: true,
+		},
 
 		// For type=winrm only (enforced in winrm communicator)
 		"https": {
@@ -331,6 +349,7 @@ type EvalValidateResource struct {
 	Provider       *providers.Interface
 	ProviderSchema **ProviderSchema
 	Config         *configs.Resource
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 
 	// IgnoreWarnings means that warnings will not be passed through. This allows
 	// "just-in-time" passes of validation to continue execution through warnings.
@@ -370,6 +389,17 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(countDiags)
 	}
 
+	if n.Config.ForEach != nil {
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+		}
+
+		// Evaluate the for_each expression here so we can expose the diagnostics
+		forEachDiags := n.validateForEach(ctx, n.Config.ForEach)
+		diags = diags.Append(forEachDiags)
+	}
+
 	for _, traversal := range n.Config.DependsOn {
 		ref, refDiags := addrs.ParseRef(traversal)
 		diags = diags.Append(refDiags)
@@ -393,6 +423,40 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 			}
 		}
 	}
+
+	// Validate the provider_meta block for the provider this resource
+	// belongs to, if there is one.
+	//
+	// Note: this will return an error for every resource a provider
+	// uses in a module, if the provider_meta for that module is
+	// incorrect. The only way to solve this that we've foudn is to
+	// insert a new ProviderMeta graph node in the graph, and make all
+	// that provider's resources in the module depend on the node. That's
+	// an awful heavy hammer to swing for this feature, which should be
+	// used only in limited cases with heavy coordination with the
+	// Terraform team, so we're going to defer that solution for a future
+	// enhancement to this functionality.
+	/*
+		if n.ProviderMetas != nil {
+			if m, ok := n.ProviderMetas[n.ProviderAddr.ProviderConfig.Type]; ok && m != nil {
+				// if the provider doesn't support this feature, throw an error
+				if (*n.ProviderSchema).ProviderMeta == nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", cfg.ProviderConfigAddr()),
+						Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+						Subject:  &m.ProviderRange,
+					})
+				} else {
+					_, _, metaDiags := ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+					diags = diags.Append(metaDiags)
+				}
+			}
+		}
+	*/
+	// BUG(paddy): we're not validating provider_meta blocks on EvalValidate right now
+	// because the ProviderAddr for the resource isn't available on the EvalValidate
+	// struct.
 
 	// Provider entry point varies depending on resource mode, because
 	// managed resources and data resources are two distinct concepts
@@ -538,6 +602,21 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 			Subject:  expr.Range().Ptr(),
 		})
 		return diags
+	}
+
+	return diags
+}
+
+func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
+	_, known, forEachDiags := evaluateResourceForEachExpressionKnown(expr, ctx)
+	// If the value isn't known then that's the best we can do for now, but
+	// we'll check more thoroughly during the plan walk
+	if !known {
+		return diags
+	}
+
+	if forEachDiags.HasErrors() {
+		diags = diags.Append(forEachDiags)
 	}
 
 	return diags

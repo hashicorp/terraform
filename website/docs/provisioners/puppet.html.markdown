@@ -12,6 +12,10 @@ The `puppet` provisioner installs, configures and runs the Puppet agent on a
 remote resource. The `puppet` provisioner supports both `ssh` and `winrm` type
 [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `puppet` provisioner has some prerequisites for specific connection types:
@@ -74,7 +78,7 @@ The following arguments are supported:
   a certificate from the Puppet master CA (defaults to the FQDN of the
   resource).
 
-* `extension_request (map)` - (Optional) A map of [extension 
+* `extension_requests (map)` - (Optional) A map of [extension 
   requests](https://puppet.com/docs/puppet/latest/ssl_attributes_extensions.html#concept-932)
   to be embedded in the certificate signing request before it is sent to the
   Puppet master CA and then transferred to the final certificate when the CSR

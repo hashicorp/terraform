@@ -73,6 +73,50 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
+func TestBackendConfigSkipSchema(t *testing.T) {
+	testACC(t)
+	connStr := getDatabaseUrl()
+	schemaName := fmt.Sprintf("terraform_%s", t.Name())
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create the schema as a prerequisites
+	db.Query(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schemaName))
+	defer db.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
+
+	config := backend.TestWrapConfig(map[string]interface{}{
+		"conn_str":             connStr,
+		"schema_name":          schemaName,
+		"skip_schema_creation": true,
+	})
+	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+
+	if b == nil {
+		t.Fatal("Backend could not be configured")
+	}
+
+	_, err = b.db.Query(fmt.Sprintf("SELECT name, data FROM %s.%s LIMIT 1", schemaName, statesTableName))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := s.(*remote.State).Client.(*RemoteClient)
+	if c.Name != backend.DefaultStateName {
+		t.Fatal("RemoteClient name is not configured")
+	}
+}
+
 func TestBackendStates(t *testing.T) {
 	testACC(t)
 	connStr := getDatabaseUrl()

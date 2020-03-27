@@ -1,16 +1,19 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 
-	"github.com/hashicorp/terraform/command"
-	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/mitchellh/cli"
+
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/command/cliconfig"
+	"github.com/hashicorp/terraform/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -25,12 +28,17 @@ var PlumbingCommands map[string]struct{}
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
 
+// PluginOverrides is set from wrappedMain during configuration processing
+// and then eventually passed to the "command" package to specify alternative
+// plugin locations via the legacy configuration file mechanism.
+var PluginOverrides command.PluginOverrides
+
 const (
 	ErrorPrefix  = "e:"
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *Config, services *disco.Disco) {
+func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -46,6 +54,11 @@ func initCommands(config *Config, services *disco.Disco) {
 		services.ForceHostServices(host, hostConfig.Services)
 	}
 
+	configDir, err := cliconfig.ConfigDir()
+	if err != nil {
+		configDir = "" // No config dir available (e.g. looking up a home directory failed)
+	}
+
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
@@ -54,9 +67,12 @@ func initCommands(config *Config, services *disco.Disco) {
 		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
-		Services: services,
+		Services:        services,
+		ProviderSource:  providerSrc,
+		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
+		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
 		OverrideDataDir:     dataDir,
 
@@ -75,6 +91,7 @@ func initCommands(config *Config, services *disco.Disco) {
 		"force-unlock": struct{}{},
 		"push":         struct{}{},
 		"0.12upgrade":  struct{}{},
+		"0.13upgrade":  struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -164,6 +181,18 @@ func initCommands(config *Config, services *disco.Disco) {
 
 		"internal-plugin": func() (cli.Command, error) {
 			return &command.InternalPluginCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"login": func() (cli.Command, error) {
+			return &command.LoginCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"logout": func() (cli.Command, error) {
+			return &command.LogoutCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -279,19 +308,19 @@ func initCommands(config *Config, services *disco.Disco) {
 		//-----------------------------------------------------------
 
 		"0.12upgrade": func() (cli.Command, error) {
-			return &command.ZeroTwelveUpgradeCommand{
+			return &command.ZeroThirteenUpgradeCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"0.13upgrade": func() (cli.Command, error) {
+			return &command.ZeroThirteenUpgradeCommand{
 				Meta: meta,
 			}, nil
 		},
 
 		"debug": func() (cli.Command, error) {
 			return &command.DebugCommand{
-				Meta: meta,
-			}, nil
-		},
-
-		"debug json2dot": func() (cli.Command, error) {
-			return &command.DebugJSON2DotCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -366,44 +395,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *Config) auth.CredentialsSource {
-	creds := auth.NoCredentials
-	if len(config.Credentials) > 0 {
-		staticTable := map[svchost.Hostname]map[string]interface{}{}
-		for userHost, creds := range config.Credentials {
-			host, err := svchost.ForComparison(userHost)
-			if err != nil {
-				// We expect the config was already validated by the time we get
-				// here, so we'll just ignore invalid hostnames.
-				continue
-			}
-			staticTable[host] = creds
-		}
-		creds = auth.StaticCredentialsSource(staticTable)
-	}
-
-	for helperType, helperConfig := range config.CredentialsHelpers {
-		log.Printf("[DEBUG] Searching for credentials helper named %q", helperType)
-		available := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
-		available = available.WithName(helperType)
-		if available.Count() == 0 {
-			log.Printf("[ERROR] Unable to find credentials helper %q; ignoring", helperType)
-			break
-		}
-
-		selected := available.Newest()
-
-		helperSource := auth.HelperProgramCredentialsSource(selected.Path, helperConfig.Args...)
-		creds = auth.Credentials{
-			creds,
-			auth.CachingCredentialsSource(helperSource), // cached because external operation may be slow/expensive
-		}
-
-		// There should only be zero or one "credentials_helper" blocks. We
-		// assume that the config was validated earlier and so we don't check
-		// for extras here.
-		break
-	}
-
-	return creds
+func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
+	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
+	return config.CredentialsSource(helperPlugins)
 }

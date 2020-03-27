@@ -55,16 +55,16 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Config: config},
 
+		// Attach the configuration to any resources
+		&AttachResourceConfigTransformer{Config: b.Config},
+
 		// Add the import steps
-		&ImportStateTransformer{Targets: b.ImportTargets},
+		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
 
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
-
-		// This validates that the providers only depend on variables
-		&ImportProviderValidateTransformer{},
 
 		// Add the local values
 		&LocalTransformer{Config: b.Config},
@@ -77,11 +77,14 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+
+		// This validates that the providers only depend on variables
+		&ImportProviderValidateTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

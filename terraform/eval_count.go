@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -111,7 +111,7 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 // Since the state is modified in-place, this function must take a writer lock
 // on the state. The caller must therefore not also be holding a state lock,
 // or this function will block forever awaiting the lock.
-func fixResourceCountSetTransition(ctx EvalContext, addr addrs.AbsResource, countEnabled bool) {
+func fixResourceCountSetTransition(ctx EvalContext, addr addrs.ConfigResource, countEnabled bool) {
 	state := ctx.State()
 	changed := state.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled)
 	if changed {

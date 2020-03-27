@@ -74,13 +74,13 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 	// pseudo-arguments here. They are handled by OrphanResourceCountTransformer.
 	for _, rs := range ms.Resources {
 		if m != nil {
-			if r := m.ResourceByAddr(rs.Addr); r != nil {
+			if r := m.ResourceByAddr(rs.Addr.Resource); r != nil {
 				continue
 			}
 		}
 
 		for key := range rs.Instances {
-			addr := rs.Addr.Instance(key).Absolute(moduleAddr)
+			addr := rs.Addr.Instance(key)
 			abstract := NewNodeAbstractResourceInstance(addr)
 			var node dag.Vertex = abstract
 			if f := t.Concrete; f != nil {
@@ -137,7 +137,7 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 		case GraphNodeResourceInstance:
 			k := tv.ResourceInstanceAddr().ContainingResource().String()
 			deps[k] = append(deps[k], v)
-		case GraphNodeResource:
+		case GraphNodeConfigResource:
 			k := tv.ResourceAddr().String()
 			deps[k] = append(deps[k], v)
 		case GraphNodeDestroyer:
@@ -153,14 +153,14 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 
 		for _, rs := range ms.Resources {
 			if mc != nil {
-				if r := mc.Module.ResourceByAddr(rs.Addr); r != nil {
+				if r := mc.Module.ResourceByAddr(rs.Addr.Resource); r != nil {
 					// It's in the config, so nothing to do for this one.
 					continue
 				}
 			}
 
-			addr := rs.Addr.Absolute(moduleAddr)
-			abstract := NewNodeAbstractResource(addr)
+			addr := rs.Addr
+			abstract := NewNodeAbstractResource(addr.Config())
 			var node dag.Vertex = abstract
 			if f := t.Concrete; f != nil {
 				node = f(abstract)

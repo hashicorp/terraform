@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -216,17 +217,20 @@ func TestStateClient_UnresolvableConflict(t *testing.T) {
 	if err := terraform.WriteState(state, &stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	doneCh := make(chan struct{})
+	errCh := make(chan error)
 	go func() {
-		defer close(doneCh)
+		defer close(errCh)
 		if err := client.Put(stateJson.Bytes()); err == nil {
-			t.Fatal("Expected error from state conflict, got none.")
+			errCh <- errors.New("expected error from state conflict, got none.")
+			return
 		}
 	}()
 
 	select {
-	case <-doneCh:
-		// OK
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("error from anonymous test goroutine: %s", err)
+		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatalf("Timed out after 500ms, probably because retrying infinitely.")
 	}

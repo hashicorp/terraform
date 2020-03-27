@@ -42,7 +42,7 @@ func TestLocal_refresh(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 	`)
 }
 
@@ -72,7 +72,7 @@ func TestLocal_refreshNoConfig(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 	`)
 }
 
@@ -105,7 +105,7 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 	`)
 }
 
@@ -163,7 +163,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 	`)
 }
 
@@ -196,7 +196,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 	`)
 }
 

@@ -12,11 +12,13 @@ import (
 	"strings"
 
 	version "github.com/hashicorp/go-version"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Disco return a *disco.Disco mapping registry.terraform.io, localhost,
@@ -29,6 +31,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
+	d.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
@@ -359,4 +362,17 @@ func mockRegHandler() http.Handler {
 // Registry returns an httptest server that mocks out some registry functionality.
 func Registry() *httptest.Server {
 	return httptest.NewServer(mockRegHandler())
+}
+
+// RegistryRetryableErrorsServer returns an httptest server that mocks out the
+// registry API to return 502 errors.
+func RegistryRetryableErrorsServer() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/modules/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	mux.HandleFunc("/v1/providers/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	return httptest.NewServer(mux)
 }

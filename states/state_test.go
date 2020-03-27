@@ -35,9 +35,10 @@ func TestState(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 
 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
@@ -66,7 +67,8 @@ func TestState(t *testing.T) {
 							Mode: addrs.ManagedResourceMode,
 							Type: "test_thing",
 							Name: "baz",
-						},
+						}.Absolute(addrs.RootModuleInstance),
+
 						EachMode: EachList,
 						Instances: map[addrs.InstanceKey]*ResourceInstance{
 							addrs.IntKey(0): {
@@ -78,9 +80,10 @@ func TestState(t *testing.T) {
 								Deposed: map[DeposedKey]*ResourceInstanceObjectSrc{},
 							},
 						},
-						ProviderConfig: addrs.ProviderConfig{
-							Type: "test",
-						}.Absolute(addrs.RootModuleInstance),
+						ProviderConfig: addrs.AbsProviderConfig{
+							Provider: addrs.NewDefaultProvider("test"),
+							Module:   addrs.RootModule,
+						},
 					},
 				},
 			},
@@ -138,11 +141,12 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies:  []addrs.Referenceable{},
+			Dependencies:  []addrs.ConfigResource{},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -155,15 +159,21 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies: []addrs.Referenceable{addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "baz",
-			}},
+			Dependencies: []addrs.ConfigResource{
+				{
+					Module: addrs.RootModule,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "baz",
+					},
+				},
+			},
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 
 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))

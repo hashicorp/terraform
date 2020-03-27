@@ -18,8 +18,8 @@ func TestContextImport_basic(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -51,14 +51,50 @@ func TestContextImport_basic(t *testing.T) {
 	}
 }
 
+// Importing a resource which does not exist in the configuration results in an error
+func TestContextImport_basic_errpr(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "import-provider")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	_, diags := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "test", addrs.NoKey,
+				),
+				ID: "bar",
+			},
+		},
+	})
+
+	if !diags.HasErrors() {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -97,8 +133,8 @@ func TestContextImport_collision(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 
@@ -115,7 +151,10 @@ func TestContextImport_collision(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewLegacyProvider("aws"),
+					Module:   addrs.RootModule,
+				},
 			)
 		}),
 	})
@@ -144,7 +183,7 @@ func TestContextImport_collision(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := `aws_instance.foo:
   ID = bar
-  provider = provider.aws`
+  provider = provider["registry.terraform.io/-/aws"]`
 
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
@@ -164,8 +203,8 @@ func TestContextImport_missingType(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -216,14 +255,13 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
-		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
@@ -251,12 +289,12 @@ func TestContextImport_moduleProvider(t *testing.T) {
 // Importing into a module requires a provider config in that module.
 func TestContextImport_providerModule(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider-module")
+	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -280,7 +318,6 @@ func TestContextImport_providerModule(t *testing.T) {
 	}
 
 	_, diags := ctx.Import(&ImportOpts{
-		Config: m,
 		Targets: []*ImportTarget{
 			&ImportTarget{
 				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
@@ -307,8 +344,8 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 		Variables: InputValues{
@@ -369,8 +406,8 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -388,8 +425,7 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "bar",
 			},
 		},
 	})
@@ -404,8 +440,8 @@ func TestContextImport_refresh(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -432,8 +468,7 @@ func TestContextImport_refresh(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "bar",
 			},
 		},
 	})
@@ -454,8 +489,8 @@ func TestContextImport_refreshNil(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -479,8 +514,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "bar",
 			},
 		},
 	})
@@ -497,12 +531,12 @@ func TestContextImport_refreshNil(t *testing.T) {
 
 func TestContextImport_module(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -517,11 +551,10 @@ func TestContextImport_module(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "bar",
 			},
 		},
 	})
@@ -538,12 +571,12 @@ func TestContextImport_module(t *testing.T) {
 
 func TestContextImport_moduleDepth2(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -558,11 +591,10 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("a", addrs.NoKey).Child("b", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).Child("nested", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "baz",
 			},
 		},
 	})
@@ -579,31 +611,14 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 
 func TestContextImport_moduleDiff(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
-
-		State: states.BuildState(func(s *states.SyncState) {
-			s.SetResourceInstanceCurrent(
-				addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "aws_instance",
-					Name: "bar",
-				}.Instance(addrs.NoKey).Absolute(addrs.Module{"bar"}.UnkeyedInstanceShim()),
-				&states.ResourceInstanceObjectSrc{
-					AttrsFlat: map[string]string{
-						"id": "bar",
-					},
-					Status: states.ObjectReady,
-				},
-				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
-			)
-		}),
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -616,11 +631,10 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "baz",
 			},
 		},
 	})
@@ -629,65 +643,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testImportModuleDiffStr)
-	if actual != expected {
-		t.Fatalf("\nexpected: %q\ngot:      %q\n", expected, actual)
-	}
-}
-
-func TestContextImport_moduleExisting(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "import-provider")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-
-		State: states.BuildState(func(s *states.SyncState) {
-			s.SetResourceInstanceCurrent(
-				addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "aws_instance",
-					Name: "bar",
-				}.Instance(addrs.NoKey).Absolute(addrs.Module{"foo"}.UnkeyedInstanceShim()),
-				&states.ResourceInstanceObjectSrc{
-					AttrsFlat: map[string]string{
-						"id": "bar",
-					},
-					Status: states.ObjectReady,
-				},
-				addrs.ProviderConfig{Type: "aws"}.Absolute(addrs.RootModuleInstance),
-			)
-		}),
-	})
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-	}
-
-	state, diags := ctx.Import(&ImportOpts{
-		Targets: []*ImportTarget{
-			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("foo", addrs.NoKey).ResourceInstance(
-					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
-				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
-			},
-		},
-	})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
-
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testImportModuleExistingStr)
+	expected := strings.TrimSpace(testImportModuleStr)
 	if actual != expected {
 		t.Fatalf("\nexpected: %q\ngot:      %q\n", expected, actual)
 	}
@@ -731,8 +687,8 @@ func TestContextImport_multiState(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -743,8 +699,7 @@ func TestContextImport_multiState(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "bar",
 			},
 		},
 	})
@@ -801,8 +756,8 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
 			},
 		),
 	})
@@ -813,8 +768,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+				ID: "bar",
 			},
 		},
 	})
@@ -829,121 +783,32 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
-// import missing a provider alias should fail
-func TestContextImport_customProviderMissing(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "import-provider")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-	})
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-	}
-
-	_, diags := ctx.Import(&ImportOpts{
-		Targets: []*ImportTarget{
-			&ImportTarget{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
-					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
-				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigAliased("aws", "alias"),
-			},
-		},
-	})
-	if !diags.HasErrors() {
-		t.Fatal("expected error")
-	}
-}
-
-func TestContextImport_customProvider(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "import-provider-alias")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-	})
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-	}
-
-	state, diags := ctx.Import(&ImportOpts{
-		Targets: []*ImportTarget{
-			&ImportTarget{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
-					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
-				),
-				ID:           "bar",
-				ProviderAddr: addrs.RootModuleInstance.ProviderConfigAliased("aws", "alias"),
-			},
-		},
-	})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
-
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testImportCustomProviderStr)
-	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
-	}
-}
-
 const testImportStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportCountIndexStr = `
 aws_instance.foo.0:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleStr = `
 <no state>
-module.foo:
+module.child:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleDepth2Str = `
 <no state>
-module.a.b:
+module.child.nested:
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
-`
-
-const testImportModuleDiffStr = `
-<no state>
-module.bar:
-  aws_instance.bar:
-    ID = bar
-    provider = provider.aws
-module.foo:
-  aws_instance.foo:
-    ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportModuleExistingStr = `
@@ -951,42 +816,36 @@ const testImportModuleExistingStr = `
 module.foo:
   aws_instance.bar:
     ID = bar
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
   aws_instance.foo:
     ID = foo
-    provider = provider.aws
+    provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportMultiStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance_thing.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportMultiSameStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance_thing.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 aws_instance_thing.foo-1:
   ID = qux
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
 `
 
 const testImportRefreshStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/-/aws"]
   foo = bar
-`
-
-const testImportCustomProviderStr = `
-aws_instance.foo:
-  ID = foo
-  provider = provider.aws.alias
 `

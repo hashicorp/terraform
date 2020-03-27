@@ -6,6 +6,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -21,9 +22,9 @@ import (
 type EvalReadData struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Dependencies   []addrs.Referenceable
 	Provider       *providers.Interface
 	ProviderAddr   addrs.AbsProviderConfig
+	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 	ProviderSchema **ProviderSchema
 
 	// Planned is set when dealing with data resources that were deferred to
@@ -86,7 +87,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.ProviderConfig.Type, n.Addr.Resource.Type)
+		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.LegacyString(), n.Addr.Resource.Type)
 	}
 
 	// We'll always start by evaluating the configuration. What we do after
@@ -95,13 +96,36 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	objTy := schema.ImpliedType()
 	priorVal := cty.NullVal(objTy) // for data resources, prior is always null because we start fresh every time
 
-	keyData := EvalDataForInstanceKey(n.Addr.Key)
+	forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMetas != nil {
+		if m, ok := n.ProviderMetas[n.ProviderAddr.Provider]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if (*n.ProviderSchema).ProviderMeta == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+				if configDiags.HasErrors() {
+					return nil, diags.Err()
+				}
+			}
+		}
 	}
 
 	proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
@@ -160,9 +184,8 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		if n.OutputState != nil {
 			state := &states.ResourceInstanceObject{
-				Value:        change.After,
-				Status:       states.ObjectPlanned, // because the partial value in the plan must be used for now
-				Dependencies: n.Dependencies,
+				Value:  change.After,
+				Status: states.ObjectPlanned, // because the partial value in the plan must be used for now
 			}
 			*n.OutputState = state
 		}
@@ -204,8 +227,9 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-		TypeName: n.Addr.Resource.Type,
-		Config:   configVal,
+		TypeName:     n.Addr.Resource.Type,
+		Config:       configVal,
+		ProviderMeta: metaConfigVal,
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
 	if diags.HasErrors() {
@@ -224,7 +248,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -238,7 +262,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced null object",
 			fmt.Sprintf(
 				"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr,
+				n.ProviderAddr.Provider.LegacyString(), absAddr,
 			),
 		))
 	}
@@ -248,7 +272,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, absAddr,
+				n.ProviderAddr.Provider.LegacyString(), absAddr,
 			),
 		))
 
@@ -274,9 +298,8 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		},
 	}
 	state := &states.ResourceInstanceObject{
-		Value:        change.After,
-		Status:       states.ObjectReady, // because we completed the read from the provider
-		Dependencies: n.Dependencies,
+		Value:  change.After,
+		Status: states.ObjectReady, // because we completed the read from the provider
 	}
 
 	err = ctx.Hook(func(h Hook) (HookAction, error) {
@@ -305,14 +328,14 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 // EvalReadDataApply is an EvalNode implementation that executes a data
 // resource's ReadDataApply method to read data from the data source.
 type EvalReadDataApply struct {
-	Addr            addrs.ResourceInstance
-	Provider        *providers.Interface
-	ProviderAddr    addrs.AbsProviderConfig
-	ProviderSchema  **ProviderSchema
-	Output          **states.ResourceInstanceObject
-	Config          *configs.Resource
-	Change          **plans.ResourceInstanceChange
-	StateReferences []addrs.Referenceable
+	Addr           addrs.ResourceInstance
+	Provider       *providers.Interface
+	ProviderAddr   addrs.AbsProviderConfig
+	ProviderMeta   *configs.ProviderMeta
+	ProviderSchema **ProviderSchema
+	Output         **states.ResourceInstanceObject
+	Config         *configs.Resource
+	Change         **plans.ResourceInstanceChange
 }
 
 func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
@@ -333,6 +356,26 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+	if n.ProviderMeta != nil {
+		// if the provider doesn't support this feature, throw an error
+		if (*n.ProviderSchema).ProviderMeta == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
+				Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+				Subject:  &n.ProviderMeta.ProviderRange,
+			})
+		} else {
+			var configDiags tfdiags.Diagnostics
+			metaConfigVal, _, configDiags = ctx.EvaluateBlock(n.ProviderMeta.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+			diags = diags.Append(configDiags)
+			if configDiags.HasErrors() {
+				return nil, diags.Err()
+			}
+		}
+	}
+
 	// For the purpose of external hooks we present a data apply as a
 	// "Refresh" rather than an "Apply" because creating a data source
 	// is presented to users/callers as a "read" operation.
@@ -346,8 +389,9 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-		TypeName: n.Addr.Resource.Type,
-		Config:   change.After,
+		TypeName:     n.Addr.Resource.Type,
+		Config:       change.After,
+		ProviderMeta: metaConfigVal,
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
 	if diags.HasErrors() {
@@ -367,7 +411,7 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s. The result could not be saved.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -384,9 +428,8 @@ func (n *EvalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	if n.Output != nil {
 		*n.Output = &states.ResourceInstanceObject{
-			Value:        newVal,
-			Status:       states.ObjectReady,
-			Dependencies: n.StateReferences,
+			Value:  newVal,
+			Status: states.ObjectReady,
 		}
 	}
 

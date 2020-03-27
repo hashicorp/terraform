@@ -50,6 +50,12 @@ func TestInit_empty(t *testing.T) {
 }
 
 func TestInit_multipleArgs(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
@@ -68,11 +74,10 @@ func TestInit_multipleArgs(t *testing.T) {
 }
 
 func TestInit_fromModule_explicitDest(t *testing.T) {
-	dir := tempDir(t)
-	err := os.Mkdir(dir, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
 	c := &InitCommand{
@@ -93,13 +98,13 @@ func TestInit_fromModule_explicitDest(t *testing.T) {
 
 	args := []string{
 		"-from-module=" + testFixturePath("init"),
-		dir,
+		td,
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "hello.tf")); err != nil {
+	if _, err := os.Stat(filepath.Join(td, "hello.tf")); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -137,6 +142,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer os.RemoveAll(dir)
 
 	// Change to the temporary directory
 	cwd, err := os.Getwd()
@@ -208,7 +214,6 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
-	// copy.CopyDir(testFixturePath("init-get"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -518,6 +523,32 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	}
 }
 
+func TestInit_backendCli_no_config_block(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"-backend-config", "path=test"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, "Warning: Missing backend configuration") {
+		t.Fatal("expected missing backend block warning, got", errMsg)
+	}
+}
+
 func TestInit_targetSubdir(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -757,7 +788,7 @@ func TestInit_getProvider(t *testing.T) {
 			// looking for an exact version
 			"exact": []string{"1.2.3"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
@@ -786,9 +817,9 @@ func TestInit_getProvider(t *testing.T) {
 	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
 		t.Fatal("provider 'exact' not downloaded")
 	}
-	greaterThanPath := filepath.Join(c.pluginDir(), installer.FileName("greater_than", "2.3.4"))
+	greaterThanPath := filepath.Join(c.pluginDir(), installer.FileName("greater-than", "2.3.4"))
 	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
-		t.Fatal("provider 'greater_than' not downloaded")
+		t.Fatal("provider 'greater-than' not downloaded")
 	}
 	betweenPath := filepath.Join(c.pluginDir(), installer.FileName("between", "2.3.4"))
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
@@ -862,7 +893,7 @@ func TestInit_findVendoredProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the vendor path
-	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater_than_v2.3.4_x4")
+	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater-than_v2.3.4_x4")
 	if err := ioutil.WriteFile(greaterThanPath, []byte("test bin"), 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -921,6 +952,56 @@ func TestInit_rcProviders(t *testing.T) {
 	}
 }
 
+func TestInit_providerSource(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+
+	configDirName := "init-required-providers"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: &mockProviderInstaller{},
+	}
+
+	// make our plugin paths
+	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(DefaultPluginVendorDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// add some dummy providers
+	// the auto plugin directory
+	testPath := filepath.Join(c.pluginDir(), "terraform-provider-test_v1.2.3_x4")
+	if err := ioutil.WriteFile(testPath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// the vendor path
+	sourcePath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-source_v1.2.3_x4")
+	if err := ioutil.WriteFile(sourcePath, []byte("test bin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{configDirName}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+	if strings.Contains(ui.OutputWriter.String(), "Terraform has initialized, but configuration upgrades may be needed") {
+		t.Fatalf("unexpected \"configuration upgrade\" warning in output")
+	}
+}
+
 func TestInit_getUpgradePlugins(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -939,7 +1020,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			// looking for an exact version
 			"exact": []string{"1.2.3"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
@@ -956,7 +1037,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	greaterThanUnwanted := filepath.Join(m.pluginDir(), installer.FileName("greater_than", "2.3.3"))
+	greaterThanUnwanted := filepath.Join(m.pluginDir(), installer.FileName("greater-than", "2.3.3"))
 	err = ioutil.WriteFile(greaterThanUnwanted, []byte{}, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
@@ -1003,8 +1084,8 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		// includes both our old and new versions.
 		"terraform-provider-exact_v0.0.1_x4",
 		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater_than_v2.3.3_x4",
-		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-greater-than_v2.3.3_x4",
+		"terraform-provider-greater-than_v2.3.4_x4",
 	}
 
 	if !reflect.DeepEqual(gotFilenames, wantFilenames) {
@@ -1031,7 +1112,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 			// looking for exact version 1.2.3
 			"exact": []string{"1.2.4"},
 			// config requires >= 2.3.3
-			"greater_than": []string{"2.3.4", "2.3.3", "2.3.0"},
+			"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
 			// config specifies
 			"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 		},
@@ -1161,6 +1242,7 @@ func TestInit_providerLockFile(t *testing.T) {
 
 func TestInit_pluginDirReset(t *testing.T) {
 	td := testTempDir(t)
+	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -1249,7 +1331,7 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	// add some dummy providers in our plugin dirs
 	for i, name := range []string{
 		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-greater-than_v2.3.4_x4",
 		"terraform-provider-between_v2.3.4_x4",
 	} {
 
@@ -1300,7 +1382,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	// add some dummy providers in our plugin dirs
 	for i, name := range []string{
 		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater_than_v2.3.4_x4",
+		"terraform-provider-greater-than_v2.3.4_x4",
 	} {
 
 		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
@@ -1342,86 +1424,14 @@ func TestInit_pluginWithInternal(t *testing.T) {
 	}
 }
 
-func TestInit_012UpgradeNeeded(t *testing.T) {
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-012upgrade"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	ui := cli.NewMockUi()
-	m := Meta{
-		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
-	}
-
-	installer := &mockProviderInstaller{
-		Providers: map[string][]string{
-			"null": []string{"1.0.0"},
-		},
-		Dir: m.pluginDir(),
-	}
-
-	c := &InitCommand{
-		Meta:              m,
-		providerInstaller: installer,
-	}
-
-	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Errorf("wrong exit status %d; want 0\nerror output:\n%s", code, ui.ErrorWriter.String())
-	}
-
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "terraform 0.12upgrade") {
-		t.Errorf("doesn't look like we detected the need for config upgrade:\n%s", output)
-	}
-}
-
-func TestInit_012UpgradeNeededInAutomation(t *testing.T) {
-	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-012upgrade"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	ui := cli.NewMockUi()
-	m := Meta{
-		testingOverrides:    metaOverridesForProvider(testProvider()),
-		Ui:                  ui,
-		RunningInAutomation: true,
-	}
-
-	installer := &mockProviderInstaller{
-		Providers: map[string][]string{
-			"null": []string{"1.0.0"},
-		},
-		Dir: m.pluginDir(),
-	}
-
-	c := &InitCommand{
-		Meta:              m,
-		providerInstaller: installer,
-	}
-
-	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Errorf("wrong exit status %d; want 0\nerror output:\n%s", code, ui.ErrorWriter.String())
-	}
-
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "Run terraform init for this configuration at a shell prompt") {
-		t.Errorf("doesn't look like we instructed to run Terraform locally:\n%s", output)
-	}
-	if strings.Contains(output, "terraform 0.12upgrade") {
-		// We don't prompt with an exact command in automation mode, since
-		// the upgrade process is interactive and so it cannot be run in
-		// automation.
-		t.Errorf("looks like we incorrectly gave an upgrade command to run:\n%s", output)
-	}
-}
-
-func TestInit_syntaxErrorVersionSniff(t *testing.T) {
+// The module in this test uses terraform 0.11-style syntax. We expect that the
+// earlyconfig will succeed but the main loader fail, and return an error that
+// indicates that syntax upgrades may be required.
+func TestInit_syntaxErrorUpgradeHint(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
+
+	// This module
 	copy.CopyDir(testFixturePath("init-sniff-version-error"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
@@ -1435,16 +1445,13 @@ func TestInit_syntaxErrorVersionSniff(t *testing.T) {
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
+	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
 	// Check output.
-	// Currently, this lands in the "upgrade may be needed" codepath, because
-	// the intentional syntax error in our test fixture is something that
-	// "terraform 0.12upgrade" could fix.
-	output := ui.OutputWriter.String()
-	if got, want := output, "Terraform has initialized, but configuration upgrades may be needed"; !strings.Contains(got, want) {
+	output := ui.ErrorWriter.String()
+	if got, want := output, "If you've recently upgraded to Terraform v0.13 from Terraform\nv0.11, this may be because your configuration uses syntax constructs that are no\nlonger valid"; !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }

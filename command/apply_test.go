@@ -177,7 +177,7 @@ func TestApply_parallelism(t *testing.T) {
 	// to ApplyResourceChange, we need to use a number of separate providers
 	// here. They will all have the same mock implementation function assigned
 	// but crucially they will each have their own mutex.
-	providerFactories := map[string]providers.Factory{}
+	providerFactories := map[addrs.Provider]providers.Factory{}
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
 		provider := &terraform.MockProvider{}
@@ -203,7 +203,7 @@ func TestApply_parallelism(t *testing.T) {
 				NewState: cty.EmptyObjectVal,
 			}
 		}
-		providerFactories[name] = providers.FactoryFixed(provider)
+		providerFactories[addrs.NewLegacyProvider(name)] = providers.FactoryFixed(provider)
 	}
 	testingOverrides := &testingOverrides{
 		ProviderResolver: providers.ResolverFixed(providerFactories),
@@ -423,7 +423,11 @@ func TestApply_input(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
-	// Set some default reader/writers for the inputs
+	// The configuration for this test includes a declaration of variable
+	// "foo" with no default, and we don't set it on the command line below,
+	// so the apply command will produce an interactive prompt for the
+	// value of var.foo. We'll answer "foo" here, and we expect the output
+	// value "result" to echo that back to us below.
 	defaultInputReader = bytes.NewBufferString("foo\n")
 	defaultInputWriter = new(bytes.Buffer)
 
@@ -829,7 +833,10 @@ func TestApply_refresh(t *testing.T) {
 				AttrsJSON: []byte(`{"ami":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -983,7 +990,10 @@ func TestApply_state(t *testing.T) {
 				AttrsJSON: []byte(`{"ami":"foo"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -1347,7 +1357,10 @@ func TestApply_backup(t *testing.T) {
 				AttrsJSON: []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -1648,7 +1661,10 @@ func applyFixturePlanFile(t *testing.T) string {
 			Type: "test_instance",
 			Name: "foo",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Create,
 			Before: priorValRaw,

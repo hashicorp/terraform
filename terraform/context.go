@@ -5,15 +5,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 
-	"github.com/hashicorp/hcl"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -21,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -28,19 +25,12 @@ import (
 type InputMode byte
 
 const (
-	// InputModeVar asks for all variables
-	InputModeVar InputMode = 1 << iota
-
-	// InputModeVarUnset asks for variables which are not set yet.
-	// InputModeVar must be set for this to have an effect.
-	InputModeVarUnset
-
 	// InputModeProvider asks for provider variables
-	InputModeProvider
+	InputModeProvider InputMode = 1 << iota
 
 	// InputModeStd is the standard operating mode and asks for both variables
 	// and providers.
-	InputModeStd = InputModeVar | InputModeProvider
+	InputModeStd = InputModeProvider
 )
 
 var (
@@ -149,7 +139,17 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling
 	// from providers.
+	// We throw an error in case of negative parallelism
 	par := opts.Parallelism
+	if par < 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid parallelism value",
+			fmt.Sprintf("The parallelism must be a positive value. Not %d.", par),
+		))
+		return nil, diags
+	}
+
 	if par == 0 {
 		par = 10
 	}
@@ -170,15 +170,14 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	variables = variables.Override(opts.Variables)
 
 	// Bind available provider plugins to the constraints in config
-	var providerFactories map[string]providers.Factory
+	var providerFactories map[addrs.Provider]providers.Factory
 	if opts.ProviderResolver != nil {
 		deps := ConfigTreeDependencies(opts.Config, state)
-		reqd := deps.AllPluginRequirements()
+		reqd := deps.AllProviderRequirements()
 		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
 			reqd.LockExecutables(opts.ProviderSHA256s)
 		}
 		log.Printf("[TRACE] terraform.NewContext: resolving provider version selections")
-
 		var providerDiags tfdiags.Diagnostics
 		providerFactories, providerDiags = resourceProviderFactories(opts.ProviderResolver, reqd)
 		diags = diags.Append(providerDiags)
@@ -187,7 +186,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 			return nil, diags
 		}
 	} else {
-		providerFactories = make(map[string]providers.Factory)
+		providerFactories = make(map[addrs.Provider]providers.Factory)
 	}
 
 	components := &basicComponentFactory{
@@ -214,6 +213,18 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
+	// By the time we get here, we should have values defined for all of
+	// the root module variables, even if some of them are "unknown". It's the
+	// caller's responsibility to have already handled the decoding of these
+	// from the various ways the CLI allows them to be set and to produce
+	// user-friendly error messages if they are not all present, and so
+	// the error message from checkInputVariables should never be seen and
+	// includes language asking the user to report a bug.
+	if config != nil {
+		varDiags := checkInputVariables(config.Module.Variables, variables)
+		diags = diags.Append(varDiags)
+	}
+
 	return &Context{
 		components: components,
 		schemas:    schemas,
@@ -231,7 +242,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
-	}, nil
+	}, diags
 }
 
 func (c *Context) Schemas() *Schemas {
@@ -415,14 +426,6 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 	return evalCtx.EvaluationScope(nil, EvalDataForNoInstanceKey), diags
 }
 
-// Interpolater is no longer used. Use Evaluator instead.
-//
-// The interpolator returned from this function will return an error on any use.
-func (c *Context) Interpolater() *Interpolater {
-	// FIXME: Remove this once all callers are updated to no longer use it.
-	return &Interpolater{}
-}
-
 // Apply applies the changes represented by this context and returns
 // the resulting state.
 //
@@ -479,6 +482,17 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 		c.state.PruneResourceHusks()
 	}
 
+	if len(c.targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Applied changes may be incomplete",
+			`The plan was created with the -target option in effect, so some changes requested in the configuration may have been ignored and the output values may not be fully updated. Run the following command to verify that no other changes are pending:
+    terraform plan
+	
+Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	}
+
 	return c.state, diags
 }
 
@@ -494,6 +508,16 @@ func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
 	c.changes = plans.NewChanges()
 
 	var diags tfdiags.Diagnostics
+
+	if len(c.targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Resource targeting is in effect",
+			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+		
+The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	}
 
 	varVals := make(map[string]plans.DynamicValue, len(c.variables))
 	for k, iv := range c.variables {
@@ -649,14 +673,6 @@ func (c *Context) Validate() tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
-	// Validate input variables. We do this only for the values supplied
-	// by the root module, since child module calls are validated when we
-	// visit their graph nodes.
-	if c.config != nil {
-		varDiags := checkInputVariables(c.config.Module.Variables, c.variables)
-		diags = diags.Append(varDiags)
-	}
-
 	// If we have errors at this point then we probably won't be able to
 	// construct a graph without producing redundant errors, so we'll halt early.
 	if diags.HasErrors() {
@@ -773,6 +789,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 		Context:            c,
 		State:              c.state.SyncWrapper(),
 		Changes:            c.changes.SyncWrapper(),
+		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,
 		StopContext:        c.runContext,
 		RootVariableValues: c.variables,
@@ -848,59 +865,6 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	}()
 
 	return stop, wait
-}
-
-// parseVariableAsHCL parses the value of a single variable as would have been specified
-// on the command line via -var or in an environment variable named TF_VAR_x, where x is
-// the name of the variable. In order to get around the restriction of HCL requiring a
-// top level object, we prepend a sentinel key, decode the user-specified value as its
-// value and pull the value back out of the resulting map.
-func parseVariableAsHCL(name string, input string, targetType config.VariableType) (interface{}, error) {
-	// expecting a string so don't decode anything, just strip quotes
-	if targetType == config.VariableTypeString {
-		return strings.Trim(input, `"`), nil
-	}
-
-	// return empty types
-	if strings.TrimSpace(input) == "" {
-		switch targetType {
-		case config.VariableTypeList:
-			return []interface{}{}, nil
-		case config.VariableTypeMap:
-			return make(map[string]interface{}), nil
-		}
-	}
-
-	const sentinelValue = "SENTINEL_TERRAFORM_VAR_OVERRIDE_KEY"
-	inputWithSentinal := fmt.Sprintf("%s = %s", sentinelValue, input)
-
-	var decoded map[string]interface{}
-	err := hcl.Decode(&decoded, inputWithSentinal)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL: %s", name, input, err)
-	}
-
-	if len(decoded) != 1 {
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. Only one value may be specified.", name, input)
-	}
-
-	parsedValue, ok := decoded[sentinelValue]
-	if !ok {
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. One value must be specified.", name, input)
-	}
-
-	switch targetType {
-	case config.VariableTypeList:
-		return parsedValue, nil
-	case config.VariableTypeMap:
-		if list, ok := parsedValue.([]map[string]interface{}); ok {
-			return list[0], nil
-		}
-
-		return nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. One value must be specified.", name, input)
-	default:
-		panic(fmt.Errorf("unknown type %s", targetType.Printable()))
-	}
 }
 
 // ShimLegacyState is a helper that takes the legacy state type and

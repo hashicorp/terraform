@@ -14,18 +14,34 @@ import (
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
+	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
 type ModuleInstaller struct {
 	modsDir string
 	reg     *registry.Client
+
+	// The keys in moduleVersions are resolved and trimmed registry source
+	// addresses and the values are the registry response.
+	moduleVersions map[string]*response.ModuleVersions
+
+	// The keys in moduleVersionsUrl are the moduleVersion struct below and
+	// addresses and the values are the download URLs.
+	moduleVersionsUrl map[moduleVersion]string
+}
+
+type moduleVersion struct {
+	module  string
+	version string
 }
 
 func NewModuleInstaller(modsDir string, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
-		modsDir: modsDir,
-		reg:     reg,
+		modsDir:           modsDir,
+		reg:               reg,
+		moduleVersions:    make(map[string]*response.ModuleVersions),
+		moduleVersionsUrl: make(map[moduleVersion]string),
 	}
 }
 
@@ -309,24 +325,32 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	}
 
 	reg := i.reg
+	var resp *response.ModuleVersions
+	var exists bool
 
-	log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
-	resp, err := reg.ModuleVersions(addr)
-	if err != nil {
-		if registry.IsModuleNotFound(err) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Module not found",
-				fmt.Sprintf("Module %q (from %s:%d) cannot be found in the module registry at %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname),
-			))
-		} else {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Error accessing remote module registry",
-				fmt.Sprintf("Failed to retrieve available versions for module %q (%s:%d) from %s: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname, err),
-			))
+	// check if we've already looked up this module from the registry
+	if resp, exists = i.moduleVersions[addr.String()]; exists {
+		log.Printf("[TRACE] %s using already found available versions of %s at %s", key, addr, hostname)
+	} else {
+		log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
+		resp, err = reg.ModuleVersions(addr)
+		if err != nil {
+			if registry.IsModuleNotFound(err) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Module not found",
+					fmt.Sprintf("Module %q (from %s:%d) cannot be found in the module registry at %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Error accessing remote module registry",
+					fmt.Sprintf("Failed to retrieve available versions for module %q (%s:%d) from %s: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname, err),
+				))
+			}
+			return nil, nil, diags
 		}
-		return nil, nil, diags
+		i.moduleVersions[addr.String()] = resp
 	}
 
 	// The response might contain information about dependencies to allow us
@@ -405,16 +429,24 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
 	// The response to this is a go-getter-style address string.
-	dlAddr, err := reg.ModuleLocation(addr, latestMatch.String())
-	if err != nil {
-		log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid response from remote module registry",
-			fmt.Sprintf("The remote registry at %s failed to return a download URL for %s %s.", hostname, addr, latestMatch),
-		))
-		return nil, nil, diags
+
+	// first check the cache for the download URL
+	moduleAddr := moduleVersion{module: addr.String(), version: latestMatch.String()}
+	if _, exists := i.moduleVersionsUrl[moduleAddr]; !exists {
+		url, err := reg.ModuleLocation(addr, latestMatch.String())
+		if err != nil {
+			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error accessing remote module registry",
+				fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
+			))
+			return nil, nil, diags
+		}
+		i.moduleVersionsUrl[moduleVersion{module: addr.String(), version: latestMatch.String()}] = url
 	}
+
+	dlAddr := i.moduleVersionsUrl[moduleAddr]
 
 	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
 

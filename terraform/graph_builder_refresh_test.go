@@ -83,37 +83,37 @@ func TestRefreshGraphBuilder_configOrphans(t *testing.T) {
 	actual := strings.TrimSpace(g.StringWithNodeTypes())
 	expected := strings.TrimSpace(`
 data.test_object.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 data.test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 data.test_object.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 data.test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 data.test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  provider.test - *terraform.NodeApplyableProvider
-provider.test - *terraform.NodeApplyableProvider
-provider.test (close) - *terraform.graphNodeCloseProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
+provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
+provider["registry.terraform.io/-/test"] (close) - *terraform.graphNodeCloseProvider
   data.test_object.foo[0] - *terraform.NodeRefreshableManagedResourceInstance
   data.test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   data.test_object.foo[1] - *terraform.NodeRefreshableManagedResourceInstance
   data.test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
   data.test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  test_object.foo - *terraform.NodeRefreshableManagedResource
+  test_object.foo - *terraform.nodeExpandRefreshableManagedResource
   test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-test_object.foo - *terraform.NodeRefreshableManagedResource
-  provider.test - *terraform.NodeApplyableProvider
+test_object.foo - *terraform.nodeExpandRefreshableManagedResource
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  provider.test - *terraform.NodeApplyableProvider
+  provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 `)
 	if expected != actual {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)

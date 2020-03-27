@@ -17,11 +17,11 @@ type NodePlanDestroyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeModuleInstance       = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeReferenceable        = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeDestroyer            = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeResource             = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeConfigResource       = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeResourceInstance     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
@@ -47,7 +47,7 @@ func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	if n.ResolvedProvider.ProviderConfig.Type == "" {
+	if n.ResolvedProvider.Provider.Type == "" {
 		// Should never happen; indicates that the graph was not constructed
 		// correctly since we didn't get our provider attached.
 		panic(fmt.Sprintf("%T %q was not assigned a resolved provider", n, dag.VertexName(n)))

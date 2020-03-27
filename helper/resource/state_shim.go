@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/hashicorp/terraform/states"
@@ -47,15 +47,15 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 		}
 
 		for _, res := range newMod.Resources {
-			resType := res.Addr.Type
-			providerType := res.ProviderConfig.ProviderConfig.Type
+			resType := res.Addr.Resource.Type
+			providerType := res.ProviderConfig.Provider.Type
 
-			resource := getResource(providers, providerType, res.Addr)
+			resource := getResource(providers, providerType, res.Addr.Resource)
 
 			for key, i := range res.Instances {
 				resState := &terraform.ResourceState{
 					Type:     resType,
-					Provider: res.ProviderConfig.String(),
+					Provider: res.ProviderConfig.LegacyString(),
 				}
 
 				// We should always have a Current instance here, but be safe about checking.
@@ -81,12 +81,13 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 					}
 
 					if i.Current.SchemaVersion != 0 {
-						resState.Primary.Meta = map[string]interface{}{
-							"schema_version": i.Current.SchemaVersion,
+						if resState.Primary.Meta == nil {
+							resState.Primary.Meta = map[string]interface{}{}
 						}
+						resState.Primary.Meta["schema_version"] = i.Current.SchemaVersion
 					}
 
-					for _, dep := range i.Current.Dependencies {
+					for _, dep := range i.Current.DependsOn {
 						resState.Dependencies = append(resState.Dependencies, dep.String())
 					}
 
@@ -102,7 +103,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 						idx = "." + key.String()
 					}
 
-					mod.Resources[res.Addr.String()+idx] = resState
+					mod.Resources[res.Addr.Resource.String()+idx] = resState
 				}
 
 				// add any deposed instances
