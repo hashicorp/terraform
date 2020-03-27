@@ -38,7 +38,7 @@ moved all of the HashiCorp owned providers and partner providers into the
 `hashicorp` namespace, and the remaining providers will move into their own
 namespaces over time. 
 
-### Provider type
+### Provider Type
 
 The provider type is the designation used in the binary name and resource names.
 The terms _provider type_ and _provider name_ have been used interchangably in
@@ -72,12 +72,11 @@ registry.terraform.io/hashicorp/random
 tfe.example.com/mycorp/random
 ```
 
-### Provider local name
+### Provider localname
 It is possible to have multiple providers with the same type in a single
-terraform configuration. To avoid ambiguity, you must declare unique local names
+terraform configuration. To avoid ambiguity, you must declare unique localnames
 for providers. These names do not need to be either unique or the same across
-modules; terraform references providers by their FQNs regardless of the local
-name.
+modules; terraform references providers by their FQNs regardless of the localname.
 
 In the following example, two providers with the type `random` are declared in `required_providers`:
 
@@ -94,7 +93,7 @@ terraform {
 }
 ```
 
-The local names for the two providers are "random" and "more-random". The next example shows how to use these providers in resources:
+The localnames for the two providers are "random" and "more-random". The next example shows how to use these providers in resources:
 
 ```hcl
 resource "random_pet" "example1" {
@@ -110,10 +109,4 @@ resource "random_pet" "example2" {
 ```
 
 Inside terraform, providers are always referenced by their FQN while provider
-configuration remains aware of the local name.
-
-## References
-Provider Source Doc link 
-Provider auto install doc link
-provider discovery on disk link 
-Provider Tiers, more info
+configuration remains aware of the localname.

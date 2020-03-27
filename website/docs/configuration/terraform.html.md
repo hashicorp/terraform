@@ -114,8 +114,8 @@ terraform {
 }
 ```
 
-You are not required to set the `source` attribute for providers in the `hashicorp`. In
-those cases, an optional, simplified syntax may be used:
+You may omit the `source` attribute for providers in the `hashicorp` namespace.
+In those cases, an optional, simplified syntax may also be used:
 
 ```hcl
 terraform {
@@ -124,6 +124,8 @@ terraform {
   }
 }
 ```
+
+### Version Constraint Strings
 
 Version constraint strings within the `required_providers` block use the
 same version constraint syntax as for
@@ -144,17 +146,31 @@ Root modules should use a `~>` constraint to set both a lower and upper bound
 on versions for each provider they depend on, as described in
 [Provider Versions](providers.html#provider-versions).
 
-An alternate syntax is also supported, but not intended for use at this time.
-It exists to support future enhancements.
+### Source Constraint Strings
+A Source constraint string within the `required_providers` is a string made up of one to three parts, separated by a forward-slash (`/`). The parts are:
 
-```hcl
-terraform {
-  required_providers {
-    aws = {
-      version = ">= 2.7.0"
-    }
-  }
-}
+* `hostname`: The `hostname` is the registry host which indexes the provides.
+  `hostname` may be omitted if the provider is in HashiCorp's public registry
+  (registry.terraform.io).
+
+* `namespace`: The registry namespace that the provider is in. This maybe be
+  omitted if the provider is in HashiCorp's namesapce (hashicorp). `namespace`
+  is required when `hostname` is set.
+
+* `type`: the provider type.
+
+
+The following are all valid source strings for the `random` provider in the HashiCorp namespace:
+```
+"random"
+"hashicorp/random"
+"registry.terraform.io/hashicorp/random"
+```
+
+The following is _not_ a valid source string, since namespace is required when
+hostname is provided:
+```
+"registry.terraform.io/random"
 ```
 
 ## Experimental Language Features

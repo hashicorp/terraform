@@ -1,0 +1,21 @@
+---
+layout: "guides"
+page_title: "Upgrading to Terraform 0.13"
+sidebar_current: "upgrade-guides-0-13"
+description: |-
+  Upgrading to Terraform v0.13
+---
+
+# Upgrading to Terraform v0.13
+
+[Terraform v0.12 is a major release](blog posts link)
+focused on configuration language improvements and thus includes some
+changes that you'll need to consider when upgrading. The goal of this guide is
+to cover the most common upgrade concerns and issues.
+
+For most users, upgrading configuration should be completely automatic. Most
+configurations can be prepared by running
+[the automatic upgrade tool](/docs/commands/0.13upgrade.html). Please read on
+for more information and recommendations on the upgrade process.
+
+## Upgrade to Terraform 0.12 first
