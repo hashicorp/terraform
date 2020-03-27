@@ -1,32 +1,45 @@
 # Contributing to Terraform 
 
-------
-
 This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub. Instructions for developing each provider are in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
 ----
 
-**First:** if you're unsure or afraid of *anything*, just ask or submit the issue anyway. You won't be yelled at for giving your best effort. The worst that can happen is that you'll be politely asked to change something or move . We appreciate any sort of contributions, and don't want a wall of rules to get in the way of that.
+<!-- MarkdownTOC autolink="true" -->
 
-However, for those individuals who want a bit more guidance on the best way to contribute to this project, read on. This document will cover what we're looking for in order to help set some expectations and help you get the most out of participation in this project.
+- [Proposing a Change](#proposing-a-change)
+	- [Caveats & Areas of special concern](#caveats--areas-of-special-concern)
+		- [State Storage Backends](#state-storage-backends)
+		- [Provisioners](#provisioners)
+	- [Pull Request Lifecycle](#pull-request-lifecycle)
+		- [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
+	- [PR Checks](#pr-checks)
+- [Terraform CLI/Core Development Environment](#terraform-clicore-development-environment)
+- [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
+- [Generated Code](#generated-code)
+- [External Dependencies](#external-dependencies)
 
-Terraform is managed by small core development team and so we aren't always able to respond to every issue or pull request in a timely manner.
+<!-- /MarkdownTOC -->
+
+
+This document provides guidance on Terraform contibution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
 
 To record a bug report, enhancement proposal, or give any other product feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) using the most appropriate issue template. Please do fill in all of the information the issue templates request, because we've seen from experience that this will maximize the chance that we'll be able to act on your feedback.
 
 ## Proposing a Change
 
-In order to be respectful of the time of community contributors, we prefer to discuss potential changes in GitHub issues prior to implementation. That will allow us to give design feedback up front and set expectations about the scope of the change, and, for larger changes, how best to approach the work such that the Terraform team can review it and merge it along with other concurrent work.
+In order to be respectful of the time of community contributors, we aim to discuss potential changes in GitHub issues prior to implementation. That will allow us to give design feedback up front and set expectations about the scope of the change, and, for larger changes, how best to approach the work such that the Terraform team can review it and merge it along with other concurrent work.
 
-If the bug you wish to fix or enhancement you wish to implement isn't already covered by a GitHub issue that contains feedback from the Terraform team, please do start a discussion (either in [a new GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) or an existing one, as appropriate) before you invest significant development time. If you mention your intent to implement the change described in your issue, the Terraform team can prioritize including implementation-related feedback in the subsequent discussion.
+If the bug you wish to fix or enhancement you wish to implement isn't already covered by a GitHub issue that contains feedback from the Terraform team, please do start a discussion (either in [a new GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) or an existing one, as appropriate) before you invest significant development time. If you mention your intent to implement the change described in your issue, the Terraform team can, as best as possible, prioritize including implementation-related feedback in the subsequent discussion.
 
-At this time, we do not have a formal process for reviewing outside proposals that significantly change Terraform's workflow, its primary usage patterns, and its language. While we do hope to put such a thing in place in the future, we wish to be up front with potential contributors that unfortunately we are unlikely to be able to give prompt feedback for large proposals that could entail a significant design phase, though we are still interested to hear about your use-cases so that we can consider ways to meet them as part of other larger projects.
+At this time, we do not have a formal process for reviewing outside proposals that significantly change Terraform's workflow, its primary usage patterns, and its language. Additionally, some seemingly simple proposals can have deep effects across Terraform, which is why we strongly suggest starting with an issue-based proposal. 
+
+For large proposals that could entail a significant design phase, we wish to be up front with potential contributors that, unfortunately, we are unlikely to be able to give prompt feedback. We are still interested to hear about your use-cases so that we can consider ways to meet them as part of other larger projects.
 
 Most changes will involve updates to the test suite, and changes to Terraform's documentation. The Terraform team can advise on different testing strategies for specific scenarios, and may ask you to revise the specific phrasing of your proposed documentation prose to match better with the standard "voice" of Terraform's documentation.
 
 This repository is primarily maintained by a small team at HashiCorp along with their other responsibilities, so unfortunately we cannot always respond promptly to pull requests, particularly if they do not relate to an existing GitHub issue where the Terraform team has already participated. We *are* grateful for all contributions however, and will give feedback on pull requests as soon as we're able.
 
-### Caveats
+### Caveats & Areas of special concern
 
 #### State Storage Backends
 
@@ -37,6 +50,10 @@ Please see the CODEOWNERS file for the status of a given backend.
 The Terraform team will not be merging new state storage backends at this time. The burden it places on a team to setup an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage prevents us from moving Terraform forward in other ways. 
 
 We are working to remove ourselves from the critical path of state storage backends. Unfortuanately in the mean time, we won't be accepting new backends. 
+
+#### Provisioners
+
+TO ADD
 
 ### Pull Request Lifecycle
 
@@ -180,6 +197,3 @@ git commit -m "vendor: go get github.com/hashicorp/hcl/v2@2.0.0"
 ```
 
 You can then make use of the new or updated dependency in new code added in subsequent commits.
-
-#### 
-
