@@ -93,6 +93,12 @@ type InstallerEvents struct {
 	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string)
 	FetchPackageRetry   func(provider addrs.Provider, version getproviders.Version, err error)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
+
+	// HashPackageFailure is called if the installer is unable to determine
+	// the hash of the contents of an installed package after installation.
+	// In that case, the selection will not be recorded in the target cache
+	// directory's lock file.
+	HashPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 }
 
 // OnContext produces a context with all of the same behaviors as the given

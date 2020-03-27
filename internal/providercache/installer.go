@@ -3,6 +3,7 @@ package providercache
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -267,6 +268,7 @@ NeedProvider:
 		new := installTo.ProviderVersion(provider, version)
 		if new == nil {
 			err := fmt.Errorf("after installing %s it is still not detected in the target directory; this is a bug in Terraform", provider)
+			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
 				cb(provider, version, err)
 			}
@@ -292,12 +294,101 @@ NeedProvider:
 		}
 	}
 
+	// We'll remember our selections in a lock file inside the target directory,
+	// so callers can recover those exact selections later by calling
+	// SelectedPackages on the same installer.
+	lockEntries := map[addrs.Provider]lockFileEntry{}
+	for provider, version := range selected {
+		cached := i.targetDir.ProviderVersion(provider, version)
+		if cached == nil {
+			err := fmt.Errorf("selected package for %s is no longer present in the target directory; this is a bug in Terraform", provider)
+			errs[provider] = err
+			if cb := evts.HashPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		}
+		hash, err := cached.Hash()
+		if err != nil {
+			errs[provider] = fmt.Errorf("failed to calculate checksum for installed provider %s package: %s", provider, err)
+			if cb := evts.HashPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		}
+		lockEntries[provider] = lockFileEntry{
+			SelectedVersion: version,
+			PackageHash:     hash,
+		}
+	}
+	err := i.lockFile().Write(lockEntries)
+	if err != nil {
+		// This is one of few cases where this function does _not_ return an
+		// InstallerError, because failure to write the lock file is a more
+		// general problem, not specific to a certain provider.
+		return selected, fmt.Errorf("failed to record a manifest of selected providers: %s", err)
+	}
+
 	if len(errs) > 0 {
 		return selected, InstallerError{
 			ProviderErrors: errs,
 		}
 	}
 	return selected, nil
+}
+
+func (i *Installer) lockFile() *lockFile {
+	return &lockFile{
+		filename: filepath.Join(i.targetDir.baseDir, "selections.json"),
+	}
+}
+
+// SelectedPackages returns the metadata about the packages chosen by the
+// most recent call to EnsureProviderVersions, which are recorded in a lock
+// file in the installer's target directory.
+//
+// If EnsureProviderVersions has never been run against the current target
+// directory, the result is a successful empty response indicating that nothing
+// is selected.
+//
+// SelectedPackages also verifies that the package contents are consistent
+// with the checksums that were recorded at installation time, reporting an
+// error if not.
+func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, error) {
+	entries, err := i.lockFile().Read()
+	if err != nil {
+		// Read does not return an error for "file not found", so this should
+		// always be some other error.
+		return nil, fmt.Errorf("failed to read selections file: %s", err)
+	}
+
+	ret := make(map[addrs.Provider]*CachedProvider, len(entries))
+	errs := make(map[addrs.Provider]error)
+	for provider, entry := range entries {
+		cached := i.targetDir.ProviderVersion(provider, entry.SelectedVersion)
+		if cached == nil {
+			errs[provider] = fmt.Errorf("package for selected version %s is no longer available in the local cache directory", entry.SelectedVersion)
+			continue
+		}
+
+		ok, err := cached.MatchesHash(entry.PackageHash)
+		if err != nil {
+			errs[provider] = fmt.Errorf("failed to verify checksum for v%s package: %s", entry.SelectedVersion, err)
+			continue
+		}
+		if !ok {
+			errs[provider] = fmt.Errorf("checksum mismatch for v%s package", entry.SelectedVersion)
+			continue
+		}
+		ret[provider] = cached
+	}
+
+	if len(errs) > 0 {
+		return ret, InstallerError{
+			ProviderErrors: errs,
+		}
+	}
+	return ret, nil
 }
 
 // InstallMode customizes the details of how an install operation treats
