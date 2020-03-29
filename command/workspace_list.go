@@ -17,15 +17,15 @@ type WorkspaceListCommand struct {
 }
 
 type WorkspaceList struct {
-	Name string  `json:"name"`
-	Selected bool `json:"selected"`
+	Name     string `json:"name"`
+	Selected bool   `json:"selected"`
 }
 
 type WorkspaceListOutput struct {
-	TerraformVersion string  `json:"terraform_version"`
-	WorkspaceList              []WorkspaceList  `json:"workspaces"`
-	IsOverridden bool  `json:"is_overridden"`
-	OverriddenNote string  `json:"overridden_note"`
+	TerraformVersion string          `json:"terraform_version"`
+	WorkspaceList    []WorkspaceList `json:"workspaces"`
+	IsOverridden     bool            `json:"is_overridden"`
+	OverriddenNote   string          `json:"overridden_note"`
 }
 
 func (c *WorkspaceListCommand) Run(args []string) int {
@@ -85,7 +85,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		wsOutput.TerraformVersion = tfversion.String()
 		wsOutput.IsOverridden = isOverridden
 		if isOverridden {
-			wsOutput.OverriddenNote =  envIsOverriddenNote
+			wsOutput.OverriddenNote = envIsOverriddenNote
 		}
 
 		for _, s := range states {
