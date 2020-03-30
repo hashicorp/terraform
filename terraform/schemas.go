@@ -93,21 +93,20 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 	var diags tfdiags.Diagnostics
 
 	ensure := func(fqn addrs.Provider) {
-		// TODO: LegacyString() will be removed in an upcoming release
-		typeName := fqn.LegacyString()
+		name := fqn.String()
 
 		if _, exists := schemas[fqn]; exists {
 			return
 		}
 
-		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", fqn.LegacyString())
+		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", name)
 		provider, err := components.ResourceProvider(fqn)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
 			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to instantiate provider %q to obtain schema: %s", typeName, err),
+				fmt.Errorf("Failed to instantiate provider %q to obtain schema: %s", name, err),
 			)
 			return
 		}
@@ -121,7 +120,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			// future calls.
 			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to retrieve schema from provider %q: %s", typeName, resp.Diagnostics.Err()),
+				fmt.Errorf("Failed to retrieve schema from provider %q: %s", name, resp.Diagnostics.Err()),
 			)
 			return
 		}
@@ -138,7 +137,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			// We're not using the version numbers here yet, but we'll check
 			// for validity anyway in case we start using them in future.
 			diags = diags.Append(
-				fmt.Errorf("invalid negative schema version provider configuration for provider %q", typeName),
+				fmt.Errorf("invalid negative schema version provider configuration for provider %q", name),
 			)
 		}
 
@@ -147,7 +146,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
 			if r.Version < 0 {
 				diags = diags.Append(
-					fmt.Errorf("invalid negative schema version for resource type %s in provider %q", t, typeName),
+					fmt.Errorf("invalid negative schema version for resource type %s in provider %q", t, name),
 				)
 			}
 		}
@@ -158,7 +157,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 				// We're not using the version numbers here yet, but we'll check
 				// for validity anyway in case we start using them in future.
 				diags = diags.Append(
-					fmt.Errorf("invalid negative schema version for data source %s in provider %q", t, typeName),
+					fmt.Errorf("invalid negative schema version for data source %s in provider %q", t, name),
 				)
 			}
 		}
