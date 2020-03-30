@@ -167,6 +167,10 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 		return diags
 	}
 
+	// Register this path as a synthetic configuration source, so that any
+	// diagnostic errors can include the source code snippet
+	c.registerSynthConfigSource(path, src)
+
 	// File must be parseable as HCL native syntax before we'll try to format
 	// it. If not, the formatter is likely to make drastic changes that would
 	// be hard for the user to undo.

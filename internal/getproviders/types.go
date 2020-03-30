@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
+	"github.com/apparentlymart/go-versions/versions/constraints"
+
 	"github.com/hashicorp/terraform/addrs"
 )
 
@@ -18,10 +20,79 @@ type Version = versions.Version
 // extra methods for convenient filtering.
 type VersionList = versions.List
 
+// VersionSet represents a set of versions, usually describing the acceptable
+// versions that can be selected under a particular version constraint provided
+// by the end-user.
+type VersionSet = versions.Set
+
+// VersionConstraints represents a set of version constraints, which can
+// define the membership of a VersionSet by exclusion.
+type VersionConstraints = constraints.IntersectionSpec
+
+// Requirements gathers together requirements for many different providers
+// into a single data structure, as a convenient way to represent the full
+// set of requirements for a particular configuration or state or both.
+//
+// If an entry in a Requirements has a zero-length VersionConstraints then
+// that indicates that the provider is required but that any version is
+// acceptable. That's different than a provider being absent from the map
+// altogether, which means that it is not required at all.
+type Requirements map[addrs.Provider]VersionConstraints
+
+// Merge takes the requirements in the receiever and the requirements in the
+// other given value and produces a new set of requirements that combines
+// all of the requirements of both.
+//
+// The resulting requirements will permit only selections that both of the
+// source requirements would've allowed.
+func (r Requirements) Merge(other Requirements) Requirements {
+	ret := make(Requirements)
+	for addr, constraints := range r {
+		ret[addr] = constraints
+	}
+	for addr, constraints := range other {
+		ret[addr] = append(ret[addr], constraints...)
+	}
+	return ret
+}
+
+// Selections gathers together version selections for many different providers.
+//
+// This is the result of provider installation: a specific version selected
+// for each provider given in the requested Requirements, selected based on
+// the given version constraints.
+type Selections map[addrs.Provider]Version
+
 // ParseVersion parses a "semver"-style version string into a Version value,
 // which is the version syntax we use for provider versions.
 func ParseVersion(str string) (Version, error) {
 	return versions.ParseVersion(str)
+}
+
+// MustParseVersion is a variant of ParseVersion that panics if it encounters
+// an error while parsing.
+func MustParseVersion(str string) Version {
+	ret, err := ParseVersion(str)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+// ParseVersionConstraints parses a "Ruby-like" version constraint string
+// into a VersionConstraints value.
+func ParseVersionConstraints(str string) (VersionConstraints, error) {
+	return constraints.ParseRubyStyleMulti(str)
+}
+
+// MustParseVersionConstraints is a variant of ParseVersionConstraints that
+// panics if it encounters an error while parsing.
+func MustParseVersionConstraints(str string) VersionConstraints {
+	ret, err := ParseVersionConstraints(str)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }
 
 // Platform represents a target platform that a provider is or might be
@@ -133,6 +204,17 @@ func (m PackageMeta) LessThan(other PackageMeta) bool {
 	}
 }
 
+// UnpackedDirectoryPath determines the path under the given base
+// directory where SearchLocalDirectory or the FilesystemMirrorSource would
+// expect to find an unpacked copy of the receiving PackageMeta.
+//
+// The result always uses forward slashes as path separator, even on Windows,
+// to produce a consistent result on all platforms. Windows accepts both
+// direction of slash as long as each individual path string is self-consistent.
+func (m PackageMeta) UnpackedDirectoryPath(baseDir string) string {
+	return UnpackedDirectoryPathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
+}
+
 // PackageLocation represents a location where a provider distribution package
 // can be obtained. A value of this type contains one of the following
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
@@ -229,4 +311,57 @@ func (l PackageMetaList) FilterProviderPlatformExactVersion(provider addrs.Provi
 		}
 	}
 	return ret
+}
+
+// VersionConstraintsString returns a UI-oriented string representation of
+// a VersionConstraints value.
+func VersionConstraintsString(spec VersionConstraints) string {
+	// (we have our own function for this because the upstream versions
+	// library prefers to use npm/cargo-style constraint syntax, but
+	// Terraform prefers Ruby-like. Maybe we can upstream a "RubyLikeString")
+	// function to do this later, but having this in here avoids blocking on
+	// that and this is the sort of thing that is unlikely to need ongoing
+	// maintenance because the version constraint syntax is unlikely to change.)
+
+	var b strings.Builder
+	for i, sel := range spec {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		switch sel.Operator {
+		case constraints.OpGreaterThan:
+			b.WriteString("> ")
+		case constraints.OpLessThan:
+			b.WriteString("< ")
+		case constraints.OpGreaterThanOrEqual:
+			b.WriteString(">= ")
+		case constraints.OpGreaterThanOrEqualPatchOnly, constraints.OpGreaterThanOrEqualMinorOnly:
+			// These two differ in how the version is written, not in the symbol.
+			b.WriteString("~> ")
+		case constraints.OpLessThanOrEqual:
+			b.WriteString("<= ")
+		case constraints.OpEqual:
+			b.WriteString("")
+		case constraints.OpNotEqual:
+			b.WriteString("!= ")
+		default:
+			// The above covers all of the operators we support during
+			// parsing, so we should not get here.
+			b.WriteString("??? ")
+		}
+
+		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
+			// The minor-pessimistic syntax uses only two version components.
+			fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+		} else {
+			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
+		}
+		if sel.Boundary.Prerelease != "" {
+			b.WriteString("-" + sel.Boundary.Prerelease)
+		}
+		if sel.Boundary.Metadata != "" {
+			b.WriteString("+" + sel.Boundary.Metadata)
+		}
+	}
+	return b.String()
 }

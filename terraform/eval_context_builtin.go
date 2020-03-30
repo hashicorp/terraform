@@ -32,6 +32,13 @@ type BuiltinEvalContext struct {
 	// PathValue is the Path that this context is operating within.
 	PathValue addrs.ModuleInstance
 
+	// pathSet indicates that this context was explicitly created for a
+	// specific path, and can be safely used for evaluation. This lets us
+	// differentiate between Pathvalue being unset, and the zero value which is
+	// equivalent to RootModuleInstance.  Path and Evaluation methods will
+	// panic if this is not set.
+	pathSet bool
+
 	// Evaluator is used for evaluating expressions within the scope of this
 	// eval context.
 	Evaluator *Evaluator
@@ -70,6 +77,13 @@ type BuiltinEvalContext struct {
 // BuiltinEvalContext implements EvalContext
 var _ EvalContext = (*BuiltinEvalContext)(nil)
 
+func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+	ctx.pathSet = true
+	newCtx := *ctx
+	newCtx.PathValue = path
+	return &newCtx
+}
+
 func (ctx *BuiltinEvalContext) Stopped() <-chan struct{} {
 	// This can happen during tests. During tests, we just block forever.
 	if ctx.StopContext == nil {
@@ -104,12 +118,6 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 }
 
 func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
-	if !addr.Module.Equal(ctx.Path().Module()) {
-		// This indicates incorrect use of InitProvider: it should be used
-		// only from the module that the provider configuration belongs to.
-		panic(fmt.Sprintf("%s initialized by wrong module %s", addr, ctx.Path()))
-	}
-
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)
@@ -145,12 +153,6 @@ func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *Pro
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
-	if !addr.Module.Equal(ctx.Path().Module()) {
-		// This indicates incorrect use of CloseProvider: it should be used
-		// only from the module that the provider configuration belongs to.
-		panic(fmt.Sprintf("%s closed by wrong module %s", addr, ctx.Path()))
-	}
-
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
@@ -213,13 +215,7 @@ func (ctx *BuiltinEvalContext) ProviderInput(pc addrs.AbsProviderConfig) map[str
 
 func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c map[string]cty.Value) {
 	absProvider := pc
-	if !absProvider.Module.Equal(ctx.Path().Module()) {
-		// This indicates incorrect use of InitProvider: it should be used
-		// only from the module that the provider configuration belongs to.
-		panic(fmt.Sprintf("%s initialized by wrong module %s", absProvider, ctx.Path()))
-	}
-
-	if !ctx.Path().IsRoot() {
+	if !pc.Module.IsRoot() {
 		// Only root module provider configurations can have input.
 		log.Printf("[WARN] BuiltinEvalContext: attempt to SetProviderInput for non-root module")
 		return
@@ -291,6 +287,9 @@ func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Ty
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
+	if !ctx.pathSet {
+		panic("context path not set")
+	}
 	data := &evaluationStateData{
 		Evaluator:       ctx.Evaluator,
 		ModulePath:      ctx.PathValue,
@@ -301,12 +300,19 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
+	if !ctx.pathSet {
+		panic("context path not set")
+	}
 	return ctx.PathValue
 }
 
 func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, vals map[string]cty.Value) {
 	ctx.VariableValuesLock.Lock()
 	defer ctx.VariableValuesLock.Unlock()
+
+	if !ctx.pathSet {
+		panic("context path not set")
+	}
 
 	childPath := n.ModuleInstance(ctx.PathValue)
 	key := childPath.String()

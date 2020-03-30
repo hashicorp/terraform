@@ -53,7 +53,7 @@ type ResourceInstanceObjectSrc struct {
 	// ResourceInstanceObject.
 	Private             []byte
 	Status              ObjectStatus
-	Dependencies        []addrs.AbsResource
+	Dependencies        []addrs.ConfigResource
 	CreateBeforeDestroy bool
 	// deprecated
 	DependsOn []addrs.Referenceable

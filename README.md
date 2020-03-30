@@ -3,6 +3,9 @@ Terraform
 
 - Website: https://www.terraform.io
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
+- Documentation: [https://www.terraform.io/docs/](https://www.terraform.io/docs/)
+- Tutorials: [HashiCorp's Learn Platform](https://learn.hashicorp.com/terraform)
+- Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
 
 <img alt="Terraform" src="https://www.terraform.io/assets/images/logo-hashicorp-3f10732f.svg" width="600px">
 
@@ -22,13 +25,13 @@ For more information, see the [introduction section](http://www.terraform.io/int
 
 Getting Started & Documentation
 -------------------------------
-
-If you're new to Terraform and want to get started creating infrastructure, please checkout our [Getting Started](https://www.terraform.io/intro/getting-started/install.html) guide, available on the [Terraform website](http://www.terraform.io).
-
-All documentation is available on the [Terraform website](http://www.terraform.io):
-
+Documentation is available on the [Terraform website](http://www.terraform.io):
   - [Intro](https://www.terraform.io/intro/index.html)
   - [Docs](https://www.terraform.io/docs/index.html)
+
+If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
+
+Show off your Terraform knowledge by passing a certification exam. Visit the [certification page](https://www.hashicorp.com/certification/) for information about exams and find [study materials](https://learn.hashicorp.com/terraform/certification/terraform-associate) on HashiCorp's learning platform.
 
 Developing Terraform
 --------------------

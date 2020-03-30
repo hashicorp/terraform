@@ -82,7 +82,7 @@ func TestShow_aliasedProvider(t *testing.T) {
 				// of all of the containing wrapping objects and arrays.
 				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{},
+				Dependencies: []addrs.ConfigResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewLegacyProvider("test"), "alias"),

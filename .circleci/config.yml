@@ -1,0 +1,17 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.14
+    steps:
+      - run: echo "hello world"
+
+workflows:
+  version: 2
+  sample:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore:
+                - /.*/

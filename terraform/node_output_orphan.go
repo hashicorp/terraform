@@ -47,7 +47,7 @@ func (n *NodeOutputOrphan) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},
 		Node: &EvalDeleteOutput{
-			Addr: n.Addr.OutputValue,
+			Addr: n.Addr,
 		},
 	}
 }

@@ -70,26 +70,26 @@ func (e *Expander) SetModuleForEach(parentAddr addrs.ModuleInstance, callAddr ad
 	e.setModuleExpansion(parentAddr, callAddr, expansionForEach(mapping))
 }
 
-// SetResourceSingle records that the given module inside the given parent
-// module does not use any repetition arguments and is therefore a singleton.
-func (e *Expander) SetResourceSingle(parentAddr addrs.ModuleInstance, resourceAddr addrs.Resource) {
-	e.setResourceExpansion(parentAddr, resourceAddr, expansionSingleVal)
+// SetResourceSingle records that the given resource inside the given module
+// does not use any repetition arguments and is therefore a singleton.
+func (e *Expander) SetResourceSingle(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource) {
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionSingleVal)
 }
 
-// SetResourceCount records that the given module inside the given parent
-// module uses the "count" repetition argument, with the given value.
-func (e *Expander) SetResourceCount(parentAddr addrs.ModuleInstance, resourceAddr addrs.Resource, count int) {
-	e.setResourceExpansion(parentAddr, resourceAddr, expansionCount(count))
+// SetResourceCount records that the given resource inside the given module
+// uses the "count" repetition argument, with the given value.
+func (e *Expander) SetResourceCount(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, count int) {
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionCount(count))
 }
 
-// SetResourceForEach records that the given module inside the given parent
-// module uses the "for_each" repetition argument, with the given map value.
+// SetResourceForEach records that the given resource inside the given module
+// uses the "for_each" repetition argument, with the given map value.
 //
 // In the configuration language the for_each argument can also accept a set.
 // It's the caller's responsibility to convert that into an identity map before
 // calling this method.
-func (e *Expander) SetResourceForEach(parentAddr addrs.ModuleInstance, resourceAddr addrs.Resource, mapping map[string]cty.Value) {
-	e.setResourceExpansion(parentAddr, resourceAddr, expansionForEach(mapping))
+func (e *Expander) SetResourceForEach(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, mapping map[string]cty.Value) {
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionForEach(mapping))
 }
 
 // ExpandModule finds the exhaustive set of module instances resulting from
@@ -120,13 +120,13 @@ func (e *Expander) ExpandModule(addr addrs.Module) []addrs.ModuleInstance {
 	return ret
 }
 
-// ExpandResource finds the exhaustive set of resource instances resulting from
+// ExpandModuleResource finds the exhaustive set of resource instances resulting from
 // the expansion of the given resource and all of its containing modules.
 //
 // All of the modules on the path to the identified resource and the resource
 // itself must already have had their expansion registered using one of the
 // SetModule*/SetResource* methods before calling, or this method will panic.
-func (e *Expander) ExpandResource(parentAddr addrs.Module, resourceAddr addrs.Resource) []addrs.AbsResourceInstance {
+func (e *Expander) ExpandModuleResource(moduleAddr addrs.Module, resourceAddr addrs.Resource) []addrs.AbsResourceInstance {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -136,7 +136,25 @@ func (e *Expander) ExpandResource(parentAddr addrs.Module, resourceAddr addrs.Re
 	// (moduleInstances does plenty of allocations itself, so the benefit of
 	// pre-allocating this is marginal but it's not hard to do.)
 	moduleInstanceAddr := make(addrs.ModuleInstance, 0, 4)
-	ret := e.exps.resourceInstances(parentAddr, resourceAddr, moduleInstanceAddr)
+	ret := e.exps.moduleResourceInstances(moduleAddr, resourceAddr, moduleInstanceAddr)
+	sort.SliceStable(ret, func(i, j int) bool {
+		return ret[i].Less(ret[j])
+	})
+	return ret
+}
+
+// ExpandResource finds the set of resource instances resulting from
+// the expansion of the given resource within its module instance.
+//
+// All of the modules on the path to the identified resource and the resource
+// itself must already have had their expansion registered using one of the
+// SetModule*/SetResource* methods before calling, or this method will panic.
+func (e *Expander) ExpandResource(resourceAddr addrs.AbsResource) []addrs.AbsResourceInstance {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	moduleInstanceAddr := make(addrs.ModuleInstance, 0, 4)
+	ret := e.exps.resourceInstances(resourceAddr.Module, resourceAddr.Resource, moduleInstanceAddr)
 	sort.SliceStable(ret, func(i, j int) bool {
 		return ret[i].Less(ret[j])
 	})
@@ -277,10 +295,9 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 	return ret
 }
 
-func (m *expanderModule) resourceInstances(moduleAddr addrs.Module, resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance) []addrs.AbsResourceInstance {
-	var ret []addrs.AbsResourceInstance
-
+func (m *expanderModule) moduleResourceInstances(moduleAddr addrs.Module, resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance) []addrs.AbsResourceInstance {
 	if len(moduleAddr) > 0 {
+		var ret []addrs.AbsResourceInstance
 		// We need to traverse through the module levels first, so we can
 		// then iterate resource expansions in the context of each module
 		// path leading to them.
@@ -297,11 +314,37 @@ func (m *expanderModule) resourceInstances(moduleAddr addrs.Module, resourceAddr
 				continue
 			}
 			moduleInstAddr := append(parentAddr, step)
-			ret = append(ret, inst.resourceInstances(moduleAddr[1:], resourceAddr, moduleInstAddr)...)
+			ret = append(ret, inst.moduleResourceInstances(moduleAddr[1:], resourceAddr, moduleInstAddr)...)
 		}
 		return ret
 	}
 
+	return m.onlyResourceInstances(resourceAddr, parentAddr)
+}
+
+func (m *expanderModule) resourceInstances(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance) []addrs.AbsResourceInstance {
+	if len(moduleAddr) > 0 {
+		// We need to traverse through the module levels first, using only the
+		// module instances for our specific resource, as the resource may not
+		// yet be expanded in all module instances.
+		step := moduleAddr[0]
+		callName := step.Name
+		if _, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]; !ok {
+			// This is a bug in the caller, because it should always register
+			// expansions for an object and all of its ancestors before requesting
+			// expansion of it.
+			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
+		}
+
+		inst := m.childInstances[step]
+		moduleInstAddr := append(parentAddr, step)
+		return inst.resourceInstances(moduleAddr[1:], resourceAddr, moduleInstAddr)
+	}
+	return m.onlyResourceInstances(resourceAddr, parentAddr)
+}
+
+func (m *expanderModule) onlyResourceInstances(resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance) []addrs.AbsResourceInstance {
+	var ret []addrs.AbsResourceInstance
 	exp, ok := m.resources[resourceAddr]
 	if !ok {
 		panic(fmt.Sprintf("no expansion has been registered for %s", resourceAddr.Absolute(parentAddr)))

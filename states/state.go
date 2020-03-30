@@ -6,6 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 // State is the top-level type of a Terraform state.
@@ -220,6 +221,22 @@ func (s *State) ProviderAddrs() []addrs.AbsProviderConfig {
 		ret[i] = m[key]
 	}
 
+	return ret
+}
+
+// ProviderRequirements returns a description of all of the providers that
+// are required to work with the receiving state.
+//
+// Because the state does not track specific version information for providers,
+// the requirements returned by this method will always be unconstrained.
+// The result should usually be merged with a Requirements derived from the
+// current configuration in order to apply some constraints.
+func (s *State) ProviderRequirements() getproviders.Requirements {
+	configAddrs := s.ProviderAddrs()
+	ret := make(getproviders.Requirements, len(configAddrs))
+	for _, configAddr := range configAddrs {
+		ret[configAddr.Provider] = nil // unconstrained dependency
+	}
 	return ret
 }
 

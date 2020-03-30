@@ -34,7 +34,8 @@ before_script:
 
 script:
 - make fmtcheck generate
-- bash scripts/travis.sh
+- make test
+# - bash scripts/travis.sh
 - go mod verify
 - make e2etest
 - GOOS=windows go build -mod=vendor
