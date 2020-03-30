@@ -90,7 +90,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Google Calendar](https://github.com/sethvargo/terraform-provider-googlecalendar)
 - [Google G Suite](https://github.com/DeviaVir/terraform-provider-gsuite)
 - [GorillaStack](https://github.com/GorillaStack/terraform-provider-gorillastack)
-- [Greylog](https://github.com/suzuki-shunsuke/go-graylog)
+- [Graylog](https://github.com/suzuki-shunsuke/go-graylog)
 - [Harbor](https://github.com/BESTSELLER/terraform-harbor-provider)
 - [Hiera](https://github.com/ribbybibby/terraform-provider-hiera)
 - [Hiera 5](https://gitlab.com/sbitio/terraform-provider-hiera5)
