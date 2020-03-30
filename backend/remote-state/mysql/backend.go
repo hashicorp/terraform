@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	// mysql import
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -22,7 +23,7 @@ func New() backend.Backend {
 			"conn_str": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "MySQL connection string; a `user:password@/dbname` URL",
+				Description: "MySQL connection string; a `user:password@tcp(host:port)/dbname` URL",
 			},
 
 			"schema_name": &schema.Schema{
@@ -46,6 +47,7 @@ func New() backend.Backend {
 	return result
 }
 
+//Backend type struct
 type Backend struct {
 	*schema.Backend
 
@@ -95,7 +97,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		id SERIAL NOT NULL PRIMARY KEY,
 		name LONGTEXT,
 		data LONGTEXT,
-		UNIQUE INDEX %s (name)
+		UNIQUE INDEX %s (name(255))
 	)`
 	if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName, statesIndexName)); err != nil {
 		return err

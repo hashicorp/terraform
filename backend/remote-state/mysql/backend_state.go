@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
+//Workspaces List operation
 func (b *Backend) Workspaces() ([]string, error) {
 	query := `SELECT name FROM %s.%s ORDER BY name`
 	rows, err := b.db.Query(fmt.Sprintf(query, b.schemaName, statesTableName))
@@ -33,12 +34,13 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return result, nil
 }
 
+//DeleteWorkspace Delete Operation
 func (b *Backend) DeleteWorkspace(name string) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	query := `DELETE FROM %s.%s WHERE name = $1`
+	query := `DELETE FROM %s.%s WHERE name = ?`
 	_, err := b.db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName), name)
 	if err != nil {
 		return err
@@ -47,6 +49,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return nil
 }
 
+//StateMgr operation
 func (b *Backend) StateMgr(name string) (state.State, error) {
 	// Build the state client
 	var stateMgr state.State = &remote.State{
@@ -79,14 +82,14 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	if !exists {
 		lockInfo := state.NewLockInfo()
 		lockInfo.Operation = "init"
-		lockId, err := stateMgr.Lock(lockInfo)
+		lockID, err := stateMgr.Lock(lockInfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock state in MySQL: %s", err)
 		}
 
 		// Local helper function so we can call it multiple places
 		lockUnlock := func(parent error) error {
-			if err := stateMgr.Unlock(lockId); err != nil {
+			if err := stateMgr.Unlock(lockID); err != nil {
 				return fmt.Errorf(`error unlocking MySQL state: %s`, err)
 			}
 			return parent

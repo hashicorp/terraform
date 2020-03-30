@@ -19,7 +19,7 @@ func TestRemoteClient_impl(t *testing.T) {
 
 func TestRemoteClient(t *testing.T) {
 	testACC(t)
-	connStr := getDatabaseUrl()
+	connStr := getDatabaseURL()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("mysql", connStr)
 	if err != nil {
@@ -47,7 +47,7 @@ func TestRemoteClient(t *testing.T) {
 
 func TestRemoteLocks(t *testing.T) {
 	testACC(t)
-	connStr := getDatabaseUrl()
+	connStr := getDatabaseURL()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("mysql", connStr)
 	if err != nil {

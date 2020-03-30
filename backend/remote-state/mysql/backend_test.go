@@ -1,6 +1,6 @@
 package mysql
 
-// Create the test database: createdb terraform_backend_mysql_test
+// Create the test database: CREATE DATABASE terraform_backend_mysql_test;
 // TF_ACC=1 GO111MODULE=on go test -v -mod=vendor -timeout=2m -parallel=4 github.com/hashicorp/terraform/backend/remote-state/mysql
 
 import (
@@ -17,7 +17,8 @@ import (
 // Function to skip a test unless in ACCeptance test mode.
 //
 // A running MySQL server identified by env variable
-// DATABASE_URL is required for acceptance tests.
+// DATABASE_URL is required for acceptance tests
+// e.g: export DATABASE_URL="root:root@tcp(<host>:3306)/terraform_backend_mysql_test"
 func testACC(t *testing.T) {
 	skip := os.Getenv("TF_ACC") == ""
 	if skip {
@@ -35,7 +36,7 @@ func TestBackend_impl(t *testing.T) {
 
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
-	connStr := getDatabaseUrl()
+	connStr := getDatabaseURL()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("mysql", connStr)
 	if err != nil {
@@ -75,7 +76,7 @@ func TestBackendConfig(t *testing.T) {
 
 func TestBackendConfigSkipSchema(t *testing.T) {
 	testACC(t)
-	connStr := getDatabaseUrl()
+	connStr := getDatabaseURL()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {
@@ -119,13 +120,14 @@ func TestBackendConfigSkipSchema(t *testing.T) {
 
 func TestBackendStates(t *testing.T) {
 	testACC(t)
-	connStr := getDatabaseUrl()
+	connStr := getDatabaseURL()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("mysql", connStr)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
+
+	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s", schemaName))
 
 	config := backend.TestWrapConfig(map[string]interface{}{
 		"conn_str":    connStr,
@@ -142,12 +144,13 @@ func TestBackendStates(t *testing.T) {
 
 func TestBackendStateLocks(t *testing.T) {
 	testACC(t)
-	connStr := getDatabaseUrl()
+	connStr := getDatabaseURL()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
 	dbCleaner, err := sql.Open("mysql", connStr)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
 	config := backend.TestWrapConfig(map[string]interface{}{
@@ -169,6 +172,6 @@ func TestBackendStateLocks(t *testing.T) {
 	backend.TestBackendStateLocks(t, b, bb)
 }
 
-func getDatabaseUrl() string {
+func getDatabaseURL() string {
 	return os.Getenv("DATABASE_URL")
 }
