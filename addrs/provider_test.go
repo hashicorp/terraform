@@ -46,6 +46,77 @@ func TestProviderIsDefault(t *testing.T) {
 	}
 }
 
+func TestProviderIsBuiltIn(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  bool
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  BuiltInProviderHost,
+				Namespace: BuiltInProviderNamespace,
+			},
+			true,
+		},
+		{
+			Provider{
+				Type:      "terraform",
+				Hostname:  BuiltInProviderHost,
+				Namespace: BuiltInProviderNamespace,
+			},
+			true,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  BuiltInProviderHost,
+				Namespace: "boop",
+			},
+			false,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: BuiltInProviderNamespace,
+			},
+			false,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "hashicorp",
+			},
+			false,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  "registry.terraform.com",
+				Namespace: "hashicorp",
+			},
+			false,
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "othercorp",
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.IsBuiltIn()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\ngot:  %#v\nwant: %#v", test.Input.String(), got, test.Want)
+		}
+	}
+}
+
 func TestProviderIsLegacy(t *testing.T) {
 	tests := []struct {
 		Input Provider
