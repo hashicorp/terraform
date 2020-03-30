@@ -32,7 +32,7 @@ type basicComponentFactory struct {
 func (c *basicComponentFactory) ResourceProviders() []string {
 	var result []string
 	for k := range c.providers {
-		result = append(result, k.LegacyString())
+		result = append(result, k.String())
 	}
 	return result
 }
@@ -49,7 +49,7 @@ func (c *basicComponentFactory) ResourceProvisioners() []string {
 func (c *basicComponentFactory) ResourceProvider(typ addrs.Provider) (providers.Interface, error) {
 	f, ok := c.providers[typ]
 	if !ok {
-		return nil, fmt.Errorf("unknown provider %q", typ.LegacyString())
+		return nil, fmt.Errorf("unknown provider %q", typ.String())
 	}
 
 	return f()
