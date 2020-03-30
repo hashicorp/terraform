@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -32,12 +31,6 @@ type InitCommand struct {
 
 	// getPlugins is for the -get-plugins flag
 	getPlugins bool
-
-	// providerInstaller is used to download and install providers that
-	// aren't found locally. This uses a discovery.ProviderInstaller instance
-	// by default, but it can be overridden here as a way to mock fetching
-	// providers for tests.
-	providerInstaller discovery.Installer
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -71,18 +64,6 @@ func (c *InitCommand) Run(args []string) int {
 	if len(flagPluginPath) > 0 {
 		c.pluginPath = flagPluginPath
 		c.getPlugins = false
-	}
-
-	// set providerInstaller if we don't have a test version already
-	if c.providerInstaller == nil {
-		c.providerInstaller = &discovery.ProviderInstaller{
-			Dir:                   c.pluginDir(),
-			Cache:                 c.pluginCache(),
-			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
-			SkipVerify:            !flagVerifyPlugins,
-			Ui:                    c.Ui,
-			Services:              c.Services,
-		}
 	}
 
 	// Validate the arg count
@@ -456,15 +437,9 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 
 	// TODO: If the user gave at least one -plugin-dir option on the command
 	// line, we should construct a one-off getproviders.Source that consults
-	// only those directories and use that instead of c.providerInstallSource()
-	// here.
-	targetDir := c.providerLocalCacheDir()
-	globalCacheDir := c.providerGlobalCacheDir()
-	source := c.providerInstallSource()
-	inst := providercache.NewInstaller(targetDir, source)
-	if globalCacheDir != nil {
-		inst.SetGlobalCacheDir(globalCacheDir)
-	}
+	// only those directories and pass that to c.providerInstallerCustomSource
+	// instead.
+	inst := c.providerInstaller()
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep

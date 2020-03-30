@@ -119,21 +119,17 @@ func testFixturePath(name string) string {
 
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
+		},
 	}
 }
 
 func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
 	return &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
+		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": provisioners.FactoryFixed(pr),
 		},
