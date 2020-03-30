@@ -206,7 +206,7 @@ func TestApply_parallelism(t *testing.T) {
 		providerFactories[addrs.NewLegacyProvider(name)] = providers.FactoryFixed(provider)
 	}
 	testingOverrides := &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(providerFactories),
+		Providers: providerFactories,
 	}
 
 	ui := new(cli.MockUi)
