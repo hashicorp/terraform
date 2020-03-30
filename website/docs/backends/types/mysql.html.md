@@ -19,7 +19,7 @@ This backend supports [state locking](/docs/state/locking.html).
 ```hcl
 terraform {
   backend "mysql" {
-    conn_str = "user:pass@db.example.com/terraform_backend"
+    conn_str = "user:pass@mysqldb.example.com/terraform_backend"
   }
 }
 ```
@@ -27,40 +27,40 @@ terraform {
 Before initializing the backend with `terraform init`, the database must already exist:
 
 ```
-createdb terraform_backend
+mysql> CREATE DATABASE terraform_backend
 ```
 
-This `createdb` command is found in [MySQL client applications](https://www.postgresql.org/docs/9.5/reference-client.html) which are installed along with the database server.
+This `CREATE DATABASE` command is found in [CREATE DATABASE Statement](https://dev.mysql.com/doc/refman/8.0/en/create-database.html) which are installed along with the database server.
 
 We recommend using a [partial configuration](/docs/backends/config.html#partial-configuration) for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control:
 
 ```hcl
 terraform {
-  backend "pg" {}
+  backend "mysql" {}
 }
 ```
 
 Then, set the credentials when initializing the configuration:
 
 ```
-terraform init -backend-config="conn_str=postgres://user:pass@db.example.com/terraform_backend"
+terraform init -backend-config="conn_str=user:pass@mysqldb.example.com/terraform_backend"
 ```
 
-To use a Postgres server running on the same machine as Terraform, configure localhost with SSL disabled:
+To use a Mysql server running on the same machine as Terraform, configure localhost with SSL disabled:
 
 ```
-terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?sslmode=disable"
+terraform init -backend-config="conn_str=user:pass@mysqldb.example.com/terraform_backend?sslMode=DISABLED"
 ```
 
 ## Example Referencing
 
-To make use of the pg remote state we can use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+To make use of the mysql remote state we can use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
 ```hcl
 data "terraform_remote_state" "network" {
-  backend = "pg"
+  backend = "mysql"
   config {
-    conn_str = "postgres://localhost/terraform_backend"
+    conn_str = "user:pass@mysqldb.example.com/terraform_backend"
   }
 }
 ```
@@ -69,19 +69,19 @@ data "terraform_remote_state" "network" {
 
 The following configuration options or environment variables are supported:
 
- * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
- * `schema_name` - Name of the automatically-managed Postgres schema, default `terraform_remote_state`.
- * `skip_schema_creation` - If set to `true`, the Postgres schema must already exist. Terraform won't try to create the schema. Useful when the Postgres user does not have "create schema" permission on the database.
+ * `conn_str` - (Required) Mysql connection string; a `user:pass@mysqldb.example.com/` URL
+ * `schema_name` - Name of the automatically-managed Mysql schema, default `terraform_remote_state`.
+ * `skip_schema_creation` - If set to `true`, the Mysql schema must already exist. Terraform won't try to create the schema. Useful when the Mysql user does not have "create schema" permission on the database.
 
 ## Technical Design
 
-Postgres version 9.5 or newer is required to support advisory locks and the "ON CONFLICT" upsert syntax.
+Mysql version 5.7 or newer is required to support advisory locks.
 
-This backend creates one table **states** in the automatically-managed Postgres schema configured by the `schema_name` variable.
+This backend creates one table **states** in the automatically-managed Mysql schema configured by the `schema_name` variable.
 
 The table is keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
 
-Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](https://www.terraform.io/docs/commands/force-unlock.html) is not supported, because these database-native locks will automatically unlock when the session is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
+Locking is supported using [Mysql Locking Functions](https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html). To see outstanding locks in a Mysql server, see [Metadata Locking](https://dev.mysql.com/doc/refman/8.0/en/metadata-locking.html).
 
 The **states** table contains:
 

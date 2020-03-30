@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	// mysql import
 	_ "github.com/go-sql-driver/mysql"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -20,8 +21,9 @@ type RemoteClient struct {
 	info *state.LockInfo
 }
 
+// Get func
 func (c *RemoteClient) Get() (*remote.Payload, error) {
-	query := `SELECT data FROM %s.%s WHERE name = $1`
+	query := `SELECT data FROM %s.%s WHERE name = ?`
 	row := c.Client.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
 	var data []byte
 	err := row.Scan(&data)
@@ -40,18 +42,20 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	}
 }
 
+// Put func
 func (c *RemoteClient) Put(data []byte) error {
-	query := `INSERT INTO %s.%s (name, data) VALUES ($1, $2)
-		ON DUPLICATE KEY UPDATE data = $2`
-	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName, statesTableName), c.Name, data)
+	query := `INSERT INTO %s.%s (name, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = ?`
+	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name, data, data)
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+//Delete func
 func (c *RemoteClient) Delete() error {
-	query := `DELETE FROM %s.%s WHERE name = $1`
+	query := `DELETE FROM %s.%s WHERE name = ?`
 	_, err := c.Client.Exec(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
 	if err != nil {
 		return err
@@ -59,6 +63,7 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
+//Lock func
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	var err error
 	var lockID string
@@ -74,7 +79,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	// Local helper function so we can call it multiple places
 	//
 	lockUnlock := func(advisoryLockId string) error {
-		query := `SELECT RELEASE_LOCK(%s)`
+		query := `SELECT RELEASE_LOCK('%s')`
 		row := c.Client.QueryRow(fmt.Sprintf(query, advisoryLockId))
 		var didUnlock []byte
 		err := row.Scan(&didUnlock)
@@ -84,18 +89,18 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		return nil
 	}
 
-	// Try to acquire locks for the existing row `id` and the creation lock `-1` (non-blocking).
-	//query := `SELECT %s.id, pg_try_advisory_lock(%s.id), pg_try_advisory_lock(-1) FROM %s.%s WHERE %s.name = $1`
+	// Try to acquire locks for the existing row `id` and the creation lock `terraform_workspace_creation_lock` (non-blocking).
+	//query := `SELECT %s.id, GET_LOCK(%s.id, %d), GET_LOCK('%s', %d) FROM %s.%s WHERE %s.name = ?`
 	timeout := 5
 	workspaceCreationLockName := "terraform_workspace_creation_lock"
-	query := `SELECT %s.id, GET_LOCK(%s.id, %d), GET_LOCK(%s, %d) FROM %s.%s WHERE %s.name = $1`
+	query := `SELECT %s.id, GET_LOCK(%s.id, %d), GET_LOCK('%s', %d) FROM %s.%s WHERE %s.name = ?`
 	row := c.Client.QueryRow(fmt.Sprintf(query, statesTableName, statesTableName, timeout, workspaceCreationLockName, timeout, c.SchemaName, statesTableName, statesTableName), c.Name)
 	var mysqlLockID, didLock, didLockForCreate []byte
 	err = row.Scan(&mysqlLockID, &didLock, &didLockForCreate)
 	switch {
 	case err == sql.ErrNoRows:
 		// No rows means we're creating the workspace. Take the creation lock.
-		innerRow := c.Client.QueryRow(fmt.Sprintf(`SELECT GET_LOCK(%s, %d)`, workspaceCreationLockName, timeout))
+		innerRow := c.Client.QueryRow(fmt.Sprintf(`SELECT GET_LOCK('%s', %d)`, workspaceCreationLockName, timeout))
 		var innerDidLock []byte
 		err := innerRow.Scan(&innerDidLock)
 		if err != nil {
@@ -104,7 +109,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		if string(innerDidLock) == "0" {
 			return "", &state.LockError{Info: info, Err: fmt.Errorf("Already locked for workspace creation: %s", c.Name)}
 		}
-		info.Path = "-1"
+		info.Path = workspaceCreationLockName
 	case err != nil:
 		return "", &state.LockError{Info: info, Err: err}
 	case string(didLock) == "0":
@@ -129,9 +134,10 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	return c.info, nil
 }
 
+//Unlock func
 func (c *RemoteClient) Unlock(id string) error {
 	if c.info != nil && c.info.Path != "" {
-		query := `SELECT RELEASE_LOCK(%s)`
+		query := `SELECT RELEASE_LOCK('%s')`
 		row := c.Client.QueryRow(fmt.Sprintf(query, c.info.Path))
 		var didUnlock []byte
 		err := row.Scan(&didUnlock)
