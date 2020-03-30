@@ -481,10 +481,19 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
+	providerFactories, err := testProviderFactories(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// get instances of all providers, so we can use the individual
 	// resources to shim the state during the tests.
 	providers := make(map[string]terraform.ResourceProvider)
-	for name, pf := range testProviderFactories(c) {
+	legacyProviderFactories, err := testProviderFactoriesLegacy(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, pf := range legacyProviderFactories {
 		p, err := pf()
 		if err != nil {
 			t.Fatal(err)
@@ -492,12 +501,7 @@ func Test(t TestT, c TestCase) {
 		providers[name] = p
 	}
 
-	providerResolver, err := testProviderResolver(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
+	opts := terraform.ContextOpts{Providers: providerFactories}
 
 	// A single state variable to track the lifecycle, starting with no state
 	var state *terraform.State
@@ -650,10 +654,14 @@ func testProviderConfig(c TestCase) string {
 	return strings.Join(lines, "")
 }
 
-// testProviderFactories combines the fixed Providers and
-// ResourceProviderFactory functions into a single map of
-// ResourceProviderFactory functions.
-func testProviderFactories(c TestCase) map[string]terraform.ResourceProviderFactory {
+// testProviderFactoriesLegacy is like testProviderFactories but it returns
+// providers implementing the legacy interface terraform.ResourceProvider,
+// rather than the current providers.Interface.
+//
+// It also identifies all providers as legacy-style single names rather than
+// full addresses, for compatibility with legacy code that doesn't understand
+// FQNs.
+func testProviderFactoriesLegacy(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
 	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
 	for k, pf := range c.ProviderFactories {
 		ctxProviders[k] = pf
@@ -663,24 +671,25 @@ func testProviderFactories(c TestCase) map[string]terraform.ResourceProviderFact
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
-	return ctxProviders
+	return ctxProviders, nil
 }
 
-// testProviderResolver is a helper to build a ResourceProviderResolver
-// with pre instantiated ResourceProviders, so that we can reset them for the
-// test, while only calling the factory function once.
-// Any errors are stored so that they can be returned by the factory in
-// terraform to match non-test behavior.
-func testProviderResolver(c TestCase) (providers.Resolver, error) {
-	ctxProviders := testProviderFactories(c)
+// testProviderFactories combines the fixed Providers and
+// ResourceProviderFactory functions into a single map of
+// ResourceProviderFactory functions.
+func testProviderFactories(c TestCase) (map[addrs.Provider]providers.Factory, error) {
+	ctxProviders, err := testProviderFactoriesLegacy(c)
+	if err != nil {
+		return nil, err
+	}
 
-	// wrap the old provider factories in the test grpc server so they can be
-	// called from terraform.
+	// We additionally wrap all of the factories as a GRPCTestProvider, which
+	// allows them to appear as a new-style providers.Interface, rather than
+	// the legacy terraform.ResourceProvider.
 	newProviders := make(map[addrs.Provider]providers.Factory)
-
-	for k, pf := range ctxProviders {
+	for legacyName, pf := range ctxProviders {
 		factory := pf // must copy to ensure each closure sees its own value
-		newProviders[addrs.NewLegacyProvider(k)] = func() (providers.Interface, error) {
+		newProviders[addrs.NewLegacyProvider(legacyName)] = func() (providers.Interface, error) {
 			p, err := factory()
 			if err != nil {
 				return nil, err
@@ -693,7 +702,7 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 		}
 	}
 
-	return providers.ResolverFixed(newProviders), nil
+	return newProviders, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the

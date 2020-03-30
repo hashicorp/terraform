@@ -229,11 +229,9 @@ func TestStateShow_configured_provider(t *testing.T) {
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
-				ProviderResolver: providers.ResolverFixed(
-					map[addrs.Provider]providers.Factory{
-						addrs.NewLegacyProvider("test-beta"): providers.FactoryFixed(p),
-					},
-				),
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewLegacyProvider("test-beta"): providers.FactoryFixed(p),
+				},
 			},
 			Ui: ui,
 		},
