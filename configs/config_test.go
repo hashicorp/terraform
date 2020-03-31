@@ -25,9 +25,9 @@ func TestConfigProviderTypes(t *testing.T) {
 
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
-		addrs.NewLegacyProvider("aws"),
-		addrs.NewLegacyProvider("null"),
-		addrs.NewLegacyProvider("template"),
+		addrs.NewDefaultProvider("aws"),
+		addrs.NewDefaultProvider("null"),
+		addrs.NewDefaultProvider("template"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)
@@ -50,10 +50,9 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
-		// FIXME: this will be updated to NewDefaultProvider as we remove `Legacy*`
-		addrs.NewLegacyProvider("test"),
 		addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test"),
 		addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
+		addrs.NewDefaultProvider("test"),
 	}
 
 	for _, problem := range deep.Equal(got, want) {
@@ -85,14 +84,8 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
-			Module: addrs.RootModule,
-			// FIXME: At the time of writing we still have LocalProviderConfig
-			// nested inside AbsProviderConfig, but a future change will
-			// stop tis embedding and just have an addrs.Provider and an alias
-			// string here, at which point the correct result will be:
-			//    Provider as the addrs repr of "registry.terraform.io/hashicorp/implied"
-			//    Alias as "boop".
-			Provider: addrs.NewLegacyProvider("implied"),
+			Module:   addrs.RootModule,
+			Provider: addrs.NewDefaultProvider("implied"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {
@@ -128,13 +121,9 @@ func TestConfigProviderRequirements(t *testing.T) {
 		svchost.Hostname("tf.example.com"),
 		"awesomecorp", "happycloud",
 	)
-	// FIXME: these two are legacy ones for now because the config loader
-	// isn't using default configurations fully yet.
-	// Once that changes, these should be default-shaped ones like tlsProvider
-	// above.
-	nullProvider := addrs.NewLegacyProvider("null")
-	randomProvider := addrs.NewLegacyProvider("random")
-	impliedProvider := addrs.NewLegacyProvider("implied")
+	nullProvider := addrs.NewDefaultProvider("null")
+	randomProvider := addrs.NewDefaultProvider("random")
+	impliedProvider := addrs.NewDefaultProvider("implied")
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
@@ -152,7 +141,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 	}
 }
 
-func TestProviderForConfigAddr(t *testing.T) {
+func TestConfigProviderForConfigAddr(t *testing.T) {
 	cfg, diags := testModuleConfigFromDir("testdata/valid-modules/providers-fqns")
 	assertNoDiagnostics(t, diags)
 
@@ -162,9 +151,9 @@ func TestProviderForConfigAddr(t *testing.T) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}
 
-	// now check a provider that isn't in the configuration. It should return a NewLegacyProvider.
+	// now check a provider that isn't in the configuration. It should return a DefaultProvider.
 	got = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("bar-test"))
-	want = addrs.NewLegacyProvider("bar-test")
+	want = addrs.NewDefaultProvider("bar-test")
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}

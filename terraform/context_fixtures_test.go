@@ -14,9 +14,9 @@ import (
 // to create a base testing scenario. This is used to represent some common
 // situations used as the basis for multiple tests.
 type contextTestFixture struct {
-	Config           *configs.Config
-	ProviderResolver providers.Resolver
-	Provisioners     map[string]ProvisionerFactory
+	Config       *configs.Config
+	Providers    map[addrs.Provider]providers.Factory
+	Provisioners map[string]ProvisionerFactory
 }
 
 // ContextOpts returns a ContextOps pre-populated with the elements of this
@@ -24,9 +24,9 @@ type contextTestFixture struct {
 // _shallow_ modifications to the options as needed.
 func (f *contextTestFixture) ContextOpts() *ContextOpts {
 	return &ContextOpts{
-		Config:           f.Config,
-		ProviderResolver: f.ProviderResolver,
-		Provisioners:     f.Provisioners,
+		Config:       f.Config,
+		Providers:    f.Providers,
+		Provisioners: f.Provisioners,
 	}
 }
 
@@ -52,11 +52,9 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 	p.DiffFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	}
 }
 
@@ -80,10 +78,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 	p.DiffFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	}
 }

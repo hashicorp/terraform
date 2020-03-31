@@ -45,7 +45,7 @@ func TestNewModule_resource_providers(t *testing.T) {
 	// both the root and child module have two resources, one which should use
 	// the default implied provider and one explicitly using a provider set in
 	// required_providers
-	wantImplicit := addrs.NewLegacyProvider("test")
+	wantImplicit := addrs.NewDefaultProvider("test")
 	wantFoo := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
 	wantBar := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
 
