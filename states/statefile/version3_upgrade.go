@@ -154,7 +154,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					Type:           resAddr.Type,
 					Name:           resAddr.Name,
 					Instances:      []instanceObjectStateV4{},
-					ProviderConfig: providerAddr.String(),
+					ProviderConfig: providerAddr.LegacyString(),
 				}
 				resourceStates[resAddr.String()] = rs
 			}
