@@ -291,7 +291,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade)
+	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade, flagPluginPath)
 	diags = diags.Append(providerDiags)
 	if providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -422,7 +422,7 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
 	reqs, moreDiags := earlyConfig.ProviderRequirements()
@@ -435,11 +435,19 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		reqs = reqs.Merge(stateReqs)
 	}
 
-	// TODO: If the user gave at least one -plugin-dir option on the command
-	// line, we should construct a one-off getproviders.Source that consults
-	// only those directories and pass that to c.providerInstallerCustomSource
-	// instead.
-	inst := c.providerInstaller()
+	var inst *providercache.Installer
+	if len(pluginDirs) == 0 {
+		// By default we use a source that looks for providers in all of the
+		// standard locations, possibly customized by the user in CLI config.
+		inst = c.providerInstaller()
+	} else {
+		// If the user passes at least one -plugin-dir then that circumvents
+		// the usual sources and forces Terraform to consult only the given
+		// directories. Anything not available in one of those directories
+		// is not available for installation.
+		source := c.providerCustomLocalDirectorySource(pluginDirs)
+		inst = c.providerInstallerCustomSource(source)
+	}
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
