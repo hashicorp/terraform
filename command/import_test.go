@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -160,22 +159,21 @@ func TestImport_remoteState(t *testing.T) {
 
 	statePath := "imported.tfstate"
 
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": []string{"1.2.3"},
+	})
+	defer close()
+
 	// init our backend
 	ui := cli.NewMockUi()
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		ProviderSource:   providerSource,
 	}
 
 	ic := &InitCommand{
 		Meta: m,
-		providerInstaller: &mockProviderInstaller{
-			Providers: map[string][]string{
-				"test": []string{"1.2.3"},
-			},
-
-			Dir: m.pluginDir(),
-		},
 	}
 
 	// (Using log here rather than t.Log so that these messages interleave with other trace logs)
@@ -267,22 +265,21 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	statePath := "imported.tfstate"
 
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": []string{"1.2.3"},
+	})
+	defer close()
+
 	// init our backend
 	ui := cli.NewMockUi()
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		ProviderSource:   providerSource,
 	}
 
 	ic := &InitCommand{
 		Meta: m,
-		providerInstaller: &mockProviderInstaller{
-			Providers: map[string][]string{
-				"test": []string{"1.2.3"},
-			},
-
-			Dir: m.pluginDir(),
-		},
 	}
 
 	// (Using log here rather than t.Log so that these messages interleave with other trace logs)
@@ -853,10 +850,16 @@ func TestImport_pluginDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": []string{"1.2.3"},
+	})
+	defer close()
+
 	ui := new(cli.MockUi)
 	c := &ImportCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:             ui,
+			ProviderSource: providerSource,
 		},
 	}
 
@@ -872,9 +875,6 @@ func TestImport_pluginDir(t *testing.T) {
 		Meta: Meta{
 			pluginPath: []string{"./plugins"},
 			Ui:         initUi,
-		},
-		providerInstaller: &discovery.ProviderInstaller{
-			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
 		},
 	}
 	if code := initCmd.Run(nil); code != 0 {
