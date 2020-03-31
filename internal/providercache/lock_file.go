@@ -82,9 +82,9 @@ func (lf *lockFile) Write(new map[addrs.Provider]lockFileEntry) error {
 	}
 
 	os.MkdirAll(
-		filepath.Dir(lf.filename), 0660,
+		filepath.Dir(lf.filename), 0775,
 	) // ignore error since WriteFile below will generate a better one anyway
-	return ioutil.WriteFile(lf.filename, buf, 0660)
+	return ioutil.WriteFile(lf.filename, buf, 0664)
 }
 
 func (lfe *lockFileEntry) UnmarshalJSON(src []byte) error {
