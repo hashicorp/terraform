@@ -48,7 +48,7 @@ func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd 
 			// any errors parsing the source string will have already been captured.
 			fqn, _ = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
 		} else {
-			fqn = addrs.NewLegacyProvider(reqd.Name)
+			fqn = addrs.NewDefaultProvider(reqd.Name)
 		}
 		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
 	}
@@ -218,7 +218,7 @@ func (r *Resource) merge(or *Resource, prs map[string]ProviderRequirements) hcl.
 		if existing, exists := prs[or.ProviderConfigRef.Name]; exists {
 			r.Provider = existing.Type
 		} else {
-			r.Provider = addrs.NewLegacyProvider(r.ProviderConfigRef.Name)
+			r.Provider = addrs.NewDefaultProvider(r.ProviderConfigRef.Name)
 		}
 	}
 

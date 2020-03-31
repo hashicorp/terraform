@@ -65,7 +65,7 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 				"Provider produced inconsistent final plan",
 				fmt.Sprintf(
 					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					absAddr, n.ProviderAddr.Provider.LegacyString(),
+					absAddr, n.ProviderAddr.Provider.String(),
 					plannedChange.Action, actualChange.Action,
 				),
 			))
@@ -79,7 +79,7 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced inconsistent final plan",
 			fmt.Sprintf(
 				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				absAddr, n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatError(err),
+				absAddr, n.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
 			),
 		))
 	}
@@ -254,7 +254,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			"Provider produced invalid plan",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+				n.ProviderAddr.Provider.String(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 			),
 		))
 	}
@@ -272,7 +272,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			var buf strings.Builder
 			fmt.Fprintf(&buf,
 				"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
-				n.ProviderAddr.Provider.LegacyString(), absAddr,
+				n.ProviderAddr.Provider.String(), absAddr,
 			)
 			for _, err := range errs {
 				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
@@ -285,7 +285,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 					"Provider produced invalid plan",
 					fmt.Sprintf(
 						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ProviderAddr.Provider.LegacyString(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
+						n.ProviderAddr.Provider.String(), tfdiags.FormatErrorPrefixed(err, absAddr.String()),
 					),
 				))
 			}
@@ -328,7 +328,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 					"Provider produced invalid plan",
 					fmt.Sprintf(
 						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ProviderAddr.Provider.LegacyString(), absAddr, path,
+						n.ProviderAddr.Provider.String(), absAddr, path,
 					),
 				))
 				continue
@@ -425,7 +425,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				"Provider produced invalid plan",
 				fmt.Sprintf(
 					"Provider %q planned an invalid value for %s%s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					n.ProviderAddr.Provider.LegacyString(), absAddr, tfdiags.FormatError(err),
+					n.ProviderAddr.Provider.String(), absAddr, tfdiags.FormatError(err),
 				),
 			))
 		}

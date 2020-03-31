@@ -195,7 +195,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			}
 			diags = append(diags, hclDiags...)
 		} else {
-			fqn = addrs.NewLegacyProvider(reqd.Name)
+			fqn = addrs.NewDefaultProvider(reqd.Name)
 		}
 		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
 			if existing.Type != fqn {
@@ -208,8 +208,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, pm := range file.ProviderMetas {
-		// TODO(paddy): pm.Provider is a string, but we need to build an addrs.Provider out of it somehow
-		if existing, exists := m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)]; exists {
+		provider := m.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pm.Provider})
+		if existing, exists := m.ProviderMetas[provider]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate provider_meta block",
@@ -217,7 +217,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				Subject:  &pm.DeclRange,
 			})
 		}
-		m.ProviderMetas[addrs.NewLegacyProvider(pm.Provider)] = pm
+		m.ProviderMetas[provider] = pm
 	}
 
 	for _, v := range file.Variables {
@@ -282,20 +282,15 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.ManagedResources[key] = r
 
 		// set the provider FQN for the resource
-		var provider addrs.Provider
 		if r.ProviderConfigRef != nil {
 			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
-				provider = existing.Type
+				r.Provider = existing.Type
 			} else {
-				// FIXME: This will be a NewDefaultProvider
-				provider = addrs.NewLegacyProvider(r.ProviderConfigAddr().LocalName)
+				r.Provider = addrs.NewDefaultProvider(r.ProviderConfigAddr().LocalName)
 			}
-			r.Provider = provider
 			continue
 		}
-		// FIXME: this will replaced with NewDefaultProvider when provider
-		// source is fully implemented.
-		r.Provider = addrs.NewLegacyProvider(r.Addr().ImpliedProvider())
+		r.Provider = addrs.NewDefaultProvider(r.Addr().ImpliedProvider())
 	}
 
 	for _, r := range file.DataResources {
@@ -312,20 +307,16 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.DataResources[key] = r
 
 		// set the provider FQN for the resource
-		var provider addrs.Provider
 		if r.ProviderConfigRef != nil {
 			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
-				provider = existing.Type
+				r.Provider = existing.Type
+
 			} else {
-				// FIXME: This will be a NewDefaultProvider
-				provider = addrs.NewLegacyProvider(r.ProviderConfigAddr().LocalName)
+				r.Provider = addrs.NewDefaultProvider(r.ProviderConfigAddr().LocalName)
 			}
-			r.Provider = provider
 			continue
 		}
-		// FIXME: this will replaced with NewDefaultProvider when provider
-		// source is fully implemented.
-		r.Provider = addrs.NewLegacyProvider(r.Addr().ImpliedProvider())
+		r.Provider = addrs.NewDefaultProvider(r.Addr().ImpliedProvider())
 	}
 
 	return diags
@@ -520,5 +511,5 @@ func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Prov
 	if provider, exists := m.ProviderRequirements[pc.LocalName]; exists {
 		return provider.Type
 	}
-	return addrs.NewLegacyProvider(pc.LocalName)
+	return addrs.NewDefaultProvider(pc.LocalName)
 }
