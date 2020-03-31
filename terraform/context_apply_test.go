@@ -2187,7 +2187,7 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar", "type": "aws_instance"}`),
+			AttrsJSON: []byte(`{"id":"baz", "type": "aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -2971,27 +2971,23 @@ func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root", "child", "subchild"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "bar",
-							},
-						},
-					},
-				},
-			},
-		}),
+		State:   state,
 		Destroy: true,
 	})
 
@@ -3014,26 +3010,16 @@ func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"foo": "bar",
-							},
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo","foo":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -4082,25 +4068,10 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Outputs: map[string]*OutputState{
-					"foo": &OutputState{
-						Type:      "string",
-						Sensitive: false,
-						Value:     "bar",
-					},
-					"bar": &OutputState{
-						Type:      "string",
-						Sensitive: false,
-						Value:     "baz",
-					},
-				},
-			},
-		},
-	})
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetOutputValue("foo", cty.StringVal("bar"), false)
+	root.SetOutputValue("bar", cty.StringVal("baz"), false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -4132,42 +4103,26 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Outputs: map[string]*OutputState{
-					"foo": &OutputState{
-						Type:  "string",
-						Value: "bar",
-					},
-					"bar": &OutputState{
-						Type:  "string",
-						Value: "baz",
-					},
-				},
-			},
-		},
-	})
+	state := states.NewState()
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state.DeepCopy(),
+		State: state,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testTerraformApplyOutputOrphanModuleStr)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -4498,24 +4453,17 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 		return fmt.Errorf("EXPLOSION")
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"require_new": "abc",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar", "require_new": "abc"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -4546,24 +4494,18 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"require_new": "abc",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar", "require_new": "abc"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -4600,24 +4542,18 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"require_new": "abc",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar", "require_new": "abc"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -4662,6 +4598,7 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-depose-create-before-destroy")
 	p := testProvider("aws")
+	ps := map[addrs.Provider]providers.Factory{addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p)}
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -4672,20 +4609,17 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 			},
 		},
 	}
-	ps := map[addrs.Provider]providers.Factory{addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p)}
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type:    "aws_instance",
-						Primary: &InstanceState{ID: "foo"},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	p.DiffFn = func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
 		if rc == nil {
@@ -5156,21 +5090,16 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 		return fmt.Errorf("provisioner error")
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:  m,
@@ -5704,27 +5633,24 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 func TestContext2Apply_outputDiffVars(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.baz": &ResourceState{ // This one is not in config, so should be destroyed
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.baz").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
@@ -5958,29 +5884,23 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child", "subchild"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	// First plan and apply a create operation
@@ -5988,13 +5908,13 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
 	// Test that things were destroyed
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	if actual != "<no state>" {
 		t.Fatalf("expected no state, got: %s", actual)
 	}
@@ -6006,29 +5926,23 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child", "subchild", "subsubchild"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	// First plan and apply a create operation
@@ -6036,14 +5950,14 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
 	// Test that things were destroyed
-	if !state.Empty() {
-		t.Fatalf("wrong final state %s\nwant empty state", spew.Sdump(state))
+	if !s.Empty() {
+		t.Fatalf("wrong final state %s\nwant empty state", spew.Sdump(s))
 	}
 }
 
@@ -6436,27 +6350,22 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 func TestContext2Apply_destroyOrphan(t *testing.T) {
 	m := testModule(t, "apply-error")
 	p := testProvider("aws")
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.baz": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.baz").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
@@ -6489,12 +6398,12 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	mod := state.RootModule()
+	mod := s.RootModule()
 	if _, ok := mod.Resources["aws_instance.baz"]; ok {
 		t.Fatalf("bad: %#v", mod.Resources)
 	}
@@ -6513,25 +6422,16 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		return nil
 	}
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"id": "bar",
-							},
-							Tainted: true,
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -6541,7 +6441,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State:   s,
+		State:   state,
 		Destroy: true,
 	})
 
@@ -6549,7 +6449,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -6558,7 +6458,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		t.Fatal("provisioner should not be called")
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace("<no state>")
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
@@ -6854,27 +6754,24 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 
 	m := testModule(t, "apply-error")
 	p := testProvider("aws")
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
@@ -6911,17 +6808,17 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags == nil {
 		t.Fatal("should have error")
 	}
 
-	mod := state.RootModule()
+	mod := s.RootModule()
 	if len(mod.Resources) != 2 {
 		t.Fatalf("bad: %#v", mod.Resources)
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testTerraformApplyErrorPartialStr)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -6968,22 +6865,16 @@ func TestContext2Apply_hookOrphan(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -7248,32 +7139,24 @@ func TestContext2Apply_taintX(t *testing.T) {
 		return testApplyFn(info, s, d)
 	}
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-							Attributes: map[string]string{
-								"num":  "2",
-								"type": "aws_instance",
-							},
-							Tainted: true,
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"baz","num": "2", "type": "aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
@@ -7282,12 +7165,12 @@ func TestContext2Apply_taintX(t *testing.T) {
 		t.Logf("plan: %s", legacyDiffComparisonString(p.Changes))
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testTerraformApplyTaintStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
@@ -7303,43 +7186,33 @@ func TestContext2Apply_taintDep(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-							Attributes: map[string]string{
-								"num":  "2",
-								"type": "aws_instance",
-							},
-							Tainted: true,
-						},
-					},
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "baz",
-								"num":  "2",
-								"type": "aws_instance",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"baz","num": "2", "type": "aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"bar","num": "2", "type": "aws_instance", "foo": "baz"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
@@ -7348,12 +7221,12 @@ func TestContext2Apply_taintDep(t *testing.T) {
 		t.Logf("plan: %s", legacyDiffComparisonString(p.Changes))
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testTerraformApplyTaintDepStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
@@ -7365,43 +7238,33 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-							Attributes: map[string]string{
-								"num":  "2",
-								"type": "aws_instance",
-							},
-							Tainted: true,
-						},
-					},
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "baz",
-								"num":  "2",
-								"type": "aws_instance",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"baz","num": "2", "type": "aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"bar","num": "2", "type": "aws_instance", "foo": "baz"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
@@ -7410,12 +7273,12 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 		t.Logf("plan: %s", legacyDiffComparisonString(p.Changes))
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(testTerraformApplyTaintDepRequireNewStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
@@ -7539,22 +7402,32 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
-					},
-				},
-			},
-		}),
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
@@ -7642,29 +7515,49 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
-					},
-				},
-				&ModuleState{
-					Path: []string{"root", "child"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
-					},
-				},
-			},
-		}),
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
@@ -7702,26 +7595,55 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	foo := &states.ResourceInstanceObjectSrc{
+		Status:    states.ObjectReady,
+		AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+	}
+	bar := &states.ResourceInstanceObjectSrc{
+		Status:    states.ObjectReady,
+		AttrsJSON: []byte(`{"id":"i-abc123"}`),
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		foo,
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		foo,
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
+		foo,
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[0]").Resource,
+		bar,
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[1]").Resource,
+		bar,
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[2]").Resource,
+		bar,
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo.0": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.foo.1": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.foo.2": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.bar.0": resourceState("aws_instance", "i-abc123"),
-						"aws_instance.bar.1": resourceState("aws_instance", "i-abc123"),
-						"aws_instance.bar.2": resourceState("aws_instance", "i-abc123"),
-					},
-				},
-			},
-		}),
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.ResourceInstance(
 				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(2),
@@ -7863,6 +7785,10 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	_ = state.EnsureModule(addrs.RootModuleInstance.Child("child2", addrs.NoKey))
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7871,37 +7797,14 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				{
-					Path:      []string{"root"},
-					Outputs:   map[string]*OutputState{},
-					Resources: map[string]*ResourceState{},
-				},
-				{
-					Path: []string{"root", "child1"},
-					Outputs: map[string]*OutputState{
-						"instance_id": {
-							Type:  "string",
-							Value: "foo-bar-baz",
-						},
-					},
-					Resources: map[string]*ResourceState{},
-				},
-				{
-					Path:      []string{"root", "child2"},
-					Outputs:   map[string]*OutputState{},
-					Resources: map[string]*ResourceState{},
-				},
-			},
-		}),
+		State: state,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -7910,7 +7813,7 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 	//   non-root module outputs between runs (they can be recalculated from config)
 	// - module.child2's instance_id is updated because its dependency is updated
 	// - child2_id is updated because if its transitive dependency via module.child2
-	checkStateString(t, state, `
+	checkStateString(t, s, `
 <no state>
 Outputs:
 
@@ -7975,21 +7878,16 @@ func TestContext2Apply_targetedResourceOrphanModule(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	// Create a state with an orphan module
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type:     "aws_instance",
-						Primary:  &InstanceState{},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("parent", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"type":"aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -8518,6 +8416,18 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
 	m, snap := testModuleWithSnapshot(t, "apply-tainted-targets")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.ifailedprovisioners").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"ifailedprovisioners"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -8528,22 +8438,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "iambeingadded",
 			),
 		},
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.ifailedprovisioners": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID:      "ifailedprovisioners",
-								Tainted: true,
-							},
-						},
-					},
-				},
-			},
-		}),
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -8566,12 +8461,12 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
+	actual := strings.TrimSpace(s.String())
 	expected := strings.TrimSpace(`
 aws_instance.iambeingadded:
   ID = foo
@@ -8661,71 +8556,58 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 			return nil, nil
 		}
 	}
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "i-abc123",
-							Attributes: map[string]string{
-								"ami": "ami-abcd1234",
-								"id":  "i-abc123",
-							},
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "i-bcd234",
-							Attributes: map[string]string{
-								"ami": "ami-abcd1234",
-								"id":  "i-bcd234",
-							},
-						},
-					},
-					"aws_eip.foo.0": &ResourceState{
-						Type: "aws_eip",
-						Primary: &InstanceState{
-							ID: "eip-abc123",
-							Attributes: map[string]string{
-								"id":       "eip-abc123",
-								"instance": "i-abc123",
-							},
-						},
-					},
-					"aws_eip.foo.1": &ResourceState{
-						Type: "aws_eip",
-						Primary: &InstanceState{
-							ID: "eip-bcd234",
-							Attributes: map[string]string{
-								"id":       "eip-bcd234",
-								"instance": "i-bcd234",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123","ami":"ami-abcd1234"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-bcd234","ami":"i-bcd234"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_eip.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"eip-abc123","instance":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_eip.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"eip-bcd234","instance":"i-bcd234"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: s,
+		State: state,
 	})
 
 	_, diags := ctx.Plan()
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	assertNoErrors(t, diags)
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(s.String())
+	actual := strings.TrimSpace(s.String())
+	expected := strings.TrimSpace(state.String())
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
@@ -9057,39 +8939,25 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 		d, err := testDiffFn(info, s, c)
 		return d, err
 	}
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Outputs: map[string]*OutputState{
-					"name": &OutputState{
-						Type:  "string",
-						Value: "test-bar",
-					},
-				},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-							// FIXME: id should only exist in one place
-							Attributes: map[string]string{
-								"id": "foo",
-							},
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetOutputValue("name", cty.StringVal("test-bar"), false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   s,
+		State:   state,
 		Destroy: true,
 	})
 
@@ -9097,12 +8965,12 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	state, diags := ctx.Apply()
+	s, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("error during apply: %s", diags.Err())
 	}
 
-	got := strings.TrimSpace(state.String())
+	got := strings.TrimSpace(s.String())
 	want := strings.TrimSpace(`<no state>`)
 	if got != want {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
@@ -9225,6 +9093,39 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 
+	implicitProviderState := states.NewState()
+	impRoot := implicitProviderState.EnsureModule(addrs.RootModuleInstance)
+	impRoot.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	aliasedProviderState := states.NewState()
+	aliasRoot := aliasedProviderState.EnsureModule(addrs.RootModuleInstance)
+	aliasRoot.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"].bar`),
+	)
+
+	moduleProviderState := states.NewState()
+	moduleProviderRoot := moduleProviderState.EnsureModule(addrs.RootModuleInstance)
+	moduleProviderRoot.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`module.child.provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	for _, tc := range []struct {
 		name   string
 		state  *states.State
@@ -9232,80 +9133,33 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 		err    bool
 	}{
 		{
-			name: "add implicit provider",
-			state: MustShimLegacyState(&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: []string{"root"},
-						Resources: map[string]*ResourceState{
-							"aws_instance.a": &ResourceState{
-								Type: "aws_instance",
-								Primary: &InstanceState{
-									ID: "bar",
-								},
-								Provider: "provider.aws",
-							},
-						},
-					},
-				},
-			}),
+			name:   "add implicit provider",
+			state:  implicitProviderState,
 			err:    false,
 			output: "<no state>",
 		},
 
 		// an aliased provider must be in the config to remove a resource
 		{
-			name: "add aliased provider",
-			state: MustShimLegacyState(&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: []string{"root"},
-						Resources: map[string]*ResourceState{
-							"aws_instance.a": &ResourceState{
-								Type: "aws_instance",
-								Primary: &InstanceState{
-									ID: "bar",
-								},
-								Provider: "provider.aws.bar",
-							},
-						},
-					},
-				},
-			}),
-			err: true,
+			name:  "add aliased provider",
+			state: aliasedProviderState,
+			err:   true,
 		},
 
 		// a provider in a module implies some sort of config, so this isn't
 		// allowed even without an alias
 		{
-			name: "add unaliased module provider",
-			state: MustShimLegacyState(&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path: []string{"root", "child"},
-						Resources: map[string]*ResourceState{
-							"aws_instance.a": &ResourceState{
-								Type: "aws_instance",
-								Primary: &InstanceState{
-									ID: "bar",
-								},
-								Provider: "module.child.provider.aws",
-							},
-						},
-					},
-				},
-			}),
-			err: true,
+			name:  "add unaliased module provider",
+			state: moduleProviderState,
+			err:   true,
 		},
 	} {
-
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := testContext2(t, &ContextOpts{
 				Config: m,
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 				},
-
 				State: tc.state,
 			})
 
@@ -9343,27 +9197,21 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 	}
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.test": {
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.test").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:    m,
 		Providers: Providers,
-		State:     s,
+		State:     state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -9398,45 +9246,34 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-
-	Providers := map[addrs.Provider]providers.Factory{
+	providers := map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 	}
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.a.0": {
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-						Provider: "provider.aws",
-					},
-					"aws_instance.a.1": {
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-						Provider: "provider.aws",
-					},
-				},
-				Outputs: map[string]*OutputState{
-					"out": {
-						Type:  "list",
-						Value: []string{"foo", "foo"},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetOutputValue("out", cty.ListVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("foo")}), false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:    m,
-		Providers: Providers,
-		State:     s,
+		Providers: providers,
+		State:     state,
 		Destroy:   true,
 	})
 
@@ -9453,7 +9290,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
 
-	ctxOpts.Providers = Providers
+	ctxOpts.Providers = providers
 	ctx, diags = NewContext(ctxOpts)
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
@@ -9477,37 +9314,29 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 	}
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.one": {
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-						Provider: "provider.aws",
-					},
-					"aws_instance.two": {
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"value": "foo",
-							},
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.one").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.two").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config:    m,
 		Providers: Providers,
-		State:     s,
+		State:     state,
 		Variables: InputValues{
 			"instance_count": {
 				Value:      cty.NumberIntVal(0),
