@@ -305,8 +305,7 @@ func (n *NodeAbstractResource) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
 	}
-	// FIXME: this will be a default provider
-	return addrs.NewLegacyProvider(n.Addr.Resource.ImpliedProvider())
+	return addrs.NewDefaultProvider(n.Addr.Resource.ImpliedProvider())
 }
 
 // GraphNodeProviderConsumer
@@ -340,8 +339,7 @@ func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
 	}
-	// FIXME: this will be a default provider
-	return addrs.NewLegacyProvider(n.Addr.Resource.ContainingResource().ImpliedProvider())
+	return addrs.NewDefaultProvider(n.Addr.Resource.ContainingResource().ImpliedProvider())
 }
 
 // GraphNodeProvisionerConsumer

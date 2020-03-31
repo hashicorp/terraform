@@ -17,11 +17,9 @@ func TestContextImport_basic(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -57,11 +55,9 @@ func TestContextImport_basic_errpr(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -92,11 +88,9 @@ func TestContextImport_countIndex(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -132,11 +126,9 @@ func TestContextImport_collision(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 
 		State: states.BuildState(func(s *states.SyncState) {
 			s.SetResourceInstanceCurrent(
@@ -202,11 +194,9 @@ func TestContextImport_missingType(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -254,11 +244,9 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -292,11 +280,9 @@ func TestContextImport_providerModule(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -343,11 +329,9 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 	m := testModule(t, "import-provider-vars")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("bar"),
@@ -405,11 +389,9 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 	m := testModule(t, "import-provider-non-vars")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -439,11 +421,9 @@ func TestContextImport_refresh(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -488,11 +468,9 @@ func TestContextImport_refreshNil(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -534,11 +512,9 @@ func TestContextImport_module(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -574,11 +550,9 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -614,11 +588,9 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -686,11 +658,9 @@ func TestContextImport_multiState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -755,11 +725,9 @@ func TestContextImport_multiStateSame(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{

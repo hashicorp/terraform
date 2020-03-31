@@ -30,11 +30,9 @@ func TestContext2Plan_basic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		ProviderSHA256s: map[string][]byte{
 			"aws": []byte("placeholder"),
 		},
@@ -116,11 +114,9 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -208,11 +204,9 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -248,11 +242,9 @@ func TestContext2Plan_emptyDiff(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -289,11 +281,9 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -333,11 +323,9 @@ func TestContext2Plan_minimal(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -374,11 +362,9 @@ func TestContext2Plan_modules(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -436,11 +422,9 @@ func TestContext2Plan_moduleExpand(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -500,11 +484,9 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -556,11 +538,9 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: providers.ResolverFixed(
-				map[addrs.Provider]providers.Factory{
-					addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-				},
-			),
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			},
 		})
 
 		plan, err := ctx.Plan()
@@ -602,11 +582,9 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -659,11 +637,9 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -713,11 +689,9 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("52"),
@@ -784,11 +758,9 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -865,11 +837,9 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -968,11 +938,9 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
@@ -1041,49 +1009,47 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	m := testModule(t, "plan-module-provider-inherit")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): func() (providers.Interface, error) {
-					l.Lock()
-					defer l.Unlock()
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): func() (providers.Interface, error) {
+				l.Lock()
+				defer l.Unlock()
 
-					p := testProvider("aws")
-					p.GetSchemaReturn = &ProviderSchema{
-						Provider: &configschema.Block{
+				p := testProvider("aws")
+				p.GetSchemaReturn = &ProviderSchema{
+					Provider: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"from": {Type: cty.String, Optional: true},
+						},
+					},
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
 							Attributes: map[string]*configschema.Attribute{
 								"from": {Type: cty.String, Optional: true},
 							},
 						},
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": {
-								Attributes: map[string]*configschema.Attribute{
-									"from": {Type: cty.String, Optional: true},
-								},
-							},
-						},
+					},
+				}
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
 					}
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-							return fmt.Errorf("bad")
-						}
 
-						return nil
-					}
-					p.DiffFn = func(
-						info *InstanceInfo,
-						state *InstanceState,
-						c *ResourceConfig) (*InstanceDiff, error) {
-						v, _ := c.Get("from")
+					return nil
+				}
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					v, _ := c.Get("from")
 
-						l.Lock()
-						defer l.Unlock()
-						calls = append(calls, v.(string))
-						return testDiffFn(info, state, c)
-					}
-					return p, nil
-				},
+					l.Lock()
+					defer l.Unlock()
+					calls = append(calls, v.(string))
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
 			},
-		),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -1107,52 +1073,50 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 	m := testModule(t, "plan-module-provider-inherit-deep")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): func() (providers.Interface, error) {
-					l.Lock()
-					defer l.Unlock()
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): func() (providers.Interface, error) {
+				l.Lock()
+				defer l.Unlock()
 
-					var from string
-					p := testProvider("aws")
+				var from string
+				p := testProvider("aws")
 
-					p.GetSchemaReturn = &ProviderSchema{
-						Provider: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"from": {Type: cty.String, Optional: true},
-							},
+				p.GetSchemaReturn = &ProviderSchema{
+					Provider: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"from": {Type: cty.String, Optional: true},
 						},
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": {
-								Attributes: map[string]*configschema.Attribute{},
-							},
+					},
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
+							Attributes: map[string]*configschema.Attribute{},
 						},
+					},
+				}
+
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					v, ok := c.Get("from")
+					if !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
 					}
 
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						v, ok := c.Get("from")
-						if !ok || v.(string) != "root" {
-							return fmt.Errorf("bad")
-						}
+					from = v.(string)
+					return nil
+				}
 
-						from = v.(string)
-						return nil
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					if from != "root" {
+						return nil, fmt.Errorf("bad resource")
 					}
 
-					p.DiffFn = func(
-						info *InstanceInfo,
-						state *InstanceState,
-						c *ResourceConfig) (*InstanceDiff, error) {
-						if from != "root" {
-							return nil, fmt.Errorf("bad resource")
-						}
-
-						return testDiffFn(info, state, c)
-					}
-					return p, nil
-				},
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
 			},
-		),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -1168,47 +1132,45 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	m := testModule(t, "plan-module-provider-defaults-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): func() (providers.Interface, error) {
-					l.Lock()
-					defer l.Unlock()
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): func() (providers.Interface, error) {
+				l.Lock()
+				defer l.Unlock()
 
-					p := testProvider("aws")
-					p.GetSchemaReturn = &ProviderSchema{
-						Provider: &configschema.Block{
+				p := testProvider("aws")
+				p.GetSchemaReturn = &ProviderSchema{
+					Provider: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"to":   {Type: cty.String, Optional: true},
+							"from": {Type: cty.String, Optional: true},
+						},
+					},
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
 							Attributes: map[string]*configschema.Attribute{
-								"to":   {Type: cty.String, Optional: true},
 								"from": {Type: cty.String, Optional: true},
 							},
 						},
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": {
-								Attributes: map[string]*configschema.Attribute{
-									"from": {Type: cty.String, Optional: true},
-								},
-							},
-						},
+					},
+				}
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					var buf bytes.Buffer
+					if v, ok := c.Get("from"); ok {
+						buf.WriteString(v.(string) + "\n")
 					}
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						var buf bytes.Buffer
-						if v, ok := c.Get("from"); ok {
-							buf.WriteString(v.(string) + "\n")
-						}
-						if v, ok := c.Get("to"); ok {
-							buf.WriteString(v.(string) + "\n")
-						}
+					if v, ok := c.Get("to"); ok {
+						buf.WriteString(v.(string) + "\n")
+					}
 
-						l.Lock()
-						defer l.Unlock()
-						calls = append(calls, buf.String())
-						return nil
-					}
-					p.DiffFn = testDiffFn
-					return p, nil
-				},
+					l.Lock()
+					defer l.Unlock()
+					calls = append(calls, buf.String())
+					return nil
+				}
+				p.DiffFn = testDiffFn
+				return p, nil
 			},
-		),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("root"),
@@ -1253,11 +1215,9 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1298,11 +1258,9 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1355,11 +1313,9 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -1374,11 +1330,9 @@ func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("null"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("null"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -1393,11 +1347,9 @@ func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("null"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("null"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -1412,11 +1364,9 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1465,11 +1415,9 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1504,11 +1452,9 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1542,11 +1488,9 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1597,11 +1541,9 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1651,11 +1593,9 @@ func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1693,11 +1633,9 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -1734,11 +1672,9 @@ func TestContext2Plan_provisionerCycle(t *testing.T) {
 	pr := testProvisioner()
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Provisioners: map[string]ProvisionerFactory{
 			"local-exec": testProvisionerFuncFixed(pr),
 		},
@@ -1756,11 +1692,9 @@ func TestContext2Plan_computed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1831,11 +1765,9 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1904,11 +1836,9 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1973,11 +1903,9 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := ctx.Validate()
@@ -2027,11 +1955,9 @@ func TestContext2Plan_computedDataCountResource(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2059,11 +1985,9 @@ func TestContext2Plan_localValueCount(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2129,11 +2053,9 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -2259,11 +2181,9 @@ func TestContext2Plan_computedList(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2371,11 +2291,9 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2429,11 +2347,9 @@ func TestContext2Plan_count(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2506,11 +2422,9 @@ func TestContext2Plan_countComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -2525,11 +2439,9 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -2547,11 +2459,9 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2600,11 +2510,9 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2653,11 +2561,9 @@ func TestContext2Plan_countIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2706,11 +2612,9 @@ func TestContext2Plan_countVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"instance_count": &InputValue{
 				Value:      cty.StringVal("3"),
@@ -2792,11 +2696,9 @@ func TestContext2Plan_countZero(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2835,11 +2737,9 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2919,11 +2819,9 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -3014,11 +2912,9 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -3103,11 +2999,9 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -3207,11 +3101,9 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -3345,11 +3237,9 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -3402,11 +3292,9 @@ func TestContext2Plan_forEach(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -3440,11 +3328,9 @@ func TestContext2Plan_forEachUnknownValue(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": {
 				Value:      cty.UnknownVal(cty.String),
@@ -3494,11 +3380,9 @@ func TestContext2Plan_destroy(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State:   s,
 		Destroy: true,
 	})
@@ -3565,11 +3449,9 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State:   s,
 		Destroy: true,
 	})
@@ -3636,11 +3518,9 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State:   s,
 		Destroy: true,
 	})
@@ -3706,11 +3586,9 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State:   s,
 		Destroy: true,
 	})
@@ -3768,11 +3646,9 @@ func TestContext2Plan_pathVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -3832,11 +3708,9 @@ func TestContext2Plan_diffVar(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -3912,11 +3786,9 @@ func TestContext2Plan_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -3941,11 +3813,9 @@ func TestContext2Plan_closeProvider(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -3979,11 +3849,9 @@ func TestContext2Plan_orphan(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -4033,11 +3901,9 @@ func TestContext2Plan_shadowUuid(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -4067,11 +3933,9 @@ func TestContext2Plan_state(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -4155,11 +4019,9 @@ func TestContext2Plan_taint(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -4240,11 +4102,9 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -4320,11 +4180,9 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: providers.ResolverFixed(
-				map[addrs.Provider]providers.Factory{
-					addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-				},
-			),
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			},
 			State: s,
 		})
 
@@ -4374,11 +4232,9 @@ func TestContext2Plan_targeted(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
@@ -4427,11 +4283,9 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("B", addrs.NoKey),
 		},
@@ -4494,11 +4348,9 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("null"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("null"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
@@ -4533,11 +4385,9 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -4603,11 +4453,9 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -4671,11 +4519,9 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "blue",
@@ -4729,11 +4575,9 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("mod", addrs.NoKey).Resource(
 				addrs.ManagedResourceMode, "aws_instance", "a",
@@ -4776,11 +4620,9 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: MustShimLegacyState(&State{
 			Modules: []*ModuleState{
 				&ModuleState{
@@ -4828,11 +4670,9 @@ func TestContext2Plan_provider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("bar"),
@@ -4855,11 +4695,9 @@ func TestContext2Plan_varListErr(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -4893,11 +4731,9 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("ami-1234abcd"),
@@ -4965,11 +4801,9 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("ami-1234abcd"),
@@ -5036,11 +4870,9 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -5116,11 +4948,9 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5163,11 +4993,9 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5222,11 +5050,9 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5305,11 +5131,9 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	// We're skipping ctx.Refresh here, which simulates what happens when
@@ -5418,11 +5242,9 @@ func TestContext2Plan_listOrder(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5499,11 +5321,9 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -5635,11 +5455,9 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 	})
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -5717,11 +5535,9 @@ func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5750,11 +5566,9 @@ func TestContext2Plan_selfRef(t *testing.T) {
 	m := testModule(t, "plan-self-ref")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -5789,11 +5603,9 @@ func TestContext2Plan_selfRefMulti(t *testing.T) {
 	m := testModule(t, "plan-self-ref-multi")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -5828,11 +5640,9 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 	m := testModule(t, "plan-self-ref-multi-all")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -5869,11 +5679,9 @@ output "out" {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5911,11 +5719,9 @@ resource "aws_instance" "foo" {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5960,11 +5766,9 @@ resource "aws_instance" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -6010,11 +5814,9 @@ func TestContext2Plan_requiredModuleOutput(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -6077,11 +5879,9 @@ func TestContext2Plan_requiredModuleObject(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewLegacyProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
