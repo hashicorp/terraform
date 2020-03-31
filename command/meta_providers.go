@@ -61,6 +61,25 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 	return inst
 }
 
+// providerCustomLocalDirectorySource produces a provider source that consults
+// only the given local filesystem directories for plugins to install.
+//
+// This is used to implement the -plugin-dir option for "terraform init", where
+// the result of this method is used instead of what would've been returned
+// from m.providerInstallSource.
+//
+// If the given list of directories is empty then the resulting source will
+// have no providers available for installation at all.
+func (m *Meta) providerCustomLocalDirectorySource(dirs []string) getproviders.Source {
+	var ret getproviders.MultiSource
+	for _, dir := range dirs {
+		ret = append(ret, getproviders.MultiSourceSelector{
+			Source: getproviders.NewFilesystemMirrorSource(dir),
+		})
+	}
+	return ret
+}
+
 // providerLocalCacheDir returns an object representing the
 // configuration-specific local cache directory. This is the
 // only location consulted for provider plugin packages for Terraform
