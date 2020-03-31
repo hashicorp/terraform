@@ -74,12 +74,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
-	concreteOrphanResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeDestroyResource{
-			NodeAbstractResource: a,
-		}
-	}
-
 	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeApplyableResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -113,9 +107,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// it's just cleanup of our own state object, and so doesn't effect
 		// any real remote objects or consumable outputs.)
 		&OrphanResourceTransformer{
-			Concrete: concreteOrphanResource,
-			Config:   b.Config,
-			State:    b.State,
+			Config: b.Config,
+			State:  b.State,
 		},
 
 		// Create orphan output nodes

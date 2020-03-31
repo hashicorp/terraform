@@ -71,8 +71,7 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	for _, res := range orphans {
 		// add the resource cleanup node to remove the resource from state
 		cleanupNode := &NodeDestroyResource{
-			NodeAbstractResource: NewNodeAbstractResource(res.Addr.Config()),
-			Addr:                 res.Addr,
+			Addr: res.Addr,
 		}
 
 		g.Add(cleanupNode)

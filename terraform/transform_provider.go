@@ -109,14 +109,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	requested := map[dag.Vertex]map[string]ProviderRequest{}
 	needConfigured := map[string]addrs.AbsProviderConfig{}
 	for _, v := range g.Vertices() {
-
-		// FIXME: fix the type that implements this, so it's not a
-		// GraphNodeProviderConsumer.
-		// check if we want to skip connecting this to a provider
-		if _, ok := v.(GraphNodeNoProvider); ok {
-			continue
-		}
-
 		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			requested[v] = make(map[string]ProviderRequest)
@@ -325,13 +317,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	var err error
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
-		// FIXME: fix the type that implements this, so it's not a
-		// GraphNodeProviderConsumer.
-		// check if we want to skip connecting this to a provider
-		if _, ok := v.(GraphNodeNoProvider); ok {
-			continue
-		}
-
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue

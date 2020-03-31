@@ -159,15 +159,13 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 				}
 			}
 
-			addr := rs.Addr
-			abstract := NewNodeAbstractResource(addr.Config())
-			var node dag.Vertex = abstract
-			if f := t.Concrete; f != nil {
-				node = f(abstract)
+			node := &NodeDestroyResource{
+				Addr: rs.Addr,
 			}
-			log.Printf("[TRACE] OrphanResourceTransformer: adding whole-resource orphan node for %s", addr)
+
+			log.Printf("[TRACE] OrphanResourceTransformer: adding whole-resource orphan node for %s", rs.Addr)
 			g.Add(node)
-			for _, dn := range deps[addr.String()] {
+			for _, dn := range deps[rs.Addr.String()] {
 				log.Printf("[TRACE] OrphanResourceTransformer: node %q depends on %q", dag.VertexName(node), dag.VertexName(dn))
 				g.Connect(dag.BasicEdge(node, dn))
 			}
