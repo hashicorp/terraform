@@ -145,3 +145,24 @@ func (err ErrQueryFailed) Error() string {
 func (err ErrQueryFailed) Unwrap() error {
 	return err.Wrapped
 }
+
+// ErrIsNotExist returns true if and only if the given error is one of the
+// errors from this package that represents an affirmative response that a
+// requested object does not exist.
+//
+// This is as opposed to errors indicating that the source is unavailable
+// or misconfigured in some way, where we therefore cannot say for certain
+// whether the requested object exists.
+//
+// If a caller needs to take a special action based on something not existing,
+// such as falling back on some other source, use this function rather than
+// direct type assertions so that the set of possible "not exist" errors can
+// grow in future.
+func ErrIsNotExist(err error) bool {
+	switch err.(type) {
+	case ErrProviderNotKnown, ErrPlatformNotSupported:
+		return true
+	default:
+		return false
+	}
+}
