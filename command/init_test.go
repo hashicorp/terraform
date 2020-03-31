@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -970,7 +971,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		"exact": []string{"1.2.3"},
 		// config requires >= 2.3.3
 		"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
-		// config specifies
+		// config specifies > 1.0.0 , < 3.0.0
 		"between": []string{"3.4.5", "2.3.4", "1.2.3"},
 	})
 	defer close()
@@ -982,20 +983,10 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		ProviderSource:   providerSource,
 	}
 
-	err := os.MkdirAll(m.pluginDir(), os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	exactUnwanted := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/exact/0.0.1/%s", getproviders.CurrentPlatform)
-	err = ioutil.WriteFile(exactUnwanted, []byte{}, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	greaterThanUnwanted := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/greater-than/2.3.3/%s", getproviders.CurrentPlatform)
-	err = ioutil.WriteFile(greaterThanUnwanted, []byte{}, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	installFakeProviderPackages(t, &m, map[string][]string{
+		"exact":        []string{"0.0.1"},
+		"greater-than": []string{"2.3.3"},
+	})
 
 	c := &InitCommand{
 		Meta: m,
@@ -1008,27 +999,98 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		t.Fatalf("command did not complete successfully:\n%s", ui.ErrorWriter.String())
 	}
 
+	packageInstPath := func(name string, version string, exe bool) string {
+		platform := getproviders.CurrentPlatform
+		if exe {
+			p := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/%s/%s/%s/terraform-provider-%s_%s", name, version, platform, name, version)
+			if platform.OS == "windows" {
+				p += ".exe"
+			}
+			return p
+		}
+		return fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform)
+	}
+
 	cacheDir := m.providerLocalCacheDir()
 	gotPackages := cacheDir.AllAvailablePackages()
-	wantPackages := []*providercache.CachedProvider{}
-
-	/*
-		wantFilenames := []string{
-			"lock.json",
-
-			// no "between" because the file in cwd overrides it
-
-			// The mock PurgeUnused doesn't actually purge anything, so the dir
-			// includes both our old and new versions.
-			"terraform-provider-exact_v0.0.1_x4",
-			"terraform-provider-exact_v1.2.3_x4",
-			"terraform-provider-greater-than_v2.3.3_x4",
-			"terraform-provider-greater-than_v2.3.4_x4",
-		}
-	*/
-
+	wantPackages := map[addrs.Provider][]providercache.CachedProvider{
+		// "between" wasn't previously installed at all, so we installed
+		// the newest available version that matched the version constraints.
+		addrs.NewDefaultProvider("between"): {
+			{
+				Provider:       addrs.NewDefaultProvider("between"),
+				Version:        getproviders.MustParseVersion("2.3.4"),
+				PackageDir:     packageInstPath("between", "2.3.4", false),
+				ExecutableFile: packageInstPath("between", "2.3.4", true),
+			},
+		},
+		// The existing version of "exact" did not match the version constraints,
+		// so we installed what the configuration selected as well.
+		addrs.NewDefaultProvider("exact"): {
+			{
+				Provider:       addrs.NewDefaultProvider("exact"),
+				Version:        getproviders.MustParseVersion("1.2.3"),
+				PackageDir:     packageInstPath("exact", "1.2.3", false),
+				ExecutableFile: packageInstPath("exact", "1.2.3", true),
+			},
+			// Previous version is still there, but not selected
+			{
+				Provider:       addrs.NewDefaultProvider("exact"),
+				Version:        getproviders.MustParseVersion("0.0.1"),
+				PackageDir:     packageInstPath("exact", "0.0.1", false),
+				ExecutableFile: packageInstPath("exact", "0.0.1", true),
+			},
+		},
+		// The existing version of "greater-than" _did_ match the constraints,
+		// but a newer version was available and the user specified
+		// -upgrade and so we upgraded it anyway.
+		addrs.NewDefaultProvider("greater-than"): {
+			{
+				Provider:       addrs.NewDefaultProvider("greater-than"),
+				Version:        getproviders.MustParseVersion("2.3.4"),
+				PackageDir:     packageInstPath("greater-than", "2.3.4", false),
+				ExecutableFile: packageInstPath("greater-than", "2.3.4", true),
+			},
+			// Previous version is still there, but not selected
+			{
+				Provider:       addrs.NewDefaultProvider("greater-than"),
+				Version:        getproviders.MustParseVersion("2.3.3"),
+				PackageDir:     packageInstPath("greater-than", "2.3.3", false),
+				ExecutableFile: packageInstPath("greater-than", "2.3.3", true),
+			},
+		},
+	}
 	if diff := cmp.Diff(wantPackages, gotPackages); diff != "" {
 		t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
+	}
+
+	inst := m.providerInstaller()
+	gotSelected, err := inst.SelectedPackages()
+	if err != nil {
+		t.Fatalf("failed to get selected packages from installer: %s", err)
+	}
+	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
+		addrs.NewDefaultProvider("between"): {
+			Provider:       addrs.NewDefaultProvider("between"),
+			Version:        getproviders.MustParseVersion("2.3.4"),
+			PackageDir:     packageInstPath("between", "2.3.4", false),
+			ExecutableFile: packageInstPath("between", "2.3.4", true),
+		},
+		addrs.NewDefaultProvider("exact"): {
+			Provider:       addrs.NewDefaultProvider("exact"),
+			Version:        getproviders.MustParseVersion("1.2.3"),
+			PackageDir:     packageInstPath("exact", "1.2.3", false),
+			ExecutableFile: packageInstPath("exact", "1.2.3", true),
+		},
+		addrs.NewDefaultProvider("greater-than"): {
+			Provider:       addrs.NewDefaultProvider("greater-than"),
+			Version:        getproviders.MustParseVersion("2.3.4"),
+			PackageDir:     packageInstPath("greater-than", "2.3.4", false),
+			ExecutableFile: packageInstPath("greater-than", "2.3.4", true),
+		},
+	}
+	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
+		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
 
 }
@@ -1423,4 +1485,57 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 	}
 
 	return getproviders.NewMockSource(packages), close
+}
+
+// installFakeProviderPackage installs a fake package for the given provider
+// names (interpreted as a "default" provider address) and versions into the
+// local plugin cache for the given "meta".
+//
+// Any test using this must be using testChdir or some similar mechanism to
+// make sure that it isn't writing directly into a test fixture or source
+// directory within the codebase.
+//
+// If a requested package cannot be installed for some reason, this function
+// will abort the test using the given testing.T. Therefore if this function
+// returns the caller can assume that the requested providers have been
+// installed.
+func installFakeProviderPackages(t *testing.T, meta *Meta, providerVersions map[string][]string) {
+	t.Helper()
+
+	// It can be hard to spot the mistake of forgetting to run testChdir before
+	// modifying the working directory, so we'll use a simple heuristic here
+	// to try to detect that mistake and make a noisy error about it instead.
+	wd, err := os.Getwd()
+	if err == nil {
+		wd = filepath.Clean(wd)
+		// If the directory we're in is named "command" or if we're under a
+		// directory named "testdata" then we'll assume a mistake and generate
+		// an error. This will cause the test to fail but won't block it from
+		// running.
+		if filepath.Base(wd) == "command" || filepath.Base(wd) == "testdata" || strings.Contains(filepath.ToSlash(wd), "/testdata/") {
+			t.Errorf("installFakeProviderPackage may be used only by tests that switch to a temporary working directory, e.g. using testChdir")
+		}
+	}
+
+	cacheDir := meta.providerLocalCacheDir()
+	for name, versions := range providerVersions {
+		addr := addrs.NewDefaultProvider(name)
+		for _, versionStr := range versions {
+			version, err := getproviders.ParseVersion(versionStr)
+			if err != nil {
+				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, name, err)
+			}
+			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.CurrentPlatform)
+			// We're going to install all these fake packages before we return,
+			// so we don't need to preserve them afterwards.
+			defer close()
+			if err != nil {
+				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
+			}
+			err = cacheDir.InstallPackage(context.Background(), meta)
+			if err != nil {
+				t.Fatalf("failed to install fake package for %s %s: %s", name, versionStr, err)
+			}
+		}
+	}
 }
