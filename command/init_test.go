@@ -1145,7 +1145,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
 	}
 
-	if !strings.Contains(ui.ErrorWriter.String(), "no suitable version for provider") {
+	if !strings.Contains(ui.ErrorWriter.String(), "no available releases match") {
 		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
 	}
 }
