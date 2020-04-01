@@ -59,7 +59,7 @@ func TestLocal_applyBasic(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 `)
 }
@@ -176,7 +176,7 @@ func TestLocal_applyError(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 	`)
 }
@@ -226,7 +226,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	checkState(t, "errored.tfstate", `
 test_instance.foo:
   ID = yes
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 	`)
 }
