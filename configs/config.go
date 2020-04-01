@@ -310,7 +310,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
 			provider = providerReq.Type
 		} else {
-			provider = addrs.NewDefaultProvider(addr.LocalName)
+			provider = addrs.ImpliedProviderForUnqualifiedType(addr.LocalName)
 		}
 
 		return addrs.AbsProviderConfig{

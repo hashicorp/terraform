@@ -305,7 +305,7 @@ func (n *NodeAbstractResource) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
 	}
-	return addrs.NewDefaultProvider(n.Addr.Resource.ImpliedProvider())
+	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
 }
 
 // GraphNodeProviderConsumer

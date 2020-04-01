@@ -124,6 +124,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 	nullProvider := addrs.NewDefaultProvider("null")
 	randomProvider := addrs.NewDefaultProvider("random")
 	impliedProvider := addrs.NewDefaultProvider("implied")
+	terraformProvider := addrs.NewBuiltInProvider("terraform")
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
@@ -134,6 +135,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
 		impliedProvider:    nil,
 		happycloudProvider: nil,
+		terraformProvider:  nil,
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
