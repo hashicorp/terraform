@@ -358,7 +358,7 @@ func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("aws"),
+				Provider: addrs.NewDefaultProvider("aws"),
 				Module:   addrs.RootModuleInstance,
 			},
 		)
@@ -377,7 +377,7 @@ func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("aws"),
+				Provider: addrs.NewDefaultProvider("aws"),
 				Module:   addrs.RootModuleInstance,
 			},
 		)

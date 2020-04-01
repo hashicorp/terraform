@@ -126,7 +126,7 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 			Addr:   addr,
 			Config: m.Module.DataResources["data.aws_instance.foo"],
 			ResolvedProvider: addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("aws"),
+				Provider: addrs.NewDefaultProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		},
