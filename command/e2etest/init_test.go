@@ -96,16 +96,19 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
 	// desired result.
-	fixtMachineDir := tf.Path("cache/os_arch")
-	wantMachineDir := tf.Path("cache", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
-	os.Rename(fixtMachineDir, wantMachineDir)
+	fixtMachineDir := tf.Path("cache/registry.terraform.io/hashicorp/template/2.1.0/os_arch")
+	wantMachineDir := tf.Path("cache/registry.terraform.io/hashicorp/template/2.1.0/", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
+	err := os.Rename(fixtMachineDir, wantMachineDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	cmd := tf.Cmd("init")
 	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR=./cache")
 	cmd.Stdin = nil
 	cmd.Stderr = &bytes.Buffer{}
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -115,7 +118,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s\n", stderr)
 	}
 
-	path := fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)
+	path := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)
 	content, err := tf.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
@@ -124,11 +127,11 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("template plugin was not installed from local cache")
 	}
 
-	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
 		t.Errorf("null plugin was not installed")
 	}
 
-	if !tf.FileExists(fmt.Sprintf("cache/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
+	if !tf.FileExists(fmt.Sprintf("cache/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
 		t.Errorf("null plugin is not in cache after install")
 	}
 }
