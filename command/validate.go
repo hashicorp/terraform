@@ -20,11 +20,7 @@ type ValidateCommand struct {
 const defaultPath = "."
 
 func (c *ValidateCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	// TODO: The `var` and `var-file` options are not actually used, and should
 	// be removed in the next major release.
 	if c.Meta.variableArgs.items == nil {

@@ -28,11 +28,7 @@ type ApplyCommand struct {
 
 func (c *ApplyCommand) Run(args []string) int {
 	var destroyForce, refresh, autoApprove bool
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdName := "apply"
 	if c.Destroy {
 		cmdName = "destroy"

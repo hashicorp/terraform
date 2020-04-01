@@ -410,11 +410,7 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 // process will process the meta-parameters out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice.
-//
-// vars is now ignored. It used to control whether to process variables, but
-// that is no longer the responsibility of this function. (That happens
-// instead in Meta.collectVariableValues.)
-func (m *Meta) process(args []string, vars bool) ([]string, error) {
+func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -443,7 +439,7 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 		},
 	}
 
-	return args, nil
+	return args
 }
 
 // uiHook returns the UiHook to use with the context.

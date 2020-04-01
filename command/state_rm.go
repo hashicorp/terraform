@@ -17,11 +17,7 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var dryRun bool
 	cmdFlags := c.Meta.defaultFlagSet("state rm")
 	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")

@@ -20,11 +20,7 @@ type ZeroThirteenUpgradeCommand struct {
 }
 
 func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	flags := c.Meta.defaultFlagSet("0.13upgrade")
 	flags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := flags.Parse(args); err != nil {
@@ -51,6 +47,7 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 	}
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1

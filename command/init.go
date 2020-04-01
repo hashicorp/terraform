@@ -49,11 +49,7 @@ func (c *InitCommand) Run(args []string) int {
 	var flagVerifyPlugins bool
 	flagConfigExtra := newRawFlags("-backend-config")
 
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")

@@ -23,10 +23,7 @@ func TestMetaColorize(t *testing.T) {
 	m.Color = true
 	args = []string{"foo", "bar"}
 	args2 = []string{"foo", "bar"}
-	args, err := m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -38,10 +35,7 @@ func TestMetaColorize(t *testing.T) {
 	m = new(Meta)
 	args = []string{"foo", "bar"}
 	args2 = []string{"foo", "bar"}
-	args, err = m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -54,10 +48,7 @@ func TestMetaColorize(t *testing.T) {
 	m.Color = true
 	args = []string{"foo", "-no-color", "bar"}
 	args2 = []string{"foo", "bar"}
-	args, err = m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -292,10 +283,7 @@ func TestMeta_process(t *testing.T) {
 			m := new(Meta)
 			m.Color = true // this is the default also for normal use, overridden by -no-color
 			args := test.GivenArgs
-			args, err = m.process(args, true)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
+			args = m.process(args)
 
 			if !cmp.Equal(test.FilteredArgs, args) {
 				t.Errorf("wrong filtered arguments\n%s", cmp.Diff(test.FilteredArgs, args))

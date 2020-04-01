@@ -41,11 +41,7 @@ func (c *FmtCommand) Run(args []string) int {
 		c.input = os.Stdin
 	}
 
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("fmt")
 	cmdFlags.BoolVar(&c.list, "list", true, "list")
 	cmdFlags.BoolVar(&c.write, "write", true, "write")
