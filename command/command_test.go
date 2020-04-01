@@ -120,7 +120,7 @@ func testFixturePath(name string) string {
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
 		},
 	}
 }
@@ -128,7 +128,7 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": provisioners.FactoryFixed(pr),
@@ -268,7 +268,7 @@ func testState() *states.State {
 				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
