@@ -24,3 +24,4 @@ builtin/provisioners/local-exec			@hashicorp/terraform-core
 builtin/provisioners/puppet				Unmaintained
 builtin/provisioners/remote-exec		@hashicorp/terraform-core
 builtin/provisioners/salt-masterless	Unmaintained
+
