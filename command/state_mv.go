@@ -18,11 +18,7 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	// We create two metas to track the two states
 	var backupPathOut, statePathOut string
 

@@ -24,11 +24,7 @@ func (c *GraphCommand) Run(args []string) int {
 	var moduleDepth int
 	var verbose bool
 
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("graph")
 	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")

@@ -23,11 +23,7 @@ type OutputCommand struct {
 }
 
 func (c *OutputCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var module, statePath string
 	var jsonOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("output")

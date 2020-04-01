@@ -24,11 +24,7 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("show")
 	var jsonOutput bool
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
@@ -48,6 +44,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1

@@ -20,11 +20,7 @@ func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
 	var outPath string
 
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
