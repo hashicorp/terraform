@@ -9,7 +9,7 @@
 /backend/remote-state/etcdv2            Unmaintained
 /backend/remote-state/etcdv3            @bmcstdio
 /backend/remote-state/gcs               @hashicorp/terraform-google
-/backend/remote-state/http              Unmaintained
+/backend/remote-state/http              @hashicorp/terraform-core
 /backend/remote-state/manta             Unmaintained
 /backend/remote-state/oss               @xiaozhu36
 /backend/remote-state/pg                Unmaintained
