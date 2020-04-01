@@ -78,6 +78,30 @@ func NewProvider(hostname svchost.Hostname, namespace, typeName string) Provider
 	}
 }
 
+// ImpliedProviderForUnqualifiedType represents the rules for inferring what
+// provider FQN a user intended when only a naked type name is available.
+//
+// For all except the type name "terraform" this returns a so-called "default"
+// provider, which is under the registry.terraform.io/hashicorp/ namespace.
+//
+// As a special case, the string "terraform" maps to
+// "terraform.io/builtin/terraform" because that is the more likely user
+// intent than the now-unmaintained "registry.terraform.io/hashicorp/terraform"
+// which remains only for compatibility with older Terraform versions.
+func ImpliedProviderForUnqualifiedType(typeName string) Provider {
+	switch typeName {
+	case "terraform":
+		// Note for future maintainers: any additional strings we add here
+		// as implied to be builtin must never also be use as provider names
+		// in the registry.terraform.io/hashicorp/... namespace, because
+		// otherwise older versions of Terraform could implicitly select
+		// the registry name instead of the internal one.
+		return NewBuiltInProvider(typeName)
+	default:
+		return NewDefaultProvider(typeName)
+	}
+}
+
 // NewDefaultProvider returns the default address of a HashiCorp-maintained,
 // Registry-hosted provider.
 func NewDefaultProvider(name string) Provider {

@@ -195,7 +195,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			}
 			diags = append(diags, hclDiags...)
 		} else {
-			fqn = addrs.NewDefaultProvider(reqd.Name)
+			fqn = addrs.ImpliedProviderForUnqualifiedType(reqd.Name)
 		}
 		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
 			if existing.Type != fqn {
@@ -286,11 +286,11 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
 				r.Provider = existing.Type
 			} else {
-				r.Provider = addrs.NewDefaultProvider(r.ProviderConfigAddr().LocalName)
+				r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigAddr().LocalName)
 			}
 			continue
 		}
-		r.Provider = addrs.NewDefaultProvider(r.Addr().ImpliedProvider())
+		r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
 	}
 
 	for _, r := range file.DataResources {
@@ -310,13 +310,12 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		if r.ProviderConfigRef != nil {
 			if existing, exists := m.ProviderRequirements[r.ProviderConfigAddr().LocalName]; exists {
 				r.Provider = existing.Type
-
 			} else {
-				r.Provider = addrs.NewDefaultProvider(r.ProviderConfigAddr().LocalName)
+				r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigAddr().LocalName)
 			}
 			continue
 		}
-		r.Provider = addrs.NewDefaultProvider(r.Addr().ImpliedProvider())
+		r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
 	}
 
 	return diags
@@ -511,5 +510,5 @@ func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Prov
 	if provider, exists := m.ProviderRequirements[pc.LocalName]; exists {
 		return provider.Type
 	}
-	return addrs.NewDefaultProvider(pc.LocalName)
+	return addrs.ImpliedProviderForUnqualifiedType(pc.LocalName)
 }
