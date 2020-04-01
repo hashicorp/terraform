@@ -39,12 +39,12 @@ func TestInitProviders(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template\" (hashicorp/template)") {
+	if !strings.Contains(stdout, "- Installing registry.terraform.io/hashicorp/template v") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 
-	if !strings.Contains(stdout, "* provider.template: version = ") {
+	if !strings.Contains(stdout, "* registry.terraform.io/hashicorp/template: version = ") {
 		t.Errorf("provider pinning recommendation is missing from output:\n%s", stdout)
 	}
 
