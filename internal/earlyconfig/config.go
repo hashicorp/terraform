@@ -105,7 +105,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) tfdiags
 			fqn = addr
 		}
 		if fqn.IsZero() {
-			fqn = addrs.NewDefaultProvider(localName)
+			fqn = addrs.ImpliedProviderForUnqualifiedType(localName)
 		}
 		if _, ok := reqs[fqn]; !ok {
 			// We'll at least have an unconstrained dependency then, but might
