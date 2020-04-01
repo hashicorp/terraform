@@ -216,6 +216,20 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 	)
 }
 
+// testSetResourceInstanceDeposed is a helper function for tests that sets a
+// Deposed resource instance for the given module.
+func testSetResourceInstanceDeposed(module *states.Module, resource, attrsJson, provider string, key states.DeposedKey) {
+	module.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr(resource).Resource,
+		key,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(attrsJson),
+		},
+		mustProviderConfig(provider),
+	)
+}
+
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	return func() (providers.Interface, error) {
 		return rp, nil
