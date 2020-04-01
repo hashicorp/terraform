@@ -849,62 +849,6 @@ func TestInit_getProvider(t *testing.T) {
 	})
 }
 
-// make sure we can locate providers in various paths
-func TestInit_findVendoredProviders(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-
-	configDirName := "init-get-providers"
-	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
-	defer close()
-
-	ui := new(cli.MockUi)
-	m := Meta{
-		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
-		ProviderSource:   providerSource,
-	}
-
-	c := &InitCommand{
-		Meta: m,
-	}
-
-	// make our plugin paths
-	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(DefaultPluginVendorDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	// add some dummy providers
-	// the auto plugin directory
-	exactPath := filepath.Join(c.pluginDir(), "terraform-provider-exact_v1.2.3_x4")
-	if err := ioutil.WriteFile(exactPath, []byte("test bin"), 0755); err != nil {
-		t.Fatal(err)
-	}
-	// the vendor path
-	greaterThanPath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-greater-than_v2.3.4_x4")
-	if err := ioutil.WriteFile(greaterThanPath, []byte("test bin"), 0755); err != nil {
-		t.Fatal(err)
-	}
-	// Check the current directory too
-	betweenPath := filepath.Join(".", "terraform-provider-between_v2.3.4_x4")
-	if err := ioutil.WriteFile(betweenPath, []byte("test bin"), 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	args := []string{configDirName}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-}
-
 func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

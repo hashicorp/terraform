@@ -73,10 +73,49 @@ func TestInitProvidersInternal(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if strings.Contains(stdout, "Downloading plugin for provider") {
+	if strings.Contains(stdout, "Installing registry.terraform.io/hashicorp/terraform") {
 		// Shouldn't have downloaded anything with this config, because the
 		// provider is built in.
 		t.Errorf("provider download message appeared in output:\n%s", stdout)
+	}
+
+	if strings.Contains(stdout, "Installing terraform.io/builtin/terraform") {
+		// Shouldn't have downloaded anything with this config, because the
+		// provider is built in.
+		t.Errorf("provider download message appeared in output:\n%s", stdout)
+	}
+}
+
+func TestInitProvidersVendored(t *testing.T) {
+	t.Parallel()
+
+	// This test will try to reach out to registry.terraform.io as one of the
+	// possible installation locations for
+	// registry.terraform.io/hashicorp/null, where it will find that
+	// versions do exist but will ultimately select the version that is
+	// vendored due to the version constraint.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "vendored-provider")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	stdout, stderr, err := tf.Run("init")
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+
+	if !strings.Contains(stdout, "Terraform has been successfully initialized!") {
+		t.Errorf("success message is missing from output:\n%s", stdout)
+	}
+
+	if !strings.Contains(stdout, "- Installing registry.terraform.io/hashicorp/null v1.0.0+local") {
+		t.Errorf("provider download message is missing from output:\n%s", stdout)
+		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 
 }
