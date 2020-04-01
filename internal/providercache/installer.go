@@ -64,8 +64,8 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 	// A little safety check to catch straightforward mistakes where the
 	// directories overlap. Better to panic early than to do
 	// possibly-distructive actions on the cache directory downstream.
-	if same, err := copydir.SameFile(i.targetDir.baseDir, cacheDir.baseDir); err == nil && !same {
-		panic(fmt.Sprintf("global cache directory %s must not match the installation target directory", i.targetDir.baseDir))
+	if same, err := copydir.SameFile(i.targetDir.baseDir, cacheDir.baseDir); err == nil && same {
+		panic(fmt.Sprintf("global cache directory %s must not match the installation target directory %s", cacheDir.baseDir, i.targetDir.baseDir))
 	}
 	i.globalCacheDir = cacheDir
 }
