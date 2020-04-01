@@ -1396,7 +1396,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 }
 
 // Verify that plugin-dir doesn't prevent discovery of internal providers
-func TestInit_pluginWithInternal(t *testing.T) {
+func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("init-internal"), td)
 	defer os.RemoveAll(td)
@@ -1406,7 +1406,7 @@ func TestInit_pluginWithInternal(t *testing.T) {
 	providerSource, close := newMockProviderSource(t, nil)
 	defer close()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -1418,9 +1418,52 @@ func TestInit_pluginWithInternal(t *testing.T) {
 	}
 
 	args := []string{"-plugin-dir", "./"}
-	//args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("error: %s", ui.ErrorWriter)
+	}
+
+	outputStr := ui.OutputWriter.String()
+	if subStr := "terraform.io/builtin/terraform is built in to Terraform"; !strings.Contains(outputStr, subStr) {
+		t.Errorf("output should mention the terraform provider\nwant substr: %s\ngot:\n%s", subStr, outputStr)
+	}
+}
+
+func TestInit_invalidBuiltInProviders(t *testing.T) {
+	// This test fixture includes two invalid provider dependencies:
+	// - an implied dependency on terraform.io/builtin/terraform with an
+	//   explicit version number, which is not allowed because it's builtin.
+	// - an explicit dependency on terraform.io/builtin/nonexist, which does
+	//   not exist at all.
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-internal-invalid"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// An empty provider source
+	providerSource, close := newMockProviderSource(t, nil)
+	defer close()
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "Cannot use terraform.io/builtin/terraform: built-in"; !strings.Contains(errStr, subStr) {
+		t.Errorf("error output should mention the terraform provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Cannot use terraform.io/builtin/nonexist: this Terraform release"; !strings.Contains(errStr, subStr) {
+		t.Errorf("error output should mention the 'nonexist' provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 }
 

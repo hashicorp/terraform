@@ -58,6 +58,11 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 	if globalCacheDir != nil {
 		inst.SetGlobalCacheDir(globalCacheDir)
 	}
+	var builtinProviderTypes []string
+	for ty := range m.internalProviders() {
+		builtinProviderTypes = append(builtinProviderTypes, ty)
+	}
+	inst.SetBuiltInProviderTypes(builtinProviderTypes)
 	return inst
 }
 

@@ -40,6 +40,19 @@ type InstallerEvents struct {
 	// available version.
 	ProviderAlreadyInstalled func(provider addrs.Provider, selectedVersion getproviders.Version)
 
+	// The BuiltInProvider... family of events describe the outcome for any
+	// requested providers that are built in to Terraform. Only one of these
+	// methods will be called for each such provider, and no other method
+	// will be called for them except that they are included in the
+	// aggregate PendingProviders map.
+	//
+	// The "Available" event reports that the requested builtin provider is
+	// available in this release of Terraform. The "Failure" event reports
+	// either that the provider is unavailable or that the request for it
+	// is invalid somehow.
+	BuiltInProviderAvailable func(provider addrs.Provider)
+	BuiltInProviderFailure   func(provider addrs.Provider, err error)
+
 	// The QueryPackages... family of events delimit the operation of querying
 	// a provider source for information about available packages matching
 	// a particular version constraint, prior to selecting a single version
