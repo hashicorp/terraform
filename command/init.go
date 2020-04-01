@@ -463,6 +463,16 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
 			c.Ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider, selectedVersion))
 		},
+		BuiltInProviderAvailable: func(provider addrs.Provider) {
+			c.Ui.Info(fmt.Sprintf("- %s is built in to Terraform", provider))
+		},
+		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid dependency on built-in provider",
+				fmt.Sprintf("Cannot use %s: %s.", provider, err),
+			))
+		},
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 			if len(versionConstraints) > 0 {
 				c.Ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider, getproviders.VersionConstraintsString(versionConstraints)))

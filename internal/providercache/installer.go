@@ -35,6 +35,12 @@ type Installer struct {
 	// both the disk space and the download time for a particular provider
 	// version between different configurations on the same system.
 	globalCacheDir *Dir
+
+	// builtInProviderTypes is an optional set of types that should be
+	// considered valid to appear in the special terraform.io/builtin/...
+	// namespace, which we use for providers that are built in to Terraform
+	// and thus do not need any separate installation step.
+	builtInProviderTypes []string
 }
 
 // NewInstaller constructs and returns a new installer with the given target
@@ -68,6 +74,24 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 		panic(fmt.Sprintf("global cache directory %s must not match the installation target directory %s", cacheDir.baseDir, i.targetDir.baseDir))
 	}
 	i.globalCacheDir = cacheDir
+}
+
+// SetBuiltInProviderTypes tells the receiver to consider the type names in the
+// given slice to be valid as providers in the special special
+// terraform.io/builtin/... namespace that we use for providers that are
+// built in to Terraform and thus do not need a separate installation step.
+//
+// If a caller requests installation of a provider in that namespace, the
+// installer will treat it as a no-op if its name exists in this list, but
+// will produce an error if it does not.
+//
+// The default, if this method isn't called, is for there to be no valid
+// builtin providers.
+//
+// Do not modify the buffer under the given slice after passing it to this
+// method.
+func (i *Installer) SetBuiltInProviderTypes(types []string) {
+	i.builtInProviderTypes = types
 }
 
 // EnsureProviderVersions compares the given provider requirements with what
@@ -113,6 +137,42 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, reqs getprovider
 	mightNeed := map[addrs.Provider]getproviders.VersionSet{}
 MightNeedProvider:
 	for provider, versionConstraints := range reqs {
+		if provider.IsBuiltIn() {
+			// Built in providers do not require installation but we'll still
+			// verify that the requested provider name is valid.
+			valid := false
+			for _, name := range i.builtInProviderTypes {
+				if name == provider.Type {
+					valid = true
+					break
+				}
+			}
+			var err error
+			if valid {
+				if len(versionConstraints) == 0 {
+					// Other than reporting an event for the outcome of this
+					// provider, we'll do nothing else with it: it's just
+					// automatically available for use.
+					if cb := evts.BuiltInProviderAvailable; cb != nil {
+						cb(provider)
+					}
+				} else {
+					// A built-in provider is not permitted to have an explicit
+					// version constraint, because we can only use the version
+					// that is built in to the current Terraform release.
+					err = fmt.Errorf("built-in providers do not support explicit version constraints")
+				}
+			} else {
+				err = fmt.Errorf("this Terraform release has no built-in provider named %q", provider.Type)
+			}
+			if err != nil {
+				errs[provider] = err
+				if cb := evts.BuiltInProviderFailure; cb != nil {
+					cb(provider, err)
+				}
+			}
+			continue
+		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)
 		if mode.forceQueryAllProviders() {
 			// If our mode calls for us to look for newer versions regardless
