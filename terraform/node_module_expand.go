@@ -1,11 +1,19 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/states"
 )
+
+// graphNodeModuleCloser is an interface implemented by nodes that finalize the
+// evaluation of modules.
+type graphNodeModuleCloser interface {
+	CloseModule() addrs.Module
+}
 
 // nodeExpandModule represents a module call in the configuration that
 // might expand into multiple module instances depending on how it is
@@ -76,6 +84,99 @@ func (n *nodeExpandModule) EvalTree() EvalNode {
 		Config:     n.Config,
 		ModuleCall: n.ModuleCall,
 	}
+}
+
+// nodeRootModule represents an expanded module during apply, and is visited
+// after all other module instance nodes. This node will depend on all module
+// instance resource and outputs, and anything depending on the module should
+// wait on this node.
+// Besides providing a root node for dependency ordering, nodeCloseModule also
+// cleans up state after all the module nodes have been evaluated, removing
+// empty resources and modules from the state.
+type nodeCloseModule struct {
+	Addr       addrs.Module
+	Config     *configs.Module
+	ModuleCall *configs.ModuleCall
+}
+
+func (n *nodeCloseModule) Name() string {
+	return n.Addr.String() + " (close)"
+}
+
+func (n *nodeCloseModule) CloseModule() addrs.Module {
+	return n.Addr
+}
+
+// RemovableIfNotTargeted implementation
+func (n *nodeCloseModule) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
+func (n *nodeCloseModule) EvalTree() EvalNode {
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalOpFilter{
+				Ops: []walkOperation{walkApply, walkDestroy},
+				Node: &evalModuleRoot{
+					Addr:       n.Addr,
+					Config:     n.Config,
+					ModuleCall: n.ModuleCall,
+				},
+			},
+		},
+	}
+}
+
+type evalModuleRoot struct {
+	Addr       addrs.Module
+	Config     *configs.Module
+	ModuleCall *configs.ModuleCall
+}
+
+func (n *evalModuleRoot) Eval(ctx EvalContext) (interface{}, error) {
+	return nil, nil
+	// We need the full, locked state, because SyncState does not provide a way to
+	// transact over multiple module instances at the moment.
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
+
+	expander := ctx.InstanceExpander()
+	currentModuleInstances := expander.ExpandModule(n.Addr)
+
+	for modKey, mod := range state.Modules {
+		if !n.Addr.Equal(mod.Addr.Module()) {
+			continue
+		}
+
+		// clean out any empty resources
+		for resKey, res := range mod.Resources {
+			if len(res.Instances) == 0 {
+				delete(mod.Resources, resKey)
+			}
+		}
+
+		// if this instance is not in the current expansion, remove it from the
+		// state
+		found := false
+		for _, current := range currentModuleInstances {
+			if current.Equal(mod.Addr) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			if len(mod.Resources) > 0 {
+				// FIXME: add more info to this error
+				return nil, fmt.Errorf("module %q still contains resources in state", mod.Addr)
+			}
+
+			delete(state.Modules, modKey)
+		}
+	}
+	return nil, nil
 }
 
 // evalPrepareModuleExpansion is an EvalNode implementation

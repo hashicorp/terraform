@@ -185,6 +185,9 @@ type PruneUnusedValuesTransformer struct {
 	Destroy bool
 }
 
+// FIXME: outputs will now  have module expansion root nodes dependent on them,
+// so we need to filter those out too. Might be a good time to decouple this
+// from concrete types, and implement some interfaces.
 func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 	// Pruning a value can effect previously checked edges, so loop until there
 	// are no more changes.
