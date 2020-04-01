@@ -18,9 +18,9 @@
 
 # Provisioners
 builtin/provisioners/chef               Unmaintained
-builtin/provisioners/file	            @hashicorp/terraform-core
-builtin/provisioners/habitat	        Unmaintained
+builtin/provisioners/file	              @hashicorp/terraform-core
+builtin/provisioners/habitat	          Unmaintained
 builtin/provisioners/local-exec	        @hashicorp/terraform-core
 builtin/provisioners/puppet	            Unmaintained
-builtin/provisioners/remote-exec	    @hashicorp/terraform-core
+builtin/provisioners/remote-exec	      @hashicorp/terraform-core
 builtin/provisioners/salt-masterless    Unmaintained
