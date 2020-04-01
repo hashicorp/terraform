@@ -1315,16 +1315,19 @@ func TestInit_pluginDirProviders(t *testing.T) {
 		}
 	}
 
-	// add some dummy providers in our plugin dirs
-	for i, name := range []string{
-		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater-than_v2.3.4_x4",
-		"terraform-provider-between_v2.3.4_x4",
+	// We'll put some providers in our plugin dirs. To do this, we'll pretend
+	// for a moment that they are provider cache directories just because that
+	// allows us to lean on our existing test helper functions to do this.
+	for i, def := range [][]string{
+		[]string{"exact", "1.2.3"},
+		[]string{"greater-than", "2.3.4"},
+		[]string{"between", "2.3.4"},
 	} {
-
-		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
-			t.Fatal(err)
-		}
+		name, version := def[0], def[1]
+		dir := providercache.NewDir(pluginPath[i])
+		installFakeProviderPackagesElsewhere(t, dir, map[string][]string{
+			name: []string{version},
+		})
 	}
 
 	args := []string{
@@ -1335,6 +1338,41 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
+
+	inst := m.providerInstaller()
+	gotSelected, err := inst.SelectedPackages()
+	if err != nil {
+		t.Fatalf("failed to get selected packages from installer: %s", err)
+	}
+	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
+		addrs.NewDefaultProvider("between"): {
+			Provider:       addrs.NewDefaultProvider("between"),
+			Version:        getproviders.MustParseVersion("2.3.4"),
+			PackageDir:     expectedPackageInstallPath("between", "2.3.4", false),
+			ExecutableFile: expectedPackageInstallPath("between", "2.3.4", true),
+		},
+		addrs.NewDefaultProvider("exact"): {
+			Provider:       addrs.NewDefaultProvider("exact"),
+			Version:        getproviders.MustParseVersion("1.2.3"),
+			PackageDir:     expectedPackageInstallPath("exact", "1.2.3", false),
+			ExecutableFile: expectedPackageInstallPath("exact", "1.2.3", true),
+		},
+		addrs.NewDefaultProvider("greater-than"): {
+			Provider:       addrs.NewDefaultProvider("greater-than"),
+			Version:        getproviders.MustParseVersion("2.3.4"),
+			PackageDir:     expectedPackageInstallPath("greater-than", "2.3.4", false),
+			ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.4", true),
+		},
+	}
+	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
+		t.Errorf("wrong version selections after upgrade\n%s", diff)
+	}
+
+	// -plugin-dir overrides the normal provider source, so it should not have
+	// seen any calls at all.
+	if calls := providerSource.CallLog(); len(calls) > 0 {
+		t.Errorf("unexpected provider source calls (want none)\n%s", spew.Sdump(calls))
+	}
 }
 
 // Test user-supplied -plugin-dir doesn't allow auto-install
@@ -1344,11 +1382,15 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
+	// Our provider source has a suitable package for "between" available,
+	// but we should ignore it because -plugin-dir is set and thus this
+	// source is temporarily overridden during install.
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"between": []string{"2.3.4"},
+	})
 	defer close()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -1367,15 +1409,18 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 		}
 	}
 
-	// add some dummy providers in our plugin dirs
-	for i, name := range []string{
-		"terraform-provider-exact_v1.2.3_x4",
-		"terraform-provider-greater-than_v2.3.4_x4",
+	// We'll put some providers in our plugin dirs. To do this, we'll pretend
+	// for a moment that they are provider cache directories just because that
+	// allows us to lean on our existing test helper functions to do this.
+	for i, def := range [][]string{
+		[]string{"exact", "1.2.3"},
+		[]string{"greater-than", "2.3.4"},
 	} {
-
-		if err := ioutil.WriteFile(filepath.Join(pluginPath[i], name), []byte("test bin"), 0755); err != nil {
-			t.Fatal(err)
-		}
+		name, version := def[0], def[1]
+		dir := providercache.NewDir(pluginPath[i])
+		installFakeProviderPackagesElsewhere(t, dir, map[string][]string{
+			name: []string{version},
+		})
 	}
 
 	args := []string{
@@ -1384,7 +1429,21 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	}
 	if code := c.Run(args); code == 0 {
 		// should have been an error
-		t.Fatalf("bad: \n%s", ui.OutputWriter)
+		t.Fatalf("succeeded; want error\nstdout:\n%s\nstderr\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	// The error output should mention the "between" provider but should not
+	// mention either the "exact" or "greater-than" provider, because the
+	// latter two are available via the -plugin-dir directories.
+	errStr := ui.ErrorWriter.String()
+	if subStr := "hashicorp/between"; !strings.Contains(errStr, subStr) {
+		t.Errorf("error output should mention the 'between' provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "hashicorp/exact"; strings.Contains(errStr, subStr) {
+		t.Errorf("error output should not mention the 'exact' provider\ndo not want substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "hashicorp/greater-than"; strings.Contains(errStr, subStr) {
+		t.Errorf("error output should not mention the 'greater-than' provider\ndo not want substr: %s\ngot:\n%s", subStr, errStr)
 	}
 
 	if calls := providerSource.CallLog(); len(calls) > 0 {
@@ -1504,7 +1563,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 	return getproviders.NewMockSource(packages), close
 }
 
-// installFakeProviderPackage installs a fake package for the given provider
+// installFakeProviderPackages installs a fake package for the given provider
 // names (interpreted as a "default" provider address) and versions into the
 // local plugin cache for the given "meta".
 //
@@ -1517,6 +1576,16 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 // returns the caller can assume that the requested providers have been
 // installed.
 func installFakeProviderPackages(t *testing.T, meta *Meta, providerVersions map[string][]string) {
+	t.Helper()
+
+	cacheDir := meta.providerLocalCacheDir()
+	installFakeProviderPackagesElsewhere(t, cacheDir, providerVersions)
+}
+
+// installFakeProviderPackagesElsewhere is a variant of installFakeProviderPackages
+// that will install packages into the given provider cache directory, rather
+// than forcing the use of the local cache of the current "Meta".
+func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.Dir, providerVersions map[string][]string) {
 	t.Helper()
 
 	// It can be hard to spot the mistake of forgetting to run testChdir before
@@ -1534,7 +1603,6 @@ func installFakeProviderPackages(t *testing.T, meta *Meta, providerVersions map[
 		}
 	}
 
-	cacheDir := meta.providerLocalCacheDir()
 	for name, versions := range providerVersions {
 		addr := addrs.NewDefaultProvider(name)
 		for _, versionStr := range versions {
