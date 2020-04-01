@@ -21,7 +21,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -30,7 +30,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
 		t.Fatal(err)
@@ -65,7 +65,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -74,7 +74,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.C").Resource,
@@ -86,7 +86,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 				mustResourceAddr("test_object.B"),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -140,7 +140,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"a"}`),
 			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.b")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
@@ -148,7 +148,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b","test_string":"x"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -184,7 +184,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"a"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
@@ -193,7 +193,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"b","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.a")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.c").Resource,
@@ -205,7 +205,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 				mustResourceAddr("module.child.test_object.b"),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {

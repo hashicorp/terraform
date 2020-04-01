@@ -1086,18 +1086,18 @@ root
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)
   ID = bar
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 
 module.child:
   aws_instance.web:
     ID = new
-    provider = provider["registry.terraform.io/-/aws"]
+    provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testContextRefreshOutputStr = `
 aws_instance.web:
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = bar
 
 Outputs:
@@ -1112,5 +1112,5 @@ const testContextRefreshOutputPartialStr = `
 const testContextRefreshTaintedStr = `
 aws_instance.web: (tainted)
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `

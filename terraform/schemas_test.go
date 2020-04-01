@@ -10,7 +10,7 @@ func simpleTestSchemas() *Schemas {
 	provisioner := simpleMockProvisioner()
 	return &Schemas{
 		Providers: map[addrs.Provider]*ProviderSchema{
-			addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
+			addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
 		},
 		Provisioners: map[string]*configschema.Block{
 			"test": provisioner.GetSchemaResponse.Provisioner,

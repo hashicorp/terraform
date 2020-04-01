@@ -461,8 +461,8 @@ func TestProviderConfigTransformer_implicitModule(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`module.mod.aws_instance.bar
-  provider["registry.terraform.io/-/aws"].foo
-provider["registry.terraform.io/-/aws"].foo`)
+  provider["registry.terraform.io/hashicorp/aws"].foo
+provider["registry.terraform.io/hashicorp/aws"].foo`)
 	if actual != expected {
 		t.Fatalf("wrong result\n\nexpected:\n%s\n\ngot:\n%s", expected, actual)
 	}
@@ -492,101 +492,101 @@ func TestProviderConfigTransformer_invalidProvider(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected missing provider error")
 	}
-	if !strings.Contains(err.Error(), `provider["registry.terraform.io/-/aws"].foo`) {
+	if !strings.Contains(err.Error(), `provider["registry.terraform.io/hashicorp/aws"].foo`) {
 		t.Fatalf("error should reference missing provider, got: %s", err)
 	}
 }
 
 const testTransformProviderBasicStr = `
 aws_instance.web
-  provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testTransformCloseProviderBasicStr = `
 aws_instance.web
-  provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/aws"] (close)
+  provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"] (close)
   aws_instance.web
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testTransformMissingProviderBasicStr = `
 aws_instance.web
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
 foo_instance.web
-  provider["registry.terraform.io/-/foo"]
-provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/aws"] (close)
+  provider["registry.terraform.io/hashicorp/foo"]
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"] (close)
   aws_instance.web
-  provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/foo"]
-provider["registry.terraform.io/-/foo"] (close)
+  provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/foo"]
+provider["registry.terraform.io/hashicorp/foo"] (close)
   foo_instance.web
-  provider["registry.terraform.io/-/foo"]
+  provider["registry.terraform.io/hashicorp/foo"]
 `
 
 const testTransformMissingGrandchildProviderStr = `
 module.sub.module.subsub.bar_instance.two
-  provider["registry.terraform.io/-/bar"]
+  provider["registry.terraform.io/hashicorp/bar"]
 module.sub.module.subsub.foo_instance.one
-  module.sub.provider["registry.terraform.io/-/foo"]
-module.sub.provider["registry.terraform.io/-/foo"]
-provider["registry.terraform.io/-/bar"]
+  module.sub.provider["registry.terraform.io/hashicorp/foo"]
+module.sub.provider["registry.terraform.io/hashicorp/foo"]
+provider["registry.terraform.io/hashicorp/bar"]
 `
 
 const testTransformPruneProviderBasicStr = `
 foo_instance.web
-  provider["registry.terraform.io/-/foo"]
-provider["registry.terraform.io/-/foo"]
-provider["registry.terraform.io/-/foo"] (close)
+  provider["registry.terraform.io/hashicorp/foo"]
+provider["registry.terraform.io/hashicorp/foo"]
+provider["registry.terraform.io/hashicorp/foo"] (close)
   foo_instance.web
-  provider["registry.terraform.io/-/foo"]
+  provider["registry.terraform.io/hashicorp/foo"]
 `
 
 const testTransformDisableProviderBasicStr = `
 module.child
-  provider["registry.terraform.io/-/aws"] (disabled)
+  provider["registry.terraform.io/hashicorp/aws"] (disabled)
   var.foo
-provider["registry.terraform.io/-/aws"] (close)
+provider["registry.terraform.io/hashicorp/aws"] (close)
   module.child
-  provider["registry.terraform.io/-/aws"] (disabled)
-provider["registry.terraform.io/-/aws"] (disabled)
+  provider["registry.terraform.io/hashicorp/aws"] (disabled)
+provider["registry.terraform.io/hashicorp/aws"] (disabled)
 var.foo
 `
 
 const testTransformDisableProviderKeepStr = `
 aws_instance.foo
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
 module.child
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
   var.foo
-provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/aws"] (close)
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"] (close)
   aws_instance.foo
   module.child
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
 var.foo
 `
 
 const testTransformModuleProviderConfigStr = `
 module.child.aws_instance.thing
-  provider["registry.terraform.io/-/aws"].foo
-provider["registry.terraform.io/-/aws"].foo
+  provider["registry.terraform.io/hashicorp/aws"].foo
+provider["registry.terraform.io/hashicorp/aws"].foo
 `
 
 const testTransformModuleProviderGrandparentStr = `
 module.child.module.grandchild.aws_instance.baz
-  provider["registry.terraform.io/-/aws"].foo
-provider["registry.terraform.io/-/aws"].foo
+  provider["registry.terraform.io/hashicorp/aws"].foo
+provider["registry.terraform.io/hashicorp/aws"].foo
 `
 
 const testTransformImportModuleChildStr = `        
 module.child.aws_instance.foo
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
 module.child.aws_instance.foo (import id "bar")
-  provider["registry.terraform.io/-/aws"]
+  provider["registry.terraform.io/hashicorp/aws"]
 module.child.module.nested.aws_instance.foo
-  provider["registry.terraform.io/-/aws"]
-provider["registry.terraform.io/-/aws"]`
+  provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"]`
