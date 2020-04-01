@@ -908,14 +908,15 @@ func TestInit_findVendoredProviders(t *testing.T) {
 func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-
 	configDirName := "init-required-providers"
 	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// An empty provider source
-	providerSource, close := newMockProviderSource(t, nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test":   []string{"1.2.3", "1.2.4"},
+		"source": []string{"1.2.2", "1.2.3", "1.2.1"},
+	})
 	defer close()
 
 	ui := new(cli.MockUi)
@@ -929,26 +930,6 @@ func TestInit_providerSource(t *testing.T) {
 		Meta: m,
 	}
 
-	// make our plugin paths
-	if err := os.MkdirAll(c.pluginDir(), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(DefaultPluginVendorDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	// add some dummy providers
-	// the auto plugin directory
-	testPath := filepath.Join(c.pluginDir(), "terraform-provider-test_v1.2.3_x4")
-	if err := ioutil.WriteFile(testPath, []byte("test bin"), 0755); err != nil {
-		t.Fatal(err)
-	}
-	// the vendor path
-	sourcePath := filepath.Join(DefaultPluginVendorDir, "terraform-provider-source_v1.2.3_x4")
-	if err := ioutil.WriteFile(sourcePath, []byte("test bin"), 0755); err != nil {
-		t.Fatal(err)
-	}
-
 	args := []string{configDirName}
 
 	if code := c.Run(args); code != 0 {
@@ -957,6 +938,54 @@ func TestInit_providerSource(t *testing.T) {
 	if strings.Contains(ui.OutputWriter.String(), "Terraform has initialized, but configuration upgrades may be needed") {
 		t.Fatalf("unexpected \"configuration upgrade\" warning in output")
 	}
+
+	cacheDir := m.providerLocalCacheDir()
+	gotPackages := cacheDir.AllAvailablePackages()
+	wantPackages := map[addrs.Provider][]providercache.CachedProvider{
+		addrs.NewDefaultProvider("test"): {
+			{
+				Provider:       addrs.NewDefaultProvider("test"),
+				Version:        getproviders.MustParseVersion("1.2.3"),
+				PackageDir:     expectedPackageInstallPath("test", "1.2.3", false),
+				ExecutableFile: expectedPackageInstallPath("test", "1.2.3", true),
+			},
+		},
+		addrs.NewDefaultProvider("source"): {
+			{
+				Provider:       addrs.NewDefaultProvider("source"),
+				Version:        getproviders.MustParseVersion("1.2.3"),
+				PackageDir:     expectedPackageInstallPath("source", "1.2.3", false),
+				ExecutableFile: expectedPackageInstallPath("source", "1.2.3", true),
+			},
+		},
+	}
+	if diff := cmp.Diff(wantPackages, gotPackages); diff != "" {
+		t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
+	}
+
+	inst := m.providerInstaller()
+	gotSelected, err := inst.SelectedPackages()
+	if err != nil {
+		t.Fatalf("failed to get selected packages from installer: %s", err)
+	}
+	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
+		addrs.NewDefaultProvider("test"): {
+			Provider:       addrs.NewDefaultProvider("test"),
+			Version:        getproviders.MustParseVersion("1.2.3"),
+			PackageDir:     expectedPackageInstallPath("test", "1.2.3", false),
+			ExecutableFile: expectedPackageInstallPath("test", "1.2.3", true),
+		},
+		addrs.NewDefaultProvider("source"): {
+			Provider:       addrs.NewDefaultProvider("source"),
+			Version:        getproviders.MustParseVersion("1.2.3"),
+			PackageDir:     expectedPackageInstallPath("source", "1.2.3", false),
+			ExecutableFile: expectedPackageInstallPath("source", "1.2.3", true),
+		},
+	}
+	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
+		t.Errorf("wrong version selections after upgrade\n%s", diff)
+	}
+
 }
 
 func TestInit_getUpgradePlugins(t *testing.T) {
@@ -999,18 +1028,6 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		t.Fatalf("command did not complete successfully:\n%s", ui.ErrorWriter.String())
 	}
 
-	packageInstPath := func(name string, version string, exe bool) string {
-		platform := getproviders.CurrentPlatform
-		if exe {
-			p := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/%s/%s/%s/terraform-provider-%s_%s", name, version, platform, name, version)
-			if platform.OS == "windows" {
-				p += ".exe"
-			}
-			return p
-		}
-		return fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform)
-	}
-
 	cacheDir := m.providerLocalCacheDir()
 	gotPackages := cacheDir.AllAvailablePackages()
 	wantPackages := map[addrs.Provider][]providercache.CachedProvider{
@@ -1020,8 +1037,8 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			{
 				Provider:       addrs.NewDefaultProvider("between"),
 				Version:        getproviders.MustParseVersion("2.3.4"),
-				PackageDir:     packageInstPath("between", "2.3.4", false),
-				ExecutableFile: packageInstPath("between", "2.3.4", true),
+				PackageDir:     expectedPackageInstallPath("between", "2.3.4", false),
+				ExecutableFile: expectedPackageInstallPath("between", "2.3.4", true),
 			},
 		},
 		// The existing version of "exact" did not match the version constraints,
@@ -1030,15 +1047,15 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			{
 				Provider:       addrs.NewDefaultProvider("exact"),
 				Version:        getproviders.MustParseVersion("1.2.3"),
-				PackageDir:     packageInstPath("exact", "1.2.3", false),
-				ExecutableFile: packageInstPath("exact", "1.2.3", true),
+				PackageDir:     expectedPackageInstallPath("exact", "1.2.3", false),
+				ExecutableFile: expectedPackageInstallPath("exact", "1.2.3", true),
 			},
 			// Previous version is still there, but not selected
 			{
 				Provider:       addrs.NewDefaultProvider("exact"),
 				Version:        getproviders.MustParseVersion("0.0.1"),
-				PackageDir:     packageInstPath("exact", "0.0.1", false),
-				ExecutableFile: packageInstPath("exact", "0.0.1", true),
+				PackageDir:     expectedPackageInstallPath("exact", "0.0.1", false),
+				ExecutableFile: expectedPackageInstallPath("exact", "0.0.1", true),
 			},
 		},
 		// The existing version of "greater-than" _did_ match the constraints,
@@ -1048,15 +1065,15 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			{
 				Provider:       addrs.NewDefaultProvider("greater-than"),
 				Version:        getproviders.MustParseVersion("2.3.4"),
-				PackageDir:     packageInstPath("greater-than", "2.3.4", false),
-				ExecutableFile: packageInstPath("greater-than", "2.3.4", true),
+				PackageDir:     expectedPackageInstallPath("greater-than", "2.3.4", false),
+				ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.4", true),
 			},
 			// Previous version is still there, but not selected
 			{
 				Provider:       addrs.NewDefaultProvider("greater-than"),
 				Version:        getproviders.MustParseVersion("2.3.3"),
-				PackageDir:     packageInstPath("greater-than", "2.3.3", false),
-				ExecutableFile: packageInstPath("greater-than", "2.3.3", true),
+				PackageDir:     expectedPackageInstallPath("greater-than", "2.3.3", false),
+				ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.3", true),
 			},
 		},
 	}
@@ -1073,20 +1090,20 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		addrs.NewDefaultProvider("between"): {
 			Provider:       addrs.NewDefaultProvider("between"),
 			Version:        getproviders.MustParseVersion("2.3.4"),
-			PackageDir:     packageInstPath("between", "2.3.4", false),
-			ExecutableFile: packageInstPath("between", "2.3.4", true),
+			PackageDir:     expectedPackageInstallPath("between", "2.3.4", false),
+			ExecutableFile: expectedPackageInstallPath("between", "2.3.4", true),
 		},
 		addrs.NewDefaultProvider("exact"): {
 			Provider:       addrs.NewDefaultProvider("exact"),
 			Version:        getproviders.MustParseVersion("1.2.3"),
-			PackageDir:     packageInstPath("exact", "1.2.3", false),
-			ExecutableFile: packageInstPath("exact", "1.2.3", true),
+			PackageDir:     expectedPackageInstallPath("exact", "1.2.3", false),
+			ExecutableFile: expectedPackageInstallPath("exact", "1.2.3", true),
 		},
 		addrs.NewDefaultProvider("greater-than"): {
 			Provider:       addrs.NewDefaultProvider("greater-than"),
 			Version:        getproviders.MustParseVersion("2.3.4"),
-			PackageDir:     packageInstPath("greater-than", "2.3.4", false),
-			ExecutableFile: packageInstPath("greater-than", "2.3.4", true),
+			PackageDir:     expectedPackageInstallPath("greater-than", "2.3.4", false),
+			ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.4", true),
 		},
 	}
 	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
@@ -1538,4 +1555,31 @@ func installFakeProviderPackages(t *testing.T, meta *Meta, providerVersions map[
 			}
 		}
 	}
+}
+
+// expectedPackageInstallPath is a companion to installFakeProviderPackages
+// that returns the path where the provider with the given name and version
+// would be installed and, relatedly, where the installer will expect to
+// find an already-installed version.
+//
+// Just as with installFakeProviderPackages, this function is a shortcut helper
+// for "default-namespaced" providers as we commonly use in tests. If you need
+// more control over the provider addresses, use functions of the underlying
+// getproviders and providercache packages instead.
+//
+// The result always uses forward slashes, even on Windows, for consistency
+// with how the getproviders and providercache packages build paths.
+func expectedPackageInstallPath(name, version string, exe bool) string {
+	platform := getproviders.CurrentPlatform
+	baseDir := ".terraform/plugins"
+	if exe {
+		p := fmt.Sprintf("registry.terraform.io/hashicorp/%s/%s/%s/terraform-provider-%s_%s", name, version, platform, name, version)
+		if platform.OS == "windows" {
+			p += ".exe"
+		}
+		return filepath.ToSlash(filepath.Join(baseDir, p))
+	}
+	return filepath.ToSlash(filepath.Join(
+		baseDir, fmt.Sprintf("registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform),
+	))
 }
