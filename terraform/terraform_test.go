@@ -190,6 +190,32 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	return config
 }
 
+// testSetResourceInstanceCurrent is a helper function for tests that sets a Current,
+// Ready resource instance for the given module.
+func testSetResourceInstanceCurrent(module *states.Module, resource, attrsJson, provider string) {
+	module.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(resource).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(attrsJson),
+		},
+		mustProviderConfig(provider),
+	)
+}
+
+// testSetResourceInstanceTainted is a helper function for tests that sets a Current,
+// Tainted resource instance for the given module.
+func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, provider string) {
+	module.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(resource).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(attrsJson),
+		},
+		mustProviderConfig(provider),
+	)
+}
+
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	return func() (providers.Interface, error) {
 		return rp, nil
