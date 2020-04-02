@@ -25,8 +25,13 @@ var (
 	_ GraphNodeReferenceOutside  = (*NodePlannableModuleVariable)(nil)
 	_ GraphNodeReferenceable     = (*NodePlannableModuleVariable)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableModuleVariable)(nil)
+	_ graphNodeTemporaryValue    = (*NodePlannableModuleVariable)(nil)
 	_ RemovableIfNotTargeted     = (*NodePlannableModuleVariable)(nil)
 )
+
+func (n *NodePlannableModuleVariable) temporaryValue() bool {
+	return true
+}
 
 func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
@@ -120,8 +125,13 @@ var (
 	_ GraphNodeReferenceable    = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeReferencer       = (*NodeApplyableModuleVariable)(nil)
 	_ GraphNodeEvalable         = (*NodeApplyableModuleVariable)(nil)
+	_ graphNodeTemporaryValue   = (*NodeApplyableModuleVariable)(nil)
 	_ dag.GraphNodeDotter       = (*NodeApplyableModuleVariable)(nil)
 )
+
+func (n *NodeApplyableModuleVariable) temporaryValue() bool {
+	return true
+}
 
 func (n *NodeApplyableModuleVariable) Name() string {
 	return n.Addr.String()

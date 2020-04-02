@@ -23,7 +23,13 @@ var (
 	_ GraphNodeReferenceable     = (*NodePlannableOutput)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
 	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
+	_ graphNodeTemporaryValue    = (*NodeApplyableOutput)(nil)
 )
+
+func (n *NodePlannableOutput) temporaryValue() bool {
+	// this must always be evaluated if it is a root module output
+	return !n.Module.IsRoot()
+}
 
 func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
@@ -115,8 +121,14 @@ var (
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
 	_ GraphNodeEvalable         = (*NodeApplyableOutput)(nil)
+	_ graphNodeTemporaryValue   = (*NodeApplyableOutput)(nil)
 	_ dag.GraphNodeDotter       = (*NodeApplyableOutput)(nil)
 )
+
+func (n *NodeApplyableOutput) temporaryValue() bool {
+	// this must always be evaluated if it is a root module output
+	return !n.Addr.Module.IsRoot()
+}
 
 func (n *NodeApplyableOutput) Name() string {
 	return n.Addr.String()
