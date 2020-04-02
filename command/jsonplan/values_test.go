@@ -198,7 +198,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Type:            "test_thing",
 				Name:            "example",
 				Index:           addrs.InstanceKey(nil),
-				ProviderName:    "test",
+				ProviderName:    "registry.terraform.io/hashicorp/test",
 				SchemaVersion:   1,
 				AttributeValues: attributeValues{},
 			}},
@@ -227,7 +227,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Type:          "test_thing",
 				Name:          "example",
 				Index:         addrs.InstanceKey(nil),
-				ProviderName:  "test",
+				ProviderName:  "registry.terraform.io/hashicorp/test",
 				SchemaVersion: 1,
 				AttributeValues: attributeValues{
 
@@ -259,7 +259,7 @@ func TestMarshalPlanResources(t *testing.T) {
 							Name: "example",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 						ProviderAddr: addrs.AbsProviderConfig{
-							Provider: addrs.NewLegacyProvider("test"),
+							Provider: addrs.NewDefaultProvider("test"),
 							Module:   addrs.RootModule,
 						},
 						ChangeSrc: plans.ChangeSrc{
@@ -294,7 +294,7 @@ func TestMarshalPlanResources(t *testing.T) {
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewLegacyProvider("test"): &terraform.ProviderSchema{
+			addrs.NewDefaultProvider("test"): &terraform.ProviderSchema{
 				ResourceTypes: map[string]*configschema.Block{
 					"test_thing": {
 						Attributes: map[string]*configschema.Attribute{

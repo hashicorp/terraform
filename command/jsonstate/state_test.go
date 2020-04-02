@@ -204,7 +204,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
 					},
 				},
@@ -217,7 +217,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.InstanceKey(nil),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/hashicorp/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -248,7 +248,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
 					},
 				},
@@ -261,7 +261,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.IntKey(0),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/hashicorp/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -292,7 +292,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
 					},
 				},
@@ -305,7 +305,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.StringKey("rockhopper"),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/hashicorp/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -338,7 +338,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
 					},
 				},
@@ -351,7 +351,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        addrs.InstanceKey(nil),
-					ProviderName: "test",
+					ProviderName: "registry.terraform.io/hashicorp/test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -389,7 +389,7 @@ func TestMarshalResources(t *testing.T) {
 						},
 					},
 					ProviderConfig: addrs.AbsProviderConfig{
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
 					},
 				},
@@ -402,7 +402,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:          "test_thing",
 					Name:          "bar",
 					Index:         addrs.InstanceKey(nil),
-					ProviderName:  "test",
+					ProviderName:  "registry.terraform.io/hashicorp/test",
 					SchemaVersion: 1,
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -415,7 +415,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        addrs.InstanceKey(nil),
-					ProviderName: "test",
+					ProviderName: "registry.terraform.io/hashicorp/test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -461,7 +461,7 @@ func TestMarshalModules_basic(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -476,7 +476,7 @@ func TestMarshalModules_basic(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   childModule.Module(),
 			},
 		)
@@ -491,7 +491,7 @@ func TestMarshalModules_basic(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   subModule.Module(),
 			},
 		)
@@ -530,7 +530,7 @@ func TestMarshalModules_nested(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -545,7 +545,7 @@ func TestMarshalModules_nested(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   childModule.Module(),
 			},
 		)
@@ -560,7 +560,7 @@ func TestMarshalModules_nested(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   subModule.Module(),
 			},
 		)
@@ -591,7 +591,7 @@ func TestMarshalModules_nested(t *testing.T) {
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewLegacyProvider("test"): &terraform.ProviderSchema{
+			addrs.NewDefaultProvider("test"): &terraform.ProviderSchema{
 				ResourceTypes: map[string]*configschema.Block{
 					"test_thing": {
 						Attributes: map[string]*configschema.Attribute{

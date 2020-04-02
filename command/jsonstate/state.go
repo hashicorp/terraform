@@ -261,7 +261,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				Address:      r.Addr.Instance(k).String(),
 				Type:         resAddr.Type,
 				Name:         resAddr.Name,
-				ProviderName: r.ProviderConfig.Provider.LegacyString(),
+				ProviderName: r.ProviderConfig.Provider.String(),
 			}
 
 			switch resAddr.Mode {
