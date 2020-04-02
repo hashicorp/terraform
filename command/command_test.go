@@ -701,7 +701,7 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // be returned about the backend configuration having changed and that
 // "terraform init" must be run, since the test backend config cache created
 // by this function contains the hash for an empty configuration.
-func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State, *httptest.Server) {
+func testBackendState(t *testing.T, s *states.State, c int) (*terraform.State, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -723,8 +723,8 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 
 	// If a state was given, make sure we calculate the proper b64md5
 	if s != nil {
-		enc := json.NewEncoder(buf)
-		if err := enc.Encode(s); err != nil {
+		err := statefile.Write(&statefile.File{State: s}, buf)
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		md5 := md5.Sum(buf.Bytes())

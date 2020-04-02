@@ -21,7 +21,7 @@
                     "type": "test_instance",
                     "name": "test",
                     "index": 0,
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar",
@@ -34,7 +34,7 @@
                     "type": "test_instance",
                     "name": "test",
                     "index": 1,
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
@@ -50,7 +50,7 @@
             "type": "test_instance",
             "name": "test",
             "index": 0,
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "change": {
                 "actions": [
                     "no-op"
@@ -72,7 +72,7 @@
             "type": "test_instance",
             "name": "test",
             "index": 1,
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "change": {
                 "actions": [
                     "create"
@@ -115,7 +115,7 @@
                         "type": "test_instance",
                         "name": "test",
                         "index": 0,
-                        "provider_name": "test",
+                        "provider_name": "registry.terraform.io/hashicorp/test",
                         "schema_version": 0,
                         "values": {
                             "ami": "bar",
