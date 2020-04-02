@@ -120,7 +120,7 @@ func (n *nodeCloseModule) EvalTree() EvalNode {
 		Nodes: []EvalNode{
 			&EvalOpFilter{
 				Ops: []walkOperation{walkApply, walkDestroy},
-				Node: &evalModuleRoot{
+				Node: &evalCloseModule{
 					Addr: n.Addr,
 				},
 			},
@@ -128,11 +128,11 @@ func (n *nodeCloseModule) EvalTree() EvalNode {
 	}
 }
 
-type evalModuleRoot struct {
+type evalCloseModule struct {
 	Addr addrs.Module
 }
 
-func (n *evalModuleRoot) Eval(ctx EvalContext) (interface{}, error) {
+func (n *evalCloseModule) Eval(ctx EvalContext) (interface{}, error) {
 	// We need the full, locked state, because SyncState does not provide a way to
 	// transact over multiple module instances at the moment.
 	state := ctx.State().Lock()
