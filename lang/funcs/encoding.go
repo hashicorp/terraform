@@ -11,6 +11,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	json2 "github.com/zclconf/go-cty/cty/json"
 )
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
@@ -137,4 +138,40 @@ func Base64Gzip(str cty.Value) (cty.Value, error) {
 // UTF-8 and then percent encoding is applied separately to each UTF-8 byte.
 func URLEncode(str cty.Value) (cty.Value, error) {
 	return URLEncodeFunc.Call([]cty.Value{str})
+}
+
+// MakeJSONEncondeFunc encodes a not parsed JSON to JSON
+func MakeJSONEncondeFunc() function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name:             "val",
+				Type:             cty.DynamicPseudoType,
+				AllowDynamicType: true,
+				AllowNull:        true,
+			},
+		},
+		Type: function.StaticReturnType(cty.String),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			val := args[0]
+
+			if val.IsNull() {
+				return cty.StringVal("null"), nil
+			}
+
+			if !val.IsWhollyKnown() {
+				// We can't serialize unknowns, so if the value is unknown or
+				// contains any _nested_ unknowns then our result must be
+				// unknown.
+				return cty.UnknownVal(retType), nil
+			}
+
+			buf, err := json2.Marshal(val, val.Type())
+			if err != nil {
+				return cty.NilVal, err
+			}
+
+			return cty.StringVal(string(buf)), nil
+		},
+	})
 }

@@ -76,7 +76,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"index":            funcs.IndexFunc, // stdlib.IndexFunc is not compatible
 			"join":             stdlib.JoinFunc,
 			"jsondecode":       stdlib.JSONDecodeFunc,
-			"jsonencode":       stdlib.JSONEncodeFunc,
+			"jsonencode":       funcs.MakeJSONEncondeFunc(),
 			"keys":             stdlib.KeysFunc,
 			"length":           funcs.LengthFunc,
 			"list":             funcs.ListFunc,
