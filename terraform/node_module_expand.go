@@ -94,12 +94,13 @@ func (n *nodeExpandModule) EvalTree() EvalNode {
 // cleans up state after all the module nodes have been evaluated, removing
 // empty resources and modules from the state.
 type nodeCloseModule struct {
-	Addr       addrs.Module
-	Config     *configs.Module
-	ModuleCall *configs.ModuleCall
+	Addr addrs.Module
 }
 
 func (n *nodeCloseModule) Name() string {
+	if len(n.Addr) == 0 {
+		return "root"
+	}
 	return n.Addr.String() + " (close)"
 }
 
@@ -120,9 +121,7 @@ func (n *nodeCloseModule) EvalTree() EvalNode {
 			&EvalOpFilter{
 				Ops: []walkOperation{walkApply, walkDestroy},
 				Node: &evalModuleRoot{
-					Addr:       n.Addr,
-					Config:     n.Config,
-					ModuleCall: n.ModuleCall,
+					Addr: n.Addr,
 				},
 			},
 		},
@@ -130,13 +129,10 @@ func (n *nodeCloseModule) EvalTree() EvalNode {
 }
 
 type evalModuleRoot struct {
-	Addr       addrs.Module
-	Config     *configs.Module
-	ModuleCall *configs.ModuleCall
+	Addr addrs.Module
 }
 
 func (n *evalModuleRoot) Eval(ctx EvalContext) (interface{}, error) {
-	return nil, nil
 	// We need the full, locked state, because SyncState does not provide a way to
 	// transact over multiple module instances at the moment.
 	state := ctx.State().Lock()

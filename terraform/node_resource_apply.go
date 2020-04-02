@@ -68,17 +68,6 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		}
 	}
 
-	// FIXME: this isn't used if there are only destroy nodes, so we need to do
-	// this somewhere else
-	for _, res := range orphans {
-		// add the resource cleanup node to remove the resource from state
-		cleanupNode := &NodeDestroyResource{
-			Addr: res.Addr,
-		}
-
-		g.Add(cleanupNode)
-	}
-
 	return &g, nil
 }
 

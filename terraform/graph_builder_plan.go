@@ -170,8 +170,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close the root module
+		&CloseRootModuleTransformer{},
 	}
 
 	if !b.DisableReduce {

@@ -97,8 +97,8 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// to get their schemas, and so we must shut them down again here.
 		&CloseProviderTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close root module
+		&CloseRootModuleTransformer{},
 
 		// Remove redundant edges to simplify the graph.
 		&TransitiveReductionTransformer{},

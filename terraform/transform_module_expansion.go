@@ -52,9 +52,7 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	// Add the root module node to provide a single exit point for the expanded
 	// module.
 	moduleRoot := &nodeCloseModule{
-		Addr:       c.Path,
-		Config:     c.Module,
-		ModuleCall: modCall,
+		Addr: c.Path,
 	}
 	g.Add(moduleRoot)
 	g.Connect(dag.BasicEdge(moduleRoot, v))

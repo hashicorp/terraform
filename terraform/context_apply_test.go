@@ -220,7 +220,8 @@ func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 	}
 
 	got := strings.TrimSpace(state.String())
-	want := strings.TrimSpace(`Outputs:
+	want := strings.TrimSpace(`<no state>
+Outputs:
 
 test = []`)
 	if got != want {
@@ -2830,17 +2831,11 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 			Provider: addrs.NewLegacyProvider("test"),
 			Module:   addrs.RootModule,
 		}
-		zeroAddr := addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test_thing",
-			Name: "zero",
-		}.Absolute(addrs.RootModuleInstance)
 		oneAddr := addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_thing",
 			Name: "one",
 		}.Absolute(addrs.RootModuleInstance)
-		s.SetResourceMeta(zeroAddr, states.EachList, providerAddr)
 		s.SetResourceMeta(oneAddr, states.EachList, providerAddr)
 		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
@@ -6565,7 +6560,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 	expected := strings.TrimSpace(`
 <no state>
 module.child:
-		`)
+  <no state>`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
@@ -6731,7 +6726,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 	expected := strings.TrimSpace(`
 <no state>
 module.child.child2:
-		`)
+  <no state>`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
