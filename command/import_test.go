@@ -313,7 +313,7 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	// specifically, it should fail due to a missing provider
 	msg := ui.ErrorWriter.String()
-	if want := "Could not satisfy plugin requirements"; !strings.Contains(msg, want) {
+	if want := `unknown provider "registry.terraform.io/hashicorp/unknown"`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 
