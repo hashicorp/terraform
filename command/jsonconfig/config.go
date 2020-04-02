@@ -303,15 +303,13 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			}
 		}
 
-		// TODO: get actual providerFqn
-		providerFqn := addrs.NewLegacyProvider(v.ProviderConfigAddr().LocalName)
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			providerFqn,
+			v.Provider,
 			v.Mode,
 			v.Type,
 		)
 		if schema == nil {
-			return nil, fmt.Errorf("no schema found for %s", v.Addr().String())
+			return nil, fmt.Errorf("no schema found for %s (in provider %s)", v.Addr().String(), v.Provider)
 		}
 		r.SchemaVersion = schemaVer
 
