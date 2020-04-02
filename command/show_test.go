@@ -85,7 +85,7 @@ func TestShow_aliasedProvider(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
-			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewLegacyProvider("test"), "alias"),
+			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewDefaultProvider("test"), "alias"),
 		)
 	})
 
@@ -486,7 +486,7 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 			Name: "foo",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 		ChangeSrc: plans.ChangeSrc{

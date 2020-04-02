@@ -26,7 +26,7 @@ func TestStateShow(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -84,7 +84,7 @@ func TestStateShow_multi(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -99,7 +99,7 @@ func TestStateShow_multi(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   submod.Module(),
 			},
 		)
@@ -205,7 +205,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test-beta"),
+				Provider: addrs.NewDefaultProvider("test-beta"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -230,7 +230,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewLegacyProvider("test-beta"): providers.FactoryFixed(p),
+					addrs.NewDefaultProvider("test-beta"): providers.FactoryFixed(p),
 				},
 			},
 			Ui: ui,
