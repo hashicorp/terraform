@@ -374,6 +374,14 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 				Meta: meta,
 			}, nil
 		},
+
+		"state replace-provider": func() (cli.Command, error) {
+			return &command.StateReplaceProviderCommand{
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
+			}, nil
+		},
 	}
 }
 

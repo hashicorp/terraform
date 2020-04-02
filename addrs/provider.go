@@ -192,7 +192,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid provider type",
-			Detail:   fmt.Sprintf(`Invalid provider type %q in source %q: %s"`, name, str, err),
+			Detail:   fmt.Sprintf(`Invalid provider type %q in source %q: %s"`, givenName, str, err),
 		})
 		return ret, diags
 	}
