@@ -220,11 +220,22 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 				log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
 				g.Remove(v)
 				removed++
-			case 1:
+			default:
 				// because an output's destroy node always depends on the output,
 				// we need to check for the case of a single destroy node.
-				d := dependants.List()[0]
-				if _, ok := d.(*NodeDestroyableOutput); ok {
+				removable := true
+			SEARCH:
+				for _, d := range dependants.List() {
+					switch d.(type) {
+					case *NodeDestroyableOutput, *nodeCloseModule:
+						//pass
+					default:
+						removable = false
+						break SEARCH
+					}
+				}
+
+				if removable {
 					log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
 					g.Remove(v)
 					removed++
