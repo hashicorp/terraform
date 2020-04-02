@@ -76,6 +76,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Flowdock](https://github.com/sirenfei/terraform-provider-flowdock)
 - [Foreman - wayfair](https://github.com/wayfair/terraform-provider-foreman)
 - [Foreman - HanseMerkur](https://github.com/HanseMerkur/terraform-provider-foreman)
+- [FreeIPA](https://github.com/camptocamp/terraform-provider-freeipa)
 - [Gandi](https://github.com/tiramiseb/terraform-provider-gandi)
 - [Generic Rest API](https://github.com/Mastercard/terraform-provider-restapi)
 - [Git](https://github.com/fourplusone/terraform-provider-git)
