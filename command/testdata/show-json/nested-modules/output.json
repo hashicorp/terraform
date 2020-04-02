@@ -13,7 +13,7 @@
                   "mode": "managed",
                   "type": "test_instance",
                   "name": "test",
-                  "provider_name": "test",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
                   "schema_version": 0,
                   "values": {
                     "ami": "bar-var"
@@ -34,7 +34,7 @@
       "mode": "managed",
       "type": "test_instance",
       "name": "test",
-      "provider_name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
         "actions": [
           "create"
