@@ -183,7 +183,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			addr.Resource.Resource.Type,
 		)
 		if schema == nil {
-			return fmt.Errorf("no schema found for %s", r.Address)
+			return fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 		}
 
 		changeV, err := rc.Decode(schema.ImpliedType())
