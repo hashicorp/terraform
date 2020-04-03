@@ -44,10 +44,23 @@ const BuiltInProviderNamespace = "builtin"
 // FQN.
 const LegacyProviderNamespace = "-"
 
-// String returns an FQN string, indended for use in output.
+// String returns an FQN string, indended for use in machine-readable output.
 func (pt Provider) String() string {
 	if pt.IsZero() {
 		panic("called String on zero-value addrs.Provider")
+	}
+	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
+}
+
+// ForDisplay returns a user-friendly FQN string, simplified for readability. If
+// the provider is using the default hostname, the hostname is omitted.
+func (pt Provider) ForDisplay() string {
+	if pt.IsZero() {
+		panic("called ForDisplay on zero-value addrs.Provider")
+	}
+
+	if pt.Hostname == DefaultRegistryHost {
+		return pt.Namespace + "/" + pt.Type
 	}
 	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
 }
