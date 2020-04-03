@@ -7,6 +7,84 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 )
 
+func TestProviderString(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  string
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "hashicorp",
+			},
+			DefaultRegistryHost.ForDisplay() + "/hashicorp/test",
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  "registry.terraform.com",
+				Namespace: "hashicorp",
+			},
+			"registry.terraform.com/hashicorp/test",
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "othercorp",
+			},
+			DefaultRegistryHost.ForDisplay() + "/othercorp/test",
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.String()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\n", test.Input.String())
+		}
+	}
+}
+
+func TestProviderDisplay(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  string
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "hashicorp",
+			},
+			"hashicorp/test",
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  "registry.terraform.com",
+				Namespace: "hashicorp",
+			},
+			"registry.terraform.com/hashicorp/test",
+		},
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "othercorp",
+			},
+			"othercorp/test",
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.ForDisplay()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\n", test.Input.String())
+		}
+	}
+}
+
 func TestProviderIsDefault(t *testing.T) {
 	tests := []struct {
 		Input Provider
