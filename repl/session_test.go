@@ -46,7 +46,7 @@ func TestSession_basicState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -61,7 +61,7 @@ func TestSession_basicState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -213,9 +213,9 @@ func testSession(t *testing.T, test testSessionTest) {
 	// Build the TF context
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
 		State: test.State,
-		ProviderResolver: providers.ResolverFixed(map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(p),
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
+		},
 		Config: config,
 	})
 	if diags.HasErrors() {
