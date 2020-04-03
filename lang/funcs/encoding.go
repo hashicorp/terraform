@@ -156,7 +156,7 @@ func MakeJSONEncondeFunc() function.Function {
 			val := args[0]
 
 			if val.IsNull() {
-				return cty.StringVal("null"), nil
+				return cty.NullVal(cty.String), nil
 			}
 
 			if !val.IsWhollyKnown() {
