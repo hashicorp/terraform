@@ -196,7 +196,7 @@ func shimLegacyState(legacy *terraform.State) (*states.State, error) {
 	if state.HasResources() {
 		for _, module := range state.Modules {
 			for name, resource := range module.Resources {
-				module.Resources[name].ProviderConfig.Provider = addrs.NewDefaultProvider(resource.Addr.Resource.ImpliedProvider())
+				module.Resources[name].ProviderConfig.Provider = addrs.ImpliedProviderForUnqualifiedType(resource.Addr.Resource.ImpliedProvider())
 			}
 		}
 	}
