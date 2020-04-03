@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -516,7 +517,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	// TODO: Use a context that will be cancelled when the Terraform
 	// process receives SIGINT.
 	ctx := evts.OnContext(context.TODO())
-	_, err := inst.EnsureProviderVersions(ctx, reqs, mode)
+	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
@@ -527,86 +528,31 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		return true, diags
 	}
 
+	// If any providers have "floating" versions (completely unconstrained)
+	// we'll suggest the user constrain with a pessimistic constraint to
+	// avoid implicitly adopting a later major release.
+	constraintSuggestions := make(map[string]string)
+	for addr, version := range selected {
+		req := reqs[addr]
+
+		if len(req) == 0 {
+			constraintSuggestions[addr.ForDisplay()] = "~> " + version.String()
+		}
+	}
+	if len(constraintSuggestions) != 0 {
+		names := make([]string, 0, len(constraintSuggestions))
+		for name := range constraintSuggestions {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+
+		c.Ui.Output(outputInitProvidersUnconstrained)
+		for _, name := range names {
+			c.Ui.Output(fmt.Sprintf("* %s: version = %q", name, constraintSuggestions[name]))
+		}
+	}
+
 	return true, diags
-
-	// TODO: Write the selections into the plugins lock file so we can be
-	// sure that future commands will use exactly those provider packages.
-	// TODO: Emit constraint suggestions for unconstrained providers.
-	/*
-		// With all the providers downloaded, we'll generate our lock file
-		// that ensures the provider binaries remain unchanged until we init
-		// again. If anything changes, other commands that use providers will
-		// fail with an error instructing the user to re-run this command.
-		available = c.providerPluginSet() // re-discover to see newly-installed plugins
-
-		// internal providers were already filtered out, since we don't need to get them.
-		chosen := chooseProviders(available, nil, requirements)
-
-		digests := map[string][]byte{}
-		for name, meta := range chosen {
-			digest, err := meta.SHA256()
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
-				return true, diags
-			}
-			digests[name] = digest
-			if c.ignorePluginChecksum {
-				digests[name] = nil
-			}
-		}
-		err := c.providerPluginsLock().Write(digests)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
-			return true, diags
-		}
-
-		{
-			// Purge any auto-installed plugins that aren't being used.
-			purged, err := c.providerInstaller.PurgeUnused(chosen)
-			if err != nil {
-				// Failure to purge old plugins is not a fatal error
-				c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
-			}
-			if purged != nil {
-				for meta := range purged {
-					log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
-				}
-			}
-		}
-
-		// If any providers have "floating" versions (completely unconstrained)
-		// we'll suggest the user constrain with a pessimistic constraint to
-		// avoid implicitly adopting a later major release.
-		constraintSuggestions := make(map[string]discovery.ConstraintStr)
-		for name, meta := range chosen {
-			req := requirements[name]
-			if req == nil {
-				// should never happen, but we don't want to crash here, so we'll
-				// be cautious.
-				continue
-			}
-
-			if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
-				// meta.Version.MustParse is safe here because our "chosen" metas
-				// were already filtered for validity of versions.
-				constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
-			}
-		}
-		if len(constraintSuggestions) != 0 {
-			names := make([]string, 0, len(constraintSuggestions))
-			for name := range constraintSuggestions {
-				names = append(names, name)
-			}
-			sort.Strings(names)
-
-			c.Ui.Output(outputInitProvidersUnconstrained)
-			for _, name := range names {
-				c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
-			}
-		}
-
-		return true, diags
-	*/
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
@@ -834,9 +780,8 @@ The following providers do not have any version constraints in configuration,
 so the latest version was installed.
 
 To prevent automatic upgrades to new major versions that may contain breaking
-changes, it is recommended to add version = "..." constraints to the
-corresponding provider blocks in configuration, with the constraint strings
-suggested below.
+changes, we recommend adding version constraints in a required_providers block
+in your configuration, with the constraint strings suggested below.
 `
 
 const errDiscoveryServiceUnreachable = `
