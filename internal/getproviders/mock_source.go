@@ -162,7 +162,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target
 	if err != nil {
 		return PackageMeta{}, close, fmt.Errorf("failed to add %s to mock zip file: %s", execFilename, err)
 	}
-	fmt.Fprintf(fw, "This is a fake provider package for %s %s %s, not a real provider.\n", provider, version, target)
+	fmt.Fprintf(fw, "This is a fake provider package for %s %s, not a real provider.\n", provider, version)
 	err = zw.Close()
 	if err != nil {
 		return PackageMeta{}, close, fmt.Errorf("failed to close the mock zip file: %s", err)
