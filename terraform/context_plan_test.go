@@ -6186,5 +6186,10 @@ resource "aws_instance" "foo" {
 		if res.Action != want {
 			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
 		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
 	}
 }
