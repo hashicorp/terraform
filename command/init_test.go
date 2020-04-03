@@ -1153,7 +1153,7 @@ func TestInit_providerLockFile(t *testing.T) {
 	wantLockFile := strings.TrimSpace(`
 {
   "registry.terraform.io/hashicorp/test": {
-    "hash": "h1:4RzJudhcE4CkEwtVNRqdMKumSXu6bj8fkFTbPaX5G14=",
+    "hash": "h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
     "version": "1.2.3"
   }
 }
