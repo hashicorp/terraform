@@ -86,7 +86,7 @@ func (n *nodeExpandModule) EvalTree() EvalNode {
 	}
 }
 
-// nodeRootModule represents an expanded module during apply, and is visited
+// nodeCloseModule represents an expanded module during apply, and is visited
 // after all other module instance nodes. This node will depend on all module
 // instance resource and outputs, and anything depending on the module should
 // wait on this node.
