@@ -10,10 +10,9 @@ variable "myvar" {
   default = "baz"
 }
 
-
 module "count_child" {
   count = local.val
-  foo = 2
+  foo = count.index
   bar = var.myvar
   source = "./child"
 }

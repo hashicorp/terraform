@@ -37,9 +37,10 @@ func (n *EvalSetModuleCallArguments) Eval(ctx EvalContext) (interface{}, error) 
 // EvalContext.SetModuleCallArguments, which expects a map to merge in with
 // any existing arguments.
 type EvalModuleCallArgument struct {
-	Addr   addrs.InputVariable
-	Config *configs.Variable
-	Expr   hcl.Expression
+	Addr           addrs.InputVariable
+	Config         *configs.Variable
+	Expr           hcl.Expression
+	ModuleInstance addrs.ModuleInstance
 
 	// If this flag is set, any diagnostics are discarded and this operation
 	// will always succeed, though may produce an unknown value in the
@@ -68,7 +69,11 @@ func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	val, diags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+	// Get the repetition data for this module instance,
+	// so we can create the appropriate scope for evaluating our expression
+	moduleInstanceRepetitionData := ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
+	scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
+	val, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 
 	// We intentionally passed DynamicPseudoType to EvaluateExpr above because
 	// now we can do our own local type conversion and produce an error message
