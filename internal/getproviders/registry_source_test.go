@@ -125,7 +125,7 @@ func TestSourcePackageMeta(t *testing.T) {
 				TargetPlatform:   Platform{"linux", "amd64"},
 				Filename:         "happycloud_1.2.0.zip",
 				Location:         PackageHTTPURL(baseURL + "/pkg/happycloud_1.2.0.zip"),
-				SHA256Sum:        [32]uint8{30: 0xf0, 31: 0x0d}, // fake registry uses a memorable sum
+				Authentication:   archiveHashAuthentication{[32]uint8{30: 0xf0, 31: 0x0d}}, // fake registry uses a memorable sum
 			},
 			``,
 		},

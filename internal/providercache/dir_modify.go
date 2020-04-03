@@ -23,6 +23,11 @@ func (d *Dir) InstallPackage(ctx context.Context, meta getproviders.PackageMeta)
 	// incorporate any changes we make here.
 	d.metaCache = nil
 
+	// TODO: If meta.Authentication is non-nil, we should call it at some point
+	// in the rest of this process (perhaps inside installFromLocalArchive and
+	// installFromLocalDir, so we already have the local copy?) and return an
+	// error if the authentication fails.
+
 	log.Printf("[TRACE] providercache.Dir.InstallPackage: installing %s v%s from %s", meta.Provider, meta.Version, meta.Location)
 	switch location := meta.Location.(type) {
 	case getproviders.PackageHTTPURL:

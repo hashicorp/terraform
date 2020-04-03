@@ -1,7 +1,6 @@
 package getproviders
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"runtime"
 	"sort"
@@ -170,14 +169,19 @@ type PackageMeta struct {
 	Filename string
 	Location PackageLocation
 
-	// FIXME: Our current hashing scheme only works for sources that have
-	// access to the original distribution archives, so this isn't always
-	// populated. Need to figure out a different approach where we can
-	// consistently hash both from an archive file and from an extracted
-	// archive to detect inconsistencies.
-	SHA256Sum [sha256.Size]byte
-
-	// TODO: Extra metadata for signature verification
+	// Authentication, if non-nil, is a request from the source that produced
+	// this meta for verification of the target package after it has been
+	// retrieved from the indicated Location.
+	//
+	// Different sources will support different authentication strategies --
+	// or possibly no strategies at all -- depending on what metadata they
+	// have available to them, such as checksums provided out-of-band by the
+	// original package author, expected signing keys, etc.
+	//
+	// If Authentication is non-nil then no authentication is requested.
+	// This is likely appropriate only for packages that are already available
+	// on the local system.
+	Authentication PackageAuthentication
 }
 
 // LessThan returns true if the receiver should sort before the given other

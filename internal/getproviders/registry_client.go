@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -220,22 +221,24 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 		},
 		Filename: body.Filename,
 		Location: PackageHTTPURL(downloadURL.String()),
-		// SHA256Sum is populated below
+		// "Authentication" is populated below
 	}
 
-	if len(body.SHA256Sum) != len(ret.SHA256Sum)*2 {
+	if len(body.SHA256Sum) != sha256.Size*2 { // *2 because it's hex-encoded
 		return PackageMeta{}, c.errQueryFailed(
 			provider,
 			fmt.Errorf("registry response includes invalid SHA256 hash %q: %s", body.SHA256Sum, err),
 		)
 	}
-	_, err = hex.Decode(ret.SHA256Sum[:], []byte(body.SHA256Sum))
+	var checksum [sha256.Size]byte
+	_, err = hex.Decode(checksum[:], []byte(body.SHA256Sum))
 	if err != nil {
 		return PackageMeta{}, c.errQueryFailed(
 			provider,
 			fmt.Errorf("registry response includes invalid SHA256 hash %q: %s", body.SHA256Sum, err),
 		)
 	}
+	ret.Authentication = NewArchiveChecksumAuthentication(checksum)
 
 	return ret, nil
 }
