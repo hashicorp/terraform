@@ -97,6 +97,13 @@ github.com/apparentlymart/go-cidr/cidr
 github.com/apparentlymart/go-dump/dump
 # github.com/apparentlymart/go-textseg v1.0.0
 github.com/apparentlymart/go-textseg/textseg
+# github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9
+## explicit
+github.com/apparentlymart/go-userdirs/internal/unix
+github.com/apparentlymart/go-userdirs/macosbase
+github.com/apparentlymart/go-userdirs/userdirs
+github.com/apparentlymart/go-userdirs/windowsbase
+github.com/apparentlymart/go-userdirs/xdgbase
 # github.com/apparentlymart/go-versions v0.0.2-0.20180815153302-64b99f7cb171
 ## explicit
 github.com/apparentlymart/go-versions/versions
