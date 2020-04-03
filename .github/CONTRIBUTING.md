@@ -13,13 +13,15 @@ To record a bug report, enhancement proposal, or give any other product feedback
 
 <!-- MarkdownTOC autolink="true" -->
 
+- [Contributing Fixes](#contributing-fixes)
 - [Proposing a Change](#proposing-a-change)
-  - [Caveats & Areas of special concern](#caveats--areas-of-special-concern)
-    - [State Storage Backends](#state-storage-backends)
-    - [Provisioners](#provisioners)
-  - [Pull Request Lifecycle](#pull-request-lifecycle)
-    - [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
-  - [PR Checks](#pr-checks)
+	- [Caveats & areas of special concern](#caveats--areas-of-special-concern)
+		- [State Storage Backends](#state-storage-backends)
+		- [Provisioners](#provisioners)
+		- [Maintainers](#maintainers)
+	- [Pull Request Lifecycle](#pull-request-lifecycle)
+		- [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
+	- [PR Checks](#pr-checks)
 - [Terraform CLI/Core Development Environment](#terraform-clicore-development-environment)
 - [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
 - [Generated Code](#generated-code)
@@ -84,6 +86,8 @@ Maintainers are key contributors to our Open Source project. They contribute the
 For code that has a listed maintainer or maintainers, the Terraform team will highlight them for participation in PRs. However, please consider the change proposal process when doing so.
 
 There is no expectation on response time for our maintainers; they may be indisposed for prolonged periods of time. Please be patient. Discussions on when code becomes "unmaintained" will be on a case-by-case basis. 
+
+If an an unmaintained area of code interests you and you'd like to become a maintainer, you may simply make a PR against our [CODEWONERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file with your github handle attached to the approriate area. If there is a maintainer or team of maintainers for that area, please coordinate with them as necessary. 
 
 ### Pull Request Lifecycle
 
