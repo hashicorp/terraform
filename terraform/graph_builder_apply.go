@@ -74,12 +74,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
-	concreteOrphanResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeDestroyResource{
-			NodeAbstractResource: a,
-		}
-	}
-
 	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodeApplyableResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -103,19 +97,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Concrete: concreteResourceInstance,
 			State:    b.State,
 			Changes:  b.Changes,
-		},
-
-		// Creates extra cleanup nodes for any entire resources that are
-		// no longer present in config, so we can make sure we clean up the
-		// leftover empty resource states after the instances have been
-		// destroyed.
-		// (We don't track this particular type of change in the plan because
-		// it's just cleanup of our own state object, and so doesn't effect
-		// any real remote objects or consumable outputs.)
-		&OrphanResourceTransformer{
-			Concrete: concreteOrphanResource,
-			Config:   b.Config,
-			State:    b.State,
 		},
 
 		// Create orphan output nodes
@@ -196,8 +177,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// close the root module
+		&CloseRootModuleTransformer{},
 	}
 
 	if !b.DisableReduce {

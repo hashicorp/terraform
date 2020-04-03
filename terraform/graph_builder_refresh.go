@@ -186,8 +186,8 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close root module
+		&CloseRootModuleTransformer{},
 	}
 
 	if !b.DisableReduce {

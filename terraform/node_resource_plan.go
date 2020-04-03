@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -54,12 +55,61 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	var g Graph
 
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Addr.Module) {
+	var resources []addrs.AbsResource
+	moduleInstances := expander.ExpandModule(n.Addr.Module)
+
+	// Add the current expanded resource to the graph
+	for _, module := range moduleInstances {
+		resAddr := n.Addr.Resource.Absolute(module)
+		resources = append(resources, resAddr)
 		g.Add(&NodePlannableResource{
 			NodeAbstractResource:     n.NodeAbstractResource,
-			Addr:                     n.Addr.Resource.Absolute(module),
+			Addr:                     resAddr,
 			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
 		})
+	}
+
+	// Lock the state while we inspect it
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
+
+	var orphans []*states.Resource
+	for _, res := range state.Resources(n.Addr) {
+		found := false
+		for _, m := range moduleInstances {
+			if m.Equal(res.Addr.Module) {
+				found = true
+				break
+			}
+		}
+		// Address form state was not found in the current config
+		if !found {
+			orphans = append(orphans, res)
+		}
+	}
+
+	// The concrete resource factory we'll use for orphans
+	concreteResourceOrphan := func(a *NodeAbstractResourceInstance) *NodePlannableResourceInstanceOrphan {
+		// Add the config and state since we don't do that via transforms
+		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
+		a.ProvisionerSchemas = n.ProvisionerSchemas
+		a.ProviderMetas = n.ProviderMetas
+
+		return &NodePlannableResourceInstanceOrphan{
+			NodeAbstractResourceInstance: a,
+		}
+	}
+
+	for _, res := range orphans {
+		for key := range res.Instances {
+			addr := res.Addr.Instance(key)
+			abs := NewNodeAbstractResourceInstance(addr)
+			abs.AttachResourceState(res)
+			n := concreteResourceOrphan(abs)
+			g.Add(n)
+		}
 	}
 
 	return &g, nil
@@ -200,7 +250,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		},
 
 		// Add the count/for_each orphans
-		&OrphanResourceCountTransformer{
+		&OrphanResourceInstanceCountTransformer{
 			Concrete:      concreteResourceOrphan,
 			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,

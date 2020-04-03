@@ -147,7 +147,7 @@ func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph,
 
 		// Add the count orphans to make sure these resources are accounted for
 		// during a scale in.
-		&OrphanResourceCountTransformer{
+		&OrphanResourceInstanceCountTransformer{
 			Concrete:      concreteResource,
 			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,

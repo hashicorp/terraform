@@ -89,8 +89,8 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close root module
+		&CloseRootModuleTransformer{},
 
 		// Optimize
 		&TransitiveReductionTransformer{},

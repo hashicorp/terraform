@@ -106,6 +106,8 @@ provider["registry.terraform.io/-/test"] (close) - *terraform.graphNodeCloseProv
   test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
+root - *terraform.nodeCloseModule
+  provider["registry.terraform.io/-/test"] (close) - *terraform.graphNodeCloseProvider
 test_object.foo - *terraform.nodeExpandRefreshableManagedResource
   provider["registry.terraform.io/-/test"] - *terraform.NodeApplyableProvider
 test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject

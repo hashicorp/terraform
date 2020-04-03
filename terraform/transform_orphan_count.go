@@ -8,14 +8,14 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-// OrphanResourceCountTransformer is a GraphTransformer that adds orphans
+// OrphanResourceInstanceCountTransformer is a GraphTransformer that adds orphans
 // for an expanded count to the graph. The determination of this depends
 // on the count argument given.
 //
 // Orphans are found by comparing the count to what is found in the state.
 // This transform assumes that if an element in the state is within the count
 // bounds given, that it is not an orphan.
-type OrphanResourceCountTransformer struct {
+type OrphanResourceInstanceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 
 	Addr          addrs.AbsResource           // Addr of the resource to look for orphans
@@ -23,7 +23,7 @@ type OrphanResourceCountTransformer struct {
 	State         *states.State               // Full global state
 }
 
-func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
+func (t *OrphanResourceInstanceCountTransformer) Transform(g *Graph) error {
 	rs := t.State.Resource(t.Addr)
 	if rs == nil {
 		return nil // Resource doesn't exist in state, so nothing to do!
@@ -47,7 +47,7 @@ Have:
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
 		}
-		log.Printf("[TRACE] OrphanResourceCountTransformer: adding %s as %T", thisAddr, node)
+		log.Printf("[TRACE] OrphanResourceInstanceCountTransformer: adding %s as %T", thisAddr, node)
 		g.Add(node)
 	}
 

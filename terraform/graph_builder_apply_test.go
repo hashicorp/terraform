@@ -755,9 +755,11 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 
 const testApplyGraphBuilderStr = `
 meta.count-boundary (EachMode fixup)
-  module.child.test_object.other
+  module.child (close)
   test_object.other
 module.child
+module.child (close)
+  module.child.test_object.other
 module.child.test_object.create
   module.child.test_object.create (prepare state)
 module.child.test_object.create (prepare state)

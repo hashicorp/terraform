@@ -49,12 +49,16 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		g.Connect(dag.BasicEdge(v, parentNode))
 	}
 
+	// Add the root module node to provide a single exit point for the expanded
+	// module.
+	moduleRoot := &nodeCloseModule{
+		Addr: c.Path,
+	}
+	g.Add(moduleRoot)
+	g.Connect(dag.BasicEdge(moduleRoot, v))
+
 	// Connect any node that reports this module as its Path to ensure that
 	// the module expansion will be handled before that node.
-	// FIXME: Again, there is some Module vs. ModuleInstance muddling here
-	// for legacy reasons, which we'll need to clean up as part of further
-	// work to properly support "count" and "for_each" for modules. Nodes
-	// in the plan graph actually belong to modules, not to module instances.
 	for _, childV := range g.Vertices() {
 		pather, ok := childV.(GraphNodeModulePath)
 		if !ok {
@@ -63,6 +67,11 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		if pather.ModulePath().Equal(c.Path) {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
 			g.Connect(dag.BasicEdge(childV, v))
+
+			// The module root also depends on each child instance, since
+			// during apply the module expansion will complete before the
+			// individual instances are applied.
+			g.Connect(dag.BasicEdge(moduleRoot, childV))
 		}
 	}
 

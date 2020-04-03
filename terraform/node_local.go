@@ -22,7 +22,13 @@ var (
 	_ GraphNodeReferenceable     = (*NodePlannableLocal)(nil)
 	_ GraphNodeReferencer        = (*NodePlannableLocal)(nil)
 	_ GraphNodeDynamicExpandable = (*NodePlannableLocal)(nil)
+	_ graphNodeTemporaryValue    = (*NodePlannableLocal)(nil)
 )
+
+// graphNodeTemporaryValue
+func (n *NodePlannableLocal) temporaryValue() bool {
+	return true
+}
 
 func (n *NodePlannableLocal) Name() string {
 	path := n.Module.String()
@@ -83,8 +89,14 @@ var (
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
 	_ GraphNodeEvalable       = (*NodeLocal)(nil)
+	_ graphNodeTemporaryValue = (*NodeLocal)(nil)
 	_ dag.GraphNodeDotter     = (*NodeLocal)(nil)
 )
+
+// graphNodeTemporaryValue
+func (n *NodeLocal) temporaryValue() bool {
+	return true
+}
 
 func (n *NodeLocal) Name() string {
 	return n.Addr.String()

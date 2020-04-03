@@ -145,7 +145,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 		// Add the count orphans. As these are orphaned refresh nodes, we add them
 		// directly as NodeDestroyableDataResource.
-		&OrphanResourceCountTransformer{
+		&OrphanResourceInstanceCountTransformer{
 			Concrete:      concreteResourceDestroyable,
 			Addr:          n.Addr,
 			InstanceAddrs: instanceAddrs,
