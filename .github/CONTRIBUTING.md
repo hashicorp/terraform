@@ -27,6 +27,16 @@ To record a bug report, enhancement proposal, or give any other product feedback
 
 <!-- /MarkdownTOC -->
 
+##Contributing Fixes
+
+It can be tempting to want to dive into an open source project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
+
+As a result of Terraform's complexity and high bar for stability, the most straightforward way to start helping with the Terraform project is to pick an existing bug and [get to work](#terraform-clicore-development-environment). 
+
+For new contributors we've labeled a few issues with `Good First Issue` as a nod to issues which will help get you familiar with Terraform development, while also providing an onramp to the codebase itself.
+
+Read the documentation, and don't be afraid to ask questions. 
+
 ## Proposing a Change
 
 In order to be respectful of the time of community contributors, we aim to discuss potential changes in GitHub issues prior to implementation. That will allow us to give design feedback up front and set expectations about the scope of the change, and, for larger changes, how best to approach the work such that the Terraform team can review it and merge it along with other concurrent work.
@@ -41,21 +51,39 @@ Most changes will involve updates to the test suite, and changes to Terraform's 
 
 This repository is primarily maintained by a small team at HashiCorp along with their other responsibilities, so unfortunately we cannot always respond promptly to pull requests, particularly if they do not relate to an existing GitHub issue where the Terraform team has already participated. We *are* grateful for all contributions however, and will give feedback on pull requests as soon as we're able.
 
-### Caveats & Areas of special concern
+### Caveats & areas of special concern
+
+There are some areas of Terrafor which are of special concern to the Terraform team. 
 
 #### State Storage Backends
 
-The Terraform team is not merging PRs for new state storage backends. Our current priority regarding state storage backends is to find maintainers for existing backends and work towards removal of those without maintainership. 
+The Terraform team is not merging PRs for new state storage backends at the current time. Our priority regarding state storage backends is to find maintainers for existing backends and work towards removal of those without maintainership. 
 
-Please see the CODEOWNERS file for the status of a given backend. 
+Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file for the status of a given backend. Community members with an interest in a particular standard backend are welcome to help maintain it.
 
-The Terraform team will not be merging new state storage backends at this time. The burden it places on a team to setup an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage prevents us from moving Terraform forward in other ways. 
+At the current time, merging state storage backends places a significant burden on the Terraform team to setup an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage backends. The time and complexity of doing so prevents us from moving Terraform forward in other ways. 
 
-We are working to remove ourselves from the critical path of state storage backends. Unfortuanately in the mean time, we won't be accepting new backends. 
+We are working to remove ourselves from the critical path of state storage backends by moving them towarsds a plugin model like providers. In the mean time, we won't be accepting new remote state backends into Terraform.
 
 #### Provisioners
 
-TO ADD
+Provisioners are an area of concern in Terraform for a number of reasons. Chiefly, they are often used in the place of configuration management tools or custom providers.
+
+From our [documentation](https://www.terraform.io/docs/provisioners/index.html):
+
+> ... they [...] add a considerable amount of complexity and uncertainty to Terraform usage.[...] we still recommend attempting to solve it [your problem] using other techniques first, and use provisioners only if there is no other option.
+
+The Terraform team is in the process of building a way forward whilch continues to decrease reliance on provisioners. In the mean time however, as our documentation indicates, they are a tool of last resort. As such expect that PRs and issues for provisioners are not high in priority. 
+
+Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file for the status of a given provisioners. Community members with an interest in a particular provisioner are welcome to help maintain it.
+
+####Maintainers
+
+Maintainers are key contributors to our Open Source project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
+
+For code that has a listed maintainer or maintainers, the Terraform team will highlight them for participation in PRs. However, please consider the change proposal process when doing so.
+
+There is no expectation on response time for our maintainers; they may be indisposed for prolonged periods of time. Please be patient. Discussions on when code becomes "unmaintained" will be on a case-by-case basis. 
 
 ### Pull Request Lifecycle
 
@@ -87,6 +115,8 @@ The following checks run when a PR is opened:
 - Test Coverage Report: We use [codecov](https://codecov.io/) to check both overall test coverage, and patch coverage.
 
 -> **Note:** We are still deciding on the right targets for our code coverage check. A failure in `codecov` does not necessarily mean that your PR will not be approved or merged.
+
+----
 
 ## Terraform CLI/Core Development Environment
 
