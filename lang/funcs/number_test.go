@@ -342,3 +342,51 @@ func TestParseInt(t *testing.T) {
 		})
 	}
 }
+
+func TestSum(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{cty.NumberFloatVal(1), cty.NumberFloatVal(2), cty.NumberFloatVal(3)},
+			cty.NumberFloatVal(6),
+			false,
+		},
+		{
+			[]cty.Value{cty.StringVal("1"), cty.StringVal("2"), cty.StringVal("3")},
+			cty.NumberFloatVal(6),
+			false,
+		},
+		{
+			[]cty.Value{cty.NumberFloatVal(1.5), cty.NumberFloatVal(2.5), cty.NumberFloatVal(3.5)},
+			cty.NumberFloatVal(7.5),
+			false,
+		},
+		{
+			[]cty.Value{cty.StringVal("1.5"), cty.StringVal("2.5"), cty.StringVal("3.5")},
+			cty.NumberFloatVal(7.5),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("sum(%#v)", test.Values), func(t *testing.T) {
+			got, err := Sum(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

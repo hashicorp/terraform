@@ -1,10 +1,12 @@
 package funcs
 
 import (
+	"errors"
 	"math"
 	"math/big"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -147,6 +149,52 @@ var ParseIntFunc = function.New(&function.Spec{
 	},
 })
 
+// SumFunc constructs a function that takes an arbitrary number of arguments
+// and returns a sum of those values provided they were the same type.
+var SumFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		if len(args) == 0 {
+			return cty.NilType, errors.New("at least one argument is required")
+		}
+
+		argTypes := make([]cty.Type, len(args))
+
+		for i, arg := range args {
+			argTypes[i] = arg.Type()
+		}
+
+		unifiedArgType, _ := convert.UnifyUnsafe(argTypes)
+		if unifiedArgType == cty.NilType {
+			return cty.NilType, errors.New("all arguments must have the same type")
+		}
+
+		return cty.Number, nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		theSum := big.NewFloat(float64(0.0))
+
+		for _, arg := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			arg, _ = convert.Convert(arg, retType)
+			var num big.Float
+			if err := gocty.FromCtyValue(arg, &num); err != nil {
+				return cty.UnknownVal(cty.NilType), function.NewArgError(0, err)
+			}
+			theSum.Add(theSum, &num)
+		}
+
+		return cty.NumberVal(theSum), nil
+	},
+})
+
 // Log returns returns the logarithm of a given number in a given base.
 func Log(num, base cty.Value) (cty.Value, error) {
 	return LogFunc.Call([]cty.Value{num, base})
@@ -166,4 +214,9 @@ func Signum(num cty.Value) (cty.Value, error) {
 // ParseInt parses a string argument and returns an integer of the specified base.
 func ParseInt(num cty.Value, base cty.Value) (cty.Value, error) {
 	return ParseIntFunc.Call([]cty.Value{num, base})
+}
+
+// Sum determines the sum of a list of numbers or list of strings converted to list of numbers.
+func Sum(args ...cty.Value) (cty.Value, error) {
+	return SumFunc.Call(args)
 }
