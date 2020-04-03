@@ -461,50 +461,50 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			))
 		},
 		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
-			c.Ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider, selectedVersion))
+			c.Ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider.ForDisplay(), selectedVersion))
 		},
 		BuiltInProviderAvailable: func(provider addrs.Provider) {
-			c.Ui.Info(fmt.Sprintf("- %s is built in to Terraform", provider))
+			c.Ui.Info(fmt.Sprintf("- %s is built in to Terraform", provider.ForDisplay()))
 		},
 		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid dependency on built-in provider",
-				fmt.Sprintf("Cannot use %s: %s.", provider, err),
+				fmt.Sprintf("Cannot use %s: %s.", provider.ForDisplay(), err),
 			))
 		},
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 			if len(versionConstraints) > 0 {
-				c.Ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider, getproviders.VersionConstraintsString(versionConstraints)))
+				c.Ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 			} else {
-				c.Ui.Info(fmt.Sprintf("- Finding latest version of %s...", provider))
+				c.Ui.Info(fmt.Sprintf("- Finding latest version of %s...", provider.ForDisplay()))
 			}
 		},
 		LinkFromCacheBegin: func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
-			c.Ui.Info(fmt.Sprintf("- Using %s v%s from the shared cache directory", provider, version))
+			c.Ui.Info(fmt.Sprintf("- Using %s v%s from the shared cache directory", provider.ForDisplay(), version))
 		},
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider, version))
+			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to query available provider packages",
-				fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider, err),
+				fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err),
 			))
 		},
 		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install provider from shared cache",
-				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider, version, err),
+				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider.ForDisplay(), version, err),
 			))
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install provider",
-				fmt.Sprintf("Error while installing %s v%s: %s.", provider, version, err),
+				fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err),
 			))
 		},
 	}
