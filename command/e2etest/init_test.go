@@ -39,7 +39,7 @@ func TestInitProviders(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "- Installing registry.terraform.io/hashicorp/template v") {
+	if !strings.Contains(stdout, "- Installing hashicorp/template v") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -73,7 +73,7 @@ func TestInitProvidersInternal(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if strings.Contains(stdout, "Installing registry.terraform.io/hashicorp/terraform") {
+	if strings.Contains(stdout, "Installing hashicorp/terraform") {
 		// Shouldn't have downloaded anything with this config, because the
 		// provider is built in.
 		t.Errorf("provider download message appeared in output:\n%s", stdout)
@@ -123,7 +123,7 @@ func TestInitProvidersVendored(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "- Installing registry.terraform.io/hashicorp/null v1.0.0+local") {
+	if !strings.Contains(stdout, "- Installing hashicorp/null v1.0.0+local") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
