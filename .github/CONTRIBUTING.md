@@ -79,9 +79,7 @@ The Terraform team is in the process of building a way forward whilch continues 
 
 Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file for the status of a given provisioners. Community members with an interest in a particular provisioner are welcome to help maintain it.
 
-
-
-####Maintainers
+#### Maintainers
 
 Maintainers are key contributors to our Open Source project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
 
