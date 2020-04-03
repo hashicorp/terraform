@@ -100,6 +100,16 @@ func TestInitProvidersVendored(t *testing.T) {
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
+	// Our fixture dir has a generic os_arch dir, which we need to customize
+	// to the actual OS/arch where this test is running in order to get the
+	// desired result.
+	fixtMachineDir := tf.Path("terraform.d/plugins/registry.terraform.io/hashicorp/null/1.0.0+local/os_arch")
+	wantMachineDir := tf.Path("terraform.d/plugins/registry.terraform.io/hashicorp/null/1.0.0+local/", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
+	err := os.Rename(fixtMachineDir, wantMachineDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
