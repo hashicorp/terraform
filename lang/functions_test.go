@@ -786,6 +786,25 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"sum": {
+			{
+				`sum(1, 2, 3)`,
+				cty.NumberFloatVal(6),
+			},
+			{
+				`sum("1", "2", "3")`,
+				cty.NumberFloatVal(6),
+			},
+			{
+				`sum(1.5, 2.5, 3.5)`,
+				cty.NumberFloatVal(7.5),
+			},
+			{
+				`sum("1.5", "2.5", "3.5")`,
+				cty.NumberFloatVal(7.5),
+			},
+		},
+
 		"templatefile": {
 			{
 				`templatefile("hello.tmpl", {name = "Jodie"})`,
