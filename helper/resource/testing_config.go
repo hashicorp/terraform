@@ -43,7 +43,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 
 	// Build the context
 	opts.Config = cfg
-	opts.State, err = terraform.ShimLegacyState(state)
+	opts.State, err = shimLegacyState(state)
 	if err != nil {
 		return nil, err
 	}

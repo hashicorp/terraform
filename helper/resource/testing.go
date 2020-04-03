@@ -689,7 +689,7 @@ func testProviderFactories(c TestCase) (map[addrs.Provider]providers.Factory, er
 	newProviders := make(map[addrs.Provider]providers.Factory)
 	for legacyName, pf := range ctxProviders {
 		factory := pf // must copy to ensure each closure sees its own value
-		newProviders[addrs.NewLegacyProvider(legacyName)] = func() (providers.Interface, error) {
+		newProviders[addrs.NewDefaultProvider(legacyName)] = func() (providers.Interface, error) {
 			p, err := factory()
 			if err != nil {
 				return nil, err
