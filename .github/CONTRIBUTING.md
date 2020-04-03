@@ -29,7 +29,7 @@ To record a bug report, enhancement proposal, or give any other product feedback
 
 <!-- /MarkdownTOC -->
 
-##Contributing Fixes
+## Contributing Fixes
 
 It can be tempting to want to dive into an open source project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
 
