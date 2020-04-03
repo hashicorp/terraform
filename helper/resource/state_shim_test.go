@@ -42,7 +42,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -58,7 +58,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -77,7 +77,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   childInstance.Module(),
 		},
 	)
@@ -101,7 +101,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   childInstance.Module(),
 		},
 	)
@@ -127,7 +127,7 @@ func TestStateShim(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   childInstance.Module(),
 		},
 	)
@@ -144,7 +144,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   childInstance.Module(),
 		},
 	)
@@ -160,7 +160,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   childInstance.Module(),
 		},
 	)
@@ -177,7 +177,7 @@ func TestStateShim(t *testing.T) {
 			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   childInstance.Module(),
 		},
 	)
@@ -330,5 +330,94 @@ func TestStateShim(t *testing.T) {
 
 	if !expected.Equal(shimmed) {
 		t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", shimmed, expected)
+	}
+}
+
+// TestShimLegacyState only checks the functionality unique to this func: adding
+// the implied provider FQN
+func TestShimLegacyState(t *testing.T) {
+
+	input := &terraform.State{
+		Version: 3,
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_thing.baz": &terraform.ResourceState{
+						Type:     "test_thing",
+						Provider: "provider.test",
+						Primary: &terraform.InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"id":     "baz",
+								"bazzle": "dazzle",
+							},
+						},
+					},
+				},
+			},
+			&terraform.ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_thing.bar": &terraform.ResourceState{
+						Type:     "test_thing",
+						Provider: "module.child.provider.test",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"id":     "bar",
+								"fizzle": "wizzle",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expected := states.NewState()
+	root := expected.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "baz",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsFlat:    map[string]string{"id": "baz", "bazzle": "dazzle"},
+			DependsOn:    []addrs.Referenceable{},
+			Dependencies: []addrs.ConfigResource{},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	child := expected.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsFlat:    map[string]string{"id": "bar", "fizzle": "wizzle"},
+			DependsOn:    []addrs.Referenceable{},
+			Dependencies: []addrs.ConfigResource{},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   child.Addr.Module(),
+		},
+	)
+
+	got, err := shimLegacyState(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if !got.Equal(expected) {
+		t.Fatal("wrong result")
 	}
 }

@@ -136,13 +136,19 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 							return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
 						}
 						providerAddr = addrs.AbsProviderConfig{
-							Module:   moduleAddr.Module(),
+							Module: moduleAddr.Module(),
+							// We use NewLegacyProvider here so we can use
+							// LegacyString() below to get the appropriate
+							// legacy-style provider string.
 							Provider: addrs.NewLegacyProvider(localAddr.LocalName),
 							Alias:    localAddr.Alias,
 						}
 					} else {
 						providerAddr = addrs.AbsProviderConfig{
-							Module:   moduleAddr.Module(),
+							Module: moduleAddr.Module(),
+							// We use NewLegacyProvider here so we can use
+							// LegacyString() below to get the appropriate
+							// legacy-style provider string.
 							Provider: addrs.NewLegacyProvider(resAddr.ImpliedProvider()),
 						}
 					}
