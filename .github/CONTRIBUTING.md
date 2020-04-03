@@ -55,7 +55,7 @@ This repository is primarily maintained by a small team at HashiCorp along with 
 
 ### Caveats & areas of special concern
 
-There are some areas of Terrafor which are of special concern to the Terraform team. 
+There are some areas of Terraform which are of special concern to the Terraform team. 
 
 #### State Storage Backends
 
@@ -63,9 +63,9 @@ The Terraform team is not merging PRs for new state storage backends at the curr
 
 Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file for the status of a given backend. Community members with an interest in a particular standard backend are welcome to help maintain it.
 
-At the current time, merging state storage backends places a significant burden on the Terraform team to setup an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage backends. The time and complexity of doing so prevents us from moving Terraform forward in other ways. 
+Currently, merging state storage backends places a significant burden on the Terraform team. The team must setup an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage backends. The time and complexity of doing so prevents us from moving Terraform forward in other ways.
 
-We are working to remove ourselves from the critical path of state storage backends by moving them towarsds a plugin model like providers. In the mean time, we won't be accepting new remote state backends into Terraform.
+We are working to remove ourselves from the critical path of state storage backends by moving them towards a plugin model. In the mean time, we won't be accepting new remote state backends into Terraform.
 
 #### Provisioners
 
@@ -83,7 +83,7 @@ Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/C
 
 Maintainers are key contributors to our Open Source project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
 
-For code that has a listed maintainer or maintainers, the Terraform team will highlight them for participation in PRs. However, please consider the change proposal process when doing so.
+For code that has a listed maintainer or maintainers in our [CODEWONERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file, the Terraform team will highlight them for participation in PRs which relate to the area of code they maintain. The expectation is that a maintainer will review the code and work with the PR contributor before the code is merged by the Terraform team.
 
 There is no expectation on response time for our maintainers; they may be indisposed for prolonged periods of time. Please be patient. Discussions on when code becomes "unmaintained" will be on a case-by-case basis. 
 
