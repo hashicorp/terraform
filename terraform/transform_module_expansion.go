@@ -16,7 +16,8 @@ import (
 // This transform must be applied only after all nodes representing objects
 // that can be contained within modules have already been added.
 type ModuleExpansionTransformer struct {
-	Config *configs.Config
+	Config   *configs.Config
+	Concrete ConcreteModuleNodeFunc
 }
 
 func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
@@ -36,11 +37,16 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	_, call := c.Path.Call()
 	modCall := c.Parent.Module.ModuleCalls[call.Name]
 
-	v := &nodeExpandModule{
+	n := &nodeExpandModule{
 		Addr:       c.Path,
 		Config:     c.Module,
 		ModuleCall: modCall,
 	}
+	var v dag.Vertex = n
+	if t.Concrete != nil {
+		v = t.Concrete(n)
+	}
+
 	g.Add(v)
 	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, v)
 

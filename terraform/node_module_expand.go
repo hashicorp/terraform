@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 )
 
@@ -13,6 +14,8 @@ import (
 type graphNodeModuleCloser interface {
 	CloseModule() addrs.Module
 }
+
+type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex
 
 // nodeExpandModule represents a module call in the configuration that
 // might expand into multiple module instances depending on how it is
@@ -212,5 +215,42 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 		}
 	}
 
+	return nil, nil
+}
+
+// nodeValidateModule wraps a nodeExpand module for validation, ensuring that
+// no expansion is attempted during evaluation, when count and for_each
+// expressions may not be known.
+type nodeValidateModule struct {
+	nodeExpandModule
+}
+
+// GraphNodeEvalable
+func (n *nodeValidateModule) EvalTree() EvalNode {
+	return &evalValidateModule{
+		Addr:       n.Addr,
+		Config:     n.Config,
+		ModuleCall: n.ModuleCall,
+	}
+}
+
+type evalValidateModule struct {
+	Addr       addrs.Module
+	Config     *configs.Module
+	ModuleCall *configs.ModuleCall
+}
+
+func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
+	_, call := n.Addr.Call()
+	expander := ctx.InstanceExpander()
+
+	// Modules all evaluate to single instances during validation, only to
+	// create a proper context within which to evaluate. All parent modules
+	// will be a single instance, but still get our address in the expected
+	// manner anyway to ensure they've been registered correctly.
+	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+		// now set our own mode to single
+		ctx.InstanceExpander().SetModuleSingle(module, call)
+	}
 	return nil, nil
 }

@@ -27,6 +27,12 @@ func ValidateGraphBuilder(p *PlanGraphBuilder) GraphBuilder {
 		}
 	}
 
+	p.ConcreteModule = func(n *nodeExpandModule) dag.Vertex {
+		return &nodeValidateModule{
+			nodeExpandModule: *n,
+		}
+	}
+
 	// We purposely don't set any other concrete types since they don't
 	// require validation.
 
