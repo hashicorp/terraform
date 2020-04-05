@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/lang"
-	"github.com/hashicorp/terraform/states"
 )
 
 // graphNodeModuleCloser is an interface implemented by nodes that finalize the
@@ -184,9 +183,7 @@ type evalPrepareModuleExpansion struct {
 }
 
 func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) {
-	eachMode := states.NoEach
 	expander := ctx.InstanceExpander()
-
 	_, call := n.Addr.Call()
 
 	// nodeExpandModule itself does not have visibility into how its ancestors
@@ -194,29 +191,22 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 	// to our module, and register module instances with each of them.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
 		ctx = ctx.WithPath(module)
-		count, countDiags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
-		if countDiags.HasErrors() {
-			return nil, countDiags.Err()
-		}
 
-		if count >= 0 { // -1 signals "count not set"
-			eachMode = states.EachList
-		}
-
-		forEach, forEachDiags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
-		if forEachDiags.HasErrors() {
-			return nil, forEachDiags.Err()
-		}
-
-		if forEach != nil {
-			eachMode = states.EachMap
-		}
-
-		switch eachMode {
-		case states.EachList:
+		switch {
+		case n.ModuleCall.Count != nil:
+			count, diags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
 			expander.SetModuleCount(module, call, count)
-		case states.EachMap:
+
+		case n.ModuleCall.ForEach != nil:
+			forEach, diags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
 			expander.SetModuleForEach(module, call, forEach)
+
 		default:
 			expander.SetModuleSingle(module, call)
 		}
