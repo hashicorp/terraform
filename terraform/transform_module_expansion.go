@@ -16,7 +16,10 @@ import (
 // This transform must be applied only after all nodes representing objects
 // that can be contained within modules have already been added.
 type ModuleExpansionTransformer struct {
-	Config   *configs.Config
+	Config *configs.Config
+
+	// Concrete allows injection of a wrapped module node by the graph builder
+	// to alter the evaluation behavior.
 	Concrete ConcreteModuleNodeFunc
 }
 
