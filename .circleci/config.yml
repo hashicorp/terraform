@@ -25,9 +25,9 @@ jobs:
           name: verify no code was generated
           command: |
             if [[ -z $(git status --porcelain) ]]; then
-              echo "clean"
+              echo "Git directory is clean."
             else
-              echo "dirty"
+              echo "Git is dirty. Run `make fmtcheck` and `make generate` locally and commit any formatting fixes or generated code."
               git status --porcelain
               exit 1
             fi
