@@ -66,7 +66,7 @@ Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/C
 
 Currently, merging state storage backends places a significant burden on the Terraform team. The team must setup an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage backends. The time and complexity of doing so prevents us from moving Terraform forward in other ways.
 
-We are working to remove ourselves from the critical path of state storage backends by moving them towards a plugin model. In the mean time, we won't be accepting new remote state backends into Terraform.
+We are working to remove ourselves from the critical path of state storage backends by moving them towards a plugin model. In the meantime, we won't be accepting new remote state backends into Terraform.
 
 #### Provisioners
 
