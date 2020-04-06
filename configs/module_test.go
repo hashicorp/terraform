@@ -33,6 +33,18 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	if localName != "nonexist" {
 		t.Error("wrong local name returned for a non-local provider")
 	}
+
+	// can also look up the "terraform" provider and see that it sources is
+	// allowed to be overridden, even though there is a builtin provider
+	// called "terraform".
+	p = addrs.NewProvider(addrs.DefaultRegistryHost, "not-builtin", "not-terraform")
+	if name, exists := mod.ProviderLocalNames[p]; !exists {
+		t.Fatal("provider FQN not-builtin/not-terraform not found")
+	} else {
+		if name != "terraform" {
+			t.Fatalf("provider localname mismatch: got %s, want terraform", name)
+		}
+	}
 }
 
 // This test validates the provider FQNs set in each Resource
@@ -45,7 +57,7 @@ func TestNewModule_resource_providers(t *testing.T) {
 	// both the root and child module have two resources, one which should use
 	// the default implied provider and one explicitly using a provider set in
 	// required_providers
-	wantImplicit := addrs.NewLegacyProvider("test")
+	wantImplicit := addrs.NewDefaultProvider("test")
 	wantFoo := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
 	wantBar := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
 

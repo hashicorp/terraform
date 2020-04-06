@@ -18,7 +18,7 @@ func TestBuildProviderConfig(t *testing.T) {
 	})
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewLegacyProvider("foo"),
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
 
 	ctx := &MockEvalContext{
@@ -70,7 +70,7 @@ func TestEvalConfigProvider(t *testing.T) {
 	rp := providers.Interface(provider)
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewLegacyProvider("foo"),
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
 	n := &EvalConfigProvider{
 		Addr:     providerAddr,
@@ -104,7 +104,7 @@ func TestEvalInitProvider_impl(t *testing.T) {
 func TestEvalInitProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewLegacyProvider("foo"),
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
 	n := &EvalInitProvider{
 		Addr: providerAddr,
@@ -118,7 +118,7 @@ func TestEvalInitProvider(t *testing.T) {
 	if !ctx.InitProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.InitProviderAddr.String() != `provider["registry.terraform.io/-/foo"]` {
+	if ctx.InitProviderAddr.String() != `provider["registry.terraform.io/hashicorp/foo"]` {
 		t.Fatalf("wrong provider address %s", ctx.InitProviderAddr)
 	}
 }
@@ -126,7 +126,7 @@ func TestEvalInitProvider(t *testing.T) {
 func TestEvalCloseProvider(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewLegacyProvider("foo"),
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
 	n := &EvalCloseProvider{
 		Addr: providerAddr,
@@ -140,7 +140,7 @@ func TestEvalCloseProvider(t *testing.T) {
 	if !ctx.CloseProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.CloseProviderAddr.String() != `provider["registry.terraform.io/-/foo"]` {
+	if ctx.CloseProviderAddr.String() != `provider["registry.terraform.io/hashicorp/foo"]` {
 		t.Fatalf("wrong provider address %s", ctx.CloseProviderAddr)
 	}
 }
@@ -152,7 +152,7 @@ func TestEvalGetProvider_impl(t *testing.T) {
 func TestEvalGetProvider(t *testing.T) {
 	var actual providers.Interface
 	n := &EvalGetProvider{
-		Addr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewLegacyProvider("foo")),
+		Addr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("foo")),
 		Output: &actual,
 	}
 	provider := &MockProvider{}
@@ -167,7 +167,7 @@ func TestEvalGetProvider(t *testing.T) {
 	if !ctx.ProviderCalled {
 		t.Fatal("should be called")
 	}
-	if ctx.ProviderAddr.String() != `provider["registry.terraform.io/-/foo"]` {
+	if ctx.ProviderAddr.String() != `provider["registry.terraform.io/hashicorp/foo"]` {
 		t.Fatalf("wrong provider address %s", ctx.ProviderAddr)
 	}
 }

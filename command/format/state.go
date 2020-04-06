@@ -147,7 +147,7 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 					// loaded all of the schemas and checked things prior to this
 					// point. We can't return errors here, but since this is UI code
 					// we will try to do _something_ reasonable.
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.LegacyString()))
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.String()))
 					continue
 				}
 

@@ -23,6 +23,20 @@ type Provider struct {
 // not have an explicit hostname.
 const DefaultRegistryHost = svchost.Hostname("registry.terraform.io")
 
+// BuiltInProviderHost is the pseudo-hostname used for the "built-in" provider
+// namespace. Built-in provider addresses must also have their namespace set
+// to BuiltInProviderNamespace in order to be considered as built-in.
+const BuiltInProviderHost = svchost.Hostname("terraform.io")
+
+// BuiltInProviderNamespace is the provider namespace used for "built-in"
+// providers. Built-in provider addresses must also have their hostname
+// set to BuiltInProviderHost in order to be considered as built-in.
+//
+// The this namespace is literally named "builtin", in the hope that users
+// who see FQNs containing this will be able to infer the way in which they are
+// special, even if they haven't encountered the concept formally yet.
+const BuiltInProviderNamespace = "builtin"
+
 // LegacyProviderNamespace is the special string used in the Namespace field
 // of type Provider to mark a legacy provider address. This special namespace
 // value would normally be invalid, and can be used only when the hostname is
@@ -30,10 +44,23 @@ const DefaultRegistryHost = svchost.Hostname("registry.terraform.io")
 // FQN.
 const LegacyProviderNamespace = "-"
 
-// String returns an FQN string, indended for use in output.
+// String returns an FQN string, indended for use in machine-readable output.
 func (pt Provider) String() string {
 	if pt.IsZero() {
 		panic("called String on zero-value addrs.Provider")
+	}
+	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
+}
+
+// ForDisplay returns a user-friendly FQN string, simplified for readability. If
+// the provider is using the default hostname, the hostname is omitted.
+func (pt Provider) ForDisplay() string {
+	if pt.IsZero() {
+		panic("called ForDisplay on zero-value addrs.Provider")
+	}
+
+	if pt.Hostname == DefaultRegistryHost {
+		return pt.Namespace + "/" + pt.Type
 	}
 	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
 }
@@ -64,6 +91,30 @@ func NewProvider(hostname svchost.Hostname, namespace, typeName string) Provider
 	}
 }
 
+// ImpliedProviderForUnqualifiedType represents the rules for inferring what
+// provider FQN a user intended when only a naked type name is available.
+//
+// For all except the type name "terraform" this returns a so-called "default"
+// provider, which is under the registry.terraform.io/hashicorp/ namespace.
+//
+// As a special case, the string "terraform" maps to
+// "terraform.io/builtin/terraform" because that is the more likely user
+// intent than the now-unmaintained "registry.terraform.io/hashicorp/terraform"
+// which remains only for compatibility with older Terraform versions.
+func ImpliedProviderForUnqualifiedType(typeName string) Provider {
+	switch typeName {
+	case "terraform":
+		// Note for future maintainers: any additional strings we add here
+		// as implied to be builtin must never also be use as provider names
+		// in the registry.terraform.io/hashicorp/... namespace, because
+		// otherwise older versions of Terraform could implicitly select
+		// the registry name instead of the internal one.
+		return NewBuiltInProvider(typeName)
+	default:
+		return NewDefaultProvider(typeName)
+	}
+}
+
 // NewDefaultProvider returns the default address of a HashiCorp-maintained,
 // Registry-hosted provider.
 func NewDefaultProvider(name string) Provider {
@@ -71,6 +122,16 @@ func NewDefaultProvider(name string) Provider {
 		Type:      MustParseProviderPart(name),
 		Namespace: "hashicorp",
 		Hostname:  DefaultRegistryHost,
+	}
+}
+
+// NewBuiltInProvider returns the address of a "built-in" provider. See
+// the docs for Provider.IsBuiltIn for more information.
+func NewBuiltInProvider(name string) Provider {
+	return Provider{
+		Type:      MustParseProviderPart(name),
+		Namespace: BuiltInProviderNamespace,
+		Hostname:  BuiltInProviderHost,
 	}
 }
 
@@ -107,6 +168,17 @@ func (pt Provider) LegacyString() string {
 // such a value is likely to either panic or otherwise misbehave.
 func (pt Provider) IsZero() bool {
 	return pt == Provider{}
+}
+
+// IsBuiltIn returns true if the receiver is the address of a "built-in"
+// provider. That is, a provider under terraform.io/builtin/ which is
+// included as part of the Terraform binary itself rather than one to be
+// installed from elsewhere.
+//
+// These are ignored by the provider installer because they are assumed to
+// already be available without any further installation.
+func (pt Provider) IsBuiltIn() bool {
+	return pt.Hostname == BuiltInProviderHost && pt.Namespace == BuiltInProviderNamespace
 }
 
 // LessThan returns true if the receiver should sort before the other given

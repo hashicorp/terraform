@@ -10,7 +10,7 @@
                     "type": "test_instance",
                     "name": "example",
                     "index": 0,
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": null,
@@ -23,7 +23,7 @@
                     "type": "test_instance",
                     "name": "example",
                     "index": 1,
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": null,

@@ -57,7 +57,7 @@ For example, to correlate with indices of a referring resource, use:
 		Config: cfg,
 		Schemas: &Schemas{
 			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewLegacyProvider("aws"): {
+				addrs.NewDefaultProvider("aws"): {
 					ResourceTypes: map[string]*configschema.Block{
 						"aws_instance": {},
 					},

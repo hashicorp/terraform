@@ -17,11 +17,9 @@ func TestContextImport_basic(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -57,11 +55,9 @@ func TestContextImport_basic_errpr(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -92,11 +88,9 @@ func TestContextImport_countIndex(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -132,11 +126,9 @@ func TestContextImport_collision(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 
 		State: states.BuildState(func(s *states.SyncState) {
 			s.SetResourceInstanceCurrent(
@@ -152,7 +144,7 @@ func TestContextImport_collision(t *testing.T) {
 					Status: states.ObjectReady,
 				},
 				addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("aws"),
+					Provider: addrs.NewDefaultProvider("aws"),
 					Module:   addrs.RootModule,
 				},
 			)
@@ -183,7 +175,7 @@ func TestContextImport_collision(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := `aws_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/aws"]`
+  provider = provider["registry.terraform.io/hashicorp/aws"]`
 
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
@@ -202,11 +194,9 @@ func TestContextImport_missingType(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -254,11 +244,9 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -292,11 +280,9 @@ func TestContextImport_providerModule(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -343,11 +329,9 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 	m := testModule(t, "import-provider-vars")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("bar"),
@@ -405,11 +389,9 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 	m := testModule(t, "import-provider-non-vars")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -439,11 +421,9 @@ func TestContextImport_refresh(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -488,11 +468,9 @@ func TestContextImport_refreshNil(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -534,11 +512,9 @@ func TestContextImport_module(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -574,11 +550,9 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -614,11 +588,9 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ImportStateReturn = []*InstanceState{
@@ -686,11 +658,9 @@ func TestContextImport_multiState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -755,11 +725,9 @@ func TestContextImport_multiStateSame(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	state, diags := ctx.Import(&ImportOpts{
@@ -786,13 +754,13 @@ func TestContextImport_multiStateSame(t *testing.T) {
 const testImportStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportCountIndexStr = `
 aws_instance.foo.0:
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportModuleStr = `
@@ -800,7 +768,7 @@ const testImportModuleStr = `
 module.child:
   aws_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/-/aws"]
+    provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportModuleDepth2Str = `
@@ -808,7 +776,7 @@ const testImportModuleDepth2Str = `
 module.child.nested:
   aws_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/-/aws"]
+    provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportModuleExistingStr = `
@@ -816,36 +784,36 @@ const testImportModuleExistingStr = `
 module.foo:
   aws_instance.bar:
     ID = bar
-    provider = provider["registry.terraform.io/-/aws"]
+    provider = provider["registry.terraform.io/hashicorp/aws"]
   aws_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/-/aws"]
+    provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportMultiStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 aws_instance_thing.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportMultiSameStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 aws_instance_thing.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 aws_instance_thing.foo-1:
   ID = qux
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testImportRefreshStr = `
 aws_instance.foo:
   ID = foo
-  provider = provider["registry.terraform.io/-/aws"]
+  provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = bar
 `

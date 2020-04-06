@@ -1,8 +1,8 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -12,19 +12,17 @@ import (
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/hashicorp/terraform/version"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -34,12 +32,6 @@ type InitCommand struct {
 
 	// getPlugins is for the -get-plugins flag
 	getPlugins bool
-
-	// providerInstaller is used to download and install providers that
-	// aren't found locally. This uses a discovery.ProviderInstaller instance
-	// by default, but it can be overridden here as a way to mock fetching
-	// providers for tests.
-	providerInstaller discovery.Installer
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -73,18 +65,6 @@ func (c *InitCommand) Run(args []string) int {
 	if len(flagPluginPath) > 0 {
 		c.pluginPath = flagPluginPath
 		c.getPlugins = false
-	}
-
-	// set providerInstaller if we don't have a test version already
-	if c.providerInstaller == nil {
-		c.providerInstaller = &discovery.ProviderInstaller{
-			Dir:                   c.pluginDir(),
-			Cache:                 c.pluginCache(),
-			PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
-			SkipVerify:            !flagVerifyPlugins,
-			Ui:                    c.Ui,
-			Services:              c.Services,
-		}
 	}
 
 	// Validate the arg count
@@ -312,7 +292,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade)
+	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade, flagPluginPath)
 	diags = diags.Append(providerDiags)
 	if providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -443,176 +423,120 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
-	var available discovery.PluginMetaSet
-	if upgrade {
-		// If we're in upgrade mode, we ignore any auto-installed plugins
-		// in "available", causing us to reinstall and possibly upgrade them.
-		available = c.providerPluginManuallyInstalledSet()
-	} else {
-		available = c.providerPluginSet()
-	}
-
-	configDeps, depsDiags := earlyConfig.ProviderDependencies()
-	diags = diags.Append(depsDiags)
-	if depsDiags.HasErrors() {
+func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
+	// First we'll collect all the provider dependencies we can see in the
+	// configuration and the state.
+	reqs, moreDiags := earlyConfig.ProviderRequirements()
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
 		return false, diags
 	}
-
-	configReqs := configDeps.AllProviderRequirements()
-	// FIXME: This is weird because ConfigTreeDependencies was written before
-	// we switched over to using earlyConfig as the main source of dependencies.
-	// In future we should clean this up to be a more reasonable API.
-	stateReqs := terraform.ConfigTreeDependencies(nil, state).AllProviderRequirements()
-
-	requirements := configReqs.Merge(stateReqs)
-	if len(requirements) == 0 {
-		// nothing to initialize
-		return false, nil
+	if state != nil {
+		stateReqs := state.ProviderRequirements()
+		reqs = reqs.Merge(stateReqs)
 	}
 
-	c.Ui.Output(c.Colorize().Color(
-		"\n[reset][bold]Initializing provider plugins...",
-	))
+	var inst *providercache.Installer
+	if len(pluginDirs) == 0 {
+		// By default we use a source that looks for providers in all of the
+		// standard locations, possibly customized by the user in CLI config.
+		inst = c.providerInstaller()
+	} else {
+		// If the user passes at least one -plugin-dir then that circumvents
+		// the usual sources and forces Terraform to consult only the given
+		// directories. Anything not available in one of those directories
+		// is not available for installation.
+		source := c.providerCustomLocalDirectorySource(pluginDirs)
+		inst = c.providerInstallerCustomSource(source)
+	}
 
-	missing := c.missingProviders(available, requirements)
-
-	if c.getPlugins {
-		if len(missing) > 0 {
-			c.Ui.Output("- Checking for available provider plugins...")
-		}
-
-		for provider, reqd := range missing {
-			pty := addrs.NewLegacyProvider(provider)
-			_, providerDiags, err := c.providerInstaller.Get(pty, reqd.Versions)
-			diags = diags.Append(providerDiags)
-
-			if err != nil {
-				constraint := reqd.Versions.String()
-				if constraint == "" {
-					constraint = "(any version)"
-				}
-
-				switch {
-				case err == discovery.ErrorServiceUnreachable, err == discovery.ErrorPublicRegistryUnreachable:
-					c.Ui.Error(errDiscoveryServiceUnreachable)
-				case err == discovery.ErrorNoSuchProvider:
-					c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
-				case err == discovery.ErrorNoSuitableVersion:
-					if reqd.Versions.Unconstrained() {
-						// This should never happen, but might crop up if we catch
-						// the releases server in a weird state where the provider's
-						// directory is present but does not yet contain any
-						// versions. We'll treat it like ErrorNoSuchProvider, then.
-						c.Ui.Error(fmt.Sprintf(errProviderNotFound, provider, DefaultPluginVendorDir))
-					} else {
-						c.Ui.Error(fmt.Sprintf(errProviderVersionsUnsuitable, provider, reqd.Versions))
-					}
-				case errwrap.Contains(err, discovery.ErrorVersionIncompatible.Error()):
-					// Attempt to fetch nested error to display to the user which versions
-					// we considered and which versions might be compatible. Otherwise,
-					// we'll just display a generic version incompatible msg
-					incompatErr := errwrap.GetType(err, fmt.Errorf(""))
-					if incompatErr != nil {
-						c.Ui.Error(incompatErr.Error())
-					} else {
-						// Generic version incompatible msg
-						c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
-					}
-					// Reset nested errors
-					err = discovery.ErrorVersionIncompatible
-				case err == discovery.ErrorNoVersionCompatible:
-					// Generic version incompatible msg
-					c.Ui.Error(fmt.Sprintf(errProviderIncompatible, provider, constraint))
-				case err == discovery.ErrorSignatureVerification:
-					c.Ui.Error(fmt.Sprintf(errSignatureVerification, provider, version.SemVer))
-				case err == discovery.ErrorChecksumVerification,
-					err == discovery.ErrorMissingChecksumVerification:
-					c.Ui.Error(fmt.Sprintf(errChecksumVerification, provider))
-				default:
-					c.Ui.Error(fmt.Sprintf(errProviderInstallError, provider, err.Error(), DefaultPluginVendorDir))
-				}
-
-				diags = diags.Append(err)
-			}
-		}
-
-		if diags.HasErrors() {
-			return true, diags
-		}
-	} else if len(missing) > 0 {
-		// we have missing providers, but aren't going to try and download them
-		var lines []string
-		for provider, reqd := range missing {
-			if reqd.Versions.Unconstrained() {
-				lines = append(lines, fmt.Sprintf("* %s (any version)\n", provider))
+	// Because we're currently just streaming a series of events sequentially
+	// into the terminal, we're showing only a subset of the events to keep
+	// things relatively concise. Later it'd be nice to have a progress UI
+	// where statuses update in-place, but we can't do that as long as we
+	// are shimming our vt100 output to the legacy console API on Windows.
+	evts := &providercache.InstallerEvents{
+		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
+			c.Ui.Output(c.Colorize().Color(
+				"\n[reset][bold]Initializing provider plugins...",
+			))
+		},
+		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
+			c.Ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider.ForDisplay(), selectedVersion))
+		},
+		BuiltInProviderAvailable: func(provider addrs.Provider) {
+			c.Ui.Info(fmt.Sprintf("- %s is built in to Terraform", provider.ForDisplay()))
+		},
+		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid dependency on built-in provider",
+				fmt.Sprintf("Cannot use %s: %s.", provider.ForDisplay(), err),
+			))
+		},
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+			if len(versionConstraints) > 0 {
+				c.Ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 			} else {
-				lines = append(lines, fmt.Sprintf("* %s (%s)\n", provider, reqd.Versions))
+				c.Ui.Info(fmt.Sprintf("- Finding latest version of %s...", provider.ForDisplay()))
 			}
-			diags = diags.Append(fmt.Errorf("missing provider %q", provider))
-		}
-		sort.Strings(lines)
-		c.Ui.Error(fmt.Sprintf(errMissingProvidersNoInstall, strings.Join(lines, ""), DefaultPluginVendorDir))
-		return true, diags
+		},
+		LinkFromCacheBegin: func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
+			c.Ui.Info(fmt.Sprintf("- Using %s v%s from the shared cache directory", provider.ForDisplay(), version))
+		},
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
+		},
+		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to query available provider packages",
+				fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err),
+			))
+		},
+		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install provider from shared cache",
+				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider.ForDisplay(), version, err),
+			))
+		},
+		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install provider",
+				fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err),
+			))
+		},
 	}
 
-	// With all the providers downloaded, we'll generate our lock file
-	// that ensures the provider binaries remain unchanged until we init
-	// again. If anything changes, other commands that use providers will
-	// fail with an error instructing the user to re-run this command.
-	available = c.providerPluginSet() // re-discover to see newly-installed plugins
-
-	// internal providers were already filtered out, since we don't need to get them.
-	chosen := chooseProviders(available, nil, requirements)
-
-	digests := map[string][]byte{}
-	for name, meta := range chosen {
-		digest, err := meta.SHA256()
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to read provider plugin %s: %s", meta.Path, err))
-			return true, diags
-		}
-		digests[name] = digest
-		if c.ignorePluginChecksum {
-			digests[name] = nil
-		}
+	mode := providercache.InstallNewProvidersOnly
+	if upgrade {
+		mode = providercache.InstallUpgrades
 	}
-	err := c.providerPluginsLock().Write(digests)
+	// TODO: Use a context that will be cancelled when the Terraform
+	// process receives SIGINT.
+	ctx := evts.OnContext(context.TODO())
+	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to save provider manifest: %s", err))
+		// The errors captured in "err" should be redundant with what we
+		// received via the InstallerEvents callbacks above, so we'll
+		// just return those as long as we have some.
+		if !diags.HasErrors() {
+			diags = diags.Append(err)
+		}
 		return true, diags
-	}
-
-	{
-		// Purge any auto-installed plugins that aren't being used.
-		purged, err := c.providerInstaller.PurgeUnused(chosen)
-		if err != nil {
-			// Failure to purge old plugins is not a fatal error
-			c.Ui.Warn(fmt.Sprintf("failed to purge unused plugins: %s", err))
-		}
-		if purged != nil {
-			for meta := range purged {
-				log.Printf("[DEBUG] Purged unused %s plugin %s", meta.Name, meta.Path)
-			}
-		}
 	}
 
 	// If any providers have "floating" versions (completely unconstrained)
 	// we'll suggest the user constrain with a pessimistic constraint to
 	// avoid implicitly adopting a later major release.
-	constraintSuggestions := make(map[string]discovery.ConstraintStr)
-	for name, meta := range chosen {
-		req := requirements[name]
-		if req == nil {
-			// should never happen, but we don't want to crash here, so we'll
-			// be cautious.
-			continue
-		}
+	constraintSuggestions := make(map[string]string)
+	for addr, version := range selected {
+		req := reqs[addr]
 
-		if req.Versions.Unconstrained() && meta.Version != discovery.VersionZero {
-			// meta.Version.MustParse is safe here because our "chosen" metas
-			// were already filtered for validity of versions.
-			constraintSuggestions[name] = meta.Version.MustParse().MinorUpgradeConstraintStr()
+		if len(req) == 0 {
+			constraintSuggestions[addr.ForDisplay()] = "~> " + version.String()
 		}
 	}
 	if len(constraintSuggestions) != 0 {
@@ -624,7 +548,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 
 		c.Ui.Output(outputInitProvidersUnconstrained)
 		for _, name := range names {
-			c.Ui.Output(fmt.Sprintf("* provider.%s: version = %q", name, constraintSuggestions[name]))
+			c.Ui.Output(fmt.Sprintf("* %s: version = %q", name, constraintSuggestions[name]))
 		}
 	}
 
@@ -856,9 +780,8 @@ The following providers do not have any version constraints in configuration,
 so the latest version was installed.
 
 To prevent automatic upgrades to new major versions that may contain breaking
-changes, it is recommended to add version = "..." constraints to the
-corresponding provider blocks in configuration, with the constraint strings
-suggested below.
+changes, we recommend adding version constraints in a required_providers block
+in your configuration, with the constraint strings suggested below.
 `
 
 const errDiscoveryServiceUnreachable = `

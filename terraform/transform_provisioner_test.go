@@ -71,7 +71,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 					Status: states.ObjectReady,
 				},
 				addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("aws"),
+					Provider: addrs.NewDefaultProvider("aws"),
 					Module:   addrs.RootModule,
 				},
 			)
@@ -88,7 +88,7 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 					Status: states.ObjectReady,
 				},
 				addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("aws"),
+					Provider: addrs.NewDefaultProvider("aws"),
 					Module:   addrs.RootModule,
 				},
 			)

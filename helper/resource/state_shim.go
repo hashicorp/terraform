@@ -55,7 +55,7 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 			for key, i := range res.Instances {
 				resState := &terraform.ResourceState{
 					Type:     resType,
-					Provider: res.ProviderConfig.LegacyString(),
+					Provider: legacyProviderConfigString(res.ProviderConfig),
 				}
 
 				// We should always have a Current instance here, but be safe about checking.
@@ -185,4 +185,38 @@ func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, res *schema.R
 	}
 
 	return instanceState.Attributes, nil
+}
+
+func shimLegacyState(legacy *terraform.State) (*states.State, error) {
+	state, err := terraform.ShimLegacyState(legacy)
+	if err != nil {
+		return nil, err
+	}
+
+	if state.HasResources() {
+		for _, module := range state.Modules {
+			for name, resource := range module.Resources {
+				module.Resources[name].ProviderConfig.Provider = addrs.ImpliedProviderForUnqualifiedType(resource.Addr.Resource.ImpliedProvider())
+			}
+		}
+	}
+	return state, err
+}
+
+// legacyProviderConfigString was copied from addrs.Provider.LegacyString() to
+// create a legacy-style string from a non-legacy provider. This is only
+// necessary as this package shims back and forth between legacy and modern
+// state, neither of which encode the addrs.Provider for a resource.
+func legacyProviderConfigString(pc addrs.AbsProviderConfig) string {
+	if pc.Alias != "" {
+		if len(pc.Module) == 0 {
+			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.Type, pc.Alias)
+		} else {
+			return fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString(), pc.Alias)
+		}
+	}
+	if len(pc.Module) == 0 {
+		return fmt.Sprintf("%s.%s", "provider", pc.Provider.Type)
+	}
+	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.Type)
 }

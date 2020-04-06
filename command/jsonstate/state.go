@@ -261,7 +261,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				Address:      r.Addr.Instance(k).String(),
 				Type:         resAddr.Type,
 				Name:         resAddr.Name,
-				ProviderName: r.ProviderConfig.Provider.LegacyString(),
+				ProviderName: r.ProviderConfig.Provider.String(),
 			}
 
 			switch resAddr.Mode {
@@ -291,7 +291,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				current.SchemaVersion = ri.Current.SchemaVersion
 
 				if schema == nil {
-					return nil, fmt.Errorf("no schema found for %s", resAddr.String())
+					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
 				riObj, err := ri.Current.Decode(schema.ImpliedType())
 				if err != nil {

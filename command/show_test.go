@@ -85,7 +85,7 @@ func TestShow_aliasedProvider(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{},
 				DependsOn:    []addrs.Referenceable{},
 			},
-			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewLegacyProvider("test"), "alias"),
+			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewDefaultProvider("test"), "alias"),
 		)
 	})
 
@@ -250,22 +250,22 @@ func TestShow_json_output(t *testing.T) {
 
 			expectError := strings.Contains(entry.Name(), "error")
 
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": []string{"1.2.3"},
+			})
+			defer close()
+
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				ProviderSource:   providerSource,
 			}
 
 			// init
 			ic := &InitCommand{
 				Meta: m,
-				providerInstaller: &mockProviderInstaller{
-					Providers: map[string][]string{
-						"test": []string{"1.2.3"},
-					},
-					Dir: m.pluginDir(),
-				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
 				if expectError {
@@ -347,22 +347,22 @@ func TestShow_json_output_state(t *testing.T) {
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": []string{"1.2.3"},
+			})
+			defer close()
+
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				ProviderSource:   providerSource,
 			}
 
 			// init
 			ic := &InitCommand{
 				Meta: m,
-				providerInstaller: &mockProviderInstaller{
-					Providers: map[string][]string{
-						"test": []string{"1.2.3"},
-					},
-					Dir: m.pluginDir(),
-				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)
@@ -486,7 +486,7 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 			Name: "foo",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 		ChangeSrc: plans.ChangeSrc{

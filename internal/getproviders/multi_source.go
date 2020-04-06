@@ -2,7 +2,6 @@ package getproviders
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -34,19 +33,68 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 		return nil, nil
 	}
 
-	// TODO: Implement
-	panic("MultiSource.AvailableVersions not yet implemented")
+	// We will return the union of all versions reported by the nested
+	// sources that have matching patterns that accept the given provider.
+	vs := make(map[Version]struct{})
+	for _, selector := range s {
+		if !selector.CanHandleProvider(provider) {
+			continue // doesn't match the given patterns
+		}
+		thisSourceVersions, err := selector.Source.AvailableVersions(provider)
+		switch err.(type) {
+		case nil:
+			// okay
+		case ErrProviderNotKnown:
+			continue // ignore, then
+		default:
+			return nil, err
+		}
+		for _, v := range thisSourceVersions {
+			vs[v] = struct{}{}
+		}
+	}
+
+	if len(vs) == 0 {
+		return nil, ErrProviderNotKnown{provider}
+	}
+	ret := make(VersionList, 0, len(vs))
+	for v := range vs {
+		ret = append(ret, v)
+	}
+	ret.Sort()
+
+	return ret, nil
 }
 
-// PackageMeta retrieves the package metadata for the given provider from the
-// first selector that indicates support for it.
+// PackageMeta retrieves the package metadata for the requested provider package
+// from the first selector that indicates availability of it.
 func (s MultiSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	if len(s) == 0 { // Easy case: no providers exist at all
 		return PackageMeta{}, ErrProviderNotKnown{provider}
 	}
 
-	// TODO: Implement
-	panic("MultiSource.PackageMeta not yet implemented")
+	for _, selector := range s {
+		if !selector.CanHandleProvider(provider) {
+			continue // doesn't match the given patterns
+		}
+		meta, err := selector.Source.PackageMeta(provider, version, target)
+		switch err.(type) {
+		case nil:
+			return meta, nil
+		case ErrProviderNotKnown, ErrPlatformNotSupported:
+			continue // ignore, then
+		default:
+			return PackageMeta{}, err
+		}
+	}
+
+	// If we fall out here then none of the sources have the requested
+	// package.
+	return PackageMeta{}, ErrPlatformNotSupported{
+		Provider: provider,
+		Version:  version,
+		Platform: target,
+	}
 }
 
 // MultiSourceSelector is an element of the source selection configuration on
@@ -103,10 +151,10 @@ func ParseMultiSourceMatchingPatterns(strs []string) (MultiSourceMatchingPattern
 			parts = parts[1:]
 		}
 
-		if !validProviderNamePattern.MatchString(parts[1]) {
+		if !validProviderNameOrWildcard(parts[1]) {
 			return nil, fmt.Errorf("invalid provider type %q in provider matching pattern %q: must either be the wildcard * or a provider type name", parts[1], str)
 		}
-		if !validProviderNamePattern.MatchString(parts[0]) {
+		if !validProviderNameOrWildcard(parts[0]) {
 			return nil, fmt.Errorf("invalid registry namespace %q in provider matching pattern %q: must either be the wildcard * or a literal namespace", parts[1], str)
 		}
 
@@ -165,6 +213,12 @@ const Wildcard string = "*"
 // We'll read the default registry host from over in the addrs package, to
 // avoid duplicating it. A "default" provider uses the default registry host
 // by definition.
-var defaultRegistryHost = addrs.NewDefaultProvider("placeholder").Hostname
+var defaultRegistryHost = addrs.DefaultRegistryHost
 
-var validProviderNamePattern = regexp.MustCompile("^[a-zA-Z0-9_-]+|\\*$")
+func validProviderNameOrWildcard(s string) bool {
+	if s == Wildcard {
+		return true
+	}
+	_, err := addrs.ParseProviderPart(s)
+	return err == nil
+}

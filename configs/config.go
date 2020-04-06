@@ -310,10 +310,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
 			provider = providerReq.Type
 		} else {
-			// FIXME: For now we're returning a _legacy_ address as fallback here,
-			// but once we remove legacy addresses this should actually be a
-			// _default_ provider address.
-			provider = addrs.NewLegacyProvider(addr.LocalName)
+			provider = addrs.ImpliedProviderForUnqualifiedType(addr.LocalName)
 		}
 
 		return addrs.AbsProviderConfig{
@@ -330,7 +327,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 
 // ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
 // by checking for the provider in module.ProviderRequirements and falling
-// back to addrs.NewLegacyProvider if it is not found.
+// back to addrs.NewDefaultProvider if it is not found.
 func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
 	if provider, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
 		return provider.Type

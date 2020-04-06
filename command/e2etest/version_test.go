@@ -88,7 +88,7 @@ func TestVersionWithProvider(t *testing.T) {
 			t.Errorf("unexpected stderr output:\n%s", stderr)
 		}
 
-		wantMsg := "+ provider.template v" // we don't know which version we'll get here
+		wantMsg := "+ provider registry.terraform.io/hashicorp/template v" // we don't know which version we'll get here
 		if !strings.Contains(stdout, wantMsg) {
 			t.Errorf("output does not contain provider information %q:\n%s", wantMsg, stdout)
 		}
