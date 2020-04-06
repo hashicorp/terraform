@@ -60,7 +60,7 @@ There are some areas of Terraform which are of special concern to the Terraform 
 
 #### State Storage Backends
 
-The Terraform team is not merging PRs for new state storage backends at the current time. Our priority regarding state storage backends is to find maintainers for existing backends and work towards removal of those without maintainership. 
+The Terraform team is not merging PRs for new state storage backends at the current time. Our priority regarding state storage backends is to find maintainers for existing backends and remove those backends without maintainers.
 
 Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/master/CODEOWNERS) file for the status of a given backend. Community members with an interest in a particular standard backend are welcome to help maintain it.
 
