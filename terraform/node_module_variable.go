@@ -224,7 +224,7 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 		Nodes: []EvalNode{
 			&EvalOpFilter{
 				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
-					walkDestroy},
+					walkDestroy, walkValidate},
 				Node: &EvalModuleCallArgument{
 					Addr:           n.Addr.Variable,
 					Config:         n.Config,

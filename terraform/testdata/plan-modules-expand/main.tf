@@ -20,7 +20,7 @@ module "count_child" {
 module "for_each_child" {
   for_each = aws_instance.foo
   foo = 2
-  bar = var.myvar
+  bar = each.key
   source = "./child"
 }
 

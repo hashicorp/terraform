@@ -144,7 +144,7 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Reference to "count" in non-counted context`,
-				Detail:   fmt.Sprintf(`The "count" object can be used only in "resource" and "data" blocks, and only when the "count" argument is set.`),
+				Detail:   fmt.Sprintf(`The "count" object can only be used in "module", "resource", and "data" blocks, and only when the "count" argument is set.`),
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return cty.UnknownVal(cty.Number), diags
@@ -195,7 +195,7 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to "each" in context without for_each`,
-			Detail:   fmt.Sprintf(`The "each" object can be used only in "resource" blocks, and only when the "for_each" argument is set.`),
+			Detail:   fmt.Sprintf(`The "each" object can be used only in "module" or "resource" blocks, and only when the "for_each" argument is set.`),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.UnknownVal(cty.DynamicPseudoType), diags
