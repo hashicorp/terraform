@@ -17,6 +17,10 @@ import (
 // that can be contained within modules have already been added.
 type ModuleExpansionTransformer struct {
 	Config *configs.Config
+
+	// Concrete allows injection of a wrapped module node by the graph builder
+	// to alter the evaluation behavior.
+	Concrete ConcreteModuleNodeFunc
 }
 
 func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
@@ -36,11 +40,16 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	_, call := c.Path.Call()
 	modCall := c.Parent.Module.ModuleCalls[call.Name]
 
-	v := &nodeExpandModule{
+	n := &nodeExpandModule{
 		Addr:       c.Path,
 		Config:     c.Module,
 		ModuleCall: modCall,
 	}
+	var v dag.Vertex = n
+	if t.Concrete != nil {
+		v = t.Concrete(n)
+	}
+
 	g.Add(v)
 	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, v)
 

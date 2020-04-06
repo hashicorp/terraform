@@ -1518,3 +1518,58 @@ variable "test" {
 		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
 	}
 }
+
+func TestContext2Validate_expandModules(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  for_each = toset(["a", "b"])
+  source = "./mod"
+}
+
+module "mod2" {
+  for_each = module.mod1
+  source = "./mod"
+}
+
+module "mod3" {
+  count = len(module.mod2)
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+
+module "nested" {
+  count = 2
+  source = "./nested"
+  input = 2
+}
+`,
+		"mod/nested/main.tf": `
+variable "input" {
+}
+
+resource "aws_instance" "foo" {
+  count = var.input
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		ProviderResolver: providers.ResolverFixed(
+			map[addrs.Provider]providers.Factory{
+				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
+			},
+		),
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
