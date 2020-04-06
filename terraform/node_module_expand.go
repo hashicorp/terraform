@@ -99,6 +99,23 @@ type nodeCloseModule struct {
 	Addr addrs.Module
 }
 
+var (
+	_ graphNodeModuleCloser  = (*nodeCloseModule)(nil)
+	_ GraphNodeReferenceable = (*nodeCloseModule)(nil)
+)
+
+func (n *nodeCloseModule) ModulePath() addrs.Module {
+	mod, _ := n.Addr.Call()
+	return mod
+}
+
+func (n *nodeCloseModule) ReferenceableAddrs() []addrs.Referenceable {
+	_, call := n.Addr.Call()
+	return []addrs.Referenceable{
+		call,
+	}
+}
+
 func (n *nodeCloseModule) Name() string {
 	if len(n.Addr) == 0 {
 		return "root"
