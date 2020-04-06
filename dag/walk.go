@@ -148,7 +148,6 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
 func (w *Walker) Update(g *AcyclicGraph) {
-	log.Print("[TRACE] dag/walk: updating graph")
 	w.init()
 	v := make(Set)
 	e := make(Set)
@@ -181,7 +180,6 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		w.wait.Add(1)
 
 		// Add to our own set so we know about it already
-		log.Printf("[TRACE] dag/walk: added new vertex: %q", VertexName(v))
 		w.vertices.Add(raw)
 
 		// Initialize the vertex info
@@ -212,8 +210,6 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Delete it out of the map
 		delete(w.vertexMap, v)
-
-		log.Printf("[TRACE] dag/walk: removed vertex: %q", VertexName(v))
 		w.vertices.Delete(raw)
 	}
 
@@ -242,10 +238,6 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-
-		log.Printf(
-			"[TRACE] dag/walk: added edge: %q waiting on %q",
-			VertexName(waiter), VertexName(dep))
 		w.edges.Add(raw)
 	}
 
@@ -266,10 +258,6 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-
-		log.Printf(
-			"[TRACE] dag/walk: removed edge: %q waiting on %q",
-			VertexName(waiter), VertexName(dep))
 		w.edges.Delete(raw)
 	}
 
@@ -309,10 +297,6 @@ func (w *Walker) Update(g *AcyclicGraph) {
 			close(info.depsCancelCh)
 		}
 		info.depsCancelCh = cancelCh
-
-		log.Printf(
-			"[TRACE] dag/walk: dependencies changed for %q, sending new deps",
-			VertexName(v))
 
 		// Start the waiter
 		go w.waitDeps(v, deps, doneCh, cancelCh)
