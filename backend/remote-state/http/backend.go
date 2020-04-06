@@ -97,7 +97,7 @@ func New() backend.Backend {
 type Backend struct {
 	*schema.Backend
 
-	client *httpClient
+	client *RemoteClient
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -157,7 +157,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	rClient.RetryWaitMin = time.Duration(data.Get("retry_wait_min").(int)) * time.Second
 	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
 
-	b.client = &httpClient{
+	b.client = &RemoteClient{
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
 
@@ -166,8 +166,9 @@ func (b *Backend) configure(ctx context.Context) error {
 		UnlockURL:    unlockURL,
 		UnlockMethod: unlockMethod,
 
-		Username: data.Get("username").(string),
-		Password: data.Get("password").(string),
+		UserAgent: "terraform/http-backend",
+		Username:  data.Get("username").(string),
+		Password:  data.Get("password").(string),
 
 		// accessible only for testing use
 		Client: rClient,

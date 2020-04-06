@@ -15,8 +15,8 @@ import (
 )
 
 func TestHTTPClient_impl(t *testing.T) {
-	var _ remote.Client = new(httpClient)
-	var _ remote.ClientLocker = new(httpClient)
+	var _ remote.Client = new(RemoteClient)
+	var _ remote.ClientLocker = new(RemoteClient)
 }
 
 func TestHTTPClient(t *testing.T) {
@@ -30,11 +30,11 @@ func TestHTTPClient(t *testing.T) {
 	}
 
 	// Test basic get/update
-	client := &httpClient{URL: url, Client: retryablehttp.NewClient()}
+	client := &RemoteClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
 
 	// test just a single PUT
-	p := &httpClient{
+	p := &RemoteClient{
 		URL:          url,
 		UpdateMethod: "PUT",
 		Client:       retryablehttp.NewClient(),
@@ -42,7 +42,7 @@ func TestHTTPClient(t *testing.T) {
 	remote.TestClient(t, p)
 
 	// Test locking and alternative UpdateMethod
-	a := &httpClient{
+	a := &RemoteClient{
 		URL:          url,
 		UpdateMethod: "PUT",
 		LockURL:      url,
@@ -51,7 +51,7 @@ func TestHTTPClient(t *testing.T) {
 		UnlockMethod: "UNLOCK",
 		Client:       retryablehttp.NewClient(),
 	}
-	b := &httpClient{
+	b := &RemoteClient{
 		URL:          url,
 		UpdateMethod: "PUT",
 		LockURL:      url,
@@ -68,7 +68,7 @@ func TestHTTPClient(t *testing.T) {
 	defer ts.Close()
 
 	url, err = url.Parse(ts.URL)
-	client = &httpClient{
+	client = &RemoteClient{
 		URL:          url,
 		UpdateMethod: "PUT",
 		Client:       retryablehttp.NewClient(),
@@ -90,7 +90,7 @@ func TestHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %s", err)
 	}
-	client = &httpClient{URL: url, Client: retryablehttp.NewClient()}
+	client = &RemoteClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
 }
 

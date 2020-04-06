@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
-// httpClient is a remote client that stores data in Consul or HTTP REST.
-type httpClient struct {
+// RemoteClient is a remote client that stores data in HTTP REST.
+type RemoteClient struct {
 	// Update & Retrieve
 	URL          *url.URL
 	UpdateMethod string
@@ -29,29 +29,33 @@ type httpClient struct {
 	UnlockMethod string
 
 	// HTTP
-	Client   *retryablehttp.Client
-	Username string
-	Password string
+	Client    *retryablehttp.Client
+	UserAgent string
+	Username  string
+	Password  string
 
 	lockID       string
 	jsonLockInfo []byte
 }
 
-func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
+func (c *RemoteClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
 	// If we have data we need a reader
-	var reader io.Reader = nil
+	var rawBody interface{}
 	if data != nil {
-		reader = bytes.NewReader(*data)
+		rawBody = *data
 	}
 
 	// Create the request
-	req, err := retryablehttp.NewRequest(method, url.String(), reader)
+	req, err := retryablehttp.NewRequest(method, url.String(), rawBody)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
 	// Setup basic auth
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
+	}
+	if c.UserAgent != "" {
+		req.Header.Set("User-Agent", c.UserAgent)
 	}
 
 	// Work with data/body
@@ -74,7 +78,7 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	return resp, nil
 }
 
-func (c *httpClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	if c.LockURL == nil {
 		return "", nil
 	}
@@ -113,7 +117,7 @@ func (c *httpClient) Lock(info *state.LockInfo) (string, error) {
 	}
 }
 
-func (c *httpClient) Unlock(id string) error {
+func (c *RemoteClient) Unlock(id string) error {
 	if c.UnlockURL == nil {
 		return nil
 	}
@@ -132,7 +136,7 @@ func (c *httpClient) Unlock(id string) error {
 	}
 }
 
-func (c *httpClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, error) {
 	resp, err := c.httpRequest("GET", c.URL, nil, "get state")
 	if err != nil {
 		return nil, err
@@ -191,7 +195,7 @@ func (c *httpClient) Get() (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *httpClient) Put(data []byte) error {
+func (c *RemoteClient) Put(data []byte) error {
 	// Copy the target URL
 	base := *c.URL
 
@@ -229,7 +233,7 @@ func (c *httpClient) Put(data []byte) error {
 	}
 }
 
-func (c *httpClient) Delete() error {
+func (c *RemoteClient) Delete() error {
 	// Make the request
 	resp, err := c.httpRequest("DELETE", c.URL, nil, "delete state")
 	if err != nil {

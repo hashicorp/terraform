@@ -20,6 +20,7 @@ import (
 	backendEtcdv2 "github.com/hashicorp/terraform/backend/remote-state/etcdv2"
 	backendEtcdv3 "github.com/hashicorp/terraform/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
+	backendGitLab "github.com/hashicorp/terraform/backend/remote-state/gitlab"
 	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
@@ -62,6 +63,7 @@ func Init(services *disco.Disco) {
 		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
 		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
 		"gcs":         func() backend.Backend { return backendGCS.New() },
+		"gitlab":      func() backend.Backend { return backendGitLab.New() },
 		"http":        func() backend.Backend { return backendHTTP.New() },
 		"inmem":       func() backend.Backend { return backendInmem.New() },
 		"manta":       func() backend.Backend { return backendManta.New() },
