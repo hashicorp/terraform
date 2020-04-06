@@ -365,17 +365,6 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 			key := m.mapKey(path, addr)
 			vertices[key] = append(vertices[key], v)
 		}
-
-		// Any node can be referenced by the address of the module it belongs
-		// to or any of that module's ancestors.
-		for _, addr := range path.Ancestors()[1:] {
-			// Can be referenced either as the specific call instance (with
-			// an instance key) or as the bare module call itself (the "module"
-			// block in the parent module that created the instance).
-			callPath, call := addr.Call()
-			callKey := m.mapKey(callPath, call)
-			vertices[callKey] = append(vertices[callKey], v)
-		}
 	}
 
 	m.vertices = vertices
