@@ -4,6 +4,7 @@ This repository contains only Terraform core, which includes the command line in
 
 ----
 
+**All communication on GitHub, the community forum, and other HashiCorp-provided communication channels is subject to [the HashiCorp community guidelines](https://www.hashicorp.com/community-guidelines).**
 
 This document provides guidance on Terraform contibution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
 
