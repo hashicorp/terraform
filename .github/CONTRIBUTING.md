@@ -38,7 +38,7 @@ As a result of Terraform's complexity and high bar for stability, the most strai
 
 For new contributors we've labeled a few issues with `Good First Issue` as a nod to issues which will help get you familiar with Terraform development, while also providing an onramp to the codebase itself.
 
-Read the documentation, and don't be afraid to ask questions. 
+Read the documentation, and don't be afraid to [ask questions](https://discuss.hashicorp.com/c/terraform-core/27). 
 
 ## Proposing a Change
 
@@ -52,7 +52,7 @@ For large proposals that could entail a significant design phase, we wish to be 
 
 Most changes will involve updates to the test suite, and changes to Terraform's documentation. The Terraform team can advise on different testing strategies for specific scenarios, and may ask you to revise the specific phrasing of your proposed documentation prose to match better with the standard "voice" of Terraform's documentation.
 
-This repository is primarily maintained by a small team at HashiCorp along with their other responsibilities, so unfortunately we cannot always respond promptly to pull requests, particularly if they do not relate to an existing GitHub issue where the Terraform team has already participated. We *are* grateful for all contributions however, and will give feedback on pull requests as soon as we're able.
+This repository is primarily maintained by a small team at HashiCorp along with their other responsibilities, so unfortunately we cannot always respond promptly to pull requests, particularly if they do not relate to an existing GitHub issue where the Terraform team has already participated and indicated willingness to work on the issue or accept PRs for the proposal. We *are* grateful for all contributions however, and will give feedback on pull requests as soon as we're able.
 
 ### Caveats & areas of special concern
 
@@ -92,12 +92,12 @@ If an an unmaintained area of code interests you and you'd like to become a main
 
 ### Pull Request Lifecycle
 
-1. You are welcome to submit your pull request for commentary or review before it is fully completed. Please prefix the title of your pull request with "[WIP]" to indicate this. It's also a good idea to include specific questions or items you'd like feedback on.
-2. Once you believe your pull request is ready to be merged, you can remove any "[WIP]" prefix from the title and a core team member will review.
-3. When time permits Terraform's core team members will look over your contribution and either merge, or provide comments letting you know if there is anything left to do. It may take some time for us to respond. We may also have questions that we need answered about the code, either because something doesn't make sense to us or because we want to understand your thought process. We'd kindly ask that you do not target specific team members. 
+1. You are welcome to submit a [draft pull request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) for commentary or review before it is fully completed. It's also a good idea to include specific questions or items you'd like feedback on.
+2. Once you believe your pull request is ready to be merged you can create your pull request.
+3. When time permits Terraform's core team members will look over your contribution and either merge, or provide comments letting you know if there is anything left to do. It may take some time for us to respond. We may also have questions that we need answered about the code, either because something doesn't make sense to us or because we want to understand your thought process. We kindly ask that you do not target specific team members. 
 4. If we have requested changes, you can either make those changes or, if you disagree with the suggested changes, we can have a conversation about our reasoning and agree on a path forward. This may be a multi-step process. Our view is that pull requests are a chance to collaborate, and we welcome conversations about how to do things better. It is the contributor's responsibility to address any changes requested. While reviewers are happy to give guidance, it is unsustainable for us to perform the coding work necessary to get a PR into a mergeable state.
 5. Once all outstanding comments and checklist items have been addressed, your contribution will be merged! Merged PRs may or may not be included in the next release based on changes the Terraform teams deems as breaking or not. The core team takes care of updating the [CHANGELOG.md](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md) as they merge.
-6. In some cases, we might decide that a PR should be closed without merging. We'll make sure to provide clear reasoning when this happens. Following the above
+6. In some cases, we might decide that a PR should be closed without merging. We'll make sure to provide clear reasoning when this happens. Following the recommended process above is one of the ways to ensure you don't spend time on a PR we can't or won't merge.
 
 #### Getting Your Pull Requests Merged Faster
 
