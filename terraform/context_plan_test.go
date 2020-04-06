@@ -5789,7 +5789,7 @@ resource "aws_instance" "foo" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"child"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
 	state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.IntKey(1))).SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
@@ -5797,18 +5797,16 @@ resource "aws_instance" "foo" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"child"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
 
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 

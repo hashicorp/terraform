@@ -1452,11 +1452,9 @@ resource "aws_instance" "foo" {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[addrs.Provider]providers.Factory{
-				addrs.NewLegacyProvider("aws"): testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := ctx.Validate()

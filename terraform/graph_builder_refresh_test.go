@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
 )
@@ -62,7 +63,7 @@ provider["registry.terraform.io/hashicorp/test"] (close) - *terraform.graphNodeC
   test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
 root - *terraform.nodeCloseModule
-  provider["registry.terraform.io/-/test"] (close) - *terraform.graphNodeCloseProvider
+  provider["registry.terraform.io/hashicorp/test"] (close) - *terraform.graphNodeCloseProvider
 test_object.foo - *terraform.nodeExpandRefreshableManagedResource
   provider["registry.terraform.io/hashicorp/test"] - *terraform.NodeApplyableProvider
 test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
@@ -73,6 +74,6 @@ test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstan
   provider["registry.terraform.io/hashicorp/test"] - *terraform.NodeApplyableProvider
 `)
 	if expected != actual {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s\ndiff:\n%s", actual, expected, cmp.Diff(expected, actual))
 	}
 }
