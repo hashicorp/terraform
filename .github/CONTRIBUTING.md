@@ -130,7 +130,7 @@ The HashiCorp-maintained Terraform providers are also open source but are not in
 
 This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. Those components are not open source, though if you have feedback about them (including bug reports) please do feel free to [open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
 
-------
+---
 
 If you wish to work on the Terraform CLI source code, you'll first need to install the [Go](https://golang.org/) compiler and the version control system [Git](https://git-scm.com/).
 
