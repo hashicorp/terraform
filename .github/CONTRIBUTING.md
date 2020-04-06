@@ -1,16 +1,16 @@
-# Contributing to Terraform 
+# Contributing to Terraform
 
 This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub. Instructions for developing each provider are in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
-----
+---
 
 **All communication on GitHub, the community forum, and other HashiCorp-provided communication channels is subject to [the HashiCorp community guidelines](https://www.hashicorp.com/community-guidelines).**
 
-This document provides guidance on Terraform contibution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
+This document provides guidance on Terraform contribution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
 
 To record a bug report, enhancement proposal, or give any other product feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) using the most appropriate issue template. Please do fill in all of the information the issue templates request, because we've seen from experience that this will maximize the chance that we'll be able to act on your feedback.
 
-----
+---
 
 <!-- MarkdownTOC autolink="true" -->
 
@@ -131,7 +131,7 @@ The HashiCorp-maintained Terraform providers are also open source but are not in
 
 This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. Those components are not open source, though if you have feedback about them (including bug reports) please do feel free to [open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
 
-------
+---
 
 If you wish to work on the Terraform CLI source code, you'll first need to install the [Go](https://golang.org/) compiler and the version control system [Git](https://git-scm.com/).
 
