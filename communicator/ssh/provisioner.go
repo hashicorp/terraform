@@ -303,7 +303,10 @@ func signCertWithPrivateKey(pk string, certificate string) (ssh.AuthMethod, erro
 func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 	// We parse the private key on our own first so that we can
 	// show a nicer error if the private key has a password.
-	block, _ := pem.Decode([]byte(pk))
+	block, err := pem.Decode([]byte(pk))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode ssh private key: %s", err)
+	}
 	if block == nil {
 		return nil, errors.New("Failed to read ssh private key: no key found")
 	}
