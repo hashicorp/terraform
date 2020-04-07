@@ -11,8 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type ConcreteVariableNodeFunc func(n *nodeExpandModuleVariable) dag.Vertex
-
 // nodeExpandModuleVariable is the placeholder for an variable that has not yet had
 // its module path expanded.
 type nodeExpandModuleVariable struct {
@@ -176,15 +174,25 @@ func (n *nodeModuleVariable) EvalTree() EvalNode {
 		Nodes: []EvalNode{
 			&EvalOpFilter{
 				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
-					walkDestroy, walkValidate},
+					walkDestroy},
 				Node: &EvalModuleCallArgument{
 					Addr:           n.Addr.Variable,
 					Config:         n.Config,
 					Expr:           n.Expr,
 					ModuleInstance: n.ModuleInstance,
 					Values:         vals,
+				},
+			},
 
-					IgnoreDiagnostics: false,
+			&EvalOpFilter{
+				Ops: []walkOperation{walkValidate},
+				Node: &EvalModuleCallArgument{
+					Addr:           n.Addr.Variable,
+					Config:         n.Config,
+					Expr:           n.Expr,
+					ModuleInstance: n.ModuleInstance,
+					Values:         vals,
+					validateOnly:   true,
 				},
 			},
 
@@ -197,8 +205,6 @@ func (n *nodeModuleVariable) EvalTree() EvalNode {
 				Addr:   n.Addr,
 				Config: n.Config,
 				Expr:   n.Expr,
-
-				IgnoreDiagnostics: false,
 			},
 		},
 	}

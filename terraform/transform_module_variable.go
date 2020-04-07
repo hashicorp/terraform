@@ -113,7 +113,6 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Config: v,
 			Expr:   expr,
 		}
-
 		g.Add(node)
 	}
 

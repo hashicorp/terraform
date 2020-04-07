@@ -1435,7 +1435,7 @@ resource "aws_instance" "foo" {
 module "nested" {
   count = 2
   source = "./nested"
-  input = 2
+  input = count.index
 }
 `,
 		"mod/nested/main.tf": `
