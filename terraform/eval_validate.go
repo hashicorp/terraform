@@ -539,6 +539,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	}
 }
 
+// FIXME: these should be broken out and shared with modules
 func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expression) tfdiags.Diagnostics {
 	if expr == nil {
 		return nil
@@ -608,10 +609,10 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 }
 
 func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	_, known, forEachDiags := evaluateResourceForEachExpressionKnown(expr, ctx)
+	forEach, forEachDiags := evaluateForEachExpressionKnown(expr, ctx)
 	// If the value isn't known then that's the best we can do for now, but
 	// we'll check more thoroughly during the plan walk
-	if !known {
+	if !forEach.IsKnown() {
 		return diags
 	}
 

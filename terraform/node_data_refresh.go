@@ -65,43 +65,47 @@ func (n *NodeRefreshableDataResource) Path() addrs.ModuleInstance {
 func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var diags tfdiags.Diagnostics
 
-	count, countKnown, countDiags := evaluateResourceCountExpressionKnown(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-	if !countKnown {
-		// If the count isn't known yet, we'll skip refreshing and try expansion
-		// again during the plan walk.
-		return nil, nil
-	}
-
-	forEachMap, forEachKnown, forEachDiags := evaluateResourceForEachExpressionKnown(n.Config.ForEach, ctx)
-	diags = diags.Append(forEachDiags)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-	if !forEachKnown {
-		// If the for_each isn't known yet, we'll skip refreshing and try expansion
-		// again during the plan walk.
-		return nil, nil
-	}
-
-	// Next we need to potentially rename an instance address in the state
-	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
-
 	// Inform our instance expander about our expansion results above,
 	// and then use it to calculate the instance addresses we'll expand for.
 	expander := ctx.InstanceExpander()
+
 	switch {
-	case count >= 0:
-		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
-	case forEachMap != nil:
-		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpressionKnown(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+		if !count.IsKnown() {
+			// If the count isn't known yet, we'll skip refreshing and try expansion
+			// again during the plan walk.
+			return nil, nil
+		}
+
+		expander.SetResourceExpansion(n.Addr.Module, n.Addr.Resource, count)
+
+	case n.Config.ForEach != nil:
+		forEach, forEachDiags := evaluateForEachExpressionKnown(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+		if !forEach.IsKnown() {
+			// If the for_each isn't known yet, we'll skip refreshing and try expansion
+			// again during the plan walk.
+			return nil, nil
+		}
+
+		expander.SetResourceExpansion(n.Addr.Module, n.Addr.Resource, forEach)
+
 	default:
-		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
+		expander.SetResourceExpansion(n.Addr.Module, n.Addr.Resource, cty.NilVal)
 	}
+
+	// We may need to potentially rename an instance address in the state
+	// if we're transitioning whether "count" is set at all.
+	fixResourceCountSetTransition(ctx, n.ResourceAddr(), n.Config.Count != nil)
+
 	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll

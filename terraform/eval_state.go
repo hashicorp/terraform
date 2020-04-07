@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -466,37 +467,30 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	// can refer to it. Since this node represents the abstract module, we need
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return nil, diags.Err()
+		}
 
-	eachMode := states.NoEach
-	if count >= 0 { // -1 signals "count not set"
-		eachMode = states.EachList
-	}
+		state.SetResourceMeta(n.Addr, states.EachList, n.ProviderAddr)
+		expander.SetResourceExpansion(n.Addr.Module, n.Addr.Resource, count)
 
-	forEach, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
-	diags = diags.Append(forEachDiags)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
-	}
+	case n.Config.ForEach != nil:
+		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return nil, diags.Err()
+		}
 
-	if forEach != nil {
-		eachMode = states.EachMap
-	}
-	// This method takes care of all of the business logic of updating this
-	// while ensuring that any existing instances are preserved, etc.
-	state.SetResourceMeta(n.Addr, eachMode, n.ProviderAddr)
+		state.SetResourceMeta(n.Addr, states.EachMap, n.ProviderAddr)
+		expander.SetResourceExpansion(n.Addr.Module, n.Addr.Resource, forEach)
 
-	switch eachMode {
-	case states.EachList:
-		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
-	case states.EachMap:
-		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEach)
 	default:
-		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
+		state.SetResourceMeta(n.Addr, states.NoEach, n.ProviderAddr)
+		expander.SetResourceExpansion(n.Addr.Module, n.Addr.Resource, cty.NilVal)
 	}
 
 	return nil, nil

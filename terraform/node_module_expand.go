@@ -198,18 +198,18 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, diags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
+			count, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-			expander.SetModuleExpansion(module, call, cty.NumberIntVal(int64(count)))
+			expander.SetModuleExpansion(module, call, count)
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, diags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
+			forEach, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-			expander.SetModuleExpansion(module, call, cty.MapVal(forEach))
+			expander.SetModuleExpansion(module, call, forEach)
 
 		default:
 			expander.SetModuleExpansion(module, call, cty.NilVal)
@@ -249,35 +249,18 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 		ctx = ctx.WithPath(module)
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, known, diags := evaluateResourceCountExpressionKnown(n.ModuleCall.Count, ctx)
+			count, diags := evaluateCountExpressionKnown(n.ModuleCall.Count, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-			ct := cty.NumberIntVal(int64(count))
-			if !known {
-				ct = cty.UnknownVal(cty.Number)
-			}
-
-			expander.SetModuleExpansion(module, call, ct)
+			expander.SetModuleExpansion(module, call, count)
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, known, diags := evaluateResourceForEachExpressionKnown(n.ModuleCall.ForEach, ctx)
+			forEach, diags := evaluateForEachExpressionKnown(n.ModuleCall.ForEach, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-
-			m := cty.MapValEmpty(cty.DynamicPseudoType)
-
-			switch {
-			case len(forEach) > 0:
-				// we need to check the forEach length first, because we can't
-				// create an empty map with no value type
-				m = cty.MapVal(forEach)
-			case !known:
-				m = cty.UnknownVal(cty.Map(cty.DynamicPseudoType))
-			}
-
-			expander.SetModuleExpansion(module, call, m)
+			expander.SetModuleExpansion(module, call, forEach)
 
 		default:
 			expander.SetModuleExpansion(module, call, cty.NilVal)
