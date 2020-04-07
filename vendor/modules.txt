@@ -22,7 +22,7 @@ github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/azure
 # github.com/Azure/go-autorest/autorest/adal v0.8.2
 github.com/Azure/go-autorest/autorest/adal
-# github.com/Azure/go-autorest/autorest/azure/cli v0.2.0
+# github.com/Azure/go-autorest/autorest/azure/cli v0.3.0
 github.com/Azure/go-autorest/autorest/azure/cli
 # github.com/Azure/go-autorest/autorest/date v0.2.0
 ## explicit
@@ -564,6 +564,8 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813
 ## explicit
 github.com/tencentyun/cos-go-sdk-v5
 # github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6
+## explicit
+# github.com/tombuildsstuff/giovanni v0.10.0
 ## explicit
 # github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5
 ## explicit
