@@ -11,9 +11,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// NodePlannableModuleVariable is the placeholder for an variable that has not yet had
+type ConcreteVariableNodeFunc func(n *nodeExpandModuleVariable) dag.Vertex
+
+// nodeExpandModuleVariable is the placeholder for an variable that has not yet had
 // its module path expanded.
-type NodePlannableModuleVariable struct {
+type nodeExpandModuleVariable struct {
 	Addr   addrs.InputVariable
 	Module addrs.Module
 	Config *configs.Variable
@@ -21,23 +23,23 @@ type NodePlannableModuleVariable struct {
 }
 
 var (
-	_ GraphNodeDynamicExpandable = (*NodePlannableModuleVariable)(nil)
-	_ GraphNodeReferenceOutside  = (*NodePlannableModuleVariable)(nil)
-	_ GraphNodeReferenceable     = (*NodePlannableModuleVariable)(nil)
-	_ GraphNodeReferencer        = (*NodePlannableModuleVariable)(nil)
-	_ graphNodeTemporaryValue    = (*NodePlannableModuleVariable)(nil)
-	_ RemovableIfNotTargeted     = (*NodePlannableModuleVariable)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandModuleVariable)(nil)
+	_ GraphNodeReferenceOutside  = (*nodeExpandModuleVariable)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandModuleVariable)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandModuleVariable)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandModuleVariable)(nil)
+	_ RemovableIfNotTargeted     = (*nodeExpandModuleVariable)(nil)
 )
 
-func (n *NodePlannableModuleVariable) temporaryValue() bool {
+func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true
 }
 
-func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
-		o := &NodeApplyableModuleVariable{
+		o := &nodeModuleVariable{
 			Addr:           n.Addr.Absolute(module),
 			Config:         n.Config,
 			Expr:           n.Expr,
@@ -48,17 +50,17 @@ func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, er
 	return &g, nil
 }
 
-func (n *NodePlannableModuleVariable) Name() string {
+func (n *nodeExpandModuleVariable) Name() string {
 	return fmt.Sprintf("%s.%s", n.Module, n.Addr.String())
 }
 
 // GraphNodeModulePath
-func (n *NodePlannableModuleVariable) ModulePath() addrs.Module {
+func (n *nodeExpandModuleVariable) ModulePath() addrs.Module {
 	return n.Module
 }
 
 // GraphNodeReferencer
-func (n *NodePlannableModuleVariable) References() []*addrs.Reference {
+func (n *nodeExpandModuleVariable) References() []*addrs.Reference {
 
 	// If we have no value expression, we cannot depend on anything.
 	if n.Expr == nil {
@@ -86,12 +88,12 @@ func (n *NodePlannableModuleVariable) References() []*addrs.Reference {
 }
 
 // GraphNodeReferenceOutside implementation
-func (n *NodePlannableModuleVariable) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+func (n *nodeExpandModuleVariable) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	return n.Module, n.Module.Parent()
 }
 
 // GraphNodeReferenceable
-func (n *NodePlannableModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
+func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
 	// FIXME: References for module variables probably need to be thought out a bit more
 	// Otherwise, we can reference the output via the address itself, or the
 	// module call
@@ -100,18 +102,18 @@ func (n *NodePlannableModuleVariable) ReferenceableAddrs() []addrs.Referenceable
 }
 
 // RemovableIfNotTargeted
-func (n *NodePlannableModuleVariable) RemoveIfNotTargeted() bool {
+func (n *nodeExpandModuleVariable) RemoveIfNotTargeted() bool {
 	return true
 }
 
 // GraphNodeTargetDownstream
-func (n *NodePlannableModuleVariable) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
+func (n *nodeExpandModuleVariable) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
 	return true
 }
 
-// NodeApplyableModuleVariable represents a module variable input during
+// nodeModuleVariable represents a module variable input during
 // the apply step.
-type NodeApplyableModuleVariable struct {
+type nodeModuleVariable struct {
 	Addr   addrs.AbsInputVariableInstance
 	Config *configs.Variable // Config is the var in the config
 	Expr   hcl.Expression    // Expr is the value expression given in the call
@@ -123,92 +125,42 @@ type NodeApplyableModuleVariable struct {
 // Ensure that we are implementing all of the interfaces we think we are
 // implementing.
 var (
-	_ GraphNodeModuleInstance   = (*NodeApplyableModuleVariable)(nil)
-	_ RemovableIfNotTargeted    = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeReferenceOutside = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeReferenceable    = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeReferencer       = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeEvalable         = (*NodeApplyableModuleVariable)(nil)
-	_ graphNodeTemporaryValue   = (*NodeApplyableModuleVariable)(nil)
-	_ dag.GraphNodeDotter       = (*NodeApplyableModuleVariable)(nil)
+	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
+	_ RemovableIfNotTargeted  = (*nodeModuleVariable)(nil)
+	_ GraphNodeEvalable       = (*nodeModuleVariable)(nil)
+	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
+	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
 )
 
-func (n *NodeApplyableModuleVariable) temporaryValue() bool {
+func (n *nodeModuleVariable) temporaryValue() bool {
 	return true
 }
 
-func (n *NodeApplyableModuleVariable) Name() string {
+func (n *nodeModuleVariable) Name() string {
 	return n.Addr.String()
 }
 
 // GraphNodeModuleInstance
-func (n *NodeApplyableModuleVariable) Path() addrs.ModuleInstance {
+func (n *nodeModuleVariable) Path() addrs.ModuleInstance {
 	// We execute in the parent scope (above our own module) because
 	// expressions in our value are resolved in that context.
 	return n.Addr.Module.Parent()
 }
 
 // GraphNodeModulePath
-func (n *NodeApplyableModuleVariable) ModulePath() addrs.Module {
+func (n *nodeModuleVariable) ModulePath() addrs.Module {
 	return n.Addr.Module.Parent().Module()
 }
 
 // RemovableIfNotTargeted
-func (n *NodeApplyableModuleVariable) RemoveIfNotTargeted() bool {
+func (n *nodeModuleVariable) RemoveIfNotTargeted() bool {
 	// We need to add this so that this node will be removed if
 	// it isn't targeted or a dependency of a target.
 	return true
 }
 
-// GraphNodeReferenceOutside implementation
-func (n *NodeApplyableModuleVariable) ReferenceOutside() (selfPath, referencePath addrs.Module) {
-
-	// Module input variables have their value expressions defined in the
-	// context of their calling (parent) module, and so references from
-	// a node of this type should be resolved in the parent module instance.
-	referencePath = n.Addr.Module.Parent().Module()
-
-	// Input variables are _referenced_ from their own module, though.
-	selfPath = n.Addr.Module.Module()
-
-	return // uses named return values
-}
-
-// GraphNodeReferenceable
-func (n *NodeApplyableModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
-	return []addrs.Referenceable{n.Addr.Variable}
-}
-
-// GraphNodeReferencer
-func (n *NodeApplyableModuleVariable) References() []*addrs.Reference {
-
-	// If we have no value expression, we cannot depend on anything.
-	if n.Expr == nil {
-		return nil
-	}
-
-	// Variables in the root don't depend on anything, because their values
-	// are gathered prior to the graph walk and recorded in the context.
-	if len(n.Addr.Module) == 0 {
-		return nil
-	}
-
-	// Otherwise, we depend on anything referenced by our value expression.
-	// We ignore diagnostics here under the assumption that we'll re-eval
-	// all these things later and catch them then; for our purposes here,
-	// we only care about valid references.
-	//
-	// Due to our GraphNodeReferenceOutside implementation, the addresses
-	// returned by this function are interpreted in the _parent_ module from
-	// where our associated variable was declared, which is correct because
-	// our value expression is assigned within a "module" block in the parent
-	// module.
-	refs, _ := lang.ReferencesInExpr(n.Expr)
-	return refs
-}
-
 // GraphNodeEvalable
-func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
+func (n *nodeModuleVariable) EvalTree() EvalNode {
 	// If we have no value, do nothing
 	if n.Expr == nil {
 		return &EvalNoop{}
@@ -253,7 +205,7 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 }
 
 // dag.GraphNodeDotter impl.
-func (n *NodeApplyableModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 	return &dag.DotNode{
 		Name: name,
 		Attrs: map[string]string{

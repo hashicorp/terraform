@@ -15,7 +15,6 @@ type NodeRootVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable  = (*NodeRootVariable)(nil)
-	_ dag.GraphNodeDotter     = (*NodeApplyableModuleVariable)(nil)
 )
 
 func (n *NodeRootVariable) Name() string {
