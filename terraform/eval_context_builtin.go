@@ -34,7 +34,7 @@ type BuiltinEvalContext struct {
 
 	// pathSet indicates that this context was explicitly created for a
 	// specific path, and can be safely used for evaluation. This lets us
-	// differentiate between Pathvalue being unset, and the zero value which is
+	// differentiate between PathValue being unset, and the zero value which is
 	// equivalent to RootModuleInstance.  Path and Evaluation methods will
 	// panic if this is not set.
 	pathSet bool

@@ -38,9 +38,10 @@ func (n *NodePlannableModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, er
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
 		o := &NodeApplyableModuleVariable{
-			Addr:   n.Addr.Absolute(module),
-			Config: n.Config,
-			Expr:   n.Expr,
+			Addr:           n.Addr.Absolute(module),
+			Config:         n.Config,
+			Expr:           n.Expr,
+			ModuleInstance: module,
 		}
 		g.Add(o)
 	}
@@ -114,6 +115,9 @@ type NodeApplyableModuleVariable struct {
 	Addr   addrs.AbsInputVariableInstance
 	Config *configs.Variable // Config is the var in the config
 	Expr   hcl.Expression    // Expr is the value expression given in the call
+	// ModuleInstance in order to create the appropriate context for evaluating
+	// ModuleCallArguments, ex. so count.index and each.key can resolve
+	ModuleInstance addrs.ModuleInstance
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -222,10 +226,11 @@ func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
 				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
 					walkDestroy, walkValidate},
 				Node: &EvalModuleCallArgument{
-					Addr:   n.Addr.Variable,
-					Config: n.Config,
-					Expr:   n.Expr,
-					Values: vals,
+					Addr:           n.Addr.Variable,
+					Config:         n.Config,
+					Expr:           n.Expr,
+					ModuleInstance: n.ModuleInstance,
+					Values:         vals,
 
 					IgnoreDiagnostics: false,
 				},

@@ -10,10 +10,9 @@ variable "myvar" {
   default = "baz"
 }
 
-
 module "count_child" {
   count = local.val
-  foo = 2
+  foo = count.index
   bar = var.myvar
   source = "./child"
 }
@@ -21,7 +20,7 @@ module "count_child" {
 module "for_each_child" {
   for_each = aws_instance.foo
   foo = 2
-  bar = var.myvar
+  bar = each.key
   source = "./child"
 }
 
