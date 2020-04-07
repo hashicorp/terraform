@@ -68,32 +68,6 @@ func (e *Expander) SetResourceExpansion(moduleAddr addrs.ModuleInstance, resourc
 	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(exp))
 }
 
-// SetResourceSingle records that the given resource inside the given module
-// does not use any repetition arguments and is therefore a singleton.
-func (e *Expander) SetResourceSingle(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource) {
-	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(cty.NilVal))
-}
-
-// SetResourceCount records that the given resource inside the given module
-// uses the "count" repetition argument, with the given value.
-func (e *Expander) SetResourceCount(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, count int) {
-	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(cty.NumberIntVal(int64(count))))
-}
-
-// SetResourceForEach records that the given resource inside the given module
-// uses the "for_each" repetition argument, with the given map value.
-//
-// In the configuration language the for_each argument can also accept a set.
-// It's the caller's responsibility to convert that into an identity map before
-// calling this method.
-func (e *Expander) SetResourceForEach(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, mapping map[string]cty.Value) {
-	m := cty.MapValEmpty(cty.DynamicPseudoType)
-	if len(mapping) > 0 {
-		m = cty.MapVal(mapping)
-	}
-	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(m))
-}
-
 // ExpandModule finds the exhaustive set of module instances resulting from
 // the expansion of the given module and all of its ancestor modules.
 //
