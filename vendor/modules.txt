@@ -567,6 +567,11 @@ github.com/tencentyun/cos-go-sdk-v5
 ## explicit
 # github.com/tombuildsstuff/giovanni v0.10.0
 ## explicit
+github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs
+github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers
+github.com/tombuildsstuff/giovanni/storage/internal/endpoints
+github.com/tombuildsstuff/giovanni/storage/internal/metadata
+github.com/tombuildsstuff/giovanni/version
 # github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5
 ## explicit
 github.com/ugorji/go/codec
