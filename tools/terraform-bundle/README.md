@@ -59,19 +59,26 @@ terraform {
 # Define which provider plugins are to be included
 providers {
   # Include the newest "aws" provider version in the 1.0 series.
-  aws = ["~> 1.0"]
+  aws = {
+    versions = ["~> 1.0"]
+  }
 
   # Include both the newest 1.0 and 2.0 versions of the "google" provider.
   # Each item in these lists allows a distinct version to be added. If the
   # two expressions match different versions then _both_ are included in
   # the bundle archive.
-  google = ["~> 1.0", "~> 2.0"]
+  google = {
+    versions = ["~> 1.0", "~> 2.0"]
+  }
 
   # Include a custom plugin to the bundle. Will search for the plugin in the
-  # plugins directory, and package it with the bundle archive. Plugin must have
-  # a name of the form: terraform-provider-*, and must be build with the operating
-  # system and architecture that terraform enterprise is running, e.g. linux and amd64
-  customplugin = ["0.1"]
+  # plugins directory and package it with the bundle archive. Plugin must have
+  # a name of the form: terraform-provider-*, and must be built with the operating
+  # system and architecture that terraform enterprise is running, e.g. linux and amd64.
+  customplugin = {
+    versions = ["0.1"]
+    source = "myorg/customplugin"
+  }
 }
 
 ```
@@ -80,10 +87,10 @@ The `terraform` block defines which version of Terraform will be included
 in the bundle. An exact version is required here.
 
 The `providers` block defines zero or more providers to include in the bundle
-along with core Terraform. Each attribute in this block is a provider name,
-and its value is a list of version constraints. For each given constraint,
-`terraform-bundle` will find the newest available version matching the
-constraint and include it in the bundle.
+along with core Terraform. Each attribute is a provider name, and its value is a
+blick with the list of version constraints and (optional) source. For each given
+constraint, `terraform-bundle` will find the newest available version matching
+the constraint and include it in the bundle.
 
 It is allowed to specify multiple constraints for the same provider, in which
 case multiple versions can be included in the resulting bundle. Each constraint
@@ -119,13 +126,39 @@ this composite version number so that bundle archives can be easily
 distinguished from official release archives and from each other when multiple
 bundles contain the same core Terraform version.
 
-To include custom plugins in the bundle file, create a local directory "./plugins"
-and put all the plugins you want to include there. Optionally, you can use the
-`-plugin-dir` flag to specify a location where to find the plugins. To be recognized
-as a valid plugin, the file must have a name of the form
-`terraform-provider-<NAME>_v<VERSION>`. In
+
+## Custom Plugins
+To include custom plugins in the bundle file, create a local directory
+"./plugins" and put all the plugins you want to include there, under the required [sub directory](#plugins-directory-layout). Optionally, you can use the `-plugin-dir` flag to specify a
+location where to find the plugins. To be recognized as a valid plugin, the file
+must have a name of the form `terraform-provider-<NAME>_v<VERSION>`. In
 addition, ensure that the plugin is built using the same operating system and
-architecture used for Terraform Enterprise. Typically this will be `linux` and `amd64`.
+architecture used for Terraform Enterprise. Typically this will be `linux` and
+`amd64`.
+
+### Plugins Directory Layout
+To include custom plugins in the bundle file, you must specify a "source" attribute in the config and place the plugin in the appropriate subdirectory under "./plugins"
+
+```
+./plugins/$sourcehost/$sourcenamespace/$name/$version/$os_$arch/
+```
+
+
+Given this custom provider from an earlier example:
+
+```
+  customplugin = {
+    versions = ["0.1"]
+    source = "example.com/myorg/customplugin"
+  }
+```
+
+The binary must be placed in the following directory (replace $OS_$ARCH with
+your target platform):
+
+```
+./plugins/example.com/myorg/customplugin/0.1/$OS_$ARCH/
+```
 
 ## Provider Resolution Behavior
 

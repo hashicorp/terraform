@@ -2,83 +2,34 @@ package main
 
 import (
 	"archive/zip"
+	"context"
+	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"flag"
-
-	"io"
-
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/providercache"
 	discovery "github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
 var releaseHost = "https://releases.hashicorp.com"
 
+var pluginDir = "./plugins"
+
 type PackageCommand struct {
 	ui cli.Ui
-}
-
-// shameless stackoverflow copy + pasta https://stackoverflow.com/questions/21060945/simple-way-to-copy-a-file-in-golang
-func CopyFile(src, dst string) (err error) {
-	sfi, err := os.Stat(src)
-	if err != nil {
-		return
-	}
-	if !sfi.Mode().IsRegular() {
-		// cannot copy non-regular files (e.g., directories,
-		// symlinks, devices, etc.)
-		return fmt.Errorf("CopyFile: non-regular source file %s (%q)", sfi.Name(), sfi.Mode().String())
-	}
-	dfi, err := os.Stat(dst)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return
-		}
-	} else {
-		if !(dfi.Mode().IsRegular()) {
-			return fmt.Errorf("CopyFile: non-regular destination file %s (%q)", dfi.Name(), dfi.Mode().String())
-		}
-		if os.SameFile(sfi, dfi) {
-			return
-		}
-	}
-	if err = os.Link(src, dst); err == nil {
-		return
-	}
-	err = copyFileContents(src, dst)
-	os.Chmod(dst, sfi.Mode())
-	return
-}
-
-// see above
-func copyFileContents(src, dst string) (err error) {
-	in, err := os.Open(src)
-	if err != nil {
-		return
-	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return
-	}
-	defer func() {
-		cerr := out.Close()
-		if err == nil {
-			err = cerr
-		}
-	}()
-	if _, err = io.Copy(out, in); err != nil {
-		return
-	}
-	err = out.Sync()
-	return
 }
 
 func (c *PackageCommand) Run(args []string) int {
@@ -94,7 +45,6 @@ func (c *PackageCommand) Run(args []string) int {
 
 	osName := runtime.GOOS
 	archName := runtime.GOARCH
-	pluginDir := "./plugins"
 	if *osPtr != "" {
 		osName = *osPtr
 	}
@@ -117,11 +67,6 @@ func (c *PackageCommand) Run(args []string) int {
 		return 1
 	}
 
-	if discovery.ConstraintStr("< 0.10.0-beta1").MustParse().Allows(config.Terraform.Version.MustParse()) {
-		c.ui.Error("Bundles can be created only for Terraform 0.10 or newer")
-		return 1
-	}
-
 	workDir, err := ioutil.TempDir("", "terraform-bundle")
 	if err != nil {
 		c.ui.Error(fmt.Sprintf("Could not create temporary dir: %s", err))
@@ -133,69 +78,57 @@ func (c *PackageCommand) Run(args []string) int {
 
 	coreZipURL := c.coreURL(config.Terraform.Version, osName, archName)
 	err = getter.Get(workDir, coreZipURL)
-
 	if err != nil {
 		c.ui.Error(fmt.Sprintf("Failed to fetch core package from %s: %s", coreZipURL, err))
 		return 1
 	}
 
-	c.ui.Info(fmt.Sprintf("Fetching 3rd party plugins in directory: %s", pluginDir))
-	dirs := []string{pluginDir} //FindPlugins requires an array
-	localPlugins := discovery.FindPlugins("provider", dirs)
-	for k, _ := range localPlugins {
-		c.ui.Info(fmt.Sprintf("plugin: %s (%s)", k.Name, k.Version))
+	// get the list of required providers from the config
+	reqs := make(map[addrs.Provider][]string)
+	for name, provider := range config.Providers {
+		var fqn addrs.Provider
+		var diags tfdiags.Diagnostics
+		if provider.Source != "" {
+			fqn, diags = addrs.ParseProviderSourceString(provider.Source)
+			if diags.HasErrors() {
+				c.ui.Error(fmt.Sprintf("Invalid provider source string: %s", provider.Source))
+				return 1
+			}
+		} else {
+			fqn = addrs.NewDefaultProvider(name)
+		}
+		reqs[fqn] = provider.Versions
 	}
-	installer := &discovery.ProviderInstaller{
-		Dir: workDir,
 
-		// FIXME: This is incorrect because it uses the protocol version of
-		// this tool, rather than of the Terraform binary we just downloaded.
-		// But we can't get this information from a Terraform binary, so
-		// we'll just ignore this for now and use the same plugin installer
-		// protocol version for terraform-bundle as the terraform shipped
-		// with this release.
-		//
-		// NOTE: To target older versions of terraform, use the terraform-bundle
-		// from the same tag.
-		PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
-
+	// set up the provider installer
+	platform := getproviders.Platform{
 		OS:   osName,
 		Arch: archName,
-		Ui:   c.ui,
+	}
+	installdir := providercache.NewDirWithPlatform(filepath.Join(workDir, "plugins"), platform)
+	services := disco.New()
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+	var sources []getproviders.MultiSourceSelector
+	sources = append(sources, getproviders.MultiSourceSelector{
+		Source: getproviders.NewMemoizeSource(getproviders.NewRegistrySource(services)),
+	})
+
+	// if the local .plugins directory exists, include it as a potential source
+	if _, err := os.Stat(pluginDir); err == nil {
+		sources = append(sources, getproviders.MultiSourceSelector{
+			Source: getproviders.NewFilesystemMirrorSource(pluginDir),
+		})
 	}
 
-	for name, constraintStrs := range config.Providers {
-		for _, constraintStr := range constraintStrs {
-			c.ui.Output(fmt.Sprintf("- Resolving %q provider (%s)...",
-				name, constraintStr))
-			foundPlugins := discovery.PluginMetaSet{}
-			constraint := constraintStr.MustParse()
-			for plugin, _ := range localPlugins {
-				if plugin.Name == name && constraint.Allows(plugin.Version.MustParse()) {
-					foundPlugins.Add(plugin)
-				}
-			}
-
-			if len(foundPlugins) > 0 {
-				plugin := foundPlugins.Newest()
-				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Name+"_v"+plugin.Version.MustParse().String()) //put into temp dir
-			} else { //attempt to get from the public registry if not found locally
-				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
-					releaseHost))
-				_, _, err := installer.Get(addrs.NewLegacyProvider(name), constraint)
-				if err != nil {
-					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
-					return 1
-				}
-			}
-		}
-	}
-
-	files, err := ioutil.ReadDir(workDir)
+	installer := providercache.NewInstaller(installdir, getproviders.MultiSource(sources))
+	err = c.ensureProviderVersions(installer, reqs)
 	if err != nil {
-		c.ui.Error(fmt.Sprintf("Failed to read work directory %s: %s", workDir, err))
+		c.ui.Error(err.Error())
 		return 1
 	}
+
+	// remove the selections.json file created by the provider installer
+	os.Remove(filepath.Join(workDir, "plugins", "selections.json"))
 
 	// If we get this far then our workDir now contains the union of the
 	// contents of all the zip files we downloaded above. We can now create
@@ -221,36 +154,41 @@ func (c *PackageCommand) Run(args []string) int {
 		}
 	}()
 
-	for _, file := range files {
-		if file.IsDir() {
-			// should never happen unless something tampers with our tmpdir
-			continue
-		}
+	// recursively walk the workDir to get a list of all binary filepaths
+	err = filepath.Walk(workDir,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			fn := info.Name()
 
-		fn := filepath.Join(workDir, file.Name())
-		r, err := os.Open(fn)
-		if err != nil {
-			c.ui.Error(fmt.Sprintf("Failed to open %s: %s", fn, err))
-			return 1
-		}
-		hdr, err := zip.FileInfoHeader(file)
-		if err != nil {
-			c.ui.Error(fmt.Sprintf("Failed to add zip entry for %s: %s", fn, err))
-			return 1
-		}
-		hdr.Method = zip.Deflate // be sure to compress files
-		w, err := outZ.CreateHeader(hdr)
-		if err != nil {
-			c.ui.Error(fmt.Sprintf("Failed to add zip entry for %s: %s", fn, err))
-			return 1
-		}
-		_, err = io.Copy(w, r)
-		if err != nil {
-			c.ui.Error(fmt.Sprintf("Failed to write %s to bundle: %s", fn, err))
-			return 1
-		}
+			// provider plugins need to be created in the same relative directory structure
+			absPath, _ := filepath.Abs(path)
+			relPath, _ := filepath.Rel(workDir, absPath)
+			relZip, err := outZ.Create(relPath)
+
+			if err != nil {
+				return fmt.Errorf("Failed to add zip entry for %s: %s", fn, err)
+			}
+
+			r, err := os.Open(path)
+			if err != nil {
+				return fmt.Errorf("Failed to open %s: %s", fn, err)
+			}
+			_, err = io.Copy(relZip, r)
+			if err != nil {
+				return fmt.Errorf("Failed to write %s to bundle: %s", fn, err)
+			}
+			return nil
+		})
+
+	if err != nil {
+		c.ui.Error(err.Error())
+		return 1
 	}
-
 	c.ui.Info("All done!")
 
 	return 0
@@ -306,26 +244,81 @@ not a normal Terraform configuration file. The file format looks like this:
   terraform {
     # Version of Terraform to include in the bundle. An exact version number
 	# is required.
-    version = "0.10.0"
+    version = "0.13.0"
   }
 
   # Define which provider plugins are to be included
   providers {
     # Include the newest "aws" provider version in the 1.0 series.
-    aws = ["~> 1.0"]
+    aws = {
+		versions = ["~> 1.0"]
+	}
 
     # Include both the newest 1.0 and 2.0 versions of the "google" provider.
     # Each item in these lists allows a distinct version to be added. If the
 	# two expressions match different versions then _both_ are included in
 	# the bundle archive.
-	google = ["~> 1.0", "~> 2.0"]
-	
-	#Include a custom plugin to the bundle. Will search for the plugin in the 
-	#plugins directory, and package it with the bundle archive. Plugin must have
-	#a name of the form: terraform-provider-*-v*, and must be built with the operating
-	#system and architecture that terraform enterprise is running, e.g. linux and amd64
-	customplugin = ["0.1"]
+	google = {
+		versions = ["~> 1.0", "~> 2.0"]
+	}
+
+	# Include a custom plugin to the bundle. Will search for the plugin in the 
+	# plugins directory, and package it with the bundle archive. Plugin must have
+	# a name of the form: terraform-provider-*-v*, and must be built with the operating
+	# system and architecture that terraform enterprise is running, e.g. linux and amd64.
+	# See the README on GitHub for more information on the source attribute and
+	# plugin directory layout.
+	customplugin = {
+		versions = ["0.1"]
+		source = "example.com/myorg/customplugin"
+	}
   }
 
 `
+}
+
+// ensureProviderVersions is a wrapper around
+// providercache.EnsureProviderVersions which allows installing multiple
+// versions of a given provider.
+func (c *PackageCommand) ensureProviderVersions(installer *providercache.Installer, reqs map[addrs.Provider][]string) error {
+	mode := providercache.InstallNewProvidersOnly
+	evts := &providercache.InstallerEvents{
+		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
+			c.ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider.ForDisplay(), selectedVersion))
+		},
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+			if len(versionConstraints) > 0 {
+				c.ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+			} else {
+				c.ui.Info(fmt.Sprintf("- Finding latest version of %s...", provider.ForDisplay()))
+			}
+		},
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			c.ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
+		},
+		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			c.ui.Error(fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err))
+		},
+		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			c.ui.Error(fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err))
+		},
+	}
+
+	ctx := evts.OnContext(context.TODO())
+	for provider, versions := range reqs {
+		for _, constraint := range versions {
+			req := make(getproviders.Requirements, 1)
+			cstr, err := getproviders.ParseVersionConstraints(constraint)
+			if err != nil {
+				return err
+			}
+			req[provider] = cstr
+			_, err = installer.EnsureProviderVersions(ctx, req, mode)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

@@ -55,13 +55,13 @@ func NewDir(baseDir string) *Dir {
 	}
 }
 
-// newDirWithPlatform is a variant of NewDir that allows selecting a specific
+// NewDirWithPlatform is a variant of NewDir that allows selecting a specific
 // target platform, rather than taking the current one where this code is
 // running.
 //
 // This is primarily intended for portable unit testing and not particularly
-// useful in "real" callers.
-func newDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
+// useful in "real" callers, with the exception of terraform-bundle.
+func NewDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
 	return &Dir{
 		baseDir:        baseDir,
 		targetPlatform: platform,
