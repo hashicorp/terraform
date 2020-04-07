@@ -2,20 +2,25 @@ package main
 
 import (
 	"archive/zip"
+	"context"
+	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"flag"
-
-	"io"
-
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/providercache"
 	discovery "github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -117,11 +122,6 @@ func (c *PackageCommand) Run(args []string) int {
 		return 1
 	}
 
-	if discovery.ConstraintStr("< 0.10.0-beta1").MustParse().Allows(config.Terraform.Version.MustParse()) {
-		c.ui.Error("Bundles can be created only for Terraform 0.10 or newer")
-		return 1
-	}
-
 	workDir, err := ioutil.TempDir("", "terraform-bundle")
 	if err != nil {
 		c.ui.Error(fmt.Sprintf("Could not create temporary dir: %s", err))
@@ -139,56 +139,72 @@ func (c *PackageCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.ui.Info(fmt.Sprintf("Fetching 3rd party plugins in directory: %s", pluginDir))
-	dirs := []string{pluginDir} //FindPlugins requires an array
-	localPlugins := discovery.FindPlugins("provider", dirs)
-	for k, _ := range localPlugins {
-		c.ui.Info(fmt.Sprintf("plugin: %s (%s)", k.Name, k.Version))
+	// get the list of required providers from the config
+	reqs := make(map[addrs.Provider][]string)
+	for name, provider := range config.Providers {
+		var fqn addrs.Provider
+		var diags tfdiags.Diagnostics
+		if provider.Source != "" {
+			fqn, diags = addrs.ParseProviderSourceString(provider.Source)
+			if diags.HasErrors() {
+				c.ui.Error(fmt.Sprintf("Invalid provider source string: %s", provider.Source))
+				return 1
+			}
+		} else {
+			fqn = addrs.NewDefaultProvider(name)
+		}
+		reqs[fqn] = provider.Versions
 	}
-	installer := &discovery.ProviderInstaller{
-		Dir: workDir,
 
-		// FIXME: This is incorrect because it uses the protocol version of
-		// this tool, rather than of the Terraform binary we just downloaded.
-		// But we can't get this information from a Terraform binary, so
-		// we'll just ignore this for now and use the same plugin installer
-		// protocol version for terraform-bundle as the terraform shipped
-		// with this release.
-		//
-		// NOTE: To target older versions of terraform, use the terraform-bundle
-		// from the same tag.
-		PluginProtocolVersion: discovery.PluginInstallProtocolVersion,
-
+	// set up the provider installer
+	platform := getproviders.Platform{
 		OS:   osName,
 		Arch: archName,
-		Ui:   c.ui,
 	}
 
-	for name, constraintStrs := range config.Providers {
-		for _, constraintStr := range constraintStrs {
-			c.ui.Output(fmt.Sprintf("- Resolving %q provider (%s)...",
-				name, constraintStr))
-			foundPlugins := discovery.PluginMetaSet{}
-			constraint := constraintStr.MustParse()
-			for plugin, _ := range localPlugins {
-				if plugin.Name == name && constraint.Allows(plugin.Version.MustParse()) {
-					foundPlugins.Add(plugin)
-				}
-			}
+	installdir := providercache.NewDirWithPlatform(workDir, platform)
+	services := disco.New()
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+	var sources []getproviders.MultiSourceSelector
+	sources = append(sources, getproviders.MultiSourceSelector{
+		Source: getproviders.NewMemoizeSource(getproviders.NewRegistrySource(services)),
+	})
 
-			if len(foundPlugins) > 0 {
-				plugin := foundPlugins.Newest()
-				CopyFile(plugin.Path, workDir+"/terraform-provider-"+plugin.Name+"_v"+plugin.Version.MustParse().String()) //put into temp dir
-			} else { //attempt to get from the public registry if not found locally
-				c.ui.Output(fmt.Sprintf("- Checking for provider plugin on %s...",
-					releaseHost))
-				_, _, err := installer.Get(addrs.NewLegacyProvider(name), constraint)
-				if err != nil {
-					c.ui.Error(fmt.Sprintf("- Failed to resolve %s provider %s: %s", name, constraint, err))
-					return 1
-				}
+	// if the local .plugins directory exists, include it as a source
+	if _, err := os.Stat(pluginDir); err == nil {
+		sources = append(sources, getproviders.MultiSourceSelector{
+			Source: getproviders.NewFilesystemMirrorSource(pluginDir),
+		})
+	}
+
+	installer := providercache.NewInstaller(installdir, getproviders.MultiSource(sources))
+	mode := providercache.InstallNewProvidersOnly
+	evts := &providercache.InstallerEvents{
+		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
+			c.ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider.ForDisplay(), selectedVersion))
+		},
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+			if len(versionConstraints) > 0 {
+				c.ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+			} else {
+				c.ui.Info(fmt.Sprintf("- Finding latest version of %s...", provider.ForDisplay()))
 			}
-		}
+		},
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			c.ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
+		},
+		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			c.ui.Error(fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err))
+		},
+		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			c.ui.Error(fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err))
+		},
+	}
+
+	ctx := evts.OnContext(context.TODO())
+	err = installer.EnsureProviderVersionsBundle(ctx, reqs, mode)
+	if err != nil {
+		c.ui.Error(fmt.Sprintf("Error %s", err.Error()))
 	}
 
 	files, err := ioutil.ReadDir(workDir)
@@ -306,7 +322,7 @@ not a normal Terraform configuration file. The file format looks like this:
   terraform {
     # Version of Terraform to include in the bundle. An exact version number
 	# is required.
-    version = "0.10.0"
+    version = "0.13.0"
   }
 
   # Define which provider plugins are to be included
@@ -320,10 +336,10 @@ not a normal Terraform configuration file. The file format looks like this:
 	# the bundle archive.
 	google = ["~> 1.0", "~> 2.0"]
 	
-	#Include a custom plugin to the bundle. Will search for the plugin in the 
-	#plugins directory, and package it with the bundle archive. Plugin must have
-	#a name of the form: terraform-provider-*-v*, and must be built with the operating
-	#system and architecture that terraform enterprise is running, e.g. linux and amd64
+	# Include a custom plugin to the bundle. Will search for the plugin in the 
+	# plugins directory, and package it with the bundle archive. Plugin must have
+	# a name of the form: terraform-provider-*-v*, and must be built with the operating
+	# system and architecture that terraform enterprise is running, e.g. linux and amd64.
 	customplugin = ["0.1"]
   }
 
