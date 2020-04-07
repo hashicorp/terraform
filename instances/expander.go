@@ -64,16 +64,20 @@ func (e *Expander) SetModuleExpansion(parentAddr addrs.ModuleInstance, callAddr 
 	e.setModuleExpansion(parentAddr, callAddr, expansionValue(exp))
 }
 
+func (e *Expander) SetResourceExpansion(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, exp cty.Value) {
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(exp))
+}
+
 // SetResourceSingle records that the given resource inside the given module
 // does not use any repetition arguments and is therefore a singleton.
 func (e *Expander) SetResourceSingle(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource) {
-	e.setResourceExpansion(moduleAddr, resourceAddr, expansionSingleVal)
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(cty.NilVal))
 }
 
 // SetResourceCount records that the given resource inside the given module
 // uses the "count" repetition argument, with the given value.
 func (e *Expander) SetResourceCount(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, count int) {
-	e.setResourceExpansion(moduleAddr, resourceAddr, expansionCount(count))
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(cty.NumberIntVal(int64(count))))
 }
 
 // SetResourceForEach records that the given resource inside the given module
@@ -83,7 +87,11 @@ func (e *Expander) SetResourceCount(moduleAddr addrs.ModuleInstance, resourceAdd
 // It's the caller's responsibility to convert that into an identity map before
 // calling this method.
 func (e *Expander) SetResourceForEach(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource, mapping map[string]cty.Value) {
-	e.setResourceExpansion(moduleAddr, resourceAddr, expansionForEach(mapping))
+	m := cty.MapValEmpty(cty.DynamicPseudoType)
+	if len(mapping) > 0 {
+		m = cty.MapVal(mapping)
+	}
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionValue(m))
 }
 
 // ExpandModule finds the exhaustive set of module instances resulting from
