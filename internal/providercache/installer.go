@@ -451,6 +451,27 @@ func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, erro
 	return ret, nil
 }
 
+// EnsureProviderVersionsBundle wraps EnsureProviderVersions to allow installing
+// multiple versions of a given provider. This function is intended for use by
+// terraform-bundle.
+func (i *Installer) EnsureProviderVersionsBundle(ctx context.Context, reqs map[addrs.Provider][]string, mode InstallMode) error {
+	for provider, versions := range reqs {
+		for _, constraint := range versions {
+			req := make(getproviders.Requirements, 1)
+			cstr, err := getproviders.ParseVersionConstraints(constraint)
+			if err != nil {
+				return err
+			}
+			req[provider] = cstr
+			_, err = i.EnsureProviderVersions(ctx, req, mode)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // InstallMode customizes the details of how an install operation treats
 // providers that have versions already cached in the target directory.
 type InstallMode rune
