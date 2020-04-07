@@ -1,7 +1,12 @@
 ## 0.13.0 (Unreleased)
 
+NEW FEATURES:
+
+* Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
+
 BREAKING CHANGES:
 
+* As part of implementing a new decentralized namespace for providers, Terraform now requires an explicit `source` specification for any provider that is not in the "hashicorp" namespace in the main public registry. (More details will be added about this prior to release, including links to upgrade steps.) [GH-24477]
 * backend/oss: Changes to the TableStore schema now require a primary key named `LockID` of type `String` [GH-24149]
 * command/0.12upgrade: this command has been replaced with a deprecation notice directing users to install terraform v0.12 to run `terraform 0.12upgrade`.  [GH-24403]
 * command/import: remove the deprecated `-provider` command line argument [GH-24090]
