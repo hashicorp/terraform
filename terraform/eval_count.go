@@ -11,22 +11,16 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// evaluateResourceCountExpression is our standard mechanism for interpreting an
-// expression given for a "count" argument on a resource. This should be called
-// from the DynamicExpand of a node representing a resource in order to
-// determine the final count value.
-//
-// If the result is zero or positive and no error diagnostics are returned, then
-// the result is the literal count value to use.
-//
-// If the result is -1, this indicates that the given expression is nil and so
-// the "count" behavior should not be enabled for this resource at all.
-//
-// If error diagnostics are returned then the result is always the meaningless
-// placeholder value -1.
-func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
-	count, known, diags := evaluateResourceCountExpressionKnown(expr, ctx)
-	if !known {
+// evaluateCountExpression is our standard mechanism for interpreting an
+// expression given for a "count" argument on a resource or a module. This
+// should be called during expansion in order to determine the final count
+// value. The return value will be of type cty.Number, to be used in count
+// expansion.
+// evaluateCountExpression differs from evaluateCountExpressionKnown by
+// returning an error if the count value is not known.
+func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	count, diags := evaluateCountExpressionKnown(expr, ctx)
+	if !count.IsKnown() {
 		// Currently this is a rather bad outcome from a UX standpoint, since we have
 		// no real mechanism to deal with this situation and all we can do is produce
 		// an error message.
@@ -43,19 +37,13 @@ func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int,
 	return count, diags
 }
 
-// evaluateResourceCountExpressionKnown is like evaluateResourceCountExpression
-// except that it handles an unknown result by returning count = 0 and
-// a known = false, rather than by reporting the unknown value as an error
-// diagnostic.
-func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) (count int, known bool, diags tfdiags.Diagnostics) {
-	if expr == nil {
-		return -1, true, nil
-	}
+func evaluateCountExpressionKnown(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
 	countVal, countDiags := ctx.EvaluateExpr(expr, cty.Number, nil)
 	diags = diags.Append(countDiags)
 	if diags.HasErrors() {
-		return -1, true, diags
+		return countVal, diags
 	}
 
 	switch {
@@ -66,11 +54,12 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 			Detail:   `The given "count" argument value is null. An integer is required.`,
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, true, diags
+		return cty.UnknownVal(cty.Number), diags
 	case !countVal.IsKnown():
-		return 0, false, diags
+		return countVal, diags
 	}
 
+	var count int
 	err := gocty.FromCtyValue(countVal, &count)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -79,7 +68,7 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 			Detail:   fmt.Sprintf(`The given "count" argument value is unsuitable: %s.`, err),
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, true, diags
+		return countVal, diags
 	}
 	if count < 0 {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -88,10 +77,10 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 			Detail:   `The given "count" argument value is unsuitable: negative numbers are not supported.`,
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, true, diags
+		return countVal, diags
 	}
 
-	return count, true, diags
+	return countVal, diags
 }
 
 // fixResourceCountSetTransition is a helper function to fix up the state when a
@@ -101,7 +90,7 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 //
 // The correct time to call this function is in the DynamicExpand method for
 // a node representing a resource, just after evaluating the count with
-// evaluateResourceCountExpression, and before any other analysis of the
+// evaluateCountExpression, and before any other analysis of the
 // state such as orphan detection.
 //
 // This function calls methods on the given EvalContext to update the current

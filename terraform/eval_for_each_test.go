@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
@@ -15,42 +14,39 @@ import (
 func TestEvaluateResourceForEachExpression_valid(t *testing.T) {
 	tests := map[string]struct {
 		Expr       hcl.Expression
-		ForEachMap map[string]cty.Value
+		ForEachMap cty.Value
 	}{
 		"empty set": {
 			hcltest.MockExprLiteral(cty.SetValEmpty(cty.String)),
-			map[string]cty.Value{},
+			cty.SetValEmpty(cty.String),
 		},
 		"multi-value string set": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})),
-			map[string]cty.Value{
-				"a": cty.StringVal("a"),
-				"b": cty.StringVal("b"),
-			},
+			cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
 		},
 		"empty map": {
 			hcltest.MockExprLiteral(cty.MapValEmpty(cty.Bool)),
-			map[string]cty.Value{},
+			cty.MapValEmpty(cty.Bool),
 		},
 		"map": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
 				"a": cty.BoolVal(true),
 				"b": cty.BoolVal(false),
 			})),
-			map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.BoolVal(true),
 				"b": cty.BoolVal(false),
-			},
+			}),
 		},
 		"map containing unknown values": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
 				"a": cty.UnknownVal(cty.Bool),
 				"b": cty.UnknownVal(cty.Bool),
 			})),
-			map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.UnknownVal(cty.Bool),
 				"b": cty.UnknownVal(cty.Bool),
-			},
+			}),
 		},
 	}
 
@@ -58,16 +54,15 @@ func TestEvaluateResourceForEachExpression_valid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, diags := evaluateResourceForEachExpression(test.Expr, ctx)
+			forEachMap, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
 			}
 
-			if !reflect.DeepEqual(forEachMap, test.ForEachMap) {
-				t.Errorf(
-					"wrong map value\ngot:  %swant: %s",
-					spew.Sdump(forEachMap), spew.Sdump(test.ForEachMap),
+			if !forEachMap.RawEquals(test.ForEachMap) {
+				t.Errorf("wrong map value\ngot:  %#vwant: %#v\n",
+					forEachMap, test.ForEachMap,
 				)
 			}
 
@@ -131,7 +126,7 @@ func TestEvaluateResourceForEachExpression_errors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			_, diags := evaluateResourceForEachExpression(test.Expr, ctx)
+			_, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 1 {
 				t.Fatalf("got %d diagnostics; want 1", diags)
@@ -159,23 +154,15 @@ func TestEvaluateResourceForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, known, diags := evaluateResourceForEachExpressionKnown(expr, ctx)
+			forEachMap, diags := evaluateForEachExpressionKnown(expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
 			}
 
-			if known {
-				t.Errorf("got %v known, want false", known)
+			if forEachMap.IsKnown() {
+				t.Errorf("got known value %#v, want unknown", forEachMap)
 			}
-
-			if len(forEachMap) != 0 {
-				t.Errorf(
-					"expected empty map\ngot:  %s",
-					spew.Sdump(forEachMap),
-				)
-			}
-
 		})
 	}
 }
