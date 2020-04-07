@@ -47,27 +47,21 @@ func NewExpander() *Expander {
 	}
 }
 
-// SetModuleSingle records that the given module call inside the given parent
-// module does not use any repetition arguments and is therefore a singleton.
-func (e *Expander) SetModuleSingle(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall) {
-	e.setModuleExpansion(parentAddr, callAddr, expansionSingleVal)
-}
-
-// SetModuleCount records that the given module call inside the given parent
-// module instance uses the "count" repetition argument, with the given value.
-func (e *Expander) SetModuleCount(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall, count int) {
-	e.setModuleExpansion(parentAddr, callAddr, expansionCount(count))
-}
-
-// SetModuleForEach records that the given module call inside the given parent
-// module instance uses the "for_each" repetition argument, with the given
-// map value.
+// SetModuleExpansion records the expansion information for the given module call inside
+// the given parent.
 //
-// In the configuration language the for_each argument can also accept a set.
-// It's the caller's responsibility to convert that into an identity map before
-// calling this method.
-func (e *Expander) SetModuleForEach(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall, mapping map[string]cty.Value) {
-	e.setModuleExpansion(parentAddr, callAddr, expansionForEach(mapping))
+// If there is no repetition argument, the exp must be a cty.NilVal.
+//
+// If the module call uses the "count" repetition argument, record the number
+// of instances is equal to the exp value. The exp value must be a cty.Number,
+// and may be unknown.
+//
+// If the module call uses the "for_each" repetition argument, record the key
+// and value for each instance. The exp value must be a cty.Map or cty.Set(cty.String)
+// type. A map type may contain unknown values since the keys will be known. A
+// set may be unknown, but it may not contain an unknown string value.
+func (e *Expander) SetModuleExpansion(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall, exp cty.Value) {
+	e.setModuleExpansion(parentAddr, callAddr, expansionValue(exp))
 }
 
 // SetResourceSingle records that the given resource inside the given module

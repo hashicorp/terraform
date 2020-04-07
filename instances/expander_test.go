@@ -84,7 +84,7 @@ func TestExpander(t *testing.T) {
 		ex.SetResourceCount(addrs.RootModuleInstance, count0ResourceAddr, 0)
 		ex.SetResourceForEach(addrs.RootModuleInstance, forEachResourceAddr, eachMap)
 
-		ex.SetModuleSingle(addrs.RootModuleInstance, singleModuleAddr)
+		ex.SetModuleExpansion(addrs.RootModuleInstance, singleModuleAddr, cty.NilVal)
 		{
 			// The single instance of the module
 			moduleInstanceAddr := addrs.RootModuleInstance.Child("single", addrs.NoKey)
@@ -92,19 +92,19 @@ func TestExpander(t *testing.T) {
 			ex.SetResourceCount(moduleInstanceAddr, count2ResourceAddr, 2)
 		}
 
-		ex.SetModuleCount(addrs.RootModuleInstance, count2ModuleAddr, 2)
+		ex.SetModuleExpansion(addrs.RootModuleInstance, count2ModuleAddr, cty.NumberIntVal(2))
 		for i1 := 0; i1 < 2; i1++ {
 			moduleInstanceAddr := addrs.RootModuleInstance.Child("count2", addrs.IntKey(i1))
 			ex.SetResourceSingle(moduleInstanceAddr, singleResourceAddr)
 			ex.SetResourceCount(moduleInstanceAddr, count2ResourceAddr, 2)
-			ex.SetModuleCount(moduleInstanceAddr, count2ModuleAddr, 2)
+			ex.SetModuleExpansion(moduleInstanceAddr, count2ModuleAddr, cty.NumberIntVal(2))
 			for i2 := 0; i2 < 2; i2++ {
 				moduleInstanceAddr := moduleInstanceAddr.Child("count2", addrs.IntKey(i2))
 				ex.SetResourceCount(moduleInstanceAddr, count2ResourceAddr, 2)
 			}
 		}
 
-		ex.SetModuleCount(addrs.RootModuleInstance, count0ModuleAddr, 0)
+		ex.SetModuleExpansion(addrs.RootModuleInstance, count0ModuleAddr, cty.NumberIntVal(0))
 		{
 			// There are no instances of module "count0", so our nested module
 			// would never actually get registered here: the expansion node
@@ -112,7 +112,7 @@ func TestExpander(t *testing.T) {
 			// instances and so do nothing.
 		}
 
-		ex.SetModuleForEach(addrs.RootModuleInstance, forEachModuleAddr, eachMap)
+		ex.SetModuleExpansion(addrs.RootModuleInstance, forEachModuleAddr, cty.MapVal(eachMap))
 		for k := range eachMap {
 			moduleInstanceAddr := addrs.RootModuleInstance.Child("for_each", addrs.StringKey(k))
 			ex.SetResourceSingle(moduleInstanceAddr, singleResourceAddr)

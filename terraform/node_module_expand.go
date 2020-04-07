@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // graphNodeModuleCloser is an interface implemented by nodes that finalize the
@@ -201,17 +202,17 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-			expander.SetModuleCount(module, call, count)
+			expander.SetModuleExpansion(module, call, cty.NumberIntVal(int64(count)))
 
 		case n.ModuleCall.ForEach != nil:
 			forEach, diags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-			expander.SetModuleForEach(module, call, forEach)
+			expander.SetModuleExpansion(module, call, cty.MapVal(forEach))
 
 		default:
-			expander.SetModuleSingle(module, call)
+			expander.SetModuleExpansion(module, call, cty.NilVal)
 		}
 	}
 
@@ -244,13 +245,43 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 	_, call := n.Addr.Call()
 	expander := ctx.InstanceExpander()
 
-	// Modules all evaluate to single instances during validation, only to
-	// create a proper context within which to evaluate. All parent modules
-	// will be a single instance, but still get our address in the expected
-	// manner anyway to ensure they've been registered correctly.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
-		// now set our own mode to single
-		ctx.InstanceExpander().SetModuleSingle(module, call)
+		ctx = ctx.WithPath(module)
+		switch {
+		case n.ModuleCall.Count != nil:
+			count, known, diags := evaluateResourceCountExpressionKnown(n.ModuleCall.Count, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			ct := cty.NumberIntVal(int64(count))
+			if !known {
+				ct = cty.UnknownVal(cty.Number)
+			}
+
+			expander.SetModuleExpansion(module, call, ct)
+
+		case n.ModuleCall.ForEach != nil:
+			forEach, known, diags := evaluateResourceForEachExpressionKnown(n.ModuleCall.ForEach, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+
+			m := cty.MapValEmpty(cty.DynamicPseudoType)
+
+			switch {
+			case len(forEach) > 0:
+				// we need to check the forEach length first, because we can't
+				// create an empty map with no value type
+				m = cty.MapVal(forEach)
+			case !known:
+				m = cty.UnknownVal(cty.Map(cty.DynamicPseudoType))
+			}
+
+			expander.SetModuleExpansion(module, call, m)
+
+		default:
+			expander.SetModuleExpansion(module, call, cty.NilVal)
+		}
 	}
 	return nil, nil
 }
