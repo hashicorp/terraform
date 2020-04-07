@@ -328,19 +328,28 @@ not a normal Terraform configuration file. The file format looks like this:
   # Define which provider plugins are to be included
   providers {
     # Include the newest "aws" provider version in the 1.0 series.
-    aws = ["~> 1.0"]
+    aws = {
+		versions = ["~> 1.0"]
+	}
 
     # Include both the newest 1.0 and 2.0 versions of the "google" provider.
     # Each item in these lists allows a distinct version to be added. If the
 	# two expressions match different versions then _both_ are included in
 	# the bundle archive.
-	google = ["~> 1.0", "~> 2.0"]
-	
+	google = {
+		versions = ["~> 1.0", "~> 2.0"]
+	}
+
 	# Include a custom plugin to the bundle. Will search for the plugin in the 
 	# plugins directory, and package it with the bundle archive. Plugin must have
 	# a name of the form: terraform-provider-*-v*, and must be built with the operating
 	# system and architecture that terraform enterprise is running, e.g. linux and amd64.
-	customplugin = ["0.1"]
+	# See the README on GitHub for more information on the source attribute and
+	# plugin directory layout.
+	customplugin = {
+		versions = ["0.1"]
+		source = "example.com/myorg/customplugin"
+	}
   }
 
 `
