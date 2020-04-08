@@ -64,8 +64,8 @@ align with the current (or desired) state of the imported object.
 
 The above import is considered a "simple import": one resource is imported
 into the state file. An import may also result in a "complex import" where
-multiple resources are imported. For example, an AWS security group imports
-an `aws_security_group` but also one `aws_security_group_rule` for each rule.
+multiple resources are imported. For example, an AWS network ACL imports
+an `aws_network_acl` but also one `aws_network_acl_rule` for each rule.
 
 In this scenario, the secondary resources will not already exist in
 configuration, so it is necessary to consult the import output and create
