@@ -313,6 +313,9 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 }
 
 func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
+
 	modKey := addr.Module.String()
 	modVars := ctx.VariableValues[modKey]
 	val, ok := modVars[addr.Variable.Name]
