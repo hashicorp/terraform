@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// evaluateResourceCountExpression is our standard mechanism for interpreting an
+// evaluateCountExpression is our standard mechanism for interpreting an
 // expression given for a "count" argument on a resource. This should be called
 // from the DynamicExpand of a node representing a resource in order to
 // determine the final count value.
@@ -24,9 +24,9 @@ import (
 //
 // If error diagnostics are returned then the result is always the meaningless
 // placeholder value -1.
-func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
-	count, known, diags := evaluateResourceCountExpressionKnown(expr, ctx)
-	if !known {
+func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
+	countVal, diags := evaluateCountExpressionValue(expr, ctx)
+	if !countVal.IsKnown() {
 		// Currently this is a rather bad outcome from a UX standpoint, since we have
 		// no real mechanism to deal with this situation and all we can do is produce
 		// an error message.
@@ -40,22 +40,29 @@ func evaluateResourceCountExpression(expr hcl.Expression, ctx EvalContext) (int,
 			Subject:  expr.Range().Ptr(),
 		})
 	}
-	return count, diags
+
+	if countVal.IsNull() || !countVal.IsKnown() {
+		return -1, diags
+	}
+
+	count, _ := countVal.AsBigFloat().Int64()
+	return int(count), diags
 }
 
-// evaluateResourceCountExpressionKnown is like evaluateResourceCountExpression
-// except that it handles an unknown result by returning count = 0 and
-// a known = false, rather than by reporting the unknown value as an error
-// diagnostic.
-func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) (count int, known bool, diags tfdiags.Diagnostics) {
+// evaluateCountExpressionValue is like evaluateCountExpression
+// except that it returns a cty.Value which must be a cty.Number and can be
+// unknown.
+func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	nullCount := cty.NullVal(cty.Number)
 	if expr == nil {
-		return -1, true, nil
+		return nullCount, nil
 	}
 
 	countVal, countDiags := ctx.EvaluateExpr(expr, cty.Number, nil)
 	diags = diags.Append(countDiags)
 	if diags.HasErrors() {
-		return -1, true, diags
+		return nullCount, diags
 	}
 
 	switch {
@@ -66,11 +73,13 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 			Detail:   `The given "count" argument value is null. An integer is required.`,
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, true, diags
+		return nullCount, diags
+
 	case !countVal.IsKnown():
-		return 0, false, diags
+		return cty.UnknownVal(cty.Number), diags
 	}
 
+	var count int
 	err := gocty.FromCtyValue(countVal, &count)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -79,7 +88,7 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 			Detail:   fmt.Sprintf(`The given "count" argument value is unsuitable: %s.`, err),
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, true, diags
+		return nullCount, diags
 	}
 	if count < 0 {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -88,10 +97,10 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 			Detail:   `The given "count" argument value is unsuitable: negative numbers are not supported.`,
 			Subject:  expr.Range().Ptr(),
 		})
-		return -1, true, diags
+		return nullCount, diags
 	}
 
-	return count, true, diags
+	return countVal, diags
 }
 
 // fixResourceCountSetTransition is a helper function to fix up the state when a
@@ -101,7 +110,7 @@ func evaluateResourceCountExpressionKnown(expr hcl.Expression, ctx EvalContext) 
 //
 // The correct time to call this function is in the DynamicExpand method for
 // a node representing a resource, just after evaluating the count with
-// evaluateResourceCountExpression, and before any other analysis of the
+// evaluateCountExpression, and before any other analysis of the
 // state such as orphan detection.
 //
 // This function calls methods on the given EvalContext to update the current

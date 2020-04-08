@@ -61,7 +61,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	configVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 		keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
@@ -595,7 +595,7 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		// in its result. That's okay because each.value is prohibited for
 		// destroy-time provisioners.
 		if n.When != configs.ProvisionerWhenDestroy {
-			m, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
+			m, forEachDiags := evaluateForEachExpression(n.ResourceConfig.ForEach, ctx)
 			diags = diags.Append(forEachDiags)
 			forEach = m
 		}

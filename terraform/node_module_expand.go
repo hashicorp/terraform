@@ -229,14 +229,14 @@ func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) 
 
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, diags := evaluateResourceCountExpression(n.ModuleCall.Count, ctx)
+			count, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
 			expander.SetModuleCount(module, call, count)
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, diags := evaluateResourceForEachExpression(n.ModuleCall.ForEach, ctx)
+			forEach, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}

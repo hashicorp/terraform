@@ -96,7 +96,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	objTy := schema.ImpliedType()
 	priorVal := cty.NullVal(objTy) // for data resources, prior is always null because we start fresh every time
 
-	forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 
 	var configDiags tfdiags.Diagnostics

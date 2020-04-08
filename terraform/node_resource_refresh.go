@@ -89,32 +89,34 @@ func (n *NodeRefreshableManagedResource) Path() addrs.ModuleInstance {
 func (n *NodeRefreshableManagedResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var diags tfdiags.Diagnostics
 
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
+	expander := ctx.InstanceExpander()
+	// Inform our instance expander about our expansion results, and then use
+	// it to calculate the instance addresses we'll expand for.
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return nil, diags.Err()
+		}
 
-	forEachMap, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
+
+	case n.Config.ForEach != nil:
+		forEachMap, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		if forEachDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
+
+	default:
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
 
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.Addr.Config(), count != -1)
-
-	// Inform our instance expander about our expansion results above,
-	// and then use it to calculate the instance addresses we'll expand for.
-	expander := ctx.InstanceExpander()
-	switch {
-	case count >= 0:
-		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
-	case forEachMap != nil:
-		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
-	default:
-		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
-	}
+	fixResourceCountSetTransition(ctx, n.Addr.Config(), n.Config.Count != nil)
 	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll
