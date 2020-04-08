@@ -41,6 +41,7 @@ func TestFilesystemRace(t *testing.T) {
 			ls.WriteState(current)
 		}()
 	}
+	wg.Wait()
 }
 
 func TestFilesystemLocks(t *testing.T) {
