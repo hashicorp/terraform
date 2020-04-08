@@ -131,3 +131,49 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 		t.Fatalf("bad %v", conf)
 	}
 }
+
+func TestProvisioner_connInfoProxy(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":                "ssh",
+				"user":                "root",
+				"password":            "supersecret",
+				"private_key":         "someprivatekeycontents",
+				"host":                "example.com",
+				"port":                "22",
+				"timeout":             "30s",
+				"proxy_host":          "proxy.example.com",
+				"proxy_port":          "80",
+				"proxy_user_name":     "proxyuser",
+				"proxy_user_password": "proxyuser_password",
+			},
+		},
+	}
+
+	conf, err := parseConnectionInfo(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if conf.Host != "example.com" {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.ProxyHost != "proxy.exmaple.com" {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.ProxyPort != "80" {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.ProxyUser != "proxyuser" {
+		t.Fatalf("bad: %v", conf)
+	}
+
+	if conf.ProxyUserPassword != "proxyuser_password" {
+		t.Fatalf("bad: %v", conf)
+	}
+
+}

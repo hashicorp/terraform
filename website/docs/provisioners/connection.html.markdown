@@ -158,3 +158,17 @@ The `ssh` connection also supports the following fields to facilitate connnectio
 * `bastion_certificate` - The contents of a signed CA Certificate. The certificate argument
   must be used in conjunction with a `bastion_private_key`. These can be loaded from
   a file on disk using the [the `file` function](/docs/configuration/functions/file.html).
+
+## Connection through a HTTP Proxy with SSH
+
+The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP proxy.
+
+* `proxy_host` - Setting this enables the SSH over HTTP connection. This host
+  will be connected to first, and then the `host` or `bastion_host` connection will be made from there.
+
+* `proxy_port` - The port to use connect to the proxy host.
+
+* `proxy_user_name` - The username to use connect to the private proxy host.
+
+* `proxy_user_password` - The password to use connect to the private proxy host.
+

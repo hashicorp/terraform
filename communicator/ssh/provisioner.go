@@ -41,17 +41,21 @@ const (
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User        string
-	Password    string
-	PrivateKey  string `mapstructure:"private_key"`
-	Certificate string `mapstructure:"certificate"`
-	Host        string
-	HostKey     string `mapstructure:"host_key"`
-	Port        int
-	Agent       bool
-	Timeout     string
-	ScriptPath  string        `mapstructure:"script_path"`
-	TimeoutVal  time.Duration `mapstructure:"-"`
+	User              string
+	Password          string
+	PrivateKey        string `mapstructure:"private_key"`
+	Certificate       string `mapstructure:"certificate"`
+	Host              string
+	HostKey           string `mapstructure:"host_key"`
+	Port              int
+	Agent             bool
+	Timeout           string
+	ScriptPath        string        `mapstructure:"script_path"`
+	TimeoutVal        time.Duration `mapstructure:"-"`
+	ProxyHost         string        `mapstructure:"proxy_host"`
+	ProxyPort         string        `mapstructure:"proxy_port"`
+	ProxyUserName     string        `mapstructure:"proxy_user_name"`
+	ProxyUserPassword string        `mapstructure:"proxy_user_password"`
 
 	BastionUser        string `mapstructure:"bastion_user"`
 	BastionPassword    string `mapstructure:"bastion_password"`
@@ -168,7 +172,17 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		return nil, err
 	}
 
-	connectFunc := ConnectFunc("tcp", host)
+	var proxyAddr string
+
+	if connInfo.ProxyHost != "" && connInfo.ProxyPort != "" {
+		proxyAddr = connInfo.ProxyHost + ":" + connInfo.ProxyPort
+
+		if connInfo.ProxyUserName != "" && connInfo.ProxyUserPassword != "" {
+			proxyAddr = connInfo.ProxyUserName + ":" + connInfo.ProxyUserPassword + "@" + proxyAddr
+		}
+	}
+
+	connectFunc := ConnectFunc("tcp", host, proxyAddr)
 
 	var bastionConf *ssh.ClientConfig
 	if connInfo.BastionHost != "" {
@@ -187,7 +201,7 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 			return nil, err
 		}
 
-		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host)
+		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host, proxyAddr)
 	}
 
 	config := &sshConfig{
