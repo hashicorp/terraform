@@ -360,7 +360,7 @@ module "consul" {
 }
 ```
 
-<em>Note:</em> If your bucket lives in us-east-1, omit the region in the path URL (```s3::https://s3.amazonaws.com/...```)
+-> **Note:** Buckets in AWS's us-east-1 region must use the hostname `s3.amazonaws.com` (instead of `s3-us-east-1.amazonaws.com`).
 
 The `s3::` prefix causes Terraform to use AWS-style authentication when
 accessing the given URL. As a result, this scheme may also work for other
