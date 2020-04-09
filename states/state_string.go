@@ -55,9 +55,7 @@ func (s *State) String() string {
 			buf.WriteByte('.')
 			buf.WriteString(step.Name)
 			if step.InstanceKey != addrs.NoKey {
-				buf.WriteByte('[')
 				buf.WriteString(step.InstanceKey.String())
-				buf.WriteByte(']')
 			}
 		}
 		buf.WriteString(":\n")
