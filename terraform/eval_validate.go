@@ -375,7 +375,9 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	mode := cfg.Mode
 
 	keyData := EvalDataForNoInstanceKey
-	if n.Config.Count != nil {
+
+	switch {
+	case n.Config.Count != nil:
 		// If the config block has count, we'll evaluate with an unknown
 		// number as count.index so we can still type check even though
 		// we won't expand count until the plan phase.
@@ -387,9 +389,8 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		// of this will happen when we DynamicExpand during the plan walk.
 		countDiags := n.validateCount(ctx, n.Config.Count)
 		diags = diags.Append(countDiags)
-	}
 
-	if n.Config.ForEach != nil {
+	case n.Config.ForEach != nil:
 		keyData = InstanceKeyEvalData{
 			EachKey:   cty.UnknownVal(cty.String),
 			EachValue: cty.UnknownVal(cty.DynamicPseudoType),
@@ -608,10 +609,10 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 }
 
 func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	_, known, forEachDiags := evaluateResourceForEachExpressionKnown(expr, ctx)
+	val, forEachDiags := evaluateForEachExpressionValue(expr, ctx)
 	// If the value isn't known then that's the best we can do for now, but
 	// we'll check more thoroughly during the plan walk
-	if !known {
+	if !val.IsKnown() {
 		return diags
 	}
 
