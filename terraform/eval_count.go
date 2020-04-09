@@ -12,18 +12,13 @@ import (
 )
 
 // evaluateCountExpression is our standard mechanism for interpreting an
-// expression given for a "count" argument on a resource. This should be called
-// from the DynamicExpand of a node representing a resource in order to
-// determine the final count value.
+// expression given for a "count" argument on a resource or a module. This
+// should be called during expansion in order to determine the final count
+// value.
 //
-// If the result is zero or positive and no error diagnostics are returned, then
-// the result is the literal count value to use.
-//
-// If the result is -1, this indicates that the given expression is nil and so
-// the "count" behavior should not be enabled for this resource at all.
-//
-// If error diagnostics are returned then the result is always the meaningless
-// placeholder value -1.
+// evaluateCountExpression differs from evaluateCountExpressionValue by
+// returning an error if the count value is not known, and converting the
+// cty.Value to an integer.
 func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
 	countVal, diags := evaluateCountExpressionValue(expr, ctx)
 	if !countVal.IsKnown() {

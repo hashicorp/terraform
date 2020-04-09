@@ -8,11 +8,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// evaluateForEachExpression interprets a "for_each" argument on a resource.
+// evaluateForEachExpression is our standard mechanism for interpreting an
+// expression given for a "for_each" argument on a resource or a module. This
+// should be called during expansion in order to determine the final keys and
+// values.
 //
-// Returns a cty.Value map, and diagnostics if necessary. It will return nil if
-// the expression is nil, and is used to distinguish between an unset for_each and an
-// empty map
+// evaluateForEachExpression differs from evaluateForEachExpressionValue by
+// returning an error if the count value is not known, and converting the
+// cty.Value to a map[string]cty.Value for compatibility with other calls.
 func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
 	forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
 	if !forEachVal.IsKnown() {
