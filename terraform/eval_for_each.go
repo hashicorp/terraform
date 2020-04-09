@@ -77,7 +77,7 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 
 	case forEachVal.LengthInt() == 0:
 		// If the map is empty ({}), return an empty map, because cty will
-		// return nil when representing {} AsValueMap This also covers an empty
+		// return nil when representing {} AsValueMap. This also covers an empty
 		// set (toset([]))
 		return forEachVal, diags
 	}
