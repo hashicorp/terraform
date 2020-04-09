@@ -262,6 +262,11 @@ func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 				subject = ri.ContainingResource()
 			case addrs.ResourceInstancePhase:
 				subject = ri.ContainingResource()
+			case addrs.AbsModuleCallOutput:
+				subject = ri.ModuleCallOutput()
+			default:
+				log.Printf("[WARN] ReferenceTransformer: reference not found: %q", subject)
+				continue
 			}
 			key = m.referenceMapKey(v, subject)
 		}
