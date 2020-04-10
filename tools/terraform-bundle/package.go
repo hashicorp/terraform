@@ -263,11 +263,12 @@ not a normal Terraform configuration file. The file format looks like this:
 	}
 
 	# Include a custom plugin to the bundle. Will search for the plugin in the 
-	# plugins directory, and package it with the bundle archive. Plugin must have
-	# a name of the form: terraform-provider-*-v*, and must be built with the operating
-	# system and architecture that terraform enterprise is running, e.g. linux and amd64.
-	# See the README on GitHub for more information on the source attribute and
-	# plugin directory layout.
+	# plugins directory, and package it with the bundle archive. Plugin must 
+	# have a name of the form: terraform-provider-*-v*, and must be built with
+	# the operating system and architecture that terraform enterprise is running,
+	# e.g. linux and amd64.
+	# See the README for more information on the source attribute and plugin
+	# directory layout.
 	customplugin = {
 		versions = ["0.1"]
 		source = "example.com/myorg/customplugin"

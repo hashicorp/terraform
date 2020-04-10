@@ -2,6 +2,7 @@ package e2etest
 
 import (
 	"archive/zip"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"runtime"
@@ -148,6 +149,6 @@ func testProviderBinaryPath(provider, version string) string {
 	arch := runtime.GOARCH
 	return fmt.Sprintf(
 		"plugins/registry.terraform.io/hashicorp/%s/%s/%s_%s/terraform-provider-%s_v%s_x4",
-		provider, version, os, arch, provider, version
+		provider, version, os, arch, provider, version,
 	)
 }

@@ -72,7 +72,7 @@ providers {
   }
 
   # Include a custom plugin to the bundle. Will search for the plugin in the
-  # plugins directory and package it with the bundle archive. Plugin must have
+  # plugins directory (see hierarchy and package it with the bundle archive. Plugin must have
   # a name of the form: terraform-provider-*, and must be built with the operating
   # system and architecture that terraform enterprise is running, e.g. linux and amd64.
   customplugin = {
@@ -137,27 +137,32 @@ architecture used for Terraform Enterprise. Typically this will be `linux` and
 `amd64`.
 
 ### Plugins Directory Layout
-To include custom plugins in the bundle file, you must specify a "source" attribute in the config and place the plugin in the appropriate subdirectory under "./plugins"
+To include custom plugins in the bundle file, you must specify a "source"
+attribute in the configuration and place the plugin in the appropriate
+subdirectory under "./plugins". The directory must have the following layout:
 
 ```
-./plugins/$sourcehost/$sourcenamespace/$name/$version/$os_$arch/
+./plugins/$SOURCEHOST/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/
 ```
 
+When installing custom plugins, you may choose any arbitrary identifier for the
+$SOURCEHOST and $SOURCENAMESPACE subdirectories. 
 
-Given this custom provider from an earlier example:
+For example, given the following configuration and a plugin built for Terraform Enterprise:
 
 ```
+providers {
   customplugin = {
     versions = ["0.1"]
     source = "example.com/myorg/customplugin"
   }
+}
 ```
 
-The binary must be placed in the following directory (replace $OS_$ARCH with
-your target platform):
+The binary must be placed in the following directory:
 
 ```
-./plugins/example.com/myorg/customplugin/0.1/$OS_$ARCH/
+./plugins/example.com/myorg/customplugin/0.1/linux_amd64/
 ```
 
 ## Provider Resolution Behavior
