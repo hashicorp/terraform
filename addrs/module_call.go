@@ -80,7 +80,7 @@ type AbsModuleCallOutput struct {
 	Name string
 }
 
-// ModuelCallOutput returns the referenceable ModuleCallOutput for this
+// ModuleCallOutput returns the referenceable ModuleCallOutput for this
 // particular instance.
 func (co AbsModuleCallOutput) ModuleCallOutput() ModuleCallOutput {
 	return ModuleCallOutput{
