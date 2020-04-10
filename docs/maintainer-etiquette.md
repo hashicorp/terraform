@@ -17,7 +17,7 @@ doesn't imply any obligations to do any specific work.
 These apply to all contributors, but maintainers should lead by examples! :wink:
 
  - for `provider/*` PRs it's useful to attach test results & advise on how to run the relevant tests
- - for `bug`fixes it's useful to attach repro case, ideally in a form of a test
+ - for `bug` fixes it's useful to attach repro case, ideally in a form of a test
 
 ### PRs/issues from others
 
