@@ -21,9 +21,8 @@ type Source struct {
 	DeclRange hcl.Range
 }
 
-// ProviderRequirements represents merged provider version constraints.
-// VersionConstraints come from terraform.require_providers blocks and provider
-// blocks.
+// ProviderRequirements represents provider version constraints from
+// required_providers blocks.
 type ProviderRequirements struct {
 	Type               addrs.Provider
 	VersionConstraints []VersionConstraint

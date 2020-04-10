@@ -223,6 +223,20 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 		reqs[fqn] = nil
 	}
 
+	// "provider" block can also contain version constraints
+	for name, provider := range c.Module.ProviderConfigs {
+		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: name})
+		if _, ok := reqs[fqn]; !ok {
+			// We'll at least have an unconstrained dependency then, but might
+			// add to this in the loop below.
+			reqs[fqn] = nil
+		}
+		if provider.Version.Required != nil {
+			constraints := getproviders.MustParseVersionConstraints(provider.Version.Required.String())
+			reqs[fqn] = append(reqs[fqn], constraints...)
+		}
+	}
+
 	// ...and now we'll recursively visit all of the child modules to merge
 	// in their requirements too.
 	for _, childConfig := range c.Children {
