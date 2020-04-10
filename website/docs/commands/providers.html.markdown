@@ -14,6 +14,9 @@ used in the current configuration.
 
 Provider dependencies are created in several different ways:
 
+* Explicit use of a `terraform.required_providers` block in configuration,
+  optionally including a version constraint.
+
 * Explicit use of a `provider` block in configuration, optionally including
   a version constraint.
 
