@@ -10940,3 +10940,78 @@ func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
 		t.Errorf("Expected unsupported argument error, none received")
 	}
 }
+
+func TestContext2Apply_expandModuleVariables(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  for_each = toset(["a"])
+  source = "./mod"
+}
+
+module "mod2" {
+  source = "./mod"
+  in = module.mod1["a"].out
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  foo = var.in
+}
+
+variable "in" {
+  type = string
+  default = "default"
+}
+
+output "out" {
+  value = aws_instance.foo.id
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := `<no state>
+module.mod1["a"]:
+  aws_instance.foo:
+    ID = foo
+    provider = provider["registry.terraform.io/hashicorp/aws"]
+    foo = default
+    type = aws_instance
+
+  Outputs:
+
+  out = foo
+module.mod2:
+  aws_instance.foo:
+    ID = foo
+    provider = provider["registry.terraform.io/hashicorp/aws"]
+    foo = foo
+    type = aws_instance
+
+    Dependencies:
+      module.mod1.aws_instance.foo`
+
+	if state.String() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s\n", expected, state)
+	}
+}
