@@ -179,6 +179,22 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
+			// at this level, all instance references return the entire resource
+			`null_resource.each["each1"].attr`,
+			map[string]cty.Value{
+				"null_resource": cty.ObjectVal(map[string]cty.Value{
+					"each": cty.ObjectVal(map[string]cty.Value{
+						"each0": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each0"),
+						}),
+						"each1": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each1"),
+						}),
+					}),
+				}),
+			},
+		},
+		{
 			`foo(null_resource.multi, null_resource.multi[1])`,
 			map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
@@ -216,11 +232,13 @@ func TestScopeEvalContext(t *testing.T) {
 				}),
 			},
 		},
+		// any module reference returns the entire module
 		{
 			`module.foo.output1`,
 			map[string]cty.Value{
 				"module": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
+						"output0": cty.StringVal("bar0"),
 						"output1": cty.StringVal("bar1"),
 					}),
 				}),
