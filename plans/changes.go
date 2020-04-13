@@ -88,6 +88,11 @@ func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleC
 	var res []*OutputChangeSrc
 
 	for _, oc := range c.Outputs {
+		// we can't evaluate root module outputs
+		if oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+			continue
+		}
+
 		changeMod, changeCall := oc.Addr.Module.Call()
 		// this does not reside on our parent instance path
 		if !changeMod.Equal(parent) {
