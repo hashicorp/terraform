@@ -97,6 +97,8 @@ github.com/apparentlymart/go-cidr/cidr
 github.com/apparentlymart/go-dump/dump
 # github.com/apparentlymart/go-textseg v1.0.0
 github.com/apparentlymart/go-textseg/textseg
+# github.com/apparentlymart/go-textseg/v12 v12.0.0
+github.com/apparentlymart/go-textseg/v12/textseg
 # github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9
 ## explicit
 github.com/apparentlymart/go-userdirs/internal/unix
@@ -656,7 +658,7 @@ github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 ## explicit
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v1.3.1
+# github.com/zclconf/go-cty v1.4.0
 ## explicit
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert

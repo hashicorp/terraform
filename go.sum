@@ -70,6 +70,8 @@ github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0 h1:MzVXffFU
 github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0/go.mod h1:oL81AME2rN47vu18xqj1S1jPIPuN7afo62yKTNn3XMM=
 github.com/apparentlymart/go-textseg v1.0.0 h1:rRmlIsPEEhUTIKQb7T++Nz/A5Q6C9IuX2wFoYVvnCs0=
 github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/Nj9VFpLOpjS5yuumk=
+github.com/apparentlymart/go-textseg/v12 v12.0.0 h1:bNEQyAGak9tojivJNkoqWErVCQbjdL7GzRt3F8NvfJ0=
+github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
 github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9 h1:GRMI604e1ILyP9b5DTNAZFHx+Vu693kxb9ZBrIA2JQg=
 github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9/go.mod h1:7kfpUbyCdGJ9fDRCp3fopPQi5+cKNHgTE4ZuNrO71Cw=
 github.com/apparentlymart/go-versions v0.0.2-0.20180815153302-64b99f7cb171 h1:19Seu/H5gq3Ugtx+CGenwF89SDG3S1REX5i6PJj3RK4=
@@ -435,6 +437,8 @@ github.com/zclconf/go-cty v1.2.0 h1:sPHsy7ADcIZQP3vILvTjrh74ZA175TFP5vqiNK1UmlI=
 github.com/zclconf/go-cty v1.2.0/go.mod h1:hOPWgoHbaTUnI5k4D2ld+GRpFJSCe6bCM7m1q/N4PQ8=
 github.com/zclconf/go-cty v1.3.1 h1:QIOZl+CKKdkv4l2w3lG23nNzXgLoxsWLSEdg1MlX4p0=
 github.com/zclconf/go-cty v1.3.1/go.mod h1:YO23e2L18AG+ZYQfSobnY4G65nvwvprPCxBHkufUH1k=
+github.com/zclconf/go-cty v1.4.0 h1:+q+tmgyUB94HIdH/uVTIi/+kt3pt4sHwEZAcTyLoGsQ=
+github.com/zclconf/go-cty v1.4.0/go.mod h1:nHzOclRkoj++EU9ZjSrZvRG0BXIWt8c7loYc0qXAFGQ=
 github.com/zclconf/go-cty-yaml v1.0.1 h1:up11wlgAaDvlAGENcFDnZgkn0qUJurso7k6EpURKNF8=
 github.com/zclconf/go-cty-yaml v1.0.1/go.mod h1:IP3Ylp0wQpYm50IHK8OZWKMu6sPJIUgKa8XhiVHura0=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
