@@ -25,9 +25,10 @@ type OutputCommand struct {
 func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var module, statePath string
-	var jsonOutput bool
+	var jsonOutput, noColor bool
 	cmdFlags := c.Meta.defaultFlagSet("output")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&noColor, "no-color", false, "no-color")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
