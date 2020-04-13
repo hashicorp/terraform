@@ -370,23 +370,15 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// We know the instance path up to this point, and the child module name,
 	// so we only need to store these by instance key.
 	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
-	for _, m := range d.Evaluator.State.ModuleInstances(moduleAddr) {
-		// skip module instances that aren't a child of our particular parent
-		// module instance.
-		if !d.ModulePath.Equal(m.Addr.Parent()) {
-			continue
-		}
-
-		_, callInstance := m.Addr.CallInstance()
+	for _, output := range d.Evaluator.State.ModuleOutputs(d.ModulePath, addr) {
+		_, callInstance := output.Addr.Module.CallInstance()
 		instance, ok := stateMap[callInstance.Key]
 		if !ok {
 			instance = map[string]cty.Value{}
 			stateMap[callInstance.Key] = instance
 		}
 
-		for name, output := range m.OutputValues {
-			instance[name] = output.Value
-		}
+		instance[output.Addr.OutputValue.Name] = output.Value
 	}
 
 	// Get all changes that reside for this module call within our path.
@@ -414,7 +406,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		for key, states := range stateMap {
 			outputState, ok := states[cfg.Name]
 			if !ok {
-				continue
+				// we'll take this chance to insert any missing values that are
+				// defined in the config
+				outputState = cty.DynamicVal
 			}
 
 			instance, ok := moduleInstances[key]
