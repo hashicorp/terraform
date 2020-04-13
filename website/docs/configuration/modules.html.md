@@ -371,8 +371,8 @@ as defined for managed resources.
 # my_buckets.tf
 module "bucket" {
   for_each = toset(["assets", "media"])
-  source = "./publish_bucket"
-  name   = "${each.key}_bucket"
+  source   = "./publish_bucket"
+  name     = "${each.key}_bucket"
 }
 ```
 
@@ -418,9 +418,64 @@ as an entirely separate resource to the old. Always check the execution plan
 after performing such actions to ensure that no resources are surprisingly
 deleted.
 
-Each instance of a module may optionally have different providers passed to it
+### Limitations when using module expansion
+
+Modules using `count` or `for_each` cannot pass different sets of providers to different instances.
+This is because when a module instance is destroyed (such as a key-value being removed from the
+`for_each` map), the provider must be available in order to perform the destroy. You can pass
+different sets of providers by using multiple `module` blocks:
+
+```
+# my_buckets.tf
+
+provider "aws" {
+  alias  = "usw1"
+  region = "us-west-1"
+}
+
+provider "aws" {
+  alias  = "usw2"
+  region = "us-west-2"
+}
+
+provider "google" {
+  alias       = "usw1"
+  credentials = "${file("account.json")}"
+  project     = "my-project-id"
+  region      = "us-west1"
+  zone        = "us-west1-a"
+}
+
+provider "google" {
+  alias       = "usw2"
+  credentials = "${file("account.json")}"
+  project     = "my-project-id"
+  region      = "us-west2"
+  zone        = "us-west2-a"
+}
+
+module "bucket_w1" {
+  source    = "./publish_bucket"
+  providers = {
+    aws.src    = "aws.usw1"
+    google.src = "google.usw2"
+  }
+}
+
+module "bucket_w2" {
+  source    = "./publish_bucket"
+  providers = {
+    aws.src    = "aws.usw2"
+    google.src = "google.usw2"
+  }
+}
+```
+
+Each module block may optionally have different providers passed to it
 using the [`providers`](/docs/configuration/modules.html#passing-providers-explicitly)
-argument. This can be useful in situations where, for example, a duplicated set of resources must be created across several regions or datacenters.
+argument. This can be useful in situations where, for example, a duplicated set of
+resources must be created across several regions or datacenters.
+
 
 ## Tainting resources within a module
 
