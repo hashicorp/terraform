@@ -91,27 +91,36 @@ func (AuditConfigDelta_Action) EnumDescriptor() ([]byte, []int) {
 // specify access control policies for Cloud Platform resources.
 //
 //
-// A `Policy` consists of a list of `bindings`. A `binding` binds a list of
-// `members` to a `role`, where the members can be user accounts, Google groups,
-// Google domains, and service accounts. A `role` is a named list of permissions
-// defined by IAM.
+// A `Policy` is a collection of `bindings`. A `binding` binds one or more
+// `members` to a single `role`. Members can be user accounts, service accounts,
+// Google groups, and domains (such as G Suite). A `role` is a named list of
+// permissions (defined by IAM or configured by users). A `binding` can
+// optionally specify a `condition`, which is a logic expression that further
+// constrains the role binding based on attributes about the request and/or
+// target resource.
 //
 // **JSON Example**
 //
 //     {
 //       "bindings": [
 //         {
-//           "role": "roles/owner",
+//           "role": "roles/resourcemanager.organizationAdmin",
 //           "members": [
 //             "user:mike@example.com",
 //             "group:admins@example.com",
 //             "domain:google.com",
-//             "serviceAccount:my-other-app@appspot.gserviceaccount.com"
+//             "serviceAccount:my-project-id@appspot.gserviceaccount.com"
 //           ]
 //         },
 //         {
-//           "role": "roles/viewer",
-//           "members": ["user:sean@example.com"]
+//           "role": "roles/resourcemanager.organizationViewer",
+//           "members": ["user:eve@example.com"],
+//           "condition": {
+//             "title": "expirable access",
+//             "description": "Does not grant access after Sep 2020",
+//             "expression": "request.time <
+//             timestamp('2020-10-01T00:00:00.000Z')",
+//           }
 //         }
 //       ]
 //     }
@@ -123,19 +132,36 @@ func (AuditConfigDelta_Action) EnumDescriptor() ([]byte, []int) {
 //       - user:mike@example.com
 //       - group:admins@example.com
 //       - domain:google.com
-//       - serviceAccount:my-other-app@appspot.gserviceaccount.com
-//       role: roles/owner
+//       - serviceAccount:my-project-id@appspot.gserviceaccount.com
+//       role: roles/resourcemanager.organizationAdmin
 //     - members:
-//       - user:sean@example.com
-//       role: roles/viewer
-//
+//       - user:eve@example.com
+//       role: roles/resourcemanager.organizationViewer
+//       condition:
+//         title: expirable access
+//         description: Does not grant access after Sep 2020
+//         expression: request.time < timestamp('2020-10-01T00:00:00.000Z')
 //
 // For a description of IAM and its features, see the
 // [IAM developer's guide](https://cloud.google.com/iam/docs).
 type Policy struct {
-	// Deprecated.
+	// Specifies the format of the policy.
+	//
+	// Valid values are 0, 1, and 3. Requests specifying an invalid value will be
+	// rejected.
+	//
+	// Operations affecting conditional bindings must specify version 3. This can
+	// be either setting a conditional policy, modifying a conditional binding,
+	// or removing a binding (conditional or unconditional) from the stored
+	// conditional policy.
+	// Operations on non-conditional policies may specify any valid value or
+	// leave the field unset.
+	//
+	// If no etag is provided in the call to `setIamPolicy`, version compliance
+	// checks against the stored policy is skipped.
 	Version int32 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	// Associates a list of `members` to a `role`.
+	// Associates a list of `members` to a `role`. Optionally may specify a
+	// `condition` that determines when binding is in effect.
 	// `bindings` with no members will result in an error.
 	Bindings []*Binding `protobuf:"bytes,4,rep,name=bindings,proto3" json:"bindings,omitempty"`
 	// `etag` is used for optimistic concurrency control as a way to help
@@ -147,7 +173,9 @@ type Policy struct {
 	// ensure that their change will be applied to the same version of the policy.
 	//
 	// If no `etag` is provided in the call to `setIamPolicy`, then the existing
-	// policy is overwritten.
+	// policy is overwritten. Due to blind-set semantics of an etag-less policy,
+	// 'setIamPolicy' will not fail even if the incoming policy version does not
+	// meet the requirements for modifying the stored policy.
 	Etag                 []byte   `protobuf:"bytes,3,opt,name=etag,proto3" json:"etag,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -350,8 +378,7 @@ type BindingDelta struct {
 	// Follows the same format of Binding.members.
 	// Required
 	Member string `protobuf:"bytes,3,opt,name=member,proto3" json:"member,omitempty"`
-	// The condition that is associated with this binding. This field is logged
-	// only for Cloud Audit Logging.
+	// The condition that is associated with this binding.
 	Condition            *expr.Expr `protobuf:"bytes,4,opt,name=condition,proto3" json:"condition,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -498,7 +525,9 @@ func init() {
 	proto.RegisterType((*AuditConfigDelta)(nil), "google.iam.v1.AuditConfigDelta")
 }
 
-func init() { proto.RegisterFile("google/iam/v1/policy.proto", fileDescriptor_a3cd40b8a66b2a99) }
+func init() {
+	proto.RegisterFile("google/iam/v1/policy.proto", fileDescriptor_a3cd40b8a66b2a99)
+}
 
 var fileDescriptor_a3cd40b8a66b2a99 = []byte{
 	// 550 bytes of a gzipped FileDescriptorProto

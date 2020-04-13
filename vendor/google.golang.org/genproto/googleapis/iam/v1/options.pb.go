@@ -25,9 +25,13 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 // Encapsulates settings provided to GetIamPolicy.
 type GetPolicyOptions struct {
 	// Optional. The policy format version to be returned.
-	// Acceptable values are 0 and 1.
-	// If the value is 0, or the field is omitted, policy format version 1 will be
-	// returned.
+	//
+	// Valid values are 0, 1, and 3. Requests specifying an invalid value will be
+	// rejected.
+	//
+	// Requests for policies with any conditional bindings must specify version 3.
+	// Policies without any conditional bindings may specify any valid value or
+	// leave the field unset.
 	RequestedPolicyVersion int32    `protobuf:"varint,1,opt,name=requested_policy_version,json=requestedPolicyVersion,proto3" json:"requested_policy_version,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_unrecognized       []byte   `json:"-"`
@@ -70,7 +74,9 @@ func init() {
 	proto.RegisterType((*GetPolicyOptions)(nil), "google.iam.v1.GetPolicyOptions")
 }
 
-func init() { proto.RegisterFile("google/iam/v1/options.proto", fileDescriptor_19aa09e909092bd1) }
+func init() {
+	proto.RegisterFile("google/iam/v1/options.proto", fileDescriptor_19aa09e909092bd1)
+}
 
 var fileDescriptor_19aa09e909092bd1 = []byte{
 	// 229 bytes of a gzipped FileDescriptorProto

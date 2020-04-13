@@ -21,7 +21,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// The canonical error codes for Google APIs.
+// The canonical error codes for gRPC APIs.
 //
 //
 // Sometimes multiple error codes may apply.  Services should return
@@ -156,7 +156,8 @@ const (
 	Code_INTERNAL Code = 13
 	// The service is currently unavailable.  This is most likely a
 	// transient condition, which can be corrected by retrying with
-	// a backoff.
+	// a backoff. Note that it is not always safe to retry
+	// non-idempotent operations.
 	//
 	// See the guidelines above for deciding between `FAILED_PRECONDITION`,
 	// `ABORTED`, and `UNAVAILABLE`.
@@ -221,7 +222,9 @@ func init() {
 	proto.RegisterEnum("google.rpc.Code", Code_name, Code_value)
 }
 
-func init() { proto.RegisterFile("google/rpc/code.proto", fileDescriptor_fe593a732623ccf0) }
+func init() {
+	proto.RegisterFile("google/rpc/code.proto", fileDescriptor_fe593a732623ccf0)
+}
 
 var fileDescriptor_fe593a732623ccf0 = []byte{
 	// 362 bytes of a gzipped FileDescriptorProto
