@@ -36,6 +36,8 @@ BUG FIXES:
 * core: Instances are now destroyed only using their stored state, removing many cycle errors [GH-24083]
 * core: Destroy provisioners should not evaluate for_each expressions [GH-24163]
 * lang: Fix non-string key panics in map function [GH-24277]
+* lang: `substr("abc", 0, 0)` would previously return `"abc"`, despite the length argument being `0`. This has been changed to return an empty string when length is zero. [GH-24318]
+* lang: `ceil(1/0)` and `floor(1/0)` would previously return a large integer value, rather than infinity. This has been fixed. [GH-21463]
 * provisioners/habitat: Fix permissions on user.toml [GH-24321]
 
 ---
