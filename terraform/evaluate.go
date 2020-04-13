@@ -336,54 +336,184 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 	return val, diags
 }
 
-func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Output results live in the module that declares them, which is one of
 	// the child module instances of our current module path.
-	moduleAddr := addr.ModuleInstance(d.ModulePath)
+	moduleAddr := d.ModulePath.Module().Child(addr.Name)
+
+	parentCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	callConfig, ok := parentCfg.Module.ModuleCalls[addr.Name]
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared module`,
+			Detail:   fmt.Sprintf(`The configuration contains no %s.`, moduleAddr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
 
 	// We'll consult the configuration to see what output names we are
 	// expecting, so we can ensure the resulting object is of the expected
 	// type even if our data is incomplete for some reason.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
+	moduleConfig := d.Evaluator.Config.Descendent(moduleAddr)
 	if moduleConfig == nil {
-		// should never happen, since this should've been caught during
-		// static validation.
+		// should never happen, since we have a valid module call above, this
+		// should be caught during static validation.
 		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
 	}
 	outputConfigs := moduleConfig.Module.Outputs
 
-	vals := map[string]cty.Value{}
-	for n := range outputConfigs {
-		addr := addrs.OutputValue{Name: n}.Absolute(moduleAddr)
+	// Collect all the relevant outputs that current exist in the state.
+	// We know the instance path up to this point, and the child module name,
+	// so we only need to store these by instance key.
+	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
+	for _, m := range d.Evaluator.State.ModuleInstances(moduleAddr) {
+		// skip module instances that aren't a child of our particular parent
+		// module instance.
+		if !d.ModulePath.Equal(m.Addr.Parent()) {
+			continue
+		}
 
-		// If a pending change is present in our current changeset then its value
-		// takes priority over what's in state. (It will usually be the same but
-		// will differ if the new value is unknown during planning.)
-		if changeSrc := d.Evaluator.Changes.GetOutputChange(addr); changeSrc != nil {
+		_, callInstance := m.Addr.CallInstance()
+		instance, ok := stateMap[callInstance.Key]
+		if !ok {
+			instance = map[string]cty.Value{}
+			stateMap[callInstance.Key] = instance
+		}
+
+		for name, output := range m.OutputValues {
+			instance[name] = output.Value
+		}
+	}
+
+	// Get all changes that reside for this module call within our path.
+	// The change contains the full addr, so we can key these with strings.
+	changesMap := map[addrs.InstanceKey]map[string]*plans.OutputChangeSrc{}
+	for _, change := range d.Evaluator.Changes.GetOutputChanges(d.ModulePath, addr) {
+		_, callInstance := change.Addr.Module.CallInstance()
+		instance, ok := changesMap[callInstance.Key]
+		if !ok {
+			instance = map[string]*plans.OutputChangeSrc{}
+			changesMap[callInstance.Key] = instance
+		}
+
+		instance[change.Addr.OutputValue.Name] = change
+	}
+
+	// Build up all the module objects, creating a map of values for each
+	// module instance.
+	moduleInstances := map[addrs.InstanceKey]map[string]cty.Value{}
+
+	// the structure is based on the configuration, so iterate through all the
+	// defined outputs, and add any instance state or changes we find.
+	for _, cfg := range outputConfigs {
+		// get all instance output for this path from the state
+		for key, states := range stateMap {
+			outputState, ok := states[cfg.Name]
+			if !ok {
+				continue
+			}
+
+			instance, ok := moduleInstances[key]
+			if !ok {
+				instance = map[string]cty.Value{}
+				moduleInstances[key] = instance
+			}
+
+			instance[cfg.Name] = outputState
+		}
+
+		// any pending changes override the state state values
+		for key, changes := range changesMap {
+			changeSrc, ok := changes[cfg.Name]
+			if !ok {
+				continue
+			}
+
+			instance, ok := moduleInstances[key]
+			if !ok {
+				instance = map[string]cty.Value{}
+				moduleInstances[key] = instance
+			}
+
 			change, err := changeSrc.Decode()
 			if err != nil {
 				// This should happen only if someone has tampered with a plan
 				// file, so we won't bother with a pretty error for it.
 				diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", addr, err))
-				vals[n] = cty.DynamicVal
+				instance[cfg.Name] = cty.DynamicVal
 				continue
 			}
-			// We care only about the "after" value, which is the value this output
-			// will take on after the plan is applied.
-			vals[n] = change.After
-		} else {
-			os := d.Evaluator.State.OutputValue(addr)
-			if os == nil {
-				// Not evaluated yet?
-				vals[n] = cty.DynamicVal
-				continue
-			}
-			vals[n] = os.Value
+
+			instance[cfg.Name] = change.After
 		}
 	}
-	return cty.ObjectVal(vals), diags
+
+	// ensure all defined outputs names are present in the module value, even
+	// if they are not known yet.
+	for _, instance := range moduleInstances {
+		for configKey := range outputConfigs {
+			if _, ok := instance[configKey]; !ok {
+				instance[configKey] = cty.DynamicVal
+			}
+		}
+	}
+
+	// compile the outputs into the correct value type for the each mode
+	switch {
+	case callConfig.Count != nil:
+		vals := make([]cty.Value, len(moduleInstances))
+		for key, instance := range moduleInstances {
+			intKey, ok := key.(addrs.IntKey)
+			if !ok {
+				// old key from state which is being dropped
+				continue
+			}
+
+			vals[int(intKey)] = cty.ObjectVal(instance)
+		}
+
+		// we shouldn't have any holes, but insert real values just in case,
+		// while trimming off any extra values that may have there from old
+		// entries.
+		last := 0
+		for i, v := range vals {
+			if v.IsNull() {
+				vals[i] = cty.DynamicVal
+				continue
+			}
+			last = i
+		}
+		vals = vals[:last+1]
+		return cty.TupleVal(vals), diags
+
+	case callConfig.ForEach != nil:
+		vals := make(map[string]cty.Value)
+		for key, instance := range moduleInstances {
+			strKey, ok := key.(addrs.StringKey)
+			if !ok {
+				continue
+			}
+
+			vals[string(strKey)] = cty.ObjectVal(instance)
+		}
+		return cty.ObjectVal(vals), diags
+
+	default:
+		val, ok := moduleInstances[addrs.NoKey]
+		if !ok {
+			// create the object is there wasn't one known
+			val = map[string]cty.Value{}
+			for k := range outputConfigs {
+				val[k] = cty.DynamicVal
+			}
+		}
+
+		return cty.ObjectVal(val), diags
+	}
 }
 
 func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
