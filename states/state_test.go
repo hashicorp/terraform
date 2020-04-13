@@ -53,10 +53,20 @@ func TestState(t *testing.T) {
 				},
 				OutputValues: map[string]*OutputValue{
 					"bar": {
+						Addr: addrs.AbsOutputValue{
+							OutputValue: addrs.OutputValue{
+								Name: "bar",
+							},
+						},
 						Value:     cty.StringVal("bar value"),
 						Sensitive: false,
 					},
 					"secret": {
+						Addr: addrs.AbsOutputValue{
+							OutputValue: addrs.OutputValue{
+								Name: "secret",
+							},
+						},
 						Value:     cty.StringVal("secret value"),
 						Sensitive: true,
 					},
@@ -92,6 +102,12 @@ func TestState(t *testing.T) {
 				LocalValues: map[string]cty.Value{},
 				OutputValues: map[string]*OutputValue{
 					"pizza": {
+						Addr: addrs.AbsOutputValue{
+							Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
+							OutputValue: addrs.OutputValue{
+								Name: "pizza",
+							},
+						},
 						Value:     cty.StringVal("hawaiian"),
 						Sensitive: false,
 					},
