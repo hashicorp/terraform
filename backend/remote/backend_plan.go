@@ -308,12 +308,11 @@ in order to capture the filesystem context the remote workspace expects:
 		return r, generalError("Failed to retrieve run", err)
 	}
 
-	// Return if the run is canceled or errored. We return without
-	// an error, even if the run errored, as the error is already
-	// displayed by the output of the remote run.
-	if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
-		return r, nil
-	}
+	// If the run is canceled or errored, we still continue to the
+	// cost-estimation and policy check phases to ensure we render any
+	// results available. In the case of a hard-failed policy check, the
+	// status of the run will be "errored", but there is still policy
+	// information which should be shown.
 
 	// Show any cost estimation output.
 	if r.CostEstimate != nil {
