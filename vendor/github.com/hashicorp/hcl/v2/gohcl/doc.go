@@ -17,6 +17,7 @@
 //    attr (the default) indicates that the value is to be populated from an attribute
 //    block indicates that the value is to populated from a block
 //    label indicates that the value is to populated from a block label
+//    optional is the same as attr, but the field is optional
 //    remain indicates that the value is to be populated from the remaining body after populating other fields
 //
 // "attr" fields may either be of type *hcl.Expression, in which case the raw
@@ -33,6 +34,9 @@
 // marked as "block", and are used sequentially to capture the labels of
 // the blocks being decoded. In this case, the name token is used only as
 // an identifier for the label in diagnostic messages.
+//
+// "optional" fields behave like "attr" fields, but they are optional
+// and will not give parsing errors if they are missing.
 //
 // "remain" can be placed on a single field that may be either of type
 // hcl.Body or hcl.Attributes, in which case any remaining body content is

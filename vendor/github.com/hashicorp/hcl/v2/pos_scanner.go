@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 
-	"github.com/apparentlymart/go-textseg/textseg"
+	"github.com/apparentlymart/go-textseg/v12/textseg"
 )
 
 // RangeScanner is a helper that will scan over a buffer using a bufio.SplitFunc
