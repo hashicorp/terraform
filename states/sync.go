@@ -48,6 +48,18 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	return ret
 }
 
+// ModuleOutputs returns the set of OutputValues that matches the given path.
+func (s *SyncState) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	var os []*OutputValue
+
+	for _, o := range s.state.ModuleOutputs(parentAddr, module) {
+		os = append(os, o.DeepCopy())
+	}
+	return os
+}
+
 // RemoveModule removes the entire state for the given module, taking with
 // it any resources associated with the module. This should generally be
 // called only for modules whose resources have all been destroyed, but
