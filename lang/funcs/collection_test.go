@@ -1203,7 +1203,7 @@ func TestSum(t *testing.T) {
 		{
 			cty.UnknownVal(cty.Number),
 			cty.NilVal,
-			true,
+			false,
 		},
 	}
 
