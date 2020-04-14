@@ -39,6 +39,7 @@ BUG FIXES:
 * lang: `substr("abc", 0, 0)` would previously return `"abc"`, despite the length argument being `0`. This has been changed to return an empty string when length is zero. [GH-24318]
 * lang: `ceil(1/0)` and `floor(1/0)` would previously return a large integer value, rather than infinity. This has been fixed. [GH-21463]
 * provisioners/habitat: Fix permissions on user.toml [GH-24321]
+* vendor: Fix crash when processing malformed JSON [GH-24650]
 
 ---
 For information on prior major releases, see their changelogs:
