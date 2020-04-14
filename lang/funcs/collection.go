@@ -492,7 +492,7 @@ var SumFunc = function.New(&function.Spec{
 		}
 
 		if !args[0].IsKnown() {
-			return cty.UnknownVal(cty.Number), nil
+			return cty.UnknownVal(cty.Number), function.NewArgErrorf(0, "cannot sum unknown value")
 		}
 
 		for _, v := range arg {
