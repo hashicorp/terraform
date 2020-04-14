@@ -195,7 +195,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]cty.Value{}
-	moduleOutputs := map[string]map[addrs.InstanceKey]map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
@@ -291,20 +290,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			val, valDiags := normalizeRefValue(s.Data.GetModule(subj, rng))
 			diags = diags.Append(valDiags)
 			wholeModules[subj.Name] = val
-
-		case addrs.AbsModuleCallOutput:
-			val, valDiags := normalizeRefValue(s.Data.GetModuleInstanceOutput(subj, rng))
-			diags = diags.Append(valDiags)
-
-			callName := subj.Call.Call.Name
-			callKey := subj.Call.Key
-			if moduleOutputs[callName] == nil {
-				moduleOutputs[callName] = make(map[addrs.InstanceKey]map[string]cty.Value)
-			}
-			if moduleOutputs[callName][callKey] == nil {
-				moduleOutputs[callName][callKey] = make(map[string]cty.Value)
-			}
-			moduleOutputs[callName][callKey][subj.Name] = val
 
 		case addrs.InputVariable:
 			val, valDiags := normalizeRefValue(s.Data.GetInputVariable(subj, rng))

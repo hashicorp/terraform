@@ -471,8 +471,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		}
 
 		// we shouldn't have any holes, but insert real values just in case,
-		// while trimming off any extra values that may have there from old
-		// entries.
+		// while trimming off any extra values that we may have from guessing
+		// the length via the state instances.
 		last := 0
 		for i, v := range vals {
 			if v.IsNull() {
@@ -508,76 +508,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 		return cty.ObjectVal(val), diags
 	}
-}
-
-func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// Output results live in the module that declares them, which is one of
-	// the child module instances of our current module path.
-	absAddr := addr.AbsOutputValue(d.ModulePath)
-	moduleAddr := absAddr.Module
-
-	// First we'll consult the configuration to see if an output of this
-	// name is declared at all.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
-	if moduleConfig == nil {
-		// this doesn't happen in normal circumstances due to our validation
-		// pass, but it can turn up in some unusual situations, like in the
-		// "terraform console" repl where arbitrary expressions can be
-		// evaluated.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Reference to undeclared module`,
-			Detail:   fmt.Sprintf(`The configuration contains no %s.`, moduleAddr),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
-	}
-
-	config := moduleConfig.Module.Outputs[addr.Name]
-	if config == nil {
-		var suggestions []string
-		for k := range moduleConfig.Module.Outputs {
-			suggestions = append(suggestions, k)
-		}
-		suggestion := nameSuggestion(addr.Name, suggestions)
-		if suggestion != "" {
-			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
-		}
-
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Reference to undeclared output value`,
-			Detail:   fmt.Sprintf(`An output value with the name %q has not been declared in %s.%s`, addr.Name, moduleDisplayAddr(moduleAddr), suggestion),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
-	}
-
-	// If a pending change is present in our current changeset then its value
-	// takes priority over what's in state. (It will usually be the same but
-	// will differ if the new value is unknown during planning.)
-	if changeSrc := d.Evaluator.Changes.GetOutputChange(absAddr); changeSrc != nil {
-		change, err := changeSrc.Decode()
-		if err != nil {
-			// This should happen only if someone has tampered with a plan
-			// file, so we won't bother with a pretty error for it.
-			diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", absAddr, err))
-			return cty.DynamicVal, diags
-		}
-		// We care only about the "after" value, which is the value this output
-		// will take on after the plan is applied.
-		return change.After, diags
-	}
-
-	os := d.Evaluator.State.OutputValue(absAddr)
-	if os == nil {
-		// Not evaluated yet?
-		return cty.DynamicVal, diags
-	}
-
-	return os.Value, diags
 }
 
 func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
