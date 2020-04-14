@@ -6,11 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
 
 const (
@@ -21,23 +22,22 @@ const (
 
 func (b *Backend) Workspaces() ([]string, error) {
 	prefix := b.keyName + keyEnvPrefix
-	params := storage.ListBlobsParameters{
-		Prefix: prefix,
+	params := containers.ListBlobsInput{
+		Prefix: &prefix,
 	}
 
 	ctx := context.TODO()
-	client, err := b.armClient.getBlobClient(ctx)
+	client, err := b.armClient.getGiovanniContainersClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	container := client.GetContainerReference(b.containerName)
-	resp, err := container.ListBlobs(params)
+	resp, err := client.ListBlobs(ctx, b.armClient.storageAccountName, b.containerName, params)
 	if err != nil {
 		return nil, err
 	}
 
 	envs := map[string]struct{}{}
-	for _, obj := range resp.Blobs {
+	for _, obj := range resp.Blobs.Blobs {
 		key := obj.Name
 		if strings.HasPrefix(key, prefix) {
 			name := strings.TrimPrefix(key, prefix)
@@ -64,29 +64,29 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	}
 
 	ctx := context.TODO()
-	client, err := b.armClient.getBlobClient(ctx)
+	gClient, err := b.armClient.getGiovanniBlobClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	containerReference := client.GetContainerReference(b.containerName)
-	blobReference := containerReference.GetBlobReference(b.path(name))
-	options := &storage.DeleteBlobOptions{}
+	if _, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, name, blobs.DeleteInput{}); err != nil {
+		return err
+	}
 
-	return blobReference.Delete(options)
+	return nil
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
 	ctx := context.TODO()
-	blobClient, err := b.armClient.getBlobClient(ctx)
+	blobClient, err := b.armClient.getGiovanniBlobClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	client := &RemoteClient{
-		blobClient:    *blobClient,
-		containerName: b.containerName,
-		keyName:       b.path(name),
+		giovanniBlobClient: *blobClient,
+		containerName:      b.containerName,
+		keyName:            b.path(name),
 	}
 
 	stateMgr := &remote.State{Client: client}

@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
@@ -14,7 +12,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
@@ -26,8 +23,8 @@ type ArmClient struct {
 	// These Clients are only initialized if an Access Key isn't provided
 	groupsClient          *resources.GroupsClient
 	storageAccountsClient *armStorage.AccountsClient
-	cClient *containers.Client
-	bClient *blobs.Client
+	containersClient      *containers.Client
+	blobsClient           *blobs.Client
 
 	accessKey          string
 	environment        azure.Environment
@@ -111,49 +108,60 @@ func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
 	return authentication.DetermineEnvironment(config.Environment)
 }
 
-func (c ArmClient) getBlobClient(ctx context.Context) (*storage.BlobStorageClient, error) {
-	if c.accessKey != "" {
-		log.Printf("[DEBUG] Building the Blob Client from an Access Token")
-		storageClient, err := storage.NewBasicClientOnSovereignCloud(c.storageAccountName, c.accessKey, c.environment)
+func (c ArmClient) getGiovanniBlobClient(ctx context.Context) (*blobs.Client, error) {
+	// TODO Figure out with SASToken?
+	accessKey := c.accessKey
+	if accessKey == "" {
+		log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
+		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
 		if err != nil {
-			return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", c.storageAccountName, err)
-		}
-		client := storageClient.GetBlobService()
-		return &client, nil
-	}
-
-	if c.sasToken != "" {
-		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
-		token := strings.TrimPrefix(c.sasToken, "?")
-		uri, err := url.ParseQuery(token)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing SAS Token: %+v", err)
+			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
 		}
 
-		storageClient := storage.NewAccountSASClient(c.storageAccountName, uri, c.environment)
-		client := storageClient.GetBlobService()
-		return &client, nil
+		if keys.Keys == nil {
+			return nil, fmt.Errorf("Nil key returned for storage account %q", c.storageAccountName)
+		}
+
+		accessKeys := *keys.Keys
+		accessKey = *accessKeys[0].Value
 	}
 
-	log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
-	keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
+	storageAuth, err := autorest.NewSharedKeyAuthorizer(c.storageAccountName, accessKey, autorest.SharedKey)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
+		return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 	}
 
-	if keys.Keys == nil {
-		return nil, fmt.Errorf("Nil key returned for storage account %q", c.storageAccountName)
+	blobsClient := blobs.NewWithEnvironment(c.environment)
+	blobsClient.Client.Authorizer = storageAuth
+	return &blobsClient, nil
+}
+
+func (c ArmClient) getGiovanniContainersClient(ctx context.Context) (*containers.Client, error) {
+	// TODO Figure out with SASToken?
+	accessKey := c.accessKey
+	if accessKey == "" {
+		log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
+		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
+		if err != nil {
+			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
+		}
+
+		if keys.Keys == nil {
+			return nil, fmt.Errorf("Nil key returned for storage account %q", c.storageAccountName)
+		}
+
+		accessKeys := *keys.Keys
+		accessKey = *accessKeys[0].Value
 	}
 
-	accessKeys := *keys.Keys
-	accessKey := accessKeys[0].Value
-
-	storageClient, err := storage.NewBasicClientOnSovereignCloud(c.storageAccountName, *accessKey, c.environment)
+	storageAuth, err := autorest.NewSharedKeyAuthorizer(c.storageAccountName, accessKey, autorest.SharedKey)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating storage client for storage account %q: %s", c.storageAccountName, err)
+		return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 	}
-	client := storageClient.GetBlobService()
-	return &client, nil
+
+	containersClient := containers.NewWithEnvironment(c.environment)
+	containersClient.Client.Authorizer = storageAuth
+	return &containersClient, nil
 }
 
 func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Authorizer) {

@@ -11,8 +11,9 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
-	"github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
 
 const (
@@ -170,15 +171,16 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	accessKey := *keys[0].Value
 	names.storageAccountAccessKey = accessKey
 
-	storageClient, err := storage.NewBasicClientOnSovereignCloud(names.storageAccountName, accessKey, c.environment)
+	storageAuth, err := autorest.NewSharedKeyAuthorizer(names.storageAccountName, accessKey, autorest.SharedKey)
 	if err != nil {
-		return fmt.Errorf("failed to list storage account keys %s:", err)
+		return fmt.Errorf("Error building Authorizer: %+v", err)
 	}
 
+	containersClient := containers.NewWithEnvironment(c.environment)
+	containersClient.Client.Authorizer = storageAuth
+
 	log.Printf("Creating Container %q in Storage Account %q (Resource Group %q)", names.storageContainerName, names.storageAccountName, names.resourceGroup)
-	blobService := storageClient.GetBlobService()
-	container := blobService.GetContainerReference(names.storageContainerName)
-	err = container.Create(&storage.CreateContainerOptions{})
+	_, err = containersClient.Create(ctx, names.storageAccountName, names.storageContainerName, containers.CreateInput{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage container: %s", err)
 	}

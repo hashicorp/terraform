@@ -2,18 +2,19 @@ package azure
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 )
 
 const (
@@ -23,35 +24,30 @@ const (
 )
 
 type RemoteClient struct {
-	blobClient    storage.BlobStorageClient
-	containerName string
-	keyName       string
-	leaseID       string
+	giovanniBlobClient blobs.Client
+	accountName        string
+	containerName      string
+	keyName            string
+	leaseID            string
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	options := &storage.GetBlobOptions{}
-
+	options := blobs.GetInput{}
 	if c.leaseID != "" {
-		options.LeaseID = c.leaseID
+		options.LeaseID = &c.leaseID
 	}
 
-	blob, err := blobReference.Get(options)
+	ctx := context.TODO()
+	blob, err := c.giovanniBlobClient.Get(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
-		if storErr, ok := err.(storage.AzureStorageServiceError); ok {
-			if storErr.Code == "BlobNotFound" {
-				return nil, nil
-			}
+		if blob.StatusCode == 404 {
+			return nil, nil
 		}
 		return nil, err
 	}
 
-	defer blob.Close()
-
 	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, blob); err != nil {
+	if _, err := io.Copy(buf, blob.Body); err != nil {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
 
@@ -68,54 +64,42 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	getOptions := &storage.GetBlobMetadataOptions{}
-	setOptions := &storage.SetBlobPropertiesOptions{}
-	putOptions := &storage.PutBlobOptions{}
+	getGOptions := blobs.GetPropertiesInput{}
+	setGOptions := blobs.SetPropertiesInput{}
+	putGOptions := blobs.PutBlockBlobInput{}
 
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-
-	blobReference.Properties.ContentType = "application/json"
-	blobReference.Properties.ContentLength = int64(len(data))
-
+	options := blobs.GetInput{}
 	if c.leaseID != "" {
-		getOptions.LeaseID = c.leaseID
-		setOptions.LeaseID = c.leaseID
-		putOptions.LeaseID = c.leaseID
+		options.LeaseID = &c.leaseID
+		getGOptions.LeaseID = &c.leaseID
+		setGOptions.LeaseID = &c.leaseID
+		putGOptions.LeaseID = &c.leaseID
 	}
 
-	exists, err := blobReference.Exists()
+	ctx := context.TODO()
+	_, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getGOptions)
 	if err != nil {
 		return err
 	}
 
-	if exists {
-		err = blobReference.GetMetadata(getOptions)
-		if err != nil {
-			return err
-		}
-	}
+	contentType := "application/json"
+	putGOptions.Content = &data
+	putGOptions.ContentType = &contentType
+	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
 
-	reader := bytes.NewReader(data)
-
-	err = blobReference.CreateBlockBlobFromReader(reader, putOptions)
-	if err != nil {
-		return err
-	}
-
-	return blobReference.SetProperties(setOptions)
+	return err
 }
 
 func (c *RemoteClient) Delete() error {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	options := &storage.DeleteBlobOptions{}
+	gOptions := blobs.DeleteInput{}
 
 	if c.leaseID != "" {
-		options.LeaseID = c.leaseID
+		gOptions.LeaseID = &c.leaseID
 	}
 
-	return blobReference.Delete(options)
+	ctx := context.TODO()
+	_, err := c.giovanniBlobClient.Delete(ctx, c.accountName, c.containerName, c.keyName, gOptions)
+	return err
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
@@ -143,11 +127,13 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		}
 	}
 
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	leaseID, err := blobReference.AcquireLease(-1, info.ID, &storage.LeaseOptions{})
+	leaseOptions := blobs.AcquireLeaseInput{
+		ProposedLeaseID: &info.ID,
+	}
+	ctx := context.TODO()
+	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.accountName, c.containerName, c.keyName, leaseOptions)
 	if err != nil {
-		if storErr, ok := err.(storage.AzureStorageServiceError); ok && storErr.Code != "BlobNotFound" {
+		if leaseID.StatusCode != 404 {
 			return "", getLockInfoErr(err)
 		}
 
@@ -170,14 +156,14 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			}
 		}
 
-		leaseID, err = blobReference.AcquireLease(-1, info.ID, &storage.LeaseOptions{})
+		leaseID, err = c.giovanniBlobClient.AcquireLease(ctx, c.accountName, c.containerName, c.keyName, leaseOptions)
 		if err != nil {
 			return "", getLockInfoErr(err)
 		}
 	}
 
-	info.ID = leaseID
-	c.leaseID = leaseID
+	info.ID = leaseID.LeaseID
+	c.leaseID = leaseID.LeaseID
 
 	if err := c.writeLockInfo(info); err != nil {
 		return "", err
@@ -187,14 +173,18 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	options := blobs.GetPropertiesInput{}
+	if c.leaseID != "" {
+		options.LeaseID = &c.leaseID
+	}
+
+	ctx := context.TODO()
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
 		return nil, err
 	}
 
-	raw := blobReference.Metadata[lockInfoMetaKey]
+	raw := blob.MetaData[lockInfoMetaKey]
 	if raw == "" {
 		return nil, fmt.Errorf("blob metadata %q was empty", lockInfoMetaKey)
 	}
@@ -215,26 +205,29 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 
 // writes info to blob meta data, deletes metadata entry if info is nil
 func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{
-		LeaseID: c.leaseID,
-	})
+	ctx := context.TODO()
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
 
 	if info == nil {
-		delete(blobReference.Metadata, lockInfoMetaKey)
+		delete(blob.MetaData, lockInfoMetaKey)
 	} else {
 		value := base64.StdEncoding.EncodeToString(info.Marshal())
-		blobReference.Metadata[lockInfoMetaKey] = value
+		blob.MetaData[lockInfoMetaKey] = value
 	}
 
-	opts := &storage.SetBlobMetadataOptions{
-		LeaseID: c.leaseID,
+	opts := blobs.SetMetaDataInput{
+		LeaseID:  &c.leaseID,
+		MetaData: blob.MetaData,
 	}
-	return blobReference.SetMetadata(opts)
+
+	_, err = c.giovanniBlobClient.SetMetaData(ctx, c.accountName, c.containerName, c.keyName, opts)
+	return err
 }
 
 func (c *RemoteClient) Unlock(id string) error {
@@ -258,9 +251,8 @@ func (c *RemoteClient) Unlock(id string) error {
 		return lockErr
 	}
 
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	err = blobReference.ReleaseLease(id, &storage.LeaseOptions{})
+	ctx := context.TODO()
+	_, err = c.giovanniBlobClient.ReleaseLease(ctx, c.accountName, c.containerName, c.keyName, id)
 	if err != nil {
 		lockErr.Err = err
 		return lockErr
