@@ -95,8 +95,6 @@ github.com/apparentlymart/go-cidr/cidr
 # github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
 ## explicit
 github.com/apparentlymart/go-dump/dump
-# github.com/apparentlymart/go-textseg v1.0.0
-github.com/apparentlymart/go-textseg/textseg
 # github.com/apparentlymart/go-textseg/v12 v12.0.0
 github.com/apparentlymart/go-textseg/v12/textseg
 # github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9
@@ -443,7 +441,7 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hashicorp/hcl/v2 v2.3.0
+# github.com/hashicorp/hcl/v2 v2.4.0
 ## explicit
 github.com/hashicorp/hcl/v2
 github.com/hashicorp/hcl/v2/ext/customdecode
