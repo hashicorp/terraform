@@ -82,6 +82,7 @@ down to see all providers.
 - [Ignition](/docs/providers/ignition/index.html)
 - [Incapsula](/docs/providers/incapsula/index.html)
 - [InfluxDB](/docs/providers/influxdb/index.html)
+- [Infoblox](/docs/providers/infoblox/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
 - [LaunchDarkly](/docs/providers/launchdarkly/index.html)
