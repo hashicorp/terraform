@@ -504,7 +504,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 	testGraphNotContains(t, g, "module.child1.output.instance_id")
 }
 
-// Ensure that an update resulting from the removal of a resource happens after
+// Ensure that an update resulting from the removal of a resource happens before
 // that resource is destroyed.
 func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 	schemas := simpleTestSchemas()
@@ -598,8 +598,8 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 
 	expected := strings.TrimSpace(`
 test_object.a (destroy)
+  test_object.b
 test_object.b
-  test_object.a (destroy)
 `)
 
 	instanceGraph := filterInstances(g)

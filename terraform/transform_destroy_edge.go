@@ -103,7 +103,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 			for _, resAddr := range ri.StateDependencies() {
 				for _, desDep := range destroyersByResource[resAddr.String()] {
-					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+					log.Printf("[TRACE] DestroyEdgeTransformer: %s depends on %s\n", dag.VertexName(des), dag.VertexName(desDep))
 					g.Connect(dag.BasicEdge(desDep, des))
 
 				}
@@ -120,8 +120,8 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		for _, resAddr := range ri.StateDependencies() {
 			for _, desDep := range destroyersByResource[resAddr.String()] {
-				log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-				g.Connect(dag.BasicEdge(c, desDep))
+				log.Printf("[TRACE] DestroyEdgeTransformer: %s depends on %s\n", dag.VertexName(c), dag.VertexName(desDep))
+				g.Connect(dag.BasicEdge(desDep, c))
 
 			}
 		}
