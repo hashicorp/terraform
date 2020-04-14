@@ -125,7 +125,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "module.module.foo",
 					Error:         true,
-					ErrorContains: `An output value with the name "foo" has not been declared in module.module`,
+					ErrorContains: `Unsupported attribute: This object does not have an attribute named "foo"`,
 				},
 			},
 		})
