@@ -1185,6 +1185,26 @@ func TestSum(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			true,
 		},
+		{
+			cty.NumberIntVal(12),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.ListValEmpty(cty.Number),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{"hello": cty.True}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.UnknownVal(cty.Number),
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {
