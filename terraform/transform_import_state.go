@@ -40,7 +40,7 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		providerFqn := rsCfg.Provider
 
 		// This is only likely to happen in misconfigured tests.
-		if rsCfg == nil {
+		if providerFqn == nil {
 			return fmt.Errorf("provider for resource %s not found in the configuration.", target.Addr)
 		}
 
