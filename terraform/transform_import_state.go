@@ -39,11 +39,6 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		// Get the provider FQN for the resource from the resource configuration
 		providerFqn := rsCfg.Provider
 
-		// This is only likely to happen in misconfigured tests.
-		if providerFqn == nil {
-			return fmt.Errorf("provider for resource %s not found in the configuration.", target.Addr)
-		}
-
 		// Get the provider local config for the resource
 		localpCfg := rsCfg.ProviderConfigAddr()
 
