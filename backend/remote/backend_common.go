@@ -332,6 +332,14 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
 	for i, pc := range r.PolicyChecks {
+		// Read the policy check logs. This is a blocking call that will only
+		// return once the policy check is complete.
+		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
+		if err != nil {
+			return generalError("Failed to retrieve policy check logs", err)
+		}
+		reader := bufio.NewReaderSize(logs, 64*1024)
+
 		// Retrieve the policy check to get its current status.
 		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
 		if err != nil {
@@ -346,12 +354,6 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 				continue
 			}
 		}
-
-		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
-		if err != nil {
-			return generalError("Failed to retrieve policy check logs", err)
-		}
-		reader := bufio.NewReaderSize(logs, 64*1024)
 
 		var msgPrefix string
 		switch pc.Scope {
