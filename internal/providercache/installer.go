@@ -41,6 +41,12 @@ type Installer struct {
 	// namespace, which we use for providers that are built in to Terraform
 	// and thus do not need any separate installation step.
 	builtInProviderTypes []string
+
+	// unmanagedProviderTypes is a set of provider addresses that should be
+	// considered implemented, but that Terraform does not manage the
+	// lifecycle for, and therefore does not need to worry about the
+	// installation of.
+	unmanagedProviderTypes map[addrs.Provider]struct{}
 }
 
 // NewInstaller constructs and returns a new installer with the given target
@@ -92,6 +98,16 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 // method.
 func (i *Installer) SetBuiltInProviderTypes(types []string) {
 	i.builtInProviderTypes = types
+}
+
+// SetUnmanagedProviderTypes tells the receiver to consider the providers
+// indicated by the passed addrs.Providers as unmanaged. Terraform does not
+// need to control the lifecycle of these providers, and they are assumed to be
+// running already when Terraform is started. Because these are essentially
+// processes, not binaries, Terraform will not do any work to ensure presence
+// or versioning of these binaries.
+func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{}) {
+	i.unmanagedProviderTypes = types
 }
 
 // EnsureProviderVersions compares the given provider requirements with what
@@ -171,6 +187,10 @@ MightNeedProvider:
 					cb(provider, err)
 				}
 			}
+			continue
+		}
+		if _, ok := i.unmanagedProviderTypes[provider]; ok {
+			// unmanaged providers do not require installation
 			continue
 		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)

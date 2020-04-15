@@ -42,6 +42,7 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_config_mode":      testResourceConfigMode(),
 			"test_resource_nested_id":        testResourceNestedId(),
 			"test_resource_provider_meta":    testResourceProviderMeta(),
+			"test_resource_signal":           testResourceSignal(),
 			"test_undeleteable":              testResourceUndeleteable(),
 			"test_resource_required_min":     testResourceRequiredMin(),
 		},
