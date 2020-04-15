@@ -130,6 +130,49 @@ func TestInitProvidersVendored(t *testing.T) {
 
 }
 
+func TestInitProvidersLocalOnly(t *testing.T) {
+	t.Parallel()
+
+	// This test should not reach out to the network if it is behaving as
+	// intended. If it _does_ try to access an upstream registry and encounter
+	// an error doing so then that's a legitimate test failure that should be
+	// fixed. (If it incorrectly reaches out anywhere then it's likely to be
+	// to the host "example.com", which is the placeholder domain we use in
+	// the test fixture.)
+
+	fixturePath := filepath.Join("testdata", "local-only-provider")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	// Our fixture dir has a generic os_arch dir, which we need to customize
+	// to the actual OS/arch where this test is running in order to get the
+	// desired result.
+	fixtMachineDir := tf.Path("terraform.d/plugins/example.com/awesomecorp/happycloud/1.2.0/os_arch")
+	wantMachineDir := tf.Path("terraform.d/plugins/example.com/awesomecorp/happycloud/1.2.0/", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
+	err := os.Rename(fixtMachineDir, wantMachineDir)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	stdout, stderr, err := tf.Run("init")
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+
+	if !strings.Contains(stdout, "Terraform has been successfully initialized!") {
+		t.Errorf("success message is missing from output:\n%s", stdout)
+	}
+
+	if !strings.Contains(stdout, "- Installing example.com/awesomecorp/happycloud v1.2.0") {
+		t.Errorf("provider download message is missing from output:\n%s", stdout)
+		t.Logf("(this can happen if you have a conflicting copy of the plugin in one of the global plugin search dirs)")
+	}
+}
+
 func TestInitProviders_pluginCache(t *testing.T) {
 	t.Parallel()
 
