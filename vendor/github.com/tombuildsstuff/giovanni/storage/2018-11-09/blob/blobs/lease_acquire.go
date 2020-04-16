@@ -98,7 +98,7 @@ func (client Client) AcquireLeasePreparer(ctx context.Context, accountName, cont
 	}
 
 	if input.ProposedLeaseID != nil {
-		headers["x-ms-proposed-lease-id"] = input.ProposedLeaseID
+		headers["x-ms-proposed-lease-id"] = *input.ProposedLeaseID
 	}
 
 	preparer := autorest.CreatePreparer(

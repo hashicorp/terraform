@@ -55,12 +55,14 @@ func (sas *SASTokenAuthorizer) WithAuthorization() PrepareDecorator {
 			}
 
 			if r.URL.RawQuery != "" {
-				r.URL.RawQuery = fmt.Sprintf("%s&%s", r.URL.RawQuery, sas.sasToken)
+				 // When retrying the request we need to ensure the sasToken isn't present
+                                if !strings.Contains(r.URL.RawQuery, sas.sasToken) {
+                                        r.URL.RawQuery = fmt.Sprintf("%s&%s", r.URL.RawQuery, sas.sasToken)
+                                }
 			} else {
 				r.URL.RawQuery = sas.sasToken
 			}
 
-			r.RequestURI = r.URL.String()
 			return Prepare(r)
 		})
 	}
