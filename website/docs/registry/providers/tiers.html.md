@@ -10,7 +10,7 @@ description: |-
 
 There are three tiers of providers in the Terraform Registry:
 
-* **Official Providers** - are built, signed, and supported by HashiCorp. Official Providers can typically used without providing
+* **Official Providers** - are built, signed, and supported by HashiCorp. Official Providers can typically be used without providing
   provider source information in your Terraform configuration.
 * **Partner Providers** - are built, signed, and supported by a third party. HashiCorp has verified the ownership of the private
   key and we provide a chain of trust to the CLI to verify this programatically. To use Partner Providers in your Terraform
