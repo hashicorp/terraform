@@ -3,11 +3,8 @@ package azure
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"log"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
@@ -112,7 +109,18 @@ func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
 }
 
 func (c ArmClient) getGiovanniBlobClient(ctx context.Context) (*blobs.Client, error) {
-	// TODO Figure out with SASToken?
+	if c.sasToken != "" {
+		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
+		storageAuth, err := autorest.NewSASTokenAuthorizer(c.sasToken)
+		if err != nil {
+			return nil, fmt.Errorf("Error building Authorizer: %+v", err)
+		}
+
+		blobsClient := blobs.NewWithEnvironment(c.environment)
+		c.configureClient(&blobsClient.Client, storageAuth)
+		return &blobsClient, nil
+	}
+
 	accessKey := c.accessKey
 	if accessKey == "" {
 		log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
@@ -129,34 +137,31 @@ func (c ArmClient) getGiovanniBlobClient(ctx context.Context) (*blobs.Client, er
 		accessKey = *accessKeys[0].Value
 	}
 
-	if c.sasToken != "" {
-		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
-		token := strings.TrimPrefix(c.sasToken, "?")
-		uri, err := url.ParseQuery(token)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing SAS Token: %+v", err)
-		}
-		
-		storageClient := storage.NewAccountSASClient(c.storageAccountName, uri, c.environment)
-		client := storageClient.GetBlobService()
-		return &client, nil
-	}
-
 	storageAuth, err := autorest.NewSharedKeyAuthorizer(c.storageAccountName, accessKey, autorest.SharedKey)
 	if err != nil {
 		return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 	}
 
 	blobsClient := blobs.NewWithEnvironment(c.environment)
-	blobsClient.Client.Authorizer = storageAuth
+	c.configureClient(&blobsClient.Client, storageAuth)
 	return &blobsClient, nil
 }
 
 func (c ArmClient) getGiovanniContainersClient(ctx context.Context) (*containers.Client, error) {
-	// TODO Figure out with SASToken?
+	if c.sasToken != "" {
+		log.Printf("[DEBUG] Building the Container Client from a SAS Token")
+		storageAuth, err := autorest.NewSASTokenAuthorizer(c.sasToken)
+		if err != nil {
+			return nil, fmt.Errorf("Error building Authorizer: %+v", err)
+		}
+
+		containersClient := containers.NewWithEnvironment(c.environment)
+		c.configureClient(&containersClient.Client, storageAuth)
+		return &containersClient, nil
+	}
 	accessKey := c.accessKey
 	if accessKey == "" {
-		log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
+		log.Printf("[DEBUG] Building the Container Client from an Access Token (using user credentials)")
 		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
 		if err != nil {
 			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
@@ -176,7 +181,7 @@ func (c ArmClient) getGiovanniContainersClient(ctx context.Context) (*containers
 	}
 
 	containersClient := containers.NewWithEnvironment(c.environment)
-	containersClient.Client.Authorizer = storageAuth
+	c.configureClient(&containersClient.Client, storageAuth)
 	return &containersClient, nil
 }
 
