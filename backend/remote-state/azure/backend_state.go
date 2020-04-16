@@ -69,7 +69,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 		return err
 	}
 
-	if resp, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, name, blobs.DeleteInput{}); err != nil {
+	if resp, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
 		if resp.Response.StatusCode != 404{
 			return err
 		}

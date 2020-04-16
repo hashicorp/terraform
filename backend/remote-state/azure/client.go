@@ -69,7 +69,9 @@ func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getGOptions)
 	if err != nil {
-		return err
+		if blob.StatusCode != 404 {
+			return err
+		}
 	}
 
 	contentType := "application/json"

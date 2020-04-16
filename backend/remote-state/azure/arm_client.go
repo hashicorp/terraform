@@ -3,8 +3,11 @@ package azure
 import (
 	"context"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/storage"
 	"log"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
@@ -124,6 +127,19 @@ func (c ArmClient) getGiovanniBlobClient(ctx context.Context) (*blobs.Client, er
 
 		accessKeys := *keys.Keys
 		accessKey = *accessKeys[0].Value
+	}
+
+	if c.sasToken != "" {
+		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
+		token := strings.TrimPrefix(c.sasToken, "?")
+		uri, err := url.ParseQuery(token)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing SAS Token: %+v", err)
+		}
+		
+		storageClient := storage.NewAccountSASClient(c.storageAccountName, uri, c.environment)
+		client := storageClient.GetBlobService()
+		return &client, nil
 	}
 
 	storageAuth, err := autorest.NewSharedKeyAuthorizer(c.storageAccountName, accessKey, autorest.SharedKey)
