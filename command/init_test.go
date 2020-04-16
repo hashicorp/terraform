@@ -858,8 +858,9 @@ func TestInit_providerSource(t *testing.T) {
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test":   []string{"1.2.3", "1.2.4"},
-		"source": []string{"1.2.2", "1.2.3", "1.2.1"},
+		"test":      []string{"1.2.3", "1.2.4"},
+		"test-beta": []string{"1.2.4"},
+		"source":    []string{"1.2.2", "1.2.3", "1.2.1"},
 	})
 	defer close()
 
@@ -894,6 +895,14 @@ func TestInit_providerSource(t *testing.T) {
 				ExecutableFile: expectedPackageInstallPath("test", "1.2.3", true),
 			},
 		},
+		addrs.NewDefaultProvider("test-beta"): {
+			{
+				Provider:       addrs.NewDefaultProvider("test-beta"),
+				Version:        getproviders.MustParseVersion("1.2.4"),
+				PackageDir:     expectedPackageInstallPath("test-beta", "1.2.4", false),
+				ExecutableFile: expectedPackageInstallPath("test-beta", "1.2.4", true),
+			},
+		},
 		addrs.NewDefaultProvider("source"): {
 			{
 				Provider:       addrs.NewDefaultProvider("source"),
@@ -913,6 +922,12 @@ func TestInit_providerSource(t *testing.T) {
 		t.Fatalf("failed to get selected packages from installer: %s", err)
 	}
 	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
+		addrs.NewDefaultProvider("test-beta"): {
+			Provider:       addrs.NewDefaultProvider("test-beta"),
+			Version:        getproviders.MustParseVersion("1.2.4"),
+			PackageDir:     expectedPackageInstallPath("test-beta", "1.2.4", false),
+			ExecutableFile: expectedPackageInstallPath("test-beta", "1.2.4", true),
+		},
 		addrs.NewDefaultProvider("test"): {
 			Provider:       addrs.NewDefaultProvider("test"),
 			Version:        getproviders.MustParseVersion("1.2.3"),

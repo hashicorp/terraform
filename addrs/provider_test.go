@@ -18,7 +18,15 @@ func TestProviderString(t *testing.T) {
 				Hostname:  DefaultRegistryHost,
 				Namespace: "hashicorp",
 			},
-			DefaultRegistryHost.ForDisplay() + "/hashicorp/test",
+			NewDefaultProvider("test").String(),
+		},
+		{
+			Provider{
+				Type:      "test-beta",
+				Hostname:  DefaultRegistryHost,
+				Namespace: "hashicorp",
+			},
+			NewDefaultProvider("test-beta").String(),
 		},
 		{
 			Provider{
