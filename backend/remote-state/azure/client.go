@@ -1,19 +1,14 @@
 package azure
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/states"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 )
 
@@ -40,19 +35,14 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	ctx := context.TODO()
 	blob, err := c.giovanniBlobClient.Get(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
-		if blob.StatusCode == 404 {
+		if blob.Response.StatusCode == 404 {
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, blob.Body); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	}
-
 	payload := &remote.Payload{
-		Data: buf.Bytes(),
+		Data: blob.Contents,
 	}
 
 	// If there was no data, then return nil
@@ -77,7 +67,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	ctx := context.TODO()
-	_, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getGOptions)
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getGOptions)
 	if err != nil {
 		return err
 	}
@@ -85,6 +75,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	contentType := "application/json"
 	putGOptions.Content = &data
 	putGOptions.ContentType = &contentType
+	putGOptions.MetaData = blob.MetaData
 	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
 
 	return err
@@ -98,8 +89,13 @@ func (c *RemoteClient) Delete() error {
 	}
 
 	ctx := context.TODO()
-	_, err := c.giovanniBlobClient.Delete(ctx, c.accountName, c.containerName, c.keyName, gOptions)
-	return err
+	resp, err := c.giovanniBlobClient.Delete(ctx, c.accountName, c.containerName, c.keyName, gOptions)
+	if err != nil {
+		if resp.Response.StatusCode != 404{
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
@@ -129,37 +125,38 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 
 	leaseOptions := blobs.AcquireLeaseInput{
 		ProposedLeaseID: &info.ID,
+		LeaseDuration:   -1,
 	}
 	ctx := context.TODO()
-	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.accountName, c.containerName, c.keyName, leaseOptions)
+
+	// obtain properties to see if the blob lease is already in use. If the blob doesn't exist, create it
+	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
-		if leaseID.StatusCode != 404 {
+		// error if we had issues getting the blob
+		if properties.Response.StatusCode != 404 {
 			return "", getLockInfoErr(err)
 		}
+		// if we don't find the blob, we need to build it
 
-		// failed to lock as there was no state blob, write empty state
-		stateMgr := &remote.State{Client: c}
-
-		// ensure state is actually empty
-		if err := stateMgr.RefreshState(); err != nil {
-			return "", fmt.Errorf("Failed to refresh state before writing empty state for locking: %s", err)
+		contentType := "application/json"
+		putGOptions := blobs.PutBlockBlobInput{
+			ContentType: &contentType,
 		}
 
-		log.Print("[DEBUG] Could not lock as state blob did not exist, creating with empty state")
-
-		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(states.NewState()); err != nil {
-				return "", fmt.Errorf("Failed to write empty state for locking: %s", err)
-			}
-			if err := stateMgr.PersistState(); err != nil {
-				return "", fmt.Errorf("Failed to persist empty state for locking: %s", err)
-			}
-		}
-
-		leaseID, err = c.giovanniBlobClient.AcquireLease(ctx, c.accountName, c.containerName, c.keyName, leaseOptions)
+		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
 		if err != nil {
 			return "", getLockInfoErr(err)
 		}
+	}
+
+	// if the blob is already locked then error
+	if properties.LeaseStatus == blobs.Locked {
+		return "", getLockInfoErr(fmt.Errorf("state blob is already locked"))
+	}
+
+	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.accountName, c.containerName, c.keyName, leaseOptions)
+	if err != nil {
+		return "", getLockInfoErr(err)
 	}
 
 	info.ID = leaseID.LeaseID

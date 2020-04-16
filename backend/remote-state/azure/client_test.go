@@ -288,6 +288,7 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	remoteClient := RemoteClient{
 		keyName:       res.storageKeyName,
 		containerName: res.storageContainerName,
+		accountName:   res.storageAccountName,
 
 		giovanniBlobClient: *client,
 	}

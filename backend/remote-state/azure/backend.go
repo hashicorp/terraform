@@ -149,6 +149,7 @@ type Backend struct {
 	armClient     *ArmClient
 	containerName string
 	keyName       string
+	accountName   string
 }
 
 type BackendConfig struct {
@@ -177,6 +178,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	data := schema.FromContextBackendConfig(ctx)
 	b.containerName = data.Get("container_name").(string)
+	b.accountName = data.Get("storage_account_name").(string)
 	b.keyName = data.Get("key").(string)
 
 	// support for previously deprecated fields

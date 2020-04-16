@@ -69,8 +69,10 @@ func (b *Backend) DeleteWorkspace(name string) error {
 		return err
 	}
 
-	if _, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, name, blobs.DeleteInput{}); err != nil {
-		return err
+	if resp, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, name, blobs.DeleteInput{}); err != nil {
+		if resp.Response.StatusCode != 404{
+			return err
+		}
 	}
 
 	return nil
@@ -87,6 +89,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		giovanniBlobClient: *blobClient,
 		containerName:      b.containerName,
 		keyName:            b.path(name),
+		accountName:        b.accountName,
 	}
 
 	stateMgr := &remote.State{Client: client}
