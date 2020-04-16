@@ -26,7 +26,7 @@ import (
 
 var releaseHost = "https://releases.hashicorp.com"
 
-var pluginDir = "./plugins"
+var pluginDir = ".plugins"
 
 type PackageCommand struct {
 	ui cli.Ui
@@ -106,21 +106,23 @@ func (c *PackageCommand) Run(args []string) int {
 		Arch: archName,
 	}
 	installdir := providercache.NewDirWithPlatform(filepath.Join(workDir, "plugins"), platform)
+
 	services := disco.New()
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 	var sources []getproviders.MultiSourceSelector
 	sources = append(sources, getproviders.MultiSourceSelector{
 		Source: getproviders.NewMemoizeSource(getproviders.NewRegistrySource(services)),
 	})
-
-	// if the local .plugins directory exists, include it as a potential source
-	if _, err := os.Stat(pluginDir); err == nil {
-		sources = append(sources, getproviders.MultiSourceSelector{
-			Source: getproviders.NewFilesystemMirrorSource(pluginDir),
-		})
+	// if the pluginDir exists, include it as a potential source
+	if absPluginDir, err := filepath.Abs(pluginDir); err == nil {
+		if _, err := os.Stat(absPluginDir); err == nil {
+			sources = append(sources, getproviders.MultiSourceSelector{
+				Source: getproviders.NewFilesystemMirrorSource(absPluginDir),
+			})
+		}
 	}
-
 	installer := providercache.NewInstaller(installdir, getproviders.MultiSource(sources))
+
 	err = c.ensureProviderVersions(installer, reqs)
 	if err != nil {
 		c.ui.Error(err.Error())
@@ -163,6 +165,20 @@ func (c *PackageCommand) Run(args []string) int {
 			if info.IsDir() {
 				return nil
 			}
+			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				linkPath, err := filepath.EvalSymlinks(path)
+				if err != nil {
+					return err
+				}
+				linkInfo, err := os.Stat(linkPath)
+				if err != nil {
+					return err
+				}
+				if linkInfo.IsDir() {
+					return nil
+				}
+			}
+
 			fn := info.Name()
 
 			// provider plugins need to be created in the same relative directory structure
