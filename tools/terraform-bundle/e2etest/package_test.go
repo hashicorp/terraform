@@ -151,7 +151,7 @@ func TestPackage_localProviders(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "local-providers")
 	tfBundle := e2e.NewBinary(bundleBin, fixturePath)
-	defer tfBundle.Close()
+	// defer tfBundle.Close()
 
 	stdout, stderr, err := tfBundle.Run("package", "terraform-bundle.hcl")
 	if err != nil {
@@ -164,10 +164,6 @@ func TestPackage_localProviders(t *testing.T) {
 
 	// 	// Here we have to check each provider separately
 	// 	// because it's internally held in a map (i.e. not guaranteed order)
-	// 	if !strings.Contains(stdout, `- Finding hashicorp/aws versions matching "~> 2.26.0"...
-	// - Installing hashicorp/aws v2.26.0...`) {
-	// 		t.Errorf("success message is missing from output:\n%s", stdout)
-	// 	}
 
 	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
@@ -195,7 +191,7 @@ func TestPackage_localProviders(t *testing.T) {
 			expectedFiles := map[string]struct{}{
 				"terraform": {},
 				fmt.Sprintf(
-					"plugins/example.com/myorg/mycloud/0.1/%s_%s/terraform-provider-mycloud_v0.1",
+					"plugins/example.com/myorg/mycloud/0.1.0/%s_%s/terraform-provider-mycloud",
 					runtime.GOOS, runtime.GOARCH,
 				): {},
 			}

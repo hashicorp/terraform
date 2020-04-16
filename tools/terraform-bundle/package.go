@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	getter "github.com/hashicorp/go-getter"
@@ -67,11 +68,13 @@ func (c *PackageCommand) Run(args []string) int {
 		return 1
 	}
 
-	workDir, err := ioutil.TempDir("", "terraform-bundle")
+	tmpDir, err := ioutil.TempDir("", "terraform-bundle")
 	if err != nil {
 		c.ui.Error(fmt.Sprintf("Could not create temporary dir: %s", err))
 		return 1
 	}
+	// symlinked tmp directories can cause odd behaviors.
+	workDir, err := filepath.EvalSymlinks(tmpDir)
 	defer os.RemoveAll(workDir)
 
 	c.ui.Info(fmt.Sprintf("Fetching Terraform %s core package...", config.Terraform.Version))
@@ -110,17 +113,39 @@ func (c *PackageCommand) Run(args []string) int {
 	services := disco.New()
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 	var sources []getproviders.MultiSourceSelector
-	sources = append(sources, getproviders.MultiSourceSelector{
-		Source: getproviders.NewMemoizeSource(getproviders.NewRegistrySource(services)),
-	})
-	// if the pluginDir exists, include it as a potential source
+
+	// Find any local providers first so we can exclude these from the registry
+	// install. We'll just silently ignore any errors and assume it would fail
+	// real installation later too.
+	foundLocally := map[addrs.Provider]struct{}{}
+
 	if absPluginDir, err := filepath.Abs(pluginDir); err == nil {
 		if _, err := os.Stat(absPluginDir); err == nil {
+			localSource := getproviders.NewFilesystemMirrorSource(absPluginDir)
+			if available, err := localSource.AllAvailablePackages(); err == nil {
+				for found := range available {
+					foundLocally[found] = struct{}{}
+				}
+			}
 			sources = append(sources, getproviders.MultiSourceSelector{
-				Source: getproviders.NewFilesystemMirrorSource(absPluginDir),
+				Source: localSource,
 			})
 		}
 	}
+
+	// Anything we found in local directories above is excluded from being
+	// looked up via the registry source we're about to construct.
+	var directExcluded getproviders.MultiSourceMatchingPatterns
+	for addr := range foundLocally {
+		directExcluded = append(directExcluded, addr)
+	}
+
+	// Add the registry source, minus any providers found in the local pluginDir.
+	sources = append(sources, getproviders.MultiSourceSelector{
+		Source:  getproviders.NewMemoizeSource(getproviders.NewRegistrySource(services)),
+		Exclude: directExcluded,
+	})
+
 	installer := providercache.NewInstaller(installdir, getproviders.MultiSource(sources))
 
 	err = c.ensureProviderVersions(installer, reqs)
@@ -165,40 +190,53 @@ func (c *PackageCommand) Run(args []string) int {
 			if info.IsDir() {
 				return nil
 			}
-			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-				linkPath, err := filepath.EvalSymlinks(path)
-				if err != nil {
-					return err
-				}
-				linkInfo, err := os.Stat(linkPath)
-				if err != nil {
-					return err
-				}
-				if linkInfo.IsDir() {
-					return nil
-				}
+
+			// maybe symlinks
+			linkPath, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return err
+			}
+			linkInfo, err := os.Stat(linkPath)
+			if err != nil {
+				return err
 			}
 
-			fn := info.Name()
+			if linkInfo.IsDir() {
+				// The only time we should encounter a symlink directory is when we
+				// have a locally-installed provider, so we will grab the provider
+				// binary from that file.
+				files, err := ioutil.ReadDir(linkPath)
+				if err != nil {
+					return err
+				}
+				for _, file := range files {
+					if strings.Contains(file.Name(), "terraform-provider") {
+						relPath, _ := filepath.Rel(workDir, path)
+						return addZipFile(
+							filepath.Join(linkPath, file.Name()), // the link to this provider binary
+							filepath.Join(relPath, file.Name()),  // the expected directory for the binary
+							info, outZ,
+						)
+					}
+				}
+				// This shouldn't happen - we should always find a provider
+				// binary and exit the loop - but on the chance it does not,
+				// just continue.
+				return nil
+			}
 
 			// provider plugins need to be created in the same relative directory structure
-			absPath, _ := filepath.Abs(path)
-			relPath, _ := filepath.Rel(workDir, absPath)
-			relZip, err := outZ.Create(relPath)
-
+			absPath, err := filepath.Abs(linkPath)
 			if err != nil {
-				return fmt.Errorf("Failed to add zip entry for %s: %s", fn, err)
+				return err
+			}
+			relPath, err := filepath.Rel(workDir, absPath)
+			if err != nil {
+				return err
 			}
 
-			r, err := os.Open(path)
-			if err != nil {
-				return fmt.Errorf("Failed to open %s: %s", fn, err)
-			}
-			_, err = io.Copy(relZip, r)
-			if err != nil {
-				return fmt.Errorf("Failed to write %s to bundle: %s", fn, err)
-			}
-			return nil
+			return addZipFile(path, relPath, info, outZ)
+
 		})
 
 	if err != nil {
@@ -208,6 +246,32 @@ func (c *PackageCommand) Run(args []string) int {
 	c.ui.Info("All done!")
 
 	return 0
+}
+
+// addZipFile is a helper function intneded to simplify customizing the file
+// path when adding a file to the zip archive. The relPath is specified for
+// provider binaries, which need to be zipped into the full directory hierarchy.
+func addZipFile(fn, relPath string, info os.FileInfo, outZ *zip.Writer) error {
+	hdr, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return fmt.Errorf("Failed to add zip entry for %s: %s", fn, err)
+	}
+	hdr.Method = zip.Deflate // be sure to compress files
+	hdr.Name = relPath       // we need the full, relative path to the provider binary
+	w, err := outZ.CreateHeader(hdr)
+	if err != nil {
+		return fmt.Errorf("Failed to add zip entry for %s: %s", fn, err)
+	}
+
+	r, err := os.Open(fn)
+	if err != nil {
+		return fmt.Errorf("Failed to open %s: %s", fn, err)
+	}
+	_, err = io.Copy(w, r)
+	if err != nil {
+		return fmt.Errorf("Failed to write %s to bundle: %s", fn, err)
+	}
+	return nil
 }
 
 func (c *PackageCommand) bundleFilename(version discovery.VersionStr, time time.Time, osName, archName string) string {

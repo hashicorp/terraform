@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
+// FIXME: We can't replace 0.12.0 with 0.13.0 until there is a 0.13 release available.
 var zeroThirteen = discovery.ConstraintStr(">= 0.12.0").MustParse()
 
 type Config struct {
@@ -57,7 +58,7 @@ func (c *Config) validate() error {
 		return fmt.Errorf("terraform.version: %s", err)
 	}
 	if !zeroThirteen.Allows(v) {
-		return fmt.Errorf("this version of terraform-bundle can only build bundles for Terraform v0.12 and later; build terraform-bundle from the v0.11 branch or a v0.11.* tag to construct bundles for earlier versions")
+		return fmt.Errorf("this version of terraform-bundle can only build bundles for Terraform v0.13 and later; build terraform-bundle from a release tag (such as v0.12.*) to construct bundles for earlier versions")
 	}
 
 	if c.Providers == nil {
