@@ -30,6 +30,9 @@ func TestDirReading(t *testing.T) {
 	randomProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost, "hashicorp", "random",
 	)
+	randomBetaProvider := addrs.NewProvider(
+		addrs.DefaultRegistryHost, "hashicorp", "random-beta",
+	)
 	nonExistProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost, "bloop", "nonexist",
 	)
@@ -158,6 +161,14 @@ func TestDirReading(t *testing.T) {
 					Version:        versions.MustParseVersion("1.2.0"),
 					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64",
 					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64/terraform-provider-random",
+				},
+			},
+			randomBetaProvider: {
+				{
+					Provider:       randomBetaProvider,
+					Version:        versions.MustParseVersion("1.2.0"),
+					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64",
+					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64/terraform-provider-random-beta",
 				},
 			},
 		}
