@@ -54,20 +54,20 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	getGOptions := blobs.GetPropertiesInput{}
-	setGOptions := blobs.SetPropertiesInput{}
-	putGOptions := blobs.PutBlockBlobInput{}
+	getOptions := blobs.GetPropertiesInput{}
+	setOptions := blobs.SetPropertiesInput{}
+	putOptions := blobs.PutBlockBlobInput{}
 
 	options := blobs.GetInput{}
 	if c.leaseID != "" {
 		options.LeaseID = &c.leaseID
-		getGOptions.LeaseID = &c.leaseID
-		setGOptions.LeaseID = &c.leaseID
-		putGOptions.LeaseID = &c.leaseID
+		getOptions.LeaseID = &c.leaseID
+		setOptions.LeaseID = &c.leaseID
+		putOptions.LeaseID = &c.leaseID
 	}
 
 	ctx := context.TODO()
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getGOptions)
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
 	if err != nil {
 		if blob.StatusCode != 404 {
 			return err
@@ -75,25 +75,25 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	contentType := "application/json"
-	putGOptions.Content = &data
-	putGOptions.ContentType = &contentType
-	putGOptions.MetaData = blob.MetaData
-	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
+	putOptions.Content = &data
+	putOptions.ContentType = &contentType
+	putOptions.MetaData = blob.MetaData
+	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putOptions)
 
 	return err
 }
 
 func (c *RemoteClient) Delete() error {
-	gOptions := blobs.DeleteInput{}
+	options := blobs.DeleteInput{}
 
 	if c.leaseID != "" {
-		gOptions.LeaseID = &c.leaseID
+		options.LeaseID = &c.leaseID
 	}
 
 	ctx := context.TODO()
-	resp, err := c.giovanniBlobClient.Delete(ctx, c.accountName, c.containerName, c.keyName, gOptions)
+	resp, err := c.giovanniBlobClient.Delete(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
-		if resp.Response.StatusCode != 404{
+		if resp.Response.StatusCode != 404 {
 			return err
 		}
 	}

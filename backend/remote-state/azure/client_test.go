@@ -260,7 +260,7 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	headerName := "acceptancetest"
 	expectedValue := "f3b56bad-33ad-4b93-a600-7a66e9cbd1eb"
 
-	client, err := armClient.getGiovanniBlobClient(ctx)
+	client, err := armClient.getBlobClient(ctx)
 	if err != nil {
 		t.Fatalf("Error building Blob Client: %+v", err)
 	}

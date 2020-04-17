@@ -27,7 +27,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	ctx := context.TODO()
-	client, err := b.armClient.getGiovanniContainersClient(ctx)
+	client, err := b.armClient.getContainersClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +64,13 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	}
 
 	ctx := context.TODO()
-	gClient, err := b.armClient.getGiovanniBlobClient(ctx)
+	gClient, err := b.armClient.getBlobClient(ctx)
 	if err != nil {
 		return err
 	}
 
 	if resp, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
-		if resp.Response.StatusCode != 404{
+		if resp.Response.StatusCode != 404 {
 			return err
 		}
 	}
@@ -80,7 +80,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
 	ctx := context.TODO()
-	blobClient, err := b.armClient.getGiovanniBlobClient(ctx)
+	blobClient, err := b.armClient.getBlobClient(ctx)
 	if err != nil {
 		return nil, err
 	}

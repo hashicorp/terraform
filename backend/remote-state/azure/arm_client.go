@@ -108,7 +108,7 @@ func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
 	return authentication.DetermineEnvironment(config.Environment)
 }
 
-func (c ArmClient) getGiovanniBlobClient(ctx context.Context) (*blobs.Client, error) {
+func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 	if c.sasToken != "" {
 		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
 		storageAuth, err := autorest.NewSASTokenAuthorizer(c.sasToken)
@@ -147,7 +147,7 @@ func (c ArmClient) getGiovanniBlobClient(ctx context.Context) (*blobs.Client, er
 	return &blobsClient, nil
 }
 
-func (c ArmClient) getGiovanniContainersClient(ctx context.Context) (*containers.Client, error) {
+func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client, error) {
 	if c.sasToken != "" {
 		log.Printf("[DEBUG] Building the Container Client from a SAS Token")
 		storageAuth, err := autorest.NewSASTokenAuthorizer(c.sasToken)
