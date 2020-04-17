@@ -34,12 +34,7 @@ the rest of this README to be in `PATH`.
 
 `terraform-bundle` is a repackaging of the module installation functionality
 from Terraform itself, so for best results you should build from the tag
-relating to the version of Terraform you plan to use. There is some slack in
-this requirement due to the fact that the module installation behavior changes
-rarely, but please note that in particular bundles for versions of
-Terraform before v0.12 must be built from a `terraform-bundle` built against
-a Terraform v0.11 tag at the latest, since Terraform v0.12 installs plugins
-in a different way that is not compatible.
+relating to the version of Terraform you plan to use.
 
 ## Usage
 
@@ -129,12 +124,13 @@ bundles contain the same core Terraform version.
 
 ## Custom Plugins
 To include custom plugins in the bundle file, create a local directory
-"./plugins" and put all the plugins you want to include there, under the required [sub directory](#plugins-directory-layout). Optionally, you can use the `-plugin-dir` flag to specify a
-location where to find the plugins. To be recognized as a valid plugin, the file
-must have a name of the form `terraform-provider-<NAME>_v<VERSION>`. In
-addition, ensure that the plugin is built using the same operating system and
-architecture used for Terraform Enterprise. Typically this will be `linux` and
-`amd64`.
+"./plugins" and put all the plugins you want to include there, under the
+required [sub directory](#plugins-directory-layout). Optionally, you can use the
+`-plugin-dir` flag to specify a location where to find the plugins. To be
+recognized as a valid plugin, the file must have a name of the form
+`terraform-provider-<NAME>`. In addition, ensure that the plugin is built using
+the same operating system and architecture used for Terraform Enterprise.
+Typically this will be `linux` and `amd64`.
 
 ### Plugins Directory Layout
 To include custom plugins in the bundle file, you must specify a "source"
