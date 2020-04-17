@@ -1421,6 +1421,7 @@ module "mod1" {
 module "mod2" {
   for_each = module.mod1
   source = "./mod"
+  input = module.mod1["a"].out
 }
 
 module "mod3" {
@@ -1430,6 +1431,15 @@ module "mod3" {
 `,
 		"mod/main.tf": `
 resource "aws_instance" "foo" {
+}
+
+output "out" {
+  value = 1
+}
+
+variable "input" {
+  type = number
+  default = 0
 }
 
 module "nested" {

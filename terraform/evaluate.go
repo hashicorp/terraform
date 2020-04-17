@@ -406,9 +406,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		for key, states := range stateMap {
 			outputState, ok := states[cfg.Name]
 			if !ok {
-				// we'll take this chance to insert any missing values that are
-				// defined in the config
-				outputState = cty.DynamicVal
+				continue
 			}
 
 			instance, ok := moduleInstances[key]
@@ -446,15 +444,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		}
 	}
 
-	// ensure all defined outputs names are present in the module value, even
-	// if they are not known yet.
-	for _, instance := range moduleInstances {
-		for configKey := range outputConfigs {
-			if _, ok := instance[configKey]; !ok {
-				instance[configKey] = cty.DynamicVal
-			}
-		}
-	}
+	var ret cty.Value
 
 	// compile the outputs into the correct value type for the each mode
 	switch {
@@ -470,19 +460,23 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			vals[int(intKey)] = cty.ObjectVal(instance)
 		}
 
-		// we shouldn't have any holes, but insert real values just in case,
-		// while trimming off any extra values that we may have from guessing
-		// the length via the state instances.
-		last := 0
-		for i, v := range vals {
-			if v.IsNull() {
-				vals[i] = cty.DynamicVal
-				continue
+		if len(vals) > 0 {
+			// we shouldn't have any holes, but insert real values just in case,
+			// while trimming off any extra values that we may have from guessing
+			// the length via the state instances.
+			last := 0
+			for i, v := range vals {
+				if v.IsNull() {
+					vals[i] = cty.DynamicVal
+					continue
+				}
+				last = i
 			}
-			last = i
+			vals = vals[:last+1]
+			ret = cty.ListVal(vals)
+		} else {
+			ret = cty.ListValEmpty(cty.DynamicPseudoType)
 		}
-		vals = vals[:last+1]
-		return cty.TupleVal(vals), diags
 
 	case callConfig.ForEach != nil:
 		vals := make(map[string]cty.Value)
@@ -494,20 +488,34 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 			vals[string(strKey)] = cty.ObjectVal(instance)
 		}
-		return cty.ObjectVal(vals), diags
+
+		if len(vals) > 0 {
+			ret = cty.MapVal(vals)
+		} else {
+			ret = cty.MapValEmpty(cty.DynamicPseudoType)
+		}
 
 	default:
 		val, ok := moduleInstances[addrs.NoKey]
 		if !ok {
-			// create the object is there wasn't one known
+			// create the object if there wasn't one known
 			val = map[string]cty.Value{}
 			for k := range outputConfigs {
 				val[k] = cty.DynamicVal
 			}
 		}
 
-		return cty.ObjectVal(val), diags
+		ret = cty.ObjectVal(val)
 	}
+
+	// The module won't be expanded during validation, so we need to return an
+	// unknown value. This will ensure the types looks correct, since we built
+	// the objects based on the configuration.
+	if d.Operation == walkValidate {
+		return cty.UnknownVal(ret.Type()), diags
+	}
+
+	return ret, diags
 }
 
 func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
