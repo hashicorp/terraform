@@ -151,20 +151,20 @@ func TestPackage_localProviders(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "local-providers")
 	tfBundle := e2e.NewBinary(bundleBin, fixturePath)
-	// defer tfBundle.Close()
+	defer tfBundle.Close()
 
-	stdout, stderr, err := tfBundle.Run("package", "terraform-bundle.hcl")
+	// we explicitly specify the platform so that tests can find the local binary under the expected directory
+	stdout, stderr, err := tfBundle.Run("package", "-os=darwin", "-arch=amd64", "terraform-bundle.hcl")
 	if err != nil {
-		t.Errorf("unexpected error: %s", err)
+		t.Fatalf("unexpected error: %s", err)
 	}
 
 	if stderr != "" {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	// 	// Here we have to check each provider separately
-	// 	// because it's internally held in a map (i.e. not guaranteed order)
-
+	// Here we have to check each provider separately
+	// because it's internally held in a map (i.e. not guaranteed order)
 	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
@@ -190,10 +190,7 @@ func TestPackage_localProviders(t *testing.T) {
 
 			expectedFiles := map[string]struct{}{
 				"terraform": {},
-				fmt.Sprintf(
-					"plugins/example.com/myorg/mycloud/0.1.0/%s_%s/terraform-provider-mycloud",
-					runtime.GOOS, runtime.GOARCH,
-				): {},
+				"plugins/example.com/myorg/mycloud/0.1.0/darwin_amd64/terraform-provider-mycloud": {},
 			}
 			extraFiles := make(map[string]struct{})
 
