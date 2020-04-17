@@ -3,8 +3,10 @@ package azure
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -128,8 +130,13 @@ type resourceNames struct {
 }
 
 func testResourceNames(rString string, keyName string) resourceNames {
+	// Add a date to the resource group for better tracking
+	timeStr := strings.Replace(time.Now().Local().Format("060102150405.00"), ".", "", 1)
+	postfix := acctest.RandStringFromCharSet(4, "0123456789")
+	i, _ := strconv.Atoi(timeStr + postfix)
+
 	return resourceNames{
-		resourceGroup:        fmt.Sprintf("acctestrg-backend-%s", rString),
+		resourceGroup:        fmt.Sprintf("acctestrg-backend-%d-%s", i, rString),
 		location:             os.Getenv("ARM_LOCATION"),
 		storageAccountName:   fmt.Sprintf("acctestsa%s", rString),
 		storageContainerName: "acctestcont",
