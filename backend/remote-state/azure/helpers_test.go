@@ -136,7 +136,7 @@ func testResourceNames(rString string, keyName string) resourceNames {
 	i, _ := strconv.Atoi(timeStr + postfix)
 
 	return resourceNames{
-		resourceGroup:        fmt.Sprintf("acctestrg-backend-%d-%s", i, rString),
+		resourceGroup:        fmt.Sprintf("acctestRG-backend-%d-%s", i, rString),
 		location:             os.Getenv("ARM_LOCATION"),
 		storageAccountName:   fmt.Sprintf("acctestsa%s", rString),
 		storageContainerName: "acctestcont",
