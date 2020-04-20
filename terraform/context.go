@@ -180,7 +180,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Could not satisfy plugin requirements",
-			errPluginInit,
+			fmt.Sprintf(errPluginInit, err),
 		))
 		return nil, diags
 	}
