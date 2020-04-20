@@ -18,3 +18,5 @@ There are three tiers of providers in the Terraform Registry:
 * **Community Providers** - are built, signed, and supported by a third party. HashiCorp does not provide a verification or chain
   of trust for the signing. You will want to obtain and validate fingerprints manually if you want to ensure you are using a
   binary you can trust.
+
+You can also read the additional [terms of use] for the registry for additional information.
