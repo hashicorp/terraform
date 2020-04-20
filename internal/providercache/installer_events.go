@@ -103,7 +103,7 @@ type InstallerEvents struct {
 	// signals a failure that the installer is considering transient.
 	FetchPackageMeta    func(provider addrs.Provider, version getproviders.Version) // fetching metadata prior to real download
 	FetchPackageBegin   func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
-	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string)
+	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
 	FetchPackageRetry   func(provider addrs.Provider, version getproviders.Version, err error)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 

@@ -2,7 +2,9 @@ package getproviders
 
 import (
 	"archive/zip"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -168,6 +170,14 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target
 		return PackageMeta{}, close, fmt.Errorf("failed to close the mock zip file: %s", err)
 	}
 
+	// Compute the SHA256 checksum of the generated file, to allow package
+	// authentication code to be exercised.
+	f.Seek(0, io.SeekStart)
+	h := sha256.New()
+	io.Copy(h, f)
+	checksum := [32]byte{}
+	h.Sum(checksum[:0])
+
 	meta := PackageMeta{
 		Provider:       provider,
 		Version:        version,
@@ -181,6 +191,8 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target
 		// (At the time of writing, no caller actually does that, but who
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
+
+		Authentication: NewArchiveChecksumAuthentication(checksum),
 	}
 	return meta, close, nil
 }

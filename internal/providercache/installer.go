@@ -315,7 +315,7 @@ NeedProvider:
 			installTo = i.targetDir
 			linkTo = nil // no linking needed
 		}
-		err = installTo.InstallPackage(ctx, meta)
+		authResult, err := installTo.InstallPackage(ctx, meta)
 		if err != nil {
 			// TODO: Consider retrying for certain kinds of error that seem
 			// likely to be transient. For now, we just treat all errors equally.
@@ -350,7 +350,7 @@ NeedProvider:
 		}
 		selected[provider] = version
 		if cb := evts.FetchPackageSuccess; cb != nil {
-			cb(provider, version, new.PackageDir)
+			cb(provider, version, new.PackageDir, authResult)
 		}
 	}
 

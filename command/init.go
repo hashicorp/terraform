@@ -508,6 +508,17 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err),
 			))
 		},
+		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			var warning string
+			if authResult != nil {
+				warning = authResult.Warning
+			}
+			if warning != "" {
+				warning = c.Colorize().Color(fmt.Sprintf("\n  [reset][yellow]Warning: %s[reset]", warning))
+			}
+
+			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s)%s", provider.ForDisplay(), version, authResult, warning))
+		},
 	}
 
 	mode := providercache.InstallNewProvidersOnly

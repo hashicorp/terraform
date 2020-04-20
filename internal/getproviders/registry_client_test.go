@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -91,6 +92,21 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if strings.HasPrefix(path, "/pkg/") {
+		switch path {
+		case "/pkg/awesomesauce/happycloud_1.2.0.zip":
+			resp.Write([]byte("some zip file"))
+		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS":
+			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"))
+		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS.sig":
+			resp.Write([]byte("GPG signature"))
+		default:
+			resp.WriteHeader(404)
+			resp.Write([]byte("unknown package file download"))
+		}
+		return
+	}
+
 	if !strings.HasPrefix(path, "/providers/v1/") {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`not a provider registry endpoint`))
@@ -161,12 +177,31 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 				resp.Write([]byte(`unsupported OS`))
 				return
 			}
+			body := map[string]interface{}{
+				"protocols":             []string{"5.0"},
+				"os":                    pathParts[4],
+				"arch":                  pathParts[5],
+				"filename":              "happycloud_" + pathParts[2] + ".zip",
+				"shasum":                "000000000000000000000000000000000000000000000000000000000000f00d",
+				"download_url":          "/pkg/awesomesauce/happycloud_" + pathParts[2] + ".zip",
+				"shasums_url":           "/pkg/awesomesauce/happycloud_" + pathParts[2] + "_SHA256SUMS",
+				"shasums_signature_url": "/pkg/awesomesauce/happycloud_" + pathParts[2] + "_SHA256SUMS.sig",
+				"signing_keys": map[string]interface{}{
+					"gpg_public_keys": []map[string]interface{}{
+						{
+							"ascii_armor": HashicorpPublicKey,
+						},
+					},
+				},
+			}
+			enc, err := json.Marshal(body)
+			if err != nil {
+				resp.WriteHeader(500)
+				resp.Write([]byte("failed to encode body"))
+			}
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
-			// Note that these version numbers are intentionally misordered
-			// so we can test that the client-side code places them in the
-			// correct order (lowest precedence first).
-			resp.Write([]byte(`{"protocols":["5.0"],"os":"` + pathParts[4] + `","arch":"` + pathParts[5] + `","filename":"happycloud_` + pathParts[2] + `.zip","download_url":"/pkg/happycloud_` + pathParts[2] + `.zip","shasum":"000000000000000000000000000000000000000000000000000000000000f00d"}`))
+			resp.Write(enc)
 		default:
 			resp.WriteHeader(404)
 			resp.Write([]byte(`unknown namespace/provider/version/architecture`))
