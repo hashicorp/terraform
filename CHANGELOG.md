@@ -26,6 +26,7 @@ ENHANCEMENTS:
 * lang: Add "sum" function, which takes a list or set of numbers and returns the sum of all elements [GH-24666]
 * Terraform CLI now supports TLS 1.3 and supports Ed25519 certificates when making outgoing connections to remote TLS servers. While both of these changes are backwards compatible in principle, certain legacy TLS server implementations can reportedly encounter problems when attempting to negotiate TLS 1.3. (These changes affects only requests made by Terraform CLI itself, such as to module registries or backends. Provider plugins have separate TLS implementations that will gain these features on a separate release schedule.)
 * On Unix systems where `use-vc` is set in `resolv.conf`, Terraform will now use TCP for DNS resolution. We don't expect this to cause any problem for most users, but if you find you are seeing DNS resolution failures after upgrading please verify that you can either reach your configured nameservers using TCP or that your resolver configuration does not include the `use-vc` directive.
+* When installing providers from the Terraform Registry, verify the trust signature for partner providers, and add support for self-signed community providers [GH-24617]
 
 BUG FIXES:
 * backend/oss: Allow locking of multiple different state files [GH-24149]
