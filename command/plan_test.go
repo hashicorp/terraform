@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -877,8 +876,10 @@ func TestPlan_init_required(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("expected error, got success")
 	}
-
-	fmt.Printf(ui.ErrorWriter.String())
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, `Plugin reinitialization required. Please run "terraform init".`) {
+		t.Fatal("wrong error message in output:", output)
+	}
 }
 
 // planFixtureSchema returns a schema suitable for processing the
