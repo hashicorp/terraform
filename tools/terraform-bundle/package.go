@@ -120,16 +120,23 @@ func (c *PackageCommand) Run(args []string) int {
 	foundLocally := map[addrs.Provider]struct{}{}
 
 	if absPluginDir, err := filepath.Abs(pluginDir); err == nil {
+		c.ui.Info(fmt.Sprintf("Local plugin directory %q found; scanning for provider binaries.", pluginDir))
 		if _, err := os.Stat(absPluginDir); err == nil {
 			localSource := getproviders.NewFilesystemMirrorSource(absPluginDir)
 			if available, err := localSource.AllAvailablePackages(); err == nil {
 				for found := range available {
+					c.ui.Info(fmt.Sprintf("Found provider %q in %q. p", found.String(), pluginDir))
 					foundLocally[found] = struct{}{}
 				}
 			}
 			sources = append(sources, getproviders.MultiSourceSelector{
 				Source: localSource,
 			})
+			if len(foundLocally) == 0 {
+				c.ui.Info(fmt.Sprintf("No local providers found in %q.", pluginDir))
+			}
+		} else {
+			c.ui.Info(fmt.Sprintf("No %q directory found, skipping local provider discovery.", pluginDir))
 		}
 	}
 
