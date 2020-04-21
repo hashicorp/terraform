@@ -179,7 +179,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Could not satisfy plugin requirements",
+			"Could not load plugin",
 			fmt.Sprintf(errPluginInit, err),
 		))
 		return nil, diags
