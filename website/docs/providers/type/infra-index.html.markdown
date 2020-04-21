@@ -35,5 +35,6 @@ and are tested by HashiCorp.
 - [Spotinst](/docs/providers/spotinst/index.html)
 - [Terraform](/docs/providers/terraform/index.html)
 - [Terraform Cloud](/docs/providers/tfe/index.html)
+- [Turbot](/docs/providers/turbot/index.html)
 - [Vault](/docs/providers/vault/index.html)
 - [Venafi](/docs/providers/venafi/index.html)
