@@ -270,3 +270,8 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 
 	return tmpFilename
 }
+
+// WorkDir() returns the binary workdir
+func (b *binary) WorkDir() string {
+	return b.workDir
+}

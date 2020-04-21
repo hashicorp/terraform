@@ -84,8 +84,8 @@ func TestLinkFromOtherCache(t *testing.T) {
 		addrs.DefaultRegistryHost, "hashicorp", "null",
 	)
 
-	srcDir := newDirWithPlatform(srcDirPath, windowsPlatform)
-	tmpDir := newDirWithPlatform(tmpDirPath, windowsPlatform)
+	srcDir := NewDirWithPlatform(srcDirPath, windowsPlatform)
+	tmpDir := NewDirWithPlatform(tmpDirPath, windowsPlatform)
 
 	// First we'll check our preconditions: srcDir should have only the
 	// null provider version 2.0.0 in it, because we're faking that we're on
