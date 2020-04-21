@@ -34,7 +34,8 @@ the rest of this README to be in `PATH`.
 
 `terraform-bundle` is a repackaging of the module installation functionality
 from Terraform itself, so for best results you should build from the tag
-relating to the version of Terraform you plan to use.
+relating to the version of Terraform you plan to use. For example, use the v0.12
+tag to build a version of terraform-bundle compatible with Terraform v0.12*.
 
 ## Usage
 
@@ -120,7 +121,6 @@ target OS and CPU architecture. It is recommended to refer to a bundle using
 this composite version number so that bundle archives can be easily
 distinguished from official release archives and from each other when multiple
 bundles contain the same core Terraform version.
-
 
 ## Custom Plugins
 To include custom plugins in the bundle file, create a local directory

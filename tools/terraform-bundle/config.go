@@ -10,8 +10,7 @@ import (
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
-// FIXME: We can't replace 0.12.0 with 0.13.0 until there is a 0.13 release available.
-var zeroThirteen = discovery.ConstraintStr(">= 0.12.0").MustParse()
+var zeroThirteen = discovery.ConstraintStr(">= 0.13.0").MustParse()
 
 type Config struct {
 	Terraform TerraformConfig           `hcl:"terraform"`

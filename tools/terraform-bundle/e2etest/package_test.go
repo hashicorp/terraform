@@ -14,6 +14,9 @@ import (
 
 func TestPackage_empty(t *testing.T) {
 	t.Parallel()
+	// The e2etests can be reenabled when there is a terraform v0.13* release
+	// available on releases.hashicorp.com.
+	t.Skip("terraform-bundle e2e tests are temporarily paused")
 
 	// This test reaches out to releases.hashicorp.com to download the
 	// template provider, so it can only run if network access is allowed.
@@ -48,6 +51,10 @@ func TestPackage_empty(t *testing.T) {
 
 func TestPackage_manyProviders(t *testing.T) {
 	t.Parallel()
+
+	// The e2etests can be reenabled when there is a terraform v0.13* release
+	// available on releases.hashicorp.com.
+	t.Skip("terraform-bundle e2e tests are temporarily paused")
 
 	// This test reaches out to releases.hashicorp.com to download providers, so
 	// it can only run if network access is allowed. We intentionally don't try
@@ -143,6 +150,10 @@ func TestPackage_manyProviders(t *testing.T) {
 
 func TestPackage_localProviders(t *testing.T) {
 	t.Parallel()
+
+	// The e2etests can be reenabled when there is a terraform v0.13* release
+	// available on releases.hashicorp.com.
+	t.Skip("terraform-bundle e2e tests are temporarily paused")
 
 	// This test reaches out to releases.hashicorp.com to download terrafrom, so
 	// it can only run if network access is allowed. The providers are installed
