@@ -113,12 +113,23 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 		}
 	}
 
-	if configDir, err := ConfigDir(); err == nil {
-		if info, err := os.Stat(configDir); err == nil && info.IsDir() {
-			dirConfig, dirDiags := loadConfigDir(configDir)
-			diags = diags.Append(dirDiags)
-			config = config.Merge(dirConfig)
+	// Unless the user has specifically overridden the configuration file
+	// location using an environment variable, we'll also load what we find
+	// in the config directory. We skip the config directory when source
+	// file override is set because we interpret the environment variable
+	// being set as an intention to ignore the default set of CLI config
+	// files because we're doing something special, like running Terraform
+	// in automation with a locally-customized configuration.
+	if cliConfigFileOverride() == "" {
+		if configDir, err := ConfigDir(); err == nil {
+			if info, err := os.Stat(configDir); err == nil && info.IsDir() {
+				dirConfig, dirDiags := loadConfigDir(configDir)
+				diags = diags.Append(dirDiags)
+				config = config.Merge(dirConfig)
+			}
 		}
+	} else {
+		log.Printf("[DEBUG] Not reading CLI config directory because config location is overridden by environment variable")
 	}
 
 	if envConfig := EnvConfig(); envConfig != nil {
@@ -357,11 +368,7 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 func cliConfigFile() (string, error) {
 	mustExist := true
 
-	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
-	if configFilePath == "" {
-		configFilePath = os.Getenv("TERRAFORM_CONFIG")
-	}
-
+	configFilePath := cliConfigFileOverride()
 	if configFilePath == "" {
 		var err error
 		configFilePath, err = ConfigFile()
@@ -387,4 +394,12 @@ func cliConfigFile() (string, error) {
 
 	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
 	return "", nil
+}
+
+func cliConfigFileOverride() string {
+	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
+	if configFilePath == "" {
+		configFilePath = os.Getenv("TERRAFORM_CONFIG")
+	}
+	return configFilePath
 }
