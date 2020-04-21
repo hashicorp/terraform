@@ -84,7 +84,7 @@ in the bundle. An exact version is required here.
 
 The `providers` block defines zero or more providers to include in the bundle
 along with core Terraform. Each attribute is a provider name, and its value is a
-blick with the list of version constraints and (optional) source. For each given
+block with the list of version constraints and (optional) source. For each given
 constraint, `terraform-bundle` will find the newest available version matching
 the constraint and include it in the bundle.
 
