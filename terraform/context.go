@@ -177,7 +177,11 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform.NewContext: loading provider schemas")
 	schemas, err := LoadSchemas(opts.Config, opts.State, components)
 	if err != nil {
-		diags = diags.Append(err)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Could not load plugin",
+			fmt.Sprintf(errPluginInit, err),
+		))
 		return nil, diags
 	}
 

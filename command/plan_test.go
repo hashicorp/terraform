@@ -854,6 +854,34 @@ func TestPlan_shutdown(t *testing.T) {
 	}
 }
 
+func TestPlan_init_required(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("plan")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			// Running plan without setting testingOverrides is similar to plan without init
+			Ui: ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected error, got success")
+	}
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, `Plugin reinitialization required. Please run "terraform init".`) {
+		t.Fatal("wrong error message in output:", output)
+	}
+}
+
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
