@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/hcl"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -42,6 +42,12 @@ type Config struct {
 
 	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`
 	CredentialsHelpers map[string]*ConfigCredentialsHelper `hcl:"credentials_helper"`
+
+	// ProviderInstallation represents any provider_installation blocks
+	// in the configuration. Only one of these is allowed across the whole
+	// configuration, but we decode into a slice here so that we can handle
+	// that validation at validation time rather than initial decode time.
+	ProviderInstallation []*ProviderInstallation
 }
 
 // ConfigHost is the structure of the "host" nested block within the CLI
@@ -55,6 +61,22 @@ type ConfigHost struct {
 // nested block within the CLI configuration.
 type ConfigCredentialsHelper struct {
 	Args []string `hcl:"args"`
+}
+
+// ConfigProviderInstallationFilesystemMirror represents a "filesystem_mirror"
+// block inside ConfigProviderInstallation.
+type ConfigProviderInstallationFilesystemMirror struct {
+	Path    string   `hcl:"path"`
+	Include []string `hcl:"include"`
+	Exclude []string `hcl:"exclude"`
+}
+
+// ConfigProviderInstallationNetworkMirror represents a "network_mirror" block
+// inside ConfigProviderInstallation.
+type ConfigProviderInstallationNetworkMirror struct {
+	Hostname string   `hcl:"hostname"`
+	Include  []string `hcl:"include"`
+	Exclude  []string `hcl:"exclude"`
 }
 
 // BuiltinConfig is the built-in defaults for the configuration. These
@@ -135,6 +157,13 @@ func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
 		diags = diags.Append(fmt.Errorf("Error parsing %s: %s", path, err))
 		return result, diags
 	}
+
+	// Deal with the provider_installation block, which is not handled using
+	// DecodeObject because its structure is not compatible with the
+	// limitations of that function.
+	providerInstBlocks, moreDiags := decodeProviderInstallationFromConfig(obj)
+	diags = diags.Append(moreDiags)
+	result.ProviderInstallation = providerInstBlocks
 
 	// Replace all env vars
 	for k, v := range result.Providers {
@@ -242,6 +271,13 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 		)
 	}
 
+	// Should have zero or one "provider_installation" blocks
+	if len(c.ProviderInstallation) > 1 {
+		diags = diags.Append(
+			fmt.Errorf("No more than one provider_installation block may be specified"),
+		)
+	}
+
 	return diags
 }
 
@@ -308,6 +344,11 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		for name, helper := range c2.CredentialsHelpers {
 			result.CredentialsHelpers[name] = helper
 		}
+	}
+
+	if (len(c1.ProviderInstallation) + len(c2.ProviderInstallation)) > 0 {
+		result.ProviderInstallation = append(result.ProviderInstallation, c1.ProviderInstallation...)
+		result.ProviderInstallation = append(result.ProviderInstallation, c2.ProviderInstallation...)
 	}
 
 	return &result
