@@ -235,13 +235,13 @@ func TestConfig_Merge(t *testing.T) {
 		},
 		ProviderInstallation: []*ProviderInstallation{
 			{
-				Sources: []*ProviderInstallationSource{
+				Methods: []*ProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("a")},
 					{Location: ProviderInstallationFilesystemMirror("b")},
 				},
 			},
 			{
-				Sources: []*ProviderInstallationSource{
+				Methods: []*ProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("c")},
 				},
 			},
@@ -273,7 +273,7 @@ func TestConfig_Merge(t *testing.T) {
 		},
 		ProviderInstallation: []*ProviderInstallation{
 			{
-				Sources: []*ProviderInstallationSource{
+				Methods: []*ProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("d")},
 				},
 			},
@@ -316,18 +316,18 @@ func TestConfig_Merge(t *testing.T) {
 		},
 		ProviderInstallation: []*ProviderInstallation{
 			{
-				Sources: []*ProviderInstallationSource{
+				Methods: []*ProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("a")},
 					{Location: ProviderInstallationFilesystemMirror("b")},
 				},
 			},
 			{
-				Sources: []*ProviderInstallationSource{
+				Methods: []*ProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("c")},
 				},
 			},
 			{
-				Sources: []*ProviderInstallationSource{
+				Methods: []*ProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("d")},
 				},
 			},

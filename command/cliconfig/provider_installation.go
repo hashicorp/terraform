@@ -11,7 +11,7 @@ import (
 // ProviderInstallation is the structure of the "provider_installation"
 // nested block within the CLI configuration.
 type ProviderInstallation struct {
-	Sources []*ProviderInstallationSource
+	Methods []*ProviderInstallationMethod
 }
 
 // decodeProviderInstallationFromConfig uses the HCL AST API directly to
@@ -66,42 +66,42 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 		// it will always be an hclast.ObjectType.
 		body := block.Val.(*hclast.ObjectType)
 
-		for _, sourceBlock := range body.List.Items {
-			if sourceBlock.Assign.Line != 0 {
+		for _, methodBlock := range body.List.Items {
+			if methodBlock.Assign.Line != 0 {
 				// Seems to be an attribute rather than a block
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid provider_installation source block",
+					"Invalid provider_installation method block",
 					fmt.Sprintf("The items inside the provider_installation block at %s must all be blocks.", block.Pos()),
 				))
 				continue
 			}
-			if len(sourceBlock.Keys) > 1 {
+			if len(methodBlock.Keys) > 1 {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid provider_installation source block",
+					"Invalid provider_installation method block",
 					fmt.Sprintf("The blocks inside the provider_installation block at %s may not have any labels.", block.Pos()),
 				))
 			}
 
-			sourceBody := sourceBlock.Val.(*hclast.ObjectType)
+			methodBody := methodBlock.Val.(*hclast.ObjectType)
 
-			sourceTypeStr := sourceBlock.Keys[0].Token.Value().(string)
-			var location ProviderInstallationSourceLocation
+			methodTypeStr := methodBlock.Keys[0].Token.Value().(string)
+			var location ProviderInstallationLocation
 			var include, exclude []string
-			switch sourceTypeStr {
+			switch methodTypeStr {
 			case "direct":
 				type BodyContent struct {
 					Include []string `hcl:"include"`
 					Exclude []string `hcl:"exclude"`
 				}
 				var bodyContent BodyContent
-				err := hcl.DecodeObject(&bodyContent, sourceBody)
+				err := hcl.DecodeObject(&bodyContent, methodBody)
 				if err != nil {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Invalid provider_installation source block",
-						fmt.Sprintf("Invalid %s block at %s: %s.", sourceTypeStr, block.Pos(), err),
+						"Invalid provider_installation method block",
+						fmt.Sprintf("Invalid %s block at %s: %s.", methodTypeStr, block.Pos(), err),
 					))
 					continue
 				}
@@ -115,20 +115,20 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 					Exclude []string `hcl:"exclude"`
 				}
 				var bodyContent BodyContent
-				err := hcl.DecodeObject(&bodyContent, sourceBody)
+				err := hcl.DecodeObject(&bodyContent, methodBody)
 				if err != nil {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Invalid provider_installation source block",
-						fmt.Sprintf("Invalid %s block at %s: %s.", sourceTypeStr, block.Pos(), err),
+						"Invalid provider_installation method block",
+						fmt.Sprintf("Invalid %s block at %s: %s.", methodTypeStr, block.Pos(), err),
 					))
 					continue
 				}
 				if bodyContent.Path == "" {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Invalid provider_installation source block",
-						fmt.Sprintf("Invalid %s block at %s: \"path\" argument is required.", sourceTypeStr, block.Pos()),
+						"Invalid provider_installation method block",
+						fmt.Sprintf("Invalid %s block at %s: \"path\" argument is required.", methodTypeStr, block.Pos()),
 					))
 					continue
 				}
@@ -142,20 +142,20 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 					Exclude []string `hcl:"exclude"`
 				}
 				var bodyContent BodyContent
-				err := hcl.DecodeObject(&bodyContent, sourceBody)
+				err := hcl.DecodeObject(&bodyContent, methodBody)
 				if err != nil {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Invalid provider_installation source block",
-						fmt.Sprintf("Invalid %s block at %s: %s.", sourceTypeStr, block.Pos(), err),
+						"Invalid provider_installation method block",
+						fmt.Sprintf("Invalid %s block at %s: %s.", methodTypeStr, block.Pos(), err),
 					))
 					continue
 				}
 				if bodyContent.URL == "" {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Invalid provider_installation source block",
-						fmt.Sprintf("Invalid %s block at %s: \"url\" argument is required.", sourceTypeStr, block.Pos()),
+						"Invalid provider_installation method block",
+						fmt.Sprintf("Invalid %s block at %s: \"url\" argument is required.", methodTypeStr, block.Pos()),
 					))
 					continue
 				}
@@ -165,13 +165,13 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid provider_installation source block",
-					fmt.Sprintf("Unknown provider installation source type %q at %s.", sourceTypeStr, sourceBlock.Pos()),
+					"Invalid provider_installation method block",
+					fmt.Sprintf("Unknown provider installation method %q at %s.", methodTypeStr, methodBlock.Pos()),
 				))
 				continue
 			}
 
-			pi.Sources = append(pi.Sources, &ProviderInstallationSource{
+			pi.Methods = append(pi.Methods, &ProviderInstallationMethod{
 				Location: location,
 				Include:  include,
 				Exclude:  exclude,
@@ -184,22 +184,22 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 	return ret, diags
 }
 
-// ProviderInstallationSource represents an installation source block inside
+// ProviderInstallationMethod represents an installation method block inside
 // a provider_installation block.
-type ProviderInstallationSource struct {
-	Location ProviderInstallationSourceLocation
+type ProviderInstallationMethod struct {
+	Location ProviderInstallationLocation
 	Include  []string `hcl:"include"`
 	Exclude  []string `hcl:"exclude"`
 }
 
-// ProviderInstallationSourceLocation is an interface type representing the
-// different installation source types. The concrete implementations of
+// ProviderInstallationLocation is an interface type representing the
+// different installation location types. The concrete implementations of
 // this interface are:
 //
 //     ProviderInstallationDirect:                install from the provider's origin registry
 //     ProviderInstallationFilesystemMirror(dir): install from a local filesystem mirror
 //     ProviderInstallationNetworkMirror(host):   install from a network mirror
-type ProviderInstallationSourceLocation interface {
+type ProviderInstallationLocation interface {
 	providerInstallationLocation()
 }
 
@@ -209,7 +209,7 @@ func (i configProviderInstallationDirect) providerInstallationLocation() {}
 
 // ProviderInstallationDirect is a ProviderInstallationSourceLocation
 // representing installation from a provider's origin registry.
-var ProviderInstallationDirect ProviderInstallationSourceLocation = configProviderInstallationDirect{}
+var ProviderInstallationDirect ProviderInstallationLocation = configProviderInstallationDirect{}
 
 // ProviderInstallationFilesystemMirror is a ProviderInstallationSourceLocation
 // representing installation from a particular local filesystem mirror. The

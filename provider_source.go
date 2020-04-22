@@ -39,14 +39,14 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 	var diags tfdiags.Diagnostics
 	var searchRules []getproviders.MultiSourceSelector
 
-	for _, sourceConfig := range config.Sources {
-		source, moreDiags := providerSourceForCLIConfigLocation(sourceConfig.Location, services)
+	for _, methodConfig := range config.Methods {
+		source, moreDiags := providerSourceForCLIConfigLocation(methodConfig.Location, services)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			continue
 		}
 
-		include, err := getproviders.ParseMultiSourceMatchingPatterns(sourceConfig.Include)
+		include, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Include)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -54,7 +54,7 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 				fmt.Sprintf("CLI config specifies invalid provider inclusion patterns: %s.", err),
 			))
 		}
-		exclude, err := getproviders.ParseMultiSourceMatchingPatterns(sourceConfig.Include)
+		exclude, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Include)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -179,7 +179,7 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	return getproviders.MultiSource(searchRules)
 }
 
-func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationSourceLocation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
 	if loc == cliconfig.ProviderInstallationDirect {
 		return getproviders.NewMemoizeSource(
 			getproviders.NewRegistrySource(services),
