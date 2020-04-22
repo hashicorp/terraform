@@ -138,7 +138,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 				exclude = bodyContent.Exclude
 			case "network_mirror":
 				type BodyContent struct {
-					Host    string   `hcl:"host"`
+					URL     string   `hcl:"url"`
 					Include []string `hcl:"include"`
 					Exclude []string `hcl:"exclude"`
 				}
@@ -152,15 +152,15 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 					))
 					continue
 				}
-				if bodyContent.Host == "" {
+				if bodyContent.URL == "" {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider_installation source block",
-						fmt.Sprintf("Invalid %s block at %s: \"host\" argument is required.", sourceTypeStr, block.Pos()),
+						fmt.Sprintf("Invalid %s block at %s: \"url\" argument is required.", sourceTypeStr, block.Pos()),
 					))
 					continue
 				}
-				location = ProviderInstallationNetworkMirror(bodyContent.Host)
+				location = ProviderInstallationNetworkMirror(bodyContent.URL)
 				include = bodyContent.Include
 				exclude = bodyContent.Exclude
 			default:
@@ -229,8 +229,8 @@ func (i ProviderInstallationFilesystemMirror) providerInstallationLocation() {}
 
 // ProviderInstallationNetworkMirror is a ProviderInstallationSourceLocation
 // representing installation from a particular local network mirror. The
-// string value is the hostname exactly as written in the configuration, without
-// any normalization.
+// string value is the HTTP base URL exactly as written in the configuration,
+// without any normalization.
 type ProviderInstallationNetworkMirror string
 
 func (i ProviderInstallationNetworkMirror) providerInstallationLocation() {}

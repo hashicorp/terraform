@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 
 	"github.com/apparentlymart/go-userdirs/userdirs"
-	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -192,17 +192,26 @@ func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationSource
 		return getproviders.NewFilesystemMirrorSource(string(loc)), nil
 
 	case cliconfig.ProviderInstallationNetworkMirror:
-		host, err := svchost.ForComparison(string(loc))
+		url, err := url.Parse(string(loc))
 		if err != nil {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid hostname for provider installation source",
-				fmt.Sprintf("Cannot parse %q as a hostname for a network provider mirror: %s.", string(loc), err),
+				"Invalid URL for provider installation source",
+				fmt.Sprintf("Cannot parse %q as a URL for a network provider mirror: %s.", string(loc), err),
 			))
 			return nil, diags
 		}
-		return getproviders.NewNetworkMirrorSource(host), nil
+		if url.Scheme != "https" || url.Host == "" {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid URL for provider installation source",
+				fmt.Sprintf("Cannot use %q as a URL for a network provider mirror: the mirror must be at an https: URL.", string(loc)),
+			))
+			return nil, diags
+		}
+		return getproviders.NewHTTPMirrorSource(url), nil
 
 	default:
 		// We should not get here because the set of cases above should

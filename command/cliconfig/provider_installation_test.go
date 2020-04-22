@@ -22,7 +22,7 @@ func TestLoadConfig_providerInstallation(t *testing.T) {
 						Include:  []string{"example.com/*/*"},
 					},
 					{
-						Location: ProviderInstallationNetworkMirror("tf-Mirror.example.com"),
+						Location: ProviderInstallationNetworkMirror("https://tf-Mirror.example.com/"),
 						Include:  []string{"registry.terraform.io/*/*"},
 						Exclude:  []string{"registry.Terraform.io/foobar/*"},
 					},
@@ -49,7 +49,7 @@ func TestLoadConfig_providerInstallationErrors(t *testing.T) {
 
 - Invalid provider_installation source block: Unknown provider installation source type "not_a_thing" at 2:3.
 - Invalid provider_installation source block: Invalid filesystem_mirror block at 1:1: "path" argument is required.
-- Invalid provider_installation source block: Invalid network_mirror block at 1:1: "host" argument is required.
+- Invalid provider_installation source block: Invalid network_mirror block at 1:1: "url" argument is required.
 - Invalid provider_installation source block: The items inside the provider_installation block at 1:1 must all be blocks.
 - Invalid provider_installation source block: The blocks inside the provider_installation block at 1:1 may not have any labels.
 - Invalid provider_installation block: The provider_installation block at 9:1 must not have any labels.

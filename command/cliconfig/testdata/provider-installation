@@ -4,7 +4,7 @@ provider_installation {
     include = ["example.com/*/*"]
   }
   network_mirror {
-    host    = "tf-Mirror.example.com"
+    url     = "https://tf-Mirror.example.com/"
     include = ["registry.terraform.io/*/*"]
     exclude = ["registry.Terraform.io/foobar/*"]
   }
