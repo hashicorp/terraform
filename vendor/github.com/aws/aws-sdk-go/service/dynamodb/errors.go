@@ -2,6 +2,10 @@
 
 package dynamodb
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeBackupInUseException for service response error code
@@ -184,8 +188,6 @@ const (
 	//    index (LSI) becomes too large, or a similar validation error occurs because
 	//    of changes made by the transaction.
 	//
-	//    * The aggregate size of the items in the transaction exceeds 4 MBs.
-	//
 	//    * There is a user error, such as an invalid data format.
 	//
 	// DynamoDB cancels a TransactGetItems request under the following circumstances:
@@ -199,8 +201,6 @@ const (
 	//
 	//    * There is insufficient provisioned capacity for the transaction to be
 	//    completed.
-	//
-	//    * The aggregate size of the items in the transaction exceeds 4 MBs.
 	//
 	//    * There is a user error, such as an invalid data format.
 	//
@@ -268,3 +268,31 @@ const (
 	// The transaction with the given request token is already in progress.
 	ErrCodeTransactionInProgressException = "TransactionInProgressException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"BackupInUseException":                     newErrorBackupInUseException,
+	"BackupNotFoundException":                  newErrorBackupNotFoundException,
+	"ConditionalCheckFailedException":          newErrorConditionalCheckFailedException,
+	"ContinuousBackupsUnavailableException":    newErrorContinuousBackupsUnavailableException,
+	"GlobalTableAlreadyExistsException":        newErrorGlobalTableAlreadyExistsException,
+	"GlobalTableNotFoundException":             newErrorGlobalTableNotFoundException,
+	"IdempotentParameterMismatchException":     newErrorIdempotentParameterMismatchException,
+	"IndexNotFoundException":                   newErrorIndexNotFoundException,
+	"InternalServerError":                      newErrorInternalServerError,
+	"InvalidRestoreTimeException":              newErrorInvalidRestoreTimeException,
+	"ItemCollectionSizeLimitExceededException": newErrorItemCollectionSizeLimitExceededException,
+	"LimitExceededException":                   newErrorLimitExceededException,
+	"PointInTimeRecoveryUnavailableException":  newErrorPointInTimeRecoveryUnavailableException,
+	"ProvisionedThroughputExceededException":   newErrorProvisionedThroughputExceededException,
+	"ReplicaAlreadyExistsException":            newErrorReplicaAlreadyExistsException,
+	"ReplicaNotFoundException":                 newErrorReplicaNotFoundException,
+	"RequestLimitExceeded":                     newErrorRequestLimitExceeded,
+	"ResourceInUseException":                   newErrorResourceInUseException,
+	"ResourceNotFoundException":                newErrorResourceNotFoundException,
+	"TableAlreadyExistsException":              newErrorTableAlreadyExistsException,
+	"TableInUseException":                      newErrorTableInUseException,
+	"TableNotFoundException":                   newErrorTableNotFoundException,
+	"TransactionCanceledException":             newErrorTransactionCanceledException,
+	"TransactionConflictException":             newErrorTransactionConflictException,
+	"TransactionInProgressException":           newErrorTransactionInProgressException,
+}
