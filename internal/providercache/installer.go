@@ -47,11 +47,11 @@ type Installer struct {
 	// communicate with servers, and is used to resolve plugin discovery with
 	// terraform registry, in addition to any specified plugin version
 	// constraints.
-	pluginProtocolVersion string
+	pluginProtocolVersion getproviders.VersionConstraints
 }
 
 // The currently-supported plugin protocol version.
-const PluginProtocolVersion = "5"
+var SupportedPluginProtocols = getproviders.MustParseVersionConstraints("~> 5")
 
 // NewInstaller constructs and returns a new installer with the given target
 // directory and provider source.
@@ -66,7 +66,7 @@ func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	return &Installer{
 		targetDir:             targetDir,
 		source:                source,
-		pluginProtocolVersion: PluginProtocolVersion,
+		pluginProtocolVersion: SupportedPluginProtocols,
 	}
 }
 
@@ -314,12 +314,7 @@ NeedProvider:
 
 		// if the package meta includes provider protocol versions, verify that terraform supports it.
 		if len(meta.ProtocolVersions) > 0 {
-			protoVersions, _ := versions.MeetingConstraintsStringRuby(i.pluginProtocolVersion)
-			if err != nil {
-				// This should not happen since there is a test covering just this
-				// version string, but better safe than sorry.
-				return nil, fmt.Errorf("unable to parse plugin protocol version string; this is a bug in Terraform and should be reported")
-			}
+			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
 			match := false
 			for _, version := range meta.ProtocolVersions {
 				if protoVersions.Has(version) {
@@ -562,7 +557,7 @@ func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider
 	for index := len(available) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
 		meta, _ := i.source.PackageMeta(provider, available[index], i.targetDir.targetPlatform)
 		if len(meta.ProtocolVersions) > 0 {
-			protoVersions, _ := versions.MeetingConstraintsStringRuby(i.pluginProtocolVersion)
+			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
 			for _, version := range meta.ProtocolVersions {
 				if protoVersions.Has(version) {
 					match = available[index]

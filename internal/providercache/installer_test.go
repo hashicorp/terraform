@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -24,9 +23,9 @@ func TestEnsureProviderVersions(t *testing.T) {
 	meta1, close1, _ := getproviders.FakeInstallablePackageMeta(provider, version1, protocols1, platform)
 	defer close1()
 
-	// foo version 2.0 supports protocols 4 and 5
+	// foo version 2.0 supports protocols 4 and 5.2
 	version2 := getproviders.MustParseVersion("2.0.0")
-	protocols2 := getproviders.VersionList{getproviders.MustParseVersion("4.0"), getproviders.MustParseVersion("5.0")}
+	protocols2 := getproviders.VersionList{getproviders.MustParseVersion("4.0"), getproviders.MustParseVersion("5.2")}
 	meta2, close2, _ := getproviders.FakeInstallablePackageMeta(provider, version2, protocols2, platform)
 	defer close2()
 
@@ -66,7 +65,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 	}
 	got := selections[provider]
 	if !got.Same(version2) {
-		t.Fatalf("wrong result. Expected provider version %s, got %s", got, version2)
+		t.Fatalf("wrong result. Expected provider version %s, got %s", version2, got)
 	}
 
 	// For the second test, set the requirement to something later than the
@@ -97,13 +96,5 @@ func TestEnsureProviderVersions(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "Provider version 2.0.0 is the earliest compatible version.") {
 		t.Fatalf("wrong error: %s", err)
-	}
-}
-
-// Test that the const used for i.pluginProtocolVersion parses.
-func TestPluginProtocolVersion(t *testing.T) {
-	_, err := versions.ParseVersion(PluginProtocolVersion)
-	if err != nil {
-		t.Fatalf("unexpected error while parsing pluginProtocolVersion: %s", err)
 	}
 }
