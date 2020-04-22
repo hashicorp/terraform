@@ -99,6 +99,23 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ProviderMetas:        map[addrs.Provider]*ProviderMeta{},
 	}
 
+	// Pre-process the required providers blocks to ensure that we have access
+	// to the entire module's required providers specifications when processing
+	// the managed and data resources.
+	for _, file := range primaryFiles {
+		reqDiags := mod.extractRequiredProviders(file)
+		diags = append(diags, reqDiags...)
+	}
+
+	// If any required provider blocks have no source specified, generate an
+	// implied source based on the provider name.
+	for name, req := range mod.ProviderRequirements {
+		if req.Type.IsZero() {
+			req.Type = addrs.ImpliedProviderForUnqualifiedType(name)
+			mod.ProviderRequirements[name] = req
+		}
+	}
+
 	for _, file := range primaryFiles {
 		fileDiags := mod.appendFile(file)
 		diags = append(diags, fileDiags...)
@@ -129,6 +146,47 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 	default:
 		return nil
 	}
+}
+
+func (m *Module) extractRequiredProviders(file *File) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for _, reqd := range file.RequiredProviders {
+		var fqn addrs.Provider
+		if reqd.Source.SourceStr != "" {
+			var sourceDiags tfdiags.Diagnostics
+			fqn, sourceDiags = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
+			hclDiags := sourceDiags.ToHCL()
+			// The diagnostics from ParseProviderSourceString don't contain
+			// source location information because it has no context to compute
+			// them from, and so we'll add those in quickly here before we
+			// return.
+			for _, diag := range hclDiags {
+				if diag.Subject == nil {
+					diag.Subject = reqd.Source.DeclRange.Ptr()
+				}
+			}
+			diags = append(diags, hclDiags...)
+		}
+		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
+			if existing.Type.IsZero() {
+				existing.Type = fqn
+			} else if existing.Type != fqn {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Conflicting provider sources",
+					Detail:   fmt.Sprintf("Multiple provider sources specified for %q: %q, %q", reqd.Name, existing.Type, fqn),
+					Subject:  reqd.Source.DeclRange.Ptr(),
+				})
+			}
+			existing.VersionConstraints = append(existing.VersionConstraints, reqd.Requirement)
+			m.ProviderRequirements[reqd.Name] = existing
+		} else {
+			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
+		}
+	}
+
+	return diags
 }
 
 func (m *Module) appendFile(file *File) hcl.Diagnostics {
@@ -176,35 +234,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ProviderConfigs[key] = pc
-	}
-
-	for _, reqd := range file.RequiredProviders {
-		var fqn addrs.Provider
-		if reqd.Source.SourceStr != "" {
-			var sourceDiags tfdiags.Diagnostics
-			fqn, sourceDiags = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
-			hclDiags := sourceDiags.ToHCL()
-			// The diagnostics from ParseProviderSourceString don't contain
-			// source location information because it has no context to compute
-			// them from, and so we'll add those in quickly here before we
-			// return.
-			for _, diag := range hclDiags {
-				if diag.Subject == nil {
-					diag.Subject = reqd.Source.DeclRange.Ptr()
-				}
-			}
-			diags = append(diags, hclDiags...)
-		} else {
-			fqn = addrs.ImpliedProviderForUnqualifiedType(reqd.Name)
-		}
-		if existing, exists := m.ProviderRequirements[reqd.Name]; exists {
-			if existing.Type != fqn {
-				panic("provider fqn mismatch")
-			}
-			existing.VersionConstraints = append(existing.VersionConstraints, reqd.Requirement)
-		} else {
-			m.ProviderRequirements[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
-		}
 	}
 
 	for _, pm := range file.ProviderMetas {

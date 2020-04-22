@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -96,6 +97,62 @@ func TestNewModule_resource_providers(t *testing.T) {
 			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
 			wantImplicit,
 		)
+	}
+}
+
+func TestModule_required_providers_multiple(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/multiple-required-providers")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+
+	req, exists := mod.ProviderRequirements["test"]
+	if !exists {
+		t.Fatal("no provider requirements found for \"test\"")
+	}
+	if req.Type != want {
+		t.Errorf("wrong provider addr for %q\ngot:  %s\nwant: %s",
+			"test", req.Type, want,
+		)
+	}
+}
+
+func TestModule_required_providers_after_resource(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/required-providers-after-resource")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+
+	req, exists := mod.ProviderRequirements["test"]
+	if !exists {
+		t.Fatal("no provider requirements found for \"test\"")
+	}
+	if req.Type != want {
+		t.Errorf("wrong provider addr for %q\ngot:  %s\nwant: %s",
+			"test", req.Type, want,
+		)
+	}
+
+	if got := mod.ManagedResources["test_instance.my-instance"].Provider; !got.Equals(want) {
+		t.Errorf("wrong provider addr for %q\ngot:  %s\nwant: %s",
+			"test_instance.my-instance", got, want,
+		)
+	}
+}
+
+func TestModule_required_providers_conflicting_sources(t *testing.T) {
+	_, diags := testModuleFromDir("testdata/invalid-modules/conflicting-required-providers")
+	if !diags.HasErrors() {
+		t.Fatal("module should have error diags, but does not")
+	}
+
+	want := `Multiple provider sources specified for "test": "registry.terraform.io/acme/test", "registry.terraform.io/foo/test"`
+	if got := diags.Error(); !strings.Contains(got, want) {
+		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 	}
 }
 
