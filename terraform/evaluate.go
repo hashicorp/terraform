@@ -473,9 +473,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				last = i
 			}
 			vals = vals[:last+1]
-			ret = cty.ListVal(vals)
+			ret = cty.TupleVal(vals)
 		} else {
-			ret = cty.ListValEmpty(cty.DynamicPseudoType)
+			ret = cty.DynamicVal
 		}
 
 	case callConfig.ForEach != nil:
@@ -490,9 +490,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		}
 
 		if len(vals) > 0 {
-			ret = cty.MapVal(vals)
+			ret = cty.ObjectVal(vals)
 		} else {
-			ret = cty.MapValEmpty(cty.DynamicPseudoType)
+			ret = cty.DynamicVal
 		}
 
 	default:
