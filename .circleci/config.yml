@@ -71,6 +71,10 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
 
+      - slack/status:
+          # fail_only: true
+          only_for_branches: master
+
   go-test-e2e:
     executor:
       name: go
@@ -96,6 +100,10 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+
+      - slack/status:
+          # fail_only: true
+          only_for_branches: master
 
   # combine code coverage results from the parallel circleci executors
   coverage-merge:
@@ -172,9 +180,6 @@ workflows:
           requires:
             - go-test
             - go-test-e2e
-      - slack/status:
-          # fail_only: true
-          only_for_branches: master
   build-distros:
     jobs:
       - build-386
