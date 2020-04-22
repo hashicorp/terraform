@@ -16,16 +16,19 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform2,
 			),
 			FakePackageMeta(
 				addrs.NewDefaultProvider("bar"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform2,
 			),
 		})
@@ -33,16 +36,19 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
 				MustParseVersion("1.2.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
 				addrs.NewDefaultProvider("bar"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 		})
@@ -81,11 +87,13 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
 				addrs.NewDefaultProvider("bar"),
 				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 		})
@@ -93,11 +101,13 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
 				MustParseVersion("1.2.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
 				addrs.NewDefaultProvider("bar"),
 				MustParseVersion("1.2.0"),
+				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 		})
@@ -158,16 +168,19 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	onlyInS1 := fakeFilename("s1", FakePackageMeta(
 		addrs.NewDefaultProvider("foo"),
 		MustParseVersion("1.0.0"),
+		VersionList{MustParseVersion("5.0")},
 		platform2,
 	))
 	onlyInS2 := fakeFilename("s2", FakePackageMeta(
 		addrs.NewDefaultProvider("foo"),
 		MustParseVersion("1.2.0"),
+		VersionList{MustParseVersion("5.0")},
 		platform1,
 	))
 	inBothS1 := fakeFilename("s1", FakePackageMeta(
 		addrs.NewDefaultProvider("foo"),
 		MustParseVersion("1.0.0"),
+		VersionList{MustParseVersion("5.0")},
 		platform1,
 	))
 	inBothS2 := fakeFilename("s2", inBothS1)
@@ -177,6 +190,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 		fakeFilename("s1", FakePackageMeta(
 			addrs.NewDefaultProvider("bar"),
 			MustParseVersion("1.0.0"),
+			VersionList{MustParseVersion("5.0")},
 			platform2,
 		)),
 	})
@@ -186,6 +200,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 		fakeFilename("s2", FakePackageMeta(
 			addrs.NewDefaultProvider("bar"),
 			MustParseVersion("1.0.0"),
+			VersionList{MustParseVersion("5.0")},
 			platform1,
 		)),
 	})

@@ -10,8 +10,9 @@ import (
 func TestMemoizeSource(t *testing.T) {
 	provider := addrs.NewDefaultProvider("foo")
 	version := MustParseVersion("1.0.0")
+	protocols := VersionList{MustParseVersion("5.0")}
 	platform := Platform{OS: "gameboy", Arch: "lr35902"}
-	meta := FakePackageMeta(provider, version, platform)
+	meta := FakePackageMeta(provider, version, protocols, platform)
 	nonexistProvider := addrs.NewDefaultProvider("nonexist")
 	nonexistPlatform := Platform{OS: "gamegear", Arch: "z80"}
 
