@@ -281,7 +281,13 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	{
 		rootModule := state.RootModule()
 		for name, fos := range sV4.RootOutputs {
-			os := &states.OutputValue{}
+			os := &states.OutputValue{
+				Addr: addrs.AbsOutputValue{
+					OutputValue: addrs.OutputValue{
+						Name: name,
+					},
+				},
+			}
 			os.Sensitive = fos.Sensitive
 
 			ty, err := ctyjson.UnmarshalType([]byte(fos.ValueTypeRaw))

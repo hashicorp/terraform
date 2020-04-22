@@ -82,6 +82,35 @@ func (s *State) ModuleInstances(addr addrs.Module) []*Module {
 	return ms
 }
 
+// ModuleOutputs returns all outputs for the given module call under the
+// parentAddr instance.
+func (s *State) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
+	var os []*OutputValue
+	for _, m := range s.Modules {
+		// can't get outputs from the root module
+		if m.Addr.IsRoot() {
+			continue
+		}
+
+		parent, call := m.Addr.Call()
+		// make sure this is a descendent in the correct path
+		if !parentAddr.Equal(parent) {
+			continue
+		}
+
+		// and check if this is the correct child
+		if call.Name != module.Name {
+			continue
+		}
+
+		for _, o := range m.OutputValues {
+			os = append(os, o)
+		}
+	}
+
+	return os
+}
+
 // RemoveModule removes the module with the given address from the state,
 // unless it is the root module. The root module cannot be deleted, and so
 // this method will panic if that is attempted.

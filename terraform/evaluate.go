@@ -336,72 +336,16 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 	return val, diags
 }
 
-func (d *evaluationStateData) GetModuleInstance(addr addrs.ModuleCallInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Output results live in the module that declares them, which is one of
 	// the child module instances of our current module path.
-	moduleAddr := addr.ModuleInstance(d.ModulePath)
+	moduleAddr := d.ModulePath.Module().Child(addr.Name)
 
-	// We'll consult the configuration to see what output names we are
-	// expecting, so we can ensure the resulting object is of the expected
-	// type even if our data is incomplete for some reason.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
-	if moduleConfig == nil {
-		// should never happen, since this should've been caught during
-		// static validation.
-		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
-	}
-	outputConfigs := moduleConfig.Module.Outputs
-
-	vals := map[string]cty.Value{}
-	for n := range outputConfigs {
-		addr := addrs.OutputValue{Name: n}.Absolute(moduleAddr)
-
-		// If a pending change is present in our current changeset then its value
-		// takes priority over what's in state. (It will usually be the same but
-		// will differ if the new value is unknown during planning.)
-		if changeSrc := d.Evaluator.Changes.GetOutputChange(addr); changeSrc != nil {
-			change, err := changeSrc.Decode()
-			if err != nil {
-				// This should happen only if someone has tampered with a plan
-				// file, so we won't bother with a pretty error for it.
-				diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", addr, err))
-				vals[n] = cty.DynamicVal
-				continue
-			}
-			// We care only about the "after" value, which is the value this output
-			// will take on after the plan is applied.
-			vals[n] = change.After
-		} else {
-			os := d.Evaluator.State.OutputValue(addr)
-			if os == nil {
-				// Not evaluated yet?
-				vals[n] = cty.DynamicVal
-				continue
-			}
-			vals[n] = os.Value
-		}
-	}
-	return cty.ObjectVal(vals), diags
-}
-
-func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// Output results live in the module that declares them, which is one of
-	// the child module instances of our current module path.
-	absAddr := addr.AbsOutputValue(d.ModulePath)
-	moduleAddr := absAddr.Module
-
-	// First we'll consult the configuration to see if an output of this
-	// name is declared at all.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
-	if moduleConfig == nil {
-		// this doesn't happen in normal circumstances due to our validation
-		// pass, but it can turn up in some unusual situations, like in the
-		// "terraform console" repl where arbitrary expressions can be
-		// evaluated.
+	parentCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	callConfig, ok := parentCfg.Module.ModuleCalls[addr.Name]
+	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared module`,
@@ -411,49 +355,167 @@ func (d *evaluationStateData) GetModuleInstanceOutput(addr addrs.AbsModuleCallOu
 		return cty.DynamicVal, diags
 	}
 
-	config := moduleConfig.Module.Outputs[addr.Name]
-	if config == nil {
-		var suggestions []string
-		for k := range moduleConfig.Module.Outputs {
-			suggestions = append(suggestions, k)
-		}
-		suggestion := nameSuggestion(addr.Name, suggestions)
-		if suggestion != "" {
-			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+	// We'll consult the configuration to see what output names we are
+	// expecting, so we can ensure the resulting object is of the expected
+	// type even if our data is incomplete for some reason.
+	moduleConfig := d.Evaluator.Config.Descendent(moduleAddr)
+	if moduleConfig == nil {
+		// should never happen, since we have a valid module call above, this
+		// should be caught during static validation.
+		panic(fmt.Sprintf("output value read from %s, which has no configuration", moduleAddr))
+	}
+	outputConfigs := moduleConfig.Module.Outputs
+
+	// Collect all the relevant outputs that current exist in the state.
+	// We know the instance path up to this point, and the child module name,
+	// so we only need to store these by instance key.
+	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
+	for _, output := range d.Evaluator.State.ModuleOutputs(d.ModulePath, addr) {
+		_, callInstance := output.Addr.Module.CallInstance()
+		instance, ok := stateMap[callInstance.Key]
+		if !ok {
+			instance = map[string]cty.Value{}
+			stateMap[callInstance.Key] = instance
 		}
 
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Reference to undeclared output value`,
-			Detail:   fmt.Sprintf(`An output value with the name %q has not been declared in %s.%s`, addr.Name, moduleDisplayAddr(moduleAddr), suggestion),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
+		instance[output.Addr.OutputValue.Name] = output.Value
 	}
 
-	// If a pending change is present in our current changeset then its value
-	// takes priority over what's in state. (It will usually be the same but
-	// will differ if the new value is unknown during planning.)
-	if changeSrc := d.Evaluator.Changes.GetOutputChange(absAddr); changeSrc != nil {
-		change, err := changeSrc.Decode()
-		if err != nil {
-			// This should happen only if someone has tampered with a plan
-			// file, so we won't bother with a pretty error for it.
-			diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", absAddr, err))
-			return cty.DynamicVal, diags
+	// Get all changes that reside for this module call within our path.
+	// The change contains the full addr, so we can key these with strings.
+	changesMap := map[addrs.InstanceKey]map[string]*plans.OutputChangeSrc{}
+	for _, change := range d.Evaluator.Changes.GetOutputChanges(d.ModulePath, addr) {
+		_, callInstance := change.Addr.Module.CallInstance()
+		instance, ok := changesMap[callInstance.Key]
+		if !ok {
+			instance = map[string]*plans.OutputChangeSrc{}
+			changesMap[callInstance.Key] = instance
 		}
-		// We care only about the "after" value, which is the value this output
-		// will take on after the plan is applied.
-		return change.After, diags
+
+		instance[change.Addr.OutputValue.Name] = change
 	}
 
-	os := d.Evaluator.State.OutputValue(absAddr)
-	if os == nil {
-		// Not evaluated yet?
-		return cty.DynamicVal, diags
+	// Build up all the module objects, creating a map of values for each
+	// module instance.
+	moduleInstances := map[addrs.InstanceKey]map[string]cty.Value{}
+
+	// the structure is based on the configuration, so iterate through all the
+	// defined outputs, and add any instance state or changes we find.
+	for _, cfg := range outputConfigs {
+		// get all instance output for this path from the state
+		for key, states := range stateMap {
+			outputState, ok := states[cfg.Name]
+			if !ok {
+				continue
+			}
+
+			instance, ok := moduleInstances[key]
+			if !ok {
+				instance = map[string]cty.Value{}
+				moduleInstances[key] = instance
+			}
+
+			instance[cfg.Name] = outputState
+		}
+
+		// any pending changes override the state state values
+		for key, changes := range changesMap {
+			changeSrc, ok := changes[cfg.Name]
+			if !ok {
+				continue
+			}
+
+			instance, ok := moduleInstances[key]
+			if !ok {
+				instance = map[string]cty.Value{}
+				moduleInstances[key] = instance
+			}
+
+			change, err := changeSrc.Decode()
+			if err != nil {
+				// This should happen only if someone has tampered with a plan
+				// file, so we won't bother with a pretty error for it.
+				diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", addr, err))
+				instance[cfg.Name] = cty.DynamicVal
+				continue
+			}
+
+			instance[cfg.Name] = change.After
+		}
 	}
 
-	return os.Value, diags
+	var ret cty.Value
+
+	// compile the outputs into the correct value type for the each mode
+	switch {
+	case callConfig.Count != nil:
+		vals := make([]cty.Value, len(moduleInstances))
+		for key, instance := range moduleInstances {
+			intKey, ok := key.(addrs.IntKey)
+			if !ok {
+				// old key from state which is being dropped
+				continue
+			}
+
+			vals[int(intKey)] = cty.ObjectVal(instance)
+		}
+
+		if len(vals) > 0 {
+			// we shouldn't have any holes, but insert real values just in case,
+			// while trimming off any extra values that we may have from guessing
+			// the length via the state instances.
+			last := 0
+			for i, v := range vals {
+				if v.IsNull() {
+					vals[i] = cty.DynamicVal
+					continue
+				}
+				last = i
+			}
+			vals = vals[:last+1]
+			ret = cty.ListVal(vals)
+		} else {
+			ret = cty.ListValEmpty(cty.DynamicPseudoType)
+		}
+
+	case callConfig.ForEach != nil:
+		vals := make(map[string]cty.Value)
+		for key, instance := range moduleInstances {
+			strKey, ok := key.(addrs.StringKey)
+			if !ok {
+				continue
+			}
+
+			vals[string(strKey)] = cty.ObjectVal(instance)
+		}
+
+		if len(vals) > 0 {
+			ret = cty.MapVal(vals)
+		} else {
+			ret = cty.MapValEmpty(cty.DynamicPseudoType)
+		}
+
+	default:
+		val, ok := moduleInstances[addrs.NoKey]
+		if !ok {
+			// create the object if there wasn't one known
+			val = map[string]cty.Value{}
+			for k := range outputConfigs {
+				val[k] = cty.DynamicVal
+			}
+		}
+
+		ret = cty.ObjectVal(val)
+	}
+
+	// The module won't be expanded during validation, so we need to return an
+	// unknown value. This will ensure the types looks correct, since we built
+	// the objects based on the configuration.
+	if d.Operation == walkValidate {
+		return cty.UnknownVal(ret.Type()), diags
+	}
+
+	return ret, diags
 }
 
 func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
