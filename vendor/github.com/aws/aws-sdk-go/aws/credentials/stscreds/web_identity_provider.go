@@ -28,6 +28,24 @@ const (
 // compare test values.
 var now = time.Now
 
+// TokenFetcher shuold return WebIdentity token bytes or an error
+type TokenFetcher interface {
+	FetchToken(credentials.Context) ([]byte, error)
+}
+
+// FetchTokenPath is a path to a WebIdentity token file
+type FetchTokenPath string
+
+// FetchToken returns a token by reading from the filesystem
+func (f FetchTokenPath) FetchToken(ctx credentials.Context) ([]byte, error) {
+	data, err := ioutil.ReadFile(string(f))
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to read file at %s", f)
+		return nil, awserr.New(ErrCodeWebIdentity, errMsg, err)
+	}
+	return data, nil
+}
+
 // WebIdentityRoleProvider is used to retrieve credentials using
 // an OIDC token.
 type WebIdentityRoleProvider struct {
@@ -36,7 +54,7 @@ type WebIdentityRoleProvider struct {
 	client       stsiface.STSAPI
 	ExpiryWindow time.Duration
 
-	tokenFilePath   string
+	tokenFetcher    TokenFetcher
 	roleARN         string
 	roleSessionName string
 }
@@ -52,9 +70,15 @@ func NewWebIdentityCredentials(c client.ConfigProvider, roleARN, roleSessionName
 // NewWebIdentityRoleProvider will return a new WebIdentityRoleProvider with the
 // provided stsiface.STSAPI
 func NewWebIdentityRoleProvider(svc stsiface.STSAPI, roleARN, roleSessionName, path string) *WebIdentityRoleProvider {
+	return NewWebIdentityRoleProviderWithToken(svc, roleARN, roleSessionName, FetchTokenPath(path))
+}
+
+// NewWebIdentityRoleProviderWithToken will return a new WebIdentityRoleProvider with the
+// provided stsiface.STSAPI and a TokenFetcher
+func NewWebIdentityRoleProviderWithToken(svc stsiface.STSAPI, roleARN, roleSessionName string, tokenFetcher TokenFetcher) *WebIdentityRoleProvider {
 	return &WebIdentityRoleProvider{
 		client:          svc,
-		tokenFilePath:   path,
+		tokenFetcher:    tokenFetcher,
 		roleARN:         roleARN,
 		roleSessionName: roleSessionName,
 	}
@@ -71,10 +95,9 @@ func (p *WebIdentityRoleProvider) Retrieve() (credentials.Value, error) {
 // 'WebIdentityTokenFilePath' specified destination and if that is empty an
 // error will be returned.
 func (p *WebIdentityRoleProvider) RetrieveWithContext(ctx credentials.Context) (credentials.Value, error) {
-	b, err := ioutil.ReadFile(p.tokenFilePath)
+	b, err := p.tokenFetcher.FetchToken(ctx)
 	if err != nil {
-		errMsg := fmt.Sprintf("unable to read file at %s", p.tokenFilePath)
-		return credentials.Value{}, awserr.New(ErrCodeWebIdentity, errMsg, err)
+		return credentials.Value{}, awserr.New(ErrCodeWebIdentity, "failed fetching WebIdentity token: ", err)
 	}
 
 	sessionName := p.roleSessionName
