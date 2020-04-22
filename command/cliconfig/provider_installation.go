@@ -89,7 +89,6 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 			sourceTypeStr := sourceBlock.Keys[0].Token.Value().(string)
 			var location ProviderInstallationSourceLocation
 			var include, exclude []string
-			var extraArgs []string
 			switch sourceTypeStr {
 			case "direct":
 				type BodyContent struct {
@@ -170,14 +169,6 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 					fmt.Sprintf("Unknown provider installation source type %q at %s.", sourceTypeStr, sourceBlock.Pos()),
 				))
 				continue
-			}
-
-			for _, argName := range extraArgs {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid provider_installation source block",
-					fmt.Sprintf("Invalid %s block at %s: this source type does not expect the argument %q.", sourceTypeStr, block.Pos(), argName),
-				))
 			}
 
 			pi.Sources = append(pi.Sources, &ProviderInstallationSource{
