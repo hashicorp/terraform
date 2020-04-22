@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@3.4.2
+
 executors:
   go:
     docker:
@@ -169,6 +172,9 @@ workflows:
           requires:
             - go-test
             - go-test-e2e
+      - slack/status:
+          # fail_only: true
+          only_for_branches: master
   build-distros:
     jobs:
       - build-386
