@@ -72,7 +72,7 @@ jobs:
           path: *TEST_RESULTS_DIR
 
       - slack/status:
-          # fail_only: true
+          fail_only: true
           only_for_branches: master
 
   go-test-e2e:
@@ -102,7 +102,7 @@ jobs:
           path: *TEST_RESULTS_DIR
 
       - slack/status:
-          # fail_only: true
+          fail_only: true
           only_for_branches: master
 
   # combine code coverage results from the parallel circleci executors
