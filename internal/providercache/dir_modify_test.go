@@ -28,7 +28,7 @@ func TestInstallPackage(t *testing.T) {
 		addrs.DefaultRegistryHost, "hashicorp", "null",
 	)
 
-	tmpDir := newDirWithPlatform(tmpDirPath, linuxPlatform)
+	tmpDir := NewDirWithPlatform(tmpDirPath, linuxPlatform)
 
 	meta := getproviders.PackageMeta{
 		Provider: nullProvider,
