@@ -165,10 +165,6 @@ func wrappedMain() int {
 	services := disco.NewWithCredentialsSource(credsSrc)
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
-	// For the moment, we just always use the registry source to install
-	// direct from a registry. In future there should be a mechanism to
-	// configure providers sources from the CLI config, which will then
-	// change how we construct this object.
 	providerSrc, diags := providerSource(config.ProviderInstallation, services)
 	if len(diags) > 0 {
 		Ui.Error("There are some problems with the provider_installation configuration:")
