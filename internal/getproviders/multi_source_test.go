@@ -323,6 +323,14 @@ func TestMultiSourceSelector(t *testing.T) {
 			addrs.NewDefaultProvider("foo"),
 			true,
 		},
+		"default provider with non-normalized include constraint that matches it via type wildcard": {
+			MultiSourceSelector{
+				Source:  emptySource,
+				Include: mustParseMultiSourceMatchingPatterns("HashiCorp/*"),
+			},
+			addrs.NewDefaultProvider("foo"),
+			true,
+		},
 		"built-in provider with exact include constraint that does not match it": {
 			MultiSourceSelector{
 				Source:  emptySource,
@@ -382,6 +390,14 @@ func TestMultiSourceSelector(t *testing.T) {
 			},
 			addrs.NewDefaultProvider("foo"),
 			true,
+		},
+		"default provider with non-normalized exclude constraint that matches it via type wildcard": {
+			MultiSourceSelector{
+				Source:  emptySource,
+				Exclude: mustParseMultiSourceMatchingPatterns("HashiCorp/*"),
+			},
+			addrs.NewDefaultProvider("foo"),
+			false,
 		},
 
 		// Both include and exclude in a single selector
