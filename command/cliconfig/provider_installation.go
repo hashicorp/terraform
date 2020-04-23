@@ -229,13 +229,17 @@ type ProviderInstallationLocation interface {
 	providerInstallationLocation()
 }
 
-type configProviderInstallationDirect [0]byte
+type providerInstallationDirect [0]byte
 
-func (i configProviderInstallationDirect) providerInstallationLocation() {}
+func (i providerInstallationDirect) providerInstallationLocation() {}
 
 // ProviderInstallationDirect is a ProviderInstallationSourceLocation
 // representing installation from a provider's origin registry.
-var ProviderInstallationDirect ProviderInstallationLocation = configProviderInstallationDirect{}
+var ProviderInstallationDirect ProviderInstallationLocation = providerInstallationDirect{}
+
+func (i providerInstallationDirect) GoString() string {
+	return "cliconfig.ProviderInstallationDirect"
+}
 
 // ProviderInstallationFilesystemMirror is a ProviderInstallationSourceLocation
 // representing installation from a particular local filesystem mirror. The
@@ -244,6 +248,10 @@ type ProviderInstallationFilesystemMirror string
 
 func (i ProviderInstallationFilesystemMirror) providerInstallationLocation() {}
 
+func (i ProviderInstallationFilesystemMirror) GoString() string {
+	return fmt.Sprintf("cliconfig.ProviderInstallationFilesystemMirror(%q)", i)
+}
+
 // ProviderInstallationNetworkMirror is a ProviderInstallationSourceLocation
 // representing installation from a particular local network mirror. The
 // string value is the HTTP base URL exactly as written in the configuration,
@@ -251,3 +259,7 @@ func (i ProviderInstallationFilesystemMirror) providerInstallationLocation() {}
 type ProviderInstallationNetworkMirror string
 
 func (i ProviderInstallationNetworkMirror) providerInstallationLocation() {}
+
+func (i ProviderInstallationNetworkMirror) GoString() string {
+	return fmt.Sprintf("cliconfig.ProviderInstallationNetworkMirror(%q)", i)
+}

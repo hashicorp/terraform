@@ -39,6 +39,7 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 	var diags tfdiags.Diagnostics
 	var searchRules []getproviders.MultiSourceSelector
 
+	log.Printf("[DEBUG] Explicit provider installation configuration is set")
 	for _, methodConfig := range config.Methods {
 		source, moreDiags := providerSourceForCLIConfigLocation(methodConfig.Location, services)
 		diags = diags.Append(moreDiags)
@@ -53,14 +54,16 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 				"Invalid provider source inclusion patterns",
 				fmt.Sprintf("CLI config specifies invalid provider inclusion patterns: %s.", err),
 			))
+			continue
 		}
-		exclude, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Include)
+		exclude, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Exclude)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid provider source exclusion patterns",
 				fmt.Sprintf("CLI config specifies invalid provider exclusion patterns: %s.", err),
 			))
+			continue
 		}
 
 		searchRules = append(searchRules, getproviders.MultiSourceSelector{
@@ -68,6 +71,8 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 			Include: include,
 			Exclude: exclude,
 		})
+
+		log.Printf("[TRACE] Selected provider installation method %#v with includes %s and excludes %s", methodConfig.Location, include, exclude)
 	}
 
 	return getproviders.MultiSource(searchRules), diags
