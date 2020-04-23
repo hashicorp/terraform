@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -11,18 +13,69 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // providerSource constructs a provider source based on a combination of the
 // CLI configuration and some default search locations. This will be the
 // provider source used for provider installation in the "terraform init"
 // command, unless overridden by the special -plugin-dir option.
-func providerSource(services *disco.Disco) getproviders.Source {
-	// We're not yet using the CLI config here because we've not implemented
-	// yet the new configuration constructs to customize provider search
-	// locations. That'll come later. For now, we just always use the
-	// implicit default provider source.
-	return implicitProviderSource(services)
+func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+	if len(configs) == 0 {
+		// If there's no explicit installation configuration then we'll build
+		// up an implicit one with direct registry installation along with
+		// some automatically-selected local filesystem mirrors.
+		return implicitProviderSource(services), nil
+	}
+
+	// There should only be zero or one configurations, which is checked by
+	// the validation logic in the cliconfig package. Therefore we'll just
+	// ignore any additional configurations in here.
+	config := configs[0]
+	return explicitProviderSource(config, services)
+}
+
+func explicitProviderSource(config *cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var searchRules []getproviders.MultiSourceSelector
+
+	log.Printf("[DEBUG] Explicit provider installation configuration is set")
+	for _, methodConfig := range config.Methods {
+		source, moreDiags := providerSourceForCLIConfigLocation(methodConfig.Location, services)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			continue
+		}
+
+		include, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Include)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider source inclusion patterns",
+				fmt.Sprintf("CLI config specifies invalid provider inclusion patterns: %s.", err),
+			))
+			continue
+		}
+		exclude, err := getproviders.ParseMultiSourceMatchingPatterns(methodConfig.Exclude)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider source exclusion patterns",
+				fmt.Sprintf("CLI config specifies invalid provider exclusion patterns: %s.", err),
+			))
+			continue
+		}
+
+		searchRules = append(searchRules, getproviders.MultiSourceSelector{
+			Source:  source,
+			Include: include,
+			Exclude: exclude,
+		})
+
+		log.Printf("[TRACE] Selected provider installation method %#v with includes %s and excludes %s", methodConfig.Location, include, exclude)
+	}
+
+	return getproviders.MultiSource(searchRules), diags
 }
 
 // implicitProviderSource builds a default provider source to use if there's
@@ -129,4 +182,46 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	})
 
 	return getproviders.MultiSource(searchRules)
+}
+
+func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+	if loc == cliconfig.ProviderInstallationDirect {
+		return getproviders.NewMemoizeSource(
+			getproviders.NewRegistrySource(services),
+		), nil
+	}
+
+	switch loc := loc.(type) {
+
+	case cliconfig.ProviderInstallationFilesystemMirror:
+		return getproviders.NewFilesystemMirrorSource(string(loc)), nil
+
+	case cliconfig.ProviderInstallationNetworkMirror:
+		url, err := url.Parse(string(loc))
+		if err != nil {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid URL for provider installation source",
+				fmt.Sprintf("Cannot parse %q as a URL for a network provider mirror: %s.", string(loc), err),
+			))
+			return nil, diags
+		}
+		if url.Scheme != "https" || url.Host == "" {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid URL for provider installation source",
+				fmt.Sprintf("Cannot use %q as a URL for a network provider mirror: the mirror must be at an https: URL.", string(loc)),
+			))
+			return nil, diags
+		}
+		return getproviders.NewHTTPMirrorSource(url), nil
+
+	default:
+		// We should not get here because the set of cases above should
+		// be comprehensive for all of the
+		// cliconfig.ProviderInstallationLocation implementations.
+		panic(fmt.Sprintf("unexpected provider source location type %T", loc))
+	}
 }
