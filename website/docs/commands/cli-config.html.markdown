@@ -162,8 +162,9 @@ appropriate, though. For example, the system where you are running Terraform
 may not be able to access an origin registry due to firewall restrictions
 within your organization or your locality.
 
-To allow using Terraform in these situations, there are some alternative
-options for making provider plugins available to Terraform.
+To allow using Terraform providers in these situations, there are some
+alternative options for making provider plugins available to Terraform which
+we'll describe in the following sections.
 
 ### Explicit Installation Method Configuration
 
