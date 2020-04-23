@@ -520,7 +520,11 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// unknown value. This will ensure the types looks correct, since we built
 	// the objects based on the configuration.
 	if d.Operation == walkValidate {
-		return cty.UnknownVal(ret.Type()), diags
+		// While we know the type here and it would be nice to validate whether
+		// indexes are valid or not, because tuples have a fixed number of
+		// elements we can't simply return an unknown tuple type since we have
+		// not expanded any instances during validation.
+		return cty.DynamicVal, diags
 	}
 
 	return ret, diags
@@ -754,7 +758,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// collected here may not correspond with configuration, so they must be
 	// unknown.
 	if d.Operation == walkValidate {
-		return cty.UnknownVal(ret.Type()), diags
+		// While we know the type here and it would be nice to validate whether
+		// indexes are valid or not, because tuples have a fixed number of
+		// elements we can't simply return an unknown tuple type since we have
+		// not expanded any instances during validation.
+		return cty.DynamicVal, diags
 	}
 
 	return ret, diags
