@@ -42,7 +42,12 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 		if block.Keys[0].Token.Value() != "provider_installation" {
 			continue
 		}
-		if block.Assign.Line != 0 {
+		// HCL only tracks whether the input was JSON or native syntax inside
+		// individual tokens, so we'll use our block type token to decide
+		// and assume that the rest of the block must be written in the same
+		// syntax, because syntax is a whole-file idea.
+		isJSON := block.Keys[0].Token.JSON
+		if block.Assign.Line != 0 && !isJSON {
 			// Seems to be an attribute rather than a block
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -51,7 +56,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 			))
 			continue
 		}
-		if len(block.Keys) > 1 {
+		if len(block.Keys) > 1 && !isJSON {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid provider_installation block",
@@ -61,13 +66,22 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 
 		pi := &ProviderInstallation{}
 
-		// Because we checked block.Assign was unset above we can assume that
-		// we're reading something produced with block syntax and therefore
-		// it will always be an hclast.ObjectType.
-		body := block.Val.(*hclast.ObjectType)
+		body, ok := block.Val.(*hclast.ObjectType)
+		if !ok {
+			// We can't get in here with native HCL syntax because we
+			// already checked above that we're using block syntax, but
+			// if we're reading JSON then our value could potentially be
+			// anything.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider_installation block",
+				fmt.Sprintf("The provider_installation block at %s must not be introduced with an equals sign.", block.Pos()),
+			))
+			continue
+		}
 
 		for _, methodBlock := range body.List.Items {
-			if methodBlock.Assign.Line != 0 {
+			if methodBlock.Assign.Line != 0 && !isJSON {
 				// Seems to be an attribute rather than a block
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -76,7 +90,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 				))
 				continue
 			}
-			if len(methodBlock.Keys) > 1 {
+			if len(methodBlock.Keys) > 1 && !isJSON {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid provider_installation method block",
@@ -84,7 +98,19 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 				))
 			}
 
-			methodBody := methodBlock.Val.(*hclast.ObjectType)
+			methodBody, ok := methodBlock.Val.(*hclast.ObjectType)
+			if !ok {
+				// We can't get in here with native HCL syntax because we
+				// already checked above that we're using block syntax, but
+				// if we're reading JSON then our value could potentially be
+				// anything.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid provider_installation method block",
+					fmt.Sprintf("The items inside the provider_installation block at %s must all be blocks.", block.Pos()),
+				))
+				continue
+			}
 
 			methodTypeStr := methodBlock.Keys[0].Token.Value().(string)
 			var location ProviderInstallationLocation

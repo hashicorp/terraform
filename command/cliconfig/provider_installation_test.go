@@ -8,38 +8,42 @@ import (
 )
 
 func TestLoadConfig_providerInstallation(t *testing.T) {
-	got, diags := loadConfigFile(filepath.Join(fixtureDir, "provider-installation"))
-	if diags.HasErrors() {
-		t.Errorf("unexpected diagnostics: %s", diags.Err().Error())
-	}
+	for _, configFile := range []string{"provider-installation", "provider-installation.json"} {
+		t.Run(configFile, func(t *testing.T) {
+			got, diags := loadConfigFile(filepath.Join(fixtureDir, configFile))
+			if diags.HasErrors() {
+				t.Errorf("unexpected diagnostics: %s", diags.Err().Error())
+			}
 
-	want := &Config{
-		ProviderInstallation: []*ProviderInstallation{
-			{
-				Methods: []*ProviderInstallationMethod{
+			want := &Config{
+				ProviderInstallation: []*ProviderInstallation{
 					{
-						Location: ProviderInstallationFilesystemMirror("/tmp/example1"),
-						Include:  []string{"example.com/*/*"},
-					},
-					{
-						Location: ProviderInstallationNetworkMirror("https://tf-Mirror.example.com/"),
-						Include:  []string{"registry.terraform.io/*/*"},
-						Exclude:  []string{"registry.Terraform.io/foobar/*"},
-					},
-					{
-						Location: ProviderInstallationFilesystemMirror("/tmp/example2"),
-					},
-					{
-						Location: ProviderInstallationDirect,
-						Exclude:  []string{"example.com/*/*"},
+						Methods: []*ProviderInstallationMethod{
+							{
+								Location: ProviderInstallationFilesystemMirror("/tmp/example1"),
+								Include:  []string{"example.com/*/*"},
+							},
+							{
+								Location: ProviderInstallationNetworkMirror("https://tf-Mirror.example.com/"),
+								Include:  []string{"registry.terraform.io/*/*"},
+								Exclude:  []string{"registry.Terraform.io/foobar/*"},
+							},
+							{
+								Location: ProviderInstallationFilesystemMirror("/tmp/example2"),
+							},
+							{
+								Location: ProviderInstallationDirect,
+								Exclude:  []string{"example.com/*/*"},
+							},
+						},
 					},
 				},
-			},
-		},
-	}
+			}
 
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("wrong result\n%s", diff)
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
 	}
 }
 
