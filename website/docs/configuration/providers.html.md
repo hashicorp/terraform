@@ -233,65 +233,35 @@ from their parents.
 
 Anyone can develop and distribute their own Terraform providers. (See
 [Writing Custom Providers](/docs/extend/writing-custom-providers.html) for more
-about provider development.) These third-party providers must be manually
-installed, since `terraform init` cannot automatically download them.
+about provider development.)
 
-Install third-party providers by placing their plugin executables in the user
-plugins directory. The user plugins directory is in one of the following
-locations, depending on the host operating system:
+The main way to distribute a provider is via a provider registry, and the main
+provider registry is
+[part of the public Terraform Registry](https://registry.terraform.io/browse/providers),
+along with public shared modules.
 
-Operating system  | User plugins directory
-------------------|-----------------------
-Windows           | `%APPDATA%\terraform.d\plugins`
-All other systems | `~/.terraform.d/plugins`
+Providers distributed via a public registry to not require any special
+additional configuration to use, once you know their source addresses. You can
+specify both official and third-party source addresses in the
+`required_providers` block in your module:
 
-Once a plugin is installed, `terraform init` can initialize it normally. You must run this command from the directory where the configuration files are located.
+```hcl
+terraform {
+  required_providers {
+    # An example third-party provider. Not actually available.
+    example = {
+      source = "example.com/examplecorp/example"
+    }
+  }
+}
+```
 
-Providers distributed by HashiCorp can also go in the user plugins directory. If
-a manually installed version meets the configuration's version constraints,
-Terraform will use it instead of downloading that provider. This is useful in
-airgapped environments and when testing pre-release provider builds.
-
-### Plugin Names and Versions
-
-The naming scheme for provider plugins is `terraform-provider-<NAME>_vX.Y.Z`,
-and Terraform uses the name to understand the name and version of a particular
-provider binary.
-
-If multiple versions of a plugin are installed, Terraform will use the newest
-version that meets the configuration's version constraints.
-
-Third-party plugins are often distributed with an appropriate filename already
-set in the distribution archive, so that they can be extracted directly into the
-user plugins directory.
-
-### OS and Architecture Directories
-
-Terraform plugins are compiled for a specific operating system and architecture,
-and any plugins in the root of the user plugins directory must be compiled for
-the current system.
-
-If you use the same plugins directory on multiple systems, you can install
-plugins into subdirectories with a naming scheme of `<OS>_<ARCH>` (for example,
-`darwin_amd64`). Terraform uses plugins from the root of the plugins directory
-and from the subdirectory that corresponds to the current system, ignoring
-other subdirectories.
-
-Terraform's OS and architecture strings are the standard ones used by the Go
-language. The following are the most common:
-
-* `darwin_amd64`
-* `freebsd_386`
-* `freebsd_amd64`
-* `freebsd_arm`
-* `linux_386`
-* `linux_amd64`
-* `linux_arm`
-* `openbsd_386`
-* `openbsd_amd64`
-* `solaris_amd64`
-* `windows_386`
-* `windows_amd64`
+Installing directly from a registry is not appropriate for all situations,
+though. If you are running Terraform from a system that cannot access some or
+all of the necessary origin registries, you can configure Terraform to obtain
+providers from a local mirror instead. For more information, see
+[Provider Installation](../commands/cli-config.html#provider-installation)
+in the CLI configuration documentation.
 
 ## Provider Plugin Cache
 
@@ -308,51 +278,3 @@ distinct plugin binary to be downloaded only once.
 
 To enable the plugin cache, use the `plugin_cache_dir` setting in
 [the CLI configuration file](/docs/commands/cli-config.html).
-For example:
-
-```hcl
-# (Note that the CLI configuration file is _not_ the same as the .tf files
-#  used to configure infrastructure.)
-
-plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"
-```
-
-This directory must already exist before Terraform will cache plugins;
-Terraform will not create the directory itself.
-
-Please note that on Windows it is necessary to use forward slash separators
-(`/`) rather than the conventional backslash (`\`) since the configuration
-file parser considers a backslash to begin an escape sequence.
-
-Setting this in the configuration file is the recommended approach for a
-persistent setting. Alternatively, the `TF_PLUGIN_CACHE_DIR` environment
-variable can be used to enable caching or to override an existing cache
-directory within a particular shell session:
-
-```bash
-export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
-```
-
-When a plugin cache directory is enabled, the `terraform init` command will
-still access the plugin distribution server to obtain metadata about which
-plugins are available, but once a suitable version has been selected it will
-first check to see if the selected plugin is already available in the cache
-directory. If so, the already-downloaded plugin binary will be used.
-
-If the selected plugin is not already in the cache, it will be downloaded
-into the cache first and then copied from there into the correct location
-under your current working directory.
-
-When possible, Terraform will use hardlinks or symlinks to avoid storing
-a separate copy of a cached plugin in multiple directories. At present, this
-is not supported on Windows and instead a copy is always created.
-
-The plugin cache directory must _not_ be the third-party plugin directory
-or any other directory Terraform searches for pre-installed plugins, since
-the cache management logic conflicts with the normal plugin discovery logic
-when operating on the same directory.
-
-Please note that Terraform will never itself delete a plugin from the
-plugin cache once it's been placed there. Over time, as plugins are upgraded,
-the cache directory may grow to contain several unused versions which must be
-manually deleted.
