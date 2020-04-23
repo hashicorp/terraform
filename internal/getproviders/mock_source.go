@@ -117,11 +117,12 @@ func (s *MockSource) CallLog() [][]interface{} {
 // FakePackageMeta constructs and returns a PackageMeta that carries the given
 // metadata but has fake location information that is likely to fail if
 // attempting to install from it.
-func FakePackageMeta(provider addrs.Provider, version Version, target Platform) PackageMeta {
+func FakePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) PackageMeta {
 	return PackageMeta{
-		Provider:       provider,
-		Version:        version,
-		TargetPlatform: target,
+		Provider:         provider,
+		Version:          version,
+		ProtocolVersions: protocols,
+		TargetPlatform:   target,
 
 		// Some fake but somewhat-realistic-looking other metadata. This
 		// points nowhere, so will fail if attempting to actually use it.
@@ -140,7 +141,7 @@ func FakePackageMeta(provider addrs.Provider, version Version, target Platform) 
 // alongside the result in order to clean up the temporary file. The caller
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
-func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, func(), error) {
+func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) (PackageMeta, func(), error) {
 	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
@@ -179,9 +180,10 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target
 	h.Sum(checksum[:0])
 
 	meta := PackageMeta{
-		Provider:       provider,
-		Version:        version,
-		TargetPlatform: target,
+		Provider:         provider,
+		Version:          version,
+		ProtocolVersions: protocols,
+		TargetPlatform:   target,
 
 		Location: PackageLocalArchive(f.Name()),
 
