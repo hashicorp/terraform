@@ -449,35 +449,41 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// compile the outputs into the correct value type for the each mode
 	switch {
 	case callConfig.Count != nil:
-		vals := make([]cty.Value, len(moduleInstances))
-		for key, instance := range moduleInstances {
+		// figure out what the last index we have is
+		length := -1
+		for key := range moduleInstances {
 			intKey, ok := key.(addrs.IntKey)
 			if !ok {
 				// old key from state which is being dropped
 				continue
 			}
-
-			vals[int(intKey)] = cty.ObjectVal(instance)
+			if int(intKey) >= length {
+				length = int(intKey) + 1
+			}
 		}
 
-		if len(vals) > 0 {
-			// we shouldn't have any holes, but insert real values just in case,
-			// while trimming off any extra values that we may have from guessing
-			// the length via the state instances.
-			last := 0
+		if length > 0 {
+			vals := make([]cty.Value, length)
+			for key, instance := range moduleInstances {
+				intKey, ok := key.(addrs.IntKey)
+				if !ok {
+					// old key from state which is being dropped
+					continue
+				}
+
+				vals[int(intKey)] = cty.ObjectVal(instance)
+			}
+
+			// Insert unknown values where there are any missing instances
 			for i, v := range vals {
 				if v.IsNull() {
 					vals[i] = cty.DynamicVal
 					continue
 				}
-				if i > last {
-					last = i
-				}
 			}
-			vals = vals[:last+1]
 			ret = cty.TupleVal(vals)
 		} else {
-			ret = cty.DynamicVal
+			ret = cty.EmptyTupleVal
 		}
 
 	case callConfig.ForEach != nil:
@@ -494,7 +500,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		if len(vals) > 0 {
 			ret = cty.ObjectVal(vals)
 		} else {
-			ret = cty.DynamicVal
+			ret = cty.EmptyObjectVal
 		}
 
 	default:
