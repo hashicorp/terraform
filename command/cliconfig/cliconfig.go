@@ -63,22 +63,6 @@ type ConfigCredentialsHelper struct {
 	Args []string `hcl:"args"`
 }
 
-// ConfigProviderInstallationFilesystemMirror represents a "filesystem_mirror"
-// block inside ConfigProviderInstallation.
-type ConfigProviderInstallationFilesystemMirror struct {
-	Path    string   `hcl:"path"`
-	Include []string `hcl:"include"`
-	Exclude []string `hcl:"exclude"`
-}
-
-// ConfigProviderInstallationNetworkMirror represents a "network_mirror" block
-// inside ConfigProviderInstallation.
-type ConfigProviderInstallationNetworkMirror struct {
-	Hostname string   `hcl:"hostname"`
-	Include  []string `hcl:"include"`
-	Exclude  []string `hcl:"exclude"`
-}
-
 // BuiltinConfig is the built-in defaults for the configuration. These
 // can be overridden by user configurations.
 var BuiltinConfig Config
