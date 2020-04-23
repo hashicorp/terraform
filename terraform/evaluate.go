@@ -399,9 +399,15 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// module instance.
 	moduleInstances := map[addrs.InstanceKey]map[string]cty.Value{}
 
+	// create a dummy object type for validation below
+	unknownMap := map[string]cty.Type{}
+
 	// the structure is based on the configuration, so iterate through all the
 	// defined outputs, and add any instance state or changes we find.
 	for _, cfg := range outputConfigs {
+		// record the output names for validation
+		unknownMap[cfg.Name] = cty.DynamicPseudoType
+
 		// get all instance output for this path from the state
 		for key, states := range stateMap {
 			outputState, ok := states[cfg.Name]
@@ -521,10 +527,22 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// the objects based on the configuration.
 	if d.Operation == walkValidate {
 		// While we know the type here and it would be nice to validate whether
-		// indexes are valid or not, because tuples have a fixed number of
-		// elements we can't simply return an unknown tuple type since we have
-		// not expanded any instances during validation.
-		return cty.DynamicVal, diags
+		// indexes are valid or not, because tuples and objects have fixed
+		// numbers of elements we can't simply return an unknown value of the
+		// same type since we have not expanded any instances during
+		// validation.
+		//
+		// In order to validate the expression a little precisely, we'll create
+		// an unknown map or list here to get more type information.
+		ty := cty.Object(unknownMap)
+		switch {
+		case callConfig.Count != nil:
+			ret = cty.UnknownVal(cty.List(ty))
+		case callConfig.ForEach != nil:
+			ret = cty.UnknownVal(cty.Map(ty))
+		default:
+			ret = cty.UnknownVal(ty)
+		}
 	}
 
 	return ret, diags
@@ -759,10 +777,21 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// unknown.
 	if d.Operation == walkValidate {
 		// While we know the type here and it would be nice to validate whether
-		// indexes are valid or not, because tuples have a fixed number of
-		// elements we can't simply return an unknown tuple type since we have
-		// not expanded any instances during validation.
-		return cty.DynamicVal, diags
+		// indexes are valid or not, because tuples and objects have fixed
+		// numbers of elements we can't simply return an unknown value of the
+		// same type since we have not expanded any instances during
+		// validation.
+		//
+		// In order to validate the expression a little precisely, we'll create
+		// an unknown map or list here to get more type information.
+		switch {
+		case config.Count != nil:
+			ret = cty.UnknownVal(cty.List(ty))
+		case config.ForEach != nil:
+			ret = cty.UnknownVal(cty.Map(ty))
+		default:
+			ret = cty.UnknownVal(ty)
+		}
 	}
 
 	return ret, diags
