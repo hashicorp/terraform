@@ -48,7 +48,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 	defer os.RemoveAll(tmpDirPath)
 
 	// set up the installer using the temporary directory and mock source
-	dir := newDirWithPlatform(tmpDirPath, platform)
+	dir := NewDirWithPlatform(tmpDirPath, platform)
 	installer := NewInstaller(dir, source)
 
 	// First test: easy case. The requested version supports the current plugin protocol version
