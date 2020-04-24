@@ -230,6 +230,17 @@ func (m PackageMeta) UnpackedDirectoryPath(baseDir string) string {
 	return UnpackedDirectoryPathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
 }
 
+// PackedFilePath determines the path under the given base
+// directory where SearchLocalDirectory or the FilesystemMirrorSource would
+// expect to find packed copy (a .zip archive) of the receiving PackageMeta.
+//
+// The result always uses forward slashes as path separator, even on Windows,
+// to produce a consistent result on all platforms. Windows accepts both
+// direction of slash as long as each individual path string is self-consistent.
+func (m PackageMeta) PackedFilePath(baseDir string) string {
+	return PackedFilePathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
+}
+
 // PackageLocation represents a location where a provider distribution package
 // can be obtained. A value of this type contains one of the following
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
