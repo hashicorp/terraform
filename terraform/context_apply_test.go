@@ -2637,7 +2637,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 			Type: "test_thing",
 			Name: "one",
 		}.Absolute(addrs.RootModuleInstance)
-		s.SetResourceMeta(oneAddr, states.EachList, providerAddr)
+		s.SetResourceProvider(oneAddr, providerAddr)
 		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{}`),
@@ -6111,9 +6111,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 	//Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`
-<no state>
-module.child:
-  <no state>`)
+<no state>`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
@@ -6269,9 +6267,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 	//Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`
-<no state>
-module.child.child2:
-  <no state>`)
+<no state>`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
