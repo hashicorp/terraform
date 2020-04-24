@@ -170,9 +170,6 @@ Usage: terraform state replace-provider [options] FROM_PROVIDER_FQN TO_PROVIDER_
 
   Replace provider for resources in the Terraform state.
 
-  An error will be returned if any of the resources or modules given as
-  filter addresses do not exist in the state.
-
 Options:
 
   -auto-approve       Skip interactive approval.
