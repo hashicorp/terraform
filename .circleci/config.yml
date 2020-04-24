@@ -132,7 +132,7 @@ jobs:
     environment: &build-env
       TF_RELEASE: 1
     steps:
-      - run: go get -u github.com/mitchellh/gox # go get gox before detecting go mod
+      - run: GOFLAGS= go get -u github.com/mitchellh/gox # go get gox before detecting go mod
       - checkout
       - run: ./scripts/build.sh
       - run: mkdir -p $ARTIFACTS_DIR
