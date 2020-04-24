@@ -95,27 +95,10 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 		}
 
-		var eachMode states.EachMode
-		switch rsV4.EachMode {
-		case "":
-			eachMode = states.NoEach
-		case "list":
-			eachMode = states.EachList
-		case "map":
-			eachMode = states.EachMap
-		default:
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid resource metadata in state",
-				fmt.Sprintf("Resource %s has invalid \"each\" value %q in state.", rAddr.Absolute(moduleAddr), eachMode),
-			))
-			continue
-		}
-
 		ms := state.EnsureModule(moduleAddr)
 
 		// Ensure the resource container object is present in the state.
-		ms.SetResourceMeta(rAddr, eachMode, providerAddr)
+		ms.SetResourceProvider(rAddr, providerAddr)
 
 		for _, isV4 := range rsV4.Instances {
 			keyRaw := isV4.IndexKey
@@ -272,7 +255,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		// on the incoming objects. That behavior is useful when we're making
 		// piecemeal updates to the state during an apply, but when we're
 		// reading the state file we want to reflect its contents exactly.
-		ms.SetResourceMeta(rAddr, eachMode, providerAddr)
+		ms.SetResourceProvider(rAddr, providerAddr)
 	}
 
 	// The root module is special in that we persist its attributes and thus
@@ -394,29 +377,11 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 				continue
 			}
 
-			var eachMode string
-			switch rs.EachMode {
-			case states.NoEach:
-				eachMode = ""
-			case states.EachList:
-				eachMode = "list"
-			case states.EachMap:
-				eachMode = "map"
-			default:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to serialize resource in state",
-					fmt.Sprintf("Resource %s has \"each\" mode %s, which cannot be serialized in state", resourceAddr.Absolute(moduleAddr), rs.EachMode),
-				))
-				continue
-			}
-
 			sV4.Resources = append(sV4.Resources, resourceStateV4{
 				Module:         moduleAddr.String(),
 				Mode:           mode,
 				Type:           resourceAddr.Type,
 				Name:           resourceAddr.Name,
-				EachMode:       eachMode,
 				ProviderConfig: rs.ProviderConfig.String(),
 				Instances:      []instanceObjectStateV4{},
 			})
