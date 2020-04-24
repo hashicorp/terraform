@@ -73,7 +73,7 @@ jobs:
 
       - slack/status:
           fail_only: true
-          only_for_branches: master
+          only_for_branches: master,v0.12
 
   go-test-e2e:
     executor:
@@ -103,7 +103,7 @@ jobs:
 
       - slack/status:
           fail_only: true
-          only_for_branches: master
+          only_for_branches: master,v0.12
 
   # combine code coverage results from the parallel circleci executors
   coverage-merge:
