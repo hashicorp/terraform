@@ -8,10 +8,10 @@ description: |-
 
 # Upgrading to Terraform v0.13
 
-[Terraform v0.12 is a major release](blog posts link)
-focused on configuration language improvements and thus includes some
-changes that you'll need to consider when upgrading. The goal of this guide is
-to cover the most common upgrade concerns and issues.
+[Terraform v0.12 is a major release](blog posts link) focused on configuration
+language improvements and thus includes some changes that you'll need to
+consider when upgrading. The goal of this guide is to cover the most common
+upgrade concerns and issues.
 
 For most users, upgrading configuration should be completely automatic. Most
 configurations can be prepared by running
@@ -19,3 +19,94 @@ configurations can be prepared by running
 for more information and recommendations on the upgrade process.
 
 ## Upgrade to Terraform 0.12 first
+We strongly recommend completing an upgrade to the latest Terraform v0.12
+release first. This will give you an opportunity to address any changes
+required for the previous major version upgrades separately, rather than
+making multiple changes at once.
+
+In particular, if you are upgrading from a Terraform version prior to v0.12,
+you _must_ first [upgrade to Terraform v0.12](/upgrade-guides/0-12.html).
+
+This guide focuses on changes from v0.12 to v0.13. Each previous major release
+has its own upgrade guide, so please consult the other guides (available in the
+navigation) to upgrade step-by-step to v0.12 first.
+
+Prior versions of Terraform are available from
+[the releases server](https://releases.hashicorp.com/terraform/).
+
+## Upgrading to Terraform 0.13
+
+Before switching to Terraform 0.13, we recommend using Terraform v0.12.24 (or
+any later v0.12 release) to perform one last `terraform init` and
+`terraform apply` to ensure that everything is initialized and synchronized.
+
+Once `terraform apply` shows no changes pending, switch over to a Terraform
+v0.13 release and run `terraform init` again to upgrade the working directory
+metadata to v0.13 format. (Once you've done this, you'll need to delete the
+`.terraform` directory if you wish to return to Terraform v0.12, but no
+real infrastructure or persisted state will be upgraded yet.)
+
+It is possible that your configuration may be using providers that require a
+`"source"` attribute before they can be installed by Terraform v0.13 and thus
+require configuration upgrade. In that case, `terraform init` will produce the
+following message:
+
+```
+???
+```
+
+## Upgrading Terraform configuration
+
+Terraform v0.13 includes a new command `terraform 0.13upgrade` that will read
+the configuration files for a module written for Terraform 0.12 and update them
+in-place to inlcude the new provider `source` attribute (in
+`terraform.required_providers`) for all providers referenced in your
+configuration.
+
+## Move Third-Party Provider Plugins
+
+Terraform v0.13 uses a new directory layout when installing [provider
+plugins](../internals/plugins/basics.html#installing-plugins). The [provider
+plugins distributed by HashiCorp](/docs/providers/index.html) are automatically
+installed by `terraform init`. You will need to move any third-party provider plugins
+that were manually installed into a new subdirectory of the user plugins
+directory, located at `%APPDATA%\terraform.d\plugins` on Windows and
+`~/.terraform.d/plugins` on other systems.
+
+### Third-Party Providers
+If you have a third-party provider binary that is not in the public registry,
+you will need to make up an arbitrary source for that provider and copy (or
+link) the binary to a directory corresponding to that source.
+
+Once you've chosen a source, the binary needs to be installed into the following directory heirarchy:
+
+```
+$PLUGINDIR/$SOURCEHOST/$NAMESPACE/$TYPE/$VERSION/$OS_$ARCH/
+```
+
+The `$OS_$ARCH` must be the same operating system and architecture you are
+currently using for Terraform. 
+
+For example, consider a provider called `terraform-provider-mycloud`. You can
+use any source, though a best practice is to choose something logical to you:
+
+```hcl
+terraform {
+  required_providers {
+    mycloud = {
+      source = "example.com/mycompany/mycloud"
+      version = "1.0"
+    }
+  }
+}
+```
+
+On a machine running linux amd64, Terraform will look for the provider plugin in
+the following directory:
+
+```
+$PLUGINDIR/example.com/mycompany/mycloud/1.0/linux_amd64/terraform-provider-mycloud
+```
+
+See the [provider source documentation](../configuraion/terrafor.html#specifying-required-provider-versions-and-source)
+for more detailed information about the new provider `source` attribute.

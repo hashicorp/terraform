@@ -100,6 +100,10 @@ to newer versions of Terraform without altering the module.
 
 ## Specifying Required Provider Versions and Source
 
+[inpage-source]: #specifying-required-provider-versions-and-source
+
+-> **Note:** The provider `source` attribute was introduced in Terraform v0.13.
+
 The `required_providers` setting is a map specifying a version constraint and source for
 each provider required by your configuration.
 
@@ -125,6 +129,40 @@ terraform {
 }
 ```
 
+### Third-Party Providers
+If you have a third-party provider that is not in the public registry,
+you will need to make up an arbitrary source for that provider and copy (or
+link) the binary to a directory corresponding to that source.
+
+Once you've chosen a source, the binary needs to be installed into the following directory heirarchy:
+
+```
+$PLUGINDIR/$SOURCEHOST/$NAMESPACE/$TYPE/$VERSION/$OS_$ARCH/
+```
+
+The $OS_$ARCH must be the same operating system and architecture you are
+currently using for Terraform. 
+
+For example, consider a provider called `terraform-provider-mycloud`. You can
+use any source, though a best practice is to choose something logical to you:
+
+```hcl
+terraform {
+  required_providers {
+    mycloud = {
+      source = "example.com/mycompany/mycloud"
+      version = "1.0"
+    }
+  }
+}
+```
+
+Terraform will look for the binary in the following directory (replace `$OS_$ARCH` with the appropriate operating system and architecture which you are using to run Terraform):
+
+```
+$PLUGINDIR/example.com/mycompany/mycloud/1.0/$OS_$ARCH/terraform-provider-mycloud
+```
+
 ### Version Constraint Strings
 
 Version constraint strings within the `required_providers` block use the
@@ -147,20 +185,22 @@ on versions for each provider they depend on, as described in
 [Provider Versions](providers.html#provider-versions).
 
 ### Source Constraint Strings
-A Source constraint string within the `required_providers` is a string made up of one to three parts, separated by a forward-slash (`/`). The parts are:
+A source constraint string within the `required_providers` is a string made up
+of one to three parts, separated by a forward-slash (`/`). The parts are:
 
-* `hostname`: The `hostname` is the registry host which indexes the provides.
+* `hostname`: The `hostname` is the registry host which indexes the provider.
   `hostname` may be omitted if the provider is in HashiCorp's public registry
-  (registry.terraform.io).
+  (`registry.terraform.io`).
 
-* `namespace`: The registry namespace that the provider is in. This maybe be
-  omitted if the provider is in HashiCorp's namesapce (hashicorp). `namespace`
+* `namespace`: The registry namespace that the provider is in. This may be
+  omitted if the provider is in HashiCorp's namesapce (`hashicorp`). `namespace`
   is required when `hostname` is set.
 
-* `type`: the provider type.
+* `type`: The provider type.
 
 
-The following are all valid source strings for the `random` provider in the HashiCorp namespace:
+The following are all valid source strings for the `random` provider in the
+HashiCorp namespace:
 ```
 "random"
 "hashicorp/random"

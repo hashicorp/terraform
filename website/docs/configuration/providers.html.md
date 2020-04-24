@@ -30,17 +30,19 @@ URLs, regions, authentication settings, and so on. All resource types belonging
 to the same provider will share the same configuration, avoiding the need to
 repeat this common information across every resource declaration.
 
-## Provider Type, Fully-Qualified Name, and Localname
+### Provider Type
 
-### Type
-The type of a providers identifies what is being provided. It is frequently the
+The type of a provider identifies what is being provided. It is frequently the
 name of the service provider, such as `google`, or the functionality provided,
-such as `random` or `dns`. The provider type matches first word of the resource type
-name (separated by underscores), and so the "google" provider is assumed to be
+like `random` and `dns`. The provider type matches first word of the resource type
+name (separated by underscores), and so the `google` provider is assumed to be
 the provider for the resource type name `google_compute_instance`.
 
-### Fully-Qualified Name
-A provider's fully-qualified name (FQN) is an unambiguous name for a provider which allows multiple providers with the same type. A provider FQN is made up of the following parts:
+### Provider Fully-Qualified Name
+
+A provider's fully-qualified name (FQN) is an unambiguous name for a provider
+which allows using multiple providers with the same type. A provider FQN is made
+up of the following parts:
 
 ```
 hostname/namespace/type
@@ -52,12 +54,16 @@ registry.terraform.io/hashicorp/google
 example.com/mycorp/happycloud
 ```
 
-### Localname
+For convenience, Terraform allows omitting the hostname portion for providers on
+registry.terraform.io, so we'd normally write `hashicorp/aws` in this case. This
+simplified format is also used in the CLI output for various commands.
+
+### Provider Localname
+
 If you have multiple providers with the same type in a single configuration, you
-can define a module-specific localnames for them. The localname will take the
+can define a module-specific `localnames` for them. The `localname` will take the
 place of the type in the provider configuration. See the [Provider Source](#provider-source)
 section of this document for instructions on setting a provider's localname.
-
 
 ## Provider Configuration
 
@@ -72,7 +78,7 @@ provider "google" {
 
 The name given in the block header (`"google"` in this example) is the name of
 the provider to configure, which is either the provider type or
-[localname](sourcelink), depending on your configuration.
+[localname](#localname), depending on your configuration.
 
 The body of the block (between `{` and `}`) contains configuration arguments
 for the provider itself. Most arguments in this section are specified by
@@ -177,9 +183,15 @@ above, and _not_ using the `version` argument within `provider` blocks.
 `version` is still supported for compatibility with older Terraform versions.
 
 ## Provider Source
-The `required_providers` block can be used to declare the source for a terraform provider. You do not need to declare the source of any provider owned by HashiCorp(official provider / link?), but it is required for all partner and community providers.
 
-To declare a provider's source, add a `required_providers` block inside a `terrafrom` block:
+-> **Note:** The provider `source` attribute was introduced in Terraform v0.13.
+
+The `required_providers` setting in can be used to declare the source for a
+terraform provider. You do not need to declare the source of any provider owned
+by HashiCorp(official provider / link?), but it is required for all other
+providers, including locally-installed third-party providers.
+
+To declare a provider's source, add a `required_providers` setting inside a `terrafrom` block:
 
 ```hcl
 terraform {
@@ -193,10 +205,9 @@ terraform {
 ```
 
 The map keys in the required_providers block will be used as the provider
-[localname](#localname) (for instance, `"mycloud"` in the example above). The
-best practice is to keep the localname and provider type the same, however in
-configurations with provider type collisions choose whatever localname makes the
-most sense for you.
+[localname](#localname) (for instance, `mycloud` in the example above). The best
+practice is to use the type as the local name, however in configurations with
+provider type collisions choose whatever localname makes the most sense for you.
 
 
 For more information on the `required_providers` block, see
