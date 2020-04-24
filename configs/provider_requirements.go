@@ -12,41 +12,40 @@ import (
 // parent.
 type RequiredProvider struct {
 	Name        string
-	Source      Source
+	Type        addrs.Provider
 	Requirement VersionConstraint
+	DeclRange   hcl.Range
 }
 
-type Source struct {
-	SourceStr string
-	DeclRange hcl.Range
+type RequiredProviders struct {
+	RequiredProviders map[string]*RequiredProvider
+	DeclRange         hcl.Range
 }
 
-// ProviderRequirements represents provider version constraints from
-// required_providers blocks.
-type ProviderRequirements struct {
-	Type               addrs.Provider
-	VersionConstraints []VersionConstraint
-}
-
-func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Diagnostics) {
+func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
-	var reqs []*RequiredProvider
+	ret := &RequiredProviders{
+		RequiredProviders: make(map[string]*RequiredProvider),
+		DeclRange:         block.DefRange,
+	}
 	for name, attr := range attrs {
 		expr, err := attr.Expr.Value(nil)
 		if err != nil {
 			diags = append(diags, err...)
 		}
 
+		rp := &RequiredProvider{
+			Name:      name,
+			DeclRange: attr.Expr.Range(),
+		}
+
 		switch {
 		case expr.Type().IsPrimitiveType():
 			vc, reqDiags := decodeVersionConstraint(attr)
 			diags = append(diags, reqDiags...)
-			reqs = append(reqs, &RequiredProvider{
-				Name:        name,
-				Requirement: vc,
-			})
+			rp.Requirement = vc
+
 		case expr.Type().IsObjectType():
-			ret := &RequiredProvider{Name: name}
 			if expr.Type().HasAttribute("version") {
 				vc := VersionConstraint{
 					DeclRange: attr.Range,
@@ -64,25 +63,55 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 					})
 				} else {
 					vc.Required = constraints
-					ret.Requirement = vc
+					rp.Requirement = vc
 				}
 			}
 			if expr.Type().HasAttribute("source") {
-				ret.Source.SourceStr = expr.GetAttr("source").AsString()
-				ret.Source.DeclRange = attr.Range
+				fqn, sourceDiags := addrs.ParseProviderSourceString(expr.GetAttr("source").AsString())
+
+				if sourceDiags.HasErrors() {
+					hclDiags := sourceDiags.ToHCL()
+					// The diagnostics from ParseProviderSourceString don't contain
+					// source location information because it has no context to compute
+					// them from, and so we'll add those in quickly here before we
+					// return.
+					for _, diag := range hclDiags {
+						if diag.Subject == nil {
+							diag.Subject = attr.Expr.Range().Ptr()
+						}
+					}
+					diags = append(diags, hclDiags...)
+				} else {
+					rp.Type = fqn
+				}
 			}
-			reqs = append(reqs, ret)
+
 		default:
 			// should not happen
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid provider_requirements syntax",
-				Detail:   "provider_requirements entries must be strings or objects.",
+				Summary:  "Invalid required_providers syntax",
+				Detail:   "required_providers entries must be strings or objects.",
 				Subject:  attr.Expr.Range().Ptr(),
 			})
-			reqs = append(reqs, &RequiredProvider{Name: name})
-			return reqs, diags
 		}
+
+		if rp.Type.IsZero() {
+			pType, err := addrs.ParseProviderPart(rp.Name)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider name",
+					Detail:   err.Error(),
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			} else {
+				rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+			}
+		}
+
+		ret.RequiredProviders[rp.Name] = rp
 	}
-	return reqs, diags
+
+	return ret, diags
 }
