@@ -122,8 +122,8 @@ references to providers and attempts to load the required plugins.
 For [providers distributed by HashiCorp](/docs/providers/index.html),
 init will automatically download and install plugins if necessary. Plugins
 can also be manually installed in the user plugins directory, located at
-`~/.terraform.d/plugins` on most operating systems and
-`%APPDATA%\terraform.d\plugins` on Windows.
+`~/.terraform/plugins` on most operating systems and
+`%APPDATA%\terraform\plugins` on Windows.
 
 For more information about configuring and installing providers, see
 [Configuration: Providers](/docs/configuration/providers.html).
