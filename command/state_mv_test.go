@@ -97,9 +97,10 @@ func TestStateMv(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
-	i := s.Resource(addr)
-	if i.EachMode != states.EachList {
-		t.Fatalf("expected each mode List, got %s", i.EachMode)
+	for key := range s.Resource(addr).Instances {
+		if _, ok := key.(addrs.IntKey); !ok {
+			t.Fatalf("expected each mode List, got key %q", key)
+		}
 	}
 
 	// change from list to map
@@ -118,9 +119,10 @@ func TestStateMv(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
-	i = s.Resource(addr)
-	if i.EachMode != states.EachMap {
-		t.Fatalf("expected each mode Map, got %s", i.EachMode)
+	for key := range s.Resource(addr).Instances {
+		if _, ok := key.(addrs.StringKey); !ok {
+			t.Fatalf("expected each mode map, found key %q", key)
+		}
 	}
 
 	// change from from map back to single
@@ -139,9 +141,10 @@ func TestStateMv(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
-	i = s.Resource(addr)
-	if i.EachMode != states.NoEach {
-		t.Fatalf("expected each mode NoEach, got %s", i.EachMode)
+	for key := range s.Resource(addr).Instances {
+		if key != addrs.NoKey {
+			t.Fatalf("expected no each mode, found key %q", key)
+		}
 	}
 
 }
@@ -179,13 +182,12 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Module:   addrs.RootModule,
 			},
 		)
-		s.SetResourceMeta(
+		s.SetResourceProvider(
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_instance",
 				Name: "bar",
 			}.Absolute(addrs.RootModuleInstance),
-			states.EachList,
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
 				Module:   addrs.RootModule,
