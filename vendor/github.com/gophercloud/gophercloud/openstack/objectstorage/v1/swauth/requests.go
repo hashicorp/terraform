@@ -41,13 +41,7 @@ func Auth(c *gophercloud.ProviderClient, opts AuthOptsBuilder) (r GetAuthResult)
 		MoreHeaders: h,
 		OkCodes:     []int{200},
 	})
-
-	if resp != nil {
-		r.Header = resp.Header
-	}
-
-	r.Err = err
-
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return r
 }
 

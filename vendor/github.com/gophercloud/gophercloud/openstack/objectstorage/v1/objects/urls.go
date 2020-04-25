@@ -31,3 +31,7 @@ func downloadURL(c *gophercloud.ServiceClient, container, object string) string 
 func updateURL(c *gophercloud.ServiceClient, container, object string) string {
 	return copyURL(c, container, object)
 }
+
+func bulkDeleteURL(c *gophercloud.ServiceClient) string {
+	return c.Endpoint + "?bulk-delete=true"
+}
