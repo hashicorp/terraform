@@ -185,23 +185,21 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 	var diags hcl.Diagnostics
 
 	// First we'll deal with the requirements directly in _our_ module...
-	for _, providerReqs := range c.Module.ProviderRequirements {
+	for _, providerReqs := range c.Module.ProviderRequirements.RequiredProviders {
 		fqn := providerReqs.Type
 		if _, ok := reqs[fqn]; !ok {
 			// We'll at least have an unconstrained dependency then, but might
 			// add to this in the loop below.
 			reqs[fqn] = nil
 		}
-		for _, constraintsSrc := range providerReqs.VersionConstraints {
-			// The model of version constraints in this package is still the
-			// old one using a different upstream module to represent versions,
-			// so we'll need to shim that out here for now. We assume this
-			// will always succeed because these constraints already succeeded
-			// parsing with the other constraint parser, which uses the same
-			// syntax.
-			constraints := getproviders.MustParseVersionConstraints(constraintsSrc.Required.String())
-			reqs[fqn] = append(reqs[fqn], constraints...)
-		}
+		// The model of version constraints in this package is still the
+		// old one using a different upstream module to represent versions,
+		// so we'll need to shim that out here for now. We assume this
+		// will always succeed because these constraints already succeeded
+		// parsing with the other constraint parser, which uses the same
+		// syntax.
+		constraints := getproviders.MustParseVersionConstraints(providerReqs.Requirement.Required.String())
+		reqs[fqn] = append(reqs[fqn], constraints...)
 	}
 	// Each resource in the configuration creates an *implicit* provider
 	// dependency, though we'll only record it if there isn't already
@@ -321,7 +319,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		}
 
 		var provider addrs.Provider
-		if providerReq, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
+		if providerReq, exists := c.Module.ProviderRequirements.RequiredProviders[addr.LocalName]; exists {
 			provider = providerReq.Type
 		} else {
 			provider = addrs.ImpliedProviderForUnqualifiedType(addr.LocalName)
@@ -343,7 +341,7 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 // by checking for the provider in module.ProviderRequirements and falling
 // back to addrs.NewDefaultProvider if it is not found.
 func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
-	if provider, exists := c.Module.ProviderRequirements[addr.LocalName]; exists {
+	if provider, exists := c.Module.ProviderRequirements.RequiredProviders[addr.LocalName]; exists {
 		return provider.Type
 	}
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider

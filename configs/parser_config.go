@@ -75,7 +75,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.RequiredProviders = append(file.RequiredProviders, reqs...)
+					file.RequiredProviders = append(file.RequiredProviders, reqs)
 
 				case "provider_meta":
 					providerCfg, cfgDiags := decodeProviderMetaBlock(innerBlock)
