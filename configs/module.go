@@ -287,14 +287,10 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
-			if existing, exists := m.ProviderRequirements.RequiredProviders[r.ProviderConfigAddr().LocalName]; exists {
-				r.Provider = existing.Type
-			} else {
-				r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigAddr().LocalName)
-			}
-			continue
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			r.Provider = m.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
 		}
-		r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
 	}
 
 	for _, r := range file.DataResources {
@@ -312,14 +308,10 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
-			if existing, exists := m.ProviderRequirements.RequiredProviders[r.ProviderConfigAddr().LocalName]; exists {
-				r.Provider = existing.Type
-			} else {
-				r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigAddr().LocalName)
-			}
-			continue
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			r.Provider = m.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
 		}
-		r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
 	}
 
 	return diags
@@ -505,10 +497,22 @@ func (m *Module) LocalNameForProvider(p addrs.Provider) string {
 	}
 }
 
-// ProviderForLocalConfig returns the provider FQN for a given LocalProviderConfig
+// ProviderForLocalConfig returns the provider FQN for a given
+// LocalProviderConfig, based on its local name.
 func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
-	if provider, exists := m.ProviderRequirements.RequiredProviders[pc.LocalName]; exists {
+	return m.ImpliedProviderForUnqualifiedType(pc.LocalName)
+}
+
+// ImpliedProviderForUnqualifiedType returns the provider FQN for a given type,
+// first by looking up the type in the provider requirements map, and falling
+// back to an implied default provider.
+//
+// The intended behaviour is that configuring a provider with local name "foo"
+// in a required_providers block will result in resources with type "foo" using
+// that provider.
+func (m *Module) ImpliedProviderForUnqualifiedType(pType string) addrs.Provider {
+	if provider, exists := m.ProviderRequirements.RequiredProviders[pType]; exists {
 		return provider.Type
 	}
-	return addrs.ImpliedProviderForUnqualifiedType(pc.LocalName)
+	return addrs.ImpliedProviderForUnqualifiedType(pType)
 }
