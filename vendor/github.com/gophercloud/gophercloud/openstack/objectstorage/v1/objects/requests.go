@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/accounts"
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
@@ -52,7 +54,7 @@ func (opts ListOpts) ToObjectListParams() (bool, string, error) {
 func List(c *gophercloud.ServiceClient, containerName string, opts ListOptsBuilder) pagination.Pager {
 	headers := map[string]string{"Accept": "text/plain", "Content-Type": "text/plain"}
 
-	url := listURL(c, containerName)
+	url := listURL(c, url.QueryEscape(containerName))
 	if opts != nil {
 		full, query, err := opts.ToObjectListParams()
 		if err != nil {
@@ -111,7 +113,7 @@ func (opts DownloadOpts) ToObjectDownloadParams() (map[string]string, string, er
 // To extract just the content, pass the DownloadResult response to the
 // ExtractContent function.
 func Download(c *gophercloud.ServiceClient, containerName, objectName string, opts DownloadOptsBuilder) (r DownloadResult) {
-	url := downloadURL(c, containerName, objectName)
+	url := downloadURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	h := make(map[string]string)
 	if opts != nil {
 		headers, query, err := opts.ToObjectDownloadParams()
@@ -126,14 +128,11 @@ func Download(c *gophercloud.ServiceClient, containerName, objectName string, op
 	}
 
 	resp, err := c.Get(url, nil, &gophercloud.RequestOpts{
-		MoreHeaders: h,
-		OkCodes:     []int{200, 206, 304},
+		MoreHeaders:      h,
+		OkCodes:          []int{200, 206, 304},
+		KeepResponseBody: true,
 	})
-	if resp != nil {
-		r.Header = resp.Header
-		r.Body = resp.Body
-	}
-	r.Err = err
+	r.Body, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return
 }
 
@@ -220,7 +219,7 @@ func (opts CreateOpts) ToObjectCreateParams() (io.Reader, map[string]string, str
 // checksum, the failed request will automatically be retried up to a maximum
 // of 3 times.
 func Create(c *gophercloud.ServiceClient, containerName, objectName string, opts CreateOptsBuilder) (r CreateResult) {
-	url := createURL(c, containerName, objectName)
+	url := createURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	h := make(map[string]string)
 	var b io.Reader
 	if opts != nil {
@@ -236,14 +235,10 @@ func Create(c *gophercloud.ServiceClient, containerName, objectName string, opts
 		b = tmpB
 	}
 
-	resp, err := c.Put(url, nil, nil, &gophercloud.RequestOpts{
-		RawBody:     b,
+	resp, err := c.Put(url, b, nil, &gophercloud.RequestOpts{
 		MoreHeaders: h,
 	})
-	r.Err = err
-	if resp != nil {
-		r.Header = resp.Header
-	}
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return
 }
 
@@ -288,15 +283,12 @@ func Copy(c *gophercloud.ServiceClient, containerName, objectName string, opts C
 		h[k] = v
 	}
 
-	url := copyURL(c, containerName, objectName)
+	url := copyURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	resp, err := c.Request("COPY", url, &gophercloud.RequestOpts{
 		MoreHeaders: h,
 		OkCodes:     []int{201},
 	})
-	if resp != nil {
-		r.Header = resp.Header
-	}
-	r.Err = err
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return
 }
 
@@ -319,7 +311,7 @@ func (opts DeleteOpts) ToObjectDeleteQuery() (string, error) {
 
 // Delete is a function that deletes an object.
 func Delete(c *gophercloud.ServiceClient, containerName, objectName string, opts DeleteOptsBuilder) (r DeleteResult) {
-	url := deleteURL(c, containerName, objectName)
+	url := deleteURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	if opts != nil {
 		query, err := opts.ToObjectDeleteQuery()
 		if err != nil {
@@ -329,10 +321,7 @@ func Delete(c *gophercloud.ServiceClient, containerName, objectName string, opts
 		url += query
 	}
 	resp, err := c.Delete(url, nil)
-	if resp != nil {
-		r.Header = resp.Header
-	}
-	r.Err = err
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return
 }
 
@@ -367,7 +356,7 @@ func (opts GetOpts) ToObjectGetParams() (map[string]string, string, error) {
 // the custom metadata, pass the GetResult response to the ExtractMetadata
 // function.
 func Get(c *gophercloud.ServiceClient, containerName, objectName string, opts GetOptsBuilder) (r GetResult) {
-	url := getURL(c, containerName, objectName)
+	url := getURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	h := make(map[string]string)
 	if opts != nil {
 		headers, query, err := opts.ToObjectGetParams()
@@ -385,10 +374,7 @@ func Get(c *gophercloud.ServiceClient, containerName, objectName string, opts Ge
 		MoreHeaders: h,
 		OkCodes:     []int{200, 204},
 	})
-	if resp != nil {
-		r.Header = resp.Header
-	}
-	r.Err = err
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return
 }
 
@@ -436,14 +422,11 @@ func Update(c *gophercloud.ServiceClient, containerName, objectName string, opts
 			h[k] = v
 		}
 	}
-	url := updateURL(c, containerName, objectName)
+	url := updateURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	resp, err := c.Post(url, nil, nil, &gophercloud.RequestOpts{
 		MoreHeaders: h,
 	})
-	if resp != nil {
-		r.Header = resp.Header
-	}
-	r.Err = err
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
 	return
 }
 
@@ -482,12 +465,21 @@ func CreateTempURL(c *gophercloud.ServiceClient, containerName, objectName strin
 	}
 	duration := time.Duration(opts.TTL) * time.Second
 	expiry := time.Now().Add(duration).Unix()
-	getHeader, err := accounts.Get(c, nil).Extract()
+	getHeader, err := containers.Get(c, url.QueryEscape(containerName), nil).Extract()
 	if err != nil {
 		return "", err
 	}
-	secretKey := []byte(getHeader.TempURLKey)
-	url := getURL(c, containerName, objectName)
+	tempURLKey := getHeader.TempURLKey
+	if tempURLKey == "" {
+		// fallback to an account TempURL key
+		getHeader, err := accounts.Get(c, nil).Extract()
+		if err != nil {
+			return "", err
+		}
+		tempURLKey = getHeader.TempURLKey
+	}
+	secretKey := []byte(tempURLKey)
+	url := getURL(c, url.QueryEscape(containerName), url.QueryEscape(objectName))
 	splitPath := strings.Split(url, opts.Split)
 	baseURL, objectPath := splitPath[0], splitPath[1]
 	objectPath = opts.Split + objectPath
@@ -496,4 +488,28 @@ func CreateTempURL(c *gophercloud.ServiceClient, containerName, objectName strin
 	hash.Write([]byte(body))
 	hexsum := fmt.Sprintf("%x", hash.Sum(nil))
 	return fmt.Sprintf("%s%s?temp_url_sig=%s&temp_url_expires=%d", baseURL, objectPath, hexsum, expiry), nil
+}
+
+// BulkDelete is a function that bulk deletes objects.
+func BulkDelete(c *gophercloud.ServiceClient, container string, objects []string) (r BulkDeleteResult) {
+	// urlencode object names to be on the safe side
+	// https://github.com/openstack/swift/blob/stable/train/swift/common/middleware/bulk.py#L160
+	// https://github.com/openstack/swift/blob/stable/train/swift/common/swob.py#L302
+	encodedObjects := make([]string, len(objects))
+	for i, v := range objects {
+		encodedObjects[i] = strings.Join([]string{
+			url.QueryEscape(container),
+			url.QueryEscape(v)},
+			"/")
+	}
+	b := strings.NewReader(strings.Join(encodedObjects, "\n") + "\n")
+	resp, err := c.Post(bulkDeleteURL(c), b, &r.Body, &gophercloud.RequestOpts{
+		MoreHeaders: map[string]string{
+			"Accept":       "application/json",
+			"Content-Type": "text/plain",
+		},
+		OkCodes: []int{200},
+	})
+	_, r.Header, r.Err = gophercloud.ParseResponse(resp, err)
+	return
 }
