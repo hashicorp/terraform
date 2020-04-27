@@ -14,6 +14,7 @@ BREAKING CHANGES:
 * command/providers: the output of this command is now a flat list that does not display providers per module. [GH-24634]
 * config: Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such `provisioner` blocks, it is now an error to refer to any objects other than `self`, `count`, or `each` [GH-24083]
 * config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
+* configs: At most one `terraform.required_providers` block is permitted per module [GH-24763]
 * The official MacOS builds of Terraform CLI are no longer compatible with Mac OS 10.10 Yosemite; Terraform now requires at least Mac OS 10.11 El Capitan. Terraform 0.13 is the last major release that will support 10.11 El Capitan, so if you are upgrading your OS we recommend upgrading to Mac OS 10.12 Sierra or later.
 * The official FreeBSD builds of Terraform CLI are no longer compatible with FreeBSD 10.x, which has reached end-of-life. Terraform now requires FreeBSD 11.2 or later.
 
