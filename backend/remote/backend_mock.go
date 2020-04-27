@@ -380,6 +380,13 @@ func (m *mockOrganizations) Create(ctx context.Context, options tfe.Organization
 }
 
 func (m *mockOrganizations) Read(ctx context.Context, name string) (*tfe.Organization, error) {
+	// Perform a case-insensitive search for the organization name.
+	for key, _ := range m.organizations {
+		if strings.EqualFold(key, name) {
+			name = key
+			break
+		}
+	}
 	org, ok := m.organizations[name]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound

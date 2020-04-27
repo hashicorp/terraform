@@ -123,6 +123,20 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
 
+	// Organization names are not case-sensitive. That is, an organization named
+	// `TeSTinG` is the same as an organization named `testing`. Capture the
+	// organization name as it appears in the Terraform Cloud/Enterprise API
+	// and use that to build the plan URL. Prefer the organization name defined
+	// in the remote backend if what was retrieved from the API does not match.
+	org, err := b.client.Organizations.Read(stopCtx, b.organization)
+	if err != nil {
+		return nil, generalError("Failed to read organization", err)
+	}
+	orgName := org.Name
+	if !strings.EqualFold(orgName, b.organization) {
+		orgName = b.organization
+	}
+
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
 		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
@@ -267,7 +281,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.hostname, orgName, op.Workspace, r.ID)) + "\n"))
 	}
 
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "plan", r, w)

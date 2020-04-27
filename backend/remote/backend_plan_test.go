@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -907,5 +908,39 @@ func TestRemote_planOtherError(t *testing.T) {
 	if !strings.Contains(err.Error(),
 		"The configured \"remote\" backend encountered an unexpected error:\n\nI'm a little teacup") {
 		t.Fatalf("expected error message, got: %s", err.Error())
+	}
+}
+
+func TestRemote_planURL(t *testing.T) {
+	b, bCleanup := testBackendPlanURL(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
+
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in the remote backend") {
+		t.Fatalf("expected remote backend header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", output)
+	}
+	if !strings.Contains(output, fmt.Sprintf("/app/%s/", strings.ToUpper(b.organization))) {
+		t.Fatalf("custom test: %s", output)
 	}
 }

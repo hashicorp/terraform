@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"strings"
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -54,6 +55,19 @@ func testBackendDefault(t *testing.T) (*Remote, func()) {
 		}),
 	})
 	return testBackend(t, obj)
+}
+
+func testBackendPlanURL(t *testing.T) (*Remote, func()) {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.StringVal("prod"),
+			"prefix": cty.NullVal(cty.String),
+		}),
+	})
+	return testBackendOrgUppercase(t, obj)
 }
 
 func testBackendNoDefault(t *testing.T) (*Remote, func()) {
@@ -141,6 +155,71 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	// Create the organization.
 	_, err := b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
 		Name: tfe.String(b.organization),
+	})
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+
+	// Create the default workspace if required.
+	if b.workspace != "" {
+		_, err = b.client.Workspaces.Create(ctx, b.organization, tfe.WorkspaceCreateOptions{
+			Name: tfe.String(b.workspace),
+		})
+		if err != nil {
+			t.Fatalf("error: %v", err)
+		}
+	}
+
+	return b, s.Close
+}
+
+func testBackendOrgUppercase(t *testing.T, obj cty.Value) (*Remote, func()) {
+	s := testServer(t)
+	b := New(testDisco(s))
+
+	// Configure the backend so the client is created.
+	newObj, valDiags := b.PrepareConfig(obj)
+	if len(valDiags) != 0 {
+		t.Fatal(valDiags.ErrWithWarnings())
+	}
+	obj = newObj
+
+	confDiags := b.Configure(obj)
+	if len(confDiags) != 0 {
+		t.Fatal(confDiags.ErrWithWarnings())
+	}
+
+	// Get a new mock client.
+	mc := newMockClient()
+
+	// Replace the services we use with our mock services.
+	b.CLI = cli.NewMockUi()
+	b.client.Applies = mc.Applies
+	b.client.ConfigurationVersions = mc.ConfigurationVersions
+	b.client.CostEstimates = mc.CostEstimates
+	b.client.Organizations = mc.Organizations
+	b.client.Plans = mc.Plans
+	b.client.PolicyChecks = mc.PolicyChecks
+	b.client.Runs = mc.Runs
+	b.client.StateVersions = mc.StateVersions
+	b.client.Variables = mc.Variables
+	b.client.Workspaces = mc.Workspaces
+
+	b.ShowDiagnostics = func(vals ...interface{}) {
+		var diags tfdiags.Diagnostics
+		for _, diag := range diags.Append(vals...) {
+			b.CLI.Error(diag.Description().Summary)
+		}
+	}
+
+	// Set local to a local test backend.
+	b.local = testLocalBackend(t, b)
+
+	ctx := context.Background()
+
+	// Create the organization.
+	_, err := b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
+		Name: tfe.String(strings.ToUpper(b.organization)),
 	})
 	if err != nil {
 		t.Fatalf("error: %v", err)
