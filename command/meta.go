@@ -89,7 +89,8 @@ type Meta struct {
 	// web browser.
 	BrowserLauncher webbrowser.Launcher
 
-	// When this channel is closed, the command will be cancelled.
+	// When a message is received on this channel, the command will be
+	// cancelled.
 	ShutdownCh <-chan struct{}
 
 	//----------------------------------------------------------
