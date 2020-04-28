@@ -23,7 +23,7 @@ To learn how to _use_ modules, see [the Modules configuration section](/docs/con
 This section is about _creating_ re-usable modules that other configurations
 can include using `module` blocks.
 
-You can also learn more about how to use and create modules with our hands-on [modules track on learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview).
+You can also learn more about how to use and create modules with our hands-on [modules track on learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## Module structure
 
