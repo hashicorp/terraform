@@ -1,4 +1,13 @@
 ## 0.12.25 (Unreleased)
+
+NOTES:
+
+* backend/s3: Region validation now automatically supports the new `af-south-1` (Africa (Cape Town)) region. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable). When the region is not enabled, the Terraform S3 Backend will return errors during credential validation (e.g. `error validating provider credentials: error calling sts:GetCallerIdentity: InvalidClientTokenId: The security token included in the request is invalid`). [GH-24744]
+
+ENHANCEMENTS:
+
+* backend/s3: Support automatic region validation for `af-south-1` [GH-24744]
+
 ## 0.12.24 (March 19, 2020)
 
 NOTES:
