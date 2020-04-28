@@ -53,7 +53,8 @@ BUG FIXES:
 * provisioners/habitat: Fix permissions on user.toml [GH-24321]
 * vendor: Fix crash when processing malformed JSON [GH-24650]
 
----
+## Previous Releases
+
 For information on prior major releases, see their changelogs:
 
 * [v0.12](https://github.com/hashicorp/terraform/blob/v0.12/CHANGELOG.md)
