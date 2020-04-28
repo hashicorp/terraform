@@ -203,3 +203,109 @@ func TestModule_required_provider_overrides(t *testing.T) {
 		)
 	}
 }
+
+// Resources without explicit provider configuration are assigned a provider
+// implied based on the resource type. For example, this resource:
+//
+//  resource foo_instance "test" { }
+//
+// is assigned a provider with type "foo".
+//
+// To find the correct provider, we first look in the module's provider
+// requirements map for a local name matching the resource type, and fall back
+// to a default provider if none is found. This applies to both managed and
+// data resources.
+func TestModule_implied_provider(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/implied-providers")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	// The three providers used in the config resources
+	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
+	whatever := addrs.NewProvider(addrs.DefaultRegistryHost, "acme", "something")
+	bar := addrs.NewDefaultProvider("bar")
+
+	// Verify that the registry.acme.corp/acme/foo provider is defined in the
+	// module provider requirements with local name "foo"
+	req, exists := mod.ProviderRequirements.RequiredProviders["foo"]
+	if !exists {
+		t.Fatal("no provider requirements found for \"foo\"")
+	}
+	if req.Type != foo {
+		t.Errorf("wrong provider addr for \"foo\"\ngot:  %s\nwant: %s",
+			req.Type, foo,
+		)
+	}
+
+	// Verify that the acme/something provider is defined in the
+	// module provider requirements with local name "whatever"
+	req, exists = mod.ProviderRequirements.RequiredProviders["whatever"]
+	if !exists {
+		t.Fatal("no provider requirements found for \"foo\"")
+	}
+	if req.Type != whatever {
+		t.Errorf("wrong provider addr for \"whatever\"\ngot:  %s\nwant: %s",
+			req.Type, whatever,
+		)
+	}
+
+	// Check that resources are assigned the correct providers: foo_* resources
+	// should have the custom foo provider, bar_* resources the default bar
+	// provider.
+	tests := []struct {
+		Address  string
+		Provider addrs.Provider
+	}{
+		{"foo_resource.a", foo},
+		{"data.foo_resource.b", foo},
+		{"bar_resource.c", bar},
+		{"data.bar_resource.d", bar},
+		{"whatever_resource.e", whatever},
+		{"data.whatever_resource.f", whatever},
+	}
+	for _, test := range tests {
+		resources := mod.ManagedResources
+		if strings.HasPrefix(test.Address, "data.") {
+			resources = mod.DataResources
+		}
+		resource, exists := resources[test.Address]
+		if !exists {
+			t.Errorf("could not find resource %q in %#v", test.Address, resources)
+			continue
+		}
+		if got := resource.Provider; !got.Equals(test.Provider) {
+			t.Errorf("wrong provider addr for %q\ngot:  %s\nwant: %s",
+				test.Address, got, test.Provider,
+			)
+		}
+	}
+}
+
+func TestImpliedProviderForUnqualifiedType(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/implied-providers")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
+	whatever := addrs.NewProvider(addrs.DefaultRegistryHost, "acme", "something")
+	bar := addrs.NewDefaultProvider("bar")
+	tf := addrs.NewBuiltInProvider("terraform")
+
+	tests := []struct {
+		Type     string
+		Provider addrs.Provider
+	}{
+		{"foo", foo},
+		{"whatever", whatever},
+		{"bar", bar},
+		{"terraform", tf},
+	}
+	for _, test := range tests {
+		got := mod.ImpliedProviderForUnqualifiedType(test.Type)
+		if !got.Equals(test.Provider) {
+			t.Errorf("wrong result for %q: got %#v, want %#v\n", test.Type, got, test.Provider)
+		}
+	}
+}
