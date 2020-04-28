@@ -47,6 +47,7 @@ down to see all providers.
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
+- [CloudSigma](https://github.com/cloudsigma/terraform-provider-cloudsigma)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
 - [Cobbler](/docs/providers/cobbler/index.html)
