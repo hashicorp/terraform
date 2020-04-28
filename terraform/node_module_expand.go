@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -52,6 +53,19 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 		return nil
 	}
 
+	for _, traversal := range n.ModuleCall.DependsOn {
+		ref, diags := addrs.ParseRef(traversal)
+		if diags.HasErrors() {
+			// We ignore this here, because this isn't a suitable place to return
+			// errors. This situation should be caught and rejected during
+			// validation.
+			log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
+			continue
+		}
+
+		refs = append(refs, ref)
+	}
+
 	// Expansion only uses the count and for_each expressions, so this
 	// particular graph node only refers to those.
 	// Individual variable values in the module call definition might also
@@ -64,10 +78,12 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// child module instances we might expand to during our evaluation.
 
 	if n.ModuleCall.Count != nil {
-		refs, _ = lang.ReferencesInExpr(n.ModuleCall.Count)
+		countRefs, _ := lang.ReferencesInExpr(n.ModuleCall.Count)
+		refs = append(refs, countRefs...)
 	}
 	if n.ModuleCall.ForEach != nil {
-		refs, _ = lang.ReferencesInExpr(n.ModuleCall.ForEach)
+		forEachRefs, _ := lang.ReferencesInExpr(n.ModuleCall.ForEach)
+		refs = append(refs, forEachRefs...)
 	}
 	return appendResourceDestroyReferences(refs)
 }
