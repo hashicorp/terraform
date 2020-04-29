@@ -487,6 +487,9 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
 		},
+		QueryPackagesRetry: func(provider addrs.Provider, err error) {
+			c.Ui.Warn(fmt.Sprintf("- Retrying due to %s", err))
+		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -500,6 +503,9 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				"Failed to install provider from shared cache",
 				fmt.Sprintf("Error while importing %s v%s from the shared cache directory: %s.", provider.ForDisplay(), version, err),
 			))
+		},
+		FetchPackageRetry: func(provider addrs.Provider, version getproviders.Version, err error) {
+			c.Ui.Warn(fmt.Sprintf("- Retrying due to %s", err))
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			diags = diags.Append(tfdiags.Sourceless(

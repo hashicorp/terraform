@@ -384,8 +384,14 @@ func (c *PackageCommand) ensureProviderVersions(installer *providercache.Install
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 			c.ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
 		},
+		QueryPackagesRetry: func(provider addrs.Provider, err error) {
+			c.ui.Warn(fmt.Sprintf("- Retrying due to %s", err))
+		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			c.ui.Error(fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err))
+		},
+		FetchPackageRetry: func(provider addrs.Provider, version getproviders.Version, err error) {
+			c.ui.Warn(fmt.Sprintf("- Retrying due to %s", err))
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			c.ui.Error(fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err))

@@ -3,9 +3,13 @@ package providercache
 import (
 	"context"
 	"fmt"
+	"math"
+	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apparentlymart/go-versions/versions"
 
@@ -52,6 +56,30 @@ type Installer struct {
 
 // The currently-supported plugin protocol version.
 var SupportedPluginProtocols = getproviders.MustParseVersionConstraints("~> 5")
+
+const (
+	// retryLimitEnvName is the name of the environment variable that
+	// can be configured to customize how many times we retry transient errors
+	// when installing providers.
+	retryLimitEnvName = "TF_REGISTRY_DISCOVERY_RETRY"
+	defaultRetry      = 1
+
+	// Minimum and maximum time to wait between retries
+	retryWaitMin = 1.0 * time.Second
+	retryWaitMax = 30.0 * time.Second
+)
+
+// retryLimit is the configured number of retries for transient errors
+var retryLimit = defaultRetry
+
+func init() {
+	if v := os.Getenv(retryLimitEnvName); v != "" {
+		retry, err := strconv.Atoi(v)
+		if err == nil && retry > 0 {
+			retryLimit = retry
+		}
+	}
+}
 
 // NewInstaller constructs and returns a new installer with the given target
 // directory and provider source.
@@ -228,10 +256,30 @@ NeedProvider:
 		if cb := evts.QueryPackagesBegin; cb != nil {
 			cb(provider, reqs[provider])
 		}
-		available, err := i.source.AvailableVersions(provider)
+		var available versions.List
+		var err error
+		for retries := 0; retries <= retryLimit; retries++ {
+			available, err = i.source.AvailableVersions(provider)
+
+			if err == nil {
+				break
+			}
+			if _, ok := err.(getproviders.ErrTransient); !ok {
+				break
+			}
+
+			if cb := evts.QueryPackagesRetry; cb != nil {
+				cb(provider, err)
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(retryWait(retries)):
+				continue
+			}
+		}
 		if err != nil {
-			// TODO: Consider retrying a few times for certain types of
-			// source errors that seem likely to be transient.
 			errs[provider] = err
 			if cb := evts.QueryPackagesFailure; cb != nil {
 				cb(provider, err)
@@ -303,7 +351,23 @@ NeedProvider:
 		if cb := evts.FetchPackageMeta; cb != nil {
 			cb(provider, version)
 		}
-		meta, err := i.source.PackageMeta(provider, version, targetPlatform)
+		var meta getproviders.PackageMeta
+		var err error
+		for retries := 0; retries <= retryLimit; retries++ {
+			meta, err = i.source.PackageMeta(provider, version, targetPlatform)
+
+			if err == nil {
+				break
+			}
+			if _, ok := err.(getproviders.ErrTransient); !ok {
+				break
+			}
+			if cb := evts.FetchPackageRetry; cb != nil {
+				cb(provider, version, err)
+			}
+
+			time.Sleep(retryWait(retries))
+		}
 		if err != nil {
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
@@ -365,10 +429,29 @@ NeedProvider:
 			installTo = i.targetDir
 			linkTo = nil // no linking needed
 		}
-		authResult, err := installTo.InstallPackage(ctx, meta)
+		var authResult *getproviders.PackageAuthenticationResult
+		for retries := 0; retries <= retryLimit; retries++ {
+			authResult, err = installTo.InstallPackage(ctx, meta)
+
+			if err == nil {
+				break
+			}
+			if _, ok := err.(getproviders.ErrTransient); !ok {
+				break
+			}
+
+			if cb := evts.FetchPackageRetry; cb != nil {
+				cb(provider, version, err)
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(retryWait(retries)):
+				continue
+			}
+		}
 		if err != nil {
-			// TODO: Consider retrying for certain kinds of error that seem
-			// likely to be transient. For now, we just treat all errors equally.
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
 				cb(provider, version, err)
@@ -552,10 +635,41 @@ func (err InstallerError) Error() string {
 // findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
 func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider, version versions.Version) versions.Version {
 	var match versions.Version
-	available, _ := i.source.AvailableVersions(provider)
+	var available versions.List
+	var err error
+	for retries := 0; retries <= retryLimit; retries++ {
+		available, err = i.source.AvailableVersions(provider)
+
+		if err == nil {
+			break
+		}
+		if _, ok := err.(getproviders.ErrTransient); !ok {
+			break
+		}
+
+		time.Sleep(retryWait(retries))
+	}
+	if err != nil {
+		return match
+	}
 	available.Sort()                                       // put the versions in increasing order of precedence
 	for index := len(available) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
-		meta, _ := i.source.PackageMeta(provider, available[index], i.targetDir.targetPlatform)
+		var meta getproviders.PackageMeta
+		for retries := 0; retries <= retryLimit; retries++ {
+			meta, err = i.source.PackageMeta(provider, available[index], i.targetDir.targetPlatform)
+
+			if err == nil {
+				break
+			}
+			if _, ok := err.(getproviders.ErrTransient); !ok {
+				break
+			}
+
+			time.Sleep(retryWait(retries))
+		}
+		if err != nil {
+			return match
+		}
 		if len(meta.ProtocolVersions) > 0 {
 			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
 			for _, version := range meta.ProtocolVersions {
@@ -567,6 +681,15 @@ func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider
 		}
 	}
 	return match
+}
+
+func retryWait(retries int) time.Duration {
+	wait := math.Pow(2, float64(retries)) * float64(retryWaitMin)
+	sleep := time.Duration(wait)
+	if float64(sleep) != wait || sleep > retryWaitMax {
+		sleep = retryWaitMax
+	}
+	return sleep
 }
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's

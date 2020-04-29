@@ -146,6 +146,27 @@ func (err ErrQueryFailed) Unwrap() error {
 	return err.Wrapped
 }
 
+// ErrTransient is an error type used to signal a temporary, retryable error
+// condition encountered at any time during the provider installation process.
+type ErrTransient struct {
+	Reason  string
+	Wrapped error
+}
+
+func (err ErrTransient) Error() string {
+	return fmt.Sprintf(
+		"%s: %s",
+		err.Reason,
+		err.Wrapped.Error(),
+	)
+}
+
+// Unwrap returns the underlying error that occurred when trying to reach the
+// indicated host.
+func (err ErrTransient) Unwrap() error {
+	return err.Wrapped
+}
+
 // ErrIsNotExist returns true if and only if the given error is one of the
 // errors from this package that represents an affirmative response that a
 // requested object does not exist.

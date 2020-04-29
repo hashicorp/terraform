@@ -82,7 +82,11 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) ([]string, error)
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return nil, c.errUnauthorized(addr.Hostname)
 	default:
-		return nil, c.errQueryFailed(addr, errors.New(resp.Status))
+		queryErr := c.errQueryFailed(addr, errors.New(resp.Status))
+		if isRetryableStatus(resp.StatusCode) {
+			return nil, c.errTransient("HTTP server error", queryErr)
+		}
+		return nil, queryErr
 	}
 
 	// We ignore everything except the version numbers here because our goal
@@ -170,7 +174,11 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return PackageMeta{}, c.errUnauthorized(provider.Hostname)
 	default:
-		return PackageMeta{}, c.errQueryFailed(provider, errors.New(resp.Status))
+		queryErr := c.errQueryFailed(provider, errors.New(resp.Status))
+		if isRetryableStatus(resp.StatusCode) {
+			return PackageMeta{}, c.errTransient("HTTP server error", queryErr)
+		}
+		return PackageMeta{}, queryErr
 	}
 
 	type SigningKeyList struct {
@@ -334,7 +342,11 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return "", c.errUnauthorized(placeholderProviderAddr.Hostname)
 	default:
-		return "", c.errQueryFailed(placeholderProviderAddr, errors.New(resp.Status))
+		queryErr := c.errQueryFailed(placeholderProviderAddr, errors.New(resp.Status))
+		if isRetryableStatus(resp.StatusCode) {
+			return "", c.errTransient("HTTP server error", queryErr)
+		}
+		return "", queryErr
 	}
 
 	type ResponseBody struct {
@@ -355,6 +367,13 @@ func (c *registryClient) addHeadersToRequest(req *http.Request) {
 		c.creds.PrepareRequest(req)
 	}
 	req.Header.Set(terraformVersionHeader, version.String())
+}
+
+func (c *registryClient) errTransient(reason string, err error) error {
+	return ErrTransient{
+		Reason:  reason,
+		Wrapped: err,
+	}
 }
 
 func (c *registryClient) errQueryFailed(provider addrs.Provider, err error) error {
@@ -388,4 +407,13 @@ func (c *registryClient) getFile(url *url.URL) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// We retry on 500-range responses to allow the server time to recover, as
+// 5XXs are typically not permanent errors and may relate to outages on the
+// server side. This will catch invalid response codes as well, like 0 and 999.
+//
+// One exception is the 501 Not Implemented status, which is not retryable.
+func isRetryableStatus(status int) bool {
+	return status == 0 || (status >= 500 && status != http.StatusNotImplemented)
 }
