@@ -64,9 +64,11 @@ func (s *MemoizeSource) AvailableVersions(provider addrs.Provider) (VersionList,
 	}
 
 	ret, err := s.underlying.AvailableVersions(provider)
-	s.availableVersions[provider] = memoizeAvailableVersionsRet{
-		VersionList: ret,
-		Err:         err,
+	if _, ok := err.(ErrTransient); !ok {
+		s.availableVersions[provider] = memoizeAvailableVersionsRet{
+			VersionList: ret,
+			Err:         err,
+		}
 	}
 	return ret, err
 }
@@ -88,9 +90,11 @@ func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, ta
 	}
 
 	ret, err := s.underlying.PackageMeta(provider, version, target)
-	s.packageMetas[key] = memoizePackageMetaRet{
-		PackageMeta: ret,
-		Err:         err,
+	if _, ok := err.(ErrTransient); !ok {
+		s.packageMetas[key] = memoizePackageMetaRet{
+			PackageMeta: ret,
+			Err:         err,
+		}
 	}
 	return ret, err
 }
