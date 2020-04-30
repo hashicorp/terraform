@@ -505,7 +505,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install provider",
-				fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err),
+				fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
 			))
 		},
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
