@@ -98,6 +98,7 @@ type provisioner struct {
 	PolicyName            string
 	HTTPProxy             string
 	HTTPSProxy            string
+	MaxRetries            int
 	NamedRunList          string
 	NOProxy               []string
 	NodeName              string
@@ -105,6 +106,7 @@ type provisioner struct {
 	OSType                string
 	RecreateClient        bool
 	PreventSudo           bool
+	RetryOnExitCode       []int
 	RunList               []string
 	SecretKey             string
 	ServerURL             string
@@ -115,9 +117,7 @@ type provisioner struct {
 	UserKey               string
 	Vaults                map[string][]string
 	Version               string
-	RetryOnExitCode       []int
 	WaitForRetry          int
-	MaxRetries            int
 
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
@@ -201,6 +201,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"max_retries": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  1,
+			},
 			"no_proxy": &schema.Schema{
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -219,12 +224,17 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"prevent_sudo": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"recreate_client": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"prevent_sudo": &schema.Schema{
-				Type:     schema.TypeBool,
+			"retry_on_exit_code": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeInt},
 				Optional: true,
 			},
 			"run_list": &schema.Schema{
@@ -255,18 +265,6 @@ func Provisioner() terraform.ResourceProvisioner {
 			"version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-			},
-			// Same defaults as Test-Kitchen
-			// https://github.com/test-kitchen/test-kitchen/blob/e5998e0dd1aa42601c55659da78f9b112ff9f8ee/lib/kitchen/provisioner/base.rb#L36-38
-			"retry_on_exit_code": &schema.Schema{
-				Type:     schema.TypeList,
-				Elem:     &schema.Schema{Type: schema.TypeInt},
-				Optional: true,
-			},
-			"max_retries": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  1,
 			},
 			"wait_for_retry": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -790,12 +788,14 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		HTTPProxy:             d.Get("http_proxy").(string),
 		HTTPSProxy:            d.Get("https_proxy").(string),
 		NOProxy:               getStringList(d.Get("no_proxy")),
+		MaxRetries:            d.Get("max_retries").(int),
 		NamedRunList:          d.Get("named_run_list").(string),
 		NodeName:              d.Get("node_name").(string),
 		OhaiHints:             getStringList(d.Get("ohai_hints")),
 		OSType:                d.Get("os_type").(string),
 		RecreateClient:        d.Get("recreate_client").(bool),
 		PreventSudo:           d.Get("prevent_sudo").(bool),
+		RetryOnExitCode:       getIntList(d.Get("retry_on_exit_code")),
 		RunList:               getStringList(d.Get("run_list")),
 		SecretKey:             d.Get("secret_key").(string),
 		ServerURL:             d.Get("server_url").(string),
@@ -805,9 +805,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserName:              d.Get("user_name").(string),
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
-		RetryOnExitCode:       getIntList(d.Get("retry_on_exit_code")),
 		WaitForRetry:          d.Get("wait_for_retry").(int),
-		MaxRetries:            d.Get("max_retries").(int),
 	}
 
 	// Make sure the supplied URL has a trailing slash

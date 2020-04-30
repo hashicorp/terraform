@@ -57,9 +57,11 @@ resource "aws_instance" "web" {
     recreate_client = true
     user_name       = "bork"
     user_key        = "${file("../bork.pem")}"
-    version         = "12.4.1"
+    version         = "15.10.13"
     # If you have a self signed cert on your chef server change this to :verify_none
     ssl_verify_mode = ":verify_peer"
+    # Gracefully handle Chef upgrades, reboots, etc.
+    retry_on_exit_code = [35, 213]
   }
 }
 ```
@@ -109,6 +111,8 @@ The following arguments are supported:
 
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.
 
+* `max_retries (integer)` - (Optional) The number of times to retry the provisioning process after receiving an exit code in the `retry_on_error` list. Defaults to `1`
+
 * `named_run_list (string)` - (Optional) The name of an alternate run-list to invoke during the
   initial Chef Client run. The run-list must already exist in the Policyfile that defines
   `policy_name`. Only applies when `use_policyfile` is `true`.
@@ -130,6 +134,8 @@ The following arguments are supported:
 
 * `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
+
+* `retry_on_error (list of integers)` - (Optional) The error codes upon which Terraform should gracefully retry the provisioning process.  Intended for use with [Chef RFC062 codes.](https://github.com/chef-boneyard/chef-rfc/blob/69a19f632cceffe965bafaad6765e3376068fd5b/rfc062-exit-status.md)
 
 * `run_list (array)` - (Optional) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful
@@ -169,3 +175,5 @@ The following arguments are supported:
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set, the latest available version will be installed.
+
+* `wait_for_retry (integer)` - (Optional) - Amount of time in seconds to wait before retrying the provisionining process after receiving an exit code in the `retry_on_error` list.  Defaults to `30`.
