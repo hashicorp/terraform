@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"context"
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -176,6 +177,11 @@ func TestRemoteContextWithVars(t *testing.T) {
 			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 			defer configCleanup()
 
+			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			op := &backend.Operation{
 				ConfigDir:    configDir,
 				ConfigLoader: configLoader,
@@ -187,12 +193,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 				key := "key"
 				v.Key = &key
 			}
-			if v.Workspace == nil {
-				v.Workspace = &tfe.Workspace{
-					Name: b.workspace,
-				}
-			}
-			b.client.Variables.Create(nil, *v)
+			b.client.Variables.Create(nil, workspaceID, *v)
 
 			_, _, diags := b.Context(op)
 

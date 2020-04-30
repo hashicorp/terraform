@@ -26,19 +26,22 @@ Currently the following endpoints are supported:
 - [x] [OAuth Clients](https://www.terraform.io/docs/enterprise/api/oauth-clients.html)
 - [x] [OAuth Tokens](https://www.terraform.io/docs/enterprise/api/oauth-tokens.html)
 - [x] [Organizations](https://www.terraform.io/docs/enterprise/api/organizations.html)
+- [x] [Organization Memberships](https://www.terraform.io/docs/cloud/api/organization-memberships.html)
 - [x] [Organization Tokens](https://www.terraform.io/docs/enterprise/api/organization-tokens.html)
 - [x] [Policies](https://www.terraform.io/docs/enterprise/api/policies.html)
+- [x] [Policy Set Parameters](https://www.terraform.io/docs/enterprise/api/policy-set-params.html)
 - [x] [Policy Sets](https://www.terraform.io/docs/enterprise/api/policy-sets.html)
 - [x] [Policy Checks](https://www.terraform.io/docs/enterprise/api/policy-checks.html)
 - [ ] [Registry Modules](https://www.terraform.io/docs/enterprise/api/modules.html)
 - [x] [Runs](https://www.terraform.io/docs/enterprise/api/run.html)
+- [x] [Run Triggers](https://www.terraform.io/docs/cloud/api/run-triggers.html)
 - [x] [SSH Keys](https://www.terraform.io/docs/enterprise/api/ssh-keys.html)
 - [x] [State Versions](https://www.terraform.io/docs/enterprise/api/state-versions.html)
 - [x] [Team Access](https://www.terraform.io/docs/enterprise/api/team-access.html)
 - [x] [Team Memberships](https://www.terraform.io/docs/enterprise/api/team-members.html)
 - [x] [Team Tokens](https://www.terraform.io/docs/enterprise/api/team-tokens.html)
 - [x] [Teams](https://www.terraform.io/docs/enterprise/api/teams.html)
-- [x] [Variables](https://www.terraform.io/docs/enterprise/api/variables.html)
+- [x] [Workspace Variables](https://www.terraform.io/docs/enterprise/api/workspace-variables.html)
 - [x] [Workspaces](https://www.terraform.io/docs/enterprise/api/workspaces.html)
 - [ ] [Admin](https://www.terraform.io/docs/enterprise/api/admin/index.html)
 
@@ -145,7 +148,7 @@ and token.
 1. `TFE_TOKEN` - A [user API token](https://www.terraform.io/docs/cloud/users-teams-organizations/users.html#api-tokens) for the Terraform Cloud or Terraform Enterprise instance being used for testing.
 
 ##### Optional:
-1. `GITHUB_TOKEN` - [GitHub personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line). Required for running OAuth client tests.
+1. `GITHUB_TOKEN` - [GitHub personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line). Required for running any tests that use VCS (OAuth clients, policy sets, etc).
 1. `GITHUB_POLICY_SET_IDENTIFIER` - GitHub policy set repository identifier in the format `username/repository`. Required for running policy set tests.
 
 You can set your environment variables up however you prefer. The following are instructions for setting up environment variables using [envchain](https://github.com/sorah/envchain).

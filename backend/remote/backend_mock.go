@@ -952,6 +952,8 @@ type mockVariables struct {
 	workspaces map[string]*tfe.VariableList
 }
 
+var _ tfe.Variables = (*mockVariables)(nil)
+
 func newMockVariables(client *mockClient) *mockVariables {
 	return &mockVariables{
 		client:     client,
@@ -959,12 +961,12 @@ func newMockVariables(client *mockClient) *mockVariables {
 	}
 }
 
-func (m *mockVariables) List(ctx context.Context, options tfe.VariableListOptions) (*tfe.VariableList, error) {
-	vl := m.workspaces[*options.Workspace]
+func (m *mockVariables) List(ctx context.Context, workspaceID string, options tfe.VariableListOptions) (*tfe.VariableList, error) {
+	vl := m.workspaces[workspaceID]
 	return vl, nil
 }
 
-func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOptions) (*tfe.Variable, error) {
+func (m *mockVariables) Create(ctx context.Context, workspaceID string, options tfe.VariableCreateOptions) (*tfe.Variable, error) {
 	v := &tfe.Variable{
 		ID:       generateID("var-"),
 		Key:      *options.Key,
@@ -980,7 +982,7 @@ func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOp
 		v.Sensitive = *options.Sensitive
 	}
 
-	workspace := options.Workspace.Name
+	workspace := workspaceID
 
 	if m.workspaces[workspace] == nil {
 		m.workspaces[workspace] = &tfe.VariableList{}
@@ -992,15 +994,15 @@ func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOp
 	return v, nil
 }
 
-func (m *mockVariables) Read(ctx context.Context, variableID string) (*tfe.Variable, error) {
+func (m *mockVariables) Read(ctx context.Context, workspaceID string, variableID string) (*tfe.Variable, error) {
 	panic("not implemented")
 }
 
-func (m *mockVariables) Update(ctx context.Context, variableID string, options tfe.VariableUpdateOptions) (*tfe.Variable, error) {
+func (m *mockVariables) Update(ctx context.Context, workspaceID string, variableID string, options tfe.VariableUpdateOptions) (*tfe.Variable, error) {
 	panic("not implemented")
 }
 
-func (m *mockVariables) Delete(ctx context.Context, variableID string) error {
+func (m *mockVariables) Delete(ctx context.Context, workspaceID string, variableID string) error {
 	panic("not implemented")
 }
 
