@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -77,6 +78,12 @@ func (b *Local) opPlan(
 	// Setup the state
 	runningOp.State = tfCtx.State()
 
+	// Our refresh phase may or may not detect drift on remove objects. If it
+	// does, we'll behave as though there are changes to apply so that the
+	// user can apply the plan and commit those drift changes in a new
+	// persisted state snapshot.
+	refreshFoundDrift := false
+
 	// If we're refreshing before plan, perform that
 	baseState := runningOp.State
 	if op.PlanRefresh {
@@ -92,6 +99,7 @@ func (b *Local) opPlan(
 			b.ReportResult(runningOp, diags)
 			return
 		}
+		refreshFoundDrift = !statefile.StatesMarshalEqual(refreshedState, baseState)
 		baseState = refreshedState // plan will be relative to our refreshed state
 		if b.CLI != nil {
 			b.CLI.Output("\n------------------------------------------------------------------------")
@@ -123,7 +131,7 @@ func (b *Local) opPlan(
 		return
 	}
 	// Record state
-	runningOp.PlanEmpty = plan.Changes.Empty()
+	runningOp.PlanEmpty = plan.Changes.Empty() && !refreshFoundDrift
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -160,8 +168,12 @@ func (b *Local) opPlan(
 	if b.CLI != nil {
 		schemas := tfCtx.Schemas()
 
-		if plan.Changes.Empty() {
-			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+		if plan.Changes.Empty() || refreshFoundDrift {
+			if refreshFoundDrift {
+				b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChangesRefreshOnly)))
+			} else {
+				b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			}
 			// Even if there are no changes, there still could be some warnings
 			b.ShowDiagnostics(diags)
 			return
@@ -335,11 +347,20 @@ To perform exactly these actions, run the following command to apply:
 `
 
 const planNoChanges = `
-[reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
+[reset][bold][green]No changes. Infrastructure is up-to-date.[reset]
 
 This means that Terraform did not detect any differences between your
-configuration and real physical resources that exist. As a result, no
+configuration and remote objects it is managing. As a result, no
 actions need to be performed.
+`
+
+const planNoChangesRefreshOnly = `
+[reset][bold][green]Upstream drift changes only.[reset]
+
+Terraform did not detect any differences between your configuration and the
+remote objects it is managing. However, Terraform did detect changes to the
+remote objects since the last Terraform run. You can apply this empty plan
+to commit these upstream changes to your stored state.
 `
 
 const planRefreshing = `
