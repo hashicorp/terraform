@@ -399,9 +399,15 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// module instance.
 	moduleInstances := map[addrs.InstanceKey]map[string]cty.Value{}
 
+	// create a dummy object type for validation below
+	unknownMap := map[string]cty.Type{}
+
 	// the structure is based on the configuration, so iterate through all the
 	// defined outputs, and add any instance state or changes we find.
 	for _, cfg := range outputConfigs {
+		// record the output names for validation
+		unknownMap[cfg.Name] = cty.DynamicPseudoType
+
 		// get all instance output for this path from the state
 		for key, states := range stateMap {
 			outputState, ok := states[cfg.Name]
@@ -449,33 +455,41 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// compile the outputs into the correct value type for the each mode
 	switch {
 	case callConfig.Count != nil:
-		vals := make([]cty.Value, len(moduleInstances))
-		for key, instance := range moduleInstances {
+		// figure out what the last index we have is
+		length := -1
+		for key := range moduleInstances {
 			intKey, ok := key.(addrs.IntKey)
 			if !ok {
 				// old key from state which is being dropped
 				continue
 			}
-
-			vals[int(intKey)] = cty.ObjectVal(instance)
+			if int(intKey) >= length {
+				length = int(intKey) + 1
+			}
 		}
 
-		if len(vals) > 0 {
-			// we shouldn't have any holes, but insert real values just in case,
-			// while trimming off any extra values that we may have from guessing
-			// the length via the state instances.
-			last := 0
+		if length > 0 {
+			vals := make([]cty.Value, length)
+			for key, instance := range moduleInstances {
+				intKey, ok := key.(addrs.IntKey)
+				if !ok {
+					// old key from state which is being dropped
+					continue
+				}
+
+				vals[int(intKey)] = cty.ObjectVal(instance)
+			}
+
+			// Insert unknown values where there are any missing instances
 			for i, v := range vals {
 				if v.IsNull() {
 					vals[i] = cty.DynamicVal
 					continue
 				}
-				last = i
 			}
-			vals = vals[:last+1]
-			ret = cty.ListVal(vals)
+			ret = cty.TupleVal(vals)
 		} else {
-			ret = cty.ListValEmpty(cty.DynamicPseudoType)
+			ret = cty.EmptyTupleVal
 		}
 
 	case callConfig.ForEach != nil:
@@ -490,9 +504,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		}
 
 		if len(vals) > 0 {
-			ret = cty.MapVal(vals)
+			ret = cty.ObjectVal(vals)
 		} else {
-			ret = cty.MapValEmpty(cty.DynamicPseudoType)
+			ret = cty.EmptyObjectVal
 		}
 
 	default:
@@ -512,7 +526,23 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// unknown value. This will ensure the types looks correct, since we built
 	// the objects based on the configuration.
 	if d.Operation == walkValidate {
-		return cty.UnknownVal(ret.Type()), diags
+		// While we know the type here and it would be nice to validate whether
+		// indexes are valid or not, because tuples and objects have fixed
+		// numbers of elements we can't simply return an unknown value of the
+		// same type since we have not expanded any instances during
+		// validation.
+		//
+		// In order to validate the expression a little precisely, we'll create
+		// an unknown map or list here to get more type information.
+		ty := cty.Object(unknownMap)
+		switch {
+		case callConfig.Count != nil:
+			ret = cty.UnknownVal(cty.List(ty))
+		case callConfig.ForEach != nil:
+			ret = cty.UnknownVal(cty.Map(ty))
+		default:
+			ret = cty.UnknownVal(ty)
+		}
 	}
 
 	return ret, diags
@@ -599,19 +629,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
-	// Break out early during validation, because resource may not be expanded
-	// yet and indexed references may show up as invalid.
-	if d.Operation == walkValidate {
-		return cty.DynamicVal, diags
-	}
-
-	return d.getResourceInstancesAll(addr, rng, config, rs, rs.ProviderConfig)
-}
-
-func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng tfdiags.SourceRange, config *configs.Resource, rs *states.Resource, providerAddr addrs.AbsProviderConfig) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	instAddr := addrs.ResourceInstance{Resource: addr, Key: addrs.NoKey}
+	providerAddr := rs.ProviderConfig
 
 	schema := d.getResourceSchema(addr, providerAddr)
 	if schema == nil {
@@ -625,205 +643,158 @@ func (d *evaluationStateData) getResourceInstancesAll(addr addrs.Resource, rng t
 		})
 		return cty.DynamicVal, diags
 	}
+	ty := schema.ImpliedType()
 
-	switch rs.EachMode {
-	case states.NoEach:
-		ty := schema.ImpliedType()
-		is := rs.Instances[addrs.NoKey]
+	// Decode all instances in the current state
+	instances := map[addrs.InstanceKey]cty.Value{}
+	for key, is := range rs.Instances {
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.
-			return cty.UnknownVal(ty), diags
+			instances[key] = cty.UnknownVal(ty)
+			continue
 		}
 
+		instAddr := addr.Instance(key).Absolute(d.ModulePath)
+
+		// Planned resources are temporarily stored in state with empty values,
+		// and need to be replaced bu the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
-			// If there's a pending change for this instance in our plan, we'll prefer
-			// that. This is important because the state can't represent unknown values
-			// and so its data is inaccurate when changes are pending.
-			if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr.Absolute(d.ModulePath), states.CurrentGen); change != nil {
-				val, err := change.After.Decode(ty)
-				if err != nil {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid resource instance data in plan",
-						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", addr.Absolute(d.ModulePath), err),
-						Subject:  &config.DeclRange,
-					})
-					return cty.UnknownVal(ty), diags
-				}
-				return val, diags
-			} else {
-				// If the object is in planned status then we should not
-				// get here, since we should've found a pending value
-				// in the plan above instead.
+			change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
+			if change == nil {
+				// If the object is in planned status then we should not get
+				// here, since we should have found a pending value in the plan
+				// above instead.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Missing pending object in plan",
-					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", addr),
+					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
 					Subject:  &config.DeclRange,
 				})
-				return cty.UnknownVal(ty), diags
+				continue
 			}
+			val, err := change.After.Decode(ty)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid resource instance data in plan",
+					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
+					Subject:  &config.DeclRange,
+				})
+				continue
+			}
+
+			instances[key] = val
+			continue
 		}
 
 		ios, err := is.Current.Decode(ty)
 		if err != nil {
-			// This shouldn't happen, since by the time we get here
-			// we should've upgraded the state data already.
+			// This shouldn't happen, since by the time we get here we
+			// should have upgraded the state data already.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid resource instance data in state",
-				Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", addr.Absolute(d.ModulePath), err),
+				Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
 				Subject:  &config.DeclRange,
 			})
-			return cty.UnknownVal(ty), diags
+			continue
 		}
+		instances[key] = ios.Value
+	}
 
-		return ios.Value, diags
+	var ret cty.Value
 
-	case states.EachList:
-		// We need to infer the length of our resulting tuple by searching
-		// for the max IntKey in our instances map.
-		length := 0
-		for k := range rs.Instances {
-			if ik, ok := k.(addrs.IntKey); ok {
-				if int(ik) >= length {
-					length = int(ik) + 1
-				}
-			}
-		}
-
-		vals := make([]cty.Value, length)
-		for i := 0; i < length; i++ {
-			ty := schema.ImpliedType()
-			key := addrs.IntKey(i)
-			is := rs.Instances[key]
-			if is == nil || is.Current == nil {
-				// There shouldn't normally be "gaps" in our list but we'll
-				// allow it under the assumption that we're in a weird situation
-				// where e.g. someone has run "terraform state mv" to reorder
-				// a list and left a hole behind.
-				vals[i] = cty.UnknownVal(schema.ImpliedType())
+	switch {
+	case config.Count != nil:
+		// figure out what the last index we have is
+		length := -1
+		for key := range instances {
+			intKey, ok := key.(addrs.IntKey)
+			if !ok {
 				continue
 			}
+			if int(intKey) >= length {
+				length = int(intKey) + 1
+			}
+		}
 
-			instAddr := addr.Instance(key).Absolute(d.ModulePath)
-
-			if is.Current.Status == states.ObjectPlanned {
-				if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
-					val, err := change.After.Decode(ty)
-					if err != nil {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid resource instance data in plan",
-							Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
-							Subject:  &config.DeclRange,
-						})
-						continue
-					}
-					vals[i] = val
-					continue
-				} else {
-					// If the object is in planned status then we should not
-					// get here, since we should've found a pending value
-					// in the plan above instead.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing pending object in plan",
-						Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-						Subject:  &config.DeclRange,
-					})
+		if length > 0 {
+			vals := make([]cty.Value, length)
+			for key, instance := range instances {
+				intKey, ok := key.(addrs.IntKey)
+				if !ok {
+					// old key from state, which isn't valid for evaluation
 					continue
 				}
+
+				vals[int(intKey)] = instance
 			}
 
-			ios, err := is.Current.Decode(ty)
-			if err != nil {
-				// This shouldn't happen, since by the time we get here
-				// we should've upgraded the state data already.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid resource instance data in state",
-					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
-					Subject:  &config.DeclRange,
-				})
+			// Insert unknown values where there are any missing instances
+			for i, v := range vals {
+				if v == cty.NilVal {
+					vals[i] = cty.UnknownVal(ty)
+				}
+			}
+			ret = cty.TupleVal(vals)
+		} else {
+			ret = cty.EmptyTupleVal
+		}
+
+	case config.ForEach != nil:
+		vals := make(map[string]cty.Value)
+		for key, instance := range instances {
+			strKey, ok := key.(addrs.StringKey)
+			if !ok {
+				// old key that is being dropped and not used for evaluation
 				continue
 			}
-			vals[i] = ios.Value
+			vals[string(strKey)] = instance
 		}
 
-		// We use a tuple rather than a list here because resource schemas may
-		// include dynamically-typed attributes, which will then cause each
-		// instance to potentially have a different runtime type even though
-		// they all conform to the static schema.
-		return cty.TupleVal(vals), diags
-
-	case states.EachMap:
-		ty := schema.ImpliedType()
-		vals := make(map[string]cty.Value, len(rs.Instances))
-		for k, is := range rs.Instances {
-			if sk, ok := k.(addrs.StringKey); ok {
-				if is == nil || is.Current == nil {
-					// Assume we're dealing with an instance that hasn't been created yet.
-					vals[string(sk)] = cty.UnknownVal(schema.ImpliedType())
-					continue
-				}
-
-				instAddr := addr.Instance(k).Absolute(d.ModulePath)
-
-				if is.Current.Status == states.ObjectPlanned {
-					if change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen); change != nil {
-						val, err := change.After.Decode(ty)
-						if err != nil {
-							diags = diags.Append(&hcl.Diagnostic{
-								Severity: hcl.DiagError,
-								Summary:  "Invalid resource instance data in plan",
-								Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
-								Subject:  &config.DeclRange,
-							})
-							continue
-						}
-						vals[string(sk)] = val
-						continue
-					} else {
-						// If the object is in planned status then we should not
-						// get here, since we should've found a pending value
-						// in the plan above instead.
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Missing pending object in plan",
-							Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-							Subject:  &config.DeclRange,
-						})
-						continue
-					}
-				}
-
-				ios, err := is.Current.Decode(ty)
-				if err != nil {
-					// This shouldn't happen, since by the time we get here
-					// we should've upgraded the state data already.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid resource instance data in state",
-						Detail:   fmt.Sprintf("Instance %s data could not be decoded from the state: %s.", instAddr, err),
-						Subject:  &config.DeclRange,
-					})
-					continue
-				}
-				vals[string(sk)] = ios.Value
-			}
+		if len(vals) > 0 {
+			// We use an object rather than a map here because resource schemas
+			// may include dynamically-typed attributes, which will then cause
+			// each instance to potentially have a different runtime type even
+			// though they all conform to the static schema.
+			ret = cty.ObjectVal(vals)
+		} else {
+			ret = cty.EmptyObjectVal
 		}
-
-		// We use an object rather than a map here because resource schemas may
-		// include dynamically-typed attributes, which will then cause each
-		// instance to potentially have a different runtime type even though
-		// they all conform to the static schema.
-		return cty.ObjectVal(vals), diags
 
 	default:
-		// Should never happen since caller should deal with other modes
-		panic(fmt.Sprintf("unsupported EachMode %s", rs.EachMode))
+		val, ok := instances[addrs.NoKey]
+		if !ok {
+			// if the instance is missing, insert an unknown value
+			val = cty.UnknownVal(ty)
+		}
+
+		ret = val
 	}
+
+	// since the plan was not yet created during validate, the values we
+	// collected here may not correspond with configuration, so they must be
+	// unknown.
+	if d.Operation == walkValidate {
+		// While we know the type here and it would be nice to validate whether
+		// indexes are valid or not, because tuples and objects have fixed
+		// numbers of elements we can't simply return an unknown value of the
+		// same type since we have not expanded any instances during
+		// validation.
+		//
+		// In order to validate the expression a little precisely, we'll create
+		// an unknown map or list here to get more type information.
+		switch {
+		case config.Count != nil:
+			ret = cty.UnknownVal(cty.List(ty))
+		case config.ForEach != nil:
+			ret = cty.UnknownVal(cty.Map(ty))
+		default:
+			ret = cty.UnknownVal(ty)
+		}
+	}
+
+	return ret, diags
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
