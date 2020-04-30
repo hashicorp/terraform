@@ -222,7 +222,7 @@ func (n *NodeApplyableOutput) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalOpFilter{
-				Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
+				Ops: []walkOperation{walkEval, walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
 				Node: &EvalWriteOutput{
 					Addr:      n.Addr.OutputValue,
 					Sensitive: n.Config.Sensitive,
