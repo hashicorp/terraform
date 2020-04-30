@@ -554,7 +554,9 @@ func (err InstallerError) Error() string {
 func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider, version versions.Version) versions.Version {
 	var match versions.Version
 	available, _ := i.source.AvailableVersions(provider)
-	available.Sort()                                       // put the versions in increasing order of precedence
+	available.Sort()
+	// put the versions in increasing order of precedence
+FindMatch:
 	for index := len(available) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
 		meta, _ := i.source.PackageMeta(provider, available[index], i.targetDir.targetPlatform)
 		if len(meta.ProtocolVersions) > 0 {
@@ -562,10 +564,11 @@ func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider
 			for _, version := range meta.ProtocolVersions {
 				if protoVersions.Has(version) {
 					match = available[index]
-					break // we will only consider the newest matching version
+					break FindMatch // we will only consider the newest matching version
 				}
 			}
 		}
+
 	}
 	return match
 }
