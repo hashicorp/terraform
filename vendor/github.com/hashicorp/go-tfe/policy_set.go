@@ -209,6 +209,19 @@ type PolicySetUpdateOptions struct {
 
 	// Whether or not the policy set is global.
 	Global *bool `jsonapi:"attr,global,omitempty"`
+
+	// The sub-path within the attached VCS repository to ingress. All
+	// files and directories outside of this sub-path will be ignored.
+	// This option may only be specified when a VCS repo is present.
+	PoliciesPath *string `jsonapi:"attr,policies-path,omitempty"`
+
+	// VCS repository information. When present, the policies and
+	// configuration will be sourced from the specified VCS repository
+	// instead of being defined within the policy set itself. Note that
+	// specifying this option may only be used on policy sets with no
+	// directly-attached policies (*PolicySet.Policies). Specifying this
+	// option when policies are already present will result in an error.
+	VCSRepo *VCSRepoOptions `jsonapi:"attr,vcs-repo,omitempty"`
 }
 
 func (o PolicySetUpdateOptions) valid() error {
