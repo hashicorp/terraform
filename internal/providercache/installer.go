@@ -343,7 +343,8 @@ NeedProvider:
 					protoErr = providerProtocolTooOld
 				}
 
-				errs[provider] = fmt.Errorf(protoErr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
+				err := fmt.Errorf(protoErr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
+				errs[provider] = err
 				if cb := evts.FetchPackageFailure; cb != nil {
 					cb(provider, version, err)
 				}
