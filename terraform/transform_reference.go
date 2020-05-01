@@ -7,11 +7,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
-	"github.com/hashicorp/terraform/states"
 )
 
 // GraphNodeReferenceable must be implemented by any node that represents
@@ -122,21 +120,81 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+type depMap map[string]addrs.ConfigResource
+
+// addDep adds the vertex if it represents a resource in the
+// graph.
+func (m depMap) add(v dag.Vertex) {
+	// we're only concerned with resources which may have changes that
+	// need to be applied.
+	switch v := v.(type) {
+	case GraphNodeResourceInstance:
+		instAddr := v.ResourceInstanceAddr()
+		addr := instAddr.ContainingResource().Config()
+		m[addr.String()] = addr
+	case GraphNodeConfigResource:
+		addr := v.ResourceAddr()
+		m[addr.String()] = addr
+	}
+}
+
+// AttachDependsOnTransformer records all resources transitively referenced
+// through a configuration depends_on.
+type AttachDependsOnTransformer struct {
+}
+
+func (t AttachDependsOnTransformer) Transform(g *Graph) error {
+	// First we need to make a map of referenceable addresses to their vertices.
+	// This is very similar to what's done in ReferenceTransformer, but we keep
+	// implementation separate as they may need to change independently.
+	vertices := g.Vertices()
+	refMap := NewReferenceMap(vertices)
+
+	for _, v := range vertices {
+		depender, ok := v.(GraphNodeAttachDependsOn)
+		if !ok {
+			continue
+		}
+		selfAddr := depender.ResourceAddr()
+
+		// Only data need to attach depends_on, so they can determine if they
+		// are eligible to be read during plan.
+		if selfAddr.Resource.Mode != addrs.DataResourceMode {
+			continue
+		}
+
+		// depMap will dedupe and only add resource references
+		m := make(depMap)
+
+		for _, dep := range refMap.DependsOn(v) {
+			// any the dependency
+			m.add(dep)
+			// and check any ancestors
+			ans, _ := g.Ancestors(dep)
+			for _, v := range ans {
+				m.add(v)
+			}
+		}
+
+		deps := make([]addrs.ConfigResource, 0, len(m))
+		for _, d := range m {
+			deps = append(deps, d)
+		}
+
+		log.Printf("[TRACE] AttachDependsOnTransformer: %s depends on %s", depender.ResourceAddr(), deps)
+		depender.AttachDependsOn(deps)
+	}
+
+	return nil
+}
+
 // AttachDependenciesTransformer records all resource dependencies for each
 // instance, and attaches the addresses to the node itself. Managed resource
 // will record these in the state for proper ordering of destroy operations.
 type AttachDependenciesTransformer struct {
-	Config  *configs.Config
-	State   *states.State
-	Schemas *Schemas
 }
 
 func (t AttachDependenciesTransformer) Transform(g *Graph) error {
-	// TODO: create a list of depends_on resources, and attach these to
-	// resources during plan (the destroy deps will just be ignored here).
-	// Data sources can then use the depens_on deps to determine if they can be
-	// read during plan.
-
 	for _, v := range g.Vertices() {
 		attacher, ok := v.(GraphNodeAttachDependencies)
 		if !ok {
@@ -247,19 +305,13 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 }
 
 // ReferenceMap is a structure that can be used to efficiently check
-// for references on a graph.
-type ReferenceMap struct {
-	// vertices is a map from internal reference keys (as produced by the
-	// mapKey method) to one or more vertices that are identified by each key.
-	//
-	// A particular reference key might actually identify multiple vertices,
-	// e.g. in situations where one object is contained inside another.
-	vertices map[string][]dag.Vertex
-}
+// for references on a graph, mapping internal reference keys (as produced by
+// the mapKey method) to one or more vertices that are identified by each key.
+type ReferenceMap map[string][]dag.Vertex
 
 // References returns the set of vertices that the given vertex refers to,
 // and any referenced addresses that do not have corresponding vertices.
-func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
+func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	rn, ok := v.(GraphNodeReferencer)
 	if !ok {
 		return nil
@@ -271,7 +323,7 @@ func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 		subject := ref.Subject
 
 		key := m.referenceMapKey(v, subject)
-		if _, exists := m.vertices[key]; !exists {
+		if _, exists := m[key]; !exists {
 			// If what we were looking for was a ResourceInstance then we
 			// might be in a resource-oriented graph rather than an
 			// instance-oriented graph, and so we'll see if we have the
@@ -289,7 +341,38 @@ func (m *ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 			}
 			key = m.referenceMapKey(v, subject)
 		}
-		vertices := m.vertices[key]
+		vertices := m[key]
+		for _, rv := range vertices {
+			// don't include self-references
+			if rv == v {
+				continue
+			}
+			matches = append(matches, rv)
+		}
+	}
+
+	return matches
+}
+
+// DependsOn returns the set of vertices that the given vertex refers to from
+// the configured depends_on.
+func (m ReferenceMap) DependsOn(v dag.Vertex) []dag.Vertex {
+	depender, ok := v.(GraphNodeAttachDependsOn)
+	if !ok {
+		return nil
+	}
+
+	var matches []dag.Vertex
+
+	for _, ref := range depender.DependsOn() {
+		subject := ref.Subject
+
+		key := m.referenceMapKey(v, subject)
+		vertices, ok := m[key]
+		if !ok {
+			log.Printf("[WARN] DependOn: reference not found: %q", subject)
+			continue
+		}
 		for _, rv := range vertices {
 			// don't include self-references
 			if rv == v {
@@ -370,11 +453,9 @@ func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Reference
 
 // NewReferenceMap is used to create a new reference map for the
 // given set of vertices.
-func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
-	var m ReferenceMap
-
+func NewReferenceMap(vs []dag.Vertex) ReferenceMap {
 	// Build the lookup table
-	vertices := make(map[string][]dag.Vertex)
+	m := make(ReferenceMap)
 	for _, v := range vs {
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
@@ -387,12 +468,11 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 		// Go through and cache them
 		for _, addr := range rn.ReferenceableAddrs() {
 			key := m.mapKey(path, addr)
-			vertices[key] = append(vertices[key], v)
+			m[key] = append(m[key], v)
 		}
 	}
 
-	m.vertices = vertices
-	return &m
+	return m
 }
 
 // ReferencesFromConfig returns the references that a configuration has
