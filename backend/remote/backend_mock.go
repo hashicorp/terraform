@@ -757,6 +757,7 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		Permissions:  &tfe.RunPermissions{},
 		Plan:         p,
 		Status:       tfe.RunPending,
+		TargetAddrs:  options.TargetAddrs,
 	}
 
 	if pc != nil {

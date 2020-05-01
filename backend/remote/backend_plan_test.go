@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
@@ -283,16 +284,23 @@ func TestRemote_planWithTarget(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected plan operation to fail")
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected plan operation to succeed")
 	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(errOutput, "targeting is currently not supported") {
-		t.Fatalf("expected a targeting error, got: %v", errOutput)
+	// We should find a run inside the mock client that has the same
+	// target address we requested above.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
+			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
+		}
 	}
 }
 

@@ -70,14 +70,6 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if op.Targets != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Resource targeting is currently not supported",
-			`The "remote" backend does not support resource targeting at this time.`,
-		))
-	}
-
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -222,6 +214,17 @@ in order to capture the filesystem context the remote workspace expects:
 		Message:              tfe.String("Queued manually using Terraform"),
 		ConfigurationVersion: cv,
 		Workspace:            w,
+	}
+
+	if len(op.Targets) != 0 {
+		runOptions.TargetAddrs = make([]string, 0, len(op.Targets))
+		for _, addr := range op.Targets {
+			// The API client wants the normal string representation of a
+			// target address, which will ultimately get inserted into a
+			// -target option when Terraform CLI is launched in the
+			// Cloud/Enterprise execution environment.
+			runOptions.TargetAddrs = append(runOptions.TargetAddrs, addr.String())
+		}
 	}
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
