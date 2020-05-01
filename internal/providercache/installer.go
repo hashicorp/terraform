@@ -42,16 +42,7 @@ type Installer struct {
 	// namespace, which we use for providers that are built in to Terraform
 	// and thus do not need any separate installation step.
 	builtInProviderTypes []string
-
-	// pluginProtocolVersion is the protocol version terrafrom core supports to
-	// communicate with servers, and is used to resolve plugin discovery with
-	// terraform registry, in addition to any specified plugin version
-	// constraints.
-	pluginProtocolVersion getproviders.VersionConstraints
 }
-
-// The currently-supported plugin protocol version.
-var SupportedPluginProtocols = getproviders.MustParseVersionConstraints("~> 5")
 
 // NewInstaller constructs and returns a new installer with the given target
 // directory and provider source.
@@ -64,9 +55,8 @@ var SupportedPluginProtocols = getproviders.MustParseVersionConstraints("~> 5")
 // or the result is undefined.
 func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	return &Installer{
-		targetDir:             targetDir,
-		source:                source,
-		pluginProtocolVersion: SupportedPluginProtocols,
+		targetDir: targetDir,
+		source:    source,
 	}
 }
 
@@ -304,52 +294,36 @@ NeedProvider:
 			cb(provider, version)
 		}
 		meta, err := i.source.PackageMeta(provider, version, targetPlatform)
-		if err != nil {
+
+		switch err := err.(type) {
+		case nil:
+			// cool!
+		case getproviders.ErrProtocolNotSupported:
+			closestAvailable := err.Suggestion
+			if closestAvailable == &versions.Unspecified {
+				// we'll fall through to the default "not supported"
+				continue
+			}
+			var protoErrStr string
+			if version.GreaterThan(*closestAvailable) {
+				protoErrStr = providerProtocolTooNew
+			} else {
+				protoErrStr = providerProtocolTooOld
+			}
+
+			protoErr := fmt.Errorf(protoErrStr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
+			errs[provider] = protoErr
+
+			if cb := evts.FetchPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		default:
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
 				cb(provider, version, err)
 			}
 			continue
-		}
-
-		// if the package meta includes provider protocol versions, verify that terraform supports it.
-		if len(meta.ProtocolVersions) > 0 {
-			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
-			match := false
-			for _, version := range meta.ProtocolVersions {
-				if protoVersions.Has(version) {
-					match = true
-				}
-			}
-			if match == false {
-				// Find the closest matching version
-				closestAvailable := i.findClosestProtocolCompatibleVersion(provider, version)
-				if closestAvailable == versions.Unspecified {
-					err := fmt.Errorf(errProviderVersionIncompatible, provider)
-					errs[provider] = err
-					if cb := evts.FetchPackageFailure; cb != nil {
-						cb(provider, version, err)
-					}
-					continue
-				}
-
-				// Determine if the closest matching provider is newer or older
-				// than the requirement in order to send the appropriate error
-				// message.
-				var protoErr string
-				if version.GreaterThan(closestAvailable) {
-					protoErr = providerProtocolTooNew
-				} else {
-					protoErr = providerProtocolTooOld
-				}
-
-				err := fmt.Errorf(protoErr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
-				errs[provider] = err
-				if cb := evts.FetchPackageFailure; cb != nil {
-					cb(provider, version, err)
-				}
-				continue
-			}
 		}
 
 		// Step 3c: Retrieve the package indicated by the metadata we received,
@@ -548,29 +522,6 @@ func (err InstallerError) Error() string {
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
 	return b.String()
-}
-
-// findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
-func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider, version versions.Version) versions.Version {
-	var match versions.Version
-	available, _ := i.source.AvailableVersions(provider)
-	available.Sort()
-	// put the versions in increasing order of precedence
-FindMatch:
-	for index := len(available) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
-		meta, _ := i.source.PackageMeta(provider, available[index], i.targetDir.targetPlatform)
-		if len(meta.ProtocolVersions) > 0 {
-			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
-			for _, version := range meta.ProtocolVersions {
-				if protoVersions.Has(version) {
-					match = available[index]
-					break FindMatch // we will only consider the newest matching version
-				}
-			}
-		}
-
-	}
-	return match
 }
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's

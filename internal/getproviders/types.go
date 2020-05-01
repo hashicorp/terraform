@@ -94,6 +94,13 @@ func MustParseVersionConstraints(str string) VersionConstraints {
 	return ret
 }
 
+// MeetingConstraints returns a version set that contains all of the versions
+// that meet the given constraints, specified using the Spec type from the
+// constraints package.
+func MeetingConstraints(vc VersionConstraints) VersionSet {
+	return versions.MeetingConstraints(vc)
+}
+
 // Platform represents a target platform that a provider is or might be
 // available for.
 type Platform struct {
