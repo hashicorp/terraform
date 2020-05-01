@@ -45,6 +45,22 @@ type GraphNodeAttachDependencies interface {
 	AttachDependencies([]addrs.ConfigResource)
 }
 
+// GraphNodeAttachDependsOn records all resources that are transitively
+// referenced through depends_on in the configuration. This is used by data
+// resources to determine if they can be read during the plan, or if they need
+// to be further delayed until apply.
+// We can only use an addrs.ConfigResource address here, because modules are
+// not yet expended in the graph. While this will cause some extra data
+// resources to show in the plan when their depends_on references may be in
+// unrelated module instances, the fact that it only happens when there are any
+// resource updates pending means we ca still avoid the problem of the
+// "perpetual diff"
+type GraphNodeAttachDependsOn interface {
+	GraphNodeConfigResource
+	AttachDependsOn([]addrs.ConfigResource)
+	DependsOn() []*addrs.Reference
+}
+
 // GraphNodeReferenceOutside is an interface that can optionally be implemented.
 // A node that implements it can specify that its own referenceable addresses
 // and/or the addresses it references are in a different module than the
@@ -69,7 +85,7 @@ type GraphNodeReferenceOutside interface {
 	ReferenceOutside() (selfPath, referencePath addrs.Module)
 }
 
-// ReferenceTransformer is a GraphTransformer that connects all the
+// Referenceeransformer is a GraphTransformer that connects all the
 // nodes that reference each other in order to form the proper ordering.
 type ReferenceTransformer struct{}
 
@@ -116,7 +132,10 @@ type AttachDependenciesTransformer struct {
 }
 
 func (t AttachDependenciesTransformer) Transform(g *Graph) error {
-	// FIXME: this is only working with ResourceConfigAddr for now
+	// TODO: create a list of depends_on resources, and attach these to
+	// resources during plan (the destroy deps will just be ignored here).
+	// Data sources can then use the depens_on deps to determine if they can be
+	// read during plan.
 
 	for _, v := range g.Vertices() {
 		attacher, ok := v.(GraphNodeAttachDependencies)
