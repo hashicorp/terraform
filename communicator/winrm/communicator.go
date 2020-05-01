@@ -58,7 +58,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 
 	params := winrm.DefaultParameters
 	params.Timeout = formatDuration(c.Timeout())
-	if c.connInfo.NTLM == true {
+	if c.connInfo.NTLM {
 		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 
@@ -189,7 +189,7 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		MaxOperationsPerShell: 15, // lowest common denominator
 	}
 
-	if c.connInfo.NTLM == true {
+	if c.connInfo.NTLM {
 		config.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 

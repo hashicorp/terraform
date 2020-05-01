@@ -106,7 +106,7 @@ type provisioner struct {
 	OSType                string
 	RecreateClient        bool
 	PreventSudo           bool
-	RetryOnExitCode       []int
+	RetryOnExitCode       map[int]bool
 	RunList               []string
 	SecretKey             string
 	ServerURL             string
@@ -117,7 +117,7 @@ type provisioner struct {
 	UserKey               string
 	Vaults                map[string][]string
 	Version               string
-	WaitForRetry          int
+	WaitForRetry          time.Duration
 
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
@@ -334,10 +334,6 @@ func applyFn(ctx context.Context) error {
 	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
-	// Graceful retry of RFC062 exit codes
-	var attempt int
-retry:
-
 	// Wait and retry until we establish the connection
 	err = communicator.Retry(retryCtx, func() error {
 		return comm.Connect(o)
@@ -357,55 +353,65 @@ retry:
 	}
 	defer once.Do(cleanupUserKey)
 
-	if attempt == 0 {
-		if !p.SkipInstall {
-			if err := p.installChefClient(o, comm); err != nil {
+	if !p.SkipInstall {
+		if err := p.installChefClient(o, comm); err != nil {
+			return err
+		}
+	}
+
+	o.Output("Creating configuration files...")
+	if err := p.createConfigFiles(o, comm); err != nil {
+		return err
+	}
+
+	if !p.SkipRegister {
+		if p.FetchChefCertificates {
+			o.Output("Fetch Chef certificates...")
+			if err := p.fetchChefCertificates(o, comm); err != nil {
 				return err
 			}
 		}
 
-		o.Output("Creating configuration files...")
-		if err := p.createConfigFiles(o, comm); err != nil {
+		o.Output("Generate the private key...")
+		if err := p.generateClientKey(o, comm); err != nil {
+			return err
+		}
+	}
+
+	if p.Vaults != nil {
+		o.Output("Configure Chef vaults...")
+		if err := p.configureVaults(o, comm); err != nil {
+			return err
+		}
+	}
+
+	// Cleanup the user key before we run Chef-Client to prevent issues
+	// with rights caused by changing settings during the run.
+	once.Do(cleanupUserKey)
+
+	o.Output("Starting initial Chef-Client run...")
+
+	for attempt := 0; attempt < p.MaxRetries; attempt++ {
+		// Make sure to (re)connect before trying to run Chef-Client.
+		if err := communicator.Retry(retryCtx, func() error {
+			return comm.Connect(o)
+		}); err != nil {
 			return err
 		}
 
-		if !p.SkipRegister {
-			if p.FetchChefCertificates {
-				o.Output("Fetch Chef certificates...")
-				if err := p.fetchChefCertificates(o, comm); err != nil {
-					return err
-				}
-			}
-
-			o.Output("Generate the private key...")
-			if err := p.generateClientKey(o, comm); err != nil {
-				return err
-			}
+		err = p.runChefClient(o, comm)
+		if err == nil {
+			return nil
 		}
 
-		if p.Vaults != nil {
-			o.Output("Configure Chef vaults...")
-			if err := p.configureVaults(o, comm); err != nil {
-				return err
-			}
-		}
-
-		// Cleanup the user key before we run Chef-Client to prevent issues
-		// with rights caused by changing settings during the run.
-		once.Do(cleanupUserKey)
-
-		o.Output("Starting initial Chef-Client run...")
-	}
-
-	if err := p.runChefClient(o, comm); err != nil {
-		// Allow RFC062 Exit Codes
+		// Allow RFC062 Exit Codes:
 		// https://github.com/chef/chef-rfc/blob/master/rfc062-exit-status.md
 		exitError, ok := err.(*remote.ExitError)
 		if !ok {
-			return fmt.Errorf("Expected remote.ExitError but got: %w", err)
+			return err
 		}
-		exitStatus := exitError.ExitStatus
-		switch exitStatus {
+
+		switch exitError.ExitStatus {
 		case 35:
 			o.Output("Reboot has been scheduled in the run state")
 			err = nil
@@ -417,23 +423,13 @@ retry:
 			err = nil
 		}
 
-		if len(p.RetryOnExitCode) == 0 || attempt == p.MaxRetries {
-			return err
+		if p.RetryOnExitCode[exitError.ExitStatus] {
+			o.Output(fmt.Sprintf("Waiting %s before retrying Chef-Client run...", p.WaitForRetry))
+			time.Sleep(p.WaitForRetry)
 		}
-
-		for _, code := range p.RetryOnExitCode {
-			if code == exitStatus {
-				o.Output(fmt.Sprintf("Waiting %v seconds before reconnecting & re-running Chef...", p.WaitForRetry))
-				time.Sleep(time.Duration(p.WaitForRetry) * time.Second)
-				attempt++
-				goto retry
-			}
-		}
-
-		return err
 	}
 
-	return nil
+	return err
 }
 
 func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
@@ -795,7 +791,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		OSType:                d.Get("os_type").(string),
 		RecreateClient:        d.Get("recreate_client").(bool),
 		PreventSudo:           d.Get("prevent_sudo").(bool),
-		RetryOnExitCode:       getIntList(d.Get("retry_on_exit_code")),
+		RetryOnExitCode:       getIntListAsMap(d.Get("retry_on_exit_code")),
 		RunList:               getStringList(d.Get("run_list")),
 		SecretKey:             d.Get("secret_key").(string),
 		ServerURL:             d.Get("server_url").(string),
@@ -805,7 +801,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserName:              d.Get("user_name").(string),
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
-		WaitForRetry:          d.Get("wait_for_retry").(int),
+		WaitForRetry:          time.Duration(d.Get("wait_for_retry").(int)) * time.Second,
 	}
 
 	// Make sure the supplied URL has a trailing slash
@@ -855,8 +851,8 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	return p, nil
 }
 
-func getIntList(v interface{}) []int {
-	var result []int
+func getIntListAsMap(v interface{}) map[int]bool {
+	result := make(map[int]bool)
 
 	switch v := v.(type) {
 	case nil:
@@ -864,7 +860,7 @@ func getIntList(v interface{}) []int {
 	case []interface{}:
 		for _, vv := range v {
 			if vv, ok := vv.(int); ok {
-				result = append(result, vv)
+				result[vv] = true
 			}
 		}
 		return result
