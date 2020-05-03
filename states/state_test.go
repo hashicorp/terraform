@@ -83,7 +83,6 @@ func TestState(t *testing.T) {
 							Name: "baz",
 						}.Absolute(addrs.RootModuleInstance),
 
-						EachMode: EachList,
 						Instances: map[addrs.InstanceKey]*ResourceInstance{
 							addrs.IntKey(0): {
 								Current: &ResourceInstanceObjectSrc{

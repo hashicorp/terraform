@@ -197,12 +197,12 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 // SetResourceMeta updates the resource-level metadata for the resource at
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.
-func (s *SyncState) SetResourceMeta(addr addrs.AbsResource, eachMode EachMode, provider addrs.AbsProviderConfig) {
+func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	ms := s.state.EnsureModule(addr.Module)
-	ms.SetResourceMeta(addr.Resource, eachMode, provider)
+	ms.SetResourceProvider(addr.Resource, provider)
 }
 
 // RemoveResource removes the entire state for the given resource, taking with

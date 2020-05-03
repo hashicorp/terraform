@@ -259,6 +259,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			current := resource{
 				Address:      r.Addr.Instance(k).String(),
+				Index:        k,
 				Type:         resAddr.Type,
 				Name:         resAddr.Name,
 				ProviderName: r.ProviderConfig.Provider.String(),
@@ -274,10 +275,6 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					resAddr.String(),
 					resAddr.Mode.String(),
 				)
-			}
-
-			if r.EachMode != states.NoEach {
-				current.Index = k
 			}
 
 			schema, _ := schemas.ResourceTypeConfig(

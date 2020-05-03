@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
 
 	"github.com/agext/levenshtein"
@@ -801,43 +800,6 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 	schemas := d.Evaluator.Schemas
 	schema, _ := schemas.ResourceTypeConfig(providerAddr.Provider, addr.Mode, addr.Type)
 	return schema
-}
-
-// coerceInstanceKey attempts to convert the given key to the type expected
-// for the given EachMode.
-//
-// If the key is already of the correct type or if it cannot be converted then
-// it is returned verbatim. If conversion is required and possible, the
-// converted value is returned. Callers should not try to determine if
-// conversion was possible, should instead just check if the result is of
-// the expected type.
-func (d *evaluationStateData) coerceInstanceKey(key addrs.InstanceKey, mode states.EachMode) addrs.InstanceKey {
-	if key == addrs.NoKey {
-		// An absent key can't be converted
-		return key
-	}
-
-	switch mode {
-	case states.NoEach:
-		// No conversions possible at all
-		return key
-	case states.EachMap:
-		if intKey, isInt := key.(addrs.IntKey); isInt {
-			return addrs.StringKey(strconv.Itoa(int(intKey)))
-		}
-		return key
-	case states.EachList:
-		if strKey, isStr := key.(addrs.StringKey); isStr {
-			i, err := strconv.Atoi(string(strKey))
-			if err != nil {
-				return key
-			}
-			return addrs.IntKey(i)
-		}
-		return key
-	default:
-		return key
-	}
 }
 
 func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
