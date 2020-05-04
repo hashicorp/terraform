@@ -657,7 +657,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				"workspace %s not found\n\n"+
 					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
 					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. When the resource does exists, please check the rights for the used token.",
+					"to. If the resource does exist, please check the rights for the used token.",
 				name,
 			)
 		default:
@@ -863,7 +863,7 @@ func generalError(msg string, err error) error {
 			fmt.Sprintf("%s: %v", msg, err),
 			`The configured "remote" backend returns '404 Not Found' errors for resources `+
 				`that do not exist, as well as for resources that a user doesn't have access `+
-				`to. If the resource does exists, please check the rights for the used token.`,
+				`to. If the resource does exist, please check the rights for the used token.`,
 		))
 		return diags.Err()
 	default:
