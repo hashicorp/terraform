@@ -46,13 +46,13 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 	}
 }
 
-// ProviderVersions returns the raw version strings produced by the registry
-// for the given provider.
+// ProviderVersions returns the raw version and protocol strings produced by the
+// registry for the given provider.
 //
-// The returned error will be ErrProviderNotKnown if the registry responds
-// with 404 Not Found to indicate that the namespace or provider type are
-// not known, ErrUnauthorized if the registry responds with 401 or 403 status
-// codes, or ErrQueryFailed for any other protocol or operational problem.
+// The returned error will be ErrProviderNotKnown if the registry responds with
+// 404 Not Found to indicate that the namespace or provider type are not known,
+// ErrUnauthorized if the registry responds with 401 or 403 status codes, or
+// ErrQueryFailed for any other protocol or operational problem.
 func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]string, error) {
 	endpointPath, err := url.Parse(path.Join(addr.Namespace, addr.Type, "versions"))
 	if err != nil {

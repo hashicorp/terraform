@@ -526,10 +526,10 @@ func (err InstallerError) Error() string {
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's
 // supported protocol versions are too old for the user's version of terraform,
-// but an older version of the provider is compatible.
+// but a newer version of the provider is compatible.
 const providerProtocolTooOld = `
 Provider %q v%s is not compatible with Terraform %s.
-Provider version %s is the earliest compatible version. Select it with 
+Provider version %s is the latest compatible version. Select it with
 the following version constraint:
 	version = %q
 Terraform checked all of the plugin versions matching the given constraint:
@@ -541,10 +541,10 @@ compatibility between provider and Terraform versions.
 // providerProtocolTooNew is a message sent to the CLI UI if the provider's
 // supported protocol versions are too new for the user's version of terraform,
 // and the user could either upgrade terraform or choose an older version of the
-// provider
+// provider.
 const providerProtocolTooNew = `
 Provider %q v%s is not compatible with Terraform %s.
-Provider version %s is the latest compatible version. Select it with 
+You need to downgrade to v%s or earlier. Select it with
 the following constraint:
 	version = %q
 Terraform checked all of the plugin versions matching the given constraint:

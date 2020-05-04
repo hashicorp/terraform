@@ -328,6 +328,16 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	return ret, diags
 }
 
+// MustParseProviderSourceString is a wrapper around ParseProviderSourceString that panics if
+// it returns an error.
+func MustParseProviderSourceString(str string) Provider {
+	result, diags := ParseProviderSourceString(str)
+	if diags.HasErrors() {
+		panic(diags.Err().Error())
+	}
+	return result
+}
+
 // ParseProviderPart processes an addrs.Provider namespace or type string
 // provided by an end-user, producing a normalized version if possible or
 // an error if the string contains invalid characters.
