@@ -27,8 +27,11 @@ and re-used.
 This page describes how to call one module from another. Other pages in this
 section of the documentation describe the different elements that make up
 modules, and there is further information about how modules can be used,
-created, and published in [the dedicated _Modules_ section](/docs/modules/index.html).
-
+created, and published in [the dedicated _Modules_
+section](/docs/modules/index.html). You can also learn more about how to use and
+create modules with our hands-on [modules track on
+learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+ 
 ## Calling a Child Module
 
 To _call_ a module means to include the contents of that module into the
@@ -363,7 +366,7 @@ setting inside a `terraform` block.
 
 Use the `count` or `for_each` arguments to create multiple instances of a module.
 These arguments have the same syntax and type constraints as
-[`count`](./resources.html#count-multiple-resource-instances-by-count) and 
+[`count`](./resources.html#count-multiple-resource-instances-by-count) and
 [`for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
 as defined for managed resources.
 
@@ -394,10 +397,10 @@ subdirectory. That module has configuration to create an S3 bucket. The module
 wraps the bucket and all the other implementation details required to configure
 a bucket.
 
-We declare multiple module instances by using the `for_each` attribute, 
+We declare multiple module instances by using the `for_each` attribute,
 which accepts a map (with string keys) or a set of strings as its value. Additionally,
-we use the `each.key` in our module block, because the 
-[`each`](/docs/configuration/resources.html#the-each-object) object is available when 
+we use the `each.key` in our module block, because the
+[`each`](/docs/configuration/resources.html#the-each-object) object is available when
 we have declared `for_each` on the module block. When using the `count` argument, the
 [`count`](/docs/configuration/resources.html#the-count-object) object is available.
 
@@ -407,7 +410,7 @@ when displayed in plan output and elsewhere in the UI. For a module with without
 name suffices to reference the module.
 
 In our example, the `./publish_bucket` module contains `aws_s3_bucket.example`, and so the two
-instances of this module produce S3 bucket resources with [resource addresses](/docs/internals/resource-addressing.html) of `module.bucket["assets"].aws_s3_bucket.example` 
+instances of this module produce S3 bucket resources with [resource addresses](/docs/internals/resource-addressing.html) of `module.bucket["assets"].aws_s3_bucket.example`
 and `module.bucket["media"].aws_s3_bucket.example` respectively. These full addresses
 are used within the UI and on the command line, but only [outputs](docs/configuration/outputs.html)
 from a module can be referenced from elsewhere in your configuration.
