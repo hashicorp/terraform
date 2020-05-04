@@ -84,6 +84,27 @@ func TestStatePersist(t *testing.T) {
 		t.Fatalf("failed to PersistState: %s", err)
 	}
 
+	// We also don't persist state if the lineage or the serial change
+	originalSerial := mgr.serial
+	mgr.serial++
+	if err := mgr.WriteState(s); err != nil {
+		t.Fatalf("failed to WriteState: %s", err)
+	}
+	if err := mgr.PersistState(); err != nil {
+		t.Fatalf("failed to PersistState: %s", err)
+	}
+	mgr.serial = originalSerial
+
+	originalLineage := mgr.lineage
+	mgr.lineage = "behold-a-wild-lineage-appears"
+	if err := mgr.WriteState(s); err != nil {
+		t.Fatalf("failed to WriteState: %s", err)
+	}
+	if err := mgr.PersistState(); err != nil {
+		t.Fatalf("failed to PersistState: %s", err)
+	}
+	mgr.lineage = originalLineage
+
 	// ...but if we _do_ change something in the state then we should see
 	// it re-persist.
 	s.RootModule().SetOutputValue("foo", cty.StringVal("baz"), false)
