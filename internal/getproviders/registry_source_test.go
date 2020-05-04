@@ -26,7 +26,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 		// registry server implemented in registry_client_test.go.
 		{
 			"example.com/awesomesauce/happycloud",
-			[]string{"1.0.0", "1.2.0"},
+			[]string{"0.1.0", "1.0.0", "1.2.0", "2.0.0"},
 			``,
 		},
 		{
