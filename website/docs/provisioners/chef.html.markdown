@@ -60,8 +60,6 @@ resource "aws_instance" "web" {
     version         = "15.10.13"
     # If you have a self signed cert on your chef server change this to :verify_none
     ssl_verify_mode = ":verify_peer"
-    # Gracefully handle Chef upgrades, reboots, etc.
-    retry_on_exit_code = [35, 213]
   }
 }
 ```
