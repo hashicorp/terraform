@@ -53,6 +53,8 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	var state *states.ResourceInstanceObject
 	var configVal cty.Value
 
+	forcePlanRead := new(bool)
+
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
@@ -76,30 +78,22 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				If: func(ctx EvalContext) (bool, error) {
 					depChanges := false
 
-					// Check and see if any of our dependencies have changes.
+					// Check and see if any depends_on dependencies have
+					// changes, since they won't show up as changes in the
+					// configuration.
 					changes := ctx.Changes()
-					for _, d := range n.References() {
-						ri, ok := d.Subject.(addrs.ResourceInstance)
-						if !ok {
-							continue
+					depChanges = func() bool {
+						for _, d := range n.dependsOn {
+							for _, change := range changes.GetConfigResourceChanges(d) {
+								if change != nil && change.Action != plans.NoOp {
+									return true
+								}
+							}
 						}
-						change := changes.GetResourceInstanceChange(ri.Absolute(ctx.Path()), states.CurrentGen)
-						if change != nil && change.Action != plans.NoOp {
-							depChanges = true
-							break
-						}
-					}
+						return false
+					}()
 
-					refreshed := state != nil && state.Status != states.ObjectPlanned
-
-					// If there are no dependency changes, and it's not a forced
-					// read because we there was no Refresh, then we don't need
-					// to re-read. If any dependencies have changes, it means
-					// our config may also have changes and we need to Read the
-					// data source again.
-					if !depChanges && refreshed {
-						return false, EvalEarlyExitError{}
-					}
+					*forcePlanRead = depChanges
 					return true, nil
 				},
 				Then: EvalNoop{},
@@ -118,7 +112,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
-				ForcePlanRead:  true, // _always_ produce a Read change, even if the config seems ready
+				ForcePlanRead:  forcePlanRead,
 				OutputChange:   &change,
 				OutputValue:    &configVal,
 				OutputState:    &state,

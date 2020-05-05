@@ -39,7 +39,7 @@ type EvalReadData struct {
 	// _always_ generate a plan. This is used during the plan walk, since we
 	// mustn't actually apply anything there. (The resulting state doesn't
 	// get persisted)
-	ForcePlanRead bool
+	ForcePlanRead *bool
 
 	// The result from this EvalNode has a few different possibilities
 	// depending on the input:
@@ -57,6 +57,10 @@ type EvalReadData struct {
 	//   non-error outcome is to set Output.Action (if non-nil) to a plans.NoOp
 	//   change and put the complete resulting state in OutputState, ready to
 	//   be saved in the overall state and used for expression evaluation.
+	//
+	// FIXME: these fields are a mess. OutputValue is getting the config passed
+	// in, OutputState is passed in as well, and OuputValue is replaced with
+	// the state value which goes in OutputState.
 	OutputChange      **plans.ResourceInstanceChange
 	OutputValue       *cty.Value
 	OutputConfigValue *cty.Value
@@ -64,15 +68,24 @@ type EvalReadData struct {
 }
 
 func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.OutputState
 	absAddr := n.Addr.Absolute(ctx.Path())
-	log.Printf("[TRACE] EvalReadData: working on %s", absAddr)
+
+	var planned *plans.ResourceInstanceChange
+	if n.Planned != nil {
+		planned = *n.Planned
+	}
+
+	forcePlanRead := false
+	if n.ForcePlanRead != nil {
+		forcePlanRead = *n.ForcePlanRead
+	}
 
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
 	}
 
 	var diags tfdiags.Diagnostics
-	var change *plans.ResourceInstanceChange
 	var configVal cty.Value
 
 	// TODO: Do we need to handle Delete changes here? EvalReadDataDiff and
@@ -90,11 +103,17 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type)
 	}
 
-	// We'll always start by evaluating the configuration. What we do after
-	// that will depend on the evaluation result along with what other inputs
-	// we were given.
+	// While data source are read-only, and don't necessarily use the prior
+	// state, we record it here and use it to determine if we have a change or
+	// not.  If we needed to read a new value, but it still matches the
+	// previous state, then we can record a NoNop change. If the states don't
+	// match then we record a Read change so that the new value is applied to
+	// the state.
 	objTy := schema.ImpliedType()
-	priorVal := cty.NullVal(objTy) // for data resources, prior is always null because we start fresh every time
+	priorVal := cty.NullVal(objTy)
+	if state != nil {
+		priorVal = state.Value
+	}
 
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
@@ -130,20 +149,21 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 
 	proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
+	configKnown := configVal.IsWhollyKnown()
 	// If our configuration contains any unknown values then we must defer the
 	// read to the apply phase by producing a "Read" change for this resource,
 	// and a placeholder value for it in the state.
-	if n.ForcePlanRead || !configVal.IsWhollyKnown() {
+	if forcePlanRead || !configKnown {
 		// If the configuration is still unknown when we're applying a planned
 		// change then that indicates a bug in Terraform, since we should have
 		// everything resolved by now.
-		if n.Planned != nil && *n.Planned != nil {
+		if planned != nil {
 			return nil, fmt.Errorf(
 				"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 				absAddr,
 			)
 		}
-		if n.ForcePlanRead {
+		if configKnown {
 			log.Printf("[TRACE] EvalReadData: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
 		} else {
 			log.Printf("[TRACE] EvalReadData: %s configuration not fully known yet, so deferring to apply phase", absAddr)
@@ -156,7 +176,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, err
 		}
 
-		change = &plans.ResourceInstanceChange{
+		change := &plans.ResourceInstanceChange{
 			Addr:         absAddr,
 			ProviderAddr: n.ProviderAddr,
 			Change: plans.Change{
@@ -182,10 +202,11 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		if n.OutputConfigValue != nil {
 			*n.OutputConfigValue = configVal
 		}
+
 		if n.OutputState != nil {
 			state := &states.ResourceInstanceObject{
-				Value:  change.After,
-				Status: states.ObjectPlanned, // because the partial value in the plan must be used for now
+				Value:  cty.NullVal(objTy),
+				Status: states.ObjectPlanned,
 			}
 			*n.OutputState = state
 		}
@@ -193,14 +214,48 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
-	if n.Planned != nil && *n.Planned != nil && (*n.Planned).Action != plans.Read {
-		// If any other action gets in here then that's always a bug; this
-		// EvalNode only deals with reading.
-		return nil, fmt.Errorf(
-			"invalid action %s for %s: only Read is supported (this is a bug in Terraform; please report it!)",
-			(*n.Planned).Action, absAddr,
-		)
+	if planned != nil {
+		if !(planned.Action == plans.Read || planned.Action == plans.Update) {
+			// If any other action gets in here then that's always a bug; this
+			// EvalNode only deals with reading.
+			return nil, fmt.Errorf(
+				"invalid action %s for %s: only Read or Update is supported (this is a bug in Terraform; please report it!)",
+				planned.Action, absAddr,
+			)
+		}
+
+		// we have a change and it is complete, which means we read the data
+		// source during plan.
+		if planned.Action == plans.Update {
+			state = &states.ResourceInstanceObject{
+				Value:  planned.After,
+				Status: states.ObjectReady,
+			}
+
+			err := ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostRefresh(absAddr, states.CurrentGen, planned.Before, planned.After)
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			if n.OutputChange != nil {
+				*n.OutputChange = planned
+			}
+			if n.OutputValue != nil {
+				*n.OutputValue = planned.After
+			}
+			if n.OutputConfigValue != nil {
+				*n.OutputConfigValue = configVal
+			}
+			if n.OutputState != nil {
+				*n.OutputState = state
+			}
+			return nil, diags.ErrWithWarnings()
+		}
 	}
+
+	var change *plans.ResourceInstanceChange
 
 	log.Printf("[TRACE] Re-validating config for %s", absAddr)
 	validateResp := provider.ValidateDataSourceConfig(
@@ -266,7 +321,8 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 			),
 		))
 	}
-	if !newVal.IsWhollyKnown() {
+
+	if !newVal.IsNull() && !newVal.IsWhollyKnown() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
@@ -285,19 +341,24 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
-	// Since we've completed the read, we actually have no change to make, but
-	// we'll produce a NoOp one anyway to preserve the usual flow of the
-	// plan phase and allow it to produce a complete plan.
+	action := plans.NoOp
+	if !newVal.IsNull() && newVal.IsKnown() && newVal.Equals(priorVal).False() {
+		// FIXME: for now we are abusing Update to mean "apply this new value"
+		action = plans.Update
+	}
+
+	// Produce a change regardless of the outcome.
 	change = &plans.ResourceInstanceChange{
 		Addr:         absAddr,
 		ProviderAddr: n.ProviderAddr,
 		Change: plans.Change{
-			Action: plans.NoOp,
-			Before: newVal,
+			Action: action,
+			Before: priorVal,
 			After:  newVal,
 		},
 	}
-	state := &states.ResourceInstanceObject{
+
+	state = &states.ResourceInstanceObject{
 		Value:  change.After,
 		Status: states.ObjectReady, // because we completed the read from the provider
 	}
