@@ -8,6 +8,10 @@ ENHANCEMENTS:
 
 * backend/s3: Support automatic region validation for `af-south-1` [GH-24744]
 
+BUG FIXES:
+* core: Destroy provisioners should not evaluate for_each expressions [GH-24163]
+* core: Fix races in GetVariableValue [GH-24599]
+
 ## 0.12.24 (March 19, 2020)
 
 NOTES:
