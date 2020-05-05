@@ -114,14 +114,16 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 	return ret, nil
 }
 
-// PackageMeta returns metadata about a distribution package for a
-// provider.
+// PackageMeta returns metadata about a distribution package for a provider.
 //
-// The returned error will be ErrPlatformNotSupported if the registry responds
-// with 404 Not Found, under the assumption that the caller previously checked
-// that the provider and version are valid. It will return ErrUnauthorized if
-// the registry responds with 401 or 403 status codes, or ErrQueryFailed for
-// any other protocol or operational problem.
+// The returned error will be one of the following:
+//   - ErrPlatformNotSupported if the registry responds with 404 Not Found,
+//     under the assumption that the caller previously checked that the provider
+//     and version are valid.
+//   - ErrProtocolNotSupported if the requested provider version's protocols are not
+//     supported by this version of terraform.
+//   - ErrUnauthorized if the registry responds with 401 or 403 status codes
+//   - ErrQueryFailed for any other operational problem.
 func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	endpointPath, err := url.Parse(path.Join(
 		provider.Namespace,
@@ -340,7 +342,7 @@ func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Pro
 	protoVersions := MeetingConstraints(SupportedPluginProtocols)
 FindMatch:
 	// put the versions in increasing order of precedence
-	for index := len(available) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
+	for index := len(versionList) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
 		for _, protoStr := range available[versionList[index].String()] {
 			p, err := ParseVersion(protoStr)
 			if err != nil {
