@@ -125,7 +125,7 @@ func (h handler) serveToken(resp http.ResponseWriter, req *http.Request) {
 		case "S256":
 			h := sha256.New()
 			h.Write([]byte(codeVerifier))
-			encVerifier := base64.URLEncoding.EncodeToString(h.Sum(nil))
+			encVerifier := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 			if codeParts[1] != encVerifier {
 				log.Printf("/token: incorrect code verifier %q; want %q", codeParts[1], encVerifier)
 				resp.Header().Set("Content-Type", "application/json")
