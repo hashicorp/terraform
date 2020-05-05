@@ -3,10 +3,12 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // graphNodeModuleCloser is an interface implemented by nodes that finalize the
@@ -281,8 +283,48 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 	// will be a single instance, but still get our address in the expected
 	// manner anyway to ensure they've been registered correctly.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+		ctx = ctx.WithPath(module)
+
+		// Validate our for_each and count expressions, as well as validating
+		// that we don't have any provider configs in our expanding modules.
+		// We need to have providers in order to remove modules, and explain as such
+		// in the error to the user.
+		switch {
+		case n.ModuleCall.Count != nil:
+			_, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			if len(n.Config.ProviderConfigs) > 0 {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider configs are not allowed in expanding modules",
+					Detail:   fmt.Sprintf(`The module call "%s" declares a count value, but the module source "%s" includes a "provider" block. Provider blocks cannot be used in expanding modules because module deletion depends on the presence of a provider to fulfill that task. We recommend keeping provider configurations in your root module, and passing specific providers to the "providers" argument in a given module call.`, n.ModuleCall.Name, n.ModuleCall.SourceAddr),
+					Subject:  &n.ModuleCall.SourceAddrRange,
+				})
+				return nil, diags.Err()
+			}
+
+		case n.ModuleCall.ForEach != nil:
+			_, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			if len(n.Config.ProviderConfigs) > 0 {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider configs are not allowed in expanding modules",
+					Detail:   fmt.Sprintf(`The module call "%s" declares a for_each value, but the module source "%s" includes a "provider" block. Provider blocks cannot be used in expanding modules because module deletion depends on the presence of a provider to fulfill that task. We recommend keeping provider configurations in your root module, and passing specific providers to the "providers" argument in a given module call.`, n.ModuleCall.Name, n.ModuleCall.SourceAddr),
+					Subject:  &n.ModuleCall.SourceAddrRange,
+				})
+				return nil, diags.Err()
+			}
+		}
+
 		// now set our own mode to single
-		ctx.InstanceExpander().SetModuleSingle(module, call)
+		expander.SetModuleSingle(module, call)
 	}
 	return nil, nil
 }
