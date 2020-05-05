@@ -1425,7 +1425,7 @@ module "mod2" {
 }
 
 module "mod3" {
-  count = len(module.mod2)
+  count = length(module.mod2)
   source = "./mod"
 }
 `,

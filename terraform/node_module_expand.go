@@ -291,7 +291,7 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 		// in the error to the user.
 		switch {
 		case n.ModuleCall.Count != nil:
-			_, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			_, diags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
@@ -307,7 +307,7 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 			}
 
 		case n.ModuleCall.ForEach != nil:
-			_, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			_, diags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
