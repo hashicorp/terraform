@@ -5421,7 +5421,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+		mustProviderConfig(`provider.aws`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -5474,7 +5474,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+		mustProviderConfig(`provider.aws`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -5543,7 +5543,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+		mustProviderConfig(`provider.aws`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -5694,7 +5694,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/aws"]`),
+		mustProviderConfig(`provider.aws`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
