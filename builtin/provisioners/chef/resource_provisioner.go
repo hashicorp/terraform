@@ -391,7 +391,7 @@ func applyFn(ctx context.Context) error {
 
 	o.Output("Starting initial Chef-Client run...")
 
-	for attempt := 0; attempt < p.MaxRetries; attempt++ {
+	for attempt := 0; attempt <= p.MaxRetries; attempt++ {
 		// Make sure to (re)connect before trying to run Chef-Client.
 		if err := communicator.Retry(retryCtx, func() error {
 			return comm.Connect(o)
@@ -423,7 +423,11 @@ func applyFn(ctx context.Context) error {
 			err = nil
 		}
 
-		if p.RetryOnExitCode[exitError.ExitStatus] {
+		if !p.RetryOnExitCode[exitError.ExitStatus] {
+			return err
+		}
+
+		if attempt < p.MaxRetries {
 			o.Output(fmt.Sprintf("Waiting %s before retrying Chef-Client run...", p.WaitForRetry))
 			time.Sleep(p.WaitForRetry)
 		}
