@@ -52,9 +52,8 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 
 // Connect implementation of communicator.Communicator interface
 func (c *Communicator) Connect(o terraform.UIOutput) error {
-	if c.client != nil {
-		return nil
-	}
+	// Set the client to nil since we'll (re)create it
+	c.client = nil
 
 	params := winrm.DefaultParameters
 	params.Timeout = formatDuration(c.Timeout())

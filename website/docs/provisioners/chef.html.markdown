@@ -112,7 +112,7 @@ The following arguments are supported:
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.
 
 * `max_retries (integer)` - (Optional) The number of times to retry the provisioning process
-  after receiving an exit code in the `retry_on_error` list. Defaults to `1`
+  after receiving an exit code in the `retry_on_error` list. Defaults to `0`
 
 * `named_run_list (string)` - (Optional) The name of an alternate run-list to invoke during the
   initial Chef Client run. The run-list must already exist in the Policyfile that defines
@@ -136,9 +136,10 @@ The following arguments are supported:
 * `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
 
-* `retry_on_error (list of integers)` - (Optional) The error codes upon which Terraform should
+* `retry_on_error (array)` - (Optional) The error codes upon which Terraform should
   gracefully retry the provisioning process. Intended for use with
   [Chef RFC062 codes](https://github.com/chef-boneyard/chef-rfc/blob/master/rfc062-exit-status.md).
+  (Defaults to `[35, 37, 213]`)
 
 * `run_list (array)` - (Optional) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful

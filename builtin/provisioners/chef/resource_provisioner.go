@@ -204,7 +204,7 @@ func Provisioner() terraform.ResourceProvisioner {
 			"max_retries": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
+				Default:  0,
 			},
 			"no_proxy": &schema.Schema{
 				Type:     schema.TypeList,
@@ -392,6 +392,11 @@ func applyFn(ctx context.Context) error {
 	o.Output("Starting initial Chef-Client run...")
 
 	for attempt := 0; attempt <= p.MaxRetries; attempt++ {
+		// We need a new retry context for each attempt, to make sure
+		// they all get the correct timeout.
+		retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+		defer cancel()
+
 		// Make sure to (re)connect before trying to run Chef-Client.
 		if err := communicator.Retry(retryCtx, func() error {
 			return comm.Connect(o)
@@ -795,7 +800,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		OSType:                d.Get("os_type").(string),
 		RecreateClient:        d.Get("recreate_client").(bool),
 		PreventSudo:           d.Get("prevent_sudo").(bool),
-		RetryOnExitCode:       getIntListAsMap(d.Get("retry_on_exit_code")),
+		RetryOnExitCode:       getRetryOnExitCodes(d),
 		RunList:               getStringList(d.Get("run_list")),
 		SecretKey:             d.Get("secret_key").(string),
 		ServerURL:             d.Get("server_url").(string),
@@ -855,12 +860,19 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	return p, nil
 }
 
-func getIntListAsMap(v interface{}) map[int]bool {
+func getRetryOnExitCodes(d *schema.ResourceData) map[int]bool {
 	result := make(map[int]bool)
 
-	switch v := v.(type) {
-	case nil:
+	v, ok := d.GetOk("retry_on_exit_code")
+	if !ok || v == nil {
+		// Use default exit codes
+		result[35] = true
+		result[37] = true
+		result[213] = true
 		return result
+	}
+
+	switch v := v.(type) {
 	case []interface{}:
 		for _, vv := range v {
 			if vv, ok := vv.(int); ok {
