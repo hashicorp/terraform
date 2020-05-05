@@ -118,6 +118,7 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	}
 	if p.GetSchemaReturn != nil {
 		ret.Provider.Block = p.GetSchemaReturn.Provider
+		ret.ProviderMeta.Block = p.GetSchemaReturn.ProviderMeta
 		for n, s := range p.GetSchemaReturn.DataSources {
 			ret.DataSources[n] = providers.Schema{
 				Block: s,

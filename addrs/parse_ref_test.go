@@ -281,10 +281,8 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo`,
 			&Reference{
-				Subject: ModuleCallInstance{
-					Call: ModuleCall{
-						Name: "foo",
-					},
+				Subject: ModuleCall{
+					Name: "foo",
 				},
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
@@ -296,7 +294,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo.bar`,
 			&Reference{
-				Subject: ModuleCallOutput{
+				Subject: AbsModuleCallOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",
@@ -314,7 +312,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo.bar.baz`,
 			&Reference{
-				Subject: ModuleCallOutput{
+				Subject: AbsModuleCallOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",
@@ -357,7 +355,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo["baz"].bar`,
 			&Reference{
-				Subject: ModuleCallOutput{
+				Subject: AbsModuleCallOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",
@@ -376,7 +374,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo["baz"].bar.boop`,
 			&Reference{
-				Subject: ModuleCallOutput{
+				Subject: AbsModuleCallOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",

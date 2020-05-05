@@ -21,3 +21,7 @@ func deleteURL(c *gophercloud.ServiceClient, container string) string {
 func updateURL(c *gophercloud.ServiceClient, container string) string {
 	return createURL(c, container)
 }
+
+func bulkDeleteURL(c *gophercloud.ServiceClient) string {
+	return c.Endpoint + "?bulk-delete=true"
+}

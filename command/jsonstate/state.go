@@ -191,7 +191,7 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	var err error
 
 	ret.Address = ""
-	ret.Resources, err = marshalResources(s.RootModule().Resources, schemas)
+	ret.Resources, err = marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
 	if err != nil {
 		return ret, err
 	}
@@ -212,8 +212,8 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	return ret, err
 }
 
-// marshalModules is an ungainly recursive function to build a module
-// structure out of a teraform state.
+// marshalModules is an ungainly recursive function to build a module structure
+// out of terraform state.
 func marshalModules(
 	s *states.State,
 	schemas *terraform.Schemas,
@@ -225,7 +225,7 @@ func marshalModules(
 		stateMod := s.Module(child)
 		// cm for child module, naming things is hard.
 		cm := module{Address: stateMod.Addr.String()}
-		rs, err := marshalResources(stateMod.Resources, schemas)
+		rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
 		if err != nil {
 			return nil, err
 		}
@@ -241,42 +241,46 @@ func marshalModules(
 		ret = append(ret, cm)
 	}
 
+	// sort the child modules by address for consistency.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Address < ret[j].Address
+	})
+
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
+func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]resource, error) {
 	var ret []resource
 
 	for _, r := range resources {
 		for k, ri := range r.Instances {
 
+			resAddr := r.Addr.Resource
+
 			current := resource{
-				Address:      r.Addr.String(),
-				Type:         r.Addr.Type,
-				Name:         r.Addr.Name,
-				ProviderName: r.ProviderConfig.Provider.LegacyString(),
+				Address:      r.Addr.Instance(k).String(),
+				Index:        k,
+				Type:         resAddr.Type,
+				Name:         resAddr.Name,
+				ProviderName: r.ProviderConfig.Provider.String(),
 			}
 
-			switch r.Addr.Mode {
+			switch resAddr.Mode {
 			case addrs.ManagedResourceMode:
 				current.Mode = "managed"
 			case addrs.DataResourceMode:
 				current.Mode = "data"
 			default:
 				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
-					r.Addr.String(),
-					r.Addr.Mode.String(),
+					resAddr.String(),
+					resAddr.Mode.String(),
 				)
-			}
-
-			if r.EachMode != states.NoEach {
-				current.Index = k
 			}
 
 			schema, _ := schemas.ResourceTypeConfig(
 				r.ProviderConfig.Provider,
-				r.Addr.Mode,
-				r.Addr.Type,
+				resAddr.Mode,
+				resAddr.Type,
 			)
 
 			// It is possible that the only instance is deposed
@@ -284,7 +288,7 @@ func marshalResources(resources map[string]*states.Resource, schemas *terraform.
 				current.SchemaVersion = ri.Current.SchemaVersion
 
 				if schema == nil {
-					return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
 				riObj, err := ri.Current.Decode(schema.ImpliedType())
 				if err != nil {

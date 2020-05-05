@@ -107,6 +107,7 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 			instances := []obj{}
 
 			addr := m.Resources[key].Addr
+			resAddr := addr.Resource
 
 			taintStr := ""
 			if v.Current != nil && v.Current.Status == 'T' {
@@ -114,11 +115,11 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 			}
 
 			instances = append(instances,
-				obj{fmt.Sprintf("# %s:%s\n", addr.Absolute(m.Addr).Instance(k), taintStr), v.Current})
+				obj{fmt.Sprintf("# %s:%s\n", addr.Instance(k), taintStr), v.Current})
 
 			for dk, v := range v.Deposed {
 				instances = append(instances,
-					obj{fmt.Sprintf("# %s: (deposed object %s)\n", addr.Absolute(m.Addr).Instance(k), dk), v})
+					obj{fmt.Sprintf("# %s: (deposed object %s)\n", addr.Instance(k), dk), v})
 			}
 
 			// Sort the instances for consistent output.
@@ -146,48 +147,48 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 					// loaded all of the schemas and checked things prior to this
 					// point. We can't return errors here, but since this is UI code
 					// we will try to do _something_ reasonable.
-					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.LegacyString()))
+					p.buf.WriteString(fmt.Sprintf("# missing schema for provider %q\n\n", provider.String()))
 					continue
 				}
 
-				switch addr.Mode {
+				switch resAddr.Mode {
 				case addrs.ManagedResourceMode:
 					schema, _ = schemas.ResourceTypeConfig(
 						provider,
-						addr.Mode,
-						addr.Type,
+						resAddr.Mode,
+						resAddr.Type,
 					)
 					if schema == nil {
 						p.buf.WriteString(fmt.Sprintf(
-							"# missing schema for provider %q resource type %s\n\n", provider, addr.Type))
+							"# missing schema for provider %q resource type %s\n\n", provider, resAddr.Type))
 						continue
 					}
 
 					p.buf.WriteString(fmt.Sprintf(
 						"resource %q %q {",
-						addr.Type,
-						addr.Name,
+						resAddr.Type,
+						resAddr.Name,
 					))
 				case addrs.DataResourceMode:
 					schema, _ = schemas.ResourceTypeConfig(
 						provider,
-						addr.Mode,
-						addr.Type,
+						resAddr.Mode,
+						resAddr.Type,
 					)
 					if schema == nil {
 						p.buf.WriteString(fmt.Sprintf(
-							"# missing schema for provider %q data source %s\n\n", provider, addr.Type))
+							"# missing schema for provider %q data source %s\n\n", provider, resAddr.Type))
 						continue
 					}
 
 					p.buf.WriteString(fmt.Sprintf(
 						"data %q %q {",
-						addr.Type,
-						addr.Name,
+						resAddr.Type,
+						resAddr.Name,
 					))
 				default:
 					// should never happen, since the above is exhaustive
-					p.buf.WriteString(addr.String())
+					p.buf.WriteString(resAddr.String())
 				}
 
 				val, err := instance.Decode(schema.ImpliedType())

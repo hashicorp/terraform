@@ -17,7 +17,7 @@ import (
 
 	"github.com/hashicorp/hcl"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -42,6 +42,12 @@ type Config struct {
 
 	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`
 	CredentialsHelpers map[string]*ConfigCredentialsHelper `hcl:"credentials_helper"`
+
+	// ProviderInstallation represents any provider_installation blocks
+	// in the configuration. Only one of these is allowed across the whole
+	// configuration, but we decode into a slice here so that we can handle
+	// that validation at validation time rather than initial decode time.
+	ProviderInstallation []*ProviderInstallation
 }
 
 // ConfigHost is the structure of the "host" nested block within the CLI
@@ -91,12 +97,23 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 		}
 	}
 
-	if configDir, err := ConfigDir(); err == nil {
-		if info, err := os.Stat(configDir); err == nil && info.IsDir() {
-			dirConfig, dirDiags := loadConfigDir(configDir)
-			diags = diags.Append(dirDiags)
-			config = config.Merge(dirConfig)
+	// Unless the user has specifically overridden the configuration file
+	// location using an environment variable, we'll also load what we find
+	// in the config directory. We skip the config directory when source
+	// file override is set because we interpret the environment variable
+	// being set as an intention to ignore the default set of CLI config
+	// files because we're doing something special, like running Terraform
+	// in automation with a locally-customized configuration.
+	if cliConfigFileOverride() == "" {
+		if configDir, err := ConfigDir(); err == nil {
+			if info, err := os.Stat(configDir); err == nil && info.IsDir() {
+				dirConfig, dirDiags := loadConfigDir(configDir)
+				diags = diags.Append(dirDiags)
+				config = config.Merge(dirConfig)
+			}
 		}
+	} else {
+		log.Printf("[DEBUG] Not reading CLI config directory because config location is overridden by environment variable")
 	}
 
 	if envConfig := EnvConfig(); envConfig != nil {
@@ -135,6 +152,13 @@ func loadConfigFile(path string) (*Config, tfdiags.Diagnostics) {
 		diags = diags.Append(fmt.Errorf("Error parsing %s: %s", path, err))
 		return result, diags
 	}
+
+	// Deal with the provider_installation block, which is not handled using
+	// DecodeObject because its structure is not compatible with the
+	// limitations of that function.
+	providerInstBlocks, moreDiags := decodeProviderInstallationFromConfig(obj)
+	diags = diags.Append(moreDiags)
+	result.ProviderInstallation = providerInstBlocks
 
 	// Replace all env vars
 	for k, v := range result.Providers {
@@ -242,6 +266,13 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 		)
 	}
 
+	// Should have zero or one "provider_installation" blocks
+	if len(c.ProviderInstallation) > 1 {
+		diags = diags.Append(
+			fmt.Errorf("No more than one provider_installation block may be specified"),
+		)
+	}
+
 	return diags
 }
 
@@ -310,17 +341,18 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		}
 	}
 
+	if (len(c1.ProviderInstallation) + len(c2.ProviderInstallation)) > 0 {
+		result.ProviderInstallation = append(result.ProviderInstallation, c1.ProviderInstallation...)
+		result.ProviderInstallation = append(result.ProviderInstallation, c2.ProviderInstallation...)
+	}
+
 	return &result
 }
 
 func cliConfigFile() (string, error) {
 	mustExist := true
 
-	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
-	if configFilePath == "" {
-		configFilePath = os.Getenv("TERRAFORM_CONFIG")
-	}
-
+	configFilePath := cliConfigFileOverride()
 	if configFilePath == "" {
 		var err error
 		configFilePath, err = ConfigFile()
@@ -346,4 +378,12 @@ func cliConfigFile() (string, error) {
 
 	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
 	return "", nil
+}
+
+func cliConfigFileOverride() string {
+	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
+	if configFilePath == "" {
+		configFilePath = os.Getenv("TERRAFORM_CONFIG")
+	}
+	return configFilePath
 }

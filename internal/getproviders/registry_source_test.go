@@ -23,7 +23,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 		wantErr      string
 	}{
 		// These test cases are relying on behaviors of the fake provider
-		// registry server implemented in client_test.go.
+		// registry server implemented in registry_client_test.go.
 		{
 			"example.com/awesomesauce/happycloud",
 			[]string{"1.0.0", "1.2.0"},
@@ -52,7 +52,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 		{
 			"fails.example.com/foo/bar",
 			nil,
-			`could not query provider registry for fails.example.com/foo/bar: Get ` + baseURL + `/fails-immediately/foo/bar/versions: EOF`,
+			`could not query provider registry for fails.example.com/foo/bar: Get "` + baseURL + `/fails-immediately/foo/bar/versions": EOF`,
 		},
 	}
 
@@ -117,11 +117,29 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{
+				Provider: addrs.NewProvider(
+					svchost.Hostname("example.com"), "awesomesauce", "happycloud",
+				),
+				Version:          versions.MustParseVersion("1.2.0"),
 				ProtocolVersions: VersionList{versions.MustParseVersion("5.0.0")},
 				TargetPlatform:   Platform{"linux", "amd64"},
 				Filename:         "happycloud_1.2.0.zip",
-				Location:         PackageHTTPURL(baseURL + "/pkg/happycloud_1.2.0.zip"),
-				SHA256Sum:        [32]uint8{30: 0xf0, 31: 0x0d}, // fake registry uses a memorable sum
+				Location:         PackageHTTPURL(baseURL + "/pkg/awesomesauce/happycloud_1.2.0.zip"),
+				Authentication: PackageAuthenticationAll(
+					NewMatchingChecksumAuthentication(
+						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
+						"happycloud_1.2.0.zip",
+						[32]byte{30: 0xf0, 31: 0x0d},
+					),
+					NewArchiveChecksumAuthentication([32]byte{30: 0xf0, 31: 0x0d}),
+					NewSignatureAuthentication(
+						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
+						[]byte("GPG signature"),
+						[]SigningKey{
+							{ASCIIArmor: HashicorpPublicKey},
+						},
+					),
+				),
 			},
 			``,
 		},
@@ -151,7 +169,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
-			`could not query provider registry for fails.example.com/awesomesauce/happycloud: Get http://placeholder-origin/fails-immediately/awesomesauce/happycloud/1.2.0/download/linux/amd64: EOF`,
+			`could not query provider registry for fails.example.com/awesomesauce/happycloud: Get "http://placeholder-origin/fails-immediately/awesomesauce/happycloud/1.2.0/download/linux/amd64": EOF`,
 		},
 	}
 

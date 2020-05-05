@@ -20,7 +20,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
@@ -32,7 +32,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
@@ -44,7 +44,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
@@ -71,7 +71,7 @@
             "index": 0,
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test",
             "change": {
                 "actions": [
@@ -91,7 +91,7 @@
             "index": 1,
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test",
             "change": {
                 "actions": [
@@ -111,7 +111,7 @@
             "index": 2,
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test",
             "change": {
                 "actions": [

@@ -97,7 +97,7 @@ func (s sortModules) Swap(i, j int) {
 	s.modules[i], s.modules[j] = s.modules[j], s.modules[i]
 }
 
-// PluginRequirements produces a PluginRequirements structure that can
+// ProviderRequirements produces a PluginRequirements structure that can
 // be used with discovery.PluginMetaSet.ConstrainVersions to identify
 // suitable plugins to satisfy the module's provider dependencies.
 //
@@ -107,16 +107,14 @@ func (s sortModules) Swap(i, j int) {
 //
 // Requirements returned by this method include only version constraints,
 // and apply no particular SHA256 hash constraint.
-func (m *Module) PluginRequirements() discovery.PluginRequirements {
+func (m *Module) ProviderRequirements() discovery.PluginRequirements {
 	ret := make(discovery.PluginRequirements)
 	for pFqn, dep := range m.Providers {
-		// TODO: discovery.PluginRequirements should be refactored and use
-		// addrs.Provider as the map keys
-		provider := pFqn.LegacyString()
-		if existing, exists := ret[provider]; exists {
-			ret[provider].Versions = existing.Versions.Append(dep.Constraints)
+		providerStr := pFqn.LegacyString()
+		if existing, exists := ret[providerStr]; exists {
+			ret[providerStr].Versions = existing.Versions.Append(dep.Constraints)
 		} else {
-			ret[provider] = &discovery.PluginConstraints{
+			ret[providerStr] = &discovery.PluginConstraints{
 				Versions: dep.Constraints,
 			}
 		}
@@ -124,16 +122,16 @@ func (m *Module) PluginRequirements() discovery.PluginRequirements {
 	return ret
 }
 
-// AllPluginRequirements calls PluginRequirements for the receiver and all
+// AllProviderRequirements calls ProviderRequirements for the receiver and all
 // of its descendents, and merges the result into a single PluginRequirements
 // structure that would satisfy all of the modules together.
 //
 // Requirements returned by this method include only version constraints,
 // and apply no particular SHA256 hash constraint.
-func (m *Module) AllPluginRequirements() discovery.PluginRequirements {
+func (m *Module) AllProviderRequirements() discovery.PluginRequirements {
 	var ret discovery.PluginRequirements
 	m.WalkTree(func(path []string, parent *Module, current *Module) error {
-		ret = ret.Merge(current.PluginRequirements())
+		ret = ret.Merge(current.ProviderRequirements())
 		return nil
 	})
 	return ret

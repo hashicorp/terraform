@@ -34,7 +34,14 @@ type ResourceInstanceObject struct {
 	// the dependency relationships for an object whose configuration is no
 	// longer available, such as if it has been removed from configuration
 	// altogether, or is now deposed.
-	Dependencies []addrs.AbsResource
+	Dependencies []addrs.ConfigResource
+
+	// CreateBeforeDestroy reflects the status of the lifecycle
+	// create_before_destroy option when this instance was last updated.
+	// Because create_before_destroy also effects the overall ordering of the
+	// destroy operations, we need to record the status to ensure a resource
+	// removed from the config will still be destroyed in the same manner.
+	CreateBeforeDestroy bool
 
 	// DependsOn corresponds to the deprecated `depends_on` field in the state.
 	// This field contained the configuration `depends_on` values, and some of

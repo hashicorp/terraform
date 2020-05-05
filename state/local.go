@@ -216,7 +216,7 @@ func (s *LocalState) Unlock(id string) error {
 		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
 		info, err := s.lockInfo()
 		if err != nil {
-			err = multierror.Append(idErr, err)
+			idErr = multierror.Append(idErr, err)
 		}
 
 		return &LockError{

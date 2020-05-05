@@ -81,6 +81,36 @@ func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	return nil
 }
 
+// OutputValues returns planned changes for all outputs for all module
+// instances that reside in the parent path.  Returns nil if no changes are
+// planned.
+func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChangeSrc {
+	var res []*OutputChangeSrc
+
+	for _, oc := range c.Outputs {
+		// we can't evaluate root module outputs
+		if oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+			continue
+		}
+
+		changeMod, changeCall := oc.Addr.Module.Call()
+		// this does not reside on our parent instance path
+		if !changeMod.Equal(parent) {
+			continue
+		}
+
+		// this is not the module you're looking for
+		if changeCall.Name != module.Name {
+			continue
+		}
+
+		res = append(res, oc)
+
+	}
+
+	return res
+}
+
 // SyncWrapper returns a wrapper object around the receiver that can be used
 // to make certain changes to the receiver in a concurrency-safe way, as long
 // as all callers share the same wrapper object.

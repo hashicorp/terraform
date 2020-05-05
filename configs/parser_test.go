@@ -1,13 +1,16 @@
 package configs
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/afero"
 )
@@ -45,11 +48,62 @@ func testModuleFromFile(filename string) (*Module, hcl.Diagnostics) {
 	return mod, modDiags
 }
 
+// testModuleConfigFrom File reads a single file from the given path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	f, diags := parser.LoadConfigFile(filename)
+	mod, modDiags := NewModule([]*File{f}, nil)
+	diags = append(diags, modDiags...)
+	cfg, moreDiags := BuildConfig(mod, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
 // testModuleFromDir reads configuration from the given directory path as
 // a module and returns it. This is a helper for use in unit tests.
 func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {
 	parser := NewParser(nil)
 	return parser.LoadConfigDir(path)
+}
+
+// testModuleFromDir reads configuration from the given directory path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleConfigFromDir(path string) (*Config, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDir(path)
+	cfg, moreDiags := BuildConfig(mod, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
+// testNestedModuleConfigFromDir reads configuration from the given directory path as
+// a module with (optional) submodules and returns its configuration. This is a
+// helper for use in unit tests.
+func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diagnostics) {
+	t.Helper()
+
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDir(path)
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	versionI := 0
+	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+			// For the sake of this test we're going to just treat our
+			// SourceAddr as a path relative to our fixture directory.
+			// A "real" implementation of ModuleWalker should accept the
+			// various different source address syntaxes Terraform supports.
+			sourcePath := filepath.Join(path, req.SourceAddr)
+
+			mod, diags := parser.LoadConfigDir(sourcePath)
+			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
+			versionI++
+			return mod, version, diags
+		},
+	))
+	return cfg, diags
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
@@ -59,7 +113,7 @@ func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
 
 func assertDiagnosticCount(t *testing.T, diags hcl.Diagnostics, want int) bool {
 	t.Helper()
-	if len(diags) != 0 {
+	if len(diags) != want {
 		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
 		for _, diag := range diags {
 			t.Logf("- %s", diag)

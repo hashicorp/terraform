@@ -14,7 +14,7 @@ type NodeDisabledProvider struct {
 }
 
 var (
-	_ GraphNodeSubPath        = (*NodeDisabledProvider)(nil)
+	_ GraphNodeModulePath     = (*NodeDisabledProvider)(nil)
 	_ RemovableIfNotTargeted  = (*NodeDisabledProvider)(nil)
 	_ GraphNodeReferencer     = (*NodeDisabledProvider)(nil)
 	_ GraphNodeProvider       = (*NodeDisabledProvider)(nil)

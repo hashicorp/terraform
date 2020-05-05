@@ -15,22 +15,22 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	cache := make(map[string]map[string]cty.Value)
 
 	ctx1 := testBuiltinEvalContext(t)
-	ctx1.PathValue = addrs.RootModuleInstance
+	ctx1 = ctx1.WithPath(addrs.RootModuleInstance).(*BuiltinEvalContext)
 	ctx1.ProviderInputConfig = cache
 	ctx1.ProviderLock = &lock
 
 	ctx2 := testBuiltinEvalContext(t)
-	ctx2.PathValue = addrs.RootModuleInstance.Child("child", addrs.NoKey)
+	ctx2 = ctx2.WithPath(addrs.RootModuleInstance.Child("child", addrs.NoKey)).(*BuiltinEvalContext)
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
 
 	providerAddr1 := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
-		Provider: addrs.NewLegacyProvider("foo"),
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
 	providerAddr2 := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance.Child("child", addrs.NoKey),
-		Provider: addrs.NewLegacyProvider("foo"),
+		Module:   addrs.RootModule.Child("child"),
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
 
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
@@ -56,21 +56,22 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	testP := &MockProvider{}
 
 	ctx := testBuiltinEvalContext(t)
+	ctx = ctx.WithPath(addrs.RootModuleInstance).(*BuiltinEvalContext)
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
 		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewLegacyProvider("test"): providers.FactoryFixed(testP),
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(testP),
 		},
 	}
 
 	providerAddrDefault := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
-		Provider: addrs.NewLegacyProvider("test"),
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("test"),
 	}
 	providerAddrAlias := addrs.AbsProviderConfig{
-		Module:   addrs.RootModuleInstance,
-		Provider: addrs.NewLegacyProvider("test"),
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("test"),
 		Alias:    "foo",
 	}
 

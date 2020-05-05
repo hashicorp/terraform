@@ -205,7 +205,7 @@ type EvalWriteState struct {
 
 	// Dependencies are the inter-resource dependencies to be stored in the
 	// state.
-	Dependencies *[]addrs.AbsResource
+	Dependencies *[]addrs.ConfigResource
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -452,53 +452,47 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 // in that case, allowing expression evaluation to see it as a zero-element
 // list rather than as not set at all.
 type EvalWriteResourceState struct {
-	Addr         addrs.Resource
+	Addr         addrs.AbsResource
 	Config       *configs.Resource
 	ProviderAddr addrs.AbsProviderConfig
 }
 
-// TODO: test
 func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
-	absAddr := n.Addr.Absolute(ctx.Path())
 	state := ctx.State()
-
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
-	eachMode := states.NoEach
-	if count >= 0 { // -1 signals "count not set"
-		eachMode = states.EachList
-	}
-
-	forEach, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
-	diags = diags.Append(forEachDiags)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
-	if forEach != nil {
-		eachMode = states.EachMap
-	}
-
-	// This method takes care of all of the business logic of updating this
-	// while ensuring that any existing instances are preserved, etc.
-	state.SetResourceMeta(absAddr, eachMode, n.ProviderAddr)
 
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
-	// can refer to it.
+	// can refer to it. Since this node represents the abstract module, we need
+	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
-	switch eachMode {
-	case states.EachList:
-		expander.SetResourceCount(ctx.Path(), n.Addr, count)
-	case states.EachMap:
-		expander.SetResourceForEach(ctx.Path(), n.Addr, forEach)
+
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
+
+	case n.Config.ForEach != nil:
+		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+
+		// This method takes care of all of the business logic of updating this
+		// while ensuring that any existing instances are preserved, etc.
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEach)
+
 	default:
-		expander.SetResourceSingle(ctx.Path(), n.Addr)
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
 
 	return nil, nil
@@ -540,7 +534,7 @@ type EvalRefreshDependencies struct {
 	// Prior State
 	State **states.ResourceInstanceObject
 	// Dependencies to write to the new state
-	Dependencies *[]addrs.AbsResource
+	Dependencies *[]addrs.ConfigResource
 }
 
 func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
@@ -550,7 +544,7 @@ func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	depMap := make(map[string]addrs.AbsResource)
+	depMap := make(map[string]addrs.ConfigResource)
 	for _, d := range *n.Dependencies {
 		depMap[d.String()] = d
 	}
@@ -564,7 +558,7 @@ func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	deps := make([]addrs.AbsResource, 0, len(depMap))
+	deps := make([]addrs.ConfigResource, 0, len(depMap))
 	for _, d := range depMap {
 		deps = append(deps, d)
 	}

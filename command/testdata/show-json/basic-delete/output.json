@@ -19,7 +19,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar",
@@ -34,7 +34,7 @@
             "address": "test_instance.test",
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test",
             "change": {
                 "actions": [
@@ -55,7 +55,7 @@
             "address": "test_instance.test-delete",
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test-delete",
             "change": {
                 "actions": [
@@ -97,7 +97,7 @@
                         "mode": "managed",
                         "type": "test_instance",
                         "name": "test",
-                        "provider_name": "test",
+                        "provider_name": "registry.terraform.io/hashicorp/test",
                         "values": {
                             "ami": "foo",
                             "id": "placeholder"
@@ -109,7 +109,7 @@
                         "mode": "managed",
                         "type": "test_instance",
                         "name": "test-delete",
-                        "provider_name": "test",
+                        "provider_name": "registry.terraform.io/hashicorp/test",
                         "values": {
                             "ami": "foo",
                             "id": "placeholder"

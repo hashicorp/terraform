@@ -1,0 +1,3 @@
+provider "invalid" {
+	version = "invalid"
+}

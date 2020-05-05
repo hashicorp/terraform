@@ -172,7 +172,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 // destroyed along with its dependencies.
 func (t *DestroyEdgeTransformer) pruneResources(g *Graph) error {
 	for _, v := range g.Vertices() {
-		n, ok := v.(*NodeApplyableResource)
+		n, ok := v.(*nodeExpandApplyableResource)
 		if !ok {
 			continue
 		}

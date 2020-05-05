@@ -100,15 +100,23 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				if !lineRange.Overlaps(snippetRange) {
 					continue
 				}
-				beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
-				before := beforeRange.SliceBytes(src)
-				highlighted := highlightedRange.SliceBytes(src)
-				after := afterRange.SliceBytes(src)
-				fmt.Fprintf(
-					&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
-					lineRange.Start.Line,
-					before, highlighted, after,
-				)
+				if lineRange.Overlaps(highlightRange) {
+					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
+					before := beforeRange.SliceBytes(src)
+					highlighted := highlightedRange.SliceBytes(src)
+					after := afterRange.SliceBytes(src)
+					fmt.Fprintf(
+						&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
+						lineRange.Start.Line,
+						before, highlighted, after,
+					)
+				} else {
+					fmt.Fprintf(
+						&buf, "%4d: %s\n",
+						lineRange.Start.Line,
+						lineRange.SliceBytes(src),
+					)
+				}
 			}
 
 		}

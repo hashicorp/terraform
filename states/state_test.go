@@ -37,12 +37,16 @@ func TestState(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 
 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 	childModule.SetOutputValue("pizza", cty.StringVal("hawaiian"), false)
+	multiModA := state.EnsureModule(addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")))
+	multiModA.SetOutputValue("pizza", cty.StringVal("cheese"), false)
+	multiModB := state.EnsureModule(addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")))
+	multiModB.SetOutputValue("pizza", cty.StringVal("sausage"), false)
 
 	want := &State{
 		Modules: map[string]*Module{
@@ -53,10 +57,20 @@ func TestState(t *testing.T) {
 				},
 				OutputValues: map[string]*OutputValue{
 					"bar": {
+						Addr: addrs.AbsOutputValue{
+							OutputValue: addrs.OutputValue{
+								Name: "bar",
+							},
+						},
 						Value:     cty.StringVal("bar value"),
 						Sensitive: false,
 					},
 					"secret": {
+						Addr: addrs.AbsOutputValue{
+							OutputValue: addrs.OutputValue{
+								Name: "secret",
+							},
+						},
 						Value:     cty.StringVal("secret value"),
 						Sensitive: true,
 					},
@@ -67,8 +81,8 @@ func TestState(t *testing.T) {
 							Mode: addrs.ManagedResourceMode,
 							Type: "test_thing",
 							Name: "baz",
-						},
-						EachMode: EachList,
+						}.Absolute(addrs.RootModuleInstance),
+
 						Instances: map[addrs.InstanceKey]*ResourceInstance{
 							addrs.IntKey(0): {
 								Current: &ResourceInstanceObjectSrc{
@@ -81,7 +95,7 @@ func TestState(t *testing.T) {
 						},
 						ProviderConfig: addrs.AbsProviderConfig{
 							Provider: addrs.NewDefaultProvider("test"),
-							Module:   addrs.RootModuleInstance,
+							Module:   addrs.RootModule,
 						},
 					},
 				},
@@ -91,7 +105,47 @@ func TestState(t *testing.T) {
 				LocalValues: map[string]cty.Value{},
 				OutputValues: map[string]*OutputValue{
 					"pizza": {
+						Addr: addrs.AbsOutputValue{
+							Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
+							OutputValue: addrs.OutputValue{
+								Name: "pizza",
+							},
+						},
 						Value:     cty.StringVal("hawaiian"),
+						Sensitive: false,
+					},
+				},
+				Resources: map[string]*Resource{},
+			},
+			`module.multi["a"]`: {
+				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
+				LocalValues: map[string]cty.Value{},
+				OutputValues: map[string]*OutputValue{
+					"pizza": {
+						Addr: addrs.AbsOutputValue{
+							Module: addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
+							OutputValue: addrs.OutputValue{
+								Name: "pizza",
+							},
+						},
+						Value:     cty.StringVal("cheese"),
+						Sensitive: false,
+					},
+				},
+				Resources: map[string]*Resource{},
+			},
+			`module.multi["b"]`: {
+				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
+				LocalValues: map[string]cty.Value{},
+				OutputValues: map[string]*OutputValue{
+					"pizza": {
+						Addr: addrs.AbsOutputValue{
+							Module: addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
+							OutputValue: addrs.OutputValue{
+								Name: "pizza",
+							},
+						},
+						Value:     cty.StringVal("sausage"),
 						Sensitive: false,
 					},
 				},
@@ -115,6 +169,25 @@ func TestState(t *testing.T) {
 
 	for _, problem := range deep.Equal(state, want) {
 		t.Error(problem)
+	}
+
+	expectedOutputs := map[string]string{
+		`module.multi["a"].output.pizza`: "cheese",
+		`module.multi["b"].output.pizza`: "sausage",
+	}
+
+	for _, o := range state.ModuleOutputs(addrs.RootModuleInstance, addrs.ModuleCall{Name: "multi"}) {
+		addr := o.Addr.String()
+		expected := expectedOutputs[addr]
+		delete(expectedOutputs, addr)
+
+		if expected != o.Value.AsString() {
+			t.Fatalf("expected %q:%q, got %q", addr, expected, o.Value.AsString())
+		}
+	}
+
+	for addr, o := range expectedOutputs {
+		t.Fatalf("missing output %q:%q", addr, o)
 	}
 }
 
@@ -140,11 +213,11 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies:  []addrs.AbsResource{},
+			Dependencies:  []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 	rootModule.SetResourceInstanceCurrent(
@@ -158,9 +231,9 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			Private:       []byte("private data"),
-			Dependencies: []addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
 				{
-					Module: addrs.RootModuleInstance,
+					Module: addrs.RootModule,
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_thing",
@@ -171,7 +244,7 @@ func TestStateDeepCopy(t *testing.T) {
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Module:   addrs.RootModule,
 		},
 	)
 

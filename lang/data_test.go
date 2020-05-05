@@ -43,11 +43,11 @@ func (d *dataForTests) GetLocalValue(addr addrs.LocalValue, rng tfdiags.SourceRa
 	return d.LocalValues[addr.Name], nil
 }
 
-func (d *dataForTests) GetModuleInstance(addr addrs.ModuleCallInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *dataForTests) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.Modules[addr.String()], nil
 }
 
-func (d *dataForTests) GetModuleInstanceOutput(addr addrs.ModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *dataForTests) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// This will panic if the module object does not have the requested attribute
 	obj := d.Modules[addr.Call.String()]
 	return obj.GetAttr(addr.Name), nil

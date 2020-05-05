@@ -55,10 +55,10 @@ type ContextOpts struct {
 	Meta      *ContextMeta
 	Destroy   bool
 
-	Hooks            []Hook
-	Parallelism      int
-	ProviderResolver providers.Resolver
-	Provisioners     map[string]ProvisionerFactory
+	Hooks        []Hook
+	Parallelism  int
+	Providers    map[addrs.Provider]providers.Factory
+	Provisioners map[string]provisioners.Factory
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
@@ -169,35 +169,19 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	// override the defaults.
 	variables = variables.Override(opts.Variables)
 
-	// Bind available provider plugins to the constraints in config
-	var providerFactories map[addrs.Provider]providers.Factory
-	if opts.ProviderResolver != nil {
-		deps := ConfigTreeDependencies(opts.Config, state)
-		reqd := deps.AllPluginRequirements()
-		if opts.ProviderSHA256s != nil && !opts.SkipProviderVerify {
-			reqd.LockExecutables(opts.ProviderSHA256s)
-		}
-		log.Printf("[TRACE] terraform.NewContext: resolving provider version selections")
-		var providerDiags tfdiags.Diagnostics
-		providerFactories, providerDiags = resourceProviderFactories(opts.ProviderResolver, reqd)
-		diags = diags.Append(providerDiags)
-
-		if diags.HasErrors() {
-			return nil, diags
-		}
-	} else {
-		providerFactories = make(map[addrs.Provider]providers.Factory)
-	}
-
 	components := &basicComponentFactory{
-		providers:    providerFactories,
+		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 	}
 
 	log.Printf("[TRACE] terraform.NewContext: loading provider schemas")
 	schemas, err := LoadSchemas(opts.Config, opts.State, components)
 	if err != nil {
-		diags = diags.Append(err)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Could not load plugin",
+			fmt.Sprintf(errPluginInit, err),
+		))
 		return nil, diags
 	}
 

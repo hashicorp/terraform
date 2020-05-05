@@ -71,3 +71,52 @@ func TestDiagnosticWarningsCompact(t *testing.T) {
 		)
 	}
 }
+
+// Test case via https://github.com/hashicorp/terraform/issues/21359
+func TestDiagnostic_nonOverlappingHighlightContext(t *testing.T) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Some error",
+		Detail:   "...",
+		Subject: &hcl.Range{
+			Filename: "source.tf",
+			Start:    hcl.Pos{Line: 1, Column: 5, Byte: 5},
+			End:      hcl.Pos{Line: 1, Column: 5, Byte: 5},
+		},
+		Context: &hcl.Range{
+			Filename: "source.tf",
+			Start:    hcl.Pos{Line: 1, Column: 5, Byte: 5},
+			End:      hcl.Pos{Line: 4, Column: 2, Byte: 60},
+		},
+	})
+	sources := map[string][]byte{
+		"source.tf": []byte(`x = somefunc("testing", {
+  alpha = "foo"
+  beta  = "bar"
+})
+`),
+	}
+	color := &colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: true,
+	}
+	expected := `
+Error: Some error
+
+  on source.tf line 1:
+   1: x = somefunc("testing", {
+   2:   alpha = "foo"
+   3:   beta  = "bar"
+   4: })
+
+...
+`
+	output := Diagnostic(diags[0], sources, color, 80)
+
+	if output != expected {
+		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}

@@ -246,7 +246,7 @@ func (p *provisioner) linuxUploadCtlSecret(o terraform.UIOutput, comm communicat
 			return err
 		}
 
-		return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("mv %s %s && chown root:root %s && chmod 0600 %s", tempPath, destination, destination, destination)))
+		return p.runCommand(o, comm, p.linuxGetCommand(fmt.Sprintf("chown root:root %s && chmod 0600 %s && mv %s %s", tempPath, tempPath, tempPath, destination)))
 	}
 
 	return comm.Upload(destination, keyContent)
@@ -347,10 +347,11 @@ func (p *provisioner) uploadUserTOML(o terraform.UIOutput, comm communicator.Com
 	userToml := strings.NewReader(service.UserTOML)
 
 	if p.UseSudo {
-		if err := comm.Upload(fmt.Sprintf("/tmp/user-%s.toml", service.getServiceNameChecksum()), userToml); err != nil {
+		checksum := service.getServiceNameChecksum()
+		if err := comm.Upload(fmt.Sprintf("/tmp/user-%s.toml", checksum), userToml); err != nil {
 			return err
 		}
-		command = p.linuxGetCommand(fmt.Sprintf("mv /tmp/user-%s.toml %s/user.toml", service.getServiceNameChecksum(), destDir))
+		command = p.linuxGetCommand(fmt.Sprintf("chmod o-r /tmp/user-%s.toml && mv /tmp/user-%s.toml %s/user.toml", checksum, checksum, destDir))
 		return p.runCommand(o, comm, command)
 	}
 

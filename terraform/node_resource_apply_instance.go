@@ -24,11 +24,11 @@ type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
 	destroyNode      GraphNodeDestroyerCBD
-	graphNodeDeposer // implementation of GraphNodeDeposer
+	graphNodeDeposer // implementation of GraphNodeDeposerConfig
 }
 
 var (
-	_ GraphNodeResource           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
@@ -99,7 +99,7 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 }
 
 // GraphNodeAttachDependencies
-func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.AbsResource) {
+func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigResource) {
 	n.Dependencies = deps
 }
 
@@ -180,6 +180,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Planned:        &change, // setting this indicates that the result must be complete
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				OutputState:    &state,
 			},
@@ -287,6 +288,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				PreviousDiff:   &diff,
@@ -350,6 +352,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Change:         &diffApply,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				Output:         &state,
 				Error:          &err,

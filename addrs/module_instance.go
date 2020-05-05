@@ -383,8 +383,7 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 // is contained within the reciever.
 func (m ModuleInstance) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
-
-	case ModuleInstance:
+	case Module:
 		if len(to) < len(m) {
 			// Can't be contained if the path is shorter
 			return false
@@ -392,12 +391,37 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 		// Other is contained if its steps match for the length of our own path.
 		for i, ourStep := range m {
 			otherStep := to[i]
-			if ourStep != otherStep {
+
+			// We can't contain an entire module if we have a specific instance
+			// key. The case of NoKey is OK because this address is either
+			// meant to address an unexpanded module, or a single instance of
+			// that module, and both of those are a covered in-full by the
+			// Module address.
+			if ourStep.InstanceKey != NoKey {
+				return false
+			}
+
+			if ourStep.Name != otherStep {
 				return false
 			}
 		}
 		// If we fall out here then the prefixed matched, so it's contained.
 		return true
+
+	case ModuleInstance:
+		if len(to) < len(m) {
+			return false
+		}
+		for i, ourStep := range m {
+			otherStep := to[i]
+			if ourStep != otherStep {
+				return false
+			}
+		}
+		return true
+
+	case ConfigResource:
+		return m.TargetContains(to.Module)
 
 	case AbsResource:
 		return m.TargetContains(to.Module)

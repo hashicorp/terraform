@@ -51,9 +51,10 @@ type ResourceInstanceObjectSrc struct {
 
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
-	Private      []byte
-	Status       ObjectStatus
-	Dependencies []addrs.AbsResource
+	Private             []byte
+	Status              ObjectStatus
+	Dependencies        []addrs.ConfigResource
+	CreateBeforeDestroy bool
 	// deprecated
 	DependsOn []addrs.Referenceable
 }
@@ -85,11 +86,12 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 	}
 
 	return &ResourceInstanceObject{
-		Value:        val,
-		Status:       os.Status,
-		Dependencies: os.Dependencies,
-		DependsOn:    os.DependsOn,
-		Private:      os.Private,
+		Value:               val,
+		Status:              os.Status,
+		Dependencies:        os.Dependencies,
+		DependsOn:           os.DependsOn,
+		Private:             os.Private,
+		CreateBeforeDestroy: os.CreateBeforeDestroy,
 	}, nil
 }
 

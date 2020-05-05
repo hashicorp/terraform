@@ -10,7 +10,7 @@ import (
 // GraphNodeAttachResourceConfig is an interface that must be implemented by nodes
 // that want resource configurations attached.
 type GraphNodeAttachResourceConfig interface {
-	GraphNodeResource
+	GraphNodeConfigResource
 
 	// Sets the configuration
 	AttachResourceConfig(*configs.Resource)
@@ -40,7 +40,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 		addr := arn.ResourceAddr()
 
 		// Get the configuration.
-		config := t.Config.DescendentForInstance(addr.Module)
+		config := t.Config.Descendent(addr.Module)
 		if config == nil {
 			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", dag.VertexName(v), v)
 			continue
@@ -56,6 +56,24 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %s", dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
+
+			// attach the provider_meta info
+			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
+				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", dag.VertexName(v))
+				if config == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no config set on the transformer for %s", dag.VertexName(v))
+					continue
+				}
+				if config.Module == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no module in config for %s", dag.VertexName(v))
+					continue
+				}
+				if config.Module.ProviderMetas == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider metas defined for %s", dag.VertexName(v))
+					continue
+				}
+				gnapmc.AttachProviderMetaConfigs(config.Module.ProviderMetas)
+			}
 		}
 		for _, r := range config.Module.DataResources {
 			rAddr := r.Addr()
@@ -67,6 +85,24 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
+
+			// attach the provider_meta info
+			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
+				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", dag.VertexName(v))
+				if config == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no config set on the transformer for %s", dag.VertexName(v))
+					continue
+				}
+				if config.Module == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no module in config for %s", dag.VertexName(v))
+					continue
+				}
+				if config.Module.ProviderMetas == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider metas defined for %s", dag.VertexName(v))
+					continue
+				}
+				gnapmc.AttachProviderMetaConfigs(config.Module.ProviderMetas)
+			}
 		}
 	}
 

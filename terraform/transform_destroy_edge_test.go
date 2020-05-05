@@ -21,16 +21,16 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
 		t.Fatal(err)
@@ -65,28 +65,28 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.C").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"C","test_string":"x"}`),
-			Dependencies: []addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
 				mustResourceAddr("test_object.A"),
 				mustResourceAddr("test_object.B"),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -138,9 +138,9 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"a"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.test_object.b")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.b")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
@@ -148,7 +148,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b","test_string":"x"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -184,28 +184,28 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"a"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"b","test_string":"x"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.test_object.a")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.a")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.c").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"c","test_string":"x"}`),
-			Dependencies: []addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
 				mustResourceAddr("module.child.test_object.a"),
 				mustResourceAddr("module.child.test_object.b"),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -237,12 +237,7 @@ module.child.test_object.c (destroy)
 func testDestroyNode(addrString string) GraphNodeDestroyer {
 	instAddr := mustResourceInstanceAddr(addrString)
 
-	abs := NewNodeAbstractResource(instAddr.ContainingResource())
-
-	inst := &NodeAbstractResourceInstance{
-		NodeAbstractResource: *abs,
-		InstanceKey:          instAddr.Resource.Key,
-	}
+	inst := NewNodeAbstractResourceInstance(instAddr)
 
 	return &NodeDestroyResourceInstance{NodeAbstractResourceInstance: inst}
 }

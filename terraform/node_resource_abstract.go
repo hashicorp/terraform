@@ -16,11 +16,11 @@ import (
 // abstract resource to a concrete one of some type.
 type ConcreteResourceNodeFunc func(*NodeAbstractResource) dag.Vertex
 
-// GraphNodeResource is implemented by any nodes that represent a resource.
+// GraphNodeConfigResource is implemented by any nodes that represent a resource.
 // The type of operation cannot be assumed, only that this node represents
 // the given resource.
-type GraphNodeResource interface {
-	ResourceAddr() addrs.AbsResource
+type GraphNodeConfigResource interface {
+	ResourceAddr() addrs.ConfigResource
 }
 
 // ConcreteResourceInstanceNodeFunc is a callback type used to convert an
@@ -36,14 +36,14 @@ type GraphNodeResourceInstance interface {
 
 	// StateDependencies returns any inter-resource dependencies that are
 	// stored in the state.
-	StateDependencies() []addrs.AbsResource
+	StateDependencies() []addrs.ConfigResource
 }
 
 // NodeAbstractResource represents a resource that has no associated
 // operations. It registers all the interfaces for a resource that common
 // across multiple operation types.
 type NodeAbstractResource struct {
-	Addr addrs.AbsResource // Addr is the address for this resource
+	Addr addrs.ConfigResource
 
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
@@ -52,6 +52,9 @@ type NodeAbstractResource struct {
 	Schema        *configschema.Block // Schema for processing the configuration body
 	SchemaVersion uint64              // Schema version of "Schema", as decided by the provider
 	Config        *configs.Resource   // Config is the resource in the config
+
+	// ProviderMetas is the provider_meta configs for the module this resource belongs to
+	ProviderMetas map[addrs.Provider]*configs.ProviderMeta
 
 	ProvisionerSchemas map[string]*configschema.Block
 
@@ -62,22 +65,22 @@ type NodeAbstractResource struct {
 }
 
 var (
-	_ GraphNodeSubPath                 = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferenceable           = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferencer              = (*NodeAbstractResource)(nil)
-	_ GraphNodeProviderConsumer        = (*NodeAbstractResource)(nil)
-	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResource)(nil)
-	_ GraphNodeResource                = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceConfig    = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceSchema    = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachProvisionerSchema = (*NodeAbstractResource)(nil)
-	_ GraphNodeTargetable              = (*NodeAbstractResource)(nil)
-	_ dag.GraphNodeDotter              = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferenceable             = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferencer                = (*NodeAbstractResource)(nil)
+	_ GraphNodeProviderConsumer          = (*NodeAbstractResource)(nil)
+	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResource)(nil)
+	_ GraphNodeConfigResource            = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResource)(nil)
+	_ GraphNodeTargetable                = (*NodeAbstractResource)(nil)
+	_ dag.GraphNodeDotter                = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
 // the given absolute resource address.
-func NewNodeAbstractResource(addr addrs.AbsResource) *NodeAbstractResource {
+func NewNodeAbstractResource(addr addrs.ConfigResource) *NodeAbstractResource {
 	return &NodeAbstractResource{
 		Addr: addr,
 	}
@@ -90,29 +93,30 @@ func NewNodeAbstractResource(addr addrs.AbsResource) *NodeAbstractResource {
 // the "count" or "for_each" arguments.
 type NodeAbstractResourceInstance struct {
 	NodeAbstractResource
-	InstanceKey addrs.InstanceKey
+	Addr addrs.AbsResourceInstance
 
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 	ResourceState *states.Resource
-	Dependencies  []addrs.AbsResource
+	Dependencies  []addrs.ConfigResource
 }
 
 var (
-	_ GraphNodeSubPath                 = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferenceable           = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferencer              = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProviderConsumer        = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProvisionerConsumer     = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResource                = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResourceInstance        = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceState     = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceConfig    = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceSchema    = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachProvisionerSchema = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeTargetable              = (*NodeAbstractResourceInstance)(nil)
-	_ dag.GraphNodeDotter              = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeModuleInstance            = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferenceable             = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferencer                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProviderConsumer          = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeConfigResource            = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeResourceInstance          = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceState       = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
+	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
 )
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -123,11 +127,10 @@ func NewNodeAbstractResourceInstance(addr addrs.AbsResourceInstance) *NodeAbstra
 	// object and the InstanceKey field in our own struct. The
 	// ResourceInstanceAddr method will stick these back together again on
 	// request.
+	r := NewNodeAbstractResource(addr.ContainingResource().Config())
 	return &NodeAbstractResourceInstance{
-		NodeAbstractResource: NodeAbstractResource{
-			Addr: addr.ContainingResource(),
-		},
-		InstanceKey: addr.Resource.Key,
+		NodeAbstractResource: *r,
+		Addr:                 addr,
 	}
 }
 
@@ -139,8 +142,12 @@ func (n *NodeAbstractResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String()
 }
 
-// GraphNodeSubPath
-func (n *NodeAbstractResource) Path() addrs.ModuleInstance {
+func (n *NodeAbstractResourceInstance) Path() addrs.ModuleInstance {
+	return n.Addr.Module
+}
+
+// GraphNodeModulePath
+func (n *NodeAbstractResource) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
@@ -259,9 +266,9 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 }
 
 // StateDependencies returns the dependencies saved in the state.
-func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.AbsResource {
+func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResource {
 	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
+		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
 			if s.Current != nil {
 				return s.Current.Dependencies
 			}
@@ -276,46 +283,39 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResource) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		// FIXME: this will need to lookup the provider and see if there's an
-		// FQN associated with the local config
-		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
-		return addrs.AbsProviderConfig{
-			Provider: fqn,
-			Module:   n.Path(),
-			Alias:    relAddr.Alias,
+		return addrs.LocalProviderConfig{
+			LocalName: relAddr.LocalName,
+			Alias:     relAddr.Alias,
 		}, false
 	}
 
-	// Use our type and containing module path to guess a provider configuration address.
-	// FIXME: This is relying on the FQN-to-local matching true only of legacy
-	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
-	// with the local name here, once we've done the work elsewhere to make
-	// that possible.
-	defaultFQN := n.Addr.Resource.DefaultProvider()
+	// No provider configuration found; return a default address
 	return addrs.AbsProviderConfig{
-		Provider: defaultFQN,
-		Module:   n.Addr.Module,
+		Provider: n.Provider(),
+		Module:   n.ModulePath(),
 	}, false
 }
 
 // GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+func (n *NodeAbstractResource) Provider() addrs.Provider {
+	if n.Config != nil {
+		return n.Config.Provider
+	}
+	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
+}
+
+// GraphNodeProviderConsumer
+func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
-		// Use our type and containing module path to guess a provider configuration address.
-		// FIXME: This is relying on the FQN-to-local matching true only of legacy
-		// addresses.
-		fqn := addrs.NewLegacyProvider(relAddr.LocalName)
-
-		return addrs.AbsProviderConfig{
-			Provider: fqn,
-			Module:   n.Path(),
-			Alias:    relAddr.Alias,
+		return addrs.LocalProviderConfig{
+			LocalName: relAddr.LocalName,
+			Alias:     relAddr.Alias,
 		}, false
 	}
 
@@ -327,16 +327,19 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 		return n.ResourceState.ProviderConfig, true
 	}
 
-	// Use our type and containing module path to guess a provider configuration address
-	// FIXME: This is relying on the FQN-to-local matching true only of legacy
-	// addresses, so this will need to switch to using an addrs.LocalProviderConfig
-	// with the local name here, once we've done the work elsewhere to make
-	// that possible.
-	defaultFQN := n.Addr.Resource.DefaultProvider()
+	// No provider configuration found; return a default address
 	return addrs.AbsProviderConfig{
-		Provider: defaultFQN,
-		Module:   n.Addr.Module,
+		Provider: n.Provider(),
+		Module:   n.ModulePath(),
 	}, false
+}
+
+// GraphNodeProviderConsumer
+func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
+	if n.Config != nil {
+		return n.Config.Provider
+	}
+	return addrs.NewDefaultProvider(n.Addr.Resource.ContainingResource().ImpliedProvider())
 }
 
 // GraphNodeProvisionerConsumer
@@ -365,18 +368,13 @@ func (n *NodeAbstractResource) AttachProvisionerSchema(name string, schema *conf
 }
 
 // GraphNodeResource
-func (n *NodeAbstractResource) ResourceAddr() addrs.AbsResource {
+func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 	return n.Addr
 }
 
 // GraphNodeResourceInstance
 func (n *NodeAbstractResourceInstance) ResourceInstanceAddr() addrs.AbsResourceInstance {
-	return n.NodeAbstractResource.Addr.Instance(n.InstanceKey)
-}
-
-// GraphNodeAddressable, TODO: remove, used by target, should unify
-func (n *NodeAbstractResource) ResourceAddress() *ResourceAddress {
-	return NewLegacyResourceAddress(n.Addr)
+	return n.Addr
 }
 
 // GraphNodeTargetable
@@ -398,6 +396,11 @@ func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource) {
 func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block, version uint64) {
 	n.Schema = schema
 	n.SchemaVersion = version
+}
+
+// GraphNodeAttachProviderMetaConfigs impl
+func (n *NodeAbstractResource) AttachProviderMetaConfigs(c map[addrs.Provider]*configs.ProviderMeta) {
+	n.ProviderMetas = c
 }
 
 // GraphNodeDotter impl.

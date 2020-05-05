@@ -130,7 +130,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("resource single", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			addrs.RootModule,
 			singleResourceAddr,
 		)
@@ -142,7 +142,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("resource count2", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			addrs.RootModule,
 			count2ResourceAddr,
 		)
@@ -155,7 +155,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("resource count0", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			addrs.RootModule,
 			count0ResourceAddr,
 		)
@@ -165,7 +165,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("resource for_each", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			addrs.RootModule,
 			forEachResourceAddr,
 		)
@@ -187,7 +187,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module single resource single", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr("single"),
 			singleResourceAddr,
 		)
@@ -199,7 +199,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module single resource count2", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`single`),
 			count2ResourceAddr,
 		)
@@ -222,7 +222,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module count2 resource single", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`count2`),
 			singleResourceAddr,
 		)
@@ -235,7 +235,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module count2 resource count2", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`count2`),
 			count2ResourceAddr,
 		)
@@ -262,7 +262,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module count2 resource count2 resource count2", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`count2.count2`),
 			count2ResourceAddr,
 		)
@@ -280,6 +280,18 @@ func TestExpander(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+	t.Run("module count2 resource count2 resource count2", func(t *testing.T) {
+		got := ex.ExpandResource(
+			count2ResourceAddr.Absolute(mustModuleInstanceAddr(`module.count2[0].module.count2[1]`)),
+		)
+		want := []addrs.AbsResourceInstance{
+			mustAbsResourceInstanceAddr(`module.count2[0].module.count2[1].test.count2[0]`),
+			mustAbsResourceInstanceAddr(`module.count2[0].module.count2[1].test.count2[1]`),
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
 	t.Run("module count0", func(t *testing.T) {
 		got := ex.ExpandModule(mustModuleAddr(`count0`))
 		want := []addrs.ModuleInstance(nil)
@@ -288,7 +300,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module count0 resource single", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`count0`),
 			singleResourceAddr,
 		)
@@ -311,7 +323,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module for_each resource single", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`for_each`),
 			singleResourceAddr,
 		)
@@ -324,7 +336,7 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module for_each resource count2", func(t *testing.T) {
-		got := ex.ExpandResource(
+		got := ex.ExpandModuleResource(
 			mustModuleAddr(`for_each`),
 			count2ResourceAddr,
 		)
@@ -333,6 +345,18 @@ func TestExpander(t *testing.T) {
 			mustAbsResourceInstanceAddr(`module.for_each["a"].test.count2[1]`),
 			mustAbsResourceInstanceAddr(`module.for_each["b"].test.count2[0]`),
 			mustAbsResourceInstanceAddr(`module.for_each["b"].test.count2[1]`),
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+	t.Run("module for_each resource count2", func(t *testing.T) {
+		got := ex.ExpandResource(
+			count2ResourceAddr.Absolute(mustModuleInstanceAddr(`module.for_each["a"]`)),
+		)
+		want := []addrs.AbsResourceInstance{
+			mustAbsResourceInstanceAddr(`module.for_each["a"].test.count2[0]`),
+			mustAbsResourceInstanceAddr(`module.for_each["a"].test.count2[1]`),
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("wrong result\n%s", diff)

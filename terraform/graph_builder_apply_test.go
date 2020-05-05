@@ -97,16 +97,16 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{
@@ -209,7 +209,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 			continue
 		}
 
-		switch tv.Addr.Resource.Name {
+		switch tv.Addr.Resource.Resource.Name {
 		case "A":
 			destroyA = fmt.Sprintf("test_object.A (destroy deposed %s)", tv.DeposedKey)
 		case "B":
@@ -266,16 +266,16 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.child.test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{
@@ -370,7 +370,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	modB := state.EnsureModule(addrs.RootModuleInstance.Child("B", addrs.NoKey))
 	modB.SetResourceInstanceCurrent(
@@ -378,9 +378,9 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo","value":"foo"}`),
-			Dependencies: []addrs.AbsResource{mustResourceAddr("module.A.test_object.foo")},
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.A.test_object.foo")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"]`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{
@@ -508,7 +508,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 // that resource is destroyed.
 func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 	schemas := simpleTestSchemas()
-	instanceSchema := schemas.Providers[addrs.NewLegacyProvider("test")].ResourceTypes["test_object"]
+	instanceSchema := schemas.Providers[addrs.NewDefaultProvider("test")].ResourceTypes["test_object"]
 
 	bBefore, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
@@ -553,8 +553,8 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a_id"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
 		},
 	)
 	root.SetResourceInstanceCurrent(
@@ -566,20 +566,20 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
-			Dependencies: []addrs.AbsResource{
-				addrs.AbsResource{
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_object",
 						Name: "a",
 					},
-					Module: root.Addr,
+					Module: root.Addr.Module(),
 				},
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
-			Module:   addrs.RootModuleInstance,
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
 		},
 	)
 
@@ -600,6 +600,107 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 test_object.a (destroy)
 test_object.b
   test_object.a (destroy)
+`)
+
+	instanceGraph := filterInstances(g)
+	got := strings.TrimSpace(instanceGraph.String())
+
+	if got != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, got)
+	}
+}
+
+// Ensure that an update resulting from the removal of a resource happens before
+// a CBD resource is destroyed.
+func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
+	schemas := simpleTestSchemas()
+	instanceSchema := schemas.Providers[addrs.NewDefaultProvider("test")].ResourceTypes["test_object"]
+
+	bBefore, _ := plans.NewDynamicValue(
+		cty.ObjectVal(map[string]cty.Value{
+			"id":          cty.StringVal("b_id"),
+			"test_string": cty.StringVal("a_id"),
+		}), instanceSchema.ImpliedType())
+	bAfter, _ := plans.NewDynamicValue(
+		cty.ObjectVal(map[string]cty.Value{
+			"id":          cty.StringVal("b_id"),
+			"test_string": cty.StringVal("changed"),
+		}), instanceSchema.ImpliedType())
+
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("test_object.a"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Delete,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("test_object.b"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Update,
+					Before: bBefore,
+					After:  bAfter,
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_object",
+			Name: "a",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"a_id"}`),
+			CreateBeforeDestroy: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_object",
+			Name: "b",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_object",
+						Name: "a",
+					},
+					Module: root.Addr.Module(),
+				},
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	b := &ApplyGraphBuilder{
+		Config:     testModule(t, "graph-builder-apply-orphan-update"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    schemas,
+		State:      state,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := strings.TrimSpace(`
+test_object.a (destroy)
+  test_object.b
+test_object.b
 `)
 
 	instanceGraph := filterInstances(g)
@@ -631,7 +732,7 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/-/test"].foo`),
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].foo`),
 	)
 
 	b := &ApplyGraphBuilder{
@@ -654,23 +755,25 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 
 const testApplyGraphBuilderStr = `
 meta.count-boundary (EachMode fixup)
-  module.child.test_object.other
+  module.child (close)
   test_object.other
 module.child
+module.child (close)
+  module.child.test_object.other
 module.child.test_object.create
   module.child.test_object.create (prepare state)
 module.child.test_object.create (prepare state)
   module.child
-  provider["registry.terraform.io/-/test"]
+  provider["registry.terraform.io/hashicorp/test"]
   provisioner.test
 module.child.test_object.other
   module.child.test_object.create
   module.child.test_object.other (prepare state)
 module.child.test_object.other (prepare state)
   module.child
-  provider["registry.terraform.io/-/test"]
-provider["registry.terraform.io/-/test"]
-provider["registry.terraform.io/-/test"] (close)
+  provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
   module.child.test_object.other
   test_object.other
 provisioner.test
@@ -678,36 +781,36 @@ provisioner.test (close)
   module.child.test_object.create
 root
   meta.count-boundary (EachMode fixup)
-  provider["registry.terraform.io/-/test"] (close)
+  provider["registry.terraform.io/hashicorp/test"] (close)
   provisioner.test (close)
 test_object.create
   test_object.create (prepare state)
 test_object.create (prepare state)
-  provider["registry.terraform.io/-/test"]
+  provider["registry.terraform.io/hashicorp/test"]
 test_object.other
   test_object.create
   test_object.other (prepare state)
 test_object.other (prepare state)
-  provider["registry.terraform.io/-/test"]
+  provider["registry.terraform.io/hashicorp/test"]
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
 meta.count-boundary (EachMode fixup)
   test_object.B
-provider["registry.terraform.io/-/test"]
-provider["registry.terraform.io/-/test"] (close)
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
   test_object.B
 root
   meta.count-boundary (EachMode fixup)
-  provider["registry.terraform.io/-/test"] (close)
+  provider["registry.terraform.io/hashicorp/test"] (close)
 test_object.A (prepare state)
-  provider["registry.terraform.io/-/test"]
+  provider["registry.terraform.io/hashicorp/test"]
 test_object.A[1] (destroy)
-  provider["registry.terraform.io/-/test"]
+  provider["registry.terraform.io/hashicorp/test"]
 test_object.B
   test_object.A (prepare state)
   test_object.A[1] (destroy)
   test_object.B (prepare state)
 test_object.B (prepare state)
-  provider["registry.terraform.io/-/test"]
+  provider["registry.terraform.io/hashicorp/test"]
 `

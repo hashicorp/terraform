@@ -15,7 +15,7 @@ import (
 // EvalDeleteOutput is an EvalNode implementation that deletes an output
 // from the state.
 type EvalDeleteOutput struct {
-	Addr addrs.OutputValue
+	Addr addrs.AbsOutputValue
 }
 
 // TODO: test
@@ -25,7 +25,7 @@ func (n *EvalDeleteOutput) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	state.RemoveOutputValue(n.Addr.Absolute(ctx.Path()))
+	state.RemoveOutputValue(n.Addr)
 	return nil, nil
 }
 

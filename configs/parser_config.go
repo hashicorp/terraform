@@ -75,7 +75,14 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.RequiredProviders = append(file.RequiredProviders, reqs...)
+					file.RequiredProviders = append(file.RequiredProviders, reqs)
+
+				case "provider_meta":
+					providerCfg, cfgDiags := decodeProviderMetaBlock(innerBlock)
+					diags = append(diags, cfgDiags...)
+					if providerCfg != nil {
+						file.ProviderMetas = append(file.ProviderMetas, providerCfg)
+					}
 
 				default:
 					// Should never happen because the above cases should be exhaustive
@@ -84,6 +91,15 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 
 				}
 			}
+
+		case "required_providers":
+			// required_providers should be nested inside a "terraform" block
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid required_providers block",
+				Detail:   "A \"required_providers\" block must be nested inside a \"terraform\" block.",
+				Subject:  block.TypeRange.Ptr(),
+			})
 
 		case "provider":
 			cfg, cfgDiags := decodeProviderBlock(block)
@@ -187,6 +203,12 @@ var configFileSchema = &hcl.BodySchema{
 			Type: "terraform",
 		},
 		{
+			// This one is not really valid, but we include it here so we
+			// can create a specialized error message hinting the user to
+			// nest it inside a "terraform" block.
+			Type: "required_providers",
+		},
+		{
 			Type:       "provider",
 			LabelNames: []string{"name"},
 		},
@@ -230,6 +252,10 @@ var terraformBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "required_providers",
+		},
+		{
+			Type:       "provider_meta",
+			LabelNames: []string{"provider"},
 		},
 	},
 }

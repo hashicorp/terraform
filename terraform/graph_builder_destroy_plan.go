@@ -92,8 +92,8 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// created proper destroy ordering.
 		&TargetsTransformer{Targets: b.Targets},
 
-		// Single root
-		&RootTransformer{},
+		// Close the root module
+		&CloseRootModuleTransformer{},
 	}
 
 	return steps

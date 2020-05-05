@@ -59,7 +59,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// Add the import steps
-		&ImportStateTransformer{Targets: b.ImportTargets},
+		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
 		// Add root variables
 		&RootVariableTransformer{Config: b.Config},
@@ -77,7 +77,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
@@ -89,8 +89,8 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close root module
+		&CloseRootModuleTransformer{},
 
 		// Optimize
 		&TransitiveReductionTransformer{},

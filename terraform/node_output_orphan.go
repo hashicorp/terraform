@@ -12,7 +12,7 @@ type NodeOutputOrphan struct {
 }
 
 var (
-	_ GraphNodeSubPath          = (*NodeOutputOrphan)(nil)
+	_ GraphNodeModuleInstance   = (*NodeOutputOrphan)(nil)
 	_ GraphNodeReferenceable    = (*NodeOutputOrphan)(nil)
 	_ GraphNodeReferenceOutside = (*NodeOutputOrphan)(nil)
 	_ GraphNodeEvalable         = (*NodeOutputOrphan)(nil)
@@ -23,7 +23,7 @@ func (n *NodeOutputOrphan) Name() string {
 }
 
 // GraphNodeReferenceOutside implementation
-func (n *NodeOutputOrphan) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
+func (n *NodeOutputOrphan) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	return referenceOutsideForOutput(n.Addr)
 }
 
@@ -32,9 +32,14 @@ func (n *NodeOutputOrphan) ReferenceableAddrs() []addrs.Referenceable {
 	return referenceableAddrsForOutput(n.Addr)
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *NodeOutputOrphan) Path() addrs.ModuleInstance {
 	return n.Addr.Module
+}
+
+// GraphNodeModulePath
+func (n *NodeOutputOrphan) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
 }
 
 // GraphNodeEvalable
@@ -42,7 +47,7 @@ func (n *NodeOutputOrphan) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},
 		Node: &EvalDeleteOutput{
-			Addr: n.Addr.OutputValue,
+			Addr: n.Addr,
 		},
 	}
 }

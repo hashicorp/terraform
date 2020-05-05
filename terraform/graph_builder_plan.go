@@ -52,6 +52,7 @@ type PlanGraphBuilder struct {
 	ConcreteProvider       ConcreteProviderNodeFunc
 	ConcreteResource       ConcreteResourceNodeFunc
 	ConcreteResourceOrphan ConcreteResourceInstanceNodeFunc
+	ConcreteModule         ConcreteModuleNodeFunc
 
 	once sync.Once
 }
@@ -135,12 +136,15 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
 		// objects that can belong to modules.
-		&ModuleExpansionTransformer{Config: b.Config},
+		&ModuleExpansionTransformer{
+			Concrete: b.ConcreteModule,
+			Config:   b.Config,
+		},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
@@ -170,8 +174,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close the root module
+		&CloseRootModuleTransformer{},
 	}
 
 	if !b.DisableReduce {
@@ -196,7 +200,7 @@ func (b *PlanGraphBuilder) init() {
 	}
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResource{
+		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 		}
 	}

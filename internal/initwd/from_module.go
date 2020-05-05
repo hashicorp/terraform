@@ -2,7 +2,6 @@ package initwd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,8 +9,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/earlyconfig"
+
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
+	"github.com/hashicorp/terraform/internal/copydir"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -172,7 +174,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			// We've found the module the user requested, which we must
 			// now copy into rootDir so it can be used directly.
 			log.Printf("[TRACE] copying new root module from %s to %s", record.Dir, rootDir)
-			err := copyDir(rootDir, record.Dir)
+			err := copydir.CopyDir(rootDir, record.Dir)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -292,7 +294,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 		// We copy rather than "rename" here because renaming between directories
 		// can be tricky in edge-cases like network filesystems, etc.
 		log.Printf("[TRACE] copying new module %s from %s to %s", newKey, record.Dir, instPath)
-		err := copyDir(instPath, tempPath)
+		err := copydir.CopyDir(instPath, tempPath)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

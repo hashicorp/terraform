@@ -92,3 +92,57 @@ func TestParseProviderConfigCompact(t *testing.T) {
 		})
 	}
 }
+
+func TestParseProviderConfigCompactStr(t *testing.T) {
+	tests := []struct {
+		Input    string
+		Want     addrs.LocalProviderConfig
+		WantDiag string
+	}{
+		{
+			`aws`,
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
+			},
+			``,
+		},
+		{
+			`aws.foo`,
+			addrs.LocalProviderConfig{
+				LocalName: "aws",
+				Alias:     "foo",
+			},
+			``,
+		},
+		{
+			`aws["foo"]`,
+			addrs.LocalProviderConfig{},
+			`The provider type name must either stand alone or be followed by an alias name separated with a dot.`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Input, func(t *testing.T) {
+			got, diags := ParseProviderConfigCompactStr(test.Input)
+
+			if test.WantDiag != "" {
+				if len(diags) != 1 {
+					t.Fatalf("got %d diagnostics; want 1", len(diags))
+				}
+				gotDetail := diags[0].Description().Detail
+				if gotDetail != test.WantDiag {
+					t.Fatalf("wrong diagnostic detail\ngot:  %s\nwant: %s", gotDetail, test.WantDiag)
+				}
+				return
+			} else {
+				if len(diags) != 0 {
+					t.Fatalf("got %d diagnostics; want 0", len(diags))
+				}
+			}
+
+			for _, problem := range deep.Equal(got, test.Want) {
+				t.Error(problem)
+			}
+		})
+	}
+}

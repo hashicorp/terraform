@@ -120,10 +120,9 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 			return nil, diags
 		}
 
-		// A traversal starting with "module" can either be a reference to
-		// an entire module instance or to a single output from a module
-		// instance, depending on what we find after this introducer.
-
+		// A traversal starting with "module" can either be a reference to an
+		// entire module, or to a single output from a module instance,
+		// depending on what we find after this introducer.
 		callInstance := ModuleCallInstance{
 			Call: ModuleCall{
 				Name: callName,
@@ -132,12 +131,12 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 
 		if len(remain) == 0 {
-			// Reference to an entire module instance. Might alternatively
-			// be a reference to a collection of instances of a particular
-			// module, but the caller will need to deal with that ambiguity
-			// since we don't have enough context here.
+			// Reference to an entire module. Might alternatively be a
+			// reference to a single instance of a particular module, but the
+			// caller will need to deal with that ambiguity since we don't have
+			// enough context here.
 			return &Reference{
-				Subject:     callInstance,
+				Subject:     callInstance.Call,
 				SourceRange: tfdiags.SourceRangeFromHCL(callRange),
 				Remaining:   remain,
 			}, diags
@@ -171,7 +170,7 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		if attrTrav, ok := remain[0].(hcl.TraverseAttr); ok {
 			remain = remain[1:]
 			return &Reference{
-				Subject: ModuleCallOutput{
+				Subject: AbsModuleCallOutput{
 					Name: attrTrav.Name,
 					Call: callInstance,
 				},

@@ -58,7 +58,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 
 		for _, v := range g.Vertices() {
 			removable := false
-			if _, ok := v.(GraphNodeResource); ok {
+			if _, ok := v.(GraphNodeConfigResource); ok {
 				removable = true
 			}
 
@@ -225,14 +225,10 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	switch r := v.(type) {
 	case GraphNodeResourceInstance:
 		vertexAddr = r.ResourceInstanceAddr()
-	case GraphNodeResource:
+	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
 	default:
 		// Only resource and resource instance nodes can be targeted.
-		return false
-	}
-	_, ok := v.(GraphNodeResource)
-	if !ok {
 		return false
 	}
 

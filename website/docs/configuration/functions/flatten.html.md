@@ -51,10 +51,8 @@ For example, consider a module that declares a variable like the following:
 variable "networks" {
   type = map(object({
     cidr_block = string
-    subnets = map(object({
-      cidr_block = string
-    })
-  })
+    subnets    = map(object({ cidr_block = string }))
+  }))
 }
 ```
 
@@ -101,7 +99,7 @@ resource "aws_subnet" "example" {
 
   vpc_id            = each.value.network_id
   availability_zone = each.value.subnet_key
-  cidr_block        = each.value_cidr_block
+  cidr_block        = each.value.cidr_block
 }
 ```
 

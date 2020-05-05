@@ -29,7 +29,7 @@ func TestStateMv(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -41,11 +41,11 @@ func TestStateMv(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -68,7 +68,7 @@ func TestStateMv(t *testing.T) {
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
 	// Test it is correct
@@ -80,6 +80,73 @@ func TestStateMv(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+
+	// Change the single instance to a counted instance
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar",
+		"test_instance.bar[0]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// extract the resource and verify the mode
+	s := testStateRead(t, statePath)
+	addr, diags := addrs.ParseAbsResourceStr("test_instance.bar")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	for key := range s.Resource(addr).Instances {
+		if _, ok := key.(addrs.IntKey); !ok {
+			t.Fatalf("expected each mode List, got key %q", key)
+		}
+	}
+
+	// change from list to map
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar[0]",
+		"test_instance.bar[\"baz\"]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// extract the resource and verify the mode
+	s = testStateRead(t, statePath)
+	addr, diags = addrs.ParseAbsResourceStr("test_instance.bar")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	for key := range s.Resource(addr).Instances {
+		if _, ok := key.(addrs.StringKey); !ok {
+			t.Fatalf("expected each mode map, found key %q", key)
+		}
+	}
+
+	// change from from map back to single
+	args = []string{
+		"-state", statePath,
+		"test_instance.bar[\"baz\"]",
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// extract the resource and verify the mode
+	s = testStateRead(t, statePath)
+	addr, diags = addrs.ParseAbsResourceStr("test_instance.bar")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	for key := range s.Resource(addr).Instances {
+		if key != addrs.NoKey {
+			t.Fatalf("expected no each mode, found key %q", key)
+		}
+	}
+
 }
 
 func TestStateMv_resourceToInstance(t *testing.T) {
@@ -96,7 +163,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -108,23 +175,22 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
-		s.SetResourceMeta(
+		s.SetResourceProvider(
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_instance",
 				Name: "bar",
 			}.Absolute(addrs.RootModuleInstance),
-			states.EachList,
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -186,7 +252,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -201,7 +267,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -274,7 +340,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -345,7 +411,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -398,7 +464,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -413,7 +479,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -473,7 +539,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -485,11 +551,11 @@ func TestStateMv_backupExplicit(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -538,7 +604,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -592,7 +658,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -611,7 +677,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -691,7 +757,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -706,7 +772,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -721,7 +787,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -779,7 +845,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 				},
 				addrs.AbsProviderConfig{
 					Provider: addrs.NewLegacyProvider("test"),
-					Module:   addrs.RootModuleInstance,
+					Module:   addrs.RootModule,
 				},
 			)
 		}
@@ -795,7 +861,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -849,7 +915,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -864,7 +930,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -919,7 +985,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -992,7 +1058,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -1004,11 +1070,11 @@ func TestStateMv_withinBackend(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:       states.ObjectReady,
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Module:   addrs.RootModule,
 			},
 		)
 	})

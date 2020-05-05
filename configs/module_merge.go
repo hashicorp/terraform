@@ -35,19 +35,6 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd []*RequiredProvider) {
-	// Any provider name that's mentioned in the override gets nilled out in
-	// our map so that we'll rebuild it below. Any provider not mentioned is
-	// left unchanged.
-	for _, reqd := range ovrd {
-		delete(recv, reqd.Name)
-	}
-	for _, reqd := range ovrd {
-		fqn := addrs.NewLegacyProvider(reqd.Name)
-		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
-	}
-}
-
 func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
@@ -191,7 +178,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func (r *Resource) merge(or *Resource) hcl.Diagnostics {
+func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -206,9 +193,18 @@ func (r *Resource) merge(or *Resource) hcl.Diagnostics {
 	if or.ForEach != nil {
 		r.ForEach = or.ForEach
 	}
+
 	if or.ProviderConfigRef != nil {
 		r.ProviderConfigRef = or.ProviderConfigRef
+		if existing, exists := rps[or.ProviderConfigRef.Name]; exists {
+			r.Provider = existing.Type
+		} else {
+			r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigRef.Name)
+		}
 	}
+
+	// Provider FQN is set by Terraform during Merge
+
 	if r.Mode == addrs.ManagedResourceMode {
 		// or.Managed is always non-nil for managed resource mode
 

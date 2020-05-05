@@ -156,7 +156,7 @@ func (c *MockEvalContext) Input() UIInput {
 
 func (c *MockEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
 	c.InitProviderCalled = true
-	c.InitProviderType = addr.LegacyString()
+	c.InitProviderType = addr.String()
 	c.InitProviderAddr = addr
 	return c.InitProviderProvider, c.InitProviderError
 }
@@ -303,6 +303,12 @@ func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, keyData Inst
 	c.EvaluationScopeSelf = self
 	c.EvaluationScopeKeyData = keyData
 	return c.EvaluationScopeScope
+}
+
+func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+	newC := *c
+	newC.PathPath = path
+	return &newC
 }
 
 func (c *MockEvalContext) Path() addrs.ModuleInstance {

@@ -18,11 +18,7 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	// We create two metas to track the two states
 	var backupPathOut, statePathOut string
 
@@ -226,7 +222,7 @@ func (c *StateMvCommand) Run(args []string) int {
 				ssFrom.RemoveResource(addrFrom)
 
 				// Update the address before adding it to the state.
-				rs.Addr = addrTo.Resource
+				rs.Addr = addrTo
 				stateTo.Module(addrTo.Module).Resources[addrTo.Resource.String()] = rs
 			}
 
@@ -280,7 +276,6 @@ func (c *StateMvCommand) Run(args []string) int {
 				fromResourceAddr := addrFrom.ContainingResource()
 				fromResource := ssFrom.Resource(fromResourceAddr)
 				fromProviderAddr := fromResource.ProviderConfig
-				fromEachMode := fromResource.EachMode
 				ssFrom.ForgetResourceInstanceAll(addrFrom)
 				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
 
@@ -290,16 +285,10 @@ func (c *StateMvCommand) Run(args []string) int {
 					// suggests the user's intent is to establish both the
 					// resource and the instance at the same time (since the
 					// address covers both). If there's an index in the
-					// target then allow creating the new instance here,
-					// inferring the mode from how the new address was parsed.
-					if addrTo.Resource.Key != addrs.NoKey {
-						fromEachMode = eachModeForInstanceKey(addrTo.Resource.Key)
-					}
-
+					// target then allow creating the new instance here.
 					resourceAddr := addrTo.ContainingResource()
-					stateTo.SyncWrapper().SetResourceMeta(
+					stateTo.SyncWrapper().SetResourceProvider(
 						resourceAddr,
-						fromEachMode,
 						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
 					)
 					rs = stateTo.Resource(resourceAddr)
@@ -377,20 +366,6 @@ func (c *StateMvCommand) Run(args []string) int {
 	return 0
 }
 
-func eachModeForInstanceKey(key addrs.InstanceKey) states.EachMode {
-	switch key.(type) {
-	case addrs.IntKey:
-		return states.EachList
-	case addrs.StringKey:
-		return states.EachMap
-	default:
-		if key == addrs.NoKey {
-			return states.NoEach
-		}
-		panic(fmt.Sprintf("don't know an each mode for instance key %#v", key))
-	}
-}
-
 // sourceObjectAddrs takes a single source object address and expands it to
 // potentially multiple objects that need to be handled within it.
 //
@@ -420,10 +395,12 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 		//   terraform state mv aws_instance.foo aws_instance.bar[1]
 		// That wouldn't be allowed if aws_instance.foo had multiple instances
 		// since we can't move multiple instances into one.
-		if rs := state.Resource(addr); rs != nil && rs.EachMode == states.NoEach {
-			ret = append(ret, addr.Instance(addrs.NoKey))
-		} else {
-			ret = append(ret, addr)
+		if rs := state.Resource(addr); rs != nil {
+			if _, ok := rs.Instances[addrs.NoKey]; ok {
+				ret = append(ret, addr.Instance(addrs.NoKey))
+			} else {
+				ret = append(ret, addr)
+			}
 		}
 	default:
 		ret = append(ret, matched)

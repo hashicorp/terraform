@@ -4,5 +4,8 @@ terraform {
     foo-test = {
       source = "foo/test"
     }
+    terraform = {
+      source = "not-builtin/not-terraform"
+    }
   }
 }

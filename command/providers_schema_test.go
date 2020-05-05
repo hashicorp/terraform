@@ -49,22 +49,22 @@ func TestProvidersSchema_output(t *testing.T) {
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": []string{"1.2.3"},
+			})
+			defer close()
+
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				ProviderSource:   providerSource,
 			}
 
 			// `terrafrom init`
 			ic := &InitCommand{
 				Meta: m,
-				providerInstaller: &mockProviderInstaller{
-					Providers: map[string][]string{
-						"test": []string{"1.2.3"},
-					},
-					Dir: m.pluginDir(),
-				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)

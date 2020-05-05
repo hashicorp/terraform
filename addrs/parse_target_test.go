@@ -250,6 +250,51 @@ func TestParseTarget(t *testing.T) {
 			``,
 		},
 		{
+			`module.foo.module.bar[0].data.aws_instance.baz`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: DataResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+					Module: ModuleInstance{
+						{Name: "foo", InstanceKey: NoKey},
+						{Name: "bar", InstanceKey: IntKey(0)},
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 47, Byte: 46},
+				},
+			},
+			``,
+		},
+		{
+			`module.foo.module.bar["a"].data.aws_instance.baz["hello"]`,
+			&Target{
+				Subject: AbsResourceInstance{
+					Resource: ResourceInstance{
+						Resource: Resource{
+							Mode: DataResourceMode,
+							Type: "aws_instance",
+							Name: "baz",
+						},
+						Key: StringKey("hello"),
+					},
+					Module: ModuleInstance{
+						{Name: "foo", InstanceKey: NoKey},
+						{Name: "bar", InstanceKey: StringKey("a")},
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 58, Byte: 57},
+				},
+			},
+			``,
+		},
+		{
 			`module.foo.module.bar.data.aws_instance.baz["hello"]`,
 			&Target{
 				Subject: AbsResourceInstance{

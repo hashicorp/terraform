@@ -2,8 +2,6 @@ package lang
 
 import (
 	"fmt"
-	"log"
-	"strconv"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
@@ -196,8 +194,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// that's redundant in the process of populating our values map.
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
-	wholeModules := map[string]map[addrs.InstanceKey]cty.Value{}
-	moduleOutputs := map[string]map[addrs.InstanceKey]map[string]cty.Value{}
+	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
@@ -258,9 +255,14 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 		// This type switch must cover all of the "Referenceable" implementations
 		// in package addrs, however we are removing the possibility of
-		// ResourceInstance beforehand.
-		if addr, ok := rawSubj.(addrs.ResourceInstance); ok {
+		// Instances beforehand.
+		switch addr := rawSubj.(type) {
+		case addrs.ResourceInstance:
 			rawSubj = addr.ContainingResource()
+		case addrs.ModuleCallInstance:
+			rawSubj = addr.Call
+		case addrs.AbsModuleCallOutput:
+			rawSubj = addr.Call.Call
 		}
 
 		switch subj := rawSubj.(type) {
@@ -284,28 +286,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			}
 			into[r.Type][r.Name] = val
 
-		case addrs.ModuleCallInstance:
-			val, valDiags := normalizeRefValue(s.Data.GetModuleInstance(subj, rng))
+		case addrs.ModuleCall:
+			val, valDiags := normalizeRefValue(s.Data.GetModule(subj, rng))
 			diags = diags.Append(valDiags)
-
-			if wholeModules[subj.Call.Name] == nil {
-				wholeModules[subj.Call.Name] = make(map[addrs.InstanceKey]cty.Value)
-			}
-			wholeModules[subj.Call.Name][subj.Key] = val
-
-		case addrs.ModuleCallOutput:
-			val, valDiags := normalizeRefValue(s.Data.GetModuleInstanceOutput(subj, rng))
-			diags = diags.Append(valDiags)
-
-			callName := subj.Call.Call.Name
-			callKey := subj.Call.Key
-			if moduleOutputs[callName] == nil {
-				moduleOutputs[callName] = make(map[addrs.InstanceKey]map[string]cty.Value)
-			}
-			if moduleOutputs[callName][callKey] == nil {
-				moduleOutputs[callName][callKey] = make(map[string]cty.Value)
-			}
-			moduleOutputs[callName][callKey][subj.Name] = val
+			wholeModules[subj.Name] = val
 
 		case addrs.InputVariable:
 			val, valDiags := normalizeRefValue(s.Data.GetInputVariable(subj, rng))
@@ -347,7 +331,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		vals[k] = v
 	}
 	vals["data"] = cty.ObjectVal(buildResourceObjects(dataResources))
-	vals["module"] = cty.ObjectVal(buildModuleObjects(wholeModules, moduleOutputs))
+	vals["module"] = cty.ObjectVal(wholeModules)
 	vals["var"] = cty.ObjectVal(inputVariables)
 	vals["local"] = cty.ObjectVal(localValues)
 	vals["path"] = cty.ObjectVal(pathAttrs)
@@ -367,102 +351,6 @@ func buildResourceObjects(resources map[string]map[string]cty.Value) map[string]
 		vals[typeName] = cty.ObjectVal(nameVals)
 	}
 	return vals
-}
-
-func buildModuleObjects(wholeModules map[string]map[addrs.InstanceKey]cty.Value, moduleOutputs map[string]map[addrs.InstanceKey]map[string]cty.Value) map[string]cty.Value {
-	vals := make(map[string]cty.Value)
-
-	for name, keys := range wholeModules {
-		vals[name] = buildInstanceObjects(keys)
-	}
-
-	for name, keys := range moduleOutputs {
-		if _, exists := wholeModules[name]; exists {
-			// If we also have a whole module value for this name then we'll
-			// skip this since the individual outputs are embedded in that result.
-			continue
-		}
-
-		// The shape of this collection isn't compatible with buildInstanceObjects,
-		// but rather than replicating most of the buildInstanceObjects logic
-		// here we'll instead first transform the structure to be what that
-		// function expects and then use it. This is a little wasteful, but
-		// we do not expect this these maps to be large and so the extra work
-		// here should not hurt too much.
-		flattened := make(map[addrs.InstanceKey]cty.Value, len(keys))
-		for k, vals := range keys {
-			flattened[k] = cty.ObjectVal(vals)
-		}
-		vals[name] = buildInstanceObjects(flattened)
-	}
-
-	return vals
-}
-
-func buildInstanceObjects(keys map[addrs.InstanceKey]cty.Value) cty.Value {
-	if val, exists := keys[addrs.NoKey]; exists {
-		// If present, a "no key" value supersedes all other values,
-		// since they should be embedded inside it.
-		return val
-	}
-
-	// If we only have individual values then we need to construct
-	// either a list or a map, depending on what sort of keys we
-	// have.
-	haveInt := false
-	haveString := false
-	maxInt := 0
-
-	for k := range keys {
-		switch tk := k.(type) {
-		case addrs.IntKey:
-			haveInt = true
-			if int(tk) > maxInt {
-				maxInt = int(tk)
-			}
-		case addrs.StringKey:
-			haveString = true
-		}
-	}
-
-	// We should either have ints or strings and not both, but
-	// if we have both then we'll prefer strings and let the
-	// language interpreter try to convert the int keys into
-	// strings in a map.
-	switch {
-	case haveString:
-		vals := make(map[string]cty.Value)
-		for k, v := range keys {
-			switch tk := k.(type) {
-			case addrs.StringKey:
-				vals[string(tk)] = v
-			case addrs.IntKey:
-				sk := strconv.Itoa(int(tk))
-				vals[sk] = v
-			}
-		}
-		return cty.ObjectVal(vals)
-	case haveInt:
-		// We'll make a tuple that is long enough for our maximum
-		// index value. It doesn't matter if we end up shorter than
-		// the number of instances because if length(...) were
-		// being evaluated we would've got a NoKey reference and
-		// thus not ended up in this codepath at all.
-		vals := make([]cty.Value, maxInt+1)
-		for i := range vals {
-			if v, exists := keys[addrs.IntKey(i)]; exists {
-				vals[i] = v
-			} else {
-				// Just a placeholder, since nothing will access this anyway
-				vals[i] = cty.DynamicVal
-			}
-		}
-		return cty.TupleVal(vals)
-	default:
-		// Should never happen because there are no other key types.
-		log.Printf("[ERROR] strange makeInstanceObjects call with no supported key types")
-		return cty.EmptyObjectVal
-	}
 }
 
 func normalizeRefValue(val cty.Value, diags tfdiags.Diagnostics) (cty.Value, tfdiags.Diagnostics) {

@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
@@ -15,13 +16,20 @@ type NodeValidatableResource struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodeValidatableResource)(nil)
-	_ GraphNodeEvalable             = (*NodeValidatableResource)(nil)
-	_ GraphNodeReferenceable        = (*NodeValidatableResource)(nil)
-	_ GraphNodeReferencer           = (*NodeValidatableResource)(nil)
-	_ GraphNodeResource             = (*NodeValidatableResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeValidatableResource)(nil)
+	_ GraphNodeModuleInstance            = (*NodeValidatableResource)(nil)
+	_ GraphNodeEvalable                  = (*NodeValidatableResource)(nil)
+	_ GraphNodeReferenceable             = (*NodeValidatableResource)(nil)
+	_ GraphNodeReferencer                = (*NodeValidatableResource)(nil)
+	_ GraphNodeConfigResource            = (*NodeValidatableResource)(nil)
+	_ GraphNodeAttachResourceConfig      = (*NodeValidatableResource)(nil)
+	_ GraphNodeAttachProviderMetaConfigs = (*NodeValidatableResource)(nil)
 )
+
+func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
+	// There is no expansion during validation, so we evaluate everything as
+	// single module instances.
+	return n.Addr.Module.UnkeyedInstanceShim()
+}
 
 // GraphNodeEvalable
 func (n *NodeValidatableResource) EvalTree() EvalNode {
@@ -45,6 +53,7 @@ func (n *NodeValidatableResource) EvalTree() EvalNode {
 			&EvalValidateResource{
 				Addr:           addr.Resource,
 				Provider:       &provider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				Config:         config,
 				ConfigVal:      &configVal,

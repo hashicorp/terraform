@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/httpclient"
@@ -362,4 +362,17 @@ func mockRegHandler() http.Handler {
 // Registry returns an httptest server that mocks out some registry functionality.
 func Registry() *httptest.Server {
 	return httptest.NewServer(mockRegHandler())
+}
+
+// RegistryRetryableErrorsServer returns an httptest server that mocks out the
+// registry API to return 502 errors.
+func RegistryRetryableErrorsServer() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/modules/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	mux.HandleFunc("/v1/providers/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	return httptest.NewServer(mux)
 }

@@ -10,15 +10,9 @@ import (
 
 // Resource represents the state of a resource.
 type Resource struct {
-	// Addr is the module-relative address for the resource this state object
+	// Addr is the absolute address for the resource this state object
 	// belongs to.
-	Addr addrs.Resource
-
-	// EachMode is the multi-instance mode currently in use for this resource,
-	// or NoEach if this is a single-instance resource. This dictates what
-	// type of value is returned when accessing this resource via expressions
-	// in the Terraform language.
-	EachMode EachMode
+	Addr addrs.AbsResource
 
 	// Instances contains the potentially-multiple instances associated with
 	// this resource. This map can contain a mixture of different key types,
@@ -170,31 +164,6 @@ func (i *ResourceInstance) findUnusedDeposedKey() DeposedKey {
 		// Spin until we find a unique one. This shouldn't take long, because
 		// we have a 32-bit keyspace and there's rarely more than one deposed
 		// instance.
-	}
-}
-
-// EachMode specifies the multi-instance mode for a resource.
-type EachMode rune
-
-const (
-	NoEach   EachMode = 0
-	EachList EachMode = 'L'
-	EachMap  EachMode = 'M'
-)
-
-//go:generate go run golang.org/x/tools/cmd/stringer -type EachMode
-
-func eachModeForInstanceKey(key addrs.InstanceKey) EachMode {
-	switch key.(type) {
-	case addrs.IntKey:
-		return EachList
-	case addrs.StringKey:
-		return EachMap
-	default:
-		if key == addrs.NoKey {
-			return NoEach
-		}
-		panic(fmt.Sprintf("don't know an each mode for instance key %#v", key))
 	}
 }
 

@@ -177,11 +177,11 @@ func deleteOSSBucket(t *testing.T, ossClient *oss.Client, bucketName string) {
 	}
 }
 
-// create the dynamoDB table, and wait until we can query it.
+// create the tablestore table, and wait until we can query it.
 func createTablestoreTable(t *testing.T, otsClient *tablestore.TableStoreClient, tableName string) {
 	tableMeta := new(tablestore.TableMeta)
 	tableMeta.TableName = tableName
-	tableMeta.AddPrimaryKeyColumn("testbackend", tablestore.PrimaryKeyType_STRING)
+	tableMeta.AddPrimaryKeyColumn(pkName, tablestore.PrimaryKeyType_STRING)
 
 	tableOption := new(tablestore.TableOption)
 	tableOption.TimeToAlive = -1

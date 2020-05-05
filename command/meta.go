@@ -187,8 +187,8 @@ type PluginOverrides struct {
 }
 
 type testingOverrides struct {
-	ProviderResolver providers.Resolver
-	Provisioners     map[string]provisioners.Factory
+	Providers    map[addrs.Provider]providers.Factory
+	Provisioners map[string]provisioners.Factory
 }
 
 // initStatePaths is used to initialize the default values for
@@ -350,10 +350,22 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	// and just work with what we've been given, thus allowing the tests
 	// to provide mock providers and provisioners.
 	if m.testingOverrides != nil {
-		opts.ProviderResolver = m.testingOverrides.ProviderResolver
+		opts.Providers = m.testingOverrides.Providers
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
-		opts.ProviderResolver = m.providerResolver()
+		providerFactories, err := m.providerFactories()
+		if err != nil {
+			// providerFactories can fail if the plugin selections file is
+			// invalid in some way, but we don't have any way to report that
+			// from here so we'll just behave as if no providers are available
+			// in that case. However, we will produce a warning in case this
+			// shows up unexpectedly and prompts a bug report.
+			// This situation shouldn't arise commonly in practice because
+			// the selections file is generated programmatically.
+			log.Printf("[WARN] Failed to determine selected providers: %s", err)
+			providerFactories = nil
+		}
+		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
 	}
 
@@ -410,11 +422,7 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 // process will process the meta-parameters out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice.
-//
-// vars is now ignored. It used to control whether to process variables, but
-// that is no longer the responsibility of this function. (That happens
-// instead in Meta.collectVariableValues.)
-func (m *Meta) process(args []string, vars bool) ([]string, error) {
+func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -443,7 +451,7 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 		},
 	}
 
-	return args, nil
+	return args
 }
 
 // uiHook returns the UiHook to use with the context.

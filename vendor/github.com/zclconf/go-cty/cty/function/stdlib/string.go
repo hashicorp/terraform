@@ -1,9 +1,13 @@
 package stdlib
 
 import (
+	"fmt"
+	"regexp"
+	"sort"
 	"strings"
 
-	"github.com/apparentlymart/go-textseg/textseg"
+	"github.com/apparentlymart/go-textseg/v12/textseg"
+
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -140,7 +144,13 @@ var SubstrFunc = function.New(&function.Spec{
 			}
 
 			offset += totalLen
+		} else if length == 0 {
+			// Short circuit here, after error checks, because if a
+			// string of length 0 has been requested it will always
+			// be the empty string
+			return cty.StringVal(""), nil
 		}
+
 
 		sub := in
 		pos := 0
@@ -184,6 +194,252 @@ var SubstrFunc = function.New(&function.Spec{
 		sub = sub[:i]
 
 		return cty.StringVal(string(sub)), nil
+	},
+})
+
+var JoinFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "separator",
+			Type: cty.String,
+		},
+	},
+	VarParam: &function.Parameter{
+		Name: "lists",
+		Type: cty.List(cty.String),
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		sep := args[0].AsString()
+		listVals := args[1:]
+		if len(listVals) < 1 {
+			return cty.UnknownVal(cty.String), fmt.Errorf("at least one list is required")
+		}
+
+		l := 0
+		for _, list := range listVals {
+			if !list.IsWhollyKnown() {
+				return cty.UnknownVal(cty.String), nil
+			}
+			l += list.LengthInt()
+		}
+
+		items := make([]string, 0, l)
+		for ai, list := range listVals {
+			ei := 0
+			for it := list.ElementIterator(); it.Next(); {
+				_, val := it.Element()
+				if val.IsNull() {
+					if len(listVals) > 1 {
+						return cty.UnknownVal(cty.String), function.NewArgErrorf(ai+1, "element %d of list %d is null; cannot concatenate null values", ei, ai+1)
+					}
+					return cty.UnknownVal(cty.String), function.NewArgErrorf(ai+1, "element %d is null; cannot concatenate null values", ei)
+				}
+				items = append(items, val.AsString())
+				ei++
+			}
+		}
+
+		return cty.StringVal(strings.Join(items, sep)), nil
+	},
+})
+
+var SortFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.String),
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		listVal := args[0]
+
+		if !listVal.IsWhollyKnown() {
+			// If some of the element values aren't known yet then we
+			// can't yet predict the order of the result.
+			return cty.UnknownVal(retType), nil
+		}
+		if listVal.LengthInt() == 0 { // Easy path
+			return listVal, nil
+		}
+
+		list := make([]string, 0, listVal.LengthInt())
+		for it := listVal.ElementIterator(); it.Next(); {
+			iv, v := it.Element()
+			if v.IsNull() {
+				return cty.UnknownVal(retType), fmt.Errorf("given list element %s is null; a null string cannot be sorted", iv.AsBigFloat().String())
+			}
+			list = append(list, v.AsString())
+		}
+
+		sort.Strings(list)
+		retVals := make([]cty.Value, len(list))
+		for i, s := range list {
+			retVals[i] = cty.StringVal(s)
+		}
+		return cty.ListVal(retVals), nil
+	},
+})
+
+var SplitFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "separator",
+			Type: cty.String,
+		},
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.List(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		sep := args[0].AsString()
+		str := args[1].AsString()
+		elems := strings.Split(str, sep)
+		elemVals := make([]cty.Value, len(elems))
+		for i, s := range elems {
+			elemVals[i] = cty.StringVal(s)
+		}
+		if len(elemVals) == 0 {
+			return cty.ListValEmpty(cty.String), nil
+		}
+		return cty.ListVal(elemVals), nil
+	},
+})
+
+// ChompFunc is a function that removes newline characters at the end of a
+// string.
+var ChompFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		newlines := regexp.MustCompile(`(?:\r\n?|\n)*\z`)
+		return cty.StringVal(newlines.ReplaceAllString(args[0].AsString(), "")), nil
+	},
+})
+
+// IndentFunc is a function that adds a given number of spaces to the
+// beginnings of all but the first line in a given multi-line string.
+var IndentFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "spaces",
+			Type: cty.Number,
+		},
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var spaces int
+		if err := gocty.FromCtyValue(args[0], &spaces); err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		data := args[1].AsString()
+		pad := strings.Repeat(" ", spaces)
+		return cty.StringVal(strings.Replace(data, "\n", "\n"+pad, -1)), nil
+	},
+})
+
+// TitleFunc is a function that converts the first letter of each word in the
+// given string to uppercase.
+var TitleFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		return cty.StringVal(strings.Title(args[0].AsString())), nil
+	},
+})
+
+// TrimSpaceFunc is a function that removes any space characters from the start
+// and end of the given string.
+var TrimSpaceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		return cty.StringVal(strings.TrimSpace(args[0].AsString())), nil
+	},
+})
+
+// TrimFunc is a function that removes the specified characters from the start
+// and end of the given string.
+var TrimFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "cutset",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		cutset := args[1].AsString()
+		return cty.StringVal(strings.Trim(str, cutset)), nil
+	},
+})
+
+// TrimPrefixFunc is a function that removes the specified characters from the
+// start the given string.
+var TrimPrefixFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "prefix",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		prefix := args[1].AsString()
+		return cty.StringVal(strings.TrimPrefix(str, prefix)), nil
+	},
+})
+
+// TrimSuffixFunc is a function that removes the specified characters from the
+// end of the given string.
+var TrimSuffixFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "suffix",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		cutset := args[1].AsString()
+		return cty.StringVal(strings.TrimSuffix(str, cutset)), nil
 	},
 })
 
@@ -231,4 +487,61 @@ func Strlen(str cty.Value) (cty.Value, error) {
 // the given offset will be returned.
 func Substr(str cty.Value, offset cty.Value, length cty.Value) (cty.Value, error) {
 	return SubstrFunc.Call([]cty.Value{str, offset, length})
+}
+
+// Join concatenates together the string elements of one or more lists with a
+// given separator.
+func Join(sep cty.Value, lists ...cty.Value) (cty.Value, error) {
+	args := make([]cty.Value, len(lists)+1)
+	args[0] = sep
+	copy(args[1:], lists)
+	return JoinFunc.Call(args)
+}
+
+// Sort re-orders the elements of a given list of strings so that they are
+// in ascending lexicographical order.
+func Sort(list cty.Value) (cty.Value, error) {
+	return SortFunc.Call([]cty.Value{list})
+}
+
+// Split divides a given string by a given separator, returning a list of
+// strings containing the characters between the separator sequences.
+func Split(sep, str cty.Value) (cty.Value, error) {
+	return SplitFunc.Call([]cty.Value{sep, str})
+}
+
+// Chomp removes newline characters at the end of a string.
+func Chomp(str cty.Value) (cty.Value, error) {
+	return ChompFunc.Call([]cty.Value{str})
+}
+
+// Indent adds a given number of spaces to the beginnings of all but the first
+// line in a given multi-line string.
+func Indent(spaces, str cty.Value) (cty.Value, error) {
+	return IndentFunc.Call([]cty.Value{spaces, str})
+}
+
+// Title converts the first letter of each word in the given string to uppercase.
+func Title(str cty.Value) (cty.Value, error) {
+	return TitleFunc.Call([]cty.Value{str})
+}
+
+// TrimSpace removes any space characters from the start and end of the given string.
+func TrimSpace(str cty.Value) (cty.Value, error) {
+	return TrimSpaceFunc.Call([]cty.Value{str})
+}
+
+// Trim removes the specified characters from the start and end of the given string.
+func Trim(str, cutset cty.Value) (cty.Value, error) {
+	return TrimFunc.Call([]cty.Value{str, cutset})
+}
+
+// TrimPrefix removes the specified prefix from the start of the given string.
+func TrimPrefix(str, prefix cty.Value) (cty.Value, error) {
+	return TrimPrefixFunc.Call([]cty.Value{str, prefix})
+}
+
+// TrimSuffix removes the specified suffix from the end of the given string.
+func TrimSuffix(str, suffix cty.Value) (cty.Value, error) {
+	return TrimSuffixFunc.Call([]cty.Value{str, suffix})
 }

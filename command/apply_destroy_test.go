@@ -30,8 +30,8 @@ func TestApply_destroy(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -126,8 +126,8 @@ func TestApply_destroyLockedState(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
 			},
 		)
 	})
@@ -201,8 +201,8 @@ func TestApply_destroyTargeted(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
 			},
 		)
 		s.SetResourceInstanceCurrent(
@@ -213,12 +213,12 @@ func TestApply_destroyTargeted(t *testing.T) {
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte(`{"id":"i-abc123"}`),
-				Dependencies: []addrs.AbsResource{mustResourceAddr("test_instance.foo")},
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 				Status:       states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
-				Module:   addrs.RootModuleInstance,
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
 			},
 		)
 	})

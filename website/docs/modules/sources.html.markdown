@@ -360,6 +360,8 @@ module "consul" {
 }
 ```
 
+-> **Note:** Buckets in AWS's us-east-1 region must use the hostname `s3.amazonaws.com` (instead of `s3-us-east-1.amazonaws.com`).
+
 The `s3::` prefix causes Terraform to use AWS-style authentication when
 accessing the given URL. As a result, this scheme may also work for other
 services that mimic the S3 API, as long as they handle authentication in the
