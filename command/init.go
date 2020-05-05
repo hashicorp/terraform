@@ -165,7 +165,7 @@ func (c *InitCommand) Run(args []string) int {
 		// error suggesting the user upgrade their config manually or with
 		// Terraform v0.12
 		c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
-		c.showDiagnostics(earlyConfDiags)
+		c.showDiagnostics(confDiags)
 		return 1
 	}
 
