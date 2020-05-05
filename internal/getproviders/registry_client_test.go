@@ -2,6 +2,7 @@ package getproviders
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -324,7 +325,7 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 		"nonexisting provider": {
 			addrs.MustParseProviderSourceString("example.com/nonexist/nonexist"),
 			MustParseVersion("1.2.0"),
-			MustParseVersion("1.2.0"),
+			versions.Unspecified,
 			`provider registry example.com does not have a provider named example.com/nonexist/nonexist`,
 		},
 		"versionless provider": {
@@ -362,6 +363,8 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 			if test.wantErr != "" {
 				t.Fatalf("wrong error\ngot:  <nil>\nwant: %s", test.wantErr)
 			}
+
+			fmt.Printf("Got: %s, Want: %s\n", got, test.wantSuggestion)
 
 			if !got.Same(test.wantSuggestion) {
 				t.Fatalf("wrong result\ngot:  %s\nwant: %s", got.String(), test.wantSuggestion.String())
