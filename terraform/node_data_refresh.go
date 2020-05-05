@@ -205,15 +205,11 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Schema: &providerSchema,
 			},
 
-			// Always destroy the existing state first, since we must
-			// make sure that values from a previous read will not
-			// get interpolated if we end up needing to defer our
-			// loading until apply time.
-			&EvalWriteState{
+			&EvalReadState{
 				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				State:          &state, // a pointer to nil, here
+				Provider:       &provider,
 				ProviderSchema: &providerSchema,
+				Output:         &state,
 			},
 
 			// EvalReadData will _attempt_ to read the data source, but may
@@ -229,12 +225,6 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				OutputChange:      &change,
 				OutputConfigValue: &configVal,
 				OutputState:       &state,
-				// If the config explicitly has a depends_on for this data
-				// source, assume the intention is to prevent refreshing ahead
-				// of that dependency, and therefore we need to deal with this
-				// resource during the apply phase. We do that by forcing this
-				// read to result in a plan.
-				ForcePlanRead: len(n.Config.DependsOn) > 0,
 			},
 
 			&EvalIf{
