@@ -150,6 +150,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 
+		// Make sure data sources are aware of any depends_on from the
+		// configuration
+		&AttachDependsOnTransformer{},
+
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{
 			Config: b.Config,

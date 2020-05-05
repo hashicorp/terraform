@@ -163,7 +163,7 @@ func (t AttachDependsOnTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		// depMap will dedupe and only add resource references
+		// depMap will only add resource references and dedupe
 		m := make(depMap)
 
 		for _, dep := range refMap.DependsOn(v) {
