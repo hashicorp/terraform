@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeExpandRefreshableDataResource struct {
@@ -195,7 +194,6 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -216,15 +214,15 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			// generate an incomplete planned object if the configuration
 			// includes values that won't be known until apply.
 			&EvalReadData{
-				Addr:              addr.Resource,
-				Config:            n.Config,
-				Provider:          &provider,
-				ProviderAddr:      n.ResolvedProvider,
-				ProviderMetas:     n.ProviderMetas,
-				ProviderSchema:    &providerSchema,
-				OutputChange:      &change,
-				OutputConfigValue: &configVal,
-				OutputState:       &state,
+				Addr:           addr.Resource,
+				Config:         n.Config,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
+				ProviderSchema: &providerSchema,
+				OutputChange:   &change,
+				State:          &state,
+				refresh:        true,
 			},
 
 			&EvalIf{

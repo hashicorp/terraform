@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -51,9 +50,6 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
-
-	forcePlanRead := new(bool)
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -71,34 +67,6 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Output: &state,
 			},
 
-			// If we already have a non-planned state then we already dealt
-			// with this during the refresh walk and so we have nothing to do
-			// here.
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					depChanges := false
-
-					// Check and see if any depends_on dependencies have
-					// changes, since they won't show up as changes in the
-					// configuration.
-					changes := ctx.Changes()
-					depChanges = func() bool {
-						for _, d := range n.dependsOn {
-							for _, change := range changes.GetConfigResourceChanges(d) {
-								if change != nil && change.Action != plans.NoOp {
-									return true
-								}
-							}
-						}
-						return false
-					}()
-
-					*forcePlanRead = depChanges
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
 			&EvalValidateSelfRef{
 				Addr:           addr.Resource,
 				Config:         config.Config,
@@ -112,10 +80,9 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
-				ForcePlanRead:  forcePlanRead,
 				OutputChange:   &change,
-				OutputValue:    &configVal,
-				OutputState:    &state,
+				State:          &state,
+				dependsOn:      n.dependsOn,
 			},
 
 			&EvalWriteState{
@@ -153,8 +120,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Addr:           addr.Resource,
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
-
-				Output: &state,
+				Output:         &state,
 			},
 
 			&EvalValidateSelfRef{

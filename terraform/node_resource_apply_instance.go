@@ -3,8 +3,6 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -182,7 +180,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
-				OutputState:    &state,
+				State:          &state,
 			},
 
 			&EvalWriteState{
@@ -215,7 +213,6 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
-	var configVal cty.Value
 	var deposedKey states.DeposedKey
 
 	return &EvalSequence{
@@ -293,7 +290,6 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				State:          &state,
 				PreviousDiff:   &diff,
 				OutputChange:   &diffApply,
-				OutputValue:    &configVal,
 				OutputState:    &state,
 			},
 
