@@ -1992,6 +1992,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		DataSources: map[string]*configschema.Block{
 			"aws_data_source": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.String, Optional: true},
 				},
 			},
