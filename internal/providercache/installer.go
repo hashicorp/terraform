@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/copydir"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Installer is the main type in this package, representing a provider installer
@@ -294,31 +293,7 @@ NeedProvider:
 			cb(provider, version)
 		}
 		meta, err := i.source.PackageMeta(provider, version, targetPlatform)
-
-		switch err := err.(type) {
-		case nil:
-			// cool!
-		case getproviders.ErrProtocolNotSupported:
-			closestAvailable := err.Suggestion
-			if closestAvailable == &versions.Unspecified {
-				// we'll fall through to the default "not supported"
-				continue
-			}
-			var protoErrStr string
-			if version.GreaterThan(*closestAvailable) {
-				protoErrStr = providerProtocolTooNew
-			} else {
-				protoErrStr = providerProtocolTooOld
-			}
-
-			protoErr := fmt.Errorf(protoErrStr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
-			errs[provider] = protoErr
-
-			if cb := evts.FetchPackageFailure; cb != nil {
-				cb(provider, version, err)
-			}
-			continue
-		default:
+		if err != nil {
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
 				cb(provider, version, err)
@@ -523,36 +498,3 @@ func (err InstallerError) Error() string {
 	}
 	return b.String()
 }
-
-// providerProtocolTooOld is a message sent to the CLI UI if the provider's
-// supported protocol versions are too old for the user's version of terraform,
-// but a newer version of the provider is compatible.
-const providerProtocolTooOld = `
-Provider %q v%s is not compatible with Terraform %s.
-Provider version %s is the latest compatible version. Select it with
-the following version constraint:
-	version = %q
-Terraform checked all of the plugin versions matching the given constraint:
-	%s
-Consult the documentation for this provider for more information on
-compatibility between provider and Terraform versions.
-`
-
-// providerProtocolTooNew is a message sent to the CLI UI if the provider's
-// supported protocol versions are too new for the user's version of terraform,
-// and the user could either upgrade terraform or choose an older version of the
-// provider.
-const providerProtocolTooNew = `
-Provider %q v%s is not compatible with Terraform %s.
-You need to downgrade to v%s or earlier. Select it with
-the following constraint:
-	version = %q
-Terraform checked all of the plugin versions matching the given constraint:
-	%s
-Consult the documentation for this provider for more information on
-compatibility between provider and Terraform versions.
-Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
-`
-
-// there does exist a version outside of the constaints that is compatible.
-const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`

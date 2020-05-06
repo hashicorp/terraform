@@ -12,7 +12,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/apparentlymart/go-versions/versions"
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 
@@ -222,13 +221,9 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 			// matching version.
 			closest, err := c.findClosestProtocolCompatibleVersion(provider, version)
 			if err != nil {
-				// FIXME: This is awkward! It won't be obvious that this error
-				// came about in this extra processing step.
 				return PackageMeta{}, err
 			}
-			// It is the caller's responsibility to check the suggestion:
-			// versions.Unspecified indicates that no match was found.
-			protoErr.Suggestion = &closest
+			protoErr.Suggestion = closest
 			return PackageMeta{}, protoErr
 		}
 	}
@@ -322,7 +317,7 @@ func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Pro
 	var match Version
 	available, err := c.ProviderVersions(provider)
 	if err != nil {
-		return versions.Unspecified, err
+		return UnspecifiedVersion, err
 	}
 
 	// extract the maps keys so we can make a sorted list of available versions.
@@ -330,7 +325,7 @@ func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Pro
 	for versionStr := range available {
 		v, err := ParseVersion(versionStr)
 		if err != nil {
-			return versions.Unspecified, ErrQueryFailed{
+			return UnspecifiedVersion, ErrQueryFailed{
 				Provider: provider,
 				Wrapped:  fmt.Errorf("registry response includes invalid version string %q: %s", versionStr, err),
 			}
@@ -346,7 +341,7 @@ FindMatch:
 		for _, protoStr := range available[versionList[index].String()] {
 			p, err := ParseVersion(protoStr)
 			if err != nil {
-				return versions.Unspecified, ErrQueryFailed{
+				return UnspecifiedVersion, ErrQueryFailed{
 					Provider: provider,
 					Wrapped:  fmt.Errorf("registry response includes invalid protocol string %q: %s", protoStr, err),
 				}

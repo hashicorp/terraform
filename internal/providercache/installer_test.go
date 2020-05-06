@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/apparentlymart/go-versions/versions"
-	"github.com/apparentlymart/go-versions/versions/constraints"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
@@ -34,6 +32,7 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 	defer os.RemoveAll(tmpDirPath)
 
 	version0 := getproviders.MustParseVersionConstraints("0.1.0") // supports protocol version 1.0
+	version1 := getproviders.MustParseVersion("1.2.0")            // this is the expected result in tests with a match
 	version2 := getproviders.MustParseVersionConstraints("2.0")   // supports protocol version 99
 
 	// set up the installer using the temporary directory and mock source
@@ -43,27 +42,23 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 
 	tests := map[string]struct {
 		provider     addrs.Provider
-		inputVersion constraints.IntersectionSpec
+		inputVersion getproviders.VersionConstraints
 		wantVersion  getproviders.Version
-		wantErr      string
 	}{
 		"too old": {
 			addrs.MustParseProviderSourceString("example.com/awesomesauce/happycloud"),
 			version0,
-			versions.Unspecified,
-			`Provider version 1.2.0 is the latest compatible version.`,
+			version1,
 		},
 		"too new": {
 			addrs.MustParseProviderSourceString("example.com/awesomesauce/happycloud"),
 			version2,
-			versions.Unspecified,
-			`You need to downgrade to v1.2.0 or earlier.`,
+			version1,
 		},
 		"unsupported": {
 			addrs.MustParseProviderSourceString("example.com/weaksauce/unsupported-protocol"),
 			version0,
-			versions.Unspecified,
-			`provider example.com/weaksauce/unsupported-protocol 0.1.0 is not available for gameboy_lr35902`,
+			getproviders.UnspecifiedVersion,
 		},
 	}
 
@@ -73,26 +68,27 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 				test.provider: test.inputVersion,
 			}
 			ctx := context.TODO()
-			selections, err := installer.EnsureProviderVersions(ctx, reqs, InstallNewProvidersOnly)
-			if err != nil {
-				if test.wantErr == "" {
-					t.Fatalf("wrong error\ngot:  %s\nwant: <nil>", err.Error())
-				}
-				if !strings.Contains(err.Error(), test.wantErr) {
-					t.Fatalf("wrong error\ngot:  %s\nwant: %s", err.Error(), test.wantErr)
-				}
-				return
-			}
+			_, err := installer.EnsureProviderVersions(ctx, reqs, InstallNewProvidersOnly)
 
-			if test.wantErr != "" {
-				t.Fatalf("wrong error\ngot:  <nil>\nwant: %s", test.wantErr)
-			}
-			if len(selections) != 1 {
-				t.Fatalf("wrong number of results. Got %d, expected 1", len(selections))
-			}
-			got := selections[test.provider]
-			if !got.Same(test.wantVersion) {
-				t.Fatalf("wrong result\ngot:  %s\nwant: %s\n", got, test.wantVersion)
+			switch err := err.(type) {
+			case nil:
+				t.Fatalf("expected error, got success")
+			case InstallerError:
+				providerError, ok := err.ProviderErrors[test.provider]
+				if !ok {
+					t.Fatalf("did not get error for provider %s", test.provider)
+				}
+
+				switch providerError := providerError.(type) {
+				case getproviders.ErrProtocolNotSupported:
+					if !providerError.Suggestion.Same(test.wantVersion) {
+						t.Fatalf("wrong result\ngot:  %s\nwant: %s\n", providerError.Suggestion, test.wantVersion)
+					}
+				default:
+					t.Fatalf("wrong error type. Expected ErrProtocolNotSupported, got %T", err)
+				}
+			default:
+				t.Fatalf("wrong error type. Expected InstallerError, got %T", err)
 			}
 		})
 	}
@@ -267,6 +263,33 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 				resp.Write([]byte(`unsupported OS`))
 				return
 			}
+			version := pathParts[2]
+			body := map[string]interface{}{
+				"protocols":             []string{"99.0"},
+				"os":                    pathParts[4],
+				"arch":                  pathParts[5],
+				"filename":              "happycloud_" + version + ".zip",
+				"shasum":                "000000000000000000000000000000000000000000000000000000000000f00d",
+				"download_url":          "/pkg/awesomesauce/happycloud_" + version + ".zip",
+				"shasums_url":           "/pkg/awesomesauce/happycloud_" + version + "_SHA256SUMS",
+				"shasums_signature_url": "/pkg/awesomesauce/happycloud_" + version + "_SHA256SUMS.sig",
+				"signing_keys": map[string]interface{}{
+					"gpg_public_keys": []map[string]interface{}{
+						{
+							"ascii_armor": getproviders.HashicorpPublicKey,
+						},
+					},
+				},
+			}
+			enc, err := json.Marshal(body)
+			if err != nil {
+				resp.WriteHeader(500)
+				resp.Write([]byte("failed to encode body"))
+			}
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			resp.Write(enc)
+		case "weaksauce/unsupported-protocol":
 			var protocols []string
 			version := pathParts[2]
 			switch version {

@@ -122,15 +122,14 @@ func (err ErrPlatformNotSupported) Error() string {
 // ErrProtocolNotSupported is an error type used to indicate that a particular
 // version of a provider is not supported by the current version of Terraform.
 //
-// This is returned when the version's plugin protocol is not supported.
+// Specfically, this is returned when the version's plugin protocol is not supported.
 //
-// When available (at the time of writing, this is specific to the registry
-// source), the error will include a suggested version that can be displayed to
-// the user.
+// When available, the error will include a suggested version that can be displayed to
+// the user. Otherwise it will return UnspecifiedVersion
 type ErrProtocolNotSupported struct {
 	Provider   addrs.Provider
 	Version    Version
-	Suggestion *Version
+	Suggestion Version
 }
 
 func (err ErrProtocolNotSupported) Error() string {
