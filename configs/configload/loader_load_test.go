@@ -1,6 +1,7 @@
 package configload
 
 import (
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -75,8 +76,36 @@ func TestLoaderLoadConfig_addVersion(t *testing.T) {
 		t.Fatalf("success; want error")
 	}
 	got := diags.Error()
-	want := "Module requirements have changed"
-	if strings.Contains(got, want) {
+	want := "Module version requirements have changed"
+	if !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+	}
+}
+
+func TestLoaderLoadConfig_moduleExpand(t *testing.T) {
+	// This test goes out to all those who thought they could put a provider in an expanding module
+	// We do not allow providers to be configured in expanding modules
+	// In addition, if a provider is present but an empty block, it is allowed,
+	// but IFF a provider is passed through the module call
+	paths := []string{"provider-configured", "no-provider-passed"}
+	wanted := []string{"Cannot configure a provider in an expanding module", "Must pass provider to expanding module"}
+	for idx, p := range paths {
+		fixtureDir := filepath.Clean(fmt.Sprintf("testdata/expand-modules/%s", p))
+		loader, err := NewLoader(&Config{
+			ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		})
+		if err != nil {
+			t.Fatalf("unexpected error from NewLoader: %s", err)
+		}
+
+		_, diags := loader.LoadConfig(fixtureDir)
+		if !diags.HasErrors() {
+			t.Fatalf("success; want error")
+		}
+		got := diags.Error()
+		want := wanted[idx]
+		if !strings.Contains(got, want) {
+			t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+		}
 	}
 }

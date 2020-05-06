@@ -17,7 +17,7 @@ import (
 // in spite of the errors.
 //
 // LoadConfig performs the basic syntax and uniqueness validations that are
-// required to process the individual modules, and also detects
+// required to process the individual modules
 func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 	rootMod, diags := l.parser.LoadConfigDir(rootDir)
 	if rootMod == nil {
@@ -31,8 +31,7 @@ func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 }
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that
-// are presumed to have already been installed. A different function
-// (moduleWalkerInstall) is used for installation.
+// are presumed to have already been installed.
 func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 	// Since we're just loading here, we expect that all referenced modules
 	// will be already installed and described in our manifest. However, we
@@ -101,5 +100,45 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 		}
 	}
 
+	// The providers associated with expanding modules must be present in the proxy/passed providers
+	// block. Guarding here for accessing the module call just in case.
+	if mc, exists := req.Parent.Module.ModuleCalls[req.Name]; exists {
+		if mc.Count != nil || mc.ForEach != nil {
+			for key, pc := range mod.ProviderConfigs {
+				// Does this provider block contain any config (including a version)? that's invalid
+				// and we should bail here.
+				// Validate the config against an empty schema to see if it's empty.
+				_, pcConfigDiags := pc.Config.Content(&hcl.BodySchema{})
+				if pcConfigDiags.HasErrors() || pc.Version.Required != nil {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot configure a provider in an expanding module",
+						Detail:   fmt.Sprintf("A provider configuration %s was declared in %s. Providers must be passed to expanding child modules.", key, mc.Name),
+						Subject:  &pc.DeclRange,
+					})
+				}
+
+				// If it is empty or only has an alias,
+				// does this provider exist in our proxy configs?
+				var found bool
+				for _, r := range mc.Providers {
+					// Do we have provider in the child referenced by this name,
+					// or by its declared alias?
+					if r.InChild.Name == key || r.InChild.Name == pc.Alias {
+						found = true
+						break
+					}
+				}
+				if !found {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Must pass provider to expanding module",
+						Detail:   fmt.Sprintf("A provider configuration %s was declared in %s. Providers must be passed to expanding child modules.", key, mc.Name),
+						Subject:  &mc.DeclRange,
+					})
+				}
+			}
+		}
+	}
 	return mod, record.Version, diags
 }
