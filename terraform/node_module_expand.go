@@ -281,8 +281,27 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 	// will be a single instance, but still get our address in the expected
 	// manner anyway to ensure they've been registered correctly.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+		ctx = ctx.WithPath(module)
+
+		// Validate our for_each and count expressions at a basic level
+		// We skip validation on known, because there will be unknown values before
+		// a full expansion, presuming these errors will be caught in later steps
+		switch {
+		case n.ModuleCall.Count != nil:
+			_, diags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+
+		case n.ModuleCall.ForEach != nil:
+			_, diags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+		}
+
 		// now set our own mode to single
-		ctx.InstanceExpander().SetModuleSingle(module, call)
+		expander.SetModuleSingle(module, call)
 	}
 	return nil, nil
 }

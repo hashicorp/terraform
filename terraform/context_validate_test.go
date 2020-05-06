@@ -1425,7 +1425,7 @@ module "mod2" {
 }
 
 module "mod3" {
-  count = len(module.mod2)
+  count = length(module.mod2)
   source = "./mod"
 }
 `,
@@ -1470,5 +1470,69 @@ resource "aws_instance" "foo" {
 	diags := ctx.Validate()
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_expandModulesInvalidCount(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  count = -1
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), `Invalid count argument`; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_expandModulesInvalidForEach(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  for_each = ["a", "b"]
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), `Invalid for_each argument`; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
