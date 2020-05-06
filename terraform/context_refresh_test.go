@@ -1612,6 +1612,11 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 		},
 	}
 	p.DiffFn = testDiffFn
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"compute": cty.StringVal("value"),
+		}),
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)

@@ -5504,11 +5504,18 @@ func TestContext2Plan_invalidOutput(t *testing.T) {
 data "aws_data_source" "name" {}
 
 output "out" {
-  value = "${data.aws_data_source.name.missing}"
+  value = data.aws_data_source.name.missing
 }`,
 	})
 
 	p := testProvider("aws")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5549,6 +5556,13 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
