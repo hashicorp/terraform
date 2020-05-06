@@ -237,19 +237,14 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						return addr.Resource.Resource.Mode == addrs.DataResourceMode, nil
+						if addr.Resource.Resource.Mode == addrs.DataResourceMode {
+							// deleting a data source is simply removing the state
+							state = nil
+						}
+						return addr.Resource.Resource.Mode == addrs.ManagedResourceMode, nil
 					},
 
-					Then: &EvalReadDataApply{
-						Addr:           addr.Resource,
-						Config:         n.Config,
-						Change:         &changeApply,
-						Provider:       &provider,
-						ProviderAddr:   n.ResolvedProvider,
-						ProviderSchema: &providerSchema,
-						Output:         &state,
-					},
-					Else: &EvalApply{
+					Then: &EvalApply{
 						Addr:           addr.Resource,
 						Config:         nil, // No configuration because we are destroying
 						State:          &state,
