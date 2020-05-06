@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	tfVersion "github.com/hashicorp/terraform/version"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -502,11 +503,38 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			))
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to install provider",
-				fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
-			))
+			switch err := err.(type) {
+
+			case getproviders.ErrProtocolNotSupported:
+				closestAvailable := err.Suggestion
+				switch {
+				case closestAvailable == &getproviders.UnspecifiedVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Incompatible provider version",
+						fmt.Sprintf("Provider %s v%s is not compatible with Terraform v%s.", provider.String(), version, tfVersion.String()),
+					))
+				case version.GreaterThan(*closestAvailable):
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Incompatible provider version",
+						fmt.Sprintf("Provider %s v%s is not compatible with Terraform v%s. You'll need to downgrade to v%s or earlier.\n\nSelect it with the following constraint\n    version = \"~> %s\"\n\nTerraform checked all of the plugin versions matching the given constraint:\n    %s", provider.String(), version, tfVersion.String(), *closestAvailable, *closestAvailable, getproviders.VersionConstraintsString(reqs[provider])),
+					))
+				default: // version is less than closestAvailable
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Incompatible provider version",
+						fmt.Sprintf("Provider %s v%s is not compatible with Terraform v%s. Version %s is the latest compatible version.\n\nSelect it with the following constraint\n    version = \"~> %s\"\n\nTerraform checked all of the plugin versions matching the given constraint:\n    %s", provider.String(), version, tfVersion.String(), *closestAvailable, *closestAvailable, getproviders.VersionConstraintsString(reqs[provider])),
+					))
+				}
+
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
+				))
+			}
 		},
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 			var warning string

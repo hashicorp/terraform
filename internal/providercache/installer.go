@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/copydir"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Installer is the main type in this package, representing a provider installer
@@ -294,31 +293,7 @@ NeedProvider:
 			cb(provider, version)
 		}
 		meta, err := i.source.PackageMeta(provider, version, targetPlatform)
-
-		switch err := err.(type) {
-		case nil:
-			// cool!
-		case getproviders.ErrProtocolNotSupported:
-			closestAvailable := err.Suggestion
-			if closestAvailable == &versions.Unspecified {
-				// we'll fall through to the default "not supported"
-				continue
-			}
-			var protoErrStr string
-			if version.GreaterThan(*closestAvailable) {
-				protoErrStr = providerProtocolTooNew
-			} else {
-				protoErrStr = providerProtocolTooOld
-			}
-
-			protoErr := fmt.Errorf(protoErrStr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
-			errs[provider] = protoErr
-
-			if cb := evts.FetchPackageFailure; cb != nil {
-				cb(provider, version, err)
-			}
-			continue
-		default:
+		if err != nil {
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
 				cb(provider, version, err)
