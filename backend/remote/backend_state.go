@@ -20,6 +20,7 @@ type remoteClient struct {
 	runID          string
 	stateUploadErr bool
 	workspace      *tfe.Workspace
+	forcePush      bool
 }
 
 // Get the remote state.
@@ -69,6 +70,7 @@ func (r *remoteClient) Put(state []byte) error {
 		Serial:  tfe.Int64(int64(stateFile.Serial)),
 		MD5:     tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
 		State:   tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:   tfe.Bool(r.forcePush),
 	}
 
 	// If we have a run ID, make sure to add it to the options
@@ -95,6 +97,12 @@ func (r *remoteClient) Delete() error {
 	}
 
 	return nil
+}
+
+// EnableForcePush to allow the remote client to overwrite state
+// by implementing remote.ClientForcePusher
+func (r *remoteClient) EnableForcePush() {
+	r.forcePush = true
 }
 
 // Lock the remote state.
