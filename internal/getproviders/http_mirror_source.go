@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -26,13 +27,11 @@ func NewHTTPMirrorSource(baseURL *url.URL) *HTTPMirrorSource {
 // AvailableVersions retrieves the available versions for the given provider
 // from the object's underlying HTTP mirror service.
 func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
-	// TODO: Implement
-	panic("HTTPMirrorSource.AvailableVersions not yet implemented")
+	return nil, fmt.Errorf("Network-based provider mirrors are not supported in this version of Terraform")
 }
 
 // PackageMeta retrieves metadata for the requested provider package
 // from the object's underlying HTTP mirror service.
 func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
-	// TODO: Implement
-	panic("HTTPMirrorSource.PackageMeta not yet implemented")
+	return PackageMeta{}, fmt.Errorf("Network-based provider mirrors are not supported in this version of Terraform")
 }

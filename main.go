@@ -127,6 +127,7 @@ func wrappedMain() int {
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
 	config, diags := cliconfig.LoadConfig()
+
 	if len(diags) > 0 {
 		// Since we haven't instantiated a command.Meta yet, we need to do
 		// some things manually here and use some "safe" defaults for things
@@ -164,11 +165,22 @@ func wrappedMain() int {
 	services := disco.NewWithCredentialsSource(credsSrc)
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
-	// For the moment, we just always use the registry source to install
-	// direct from a registry. In future there should be a mechanism to
-	// configure providers sources from the CLI config, which will then
-	// change how we construct this object.
-	providerSrc := providerSource(services)
+	providerSrc, diags := providerSource(config.ProviderInstallation, services)
+	if len(diags) > 0 {
+		Ui.Error("There are some problems with the provider_installation configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+		}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform's provider installer may not behave as intended.\n\n")
+			// We continue to run anyway, because most commands don't do provider installation.
+		}
+	}
 
 	// Initialize the backends.
 	backendInit.Init(services)

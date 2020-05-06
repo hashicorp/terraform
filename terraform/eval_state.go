@@ -475,7 +475,7 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.Err()
 		}
 
-		state.SetResourceMeta(n.Addr, states.EachList, n.ProviderAddr)
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
 
 	case n.Config.ForEach != nil:
@@ -487,11 +487,11 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
-		state.SetResourceMeta(n.Addr, states.EachMap, n.ProviderAddr)
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEach)
 
 	default:
-		state.SetResourceMeta(n.Addr, states.NoEach, n.ProviderAddr)
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
 

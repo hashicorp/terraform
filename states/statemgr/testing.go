@@ -154,6 +154,6 @@ func TestFullInitialState() *states.State {
 		Provider: addrs.NewLegacyProvider(rAddr.ImpliedProvider()),
 		Module:   addrs.RootModule,
 	}
-	childMod.SetResourceMeta(rAddr, states.EachList, providerAddr)
+	childMod.SetResourceProvider(rAddr, providerAddr)
 	return state
 }

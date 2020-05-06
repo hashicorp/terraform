@@ -2,12 +2,13 @@ package clientconfig
 
 import (
 	"fmt"
-	"os"
+	"net/http"
 	"reflect"
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/utils/env"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -56,11 +57,62 @@ type ClientOpts struct {
 	// This will override a region in clouds.yaml or can be used
 	// when authenticating directly with AuthInfo.
 	RegionName string
+
+	// EndpointType specifies whether to use the public, internal, or
+	// admin endpoint of a service.
+	EndpointType string
+
+	// HTTPClient provides the ability customize the ProviderClient's
+	// internal HTTP client.
+	HTTPClient *http.Client
+
+	// YAMLOpts provides the ability to pass a customized set
+	// of options and methods for loading the YAML file.
+	// It takes a YAMLOptsBuilder interface that is defined
+	// in this file. This is optional and the default behavior
+	// is to call the local LoadCloudsYAML functions defined
+	// in this file.
+	YAMLOpts YAMLOptsBuilder
+}
+
+// YAMLOptsBuilder defines an interface for customization when
+// loading a clouds.yaml file.
+type YAMLOptsBuilder interface {
+	LoadCloudsYAML() (map[string]Cloud, error)
+	LoadSecureCloudsYAML() (map[string]Cloud, error)
+	LoadPublicCloudsYAML() (map[string]Cloud, error)
+}
+
+// YAMLOpts represents options and methods to load a clouds.yaml file.
+type YAMLOpts struct {
+	// By default, no options are specified.
+}
+
+// LoadCloudsYAML defines how to load a clouds.yaml file.
+// By default, this calls the local LoadCloudsYAML function.
+func (opts YAMLOpts) LoadCloudsYAML() (map[string]Cloud, error) {
+	return LoadCloudsYAML()
+}
+
+// LoadSecureCloudsYAML defines how to load a secure.yaml file.
+// By default, this calls the local LoadSecureCloudsYAML function.
+func (opts YAMLOpts) LoadSecureCloudsYAML() (map[string]Cloud, error) {
+	return LoadSecureCloudsYAML()
+}
+
+// LoadPublicCloudsYAML defines how to load a public-secure.yaml file.
+// By default, this calls the local LoadPublicCloudsYAML function.
+func (opts YAMLOpts) LoadPublicCloudsYAML() (map[string]Cloud, error) {
+	return LoadPublicCloudsYAML()
 }
 
 // LoadCloudsYAML will load a clouds.yaml file and return the full config.
+// This is called by the YAMLOpts method. Calling this function directly
+// is supported for now but has only been retained for backwards
+// compatibility from before YAMLOpts was defined. This may be removed in
+// the future.
 func LoadCloudsYAML() (map[string]Cloud, error) {
-	content, err := findAndReadCloudsYAML()
+	_, content, err := FindAndReadCloudsYAML()
 	if err != nil {
 		return nil, err
 	}
@@ -75,10 +127,14 @@ func LoadCloudsYAML() (map[string]Cloud, error) {
 }
 
 // LoadSecureCloudsYAML will load a secure.yaml file and return the full config.
+// This is called by the YAMLOpts method. Calling this function directly
+// is supported for now but has only been retained for backwards
+// compatibility from before YAMLOpts was defined. This may be removed in
+// the future.
 func LoadSecureCloudsYAML() (map[string]Cloud, error) {
 	var secureClouds Clouds
 
-	content, err := findAndReadSecureCloudsYAML()
+	_, content, err := FindAndReadSecureCloudsYAML()
 	if err != nil {
 		if err.Error() == "no secure.yaml file found" {
 			// secure.yaml is optional so just ignore read error
@@ -96,10 +152,14 @@ func LoadSecureCloudsYAML() (map[string]Cloud, error) {
 }
 
 // LoadPublicCloudsYAML will load a public-clouds.yaml file and return the full config.
+// This is called by the YAMLOpts method. Calling this function directly
+// is supported for now but has only been retained for backwards
+// compatibility from before YAMLOpts was defined. This may be removed in
+// the future.
 func LoadPublicCloudsYAML() (map[string]Cloud, error) {
 	var publicClouds PublicClouds
 
-	content, err := findAndReadPublicCloudsYAML()
+	_, content, err := FindAndReadPublicCloudsYAML()
 	if err != nil {
 		if err.Error() == "no clouds-public.yaml file found" {
 			// clouds-public.yaml is optional so just ignore read error
@@ -119,7 +179,13 @@ func LoadPublicCloudsYAML() (map[string]Cloud, error) {
 
 // GetCloudFromYAML will return a cloud entry from a clouds.yaml file.
 func GetCloudFromYAML(opts *ClientOpts) (*Cloud, error) {
-	clouds, err := LoadCloudsYAML()
+	if opts.YAMLOpts == nil {
+		opts.YAMLOpts = new(YAMLOpts)
+	}
+
+	yamlOpts := opts.YAMLOpts
+
+	clouds, err := yamlOpts.LoadCloudsYAML()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load clouds.yaml: %s", err)
 	}
@@ -138,7 +204,7 @@ func GetCloudFromYAML(opts *ClientOpts) (*Cloud, error) {
 		envPrefix = opts.EnvPrefix
 	}
 
-	if v := os.Getenv(envPrefix + "CLOUD"); v != "" {
+	if v := env.Getenv(envPrefix + "CLOUD"); v != "" {
 		cloudName = v
 	}
 
@@ -159,32 +225,33 @@ func GetCloudFromYAML(opts *ClientOpts) (*Cloud, error) {
 		}
 	}
 
-	var cloudIsInCloudsYaml bool
-	if cloud == nil {
-		// not an immediate error as it might still be defined in secure.yaml
-		cloudIsInCloudsYaml = false
-	} else {
-		cloudIsInCloudsYaml = true
-	}
+	if cloud != nil {
+		// A profile points to a public cloud entry.
+		// If one was specified, load a list of public clouds
+		// and then merge the information with the current cloud data.
+		profileName := defaultIfEmpty(cloud.Profile, cloud.Cloud)
 
-	publicClouds, err := LoadPublicCloudsYAML()
-	if err != nil {
-		return nil, fmt.Errorf("unable to load clouds-public.yaml: %s", err)
-	}
+		if profileName != "" {
+			publicClouds, err := yamlOpts.LoadPublicCloudsYAML()
+			if err != nil {
+				return nil, fmt.Errorf("unable to load clouds-public.yaml: %s", err)
+			}
 
-	var profileName = defaultIfEmpty(cloud.Profile, cloud.Cloud)
-	if profileName != "" {
-		publicCloud, ok := publicClouds[profileName]
-		if !ok {
-			return nil, fmt.Errorf("cloud %s does not exist in clouds-public.yaml", profileName)
+			publicCloud, ok := publicClouds[profileName]
+			if !ok {
+				return nil, fmt.Errorf("cloud %s does not exist in clouds-public.yaml", profileName)
+			}
+
+			cloud, err = mergeClouds(cloud, publicCloud)
+			if err != nil {
+				return nil, fmt.Errorf("Could not merge information from clouds.yaml and clouds-public.yaml for cloud %s", profileName)
+			}
 		}
-		cloud, err = mergeClouds(cloud, publicCloud)
-		if err != nil {
-			return nil, fmt.Errorf("Could not merge information from clouds.yaml and clouds-public.yaml for cloud %s", profileName)
-		}
 	}
 
-	secureClouds, err := LoadSecureCloudsYAML()
+	// Next, load a secure clouds file and see if a cloud entry
+	// can be found or merged.
+	secureClouds, err := yamlOpts.LoadSecureCloudsYAML()
 	if err != nil {
 		return nil, fmt.Errorf("unable to load secure.yaml: %s", err)
 	}
@@ -192,12 +259,13 @@ func GetCloudFromYAML(opts *ClientOpts) (*Cloud, error) {
 	if secureClouds != nil {
 		// If no entry was found in clouds.yaml, no cloud name was specified,
 		// and only one secureCloud entry exists, use that as the cloud entry.
-		if !cloudIsInCloudsYaml && cloudName == "" && len(secureClouds) == 1 {
+		if cloud == nil && cloudName == "" && len(secureClouds) == 1 {
 			for _, v := range secureClouds {
 				cloud = &v
 			}
 		}
 
+		// Otherwise, see if the provided cloud name exists in the secure yaml file.
 		secureCloud, ok := secureClouds[cloudName]
 		if !ok && cloud == nil {
 			// cloud == nil serves two purposes here:
@@ -217,6 +285,12 @@ func GetCloudFromYAML(opts *ClientOpts) (*Cloud, error) {
 		}
 	}
 
+	// As an extra precaution, do one final check to see if cloud is nil.
+	// We shouldn't reach this point, though.
+	if cloud == nil {
+		return nil, fmt.Errorf("Could not find cloud %s", cloudName)
+	}
+
 	// Default is to verify SSL API requests
 	if cloud.Verify == nil {
 		iTrue := true
@@ -226,6 +300,17 @@ func GetCloudFromYAML(opts *ClientOpts) (*Cloud, error) {
 	// TODO: this is where reading vendor files should go be considered when not found in
 	// clouds-public.yml
 	// https://github.com/openstack/openstacksdk/tree/master/openstack/config/vendors
+
+	// Both Interface and EndpointType are valid settings in clouds.yaml,
+	// but we want to standardize on EndpointType for simplicity.
+	//
+	// If only Interface was set, we copy that to EndpointType to use as the setting.
+	// But in all other cases, EndpointType is used and Interface is cleared.
+	if cloud.Interface != "" && cloud.EndpointType == "" {
+		cloud.EndpointType = cloud.Interface
+	}
+
+	cloud.Interface = ""
 
 	return cloud, nil
 }
@@ -260,7 +345,7 @@ func AuthOptions(opts *ClientOpts) (*gophercloud.AuthOptions, error) {
 		envPrefix = opts.EnvPrefix
 	}
 
-	if v := os.Getenv(envPrefix + "CLOUD"); v != "" {
+	if v := env.Getenv(envPrefix + "CLOUD"); v != "" {
 		cloudName = v
 	}
 
@@ -310,7 +395,7 @@ func determineIdentityAPI(cloud *Cloud, opts *ClientOpts) string {
 		envPrefix = opts.EnvPrefix
 	}
 
-	if v := os.Getenv(envPrefix + "IDENTITY_API_VERSION"); v != "" {
+	if v := env.Getenv(envPrefix + "IDENTITY_API_VERSION"); v != "" {
 		identityAPI = v
 	}
 
@@ -359,49 +444,49 @@ func v2auth(cloud *Cloud, opts *ClientOpts) (*gophercloud.AuthOptions, error) {
 	}
 
 	if cloud.AuthInfo.AuthURL == "" {
-		if v := os.Getenv(envPrefix + "AUTH_URL"); v != "" {
+		if v := env.Getenv(envPrefix + "AUTH_URL"); v != "" {
 			cloud.AuthInfo.AuthURL = v
 		}
 	}
 
 	if cloud.AuthInfo.Token == "" {
-		if v := os.Getenv(envPrefix + "TOKEN"); v != "" {
+		if v := env.Getenv(envPrefix + "TOKEN"); v != "" {
 			cloud.AuthInfo.Token = v
 		}
 
-		if v := os.Getenv(envPrefix + "AUTH_TOKEN"); v != "" {
+		if v := env.Getenv(envPrefix + "AUTH_TOKEN"); v != "" {
 			cloud.AuthInfo.Token = v
 		}
 	}
 
 	if cloud.AuthInfo.Username == "" {
-		if v := os.Getenv(envPrefix + "USERNAME"); v != "" {
+		if v := env.Getenv(envPrefix + "USERNAME"); v != "" {
 			cloud.AuthInfo.Username = v
 		}
 	}
 
 	if cloud.AuthInfo.Password == "" {
-		if v := os.Getenv(envPrefix + "PASSWORD"); v != "" {
+		if v := env.Getenv(envPrefix + "PASSWORD"); v != "" {
 			cloud.AuthInfo.Password = v
 		}
 	}
 
 	if cloud.AuthInfo.ProjectID == "" {
-		if v := os.Getenv(envPrefix + "TENANT_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "TENANT_ID"); v != "" {
 			cloud.AuthInfo.ProjectID = v
 		}
 
-		if v := os.Getenv(envPrefix + "PROJECT_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "PROJECT_ID"); v != "" {
 			cloud.AuthInfo.ProjectID = v
 		}
 	}
 
 	if cloud.AuthInfo.ProjectName == "" {
-		if v := os.Getenv(envPrefix + "TENANT_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "TENANT_NAME"); v != "" {
 			cloud.AuthInfo.ProjectName = v
 		}
 
-		if v := os.Getenv(envPrefix + "PROJECT_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "PROJECT_NAME"); v != "" {
 			cloud.AuthInfo.ProjectName = v
 		}
 	}
@@ -427,115 +512,115 @@ func v3auth(cloud *Cloud, opts *ClientOpts) (*gophercloud.AuthOptions, error) {
 	}
 
 	if cloud.AuthInfo.AuthURL == "" {
-		if v := os.Getenv(envPrefix + "AUTH_URL"); v != "" {
+		if v := env.Getenv(envPrefix + "AUTH_URL"); v != "" {
 			cloud.AuthInfo.AuthURL = v
 		}
 	}
 
 	if cloud.AuthInfo.Token == "" {
-		if v := os.Getenv(envPrefix + "TOKEN"); v != "" {
+		if v := env.Getenv(envPrefix + "TOKEN"); v != "" {
 			cloud.AuthInfo.Token = v
 		}
 
-		if v := os.Getenv(envPrefix + "AUTH_TOKEN"); v != "" {
+		if v := env.Getenv(envPrefix + "AUTH_TOKEN"); v != "" {
 			cloud.AuthInfo.Token = v
 		}
 	}
 
 	if cloud.AuthInfo.Username == "" {
-		if v := os.Getenv(envPrefix + "USERNAME"); v != "" {
+		if v := env.Getenv(envPrefix + "USERNAME"); v != "" {
 			cloud.AuthInfo.Username = v
 		}
 	}
 
 	if cloud.AuthInfo.UserID == "" {
-		if v := os.Getenv(envPrefix + "USER_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "USER_ID"); v != "" {
 			cloud.AuthInfo.UserID = v
 		}
 	}
 
 	if cloud.AuthInfo.Password == "" {
-		if v := os.Getenv(envPrefix + "PASSWORD"); v != "" {
+		if v := env.Getenv(envPrefix + "PASSWORD"); v != "" {
 			cloud.AuthInfo.Password = v
 		}
 	}
 
 	if cloud.AuthInfo.ProjectID == "" {
-		if v := os.Getenv(envPrefix + "TENANT_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "TENANT_ID"); v != "" {
 			cloud.AuthInfo.ProjectID = v
 		}
 
-		if v := os.Getenv(envPrefix + "PROJECT_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "PROJECT_ID"); v != "" {
 			cloud.AuthInfo.ProjectID = v
 		}
 	}
 
 	if cloud.AuthInfo.ProjectName == "" {
-		if v := os.Getenv(envPrefix + "TENANT_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "TENANT_NAME"); v != "" {
 			cloud.AuthInfo.ProjectName = v
 		}
 
-		if v := os.Getenv(envPrefix + "PROJECT_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "PROJECT_NAME"); v != "" {
 			cloud.AuthInfo.ProjectName = v
 		}
 	}
 
 	if cloud.AuthInfo.DomainID == "" {
-		if v := os.Getenv(envPrefix + "DOMAIN_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "DOMAIN_ID"); v != "" {
 			cloud.AuthInfo.DomainID = v
 		}
 	}
 
 	if cloud.AuthInfo.DomainName == "" {
-		if v := os.Getenv(envPrefix + "DOMAIN_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "DOMAIN_NAME"); v != "" {
 			cloud.AuthInfo.DomainName = v
 		}
 	}
 
 	if cloud.AuthInfo.DefaultDomain == "" {
-		if v := os.Getenv(envPrefix + "DEFAULT_DOMAIN"); v != "" {
+		if v := env.Getenv(envPrefix + "DEFAULT_DOMAIN"); v != "" {
 			cloud.AuthInfo.DefaultDomain = v
 		}
 	}
 
 	if cloud.AuthInfo.ProjectDomainID == "" {
-		if v := os.Getenv(envPrefix + "PROJECT_DOMAIN_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "PROJECT_DOMAIN_ID"); v != "" {
 			cloud.AuthInfo.ProjectDomainID = v
 		}
 	}
 
 	if cloud.AuthInfo.ProjectDomainName == "" {
-		if v := os.Getenv(envPrefix + "PROJECT_DOMAIN_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "PROJECT_DOMAIN_NAME"); v != "" {
 			cloud.AuthInfo.ProjectDomainName = v
 		}
 	}
 
 	if cloud.AuthInfo.UserDomainID == "" {
-		if v := os.Getenv(envPrefix + "USER_DOMAIN_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "USER_DOMAIN_ID"); v != "" {
 			cloud.AuthInfo.UserDomainID = v
 		}
 	}
 
 	if cloud.AuthInfo.UserDomainName == "" {
-		if v := os.Getenv(envPrefix + "USER_DOMAIN_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "USER_DOMAIN_NAME"); v != "" {
 			cloud.AuthInfo.UserDomainName = v
 		}
 	}
 
 	if cloud.AuthInfo.ApplicationCredentialID == "" {
-		if v := os.Getenv(envPrefix + "APPLICATION_CREDENTIAL_ID"); v != "" {
+		if v := env.Getenv(envPrefix + "APPLICATION_CREDENTIAL_ID"); v != "" {
 			cloud.AuthInfo.ApplicationCredentialID = v
 		}
 	}
 
 	if cloud.AuthInfo.ApplicationCredentialName == "" {
-		if v := os.Getenv(envPrefix + "APPLICATION_CREDENTIAL_NAME"); v != "" {
+		if v := env.Getenv(envPrefix + "APPLICATION_CREDENTIAL_NAME"); v != "" {
 			cloud.AuthInfo.ApplicationCredentialName = v
 		}
 	}
 
 	if cloud.AuthInfo.ApplicationCredentialSecret == "" {
-		if v := os.Getenv(envPrefix + "APPLICATION_CREDENTIAL_SECRET"); v != "" {
+		if v := env.Getenv(envPrefix + "APPLICATION_CREDENTIAL_SECRET"); v != "" {
 			cloud.AuthInfo.ApplicationCredentialSecret = v
 		}
 	}
@@ -643,7 +728,7 @@ func NewServiceClient(service string, opts *ClientOpts) (*gophercloud.ServiceCli
 		envPrefix = opts.EnvPrefix
 	}
 
-	if v := os.Getenv(envPrefix + "CLOUD"); v != "" {
+	if v := env.Getenv(envPrefix + "CLOUD"); v != "" {
 		cloudName = v
 	}
 
@@ -663,10 +748,15 @@ func NewServiceClient(service string, opts *ClientOpts) (*gophercloud.ServiceCli
 		return nil, err
 	}
 
+	// If an HTTPClient was specified, use it.
+	if opts.HTTPClient != nil {
+		pClient.HTTPClient = *opts.HTTPClient
+	}
+
 	// Determine the region to use.
 	// First, check if the REGION_NAME environment variable is set.
 	var region string
-	if v := os.Getenv(envPrefix + "REGION_NAME"); v != "" {
+	if v := env.Getenv(envPrefix + "REGION_NAME"); v != "" {
 		region = v
 	}
 
@@ -681,8 +771,27 @@ func NewServiceClient(service string, opts *ClientOpts) (*gophercloud.ServiceCli
 		region = v
 	}
 
+	// Determine the endpoint type to use.
+	// First, check if the OS_INTERFACE environment variable is set.
+	var endpointType string
+	if v := env.Getenv(envPrefix + "INTERFACE"); v != "" {
+		endpointType = v
+	}
+
+	// Next, check if the cloud entry sets an endpoint type.
+	if v := cloud.EndpointType; v != "" {
+		endpointType = v
+	}
+
+	// Finally, see if one was specified in the ClientOpts.
+	// If so, this takes precedence.
+	if v := opts.EndpointType; v != "" {
+		endpointType = v
+	}
+
 	eo := gophercloud.EndpointOpts{
-		Region: region,
+		Region:       region,
+		Availability: GetEndpointType(endpointType),
 	}
 
 	switch service {
@@ -692,6 +801,8 @@ func NewServiceClient(service string, opts *ClientOpts) (*gophercloud.ServiceCli
 		return openstack.NewComputeV2(pClient, eo)
 	case "container":
 		return openstack.NewContainerV1(pClient, eo)
+	case "container-infra":
+		return openstack.NewContainerInfraV1(pClient, eo)
 	case "database":
 		return openstack.NewDBV1(pClient, eo)
 	case "dns":

@@ -123,6 +123,23 @@ func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChangeS
 	return cs.changes.OutputValue(addr)
 }
 
+// GetOutputChanges searches the set of output changes for any that reside in
+// module instances beneath the given module. If no changes exist, nil
+// is returned.
+//
+// The returned objects are a deep copy of the change recorded in the plan, so
+// callers may mutate them although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetOutputChanges(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChangeSrc {
+	if cs == nil {
+		panic("GetOutputChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	return cs.changes.OutputValues(parent, module)
+}
+
 // RemoveOutputChange searches the set of output value changes for one matching
 // the given address, and removes it from the set if it exists.
 func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {

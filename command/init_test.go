@@ -858,8 +858,9 @@ func TestInit_providerSource(t *testing.T) {
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test":   []string{"1.2.3", "1.2.4"},
-		"source": []string{"1.2.2", "1.2.3", "1.2.1"},
+		"test":      []string{"1.2.3", "1.2.4"},
+		"test-beta": []string{"1.2.4"},
+		"source":    []string{"1.2.2", "1.2.3", "1.2.1"},
 	})
 	defer close()
 
@@ -894,6 +895,14 @@ func TestInit_providerSource(t *testing.T) {
 				ExecutableFile: expectedPackageInstallPath("test", "1.2.3", true),
 			},
 		},
+		addrs.NewDefaultProvider("test-beta"): {
+			{
+				Provider:       addrs.NewDefaultProvider("test-beta"),
+				Version:        getproviders.MustParseVersion("1.2.4"),
+				PackageDir:     expectedPackageInstallPath("test-beta", "1.2.4", false),
+				ExecutableFile: expectedPackageInstallPath("test-beta", "1.2.4", true),
+			},
+		},
 		addrs.NewDefaultProvider("source"): {
 			{
 				Provider:       addrs.NewDefaultProvider("source"),
@@ -913,6 +922,12 @@ func TestInit_providerSource(t *testing.T) {
 		t.Fatalf("failed to get selected packages from installer: %s", err)
 	}
 	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
+		addrs.NewDefaultProvider("test-beta"): {
+			Provider:       addrs.NewDefaultProvider("test-beta"),
+			Version:        getproviders.MustParseVersion("1.2.4"),
+			PackageDir:     expectedPackageInstallPath("test-beta", "1.2.4", false),
+			ExecutableFile: expectedPackageInstallPath("test-beta", "1.2.4", true),
+		},
 		addrs.NewDefaultProvider("test"): {
 			Provider:       addrs.NewDefaultProvider("test"),
 			Version:        getproviders.MustParseVersion("1.2.3"),
@@ -930,6 +945,10 @@ func TestInit_providerSource(t *testing.T) {
 		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
 
+	outputStr := ui.OutputWriter.String()
+	if want := "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(outputStr, want) {
+		t.Fatalf("unexpected output: %s\nexpected to include %q", outputStr, want)
+	}
 }
 
 func TestInit_getUpgradePlugins(t *testing.T) {
@@ -1086,7 +1105,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 
 	args := []string{}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("expceted error, got output: \n%s", ui.OutputWriter.String())
+		t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
 	}
 
 	if !strings.Contains(ui.ErrorWriter.String(), "no available releases match") {
@@ -1537,7 +1556,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 				close()
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, name, err)
 			}
-			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.CurrentPlatform)
+			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform)
 			if err != nil {
 				close()
 				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
@@ -1597,14 +1616,14 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 			if err != nil {
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, name, err)
 			}
-			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.CurrentPlatform)
+			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform)
 			// We're going to install all these fake packages before we return,
 			// so we don't need to preserve them afterwards.
 			defer close()
 			if err != nil {
 				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
 			}
-			err = cacheDir.InstallPackage(context.Background(), meta)
+			_, err = cacheDir.InstallPackage(context.Background(), meta)
 			if err != nil {
 				t.Fatalf("failed to install fake package for %s %s: %s", name, versionStr, err)
 			}

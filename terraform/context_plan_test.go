@@ -5832,3 +5832,47 @@ resource "aws_instance" "foo" {
 		t.Errorf("missing %s change for %s", action, res)
 	}
 }
+
+func TestContext2Plan_indexInVar(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  count = 1
+  source = "./mod"
+  in = "test"
+}
+
+module "b" {
+  count = 1
+  source = "./mod"
+  in = length(module.a)
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  foo = var.in
+}
+
+variable "in" {
+}
+
+output"out" {
+  value = aws_instance.foo.id
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}

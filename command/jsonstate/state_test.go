@@ -193,7 +193,6 @@ func TestMarshalResources(t *testing.T) {
 							Name: "bar",
 						},
 					},
-					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.NoKey: {
 							Current: &states.ResourceInstanceObjectSrc{
@@ -237,7 +236,6 @@ func TestMarshalResources(t *testing.T) {
 							Name: "bar",
 						},
 					},
-					EachMode: states.EachList,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.IntKey(0): {
 							Current: &states.ResourceInstanceObjectSrc{
@@ -281,7 +279,6 @@ func TestMarshalResources(t *testing.T) {
 							Name: "bar",
 						},
 					},
-					EachMode: states.EachMap,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.StringKey("rockhopper"): {
 							Current: &states.ResourceInstanceObjectSrc{
@@ -325,7 +322,6 @@ func TestMarshalResources(t *testing.T) {
 							Name: "bar",
 						},
 					},
-					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.NoKey: {
 							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
@@ -371,7 +367,6 @@ func TestMarshalResources(t *testing.T) {
 							Name: "bar",
 						},
 					},
-					EachMode: states.NoEach,
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.NoKey: {
 							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{

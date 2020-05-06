@@ -119,8 +119,9 @@ type MultiSourceSelector struct {
 type MultiSourceMatchingPatterns []addrs.Provider
 
 // ParseMultiSourceMatchingPatterns parses a slice of strings containing the
-// string form of provider matching patterns and, if all the given strings
-// are valid, returns the corresponding MultiSourceMatchingPatterns value.
+// string form of provider matching patterns and, if all the given strings are
+// valid, returns the corresponding, normalized, MultiSourceMatchingPatterns
+// value.
 func ParseMultiSourceMatchingPatterns(strs []string) (MultiSourceMatchingPatterns, error) {
 	if len(strs) == 0 {
 		return nil, nil
@@ -151,17 +152,19 @@ func ParseMultiSourceMatchingPatterns(strs []string) (MultiSourceMatchingPattern
 			parts = parts[1:]
 		}
 
-		if !validProviderNameOrWildcard(parts[1]) {
+		pType, err := normalizeProviderNameOrWildcard(parts[1])
+		if err != nil {
 			return nil, fmt.Errorf("invalid provider type %q in provider matching pattern %q: must either be the wildcard * or a provider type name", parts[1], str)
 		}
-		if !validProviderNameOrWildcard(parts[0]) {
+		namespace, err := normalizeProviderNameOrWildcard(parts[0])
+		if err != nil {
 			return nil, fmt.Errorf("invalid registry namespace %q in provider matching pattern %q: must either be the wildcard * or a literal namespace", parts[1], str)
 		}
 
 		ret[i] = addrs.Provider{
 			Hostname:  host,
-			Namespace: parts[0],
-			Type:      parts[1],
+			Namespace: namespace,
+			Type:      pType,
 		}
 
 		if ret[i].Hostname == svchost.Hostname(Wildcard) && !(ret[i].Namespace == Wildcard && ret[i].Type == Wildcard) {
@@ -215,10 +218,9 @@ const Wildcard string = "*"
 // by definition.
 var defaultRegistryHost = addrs.DefaultRegistryHost
 
-func validProviderNameOrWildcard(s string) bool {
+func normalizeProviderNameOrWildcard(s string) (string, error) {
 	if s == Wildcard {
-		return true
+		return s, nil
 	}
-	_, err := addrs.ParseProviderPart(s)
-	return err == nil
+	return addrs.ParseProviderPart(s)
 }

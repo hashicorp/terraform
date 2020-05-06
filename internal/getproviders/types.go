@@ -224,6 +224,7 @@ func (m PackageMeta) UnpackedDirectoryPath(baseDir string) string {
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
 type PackageLocation interface {
 	packageLocation()
+	String() string
 }
 
 // PackageLocalArchive is the location of a provider distribution archive file
@@ -233,6 +234,7 @@ type PackageLocation interface {
 type PackageLocalArchive string
 
 func (p PackageLocalArchive) packageLocation() {}
+func (p PackageLocalArchive) String() string   { return string(p) }
 
 // PackageLocalDir is the location of a directory containing an unpacked
 // provider distribution archive in the local filesystem. Its value is a local
@@ -241,12 +243,14 @@ func (p PackageLocalArchive) packageLocation() {}
 type PackageLocalDir string
 
 func (p PackageLocalDir) packageLocation() {}
+func (p PackageLocalDir) String() string   { return string(p) }
 
 // PackageHTTPURL is a provider package location accessible via HTTP.
 // Its value is a URL string using either the http: scheme or the https: scheme.
 type PackageHTTPURL string
 
 func (p PackageHTTPURL) packageLocation() {}
+func (p PackageHTTPURL) String() string   { return string(p) }
 
 // PackageMetaList is a list of PackageMeta. It's just []PackageMeta with
 // some methods for convenient sorting and filtering.

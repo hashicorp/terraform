@@ -48,6 +48,18 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	return ret
 }
 
+// ModuleOutputs returns the set of OutputValues that matches the given path.
+func (s *SyncState) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	var os []*OutputValue
+
+	for _, o := range s.state.ModuleOutputs(parentAddr, module) {
+		os = append(os, o.DeepCopy())
+	}
+	return os
+}
+
 // RemoveModule removes the entire state for the given module, taking with
 // it any resources associated with the module. This should generally be
 // called only for modules whose resources have all been destroyed, but
@@ -185,12 +197,12 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 // SetResourceMeta updates the resource-level metadata for the resource at
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.
-func (s *SyncState) SetResourceMeta(addr addrs.AbsResource, eachMode EachMode, provider addrs.AbsProviderConfig) {
+func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	ms := s.state.EnsureModule(addr.Module)
-	ms.SetResourceMeta(addr.Resource, eachMode, provider)
+	ms.SetResourceProvider(addr.Resource, provider)
 }
 
 // RemoveResource removes the entire state for the given resource, taking with

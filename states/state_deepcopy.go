@@ -88,7 +88,6 @@ func (rs *Resource) DeepCopy() *Resource {
 
 	return &Resource{
 		Addr:           rs.Addr,
-		EachMode:       rs.EachMode,
 		Instances:      instances,
 		ProviderConfig: rs.ProviderConfig, // technically mutable, but immutable by convention
 	}
@@ -226,6 +225,7 @@ func (os *OutputValue) DeepCopy() *OutputValue {
 	}
 
 	return &OutputValue{
+		Addr:      os.Addr,
 		Value:     os.Value,
 		Sensitive: os.Sensitive,
 	}

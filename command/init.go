@@ -165,7 +165,7 @@ func (c *InitCommand) Run(args []string) int {
 		// error suggesting the user upgrade their config manually or with
 		// Terraform v0.12
 		c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
-		c.showDiagnostics(earlyConfDiags)
+		c.showDiagnostics(confDiags)
 		return 1
 	}
 
@@ -505,8 +505,19 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install provider",
-				fmt.Sprintf("Error while installing %s v%s: %s.", provider.ForDisplay(), version, err),
+				fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
 			))
+		},
+		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			var warning string
+			if authResult != nil {
+				warning = authResult.Warning
+			}
+			if warning != "" {
+				warning = c.Colorize().Color(fmt.Sprintf("\n  [reset][yellow]Warning: %s[reset]", warning))
+			}
+
+			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s)%s", provider.ForDisplay(), version, authResult, warning))
 		},
 	}
 
