@@ -119,15 +119,15 @@ func appendTokensForValue(val cty.Value, toks Tokens) Tokens {
 			Type:  hclsyntax.TokenOBrace,
 			Bytes: []byte{'{'},
 		})
+		if val.LengthInt() > 0 {
+			toks = append(toks, &Token{
+				Type:  hclsyntax.TokenNewline,
+				Bytes: []byte{'\n'},
+			})
+		}
 
 		i := 0
 		for it := val.ElementIterator(); it.Next(); {
-			if i > 0 {
-				toks = append(toks, &Token{
-					Type:  hclsyntax.TokenComma,
-					Bytes: []byte{','},
-				})
-			}
 			eKey, eVal := it.Element()
 			if hclsyntax.ValidIdentifier(eKey.AsString()) {
 				toks = append(toks, &Token{
@@ -142,6 +142,10 @@ func appendTokensForValue(val cty.Value, toks Tokens) Tokens {
 				Bytes: []byte{'='},
 			})
 			toks = appendTokensForValue(eVal, toks)
+			toks = append(toks, &Token{
+				Type:  hclsyntax.TokenNewline,
+				Bytes: []byte{'\n'},
+			})
 			i++
 		}
 
