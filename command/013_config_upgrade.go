@@ -164,12 +164,12 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 
 	// Build up a list of required providers, uniquely by local name
 	requiredProviders := make(map[string]*configs.RequiredProvider)
-	var rewritePaths []string
+	rewritePaths := make(map[string]bool)
 
 	// Step 1: copy all explicit provider requirements across
 	for path, file := range files {
 		for _, rps := range file.RequiredProviders {
-			rewritePaths = append(rewritePaths, path)
+			rewritePaths[path] = true
 			for _, rp := range rps.RequiredProviders {
 				if previous, exist := requiredProviders[rp.Name]; exist {
 					diags = diags.Append(&hcl.Diagnostic{
@@ -254,18 +254,16 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 		// Special case: if we only have one file with a required providers
 		// block, output to that file instead.
 		if len(rewritePaths) == 1 {
-			filename = rewritePaths[0]
+			for path := range rewritePaths {
+				filename = path
+				break
+			}
 		}
 
 		// Remove the output file from the list of paths we want to rewrite
 		// later. Otherwise we'd delete the required providers block after
 		// writing it.
-		for i, path := range rewritePaths {
-			if path == filename {
-				rewritePaths = append(rewritePaths[:i], rewritePaths[i+1:]...)
-				break
-			}
-		}
+		delete(rewritePaths, filename)
 
 		// Open or create the output file
 		out, openDiags := c.openOrCreateFile(filename)
@@ -456,7 +454,7 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 
 		// After successfully writing the new configuration, remove all other
 		// required provider blocks from remaining configuration files.
-		for _, path := range rewritePaths {
+		for path := range rewritePaths {
 			// Read and parse the existing file
 			config, err := ioutil.ReadFile(path)
 			if err != nil {
