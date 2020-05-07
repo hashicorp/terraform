@@ -105,39 +105,50 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	if mc, exists := req.Parent.Module.ModuleCalls[req.Name]; exists {
 		if mc.Count != nil || mc.ForEach != nil {
 			for key, pc := range mod.ProviderConfigs {
-				// Does this provider block contain any config (including a version)? that's invalid
-				// and we should bail here.
+				// Use these to track if a provider is configured (not allowed),
+				// or if we've found its matching proxy
+				var isConfigured bool
+				var foundMatchingProxy bool
+
 				// Validate the config against an empty schema to see if it's empty.
 				_, pcConfigDiags := pc.Config.Content(&hcl.BodySchema{})
 				if pcConfigDiags.HasErrors() || pc.Version.Required != nil {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Cannot configure a provider in a module using count or for_each",
-						Detail:   fmt.Sprintf(`A provider configuration "%s" was declared in module "%s". Providers must be passed to modules with count or for_each arguments, and cannot be configured in the module (this includes defining a version).`, key, mc.Name),
-						Subject:  &pc.DeclRange,
-					})
+					isConfigured = true
 				}
 
 				// If it is empty or only has an alias,
 				// does this provider exist in our proxy configs?
-				var found bool
 				for _, r := range mc.Providers {
 					// Must match on name and Alias
 					if pc.Name == r.InChild.Name && pc.Alias == r.InChild.Alias {
-						found = true
+						foundMatchingProxy = true
 						break
 					}
 				}
-				if !found {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Must pass provider to module with count or for_each",
-						Detail:   fmt.Sprintf(`A provider configuration "%s" was declared in module "%s". Pass a corresponding "%[1]s" provider in the "providers" argument in the "%[2]s" module block.`, key, mc.Name),
-						Subject:  &mc.DeclRange,
-					})
+				if isConfigured || !foundMatchingProxy {
+					if mc.Count != nil {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Module does not support count",
+							Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "count", key, pc.NameRange),
+							Subject:  mc.Count.Range().Ptr(),
+						})
+					}
+					if mc.ForEach != nil {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Module does not support for_each",
+							Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "for_each", key, pc.NameRange),
+							Subject:  mc.ForEach.Range().Ptr(),
+						})
+					}
 				}
 			}
 		}
 	}
 	return mod, record.Version, diags
 }
+
+var moduleProviderError = `Module "%s" cannot be used with %s because it contains a nested provider configuration for "%s", at %s.
+
+This module can be made compatible with %[2]s by changing it to receive all of its provider configurations from the calling module, by using the "providers" argument in the calling module block.`
