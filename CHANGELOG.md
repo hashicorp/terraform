@@ -7,6 +7,7 @@ NOTES:
 ENHANCEMENTS:
 
 * backend/s3: Support automatic region validation for `af-south-1` [GH-24744]
+* backend/remote: Add support for force push to remote backend [GH-24884]
 
 BUG FIXES:
 * core: Destroy provisioners should not evaluate for_each expressions [GH-24163]
