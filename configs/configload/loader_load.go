@@ -112,8 +112,8 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 				if pcConfigDiags.HasErrors() || pc.Version.Required != nil {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Cannot configure a provider in an expanding module",
-						Detail:   fmt.Sprintf("A provider configuration %s was declared in %s. Providers must be passed to expanding child modules.", key, mc.Name),
+						Summary:  "Cannot configure a provider in a module using count or for_each",
+						Detail:   fmt.Sprintf(`A provider configuration "%s" was declared in module "%s". Providers must be passed to modules with count or for_each arguments, and cannot be configured in the module (this includes defining a version).`, key, mc.Name),
 						Subject:  &pc.DeclRange,
 					})
 				}
@@ -131,8 +131,8 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 				if !found {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  "Must pass provider to expanding module",
-						Detail:   fmt.Sprintf("A provider configuration %s was declared in %s. Providers must be passed to expanding child modules.", key, mc.Name),
+						Summary:  "Must pass provider to module with count or for_each",
+						Detail:   fmt.Sprintf(`A provider configuration "%s" was declared in module "%s". Pass a corresponding "%[1]s" provider in the "providers" argument in the "%[2]s" module block.`, key, mc.Name),
 						Subject:  &mc.DeclRange,
 					})
 				}
