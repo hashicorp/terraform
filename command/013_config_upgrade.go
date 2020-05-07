@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/tfdiags"
+	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -138,6 +139,27 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 				"override",
 			),
 		))
+	}
+
+	// Check Terraform required_version constraints
+	for _, file := range files {
+		for _, constraint := range file.CoreVersionConstraints {
+			if !constraint.Required.Check(tfversion.SemVer) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported Terraform Core version",
+					Detail: fmt.Sprintf(
+						"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+						tfversion.String(),
+					),
+					Subject: &constraint.DeclRange,
+				})
+			}
+		}
+	}
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Build up a list of required providers, uniquely by local name

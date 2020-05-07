@@ -220,6 +220,32 @@ func TestZeroThirteenUpgrade_skippedFiles(t *testing.T) {
 	}
 }
 
+func TestZeroThirteenUpgrade_unsupportedVersion(t *testing.T) {
+	inputPath := testFixturePath("013upgrade-unsupported-version")
+
+	td := tempDir(t)
+	copy.CopyDir(inputPath, td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &ZeroThirteenUpgradeCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatal("expected error, got:", ui.OutputWriter)
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, `Unsupported Terraform Core version`) {
+		t.Fatal("missing version constraint error:", errMsg)
+	}
+}
+
 func TestZeroThirteenUpgrade_invalidFlags(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
