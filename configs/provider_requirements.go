@@ -12,6 +12,7 @@ import (
 // parent.
 type RequiredProvider struct {
 	Name        string
+	Source      string
 	Type        addrs.Provider
 	Requirement VersionConstraint
 	DeclRange   hcl.Range
@@ -67,7 +68,8 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 				}
 			}
 			if expr.Type().HasAttribute("source") {
-				fqn, sourceDiags := addrs.ParseProviderSourceString(expr.GetAttr("source").AsString())
+				rp.Source = expr.GetAttr("source").AsString()
+				fqn, sourceDiags := addrs.ParseProviderSourceString(rp.Source)
 
 				if sourceDiags.HasErrors() {
 					hclDiags := sourceDiags.ToHCL()

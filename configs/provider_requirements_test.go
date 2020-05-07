@@ -21,6 +21,9 @@ var (
 		if x.Type != y.Type {
 			return false
 		}
+		if x.Source != y.Source {
+			return false
+		}
 		if x.Requirement.Required.String() != y.Requirement.Required.String() {
 			return false
 		}
@@ -90,6 +93,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{
 					"my_test": {
 						Name:        "my_test",
+						Source:      "mycloud/test",
 						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
 						Requirement: testVC("2.0.0"),
 						DeclRange:   mockRange,
@@ -128,6 +132,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 					},
 					"my_test": {
 						Name:        "my_test",
+						Source:      "mycloud/test",
 						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
 						Requirement: testVC("2.0.0"),
 						DeclRange:   mockRange,
@@ -183,6 +188,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{
 					"my_test": {
 						Name:        "my_test",
+						Source:      "some/invalid/provider/source/test",
 						Type:        addrs.Provider{},
 						Requirement: testVC("~>2.0.0"),
 						DeclRange:   mockRange,
@@ -240,6 +246,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{
 					"my_test": {
 						Name:      "my_test",
+						Source:    "mycloud/test",
 						Type:      addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
 						DeclRange: mockRange,
 					},
