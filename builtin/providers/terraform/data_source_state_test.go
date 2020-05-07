@@ -1,11 +1,11 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/tfdiags"
 	"testing"
 
 	"github.com/apparentlymart/go-dump/dump"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -30,6 +30,26 @@ func TestState_basic(t *testing.T) {
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"workspace": cty.StringVal(backend.DefaultStateName),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+			}),
+			false,
+		},
+		"_local": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("_local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("_local"),
 				"config": cty.ObjectVal(map[string]cty.Value{
 					"path": cty.StringVal("./testdata/basic.tfstate"),
 				}),
@@ -212,6 +232,24 @@ func TestState_basic(t *testing.T) {
 				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			false,
+		},
+		"nonexistent backend": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("nonexistent"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+			}),
+			cty.NilVal,
+			true,
+		},
+		"null config": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config":  cty.NullVal(cty.DynamicPseudoType),
+			}),
+			cty.NilVal,
+			true,
 		},
 	}
 	for name, test := range tests {
