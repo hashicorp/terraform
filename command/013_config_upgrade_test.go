@@ -93,7 +93,7 @@ func TestZeroThirteenUpgrade_success(t *testing.T) {
 		"preserves comments":    "013upgrade-preserves-comments",
 		"multiple blocks":       "013upgrade-multiple-blocks",
 		"multiple files":        "013upgrade-multiple-files",
-		"existing providers.tf": "013upgrade-existing-providers-tf",
+		"existing versions.tf":  "013upgrade-existing-versions-tf",
 		"skipped files":         "013upgrade-skipped-files",
 	}
 	for name, testPath := range testCases {

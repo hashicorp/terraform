@@ -13,4 +13,5 @@ terraform {
       # https://www.terraform.io/docs/configuration/providers.html#provider-source
     }
   }
+  required_version = ">= 0.13"
 }

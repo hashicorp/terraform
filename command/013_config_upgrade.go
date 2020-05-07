@@ -247,8 +247,9 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 			return 1
 		}
 
-		// Default output filename is "providers.tf"
-		filename := path.Join(dir, "providers.tf")
+		// Default output filename is "versions.tf", which is also where the
+		// 0.12upgrade command added the required_version constraint.
+		filename := path.Join(dir, "versions.tf")
 
 		// Special case: if we only have one file with a required providers
 		// block, output to that file instead.
@@ -322,14 +323,22 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 		var first *hclwrite.Block
 		var rest []*hclwrite.Block
 
+		// First terraform block in the first file. Declared at this scope so
+		// that it can be used to write the version constraint later, if this
+		// is the "versions.tf" file.
+		var tfBlock *hclwrite.Block
+
 		if len(requiredProviderBlocks) > 0 {
 			// If we already have one or more required provider blocks, we'll rewrite
 			// the first one, and remove the rest.
 			first, rest = requiredProviderBlocks[0], requiredProviderBlocks[1:]
+
+			// Set the terraform block here for later use to update the
+			// required version constraint.
+			tfBlock = parentBlocks[first]
 		} else {
 			// Otherwise, find or a create a terraform block, and add a new
 			// empty required providers block to it.
-			var tfBlock *hclwrite.Block
 			for _, rootBlock := range root.Blocks() {
 				if rootBlock.Type() == "terraform" {
 					tfBlock = rootBlock
@@ -404,6 +413,14 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 			}
 		}
 
+		// If this is the "versions.tf" file, add a new version constraint to
+		// the first terraform block. If this isn't the "versions.tf" file,
+		// we'll update that file separately.
+		versionsFilename := path.Join(dir, "versions.tf")
+		if filename == versionsFilename {
+			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(">= 0.13"))
+		}
+
 		// Remove the rest of the blocks (and the parent block, if it's empty)
 		for _, rpBlock := range rest {
 			tfBlock := parentBlocks[rpBlock]
@@ -438,6 +455,84 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 			))
 			c.showDiagnostics(diags)
 			return 1
+		}
+
+		// If the file we just updated was not a "versions.tf" file, add or
+		// update that file to set the required version constraint in the first
+		// terraform block.
+		if filename != versionsFilename {
+			var file *hclwrite.File
+
+			// If the versions file doesn't exist, just create a new empty file
+			if _, err := os.Stat(versionsFilename); os.IsNotExist(err) {
+				file = hclwrite.NewEmptyFile()
+			} else if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unable to read configuration file",
+					fmt.Sprintf("Error when reading configuration file %q: %s", versionsFilename, err),
+				))
+				c.showDiagnostics(diags)
+				return 1
+			} else {
+				// Versions file already exists, so load and parse it
+				config, err := ioutil.ReadFile(versionsFilename)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Unable to read configuration file",
+						fmt.Sprintf("Error when reading configuration file %q: %s", versionsFilename, err),
+					))
+					c.showDiagnostics(diags)
+					return 1
+				}
+				var parseDiags hcl.Diagnostics
+				file, parseDiags = hclwrite.ParseConfig(config, filename, hcl.InitialPos)
+				diags = diags.Append(parseDiags)
+			}
+
+			if diags.HasErrors() {
+				c.showDiagnostics(diags)
+				return 1
+			}
+
+			// Find or create a terraform block
+			root := file.Body()
+			var tfBlock *hclwrite.Block
+			for _, rootBlock := range root.Blocks() {
+				if rootBlock.Type() == "terraform" {
+					tfBlock = rootBlock
+					break
+				}
+			}
+			if tfBlock == nil {
+				tfBlock = root.AppendNewBlock("terraform", nil)
+			}
+
+			// Set the required version attribute
+			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(">= 0.13"))
+
+			// Write the config back to the file
+			f, err := os.OpenFile(versionsFilename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unable to open configuration file for writing",
+					fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
+				))
+				c.showDiagnostics(diags)
+				return 1
+			}
+			_, err = file.WriteTo(f)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unable to rewrite configuration file",
+					fmt.Sprintf("Error when rewriting configuration file %q: %s", filename, err),
+				))
+				c.showDiagnostics(diags)
+				return 1
+			}
 		}
 
 		// After successfully writing the new configuration, remove all other
@@ -600,8 +695,8 @@ func (c *ZeroThirteenUpgradeCommand) Help() string {
 	helpText := `
 Usage: terraform 0.13upgrade [module-dir]
 
-  Generates a "providers.tf" configuration file which includes source
-  configuration for every non-default provider.
+  Updates module configuration files to add provider source attributes and
+  merge multiple required_providers blocks into one.
 `
 	return strings.TrimSpace(helpText)
 }
