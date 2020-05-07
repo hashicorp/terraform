@@ -83,12 +83,11 @@ func TestLoaderLoadConfig_addVersion(t *testing.T) {
 }
 
 func TestLoaderLoadConfig_moduleExpand(t *testing.T) {
-	// This test goes out to all those who thought they could put a provider in an expanding module
 	// We do not allow providers to be configured in expanding modules
 	// In addition, if a provider is present but an empty block, it is allowed,
 	// but IFF a provider is passed through the module call
 	paths := []string{"provider-configured", "no-provider-passed"}
-	wanted := []string{"Cannot configure a provider in an expanding module", "Must pass provider to expanding module"}
+	wanted := []string{"Cannot configure a provider", "Must pass provider"}
 	for idx, p := range paths {
 		fixtureDir := filepath.Clean(fmt.Sprintf("testdata/expand-modules/%s", p))
 		loader, err := NewLoader(&Config{

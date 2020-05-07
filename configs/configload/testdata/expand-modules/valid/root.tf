@@ -12,7 +12,7 @@ module "child" {
 }
 
 module "child_with_alias" {
-  count = 1
+  for_each = toset(["a", "b"])
   source = "./child-with-alias"
   providers = {
     aws.east = aws.east
