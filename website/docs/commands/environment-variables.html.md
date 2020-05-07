@@ -144,4 +144,4 @@ If `TF_IGNORE` is set to "trace", Terraform will output debug messages to displa
 export TF_IGNORE=trace
 ```
 
-For more detals on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/backends/types/remote.html#excluding-files-from-upload-with-terraformignore).
+For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/backends/types/remote.html#excluding-files-from-upload-with-terraformignore).
