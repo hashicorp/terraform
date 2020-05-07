@@ -27,7 +27,10 @@ and re-used.
 This page describes how to call one module from another. Other pages in this
 section of the documentation describe the different elements that make up
 modules, and there is further information about how modules can be used,
-created, and published in [the dedicated _Modules_ section](/docs/modules/index.html).
+created, and published in [the dedicated _Modules_
+section](/docs/modules/index.html). You can also learn more about how to use and
+create modules with our hands-on [modules track on
+learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## Calling a Child Module
 
