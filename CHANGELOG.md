@@ -53,7 +53,8 @@ BUG FIXES:
 * lang: Fix non-string key panics in map function [GH-24277]
 * lang: `substr("abc", 0, 0)` would previously return `"abc"`, despite the length argument being `0`. This has been changed to return an empty string when length is zero. [GH-24318]
 * lang: `ceil(1/0)` and `floor(1/0)` would previously return a large integer value, rather than infinity. This has been fixed. [GH-21463]
-* provisioners/habitat: Fix permissions on user.toml [GH-24321]
+* provisioner/habitat: Fix permissions on user.toml [GH-24321]
+* provider/terraform: The `terraform_remote_state` data source will no longer attempt to "configure" the selected backend during validation, which means backends will not try to perform remote actions such as verifying credentials during `terraform validate`. Local validation still applies in all cases, and the configuration step will still occur prior to actually reading the remote state in a normal plan/apply operation. [GH-24887]
 * vendor: Fix crash when processing malformed JSON [GH-24650]
 
 ## Previous Releases
