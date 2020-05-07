@@ -267,35 +267,9 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 			}
 		}
 
-		var out *hclwrite.File
-
-		// If the output file doesn't exist, just create a new empty file
-		if _, err := os.Stat(filename); os.IsNotExist(err) {
-			out = hclwrite.NewEmptyFile()
-		} else if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Unable to read configuration file",
-				fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
-			))
-			c.showDiagnostics(diags)
-			return 1
-		} else {
-			// Configuration file already exists, so load and parse it
-			config, err := ioutil.ReadFile(filename)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unable to read configuration file",
-					fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
-				))
-				c.showDiagnostics(diags)
-				return 1
-			}
-			var parseDiags hcl.Diagnostics
-			out, parseDiags = hclwrite.ParseConfig(config, filename, hcl.InitialPos)
-			diags = diags.Append(parseDiags)
-		}
+		// Open or create the output file
+		out, openDiags := c.openOrCreateFile(filename)
+		diags = diags.Append(openDiags)
 
 		if diags.HasErrors() {
 			c.showDiagnostics(diags)
@@ -390,7 +364,7 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 				expr := rp.Expr().BuildTokens(nil)
 
 				// Partition the tokens into before and after the opening brace
-				before, after := partitionTokensAfter(expr, hclsyntax.TokenOBrace)
+				before, after := c.partitionTokensAfter(expr, hclsyntax.TokenOBrace)
 
 				// If the value is an empty object, add a newline between the
 				// braces so that the comment is not on the same line as either
@@ -436,23 +410,9 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 		}
 
 		// Write the config back to the file
-		f, err := os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Unable to open configuration file for writing",
-				fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
-			))
-			c.showDiagnostics(diags)
-			return 1
-		}
-		_, err = out.WriteTo(f)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Unable to rewrite configuration file",
-				fmt.Sprintf("Error when rewriting configuration file %q: %s", filename, err),
-			))
+		writeDiags := c.writeFile(out, filename)
+		diags = diags.Append(writeDiags)
+		if diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -461,35 +421,8 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 		// update that file to set the required version constraint in the first
 		// terraform block.
 		if filename != versionsFilename {
-			var file *hclwrite.File
-
-			// If the versions file doesn't exist, just create a new empty file
-			if _, err := os.Stat(versionsFilename); os.IsNotExist(err) {
-				file = hclwrite.NewEmptyFile()
-			} else if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unable to read configuration file",
-					fmt.Sprintf("Error when reading configuration file %q: %s", versionsFilename, err),
-				))
-				c.showDiagnostics(diags)
-				return 1
-			} else {
-				// Versions file already exists, so load and parse it
-				config, err := ioutil.ReadFile(versionsFilename)
-				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Unable to read configuration file",
-						fmt.Sprintf("Error when reading configuration file %q: %s", versionsFilename, err),
-					))
-					c.showDiagnostics(diags)
-					return 1
-				}
-				var parseDiags hcl.Diagnostics
-				file, parseDiags = hclwrite.ParseConfig(config, filename, hcl.InitialPos)
-				diags = diags.Append(parseDiags)
-			}
+			file, openDiags := c.openOrCreateFile(versionsFilename)
+			diags = diags.Append(openDiags)
 
 			if diags.HasErrors() {
 				c.showDiagnostics(diags)
@@ -513,23 +446,9 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(">= 0.13"))
 
 			// Write the config back to the file
-			f, err := os.OpenFile(versionsFilename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unable to open configuration file for writing",
-					fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
-				))
-				c.showDiagnostics(diags)
-				return 1
-			}
-			_, err = file.WriteTo(f)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unable to rewrite configuration file",
-					fmt.Sprintf("Error when rewriting configuration file %q: %s", filename, err),
-				))
+			writeDiags := c.writeFile(file, versionsFilename)
+			diags = diags.Append(writeDiags)
+			if diags.HasErrors() {
 				c.showDiagnostics(diags)
 				return 1
 			}
@@ -576,23 +495,9 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 			}
 
 			// Write the config back to the file
-			f, err := os.OpenFile(path, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unable to open configuration file for writing",
-					fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
-				))
-				c.showDiagnostics(diags)
-				return 1
-			}
-			_, err = file.WriteTo(f)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unable to rewrite configuration file",
-					fmt.Sprintf("Error when rewriting configuration file %q: %s", filename, err),
-				))
+			writeDiags := c.writeFile(file, path)
+			diags = diags.Append(writeDiags)
+			if diags.HasErrors() {
 				c.showDiagnostics(diags)
 				return 1
 			}
@@ -655,11 +560,65 @@ func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map
 	return diags
 }
 
+func (c *ZeroThirteenUpgradeCommand) openOrCreateFile(filename string) (*hclwrite.File, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// If the file doesn't exist, create a new empty file
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return hclwrite.NewEmptyFile(), diags
+	} else if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unable to read configuration file",
+			fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
+		))
+		return nil, diags
+	} else {
+		// File already exists, so load and parse it
+		config, err := ioutil.ReadFile(filename)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unable to read configuration file",
+				fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
+			))
+			return nil, diags
+		}
+		file, parseDiags := hclwrite.ParseConfig(config, filename, hcl.InitialPos)
+		diags = diags.Append(parseDiags)
+		return file, diags
+	}
+}
+
+func (c *ZeroThirteenUpgradeCommand) writeFile(file *hclwrite.File, filename string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	f, err := os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unable to open configuration file for writing",
+			fmt.Sprintf("Error when reading configuration file %q: %s", filename, err),
+		))
+		return diags
+	}
+	_, err = file.WriteTo(f)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unable to rewrite configuration file",
+			fmt.Sprintf("Error when rewriting configuration file %q: %s", filename, err),
+		))
+		return diags
+	}
+	return diags
+}
+
 // Take a list of tokens and a separator token, and return two lists: one up to
 // and including the first instance of the separator, and the rest of the
 // tokens. If the separator is not present, return the entire list in the first
 // return value.
-func partitionTokensAfter(tokens hclwrite.Tokens, separator hclsyntax.TokenType) (hclwrite.Tokens, hclwrite.Tokens) {
+func (c *ZeroThirteenUpgradeCommand) partitionTokensAfter(tokens hclwrite.Tokens, separator hclsyntax.TokenType) (hclwrite.Tokens, hclwrite.Tokens) {
 	for i := 0; i < len(tokens); i++ {
 		if tokens[i].Type == separator {
 			return tokens[0 : i+1], tokens[i+1:]
