@@ -171,7 +171,7 @@ func getBackend(cfg cty.Value) (backend.Backend, cty.Value, tfdiags.Diagnostics)
 
 	// Create the client to access our remote state
 	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
-	f := backendInit.Backend(backendType)
+	f := getBackendFactory(backendType)
 	if f == nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -215,4 +215,18 @@ func getBackend(cfg cty.Value) (backend.Backend, cty.Value, tfdiags.Diagnostics)
 	}
 
 	return b, newVal, diags
+}
+
+// overrideBackendFactories allows test cases to control the set of available
+// backends to allow for more self-contained tests. This should never be set
+// in non-test code.
+var overrideBackendFactories map[string]backend.InitFn
+
+func getBackendFactory(backendType string) backend.InitFn {
+	if len(overrideBackendFactories) > 0 {
+		// Tests may override the set of backend factories.
+		return overrideBackendFactories[backendType]
+	}
+
+	return backendInit.Backend(backendType)
 }
