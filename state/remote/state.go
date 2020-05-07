@@ -21,10 +21,19 @@ type State struct {
 
 	Client Client
 
-	lineage          string
-	serial           uint64
-	state, readState *states.State
-	disableLocks     bool
+	// We track two pieces of meta data in addition to the state itself:
+	//
+	// lineage - the state's unique ID
+	// serial  - the monotonic counter of "versions" of the state
+	//
+	// Both of these (along with state) have a sister field
+	// that represents the values read in from an existing source.
+	// All three of these values are used to determine if the new
+	// state has changed from an existing state we read in.
+	lineage, readLineage string
+	serial, readSerial   uint64
+	state, readState     *states.State
+	disableLocks         bool
 }
 
 var _ statemgr.Full = (*State)(nil)
@@ -64,8 +73,15 @@ func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	checkFile := statefile.New(s.state, s.lineage, s.serial)
-	if !force {
+	// `force` is passed down from the CLI flag and terminates here. Actual
+	// force pushing with the remote backend happens when Put()'ing the contents
+	// in the backend. If force is specified we skip verifications and hand the
+	// context off to the client to use when persitence operations actually take place.
+	c, isForcePusher := s.Client.(ClientForcePusher)
+	if force && isForcePusher {
+		c.EnableForcePush()
+	} else {
+		checkFile := statefile.New(s.state, s.lineage, s.serial)
 		if err := statemgr.CheckValidImport(f, checkFile); err != nil {
 			return err
 		}
@@ -113,7 +129,12 @@ func (s *State) refreshState() error {
 	s.lineage = stateFile.Lineage
 	s.serial = stateFile.Serial
 	s.state = stateFile.State
-	s.readState = s.state.DeepCopy() // our states must be separate instances so we can track changes
+
+	// Properties from the remote must be separate so we can
+	// track changes as lineage, serial and/or state are mutated
+	s.readLineage = stateFile.Lineage
+	s.readSerial = stateFile.Serial
+	s.readState = s.state.DeepCopy()
 	return nil
 }
 
@@ -123,8 +144,11 @@ func (s *State) PersistState() error {
 	defer s.mu.Unlock()
 
 	if s.readState != nil {
-		if statefile.StatesMarshalEqual(s.state, s.readState) {
-			// If the state hasn't changed at all then we have nothing to do.
+		lineageUnchanged := s.readLineage != "" && s.lineage == s.readLineage
+		serialUnchanged := s.readSerial != 0 && s.serial == s.readSerial
+		stateUnchanged := statefile.StatesMarshalEqual(s.state, s.readState)
+		if stateUnchanged && lineageUnchanged && serialUnchanged {
+			// If the state, lineage or serial haven't changed at all then we have nothing to do.
 			return nil
 		}
 		s.serial++
@@ -161,7 +185,13 @@ func (s *State) PersistState() error {
 
 	// After we've successfully persisted, what we just wrote is our new
 	// reference state until someone calls RefreshState again.
+	// We've potentially overwritten (via force) the state, lineage
+	// and / or serial (and serial was incremented) so we copy over all
+	// three fields so everything matches the new state and a subsequent
+	// operation would correctly detect no changes to the lineage, serial or state.
 	s.readState = s.state.DeepCopy()
+	s.readLineage = s.lineage
+	s.readSerial = s.serial
 	return nil
 }
 
