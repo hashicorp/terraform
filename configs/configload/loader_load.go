@@ -122,9 +122,8 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 				// does this provider exist in our proxy configs?
 				var found bool
 				for _, r := range mc.Providers {
-					// Do we have provider in the child referenced by this name,
-					// or by its declared alias?
-					if r.InChild.Name == key || r.InChild.Name == pc.Alias {
+					// Must match on name and Alias
+					if pc.Name == r.InChild.Name && pc.Alias == r.InChild.Alias {
 						found = true
 						break
 					}
