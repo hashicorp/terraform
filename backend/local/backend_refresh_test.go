@@ -191,10 +191,6 @@ func TestLocal_refreshValidate(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.PrepareProviderConfigCalled {
-		t.Fatal("Prepare provider config should be called")
-	}
-
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
