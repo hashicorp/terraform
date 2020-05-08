@@ -78,7 +78,7 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.Config)
 
-	emptySchema := providers.Schema{}.Block
+	emptySchema := &configschema.Block{}
 	_, _, evalDiags := ctx.EvaluateBlock(configBody, emptySchema, nil, EvalDataForNoInstanceKey)
 	if !evalDiags.HasErrors() {
 		return nil, nil
@@ -95,7 +95,7 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 		// Should never happen in real code, but often comes up in tests where
 		// mock schemas are being used that tend to be incomplete.
 		log.Printf("[WARN] EvalValidateProvider: no config schema is available for %s, so using empty schema", n.Addr)
-		configSchema = &configschema.Block{}
+		configSchema = emptySchema
 	}
 
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
