@@ -520,3 +520,118 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 		t.Fatalf("wrong errors %q; want something about each of our invalid connInfo keys", errStr)
 	}
 }
+
+func TestEvalValidateProvider_empty(t *testing.T) {
+	mp := simpleMockProvider()
+	mp.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"required": {
+					Required: true,
+				},
+			},
+		},
+	}
+
+	p := providers.Interface(mp)
+	rc := &configs.Provider{
+		Name:   "foo",
+		Config: hcl.EmptyBody(),
+	}
+
+	node := &EvalValidateProvider{
+		Provider: &p,
+		Config:   rc,
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestEvalValidateProvider_nonempty_invalid(t *testing.T) {
+	mp := simpleMockProvider()
+	mp.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"required_a": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"required_b": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+	}
+
+	p := providers.Interface(mp)
+	rc := &configs.Provider{
+		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"required_a": cty.StringVal("set"),
+		}),
+	}
+
+	node := &EvalValidateProvider{
+		Provider: &p,
+		Config:   rc,
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "required_b") || strings.Contains(err.Error(), "required_a") {
+		t.Fatalf("expected only attribute 'required_b' is required error, got %v", err)
+	}
+}
+
+func TestEvalValidateProvider_nonempty_valid(t *testing.T) {
+	mp := simpleMockProvider()
+	mp.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"required_a": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"required_b": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+	}
+
+	p := providers.Interface(mp)
+	rc := &configs.Provider{
+		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"required_a": cty.StringVal("set"),
+			"required_b": cty.StringVal("set"),
+		}),
+	}
+
+	node := &EvalValidateProvider{
+		Provider: &p,
+		Config:   rc,
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

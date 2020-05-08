@@ -78,6 +78,12 @@ func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.Config)
 
+	emptySchema := providers.Schema{}.Block
+	_, _, evalDiags := ctx.EvaluateBlock(configBody, emptySchema, nil, EvalDataForNoInstanceKey)
+	if !evalDiags.HasErrors() {
+		return nil, nil
+	}
+
 	resp := provider.GetSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
