@@ -588,12 +588,12 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 	})
 
 	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
-		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("should not be called")),
 	}
 
 	diags := c.Validate()
-	if !diags.HasErrors() {
-		t.Fatalf("succeeded; want error")
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %v", diags)
 	}
 }
 
