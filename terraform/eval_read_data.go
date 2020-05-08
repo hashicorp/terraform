@@ -236,18 +236,23 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	configKnown := configVal.IsWhollyKnown()
-	// If our configuration contains any unknown values, or we depend on any
-	// unknown values then we must defer the read to the apply phase by
-	// producing a "Read" change for this resource, and a placeholder value for
-	// it in the state.
-	if len(n.Config.DependsOn) > 0 || !configKnown {
+	// If our configuration contains any unknown values, then we must defer the
+	// read until plan or apply. If we've never read this data source and we
+	// have any depends_on, we will have to defer reading until plan to resolve
+	// the dependency changes.
+	// Assuming we can read the data source with depends_on if we have
+	// existing state is a compromise to prevent data sources from continually
+	// showing a diff. We have to make the assumption that if we have a prior
+	// state, since there are no prior dependency changes happening during
+	// refresh, that we can read this resource. If there are dependency updates
+	// in the config, they we be discovered in plan and the data source will be
+	// read again.
+	if !configKnown || (priorVal.IsNull() && len(n.Config.DependsOn) > 0) {
 		if configKnown {
 			log.Printf("[TRACE] EvalReadDataRefresh: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
 		} else {
 			log.Printf("[TRACE] EvalReadDataRefresh: %s configuration not fully known yet, so deferring to apply phase", absAddr)
 		}
-
-		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
 		// We need to store a change so tat other references to this data
 		// source can resolve correctly, since the state is not going to be up
@@ -258,21 +263,17 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 			Change: plans.Change{
 				Action: plans.Read,
 				Before: priorVal,
-				After:  proposedNewVal,
+				After:  objchange.PlannedDataResourceObject(schema, configVal),
 			},
 		}
 
 		if n.OutputChange != nil {
 			*n.OutputChange = change
 		}
+
 		if n.State != nil {
 			*n.State = &states.ResourceInstanceObject{
-				// We need to keep the prior value in the state so that plan
-				// has something to diff against.
-				Value: priorVal,
-				// TODO: this needs to be ObjectPlanned to trigger a plan, but
-				// the prior value is lost preventing plan from resulting in a
-				// NoOp
+				Value:  cty.NullVal(objTy),
 				Status: states.ObjectPlanned,
 			}
 		}
@@ -293,9 +294,8 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
-	// TODO: Need to signal to plan that this may have changed. We may be able
-	// to use ObjectPlanned for that, but that currently causes the state to be
-	// dropped altogether
+	// This may still have been refreshed with references to resources that
+	// will be updated, but that will be caught as a change during plan.
 	outputState := &states.ResourceInstanceObject{
 		Value:  newVal,
 		Status: states.ObjectReady,

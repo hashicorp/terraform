@@ -1892,8 +1892,9 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	_, diags = ctx.Plan() // should do nothing with data resource in this step, since it was already read
 	assertNoErrors(t, diags)
 
-	if !p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource should have been called")
+	if p.ReadDataSourceCalled {
+		// there was no config change to read during plan
+		t.Fatalf("ReadDataSource should not have been called")
 	}
 }
 

@@ -8782,6 +8782,16 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
 	}
+
+	// run another plan to make sure the data source doesn't show as a change
+	plan, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("unexpected change for %s", c.Addr)
+		}
+	}
 }
 
 func TestContext2Apply_terraformWorkspace(t *testing.T) {

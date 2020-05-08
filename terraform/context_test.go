@@ -693,11 +693,12 @@ func testProviderSchema(name string) *ProviderSchema {
 				Attributes: map[string]*configschema.Attribute{
 					"id": {
 						Type:     cty.String,
-						Optional: true,
+						Computed: true,
 					},
 					"foo": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},

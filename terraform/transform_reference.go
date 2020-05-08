@@ -51,7 +51,7 @@ type GraphNodeAttachDependencies interface {
 // not yet expended in the graph. While this will cause some extra data
 // resources to show in the plan when their depends_on references may be in
 // unrelated module instances, the fact that it only happens when there are any
-// resource updates pending means we ca still avoid the problem of the
+// resource updates pending means we can still avoid the problem of the
 // "perpetual diff"
 type GraphNodeAttachDependsOn interface {
 	GraphNodeConfigResource
@@ -83,7 +83,7 @@ type GraphNodeReferenceOutside interface {
 	ReferenceOutside() (selfPath, referencePath addrs.Module)
 }
 
-// Referenceeransformer is a GraphTransformer that connects all the
+// ReferenceTransformer is a GraphTransformer that connects all the
 // nodes that reference each other in order to form the proper ordering.
 type ReferenceTransformer struct{}
 

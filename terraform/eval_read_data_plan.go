@@ -61,7 +61,6 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	configKnown := configVal.IsWhollyKnown()
-	proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 	// If our configuration contains any unknown values, or we depend on any
 	// unknown values then we must defer the read to the apply phase by
 	// producing a "Read" change for this resource, and a placeholder value for
@@ -72,6 +71,8 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		} else {
 			log.Printf("[TRACE] EvalReadDataPlan: %s configuration not fully known yet, so deferring to apply phase", absAddr)
 		}
+
+		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
@@ -101,17 +102,23 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
+	// If we have a stored state we may not need to re-read the data source.
+	// Check the config against the state to see if there are any difference.
+	if !priorVal.IsNull() {
+		// Applying the configuration to the prior state lets us see if there
+		// are any differences.
+		proposed := objchange.ProposedNewObject(schema, priorVal, configVal)
+		if proposed.Equals(priorVal).True() {
+			log.Printf("[TRACE] EvalReadDataPlan: %s no change detected, using existing state", absAddr)
+			// state looks up to date, and must have been read during refresh
+			return nil, diags.ErrWithWarnings()
+		}
+	}
+
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return nil, diags.ErrWithWarnings()
-	}
-
-	action := plans.NoOp
-	if !newVal.IsNull() && newVal.IsKnown() && newVal.Equals(priorVal).False() {
-		// since a data source is read-only, update here only means that we
-		// need to update the state.
-		action = plans.Update
 	}
 
 	// Produce a change regardless of the outcome.
@@ -119,24 +126,19 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		Addr:         absAddr,
 		ProviderAddr: n.ProviderAddr,
 		Change: plans.Change{
-			Action: action,
+			Action: plans.Update,
 			Before: priorVal,
 			After:  newVal,
 		},
 	}
 
-	status := states.ObjectReady
-	if action == plans.Update {
-		status = states.ObjectPlanned
-	}
-
 	outputState := &states.ResourceInstanceObject{
 		Value:  newVal,
-		Status: status,
+		Status: states.ObjectPlanned,
 	}
 
 	if err := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(absAddr, states.CurrentGen, action, priorVal, newVal)
+		return h.PostDiff(absAddr, states.CurrentGen, plans.Update, priorVal, newVal)
 	}); err != nil {
 		return nil, err
 	}
