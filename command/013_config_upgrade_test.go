@@ -93,7 +93,7 @@ func TestZeroThirteenUpgrade_success(t *testing.T) {
 		"preserves comments":    "013upgrade-preserves-comments",
 		"multiple blocks":       "013upgrade-multiple-blocks",
 		"multiple files":        "013upgrade-multiple-files",
-		"existing providers.tf": "013upgrade-existing-providers-tf",
+		"existing versions.tf":  "013upgrade-existing-versions-tf",
 		"skipped files":         "013upgrade-skipped-files",
 	}
 	for name, testPath := range testCases {
@@ -217,6 +217,32 @@ func TestZeroThirteenUpgrade_skippedFiles(t *testing.T) {
 	}
 	if !strings.Contains(errMsg, `The override configuration file "bar_override.tf" was skipped`) {
 		t.Fatal("missing override skipped file warning:", errMsg)
+	}
+}
+
+func TestZeroThirteenUpgrade_unsupportedVersion(t *testing.T) {
+	inputPath := testFixturePath("013upgrade-unsupported-version")
+
+	td := tempDir(t)
+	copy.CopyDir(inputPath, td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &ZeroThirteenUpgradeCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatal("expected error, got:", ui.OutputWriter)
+	}
+
+	errMsg := ui.ErrorWriter.String()
+	if !strings.Contains(errMsg, `Unsupported Terraform Core version`) {
+		t.Fatal("missing version constraint error:", errMsg)
 	}
 }
 
