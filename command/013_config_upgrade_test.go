@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -361,21 +362,22 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 
 	pathParts := strings.Split(path, "/")[3:]
 
-	if len(pathParts) != 2 {
+	if len(pathParts) != 3 {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`unrecognized path scheme`))
 		return
 	}
 
-	if pathParts[0] != "-" {
+	if pathParts[0] != "-" || pathParts[2] != "versions" {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`this registry only supports legacy namespace lookup requests`))
 	}
 
-	if namespace, ok := legacyProviderNamespaces[pathParts[1]]; ok {
+	name := pathParts[1]
+	if namespace, ok := legacyProviderNamespaces[name]; ok {
 		resp.Header().Set("Content-Type", "application/json")
 		resp.WriteHeader(200)
-		resp.Write([]byte(`{"namespace":"` + namespace + `"}`))
+		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s"}`, namespace, name)))
 	} else {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`provider not found`))
