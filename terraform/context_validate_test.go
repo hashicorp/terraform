@@ -564,7 +564,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
+func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 	m := testModule(t, "validate-bad-pc-empty")
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
