@@ -210,24 +210,26 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Output:         &state,
 			},
 
-			// EvalReadData will _attempt_ to read the data source, but may
-			// generate an incomplete planned object if the configuration
+			// EvalReadDataRefresh will _attempt_ to read the data source, but
+			// may generate an incomplete planned object if the configuration
 			// includes values that won't be known until apply.
-			&EvalReadData{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				OutputChange:   &change,
-				State:          &state,
-				refresh:        true,
+			&EvalReadDataRefresh{
+				evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					OutputChange:   &change,
+					State:          &state,
+				},
 			},
 
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					return (*state).Status != states.ObjectPlanned, nil
+					return change == nil, nil
+
 				},
 				Then: &EvalSequence{
 					Nodes: []EvalNode{

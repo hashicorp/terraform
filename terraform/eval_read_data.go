@@ -16,10 +16,9 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// EvalReadData is an EvalNode implementation that deals with the main part
-// of the data resource lifecycle: either actually reading from the data source
-// or generating a plan to do so.
-type EvalReadData struct {
+// evalReadData implements shared methods and data for the individual  data
+// source eval nodes.
+type evalReadData struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
 	Provider       *providers.Interface
@@ -35,177 +34,70 @@ type EvalReadData struct {
 	Planned **plans.ResourceInstanceChange
 
 	// State is the current state for the data source, and is updated once the
-	// new state has need read.
-	// While data source are read-only, we need to start with the prior state
+	// new state has been read.
+	// While data sources are read-only, we need to start with the prior state
 	// to determine if we have a change or not.  If we needed to read a new
 	// value, but it still matches the previous state, then we can record a
 	// NoNop change. If the states don't match then we record a Read change so
 	// that the new value is applied to the state.
 	State **states.ResourceInstanceObject
 
-	// The result from this EvalNode has a few different possibilities
-	// depending on the input:
-	// - If Planned is nil then we assume we're aiming to either read the
-	//   resource or produce a plan, and so the following two outcomes are
-	//   possible:
-	//     - OutputChange.Action is plans.NoOp and the
-	//       result of reading from the data source is stored in state. This is
-	//       the easy path, and only happens during refresh.
-	//     - OutputChange.Action is plans.Read and State is a planned
-	//       object placeholder (states.ObjectPlanned). In this case, the
-	//       returned change must be recorded in the overall changeset and this
-	//       resource will be read during apply.
-	//     - OutputChange.Action is plans.Update, in which case the change
-	//       contains the complete state of this resource, and only needs to be
-	//       stored into the final state during apply.
-	// - If Planned is non-nil then we assume we're aiming to complete a
-	//   planned read from an earlier plan walk, from one of the options above.
+	// Output change records any change for this data source, which is
+	// interpreted differently than changes for managed resources.
+	// - During Refresh, this change is only used to correctly evaluate
+	// references to the data source, but it is not saved.
+	// - If a planned change has the action of plans.Read, it indicates that the
+	// data source could not be evaluated yet, and reading is being deferred to
+	// apply.
+	// - If planned action is plans.Update, it indicates that the data source
+	// was read, and the result needs to be stored in state during apply.
 	OutputChange **plans.ResourceInstanceChange
-
-	// dependsOn stores the list of transitive resource addresses that any
-	// configuration depends_on references may resolve to. This is used to
-	// determine if there are any changes that will force this data sources to
-	// be deferred to apply.
-	dependsOn []addrs.ConfigResource
-
-	// refresh indicates this is being called from a refresh node, and we can't
-	// resolve any depends_on dependencies.
-	refresh bool
 }
 
-func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
-	absAddr := n.Addr.Absolute(ctx.Path())
-
+// readDataSource handles everything needed to call ReadDataSource on the provider.
+// A previously evaluated configVal can be passed in, or a new one is generated
+// from the resource configuration.
+func (n *evalReadData) readDataSource(ctx EvalContext, configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var configVal cty.Value
-
-	var planned *plans.ResourceInstanceChange
-	if n.Planned != nil {
-		planned = *n.Planned
-	}
-
-	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
-	}
+	var newVal cty.Value
 
 	config := *n.Config
-	provider := *n.Provider
-	providerSchema := *n.ProviderSchema
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type)
+	absAddr := n.Addr.Absolute(ctx.Path())
+
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+		return newVal, diags
 	}
 
-	objTy := schema.ImpliedType()
-	priorVal := cty.NullVal(objTy)
-	if n.State != nil && *n.State != nil {
-		priorVal = (*n.State).Value
-	}
+	provider := *n.Provider
+	providerSchema := *n.ProviderSchema
 
 	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 
-	var configDiags tfdiags.Diagnostics
-	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		return nil, diags.Err()
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type))
+		return newVal, diags
+	}
+
+	if configVal == cty.NilVal {
+		val, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return newVal, diags
+		}
+		configVal = val
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return newVal, diags
 	}
 
-	configKnown := configVal.IsWhollyKnown()
-	// If our configuration contains any unknown values, or we depend on any
-	// unknown values then we must defer the read to the apply phase by
-	// producing a "Read" change for this resource, and a placeholder value for
-	// it in the state.
-	if n.forcePlanRead(ctx) || !configKnown {
-		if configKnown {
-			log.Printf("[TRACE] EvalReadData: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
-		} else {
-			log.Printf("[TRACE] EvalReadData: %s configuration not fully known yet, so deferring to apply phase", absAddr)
-		}
-
-		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
-
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		change := &plans.ResourceInstanceChange{
-			Addr:         absAddr,
-			ProviderAddr: n.ProviderAddr,
-			Change: plans.Change{
-				Action: plans.Read,
-				Before: priorVal,
-				After:  proposedNewVal,
-			},
-		}
-
-		err = ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(absAddr, states.CurrentGen, change.Action, priorVal, proposedNewVal)
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if n.OutputChange != nil {
-			*n.OutputChange = change
-		}
-		if n.State != nil {
-			*n.State = &states.ResourceInstanceObject{
-				Value:  cty.NullVal(objTy),
-				Status: states.ObjectPlanned,
-			}
-		}
-
-		return nil, diags.ErrWithWarnings()
-	}
-
-	if planned != nil && !(planned.Action == plans.Read || planned.Action == plans.Update) {
-		// If any other action gets in here then that's always a bug; this
-		// EvalNode only deals with reading.
-		return nil, fmt.Errorf(
-			"invalid action %s for %s: only Read or Update is supported (this is a bug in Terraform; please report it!)",
-			planned.Action, absAddr,
-		)
-	}
-
-	// we have a change and it is complete, which means we read the data
-	// source during plan and only need to store it in state.
-	if planned != nil && planned.Action == plans.Update {
-		outputState := &states.ResourceInstanceObject{
-			Value:  planned.After,
-			Status: states.ObjectReady,
-		}
-
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(absAddr, states.CurrentGen, planned.After, nil)
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if n.OutputChange != nil {
-			*n.OutputChange = planned
-		}
-		if n.State != nil {
-			*n.State = outputState
-		}
-		return nil, diags.ErrWithWarnings()
-	}
-
-	var change *plans.ResourceInstanceChange
-
-	log.Printf("[TRACE] Re-validating config for %s", absAddr)
+	log.Printf("[TRACE] EvalReadData: Re-validating config for %s", absAddr)
 	validateResp := provider.ValidateDataSourceConfig(
 		providers.ValidateDataSourceConfigRequest{
 			TypeName: n.Addr.Resource.Type,
@@ -213,21 +105,12 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		},
 	)
 	if validateResp.Diagnostics.HasErrors() {
-		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
+		return newVal, validateResp.Diagnostics.InConfigBody(config.Config)
 	}
 
 	// If we get down here then our configuration is complete and we're read
 	// to actually call the provider to read the data.
 	log.Printf("[TRACE] EvalReadData: %s configuration is complete, so reading from provider", absAddr)
-
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
-		// We don't have a state yet, so we'll just give the hook an
-		// empty one to work with.
-		return h.PreRefresh(absAddr, states.CurrentGen, priorVal)
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
 		TypeName:     n.Addr.Resource.Type,
@@ -236,9 +119,9 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return newVal, diags
 	}
-	newVal := resp.State
+	newVal = resp.State
 	if newVal == cty.NilVal {
 		// This can happen with incompletely-configured mocks. We'll allow it
 		// and treat it as an alias for a properly-typed null value.
@@ -256,7 +139,7 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		))
 	}
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return newVal, diags
 	}
 
 	if newVal.IsNull() {
@@ -289,47 +172,10 @@ func (n *EvalReadData) Eval(ctx EvalContext) (interface{}, error) {
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
-	action := plans.NoOp
-	if !newVal.IsNull() && newVal.IsKnown() && newVal.Equals(priorVal).False() {
-		// since a data source is read-only, update here only means that we
-		// need to update the state.
-		action = plans.Update
-	}
-
-	// Produce a change regardless of the outcome.
-	change = &plans.ResourceInstanceChange{
-		Addr:         absAddr,
-		ProviderAddr: n.ProviderAddr,
-		Change: plans.Change{
-			Action: action,
-			Before: priorVal,
-			After:  newVal,
-		},
-	}
-
-	outputState := &states.ResourceInstanceObject{
-		Value:  newVal,
-		Status: states.ObjectReady, // because we completed the read from the provider
-	}
-
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, newVal)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if n.OutputChange != nil {
-		*n.OutputChange = change
-	}
-	if n.State != nil {
-		*n.State = outputState
-	}
-
-	return nil, diags.ErrWithWarnings()
+	return newVal, diags
 }
 
-func (n *EvalReadData) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+func (n *evalReadData) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.ProviderMetas != nil {
@@ -352,26 +198,119 @@ func (n *EvalReadData) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagno
 	return metaConfigVal, diags
 }
 
-// ForcePlanRead, if true, overrides the usual behavior of immediately
-// reading from the data source where possible, instead forcing us to
-// _always_ generate a plan. This is used during the plan walk, since we
-// mustn't actually apply anything there. (The resulting state doesn't
-// get persisted)
-func (n *EvalReadData) forcePlanRead(ctx EvalContext) bool {
-	if n.refresh && len(n.Config.DependsOn) > 0 {
-		return true
+// EvalReadDataRefresh is an EvalNode implementation that handled the data
+// resource lifecycle during refresh
+type EvalReadDataRefresh struct {
+	evalReadData
+}
+
+func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
+	var diags tfdiags.Diagnostics
+
+	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
 	}
 
-	// Check and see if any depends_on dependencies have
-	// changes, since they won't show up as changes in the
-	// configuration.
-	changes := ctx.Changes()
-	for _, d := range n.dependsOn {
-		for _, change := range changes.GetConfigResourceChanges(d) {
-			if change != nil && change.Action != plans.NoOp {
-				return true
+	absAddr := n.Addr.Absolute(ctx.Path())
+	config := *n.Config
+	providerSchema := *n.ProviderSchema
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type)
+	}
+
+	objTy := schema.ImpliedType()
+	priorVal := cty.NullVal(objTy)
+	if n.State != nil && *n.State != nil {
+		priorVal = (*n.State).Value
+	}
+
+	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
+
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	configKnown := configVal.IsWhollyKnown()
+	// If our configuration contains any unknown values, or we depend on any
+	// unknown values then we must defer the read to the apply phase by
+	// producing a "Read" change for this resource, and a placeholder value for
+	// it in the state.
+	if len(n.Config.DependsOn) > 0 || !configKnown {
+		if configKnown {
+			log.Printf("[TRACE] EvalReadDataRefresh: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
+		} else {
+			log.Printf("[TRACE] EvalReadDataRefresh: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+		}
+
+		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
+
+		// We need to store a change so tat other references to this data
+		// source can resolve correctly, since the state is not going to be up
+		// to date.
+		change := &plans.ResourceInstanceChange{
+			Addr:         absAddr,
+			ProviderAddr: n.ProviderAddr,
+			Change: plans.Change{
+				Action: plans.Read,
+				Before: priorVal,
+				After:  proposedNewVal,
+			},
+		}
+
+		if n.OutputChange != nil {
+			*n.OutputChange = change
+		}
+		if n.State != nil {
+			*n.State = &states.ResourceInstanceObject{
+				// We need to keep the prior value in the state so that plan
+				// has something to diff against.
+				Value: priorVal,
+				// TODO: this needs to be ObjectPlanned to trigger a plan, but
+				// the prior value is lost preventing plan from resulting in a
+				// NoOp
+				Status: states.ObjectPlanned,
 			}
 		}
+
+		return nil, diags.ErrWithWarnings()
 	}
-	return false
+
+	if err := ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreRefresh(absAddr, states.CurrentGen, priorVal)
+	}); err != nil {
+		diags = diags.Append(err)
+		return nil, diags.ErrWithWarnings()
+	}
+
+	newVal, readDiags := n.readDataSource(ctx, configVal)
+	diags = diags.Append(readDiags)
+	if diags.HasErrors() {
+		return nil, diags.ErrWithWarnings()
+	}
+
+	// TODO: Need to signal to plan that this may have changed. We may be able
+	// to use ObjectPlanned for that, but that currently causes the state to be
+	// dropped altogether
+	outputState := &states.ResourceInstanceObject{
+		Value:  newVal,
+		Status: states.ObjectReady,
+	}
+
+	err := ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, newVal)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if n.State != nil {
+		*n.State = outputState
+	}
+
+	return nil, diags.ErrWithWarnings()
 }
