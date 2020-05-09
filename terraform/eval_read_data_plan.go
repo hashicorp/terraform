@@ -57,7 +57,7 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return nil, diags.Err()
+		return nil, diags.ErrWithWarnings()
 	}
 
 	configKnown := configVal.IsWhollyKnown()
@@ -74,14 +74,14 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
+		if err := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
-		})
-		if err != nil {
-			return nil, err
+		}); err != nil {
+			diags = diags.Append(err)
+			return nil, diags.ErrWithWarnings()
 		}
 
-		change := &plans.ResourceInstanceChange{
+		*n.OutputChange = &plans.ResourceInstanceChange{
 			Addr:         absAddr,
 			ProviderAddr: n.ProviderAddr,
 			Change: plans.Change{
@@ -91,14 +91,17 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 			},
 		}
 
-		err = ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(absAddr, states.CurrentGen, change.Action, priorVal, proposedNewVal)
-		})
-		if err != nil {
-			return nil, err
+		*n.State = &states.ResourceInstanceObject{
+			Value:  cty.NullVal(objTy),
+			Status: states.ObjectPlanned,
 		}
 
-		*n.OutputChange = change
+		if err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(absAddr, states.CurrentGen, plans.Read, priorVal, proposedNewVal)
+		}); err != nil {
+			diags = diags.Append(err)
+		}
+
 		return nil, diags.ErrWithWarnings()
 	}
 
@@ -122,7 +125,7 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Produce a change regardless of the outcome.
-	change := &plans.ResourceInstanceChange{
+	*n.OutputChange = &plans.ResourceInstanceChange{
 		Addr:         absAddr,
 		ProviderAddr: n.ProviderAddr,
 		Change: plans.Change{
@@ -132,7 +135,7 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		},
 	}
 
-	outputState := &states.ResourceInstanceObject{
+	*n.State = &states.ResourceInstanceObject{
 		Value:  newVal,
 		Status: states.ObjectPlanned,
 	}
@@ -142,9 +145,6 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	}); err != nil {
 		return nil, err
 	}
-
-	*n.OutputChange = change
-	*n.State = outputState
 
 	return nil, diags.ErrWithWarnings()
 }

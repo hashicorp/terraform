@@ -70,25 +70,13 @@ func (n *evalReadData) readDataSource(ctx EvalContext, configVal cty.Value) (cty
 	}
 
 	provider := *n.Provider
+
 	providerSchema := *n.ProviderSchema
-
-	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
-	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
-
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type))
 		return newVal, diags
-	}
-
-	if configVal == cty.NilVal {
-		val, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return newVal, diags
-		}
-		configVal = val
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
@@ -232,7 +220,7 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return nil, diags.Err()
+		return nil, diags.ErrWithWarnings()
 	}
 
 	configKnown := configVal.IsWhollyKnown()
@@ -257,7 +245,7 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		// We need to store a change so tat other references to this data
 		// source can resolve correctly, since the state is not going to be up
 		// to date.
-		change := &plans.ResourceInstanceChange{
+		*n.OutputChange = &plans.ResourceInstanceChange{
 			Addr:         absAddr,
 			ProviderAddr: n.ProviderAddr,
 			Change: plans.Change{
@@ -267,15 +255,9 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 			},
 		}
 
-		if n.OutputChange != nil {
-			*n.OutputChange = change
-		}
-
-		if n.State != nil {
-			*n.State = &states.ResourceInstanceObject{
-				Value:  cty.NullVal(objTy),
-				Status: states.ObjectPlanned,
-			}
+		*n.State = &states.ResourceInstanceObject{
+			Value:  cty.NullVal(objTy),
+			Status: states.ObjectPlanned,
 		}
 
 		return nil, diags.ErrWithWarnings()
@@ -296,20 +278,15 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	// This may still have been refreshed with references to resources that
 	// will be updated, but that will be caught as a change during plan.
-	outputState := &states.ResourceInstanceObject{
+	*n.State = &states.ResourceInstanceObject{
 		Value:  newVal,
 		Status: states.ObjectReady,
 	}
 
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
+	if err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, newVal)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if n.State != nil {
-		*n.State = outputState
+	}); err != nil {
+		diags = diags.Append(err)
 	}
 
 	return nil, diags.ErrWithWarnings()
