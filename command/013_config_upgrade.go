@@ -30,7 +30,11 @@ const skippedConfigurationFileWarning = "The %s configuration file %q was skippe
 
 func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 	args = c.Meta.process(args)
+
+	var skipConfirm bool
+
 	flags := c.Meta.defaultFlagSet("0.13upgrade")
+	flags.BoolVar(&skipConfirm, "yes", false, "skip confirmation prompt")
 	flags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -104,7 +108,7 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 		if strings.HasSuffix(strings.ToLower(path), ".json") {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
-				"JSON configuration file was not rewritten",
+				"JSON configuration file ignored",
 				fmt.Sprintf(
 					skippedConfigurationFileWarning,
 					"JSON",
@@ -126,12 +130,44 @@ func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Explain what the command does and how to use it, and ask for confirmation.
+	if !skipConfirm {
+		c.Ui.Output(fmt.Sprintf(`
+This command will update the configuration files in the given directory to use
+the new provider source features from Terraform v0.13. It will also highlight
+any providers for which the source cannot be detected, and advise how to
+proceed.
+
+We recommend using this command in a clean version control work tree, so that
+you can easily see the proposed changes as a diff against the latest commit.
+If you have uncommited changes already present, we recommend aborting this
+command and dealing with them before running this command again.
+`))
+
+		query := "Would you like to upgrade the module in the current directory?"
+		if dir != "." {
+			query = fmt.Sprintf("Would you like to upgrade the module in %s?", dir)
+		}
+		v, err := c.Ui.Ask(query)
+		if err != nil {
+			diags = diags.Append(err)
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if v != "yes" {
+			c.Ui.Info("Upgrade cancelled.")
+			return 0
+		}
+
+		c.Ui.Output(`-----------------------------------------------------------------------------`)
+	}
+
 	// It's not clear what the correct behaviour is for upgrading override
 	// files. For now, just log that we're ignoring the file.
 	for _, path := range overrides {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
-			"Override configuration file was not rewritten",
+			"Override configuration file ignored",
 			fmt.Sprintf(
 				skippedConfigurationFileWarning,
 				"override",
