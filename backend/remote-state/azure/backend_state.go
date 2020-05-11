@@ -64,12 +64,12 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	}
 
 	ctx := context.TODO()
-	gClient, err := b.armClient.getBlobClient(ctx)
+	client, err := b.armClient.getBlobClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	if resp, err := gClient.Delete(ctx, b.armClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
+	if resp, err := client.Delete(ctx, b.armClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
 		if resp.Response.StatusCode != 404 {
 			return err
 		}
