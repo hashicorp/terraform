@@ -119,6 +119,27 @@ func (err ErrPlatformNotSupported) Error() string {
 	)
 }
 
+// ErrProtocolNotSupported is an error type used to indicate that a particular
+// version of a provider is not supported by the current version of Terraform.
+//
+// Specfically, this is returned when the version's plugin protocol is not supported.
+//
+// When available, the error will include a suggested version that can be displayed to
+// the user. Otherwise it will return UnspecifiedVersion
+type ErrProtocolNotSupported struct {
+	Provider   addrs.Provider
+	Version    Version
+	Suggestion Version
+}
+
+func (err ErrProtocolNotSupported) Error() string {
+	return fmt.Sprintf(
+		"provider %s %s is not supported by this version of terraform",
+		err.Provider,
+		err.Version,
+	)
+}
+
 // ErrQueryFailed is an error type used to indicate that the hostname given
 // in a provider address does appear to be a provider registry but that when
 // we queried it for metadata for the given provider the server returned an

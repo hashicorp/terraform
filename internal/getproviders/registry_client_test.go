@@ -2,14 +2,18 @@ package getproviders
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
+	"github.com/google/go-cmp/cmp"
 	svchost "github.com/hashicorp/terraform-svchost"
 	disco "github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
 )
 
 // testServices starts up a local HTTP server running a fake provider registry
@@ -135,7 +139,11 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			// Note that these version numbers are intentionally misordered
 			// so we can test that the client-side code places them in the
 			// correct order (lowest precedence first).
-			resp.Write([]byte(`{"versions":[{"version":"1.2.0"}, {"version":"1.0.0"}]}`))
+			resp.Write([]byte(`{"versions":[{"version":"0.1.0","protocols":["1.0"]},{"version":"2.0.0","protocols":["99.0"]},{"version":"1.2.0","protocols":["5.0"]}, {"version":"1.0.0","protocols":["5.0"]}]}`))
+		case "weaksauce/unsupported-protocol":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			resp.Write([]byte(`{"versions":[{"version":"1.0.0","protocols":["0.1"]}]}`))
 		case "weaksauce/no-versions":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
@@ -170,15 +178,26 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 				resp.Write([]byte(`unsupported OS`))
 				return
 			}
+			var protocols []string
+			version := pathParts[2]
+			switch version {
+			case "0.1.0":
+				protocols = []string{"1.0"}
+			case "2.0.0":
+				protocols = []string{"99.0"}
+			default:
+				protocols = []string{"5.0"}
+			}
+
 			body := map[string]interface{}{
-				"protocols":             []string{"5.0"},
+				"protocols":             protocols,
 				"os":                    pathParts[4],
 				"arch":                  pathParts[5],
-				"filename":              "happycloud_" + pathParts[2] + ".zip",
+				"filename":              "happycloud_" + version + ".zip",
 				"shasum":                "000000000000000000000000000000000000000000000000000000000000f00d",
-				"download_url":          "/pkg/awesomesauce/happycloud_" + pathParts[2] + ".zip",
-				"shasums_url":           "/pkg/awesomesauce/happycloud_" + pathParts[2] + "_SHA256SUMS",
-				"shasums_signature_url": "/pkg/awesomesauce/happycloud_" + pathParts[2] + "_SHA256SUMS.sig",
+				"download_url":          "/pkg/awesomesauce/happycloud_" + version + ".zip",
+				"shasums_url":           "/pkg/awesomesauce/happycloud_" + version + "_SHA256SUMS",
+				"shasums_signature_url": "/pkg/awesomesauce/happycloud_" + version + "_SHA256SUMS.sig",
 				"signing_keys": map[string]interface{}{
 					"gpg_public_keys": []map[string]interface{}{
 						{
@@ -204,4 +223,145 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 
 	resp.WriteHeader(404)
 	resp.Write([]byte(`unrecognized path scheme`))
+}
+
+func TestProviderVersions(t *testing.T) {
+	source, _, close := testRegistrySource(t)
+	defer close()
+
+	tests := []struct {
+		provider     addrs.Provider
+		wantVersions map[string][]string
+		wantErr      string
+	}{
+		{
+			addrs.MustParseProviderSourceString("example.com/awesomesauce/happycloud"),
+			map[string][]string{
+				"0.1.0": {"1.0"},
+				"1.0.0": {"5.0"},
+				"1.2.0": {"5.0"},
+				"2.0.0": {"99.0"},
+			},
+			``,
+		},
+		{
+			addrs.MustParseProviderSourceString("example.com/weaksauce/no-versions"),
+			nil,
+			``,
+		},
+		{
+			addrs.MustParseProviderSourceString("example.com/nonexist/nonexist"),
+			nil,
+			`provider registry example.com does not have a provider named example.com/nonexist/nonexist`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.provider.String(), func(t *testing.T) {
+			client, err := source.registryClient(test.provider.Hostname)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			gotVersions, err := client.ProviderVersions(test.provider)
+
+			if err != nil {
+				if test.wantErr == "" {
+					t.Fatalf("wrong error\ngot:  %s\nwant: <nil>", err.Error())
+				}
+				if got, want := err.Error(), test.wantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+
+			if test.wantErr != "" {
+				t.Fatalf("wrong error\ngot:  <nil>\nwant: %s", test.wantErr)
+			}
+
+			if diff := cmp.Diff(test.wantVersions, gotVersions); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
+	source, _, close := testRegistrySource(t)
+	defer close()
+
+	tests := map[string]struct {
+		provider       addrs.Provider
+		version        Version
+		wantSuggestion Version
+		wantErr        string
+	}{
+		"pinned version too old": {
+			addrs.MustParseProviderSourceString("example.com/awesomesauce/happycloud"),
+			MustParseVersion("0.1.0"),
+			MustParseVersion("1.2.0"),
+			``,
+		},
+		"pinned version too new": {
+			addrs.MustParseProviderSourceString("example.com/awesomesauce/happycloud"),
+			MustParseVersion("2.0.0"),
+			MustParseVersion("1.2.0"),
+			``,
+		},
+		// This should not actually happen, the function is only meant to be
+		// called when the requested provider version is not supported
+		"pinned version just right": {
+			addrs.MustParseProviderSourceString("example.com/awesomesauce/happycloud"),
+			MustParseVersion("1.2.0"),
+			MustParseVersion("1.2.0"),
+			``,
+		},
+		"nonexisting provider": {
+			addrs.MustParseProviderSourceString("example.com/nonexist/nonexist"),
+			MustParseVersion("1.2.0"),
+			versions.Unspecified,
+			`provider registry example.com does not have a provider named example.com/nonexist/nonexist`,
+		},
+		"versionless provider": {
+			addrs.MustParseProviderSourceString("example.com/weaksauce/no-versions"),
+			MustParseVersion("1.2.0"),
+			versions.Unspecified,
+			``,
+		},
+		"unsupported provider protocol": {
+			addrs.MustParseProviderSourceString("example.com/weaksauce/unsupported-protocol"),
+			MustParseVersion("1.0.0"),
+			versions.Unspecified,
+			``,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			client, err := source.registryClient(test.provider.Hostname)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			got, err := client.findClosestProtocolCompatibleVersion(test.provider, test.version)
+
+			if err != nil {
+				if test.wantErr == "" {
+					t.Fatalf("wrong error\ngot:  %s\nwant: <nil>", err.Error())
+				}
+				if got, want := err.Error(), test.wantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+
+			if test.wantErr != "" {
+				t.Fatalf("wrong error\ngot:  <nil>\nwant: %s", test.wantErr)
+			}
+
+			fmt.Printf("Got: %s, Want: %s\n", got, test.wantSuggestion)
+
+			if !got.Same(test.wantSuggestion) {
+				t.Fatalf("wrong result\ngot:  %s\nwant: %s", got.String(), test.wantSuggestion.String())
+			}
+		})
+	}
 }

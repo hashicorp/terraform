@@ -38,17 +38,31 @@ func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList
 		return nil, err
 	}
 
-	versionStrs, err := client.ProviderVersions(provider)
+	versionProtosMap, err := client.ProviderVersions(provider)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(versionStrs) == 0 {
+	if len(versionProtosMap) == 0 {
 		return nil, nil
 	}
 
-	ret := make(VersionList, len(versionStrs))
-	for i, str := range versionStrs {
+	// We ignore everything except the version numbers here because our goal
+	// is to find out which versions are available _at all_. Which ones are
+	// compatible with the current Terraform becomes relevant only once we've
+	// selected one, at which point we'll return an error if the selected one
+	// is incompatible.
+	//
+	// We intentionally produce an error on incompatibility, rather than
+	// silently ignoring an incompatible version, in order to give the user
+	// explicit feedback about why their selection wasn't valid and allow them
+	// to decide whether to fix that by changing the selection or by some other
+	// action such as upgrading Terraform, using a different OS to run
+	// Terraform, etc. Changes that affect compatibility are considered
+	// breaking changes from a provider API standpoint, so provider teams
+	// should change compatibility only in new major versions.
+	ret := make(VersionList, 0, len(versionProtosMap))
+	for str := range versionProtosMap {
 		v, err := ParseVersion(str)
 		if err != nil {
 			return nil, ErrQueryFailed{
@@ -56,7 +70,7 @@ func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList
 				Wrapped:  fmt.Errorf("registry response includes invalid version string %q: %s", str, err),
 			}
 		}
-		ret[i] = v
+		ret = append(ret, v)
 	}
 	ret.Sort() // lowest precedence first, preserving order when equal precedence
 	return ret, nil

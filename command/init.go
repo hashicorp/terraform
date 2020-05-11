@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -502,11 +503,42 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			))
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to install provider",
-				fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
-			))
+			switch err := err.(type) {
+			case getproviders.ErrProtocolNotSupported:
+				closestAvailable := err.Suggestion
+				switch {
+				case closestAvailable == getproviders.UnspecifiedVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Incompatible provider version",
+						fmt.Sprintf(errProviderVersionIncompatible, provider.String()),
+					))
+				case version.GreaterThan(closestAvailable):
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Incompatible provider version",
+						fmt.Sprintf(providerProtocolTooNew, provider.ForDisplay(),
+							version, tfversion.String(), closestAvailable, closestAvailable,
+							getproviders.VersionConstraintsString(reqs[provider]),
+						),
+					))
+				default: // version is less than closestAvailable
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Incompatible provider version",
+						fmt.Sprintf(providerProtocolTooOld, provider.ForDisplay(),
+							version, tfversion.String(), closestAvailable, closestAvailable,
+							getproviders.VersionConstraintsString(reqs[provider]),
+						),
+					))
+				}
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s v%s: %s", provider.ForDisplay(), version, err),
+				))
+			}
 		},
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
 			var warning string
@@ -905,3 +937,34 @@ A later version of Terraform may have introduced other signing keys that would
 accept this provider. Alternatively, an earlier version of this provider may
 be compatible with Terraform v%[2]s.
 `
+
+// providerProtocolTooOld is a message sent to the CLI UI if the provider's
+// supported protocol versions are too old for the user's version of terraform,
+// but a newer version of the provider is compatible.
+const providerProtocolTooOld = `Provider %q v%s is not compatible with Terraform %s.
+Provider version %s is the latest compatible version. Select it with the following version constraint:
+	version = %q
+
+Terraform checked all of the plugin versions matching the given constraint:
+	%s
+
+Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
+`
+
+// providerProtocolTooNew is a message sent to the CLI UI if the provider's
+// supported protocol versions are too new for the user's version of terraform,
+// and the user could either upgrade terraform or choose an older version of the
+// provider.
+const providerProtocolTooNew = `Provider %q v%s is not compatible with Terraform %s.
+You need to downgrade to v%s or earlier. Select it with the following constraint:
+	version = %q
+
+Terraform checked all of the plugin versions matching the given constraint:
+	%s
+
+Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
+Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
+`
+
+// No version of the provider is compatible.
+const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`

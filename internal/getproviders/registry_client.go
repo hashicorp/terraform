@@ -12,7 +12,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/apparentlymart/go-versions/versions"
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 
@@ -22,6 +21,8 @@ import (
 )
 
 const terraformVersionHeader = "X-Terraform-Version"
+
+var SupportedPluginProtocols = MustParseVersionConstraints("~> 5")
 
 // registryClient is a client for the provider registry protocol that is
 // specialized only for the needs of this package. It's not intended as a
@@ -44,14 +45,14 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 	}
 }
 
-// ProviderVersions returns the raw version strings produced by the registry
-// for the given provider.
+// ProviderVersions returns the raw version and protocol strings produced by the
+// registry for the given provider.
 //
-// The returned error will be ErrProviderNotKnown if the registry responds
-// with 404 Not Found to indicate that the namespace or provider type are
-// not known, ErrUnauthorized if the registry responds with 401 or 403 status
-// codes, or ErrQueryFailed for any other protocol or operational problem.
-func (c *registryClient) ProviderVersions(addr addrs.Provider) ([]string, error) {
+// The returned error will be ErrProviderNotKnown if the registry responds with
+// 404 Not Found to indicate that the namespace or provider type are not known,
+// ErrUnauthorized if the registry responds with 401 or 403 status codes, or
+// ErrQueryFailed for any other protocol or operational problem.
+func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]string, error) {
 	endpointPath, err := url.Parse(path.Join(addr.Namespace, addr.Type, "versions"))
 	if err != nil {
 		// Should never happen because we're constructing this from
@@ -85,23 +86,13 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) ([]string, error)
 		return nil, c.errQueryFailed(addr, errors.New(resp.Status))
 	}
 
-	// We ignore everything except the version numbers here because our goal
-	// is to find out which versions are available _at all_. Which ones are
-	// compatible with the current Terraform becomes relevant only once we've
-	// selected one, at which point we'll return an error if the selected one
-	// is incompatible.
-	//
-	// We intentionally produce an error on incompatibility, rather than
-	// silently ignoring an incompatible version, in order to give the user
-	// explicit feedback about why their selection wasn't valid and allow them
-	// to decide whether to fix that by changing the selection or by some other
-	// action such as upgrading Terraform, using a different OS to run
-	// Terraform, etc. Changes that affect compatibility are considered
-	// breaking changes from a provider API standpoint, so provider teams
-	// should change compatibility only in new major versions.
+	// We ignore the platforms portion of the response body, because the
+	// installer verifies the platform compatibility after pulling a provider
+	// versions' metadata.
 	type ResponseBody struct {
 		Versions []struct {
-			Version string `json:"version"`
+			Version   string   `json:"version"`
+			Protocols []string `json:"protocols"`
 		} `json:"versions"`
 	}
 	var body ResponseBody
@@ -115,21 +106,24 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) ([]string, error)
 		return nil, nil
 	}
 
-	ret := make([]string, len(body.Versions))
-	for i, v := range body.Versions {
-		ret[i] = v.Version
+	ret := make(map[string][]string, len(body.Versions))
+	for _, v := range body.Versions {
+		ret[v.Version] = v.Protocols
 	}
 	return ret, nil
 }
 
-// PackageMeta returns metadata about a distribution package for a
-// provider.
+// PackageMeta returns metadata about a distribution package for a provider.
 //
-// The returned error will be ErrPlatformNotSupported if the registry responds
-// with 404 Not Found, under the assumption that the caller previously checked
-// that the provider and version are valid. It will return ErrUnauthorized if
-// the registry responds with 401 or 403 status codes, or ErrQueryFailed for
-// any other protocol or operational problem.
+// The returned error will be one of the following:
+//
+//   - ErrPlatformNotSupported if the registry responds with 404 Not Found,
+//     under the assumption that the caller previously checked that the provider
+//     and version are valid.
+//   - ErrProtocolNotSupported if the requested provider version's protocols are not
+//     supported by this version of terraform.
+//   - ErrUnauthorized if the registry responds with 401 or 403 status codes
+//   - ErrQueryFailed for any other operational problem.
 func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	endpointPath, err := url.Parse(path.Join(
 		provider.Namespace,
@@ -198,7 +192,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 
 	var protoVersions VersionList
 	for _, versionStr := range body.Protocols {
-		v, err := versions.ParseVersion(versionStr)
+		v, err := ParseVersion(versionStr)
 		if err != nil {
 			return PackageMeta{}, c.errQueryFailed(
 				provider,
@@ -208,6 +202,32 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 		protoVersions = append(protoVersions, v)
 	}
 	protoVersions.Sort()
+
+	// Verify that this version of terraform supports the providers' protocol
+	// version(s)
+	if len(protoVersions) > 0 {
+		supportedProtos := MeetingConstraints(SupportedPluginProtocols)
+		protoErr := ErrProtocolNotSupported{
+			Provider: provider,
+			Version:  version,
+		}
+		match := false
+		for _, version := range protoVersions {
+			if supportedProtos.Has(version) {
+				match = true
+			}
+		}
+		if match == false {
+			// If the protocol version is not supported, try to find the closest
+			// matching version.
+			closest, err := c.findClosestProtocolCompatibleVersion(provider, version)
+			if err != nil {
+				return PackageMeta{}, err
+			}
+			protoErr.Suggestion = closest
+			return PackageMeta{}, protoErr
+		}
+	}
 
 	downloadURL, err := url.Parse(body.DownloadURL)
 	if err != nil {
@@ -293,6 +313,50 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 }
 
 // LegacyProviderDefaultNamespace returns the raw address strings produced by
+// findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
+func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Provider, version Version) (Version, error) {
+	var match Version
+	available, err := c.ProviderVersions(provider)
+	if err != nil {
+		return UnspecifiedVersion, err
+	}
+
+	// extract the maps keys so we can make a sorted list of available versions.
+	versionList := make(VersionList, 0, len(available))
+	for versionStr := range available {
+		v, err := ParseVersion(versionStr)
+		if err != nil {
+			return UnspecifiedVersion, ErrQueryFailed{
+				Provider: provider,
+				Wrapped:  fmt.Errorf("registry response includes invalid version string %q: %s", versionStr, err),
+			}
+		}
+		versionList = append(versionList, v)
+	}
+	versionList.Sort() // lowest precedence first, preserving order when equal precedence
+
+	protoVersions := MeetingConstraints(SupportedPluginProtocols)
+FindMatch:
+	// put the versions in increasing order of precedence
+	for index := len(versionList) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
+		for _, protoStr := range available[versionList[index].String()] {
+			p, err := ParseVersion(protoStr)
+			if err != nil {
+				return UnspecifiedVersion, ErrQueryFailed{
+					Provider: provider,
+					Wrapped:  fmt.Errorf("registry response includes invalid protocol string %q: %s", protoStr, err),
+				}
+			}
+			if protoVersions.Has(p) {
+				match = versionList[index]
+				break FindMatch
+			}
+		}
+	}
+	return match, nil
+}
+
+// LegacyProviderCanonicalAddress returns the raw address strings produced by
 // the registry when asked about the given unqualified provider type name.
 // The returned namespace string is taken verbatim from the registry's response.
 //
