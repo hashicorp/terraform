@@ -292,7 +292,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	return ret, nil
 }
 
-// LegacyProviderCanonicalAddress returns the raw address strings produced by
+// LegacyProviderDefaultNamespace returns the raw address strings produced by
 // the registry when asked about the given unqualified provider type name.
 // The returned namespace string is taken verbatim from the registry's response.
 //
@@ -300,7 +300,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 // in older configurations. New configurations should be written so as not to
 // depend on it.
 func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string, error) {
-	endpointPath, err := url.Parse(path.Join("-", typeName))
+	endpointPath, err := url.Parse(path.Join("-", typeName, "versions"))
 	if err != nil {
 		// Should never happen because we're constructing this from
 		// already-validated components.
@@ -338,7 +338,7 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 	}
 
 	type ResponseBody struct {
-		Namespace string
+		Id string
 	}
 	var body ResponseBody
 
@@ -347,7 +347,16 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 		return "", c.errQueryFailed(placeholderProviderAddr, err)
 	}
 
-	return body.Namespace, nil
+	provider, diags := addrs.ParseProviderSourceString(body.Id)
+	if diags.HasErrors() {
+		return "", fmt.Errorf("Error parsing provider ID from Registry: %s", diags.Err())
+	}
+
+	if provider.Type != typeName {
+		return "", fmt.Errorf("Registry returned provider with type %q, expected %q", provider.Type, typeName)
+	}
+
+	return provider.Namespace, nil
 }
 
 func (c *registryClient) addHeadersToRequest(req *http.Request) {

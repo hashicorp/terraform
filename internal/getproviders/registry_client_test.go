@@ -114,34 +114,12 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	pathParts := strings.Split(path, "/")[3:]
-	if len(pathParts) < 2 {
-		resp.WriteHeader(404)
-		resp.Write([]byte(`unexpected number of path parts`))
-		return
-	}
-	log.Printf("[TRACE] fake provider registry request for %#v", pathParts)
-	if len(pathParts) == 2 {
-		switch pathParts[0] + "/" + pathParts[1] {
-
-		case "-/legacy":
-			// NOTE: This legacy lookup endpoint is specific to
-			// registry.terraform.io and not expected to work on any other
-			// registry host.
-			resp.Header().Set("Content-Type", "application/json")
-			resp.WriteHeader(200)
-			resp.Write([]byte(`{"namespace":"legacycorp"}`))
-
-		default:
-			resp.WriteHeader(404)
-			resp.Write([]byte(`unknown namespace or provider type for direct lookup`))
-		}
-	}
-
 	if len(pathParts) < 3 {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`unexpected number of path parts`))
 		return
 	}
+	log.Printf("[TRACE] fake provider registry request for %#v", pathParts)
 
 	if pathParts[2] == "versions" {
 		if len(pathParts) != 3 {
@@ -162,6 +140,21 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
 			resp.Write([]byte(`{"versions":[]}`))
+		case "-/legacy":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This response is used for testing LookupLegacyProvider
+			resp.Write([]byte(`{"id":"legacycorp/legacy"}`))
+		case "-/changetype":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This (unrealistic) response is used for error handling code coverage
+			resp.Write([]byte(`{"id":"legacycorp/newtype"}`))
+		case "-/invalid":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This (unrealistic) response is used for error handling code coverage
+			resp.Write([]byte(`{"id":"some/invalid/id/string"}`))
 		default:
 			resp.WriteHeader(404)
 			resp.Write([]byte(`unknown namespace or provider type`))
