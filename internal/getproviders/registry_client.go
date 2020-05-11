@@ -116,6 +116,7 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 // PackageMeta returns metadata about a distribution package for a provider.
 //
 // The returned error will be one of the following:
+//
 //   - ErrPlatformNotSupported if the registry responds with 404 Not Found,
 //     under the assumption that the caller previously checked that the provider
 //     and version are valid.

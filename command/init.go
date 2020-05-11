@@ -941,32 +941,30 @@ be compatible with Terraform v%[2]s.
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's
 // supported protocol versions are too old for the user's version of terraform,
 // but a newer version of the provider is compatible.
-const providerProtocolTooOld = `
-[reset][bold][red]Provider %q v%s is not compatible with Terraform %s.[reset][red]
-Provider version %s is the latest compatible version. Select it with
-the following version constraint:
+const providerProtocolTooOld = `Provider %q v%s is not compatible with Terraform %s.
+Provider version %s is the latest compatible version. Select it with the following version constraint:
 	version = %q
+
 Terraform checked all of the plugin versions matching the given constraint:
 	%s
-Consult the documentation for this provider for more information on
-compatibility between provider and Terraform versions.
+
+Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
 `
 
 // providerProtocolTooNew is a message sent to the CLI UI if the provider's
 // supported protocol versions are too new for the user's version of terraform,
 // and the user could either upgrade terraform or choose an older version of the
 // provider.
-const providerProtocolTooNew = `
-[reset][bold][red]Provider %q v%s is not compatible with Terraform %s.[reset][red]
-You need to downgrade to v%s or earlier. Select it with
-the following constraint:
+const providerProtocolTooNew = `Provider %q v%s is not compatible with Terraform %s.
+You need to downgrade to v%s or earlier. Select it with the following constraint:
 	version = %q
+
 Terraform checked all of the plugin versions matching the given constraint:
 	%s
-Consult the documentation for this provider for more information on
-compatibility between provider and Terraform versions.
+
+Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
 Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
 `
 
-// there does exist a version outside of the constaints that is compatible.
+// No version of the provider is compatible.
 const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`
