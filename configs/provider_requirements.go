@@ -1,6 +1,8 @@
 package configs
 
 import (
+	"fmt"
+
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
@@ -34,14 +36,16 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 			diags = append(diags, err...)
 		}
 
+		rp := &RequiredProvider{
+			Name: name,
+		}
+
 		switch {
 		case expr.Type().IsPrimitiveType():
 			vc, reqDiags := decodeVersionConstraint(attr)
 			diags = append(diags, reqDiags...)
-			reqs = append(reqs, &RequiredProvider{
-				Name:        name,
-				Requirement: vc,
-			})
+			rp.Requirement = vc
+
 		case expr.Type().IsObjectType():
 			if expr.Type().HasAttribute("version") {
 				vc := VersionConstraint{
@@ -58,14 +62,19 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 						Detail:   "This string does not use correct version constraint syntax.",
 						Subject:  attr.Expr.Range().Ptr(),
 					})
-					reqs = append(reqs, &RequiredProvider{Name: name})
-					return reqs, diags
+				} else {
+					vc.Required = constraints
+					rp.Requirement = vc
 				}
-				vc.Required = constraints
-				reqs = append(reqs, &RequiredProvider{Name: name, Requirement: vc})
 			}
-			// No version
-			reqs = append(reqs, &RequiredProvider{Name: name})
+			if expr.Type().HasAttribute("source") {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Provider source not supported in Terraform v0.12",
+					Detail:   fmt.Sprintf("A source was declared for provider %s. Terraform v0.12 does not support the provider source attribute. It will be ignored.", name),
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			}
 		default:
 			// should not happen
 			diags = append(diags, &hcl.Diagnostic{
@@ -77,6 +86,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) ([]*RequiredProvider, hcl.Di
 			reqs = append(reqs, &RequiredProvider{Name: name})
 			return reqs, diags
 		}
+		reqs = append(reqs, rp)
 	}
 	return reqs, diags
 }

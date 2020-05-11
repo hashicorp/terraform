@@ -1525,3 +1525,39 @@ func TestInit_syntaxErrorVersionSniff(t *testing.T) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
+
+func TestInit_RequiredProviderSource(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-provider-source"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+	}
+	installer := &mockProviderInstaller{
+		Providers: map[string][]string{
+			"test": []string{"1.2.3"},
+		},
+		Dir: m.pluginDir(),
+	}
+
+	c := &InitCommand{
+		Meta:              m,
+		providerInstaller: installer,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output for expected warning.
+	output := ui.ErrorWriter.String()
+	if got, want := output, "Warning: Provider source not supported in Terraform v0.12"; !strings.Contains(got, want) {
+		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
+	}
+}
