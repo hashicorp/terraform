@@ -213,9 +213,9 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	_, confDiags = c.loadConfig(path)
+	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(confDiags)
 		c.showDiagnostics(diags)
 		return 1
 	}
