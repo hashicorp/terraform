@@ -36,7 +36,7 @@ func (n *NodePlannableLocal) Name() string {
 	if path != "" {
 		return path + "." + addr
 	}
-	return addr
+	return addr + " (expand)"
 }
 
 // GraphNodeModulePath

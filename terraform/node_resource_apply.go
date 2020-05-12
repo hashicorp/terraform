@@ -30,7 +30,7 @@ func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 }
 
 func (n *nodeExpandApplyableResource) Name() string {
-	return n.NodeAbstractResource.Name() + " (prepare state)"
+	return n.NodeAbstractResource.Name() + " (expand)"
 }
 
 func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {

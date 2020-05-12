@@ -31,6 +31,10 @@ var (
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
 )
 
+func (n *nodeExpandPlannableResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
+
 // GraphNodeDestroyerCBD
 func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
 	if n.ForceCreateBeforeDestroy != nil {

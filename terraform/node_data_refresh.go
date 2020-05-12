@@ -22,6 +22,10 @@ var (
 	_ GraphNodeAttachResourceConfig = (*nodeExpandRefreshableDataResource)(nil)
 )
 
+func (n *nodeExpandRefreshableDataResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
+
 func (n *nodeExpandRefreshableDataResource) References() []*addrs.Reference {
 	return (&NodeRefreshableManagedResource{NodeAbstractResource: n.NodeAbstractResource}).References()
 }
