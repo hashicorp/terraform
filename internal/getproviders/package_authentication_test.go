@@ -26,15 +26,15 @@ func TestPackageAuthenticationResult(t *testing.T) {
 		},
 		{
 			&PackageAuthenticationResult{result: officialProvider},
-			"official provider",
+			"signed by HashiCorp",
 		},
 		{
 			&PackageAuthenticationResult{result: partnerProvider},
-			"partner provider",
+			"signed by a HashiCorp partner",
 		},
 		{
 			&PackageAuthenticationResult{result: communityProvider},
-			"community provider",
+			"self-signed",
 		},
 	}
 	for _, test := range tests {
@@ -270,7 +270,10 @@ func TestSignatureAuthentication_success(t *testing.T) {
 					ASCIIArmor: HashicorpPublicKey,
 				},
 			},
-			PackageAuthenticationResult{result: officialProvider},
+			PackageAuthenticationResult{
+				result: officialProvider,
+				KeyID:  testHashiCorpPublicKeyID,
+			},
 		},
 		"partner provider": {
 			testAuthorSignatureGoodBase64,
@@ -280,7 +283,10 @@ func TestSignatureAuthentication_success(t *testing.T) {
 					TrustSignature: testAuthorKeyTrustSignatureArmor,
 				},
 			},
-			PackageAuthenticationResult{result: partnerProvider},
+			PackageAuthenticationResult{
+				result: partnerProvider,
+				KeyID:  testAuthorKeyID,
+			},
 		},
 		"community provider": {
 			testAuthorSignatureGoodBase64,
@@ -289,7 +295,10 @@ func TestSignatureAuthentication_success(t *testing.T) {
 					ASCIIArmor: testAuthorKeyArmor,
 				},
 			},
-			PackageAuthenticationResult{result: communityProvider},
+			PackageAuthenticationResult{
+				result: communityProvider,
+				KeyID:  testAuthorKeyID,
+			},
 		},
 		"multiple signing keys": {
 			testAuthorSignatureGoodBase64,
@@ -301,7 +310,10 @@ func TestSignatureAuthentication_success(t *testing.T) {
 					ASCIIArmor: testAuthorKeyArmor,
 				},
 			},
-			PackageAuthenticationResult{result: communityProvider},
+			PackageAuthenticationResult{
+				result: communityProvider,
+				KeyID:  testAuthorKeyID,
+			},
 		},
 	}
 
@@ -408,6 +420,8 @@ func TestSignatureAuthentication_failure(t *testing.T) {
 	}
 }
 
+const testAuthorKeyID = `37A6AB3BCF2C170A`
+
 // testAuthorKeyArmor is test key ID 5BFEEC4317E746008621970637A6AB3BCF2C170A.
 const testAuthorKeyArmor = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -499,6 +513,9 @@ const testSignatureBadBase64 = `iQEzBAABCAAdFiEEW/7sQxfnRgCGIZcGN6arO88s` +
 	`4qIKqL6DwddBF4Ju2svn2MeNMGfE358H31mxAl2k4PPrwBTR1sFUCUOzAXVA/g9Ov5Y9ni2G` +
 	`rkTahBtV9yuUUd1D+oRTTTdP0bj3A+3xxXmKTBhRuvurydPTicKuWzeILIJkcwp7Kl5UbI2N` +
 	`n1ayZdaCIw/r4w==`
+
+// testHashiCorpPublicKeyID is the Key ID of the HashiCorpPublicKey.
+const testHashiCorpPublicKeyID = `51852D87348FFC4C`
 
 // testHashicorpSignatureGoodBase64 is a signature of testShaSums signed with
 // HashicorpPublicKey, which represents the SHA256SUMS.sig file downloaded for
