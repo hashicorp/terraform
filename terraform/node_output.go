@@ -10,28 +10,28 @@ import (
 	"github.com/hashicorp/terraform/lang"
 )
 
-// NodePlannableOutput is the placeholder for an output that has not yet had
+// nodeExpandOutput is the placeholder for an output that has not yet had
 // its module path expanded.
-type NodePlannableOutput struct {
+type nodeExpandOutput struct {
 	Addr   addrs.OutputValue
 	Module addrs.Module
 	Config *configs.Output
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*NodePlannableOutput)(nil)
-	_ GraphNodeReferenceable     = (*NodePlannableOutput)(nil)
-	_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
-	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
+	_ RemovableIfNotTargeted     = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
 	_ graphNodeTemporaryValue    = (*NodeApplyableOutput)(nil)
 )
 
-func (n *NodePlannableOutput) temporaryValue() bool {
+func (n *nodeExpandOutput) temporaryValue() bool {
 	// this must always be evaluated if it is a root module output
 	return !n.Module.IsRoot()
 }
 
-func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
@@ -45,9 +45,9 @@ func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	return &g, nil
 }
 
-func (n *NodePlannableOutput) Name() string {
+func (n *nodeExpandOutput) Name() string {
 	path := n.Module.String()
-	addr := n.Addr.String()
+	addr := n.Addr.String() + " (expand)"
 	if path != "" {
 		return path + "." + addr
 	}
@@ -55,12 +55,12 @@ func (n *NodePlannableOutput) Name() string {
 }
 
 // GraphNodeModulePath
-func (n *NodePlannableOutput) ModulePath() addrs.Module {
+func (n *nodeExpandOutput) ModulePath() addrs.Module {
 	return n.Module
 }
 
 // GraphNodeReferenceable
-func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
+func (n *nodeExpandOutput) ReferenceableAddrs() []addrs.Referenceable {
 	// An output in the root module can't be referenced at all.
 	if n.Module.IsRoot() {
 		return nil
@@ -80,7 +80,7 @@ func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // GraphNodeReferenceOutside implementation
-func (n *NodePlannableOutput) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	// Output values have their expressions resolved in the context of the
 	// module where they are defined.
 	referencePath = n.Module
@@ -92,17 +92,17 @@ func (n *NodePlannableOutput) ReferenceOutside() (selfPath, referencePath addrs.
 }
 
 // GraphNodeReferencer
-func (n *NodePlannableOutput) References() []*addrs.Reference {
+func (n *nodeExpandOutput) References() []*addrs.Reference {
 	return appendResourceDestroyReferences(referencesForOutput(n.Config))
 }
 
 // RemovableIfNotTargeted
-func (n *NodePlannableOutput) RemoveIfNotTargeted() bool {
+func (n *nodeExpandOutput) RemoveIfNotTargeted() bool {
 	return true
 }
 
 // GraphNodeTargetDownstream
-func (n *NodePlannableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
+func (n *nodeExpandOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
 	return true
 }
 

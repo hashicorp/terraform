@@ -58,13 +58,13 @@ provider["registry.terraform.io/hashicorp/test"] (close) - *terraform.graphNodeC
   data.test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   data.test_object.foo[2] - *terraform.NodeRefreshableManagedResourceInstance
   data.test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
-  test_object.foo - *terraform.nodeExpandRefreshableManagedResource
+  test_object.foo (expand) - *terraform.nodeExpandRefreshableManagedResource
   test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[1] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   test_object.foo[2] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
 root - *terraform.nodeCloseModule
   provider["registry.terraform.io/hashicorp/test"] (close) - *terraform.graphNodeCloseProvider
-test_object.foo - *terraform.nodeExpandRefreshableManagedResource
+test_object.foo (expand) - *terraform.nodeExpandRefreshableManagedResource
   provider["registry.terraform.io/hashicorp/test"] - *terraform.NodeApplyableProvider
 test_object.foo[0] (deposed 00000001) - *terraform.NodePlanDeposedResourceInstanceObject
   provider["registry.terraform.io/hashicorp/test"] - *terraform.NodeApplyableProvider

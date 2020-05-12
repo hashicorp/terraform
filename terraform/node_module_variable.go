@@ -49,7 +49,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error
 }
 
 func (n *nodeExpandModuleVariable) Name() string {
-	return fmt.Sprintf("%s.%s", n.Module, n.Addr.String())
+	return fmt.Sprintf("%s.%s (expand)", n.Module, n.Addr.String())
 }
 
 // GraphNodeModulePath

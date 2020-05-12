@@ -36,6 +36,10 @@ var (
 	_ GraphNodeAttachDependencies   = (*nodeExpandRefreshableManagedResource)(nil)
 )
 
+func (n *nodeExpandRefreshableManagedResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
+
 // GraphNodeAttachDependencies
 func (n *nodeExpandRefreshableManagedResource) AttachDependencies(deps []addrs.ConfigResource) {
 	n.Dependencies = deps

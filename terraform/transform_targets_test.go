@@ -118,12 +118,12 @@ func TestTargetsTransformer_downstream(t *testing.T) {
 	// outputs that descend from it are also targeted.
 	expected := strings.TrimSpace(`
 module.child.module.grandchild.aws_instance.foo
-module.child.module.grandchild.output.id
+module.child.module.grandchild.output.id (expand)
   module.child.module.grandchild.aws_instance.foo
-module.child.output.grandchild_id
-  module.child.module.grandchild.output.id
-output.grandchild_id
-  module.child.output.grandchild_id
+module.child.output.grandchild_id (expand)
+  module.child.module.grandchild.output.id (expand)
+output.grandchild_id (expand)
+  module.child.output.grandchild_id (expand)
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
@@ -189,12 +189,12 @@ func TestTargetsTransformer_wholeModule(t *testing.T) {
 	// outputs that descend from it are also targeted.
 	expected := strings.TrimSpace(`
 module.child.module.grandchild.aws_instance.foo
-module.child.module.grandchild.output.id
+module.child.module.grandchild.output.id (expand)
   module.child.module.grandchild.aws_instance.foo
-module.child.output.grandchild_id
-  module.child.module.grandchild.output.id
-output.grandchild_id
-  module.child.output.grandchild_id
+module.child.output.grandchild_id (expand)
+  module.child.module.grandchild.output.id (expand)
+output.grandchild_id (expand)
+  module.child.output.grandchild_id (expand)
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)

@@ -757,20 +757,20 @@ const testApplyGraphBuilderStr = `
 meta.count-boundary (EachMode fixup)
   module.child (close)
   test_object.other
-module.child
 module.child (close)
   module.child.test_object.other
+module.child (expand)
 module.child.test_object.create
-  module.child.test_object.create (prepare state)
-module.child.test_object.create (prepare state)
-  module.child
+  module.child.test_object.create (expand)
+module.child.test_object.create (expand)
+  module.child (expand)
   provider["registry.terraform.io/hashicorp/test"]
   provisioner.test
 module.child.test_object.other
   module.child.test_object.create
-  module.child.test_object.other (prepare state)
-module.child.test_object.other (prepare state)
-  module.child
+  module.child.test_object.other (expand)
+module.child.test_object.other (expand)
+  module.child (expand)
   provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
@@ -784,13 +784,13 @@ root
   provider["registry.terraform.io/hashicorp/test"] (close)
   provisioner.test (close)
 test_object.create
-  test_object.create (prepare state)
-test_object.create (prepare state)
+  test_object.create (expand)
+test_object.create (expand)
   provider["registry.terraform.io/hashicorp/test"]
 test_object.other
   test_object.create
-  test_object.other (prepare state)
-test_object.other (prepare state)
+  test_object.other (expand)
+test_object.other (expand)
   provider["registry.terraform.io/hashicorp/test"]
 `
 
@@ -803,14 +803,14 @@ provider["registry.terraform.io/hashicorp/test"] (close)
 root
   meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
-test_object.A (prepare state)
+test_object.A (expand)
   provider["registry.terraform.io/hashicorp/test"]
 test_object.A[1] (destroy)
   provider["registry.terraform.io/hashicorp/test"]
 test_object.B
-  test_object.A (prepare state)
+  test_object.A (expand)
   test_object.A[1] (destroy)
-  test_object.B (prepare state)
-test_object.B (prepare state)
+  test_object.B (expand)
+test_object.B (expand)
   provider["registry.terraform.io/hashicorp/test"]
 `

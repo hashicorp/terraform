@@ -33,7 +33,7 @@ var (
 )
 
 func (n *nodeExpandModule) Name() string {
-	return n.Addr.String()
+	return n.Addr.String() + " (expand)"
 }
 
 // GraphNodeModulePath implementation

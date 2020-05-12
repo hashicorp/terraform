@@ -9,30 +9,31 @@ import (
 	"github.com/hashicorp/terraform/lang"
 )
 
-// NodePlannableLocal represents a named local value in a configuration module,
+// nodeExpandLocal represents a named local value in a configuration module,
 // which has not yet been expanded.
-type NodePlannableLocal struct {
+type nodeExpandLocal struct {
 	Addr   addrs.LocalValue
 	Module addrs.Module
 	Config *configs.Local
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*NodePlannableLocal)(nil)
-	_ GraphNodeReferenceable     = (*NodePlannableLocal)(nil)
-	_ GraphNodeReferencer        = (*NodePlannableLocal)(nil)
-	_ GraphNodeDynamicExpandable = (*NodePlannableLocal)(nil)
-	_ graphNodeTemporaryValue    = (*NodePlannableLocal)(nil)
+	_ RemovableIfNotTargeted     = (*nodeExpandLocal)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandLocal)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandLocal)(nil)
 )
 
 // graphNodeTemporaryValue
-func (n *NodePlannableLocal) temporaryValue() bool {
+func (n *nodeExpandLocal) temporaryValue() bool {
 	return true
 }
 
-func (n *NodePlannableLocal) Name() string {
+func (n *nodeExpandLocal) Name() string {
 	path := n.Module.String()
-	addr := n.Addr.String()
+	addr := n.Addr.String() + " (expand)"
+
 	if path != "" {
 		return path + "." + addr
 	}
@@ -40,27 +41,27 @@ func (n *NodePlannableLocal) Name() string {
 }
 
 // GraphNodeModulePath
-func (n *NodePlannableLocal) ModulePath() addrs.Module {
+func (n *nodeExpandLocal) ModulePath() addrs.Module {
 	return n.Module
 }
 
 // RemovableIfNotTargeted
-func (n *NodePlannableLocal) RemoveIfNotTargeted() bool {
+func (n *nodeExpandLocal) RemoveIfNotTargeted() bool {
 	return true
 }
 
 // GraphNodeReferenceable
-func (n *NodePlannableLocal) ReferenceableAddrs() []addrs.Referenceable {
+func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
 // GraphNodeReferencer
-func (n *NodePlannableLocal) References() []*addrs.Reference {
+func (n *nodeExpandLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
 	return appendResourceDestroyReferences(refs)
 }
 
-func (n *NodePlannableLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {

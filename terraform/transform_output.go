@@ -41,7 +41,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	// into NodeApplyableOutputs to reflect possible expansion
 	// through the presence of "count" or "for_each" on the modules.
 	for _, o := range c.Module.Outputs {
-		node := &NodePlannableOutput{
+		node := &nodeExpandOutput{
 			Addr:   addrs.OutputValue{Name: o.Name},
 			Module: c.Path,
 			Config: o,
@@ -67,7 +67,7 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 	}
 
 	for _, v := range g.Vertices() {
-		output, ok := v.(*NodePlannableOutput)
+		output, ok := v.(*nodeExpandOutput)
 		if !ok {
 			continue
 		}
