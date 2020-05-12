@@ -180,6 +180,8 @@ func (c *InitCommand) Run(args []string) int {
 	// dependencies aren't right, and only then use the real loader to deal
 	// with the backend configuration.
 	rootMod, confDiags := c.loadSingleModule(path)
+	diags = diags.Append(confDiags)
+
 	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
 	configUpgradeProbablyNeeded := false
 	if confDiags.HasErrors() {
@@ -189,7 +191,6 @@ func (c *InitCommand) Run(args []string) int {
 			// Since this may be the user's first ever interaction with Terraform,
 			// we'll provide some additional context in this case.
 			c.Ui.Error(strings.TrimSpace(errInitConfigError))
-			diags = diags.Append(confDiags)
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -205,7 +206,6 @@ func (c *InitCommand) Run(args []string) int {
 			if already, _ := sources.MaybeAlreadyUpgraded(); already {
 				// Just report the errors as normal, then.
 				c.Ui.Error(strings.TrimSpace(errInitConfigError))
-				diags = diags.Append(confDiags)
 				c.showDiagnostics(diags)
 				return 1
 			}
