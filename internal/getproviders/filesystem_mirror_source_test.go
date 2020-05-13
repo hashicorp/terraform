@@ -92,6 +92,16 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 	}
 }
 
+// In this test the directory layout is invalid (missing the hostname
+// subdirectory). The provider installer should ignore the invalid directory.
+func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
+	source := NewFilesystemMirrorSource("testdata/filesystem-mirror-invalid")
+	_, err := source.AllAvailablePackages()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
 	got, err := source.AvailableVersions(nullProvider)
