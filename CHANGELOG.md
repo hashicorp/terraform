@@ -1,17 +1,17 @@
-## 0.12.25 (Unreleased)
+## 0.12.25 (May 13, 2020)
 
 NOTES:
 
-* backend/s3: Region validation now automatically supports the new `af-south-1` (Africa (Cape Town)) region. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable). When the region is not enabled, the Terraform S3 Backend will return errors during credential validation (e.g. `error validating provider credentials: error calling sts:GetCallerIdentity: InvalidClientTokenId: The security token included in the request is invalid`). [GH-24744]
+* backend/s3: Region validation now automatically supports the new `af-south-1` (Africa (Cape Town)) region. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable). When the region is not enabled, the Terraform S3 Backend will return errors during credential validation (e.g. `error validating provider credentials: error calling sts:GetCallerIdentity: InvalidClientTokenId: The security token included in the request is invalid`). ([#24744](https://github.com/hashicorp/terraform/issues/24744))
 
 ENHANCEMENTS:
 
-* backend/s3: Support automatic region validation for `af-south-1` [GH-24744]
-* backend/remote: Add support for force push to remote backend [GH-24884]
+* backend/s3: Support automatic region validation for `af-south-1` ([#24744](https://github.com/hashicorp/terraform/issues/24744))
+* backend/remote: Add support for force push to remote backend ([#24884](https://github.com/hashicorp/terraform/issues/24884))
 
 BUG FIXES:
-* core: Destroy provisioners should not evaluate for_each expressions [GH-24163]
-* core: Fix races in GetVariableValue [GH-24599]
+* core: Destroy provisioners should not evaluate for_each expressions ([#24163](https://github.com/hashicorp/terraform/issues/24163))
+* core: Fix races in GetVariableValue ([#24599](https://github.com/hashicorp/terraform/issues/24599))
 
 ## 0.12.24 (March 19, 2020)
 
