@@ -436,10 +436,15 @@ values are not interpreted as string templates.
 ```json
 {
   "provider": {
-    "aws": {
-      "alias": "usw1",
-      "region": "us-west-1"
-    }
+    "aws": [
+      {
+        "region": "us-east-1"
+      },
+      {
+        "alias": "usw1",
+        "region": "us-west-1"
+      }
+    ]
   }
 }
 ```
