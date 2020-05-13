@@ -618,7 +618,7 @@ go.opencensus.io/trace/tracestate
 ## explicit
 # go.uber.org/zap v1.9.1
 ## explicit
-# golang.org/x/crypto v0.0.0-20191202143827-86a70503ff7e
+# golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 ## explicit
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -640,6 +640,7 @@ golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.2.0
 ## explicit
