@@ -1,11 +1,11 @@
 terraform {
   required_providers {
-    my_aws = {
+    my-aws = {
       source = "hashicorp/aws"
     }
   }
 }
 
 resource "aws_instance" "web" {
-  provider = "my_aws"
+  provider = "my-aws"
 }
