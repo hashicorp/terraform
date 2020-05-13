@@ -418,8 +418,13 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 		return nil, diags
 	}
 
+	// verify that the provider local name is normalized
+	name := traversal.RootName()
+	nameDiags := checkProviderNameNormalized(name, traversal[0].SourceRange())
+	diags = append(diags, nameDiags...)
+
 	ret := &ProviderConfigRef{
-		Name:      traversal.RootName(),
+		Name:      name,
 		NameRange: traversal[0].SourceRange(),
 	}
 

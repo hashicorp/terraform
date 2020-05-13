@@ -35,6 +35,10 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			diags = append(diags, err...)
 		}
 
+		// verify that the local name is already localized or produce an error.
+		nameDiags := checkProviderNameNormalized(name, attr.Expr.Range())
+		diags = append(diags, nameDiags...)
+
 		rp := &RequiredProvider{
 			Name:      name,
 			DeclRange: attr.Expr.Range(),
@@ -69,6 +73,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			}
 			if expr.Type().HasAttribute("source") {
 				rp.Source = expr.GetAttr("source").AsString()
+
 				fqn, sourceDiags := addrs.ParseProviderSourceString(rp.Source)
 
 				if sourceDiags.HasErrors() {
