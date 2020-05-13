@@ -234,35 +234,44 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 					},
 				},
 
-				// Make sure we handle data sources properly.
+				// Managed resources need to be destroyed, while data sources
+				// are only removed from state.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if addr.Resource.Resource.Mode == addrs.DataResourceMode {
-							// deleting a data source is simply removing the state
-							state = nil
-						}
 						return addr.Resource.Resource.Mode == addrs.ManagedResourceMode, nil
 					},
 
-					Then: &EvalApply{
-						Addr:           addr.Resource,
-						Config:         nil, // No configuration because we are destroying
-						State:          &state,
-						Change:         &changeApply,
-						Provider:       &provider,
-						ProviderAddr:   n.ResolvedProvider,
-						ProviderMetas:  n.ProviderMetas,
-						ProviderSchema: &providerSchema,
-						Output:         &state,
-						Error:          &err,
+					Then: &EvalSequence{
+						Nodes: []EvalNode{
+							&EvalApply{
+								Addr:           addr.Resource,
+								Config:         nil, // No configuration because we are destroying
+								State:          &state,
+								Change:         &changeApply,
+								Provider:       &provider,
+								ProviderAddr:   n.ResolvedProvider,
+								ProviderMetas:  n.ProviderMetas,
+								ProviderSchema: &providerSchema,
+								Output:         &state,
+								Error:          &err,
+							},
+							&EvalWriteState{
+								Addr:           addr.Resource,
+								ProviderAddr:   n.ResolvedProvider,
+								ProviderSchema: &providerSchema,
+								State:          &state,
+							},
+						},
+					},
+					Else: &evalWriteEmptyState{
+						EvalWriteState{
+							Addr:           addr.Resource,
+							ProviderAddr:   n.ResolvedProvider,
+							ProviderSchema: &providerSchema,
+						},
 					},
 				},
-				&EvalWriteState{
-					Addr:           addr.Resource,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-				},
+
 				&EvalApplyPost{
 					Addr:  addr.Resource,
 					State: &state,
