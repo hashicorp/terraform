@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -449,6 +450,11 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		// is not available for installation.
 		source := c.providerCustomLocalDirectorySource(pluginDirs)
 		inst = c.providerInstallerCustomSource(source)
+
+		// The default (or configured) search paths are logged earlier, in provider_source.go
+		// Log that those are being overridden by the `-plugin-dir` command line options
+		log.Printf("[DEBUG] init: overriding provider plugin search paths")
+		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
 	// Because we're currently just streaming a series of events sequentially
