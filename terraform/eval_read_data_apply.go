@@ -29,11 +29,11 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
 	}
 
-	if planned != nil && !(planned.Action == plans.Read || planned.Action == plans.Update) {
+	if planned != nil && planned.Action != plans.Read {
 		// If any other action gets in here then that's always a bug; this
 		// EvalNode only deals with reading.
 		return nil, fmt.Errorf(
-			"invalid action %s for %s: only Read or Update is supported (this is a bug in Terraform; please report it!)",
+			"invalid action %s for %s: only Read is supported (this is a bug in Terraform; please report it!)",
 			planned.Action, absAddr,
 		)
 	}
@@ -44,9 +44,9 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
-	// we have a change and it is complete, which means we read the data
+	// We have a change and it is complete, which means we read the data
 	// source during plan and only need to store it in state.
-	if planned.Action == plans.Update {
+	if planned.After.IsWhollyKnown() {
 		if err := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PostApply(absAddr, states.CurrentGen, planned.After, nil)
 		}); err != nil {

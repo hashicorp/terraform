@@ -81,6 +81,8 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 			return nil, diags.ErrWithWarnings()
 		}
 
+		// Apply detects that the data source will need to be read by the After
+		// value containing unknowns from PlanDataResourceObject.
 		*n.OutputChange = &plans.ResourceInstanceChange{
 			Addr:         absAddr,
 			ProviderAddr: n.ProviderAddr,
@@ -124,12 +126,15 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
-	// Produce a change regardless of the outcome.
+	// The returned value from ReadDataSource must be non-nil and known,
+	// which we store in the change. Apply will use the fact that the After
+	// value is wholly kown to save the state directly, rather than reading the
+	// data source again.
 	*n.OutputChange = &plans.ResourceInstanceChange{
 		Addr:         absAddr,
 		ProviderAddr: n.ProviderAddr,
 		Change: plans.Change{
-			Action: plans.Update,
+			Action: plans.Read,
 			Before: priorVal,
 			After:  newVal,
 		},

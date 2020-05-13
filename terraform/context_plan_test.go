@@ -5053,16 +5053,16 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					"computed": cty.StringVal("data_id"),
 				}), ric.After)
 			case "data.aws_vpc.bar[0]":
-				if res.Action != plans.Update {
-					t.Fatalf("resource %s should be update, got %s", ric.Addr, ric.Action)
+				if res.Action != plans.Read {
+					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"id":  cty.StringVal("data_id"),
 					"foo": cty.StringVal("0"),
 				}), ric.After)
 			case "data.aws_vpc.bar[1]":
-				if res.Action != plans.Update {
-					t.Fatalf("resource %s should be update, got %s", ric.Addr, ric.Action)
+				if res.Action != plans.Read {
+					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"id":  cty.StringVal("data_id"),
