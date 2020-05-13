@@ -209,9 +209,14 @@ in order to capture the filesystem context the remote workspace expects:
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
+	queueMessage := "Queued manually using Terraform"
+	if op.Targets != nil {
+		queueMessage = "Queued manually via Terraform using -target"
+	}
+
 	runOptions := tfe.RunCreateOptions{
 		IsDestroy:            tfe.Bool(op.Destroy),
-		Message:              tfe.String("Queued manually using Terraform"),
+		Message:              tfe.String(queueMessage),
 		ConfigurationVersion: cv,
 		Workspace:            w,
 	}

@@ -760,6 +760,10 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		TargetAddrs:  options.TargetAddrs,
 	}
 
+	if options.Message != nil {
+		r.Message = *options.Message
+	}
+
 	if pc != nil {
 		r.PolicyChecks = []*tfe.PolicyCheck{pc}
 	}
