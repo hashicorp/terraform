@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
@@ -15,6 +17,77 @@ import (
 	disco "github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 )
+
+func TestConfigureDiscoveryRetry(t *testing.T) {
+	t.Run("default retry", func(t *testing.T) {
+		if discoveryRetry != defaultRetry {
+			t.Fatalf("expected retry %q, got %q", defaultRetry, discoveryRetry)
+		}
+
+		rc := newRegistryClient(nil, nil)
+		if rc.httpClient.RetryMax != defaultRetry {
+			t.Fatalf("expected client retry %q, got %q",
+				defaultRetry, rc.httpClient.RetryMax)
+		}
+	})
+
+	t.Run("configured retry", func(t *testing.T) {
+		defer func(retryEnv string) {
+			os.Setenv(registryDiscoveryRetryEnvName, retryEnv)
+			discoveryRetry = defaultRetry
+		}(os.Getenv(registryDiscoveryRetryEnvName))
+		os.Setenv(registryDiscoveryRetryEnvName, "2")
+
+		configureDiscoveryRetry()
+		expected := 2
+		if discoveryRetry != expected {
+			t.Fatalf("expected retry %q, got %q",
+				expected, discoveryRetry)
+		}
+
+		rc := newRegistryClient(nil, nil)
+		if rc.httpClient.RetryMax != expected {
+			t.Fatalf("expected client retry %q, got %q",
+				expected, rc.httpClient.RetryMax)
+		}
+	})
+}
+
+func TestConfigureRegistryClientTimeout(t *testing.T) {
+	t.Run("default timeout", func(t *testing.T) {
+		if requestTimeout != defaultRequestTimeout {
+			t.Fatalf("expected timeout %q, got %q",
+				defaultRequestTimeout.String(), requestTimeout.String())
+		}
+
+		rc := newRegistryClient(nil, nil)
+		if rc.httpClient.HTTPClient.Timeout != defaultRequestTimeout {
+			t.Fatalf("expected client timeout %q, got %q",
+				defaultRequestTimeout.String(), rc.httpClient.HTTPClient.Timeout.String())
+		}
+	})
+
+	t.Run("configured timeout", func(t *testing.T) {
+		defer func(timeoutEnv string) {
+			os.Setenv(registryClientTimeoutEnvName, timeoutEnv)
+			requestTimeout = defaultRequestTimeout
+		}(os.Getenv(registryClientTimeoutEnvName))
+		os.Setenv(registryClientTimeoutEnvName, "20")
+
+		configureRequestTimeout()
+		expected := 20 * time.Second
+		if requestTimeout != expected {
+			t.Fatalf("expected timeout %q, got %q",
+				expected, requestTimeout.String())
+		}
+
+		rc := newRegistryClient(nil, nil)
+		if rc.httpClient.HTTPClient.Timeout != expected {
+			t.Fatalf("expected client timeout %q, got %q",
+				expected, rc.httpClient.HTTPClient.Timeout.String())
+		}
+	})
+}
 
 // testServices starts up a local HTTP server running a fake provider registry
 // service and returns a service discovery object pre-configured to consider
