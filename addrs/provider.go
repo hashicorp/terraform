@@ -272,8 +272,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	ret.Hostname = DefaultRegistryHost
 
 	if len(parts) == 1 {
-		// FIXME: update this to NewDefaultProvider in the provider source release
-		return NewLegacyProvider(parts[0]), diags
+		return NewDefaultProvider(parts[0]), diags
 	}
 
 	if len(parts) >= 2 {
@@ -405,4 +404,16 @@ func MustParseProviderPart(given string) string {
 		panic(err.Error())
 	}
 	return result
+}
+
+// IsProviderPartNormalized compares a given string to the result of ParseProviderPart(string)
+func IsProviderPartNormalized(str string) (bool, error) {
+	normalized, err := ParseProviderPart(str)
+	if err != nil {
+		return false, err
+	}
+	if str == normalized {
+		return true, nil
+	}
+	return false, nil
 }
