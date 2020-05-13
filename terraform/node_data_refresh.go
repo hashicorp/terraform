@@ -213,7 +213,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			// EvalReadDataRefresh will _attempt_ to read the data source, but
 			// may generate an incomplete planned object if the configuration
 			// includes values that won't be known until apply.
-			&EvalReadDataRefresh{
+			&evalReadDataRefresh{
 				evalReadData{
 					Addr:           addr.Resource,
 					Config:         n.Config,

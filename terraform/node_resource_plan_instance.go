@@ -73,7 +73,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				ProviderSchema: &providerSchema,
 			},
 
-			&EvalReadDataPlan{
+			&evalReadDataPlan{
 				evalReadData: evalReadData{
 					Addr:           addr.Resource,
 					Config:         n.Config,

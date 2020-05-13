@@ -186,13 +186,13 @@ func (n *evalReadData) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagno
 	return metaConfigVal, diags
 }
 
-// EvalReadDataRefresh is an EvalNode implementation that handled the data
+// evalReadDataRefresh is an EvalNode implementation that handled the data
 // resource lifecycle during refresh
-type EvalReadDataRefresh struct {
+type evalReadDataRefresh struct {
 	evalReadData
 }
 
-func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
+func (n *evalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	var diags tfdiags.Diagnostics
 
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
@@ -237,9 +237,9 @@ func (n *EvalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	// read again.
 	if !configKnown || (priorVal.IsNull() && len(n.Config.DependsOn) > 0) {
 		if configKnown {
-			log.Printf("[TRACE] EvalReadDataRefresh: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
+			log.Printf("[TRACE] evalReadDataRefresh: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
 		} else {
-			log.Printf("[TRACE] EvalReadDataRefresh: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+			log.Printf("[TRACE] evalReadDataRefresh: %s configuration not fully known yet, so deferring to apply phase", absAddr)
 		}
 
 		// We need to store a change so tat other references to this data

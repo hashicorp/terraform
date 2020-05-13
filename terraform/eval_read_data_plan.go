@@ -13,10 +13,10 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// EvalReadDataPlan is an EvalNode implementation that deals with the main part
+// evalReadDataPlan is an EvalNode implementation that deals with the main part
 // of the data resource lifecycle: either actually reading from the data source
 // or generating a plan to do so.
-type EvalReadDataPlan struct {
+type evalReadDataPlan struct {
 	evalReadData
 
 	// dependsOn stores the list of transitive resource addresses that any
@@ -26,7 +26,7 @@ type EvalReadDataPlan struct {
 	dependsOn []addrs.ConfigResource
 }
 
-func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
+func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	absAddr := n.Addr.Absolute(ctx.Path())
 
 	var diags tfdiags.Diagnostics
@@ -67,9 +67,9 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	// it in the state.
 	if n.forcePlanRead(ctx) || !configKnown {
 		if configKnown {
-			log.Printf("[TRACE] EvalReadDataPlan: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
+			log.Printf("[TRACE] evalReadDataPlan: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
 		} else {
-			log.Printf("[TRACE] EvalReadDataPlan: %s configuration not fully known yet, so deferring to apply phase", absAddr)
+			log.Printf("[TRACE] evalReadDataPlan: %s configuration not fully known yet, so deferring to apply phase", absAddr)
 		}
 
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
@@ -112,7 +112,7 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		// are any differences.
 		proposed := objchange.ProposedNewObject(schema, priorVal, configVal)
 		if proposed.Equals(priorVal).True() {
-			log.Printf("[TRACE] EvalReadDataPlan: %s no change detected, using existing state", absAddr)
+			log.Printf("[TRACE] evalReadDataPlan: %s no change detected, using existing state", absAddr)
 			// state looks up to date, and must have been read during refresh
 			return nil, diags.ErrWithWarnings()
 		}
@@ -152,7 +152,7 @@ func (n *EvalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 // forcePlanRead determines if we need to override the usual behavior of
 // immediately reading from the data source where possible, instead forcing us
 // to generate a plan.
-func (n *EvalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
+func (n *evalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
 	// Check and see if any depends_on dependencies have
 	// changes, since they won't show up as changes in the
 	// configuration.

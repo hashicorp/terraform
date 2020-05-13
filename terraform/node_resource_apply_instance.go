@@ -172,7 +172,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			// In this particular call to EvalReadData we include our planned
 			// change, which signals that we expect this read to complete fully
 			// with no unknown values; it'll produce an error if not.
-			&EvalReadDataApply{
+			&evalReadDataApply{
 				evalReadData{
 					Addr:           addr.Resource,
 					Config:         n.Config,
