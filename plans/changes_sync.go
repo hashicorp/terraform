@@ -62,7 +62,7 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
 }
 
-// GetConfigResourceChanges searched the set of resource instance
+// GetChangesForConfigResource searched the set of resource instance
 // changes and returns all changes related to a given configuration address.
 // This is be used to find possible changes related to a configuration
 // reference.
@@ -72,14 +72,14 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 // The returned objects are a deep copy of the change recorded in the plan, so
 // callers may mutate them although it's generally better (less confusing) to
 // treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetConfigResourceChanges(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
 	if cs == nil {
-		panic("GetConfigResourceChanges on nil ChangesSync")
+		panic("GetChangesForConfigResource on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 	var changes []*ResourceInstanceChangeSrc
-	for _, c := range cs.changes.ConfigResourceInstances(addr) {
+	for _, c := range cs.changes.InstancesForConfigResource(addr) {
 		changes = append(changes, c.DeepCopy())
 	}
 	return changes

@@ -158,7 +158,7 @@ func (n *EvalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
 	// configuration.
 	changes := ctx.Changes()
 	for _, d := range n.dependsOn {
-		for _, change := range changes.GetConfigResourceChanges(d) {
+		for _, change := range changes.GetChangesForConfigResource(d) {
 			if change != nil && change.Action != plans.NoOp {
 				return true
 			}

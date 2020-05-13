@@ -55,10 +55,10 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 
 }
 
-// ConfigResourceInstances returns the planned change for the current objects
+// InstancesForConfigResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
-func (c *Changes) ConfigResourceInstances(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
 	var changes []*ResourceInstanceChangeSrc
 	for _, rc := range c.Resources {
 		resAddr := rc.Addr.ContainingResource().Config()
