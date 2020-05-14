@@ -282,20 +282,15 @@ func TestParseProviderSourceStr(t *testing.T) {
 		"aws": {
 			Provider{
 				Type:      "aws",
-				Namespace: "-",
+				Namespace: "hashicorp",
 				Hostname:  DefaultRegistryHost,
 			},
 			false,
 		},
 		"AWS": {
 			Provider{
-				// No case folding here because we're currently handling this
-				// as a legacy one. When this changes to be a _default_
-				// address in future (registry.terraform.io/hashicorp/aws)
-				// then we should start applying case folding to it, making
-				// Type appear as "aws" here instead.
-				Type:      "AWS",
-				Namespace: "-",
+				Type:      "aws",
+				Namespace: "hashicorp",
 				Hostname:  DefaultRegistryHost,
 			},
 			false,
