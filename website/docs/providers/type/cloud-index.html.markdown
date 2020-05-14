@@ -36,6 +36,7 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [HuaweiCloud](/docs/providers/huaweicloud/index.html)
 - [HuaweiCloudStack](/docs/providers/huaweicloudstack/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
+- [KingsoftCloud](/docs/providers/ksyun/index.html)
 - [Linode](/docs/providers/linode/index.html)
 - [MetalCloud](/docs/providers/metalcloud/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
