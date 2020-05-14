@@ -576,13 +576,12 @@ func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map
 		if err == nil {
 			rp.Type = p
 		} else {
-			if _, ok := err.(getproviders.ErrProviderNotKnown); ok {
-				// Setting the provider address to a zero value struct
-				// indicates that there is no known FQN for this provider,
-				// which will cause us to write an explanatory comment in the
-				// HCL output advising the user what to do about this.
-				rp.Type = addrs.Provider{}
-			}
+			// Setting the provider address to a zero value struct
+			// indicates that there is no known FQN for this provider,
+			// which will cause us to write an explanatory comment in the
+			// HCL output advising the user what to do about this.
+			rp.Type = addrs.Provider{}
+
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Could not detect provider source",

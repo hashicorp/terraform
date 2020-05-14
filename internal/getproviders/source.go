@@ -9,4 +9,5 @@ import (
 type Source interface {
 	AvailableVersions(provider addrs.Provider) (VersionList, error)
 	PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error)
+	ForDisplay(provider addrs.Provider) string
 }

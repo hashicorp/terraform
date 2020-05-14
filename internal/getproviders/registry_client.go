@@ -93,7 +93,7 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 // ProviderVersions returns the raw version and protocol strings produced by the
 // registry for the given provider.
 //
-// The returned error will be ErrProviderNotKnown if the registry responds with
+// The returned error will be ErrRegistryProviderNotKnown if the registry responds with
 // 404 Not Found to indicate that the namespace or provider type are not known,
 // ErrUnauthorized if the registry responds with 401 or 403 status codes, or
 // ErrQueryFailed for any other protocol or operational problem.
@@ -122,7 +122,7 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 	case http.StatusOK:
 		// Great!
 	case http.StatusNotFound:
-		return nil, ErrProviderNotKnown{
+		return nil, ErrRegistryProviderNotKnown{
 			Provider: addr,
 		}
 	case http.StatusUnauthorized, http.StatusForbidden:
@@ -357,7 +357,6 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	return ret, nil
 }
 
-// LegacyProviderDefaultNamespace returns the raw address strings produced by
 // findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
 func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Provider, version Version) (Version, error) {
 	var match Version
@@ -401,7 +400,7 @@ FindMatch:
 	return match, nil
 }
 
-// LegacyProviderCanonicalAddress returns the raw address strings produced by
+// LegacyProviderDefaultNamespace returns the raw address strings produced by
 // the registry when asked about the given unqualified provider type name.
 // The returned namespace string is taken verbatim from the registry's response.
 //
@@ -437,7 +436,7 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 	case http.StatusOK:
 		// Great!
 	case http.StatusNotFound:
-		return "", ErrProviderNotKnown{
+		return "", ErrProviderNotFound{
 			Provider: placeholderProviderAddr,
 		}
 	case http.StatusUnauthorized, http.StatusForbidden:

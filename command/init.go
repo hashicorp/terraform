@@ -453,7 +453,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 
 		// The default (or configured) search paths are logged earlier, in provider_source.go
 		// Log that those are being overridden by the `-plugin-dir` command line options
-		log.Printf("[DEBUG] init: overriding provider plugin search paths")
+		log.Println("[DEBUG] init: overriding provider plugin search paths")
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
@@ -495,11 +495,30 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to query available provider packages",
-				fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err),
-			))
+			switch errorTy := err.(type) {
+			case getproviders.ErrProviderNotFound:
+				sources := errorTy.Sources
+				displaySources := make([]string, len(sources))
+				for i, source := range sources {
+					displaySources[i] = fmt.Sprintf("- %s", source)
+				}
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s\n\n%s ",
+						provider.ForDisplay(), err, strings.Join(displaySources, "\n"),
+					),
+				))
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s ",
+						provider.ForDisplay(), err,
+					),
+				))
+			}
+
 		},
 		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			diags = diags.Append(tfdiags.Sourceless(

@@ -35,3 +35,8 @@ func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionLi
 func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	return PackageMeta{}, fmt.Errorf("Network-based provider mirrors are not supported in this version of Terraform")
 }
+
+// ForDisplay returns a string description of the source for user-facing output.
+func (s *HTTPMirrorSource) ForDisplay(provider addrs.Provider) string {
+	return "Network-based provider mirrors are not supported in this version of Terraform"
+}
