@@ -670,6 +670,7 @@ Traversal:
 				trav := make(hcl.Traversal, 0, 1)
 				var firstRange, lastRange hcl.Range
 				firstRange = p.NextRange()
+				lastRange = marker.Range
 				for p.Peek().Type == TokenDot {
 					dot := p.Read()
 
