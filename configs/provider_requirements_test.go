@@ -187,10 +187,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
 					"my-test": {
-						Name:   "my-test",
-						Source: "some/invalid/provider/source/test",
-						// decodeRequiredProviders falls back to determining the type from the local name
-						Type:        addrs.NewDefaultProvider("my-test"),
+						Name:        "my-test",
+						Source:      "some/invalid/provider/source/test",
 						Requirement: testVC("~>2.0.0"),
 						DeclRange:   mockRange,
 					},
@@ -218,6 +216,34 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{
 					"my_test": {
 						Name:        "my_test",
+						Type:        addrs.Provider{},
+						Requirement: testVC("~>2.0.0"),
+						DeclRange:   mockRange,
+					},
+				},
+				DeclRange: blockRange,
+			},
+			Error: "Invalid provider local name",
+		},
+		"invalid localname caps": {
+			Block: &hcl.Block{
+				Type: "required_providers",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"MYTEST": {
+							Name: "MYTEST",
+							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+								"version": cty.StringVal("~>2.0.0"),
+							})),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			Want: &RequiredProviders{
+				RequiredProviders: map[string]*RequiredProvider{
+					"MYTEST": {
+						Name:        "MYTEST",
 						Type:        addrs.Provider{},
 						Requirement: testVC("~>2.0.0"),
 						DeclRange:   mockRange,
@@ -273,7 +299,6 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{
 					"test": {
 						Name:      "test",
-						Type:      addrs.NewDefaultProvider("test"),
 						DeclRange: mockRange,
 					},
 				},

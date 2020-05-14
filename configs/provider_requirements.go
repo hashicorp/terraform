@@ -103,7 +103,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			})
 		}
 
-		if rp.Type.IsZero() {
+		if rp.Type.IsZero() && !diags.HasErrors() { // Don't try to generate an FQN if we've encountered errors
 			pType, err := addrs.ParseProviderPart(rp.Name)
 			if err != nil {
 				diags = append(diags, &hcl.Diagnostic{
