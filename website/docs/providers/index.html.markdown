@@ -83,6 +83,7 @@ down to see all providers.
 - [Incapsula](/docs/providers/incapsula/index.html)
 - [InfluxDB](/docs/providers/influxdb/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
+- [KingsoftCloud](/docs/providers/ksyun/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
 - [LaunchDarkly](/docs/providers/launchdarkly/index.html)
 - [Librato](/docs/providers/librato/index.html)
