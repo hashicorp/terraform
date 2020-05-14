@@ -305,9 +305,10 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:  newStatus,
-			Value:   newVal,
-			Private: resp.Private,
+			Status:              newStatus,
+			Value:               newVal,
+			Private:             resp.Private,
+			CreateBeforeDestroy: n.Config.Managed.CreateBeforeDestroy,
 		}
 	}
 

@@ -130,7 +130,8 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			instAddr := rAddr.Instance(key)
 
 			obj := &states.ResourceInstanceObjectSrc{
-				SchemaVersion: isV4.SchemaVersion,
+				SchemaVersion:       isV4.SchemaVersion,
+				CreateBeforeDestroy: isV4.CreateBeforeDestroy,
 			}
 
 			{
@@ -484,15 +485,16 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	}
 
 	return append(isV4s, instanceObjectStateV4{
-		IndexKey:       rawKey,
-		Deposed:        string(deposed),
-		Status:         status,
-		SchemaVersion:  obj.SchemaVersion,
-		AttributesFlat: obj.AttrsFlat,
-		AttributesRaw:  obj.AttrsJSON,
-		PrivateRaw:     privateRaw,
-		Dependencies:   deps,
-		DependsOn:      depOn,
+		IndexKey:            rawKey,
+		Deposed:             string(deposed),
+		Status:              status,
+		SchemaVersion:       obj.SchemaVersion,
+		AttributesFlat:      obj.AttrsFlat,
+		AttributesRaw:       obj.AttrsJSON,
+		PrivateRaw:          privateRaw,
+		Dependencies:        deps,
+		DependsOn:           depOn,
+		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}), diags
 }
 
@@ -544,6 +546,8 @@ type instanceObjectStateV4 struct {
 
 	Dependencies []string `json:"dependencies,omitempty"`
 	DependsOn    []string `json:"depends_on,omitempty"`
+
+	CreateBeforeDestroy bool `json:"create_before_destroy"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded
