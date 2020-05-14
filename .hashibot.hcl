@@ -1,8 +1,3 @@
-behavior "regexp_issue_labeler" "panic_label" {
-  regexp = "panic:"
-  labels = ["crash", "bug"]
-}
-
 behavior "remove_labels_on_reply" "remove_stale" {
   labels               = ["waiting-response", "stale"]
   only_non_maintainers = true
