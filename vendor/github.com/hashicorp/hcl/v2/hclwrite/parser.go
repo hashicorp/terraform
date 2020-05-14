@@ -88,6 +88,16 @@ func (it inputTokens) PartitionType(ty hclsyntax.TokenType) (before, within, aft
 	panic(fmt.Sprintf("didn't find any token of type %s", ty))
 }
 
+func (it inputTokens) PartitionTypeOk(ty hclsyntax.TokenType) (before, within, after inputTokens, ok bool) {
+	for i, t := range it.writerTokens {
+		if t.Type == ty {
+			return it.Slice(0, i), it.Slice(i, i+1), it.Slice(i+1, len(it.nativeTokens)), true
+		}
+	}
+
+	return inputTokens{}, inputTokens{}, inputTokens{}, false
+}
+
 func (it inputTokens) PartitionTypeSingle(ty hclsyntax.TokenType) (before inputTokens, found *Token, after inputTokens) {
 	before, within, after := it.PartitionType(ty)
 	if within.Len() != 1 {
@@ -403,6 +413,19 @@ func parseTraversalStep(nativeStep hcl.Traverser, from inputTokens) (before inpu
 		step := newTraverseIndex()
 		children = step.inTree.children
 		before, from, after = from.Partition(nativeStep.SourceRange())
+
+		if inBefore, dot, from, ok := from.PartitionTypeOk(hclsyntax.TokenDot); ok {
+			children.AppendUnstructuredTokens(inBefore.Tokens())
+			children.AppendUnstructuredTokens(dot.Tokens())
+
+			valBefore, valToken, valAfter := from.PartitionTypeSingle(hclsyntax.TokenNumberLit)
+			children.AppendUnstructuredTokens(valBefore.Tokens())
+			key := newNumber(valToken)
+			step.key = children.Append(key)
+			children.AppendUnstructuredTokens(valAfter.Tokens())
+
+			return before, newNode(step), after
+		}
 
 		var inBefore, oBrack, keyTokens, cBrack inputTokens
 		inBefore, oBrack, from = from.PartitionType(hclsyntax.TokenOBrack)
