@@ -25,6 +25,10 @@ type NodeApplyableResourceInstance struct {
 
 	destroyNode      GraphNodeDestroyerCBD
 	graphNodeDeposer // implementation of GraphNodeDeposerConfig
+
+	// If this node is forced to be CreateBeforeDestroy, we need to record that
+	// in the state to.
+	ForceCreateBeforeDestroy bool
 }
 
 var (
@@ -42,20 +46,27 @@ func (n *NodeApplyableResourceInstance) AttachDestroyNode(d GraphNodeDestroyerCB
 	n.destroyNode = d
 }
 
-// createBeforeDestroy checks this nodes config status and the status af any
+// CreateBeforeDestroy checks this nodes config status and the status af any
 // companion destroy node for CreateBeforeDestroy.
-func (n *NodeApplyableResourceInstance) createBeforeDestroy() bool {
-	cbd := false
+func (n *NodeApplyableResourceInstance) CreateBeforeDestroy() bool {
+	if n.ForceCreateBeforeDestroy {
+		return n.ForceCreateBeforeDestroy
+	}
 
 	if n.Config != nil && n.Config.Managed != nil {
-		cbd = n.Config.Managed.CreateBeforeDestroy
+		return n.Config.Managed.CreateBeforeDestroy
 	}
 
 	if n.destroyNode != nil {
-		cbd = cbd || n.destroyNode.CreateBeforeDestroy()
+		return n.destroyNode.CreateBeforeDestroy()
 	}
 
-	return cbd
+	return false
+}
+
+func (n *NodeApplyableResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
+	n.ForceCreateBeforeDestroy = v
+	return nil
 }
 
 // GraphNodeCreator
@@ -78,7 +89,7 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 	// would create a dependency cycle. We make a compromise here of requiring
 	// changes to be updated across two applies in this case, since the first
 	// plan will use the old values.
-	if !n.createBeforeDestroy() {
+	if !n.CreateBeforeDestroy() {
 		for _, ref := range ret {
 			switch tr := ref.Subject.(type) {
 			case addrs.ResourceInstance:
@@ -254,7 +265,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					if diffApply != nil {
 						destroy = (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
 					}
-					if destroy && n.createBeforeDestroy() {
+					if destroy && n.CreateBeforeDestroy() {
 						createBeforeDestroyEnabled = true
 					}
 					return createBeforeDestroyEnabled, nil
@@ -346,17 +357,18 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Change: &diffApply,
 			},
 			&EvalApply{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				State:          &state,
-				Change:         &diffApply,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-				Error:          &err,
-				CreateNew:      &createNew,
+				Addr:                addr.Resource,
+				Config:              n.Config,
+				State:               &state,
+				Change:              &diffApply,
+				Provider:            &provider,
+				ProviderAddr:        n.ResolvedProvider,
+				ProviderMetas:       n.ProviderMetas,
+				ProviderSchema:      &providerSchema,
+				Output:              &state,
+				Error:               &err,
+				CreateNew:           &createNew,
+				CreateBeforeDestroy: n.CreateBeforeDestroy(),
 			},
 			&EvalMaybeTainted{
 				Addr:   addr.Resource,
@@ -411,7 +423,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					if !diff.Action.IsReplace() {
 						return true, nil
 					}
-					if !n.createBeforeDestroy() {
+					if !n.CreateBeforeDestroy() {
 						return true, nil
 					}
 					return false, nil

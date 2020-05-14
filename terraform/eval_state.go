@@ -228,7 +228,6 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
 		return nil, nil
 	}
-	fmt.Printf("OBJ: %#v\n", obj)
 
 	// store the new deps in the state
 	if n.Dependencies != nil {
