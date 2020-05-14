@@ -120,3 +120,8 @@ func (s *FilesystemMirrorSource) scanAllVersions() error {
 	s.allPackages = ret
 	return nil
 }
+
+func (s *FilesystemMirrorSource) ForDisplay(provider addrs.Provider) string {
+	// TODO: Since we have the provider, this could show the entire search path
+	return s.baseDir
+}

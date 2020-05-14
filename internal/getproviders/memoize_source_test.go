@@ -39,7 +39,7 @@ func TestMemoizeSource(t *testing.T) {
 		}
 
 		_, err = source.AvailableVersions(nonexistProvider)
-		if want, ok := err.(ErrProviderNotKnown); !ok {
+		if want, ok := err.(ErrProviderNotFound); !ok {
 			t.Fatalf("wrong error type from nonexist call:\ngot:  %T\nwant: %T", err, want)
 		}
 
@@ -122,11 +122,11 @@ func TestMemoizeSource(t *testing.T) {
 		source := NewMemoizeSource(mock)
 
 		_, err := source.AvailableVersions(nonexistProvider)
-		if want, ok := err.(ErrProviderNotKnown); !ok {
+		if want, ok := err.(ErrProviderNotFound); !ok {
 			t.Fatalf("wrong error type from first call:\ngot:  %T\nwant: %T", err, want)
 		}
 		_, err = source.AvailableVersions(nonexistProvider)
-		if want, ok := err.(ErrProviderNotKnown); !ok {
+		if want, ok := err.(ErrProviderNotFound); !ok {
 			t.Fatalf("wrong error type from second call:\ngot:  %T\nwant: %T", err, want)
 		}
 

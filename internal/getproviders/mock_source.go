@@ -51,7 +51,7 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 	if len(ret) == 0 {
 		// In this case, we'll behave like a registry that doesn't know about
 		// this provider at all, rather than just returning an empty result.
-		return nil, ErrProviderNotKnown{provider}
+		return nil, ErrProviderNotFound{provider, []string{"mock source"}}
 	}
 	ret.Sort()
 	return ret, nil
@@ -197,4 +197,8 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		Authentication: NewArchiveChecksumAuthentication(checksum),
 	}
 	return meta, close, nil
+}
+
+func (s *MockSource) ForDisplay(provider addrs.Provider) string {
+	return "mock source"
 }

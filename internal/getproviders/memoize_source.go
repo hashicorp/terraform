@@ -94,3 +94,7 @@ func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, ta
 	}
 	return ret, err
 }
+
+func (s *MemoizeSource) ForDisplay(provider addrs.Provider) string {
+	return s.underlying.ForDisplay(provider)
+}
