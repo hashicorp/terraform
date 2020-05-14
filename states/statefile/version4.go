@@ -173,34 +173,6 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			{
-				// Allow both the deprecated `depends_on` and new
-				// `dependencies` to coexist for now so resources can be
-				// upgraded as they are refreshed.
-				depsRaw := isV4.DependsOn
-				deps := make([]addrs.Referenceable, 0, len(depsRaw))
-				for _, depRaw := range depsRaw {
-					ref, refDiags := addrs.ParseRefStr(depRaw)
-					diags = diags.Append(refDiags)
-					if refDiags.HasErrors() {
-						continue
-					}
-					if len(ref.Remaining) != 0 {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Invalid resource instance metadata in state",
-							fmt.Sprintf("Instance %s declares dependency on %q, which is not a reference to a dependable object.", instAddr.Absolute(moduleAddr), depRaw),
-						))
-					}
-					if ref.Subject == nil {
-						// Should never happen
-						panic(fmt.Sprintf("parsing dependency %q for instance %s returned a nil address", depRaw, instAddr.Absolute(moduleAddr)))
-					}
-					deps = append(deps, ref.Subject)
-				}
-				obj.DependsOn = deps
-			}
-
-			{
 				depsRaw := isV4.Dependencies
 				deps := make([]addrs.ConfigResource, 0, len(depsRaw))
 				for _, depRaw := range depsRaw {
@@ -463,11 +435,6 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		deps[i] = depAddr.String()
 	}
 
-	depOn := make([]string, len(obj.DependsOn))
-	for i, depAddr := range obj.DependsOn {
-		depOn[i] = depAddr.String()
-	}
-
 	var rawKey interface{}
 	switch tk := key.(type) {
 	case addrs.IntKey:
@@ -493,7 +460,6 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		AttributesRaw:       obj.AttrsJSON,
 		PrivateRaw:          privateRaw,
 		Dependencies:        deps,
-		DependsOn:           depOn,
 		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}), diags
 }
@@ -545,7 +511,6 @@ type instanceObjectStateV4 struct {
 	PrivateRaw []byte `json:"private,omitempty"`
 
 	Dependencies []string `json:"dependencies,omitempty"`
-	DependsOn    []string `json:"depends_on,omitempty"`
 
 	CreateBeforeDestroy bool `json:"create_before_destroy"`
 }
