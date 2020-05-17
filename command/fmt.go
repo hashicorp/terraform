@@ -56,7 +56,7 @@ func (c *FmtCommand) Run(args []string) int {
 
 	args = cmdFlags.Args()
 	if len(args) > 1 {
-		c.Ui.Error("The fmt command expects at most one argument.")
+		c.Ui.Error("The format command expects at most one argument.")
 		cmdFlags.Usage()
 		return 1
 	}
@@ -143,7 +143,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 				diags = diags.Append(fileDiags)
 				f.Close()
 			default:
-				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform fmt"))
+				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform format"))
 				continue
 			}
 		}
@@ -155,7 +155,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	log.Printf("[TRACE] terraform fmt: Formatting %s", path)
+	log.Printf("[TRACE] terraform format: Formatting %s", path)
 
 	src, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -213,7 +213,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	log.Printf("[TRACE] terraform fmt: looking for files in %s", path)
+	log.Printf("[TRACE] terraform format: looking for files in %s", path)
 
 	entries, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -268,7 +268,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform fmt [options] [DIR]
+Usage: terraform format [options] [DIR]
 
 	Rewrites all Terraform configuration files to a canonical format. Both
 	configuration files (.tf) and variables files (.tfvars) are updated.

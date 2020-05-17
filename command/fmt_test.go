@@ -118,7 +118,7 @@ func TestFmt_tooManyArgs(t *testing.T) {
 		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
 	}
 
-	expected := "The fmt command expects at most one argument."
+	expected := "The format command expects at most one argument."
 	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}

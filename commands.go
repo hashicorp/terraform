@@ -155,6 +155,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		"format": func() (cli.Command, error) {
+			return &command.FmtCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"get": func() (cli.Command, error) {
 			return &command.GetCommand{
 				Meta: meta,
