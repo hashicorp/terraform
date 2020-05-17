@@ -257,6 +257,28 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"cmdlineunix": {
+			{
+				`cmdlineunix("gcc", "-dumpmachine")`,
+				cty.StringVal(`'gcc' -dumpmachine`),
+			},
+			{ // Should also work with expansion
+				`cmdlineunix(["gcc", "-dumpmachine"]...)`,
+				cty.StringVal(`'gcc' -dumpmachine`),
+			},
+		},
+
+		"cmdlinewindows": {
+			{
+				`cmdlinewindows("shutdown", "/r", "/t", "0")`,
+				cty.StringVal(`^"shutdown^" /r /t 0`),
+			},
+			{ // Should also work with expansion
+				`cmdlinewindows(["shutdown", "/r", "/t", "0"]...)`,
+				cty.StringVal(`^"shutdown^" /r /t 0`),
+			},
+		},
+
 		"csvdecode": {
 			{
 				`csvdecode("a,b,c\n1,2,3\n4,5,6")`,
