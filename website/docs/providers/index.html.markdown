@@ -143,6 +143,7 @@ down to see all providers.
 - [Terraform Cloud](/docs/providers/tfe/index.html)
 - [TLS](/docs/providers/tls/index.html)
 - [Triton](/docs/providers/triton/index.html)
+- [Turbot](/docs/providers/turbot/index.html)
 - [UCloud](/docs/providers/ucloud/index.html)
 - [UltraDNS](/docs/providers/ultradns/index.html)
 - [Vault](/docs/providers/vault/index.html)
