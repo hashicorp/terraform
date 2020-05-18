@@ -65,6 +65,17 @@ func (r setRules) Equivalent(v1 interface{}, v2 interface{}) bool {
 	return eqv.v == true
 }
 
+// SameRules is only true if the other Rules instance is also a setRules struct,
+// and the types are considered equal.
+func (r setRules) SameRules(other set.Rules) bool {
+	rules, ok := other.(setRules)
+	if !ok {
+		return false
+	}
+
+	return r.Type.Equals(rules.Type)
+}
+
 // Less is an implementation of set.OrderedRules so that we can iterate over
 // set elements in a consistent order, where such an order is possible.
 func (r setRules) Less(v1, v2 interface{}) bool {

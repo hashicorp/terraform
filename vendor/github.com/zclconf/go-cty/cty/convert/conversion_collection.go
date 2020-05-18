@@ -265,6 +265,7 @@ func conversionTupleToList(tupleType cty.Type, listEty cty.Type, unsafe bool) co
 	// element conversions in elemConvs
 	return func(val cty.Value, path cty.Path) (cty.Value, error) {
 		elems := make([]cty.Value, 0, len(elemConvs))
+		elemTys := make([]cty.Type, 0, len(elems))
 		elemPath := append(path.Copy(), nil)
 		i := int64(0)
 		it := val.ElementIterator()
@@ -284,10 +285,15 @@ func conversionTupleToList(tupleType cty.Type, listEty cty.Type, unsafe bool) co
 				}
 			}
 			elems = append(elems, val)
+			elemTys = append(elemTys, val.Type())
 
 			i++
 		}
 
+		elems, err := conversionUnifyListElements(elems, elemPath, unsafe)
+		if err != nil {
+			return cty.NilVal, err
+		}
 		return cty.ListVal(elems), nil
 	}
 }
@@ -441,6 +447,7 @@ func conversionUnifyCollectionElements(elems map[string]cty.Value, path cty.Path
 	}
 	unifiedType, _ := unify(elemTypes, unsafe)
 	if unifiedType == cty.NilType {
+		return nil, path.NewErrorf("collection elements cannot be unified")
 	}
 
 	unifiedElems := make(map[string]cty.Value)
@@ -485,4 +492,38 @@ func conversionCheckMapElementTypes(elems map[string]cty.Value, path cty.Path) e
 	}
 
 	return nil
+}
+
+func conversionUnifyListElements(elems []cty.Value, path cty.Path, unsafe bool) ([]cty.Value, error) {
+	elemTypes := make([]cty.Type, len(elems))
+	for i, elem := range elems {
+		elemTypes[i] = elem.Type()
+	}
+	unifiedType, _ := unify(elemTypes, unsafe)
+	if unifiedType == cty.NilType {
+		return nil, path.NewErrorf("collection elements cannot be unified")
+	}
+
+	ret := make([]cty.Value, len(elems))
+	elemPath := append(path.Copy(), nil)
+
+	for i, elem := range elems {
+		if elem.Type().Equals(unifiedType) {
+			ret[i] = elem
+			continue
+		}
+		conv := getConversion(elem.Type(), unifiedType, unsafe)
+		if conv == nil {
+		}
+		elemPath[len(elemPath)-1] = cty.IndexStep{
+			Key: cty.NumberIntVal(int64(i)),
+		}
+		val, err := conv(elem, elemPath)
+		if err != nil {
+			return nil, err
+		}
+		ret[i] = val
+	}
+
+	return ret, nil
 }
