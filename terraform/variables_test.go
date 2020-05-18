@@ -233,7 +233,7 @@ func TestCheckInputVariables(t *testing.T) {
 		}
 	})
 
-	t.Run("Invalid complex variables", func(t *testing.T) {
+	t.Run("Invalid Complex Types", func(t *testing.T) {
 		diags := checkInputVariables(c.Module.Variables, InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("bar"),
@@ -251,31 +251,32 @@ func TestCheckInputVariables(t *testing.T) {
 				Value: cty.MapVal(map[string]cty.Value{
 					"uno": cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.StringVal("baz"),
-						"bar": cty.NumberIntVal(2), // type = any; dos.bar is a string
+						"bar": cty.NumberIntVal(2), // type = any
 					}),
 					"dos": cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.StringVal("bat"),
-						"bar": cty.StringVal("99"), // type = any; uno.bar is a number
+						"bar": cty.NumberIntVal(99), // type = any
 					}),
 				}),
 				SourceType: ValueFromCLIArg,
 			},
 			"object_list": &InputValue{
-				Value: cty.ListVal([]cty.Value{
+				Value: cty.TupleVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.StringVal("baz"),
-						"bar": cty.NumberIntVal(2), // type = any; dos.bar is a string
+						"bar": cty.NumberIntVal(2), // type = any
 					}),
 					cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.StringVal("bang"),
-						"bar": cty.NumberIntVal(42), // type = any; uno.bar is a number
+						"bar": cty.StringVal("42"), // type = any, but mismatch with the first list item
 					}),
 				}),
 				SourceType: ValueFromCLIArg,
 			},
 		})
-		if !diags.HasErrors() {
-			t.Fatal("check succeeded, but want errors")
+
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
 	})
 }
