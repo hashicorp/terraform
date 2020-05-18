@@ -113,6 +113,35 @@ var CidrSubnetFunc = function.New(&function.Spec{
 	},
 })
 
+// LookupHostFunc contructs a function that resolves a hostname to IP.
+var LookupHostFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "hostname",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Set(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var hostname string
+		if err := gocty.FromCtyValue(args[0], &hostname); err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		addrs, err := net.LookupHost(hostname)
+		if err != nil {
+			return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("error: %s", err)
+		}
+		if len(addrs) == 0 {
+			return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("No return value")
+		}
+		var addrVals []cty.Value
+		for _, h := range addrs {
+			addrVals = append(addrVals, cty.StringVal(h))
+		}
+		return cty.SetVal(addrVals), nil
+	},
+})
+
 // CidrSubnetsFunc is similar to CidrSubnetFunc but calculates many consecutive
 // subnet addresses at once, rather than just a single subnet extension.
 var CidrSubnetsFunc = function.New(&function.Spec{
@@ -215,4 +244,8 @@ func CidrSubnets(prefix cty.Value, newbits ...cty.Value) (cty.Value, error) {
 	args[0] = prefix
 	copy(args[1:], newbits)
 	return CidrSubnetsFunc.Call(args)
+}
+
+func LookupHost(hostname cty.Value) (cty.Value, error) {
+	return LookupHostFunc.Call([]cty.Value{hostname})
 }
