@@ -143,6 +143,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
 
+		// Detect when create_before_destroy must be forced on for a particular
+		// node due to dependency edges, to avoid graph cycles during apply.
+		&ForcedCBDTransformer{},
+
 		// Destruction ordering
 		&DestroyEdgeTransformer{
 			Config:  b.Config,

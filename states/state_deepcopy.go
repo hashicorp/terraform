@@ -158,12 +158,6 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		copy(dependencies, obj.Dependencies)
 	}
 
-	var dependsOn []addrs.Referenceable
-	if obj.DependsOn != nil {
-		dependsOn = make([]addrs.Referenceable, len(obj.DependsOn))
-		copy(dependsOn, obj.DependsOn)
-	}
-
 	return &ResourceInstanceObjectSrc{
 		Status:              obj.Status,
 		SchemaVersion:       obj.SchemaVersion,
@@ -171,7 +165,6 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		AttrsFlat:           attrsFlat,
 		AttrsJSON:           attrsJSON,
 		Dependencies:        dependencies,
-		DependsOn:           dependsOn,
 		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}
 }

@@ -265,7 +265,6 @@ func testState() *states.State {
 				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:       states.ObjectReady,
 				Dependencies: []addrs.ConfigResource{},
-				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
