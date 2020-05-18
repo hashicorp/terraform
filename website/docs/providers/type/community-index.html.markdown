@@ -181,7 +181,6 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Statuspage](https://github.com/yannh/terraform-provider-statuspage)
 - [strongDM](https://github.com/strongdm/terraform-provider-sdm/)
 - [Stripe](https://github.com/franckverrot/terraform-provider-stripe)
-- [Sumo Logic](https://github.com/SumoLogic/sumologic-terraform-provider)
 - [Sysdig](https://github.com/draios/terraform-provider-sysdig)
 - [TeamCity](https://github.com/cvbarros/terraform-provider-teamcity)
 - [Telegram](https://github.com/yi-jiayu/terraform-provider-telegram)
