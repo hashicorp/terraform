@@ -514,6 +514,16 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"lookuphost": {
+			{
+				`lookuphost("localhost")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("127.0.0.1"),
+					cty.StringVal("::1"),
+				}),
+			},
+		},
+
 		"lower": {
 			{
 				`lower("HELLO")`,

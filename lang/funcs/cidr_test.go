@@ -318,3 +318,46 @@ func TestCidrSubnets(t *testing.T) {
 		})
 	}
 }
+
+func TestLookupHost(t *testing.T) {
+	tests := []struct {
+		Hostname cty.Value
+		Err      bool
+		Want     cty.Value
+	}{
+		{
+			cty.StringVal("localhost"),
+			false,
+			cty.SetVal([]cty.Value{
+				cty.StringVal("127.0.0.1"),
+				cty.StringVal("::1"),
+			}),
+		},
+		{
+			cty.StringVal("invaliddomainname"),
+			true,
+			cty.SetVal([]cty.Value{cty.StringVal("")}),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("lookuphost(%#v)", test.Hostname), func(t *testing.T) {
+			got, err := LookupHost(test.Hostname)
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if got.LengthInt() != test.Want.LengthInt() {
+				t.Fatalf("%s != %s", got, test.Want)
+			}
+			if !test.Want.RawEquals(got) {
+				t.Fatalf("not equal")
+			}
+		})
+	}
+}
