@@ -696,6 +696,11 @@ type mockRuns struct {
 	client     *mockClient
 	runs       map[string]*tfe.Run
 	workspaces map[string][]*tfe.Run
+
+	// If modifyNewRun is non-nil, the create method will call it just before
+	// saving a new run in the runs map, so that a calling test can mimic
+	// side-effects that a real server might apply in certain situations.
+	modifyNewRun func(client *mockClient, options tfe.RunCreateOptions, run *tfe.Run)
 }
 
 func newMockRuns(client *mockClient) *mockRuns {
@@ -778,6 +783,12 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 	}
 	if w.CurrentRun == nil {
 		w.CurrentRun = r
+	}
+
+	if m.modifyNewRun != nil {
+		// caller-provided callback may modify the run in-place to mimic
+		// side-effects that a real server might take in some situations.
+		m.modifyNewRun(m.client, options, r)
 	}
 
 	m.runs[r.ID] = r
