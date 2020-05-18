@@ -512,7 +512,7 @@ type instanceObjectStateV4 struct {
 
 	Dependencies []string `json:"dependencies,omitempty"`
 
-	CreateBeforeDestroy bool `json:"create_before_destroy"`
+	CreateBeforeDestroy bool `json:"create_before_destroy,omitempty"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded
