@@ -358,7 +358,7 @@ resource "azurerm_resource_group" "rg" {
   location = each.value
 }
 ```
-Set of strings:
+Set of strings: 
 
 ```hcl
 resource "aws_iam_user" "the-accounts" {
