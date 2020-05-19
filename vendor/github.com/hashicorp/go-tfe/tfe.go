@@ -259,6 +259,15 @@ func (c *Client) RemoteAPIVersion() string {
 	return c.remoteAPIVersion
 }
 
+// SetFakeRemoteAPIVersion allows setting a given string as the client's remoteAPIVersion,
+// overriding the value pulled from the API header during client initialization.
+//
+// This is intended for use in tests, when you may want to configure your TFE client to
+// return something different than the actual API version in order to test error handling.
+func (c *Client) SetFakeRemoteAPIVersion(fakeAPIVersion string) {
+	c.remoteAPIVersion = fakeAPIVersion
+}
+
 // RetryServerErrors configures the retry HTTP check to also retry
 // unexpected errors or requests that failed with a server error.
 func (c *Client) RetryServerErrors(retry bool) {
