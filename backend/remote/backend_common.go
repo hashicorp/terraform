@@ -308,6 +308,10 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
+		case tfe.CostEstimateSkippedDueToTargeting:
+			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
+			b.CLI.Output("\n------------------------------------------------------------------------")
+			return nil
 		case tfe.CostEstimateErrored:
 			return fmt.Errorf(msgPrefix + " errored.")
 		case tfe.CostEstimateCanceled:
