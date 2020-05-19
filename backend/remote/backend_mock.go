@@ -696,6 +696,11 @@ type mockRuns struct {
 	client     *mockClient
 	runs       map[string]*tfe.Run
 	workspaces map[string][]*tfe.Run
+
+	// If modifyNewRun is non-nil, the create method will call it just before
+	// saving a new run in the runs map, so that a calling test can mimic
+	// side-effects that a real server might apply in certain situations.
+	modifyNewRun func(client *mockClient, options tfe.RunCreateOptions, run *tfe.Run)
 }
 
 func newMockRuns(client *mockClient) *mockRuns {
@@ -757,6 +762,11 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		Permissions:  &tfe.RunPermissions{},
 		Plan:         p,
 		Status:       tfe.RunPending,
+		TargetAddrs:  options.TargetAddrs,
+	}
+
+	if options.Message != nil {
+		r.Message = *options.Message
 	}
 
 	if pc != nil {
@@ -773,6 +783,12 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 	}
 	if w.CurrentRun == nil {
 		w.CurrentRun = r
+	}
+
+	if m.modifyNewRun != nil {
+		// caller-provided callback may modify the run in-place to mimic
+		// side-effects that a real server might take in some situations.
+		m.modifyNewRun(m.client, options, r)
 	}
 
 	m.runs[r.ID] = r
@@ -952,6 +968,8 @@ type mockVariables struct {
 	workspaces map[string]*tfe.VariableList
 }
 
+var _ tfe.Variables = (*mockVariables)(nil)
+
 func newMockVariables(client *mockClient) *mockVariables {
 	return &mockVariables{
 		client:     client,
@@ -959,12 +977,12 @@ func newMockVariables(client *mockClient) *mockVariables {
 	}
 }
 
-func (m *mockVariables) List(ctx context.Context, options tfe.VariableListOptions) (*tfe.VariableList, error) {
-	vl := m.workspaces[*options.Workspace]
+func (m *mockVariables) List(ctx context.Context, workspaceID string, options tfe.VariableListOptions) (*tfe.VariableList, error) {
+	vl := m.workspaces[workspaceID]
 	return vl, nil
 }
 
-func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOptions) (*tfe.Variable, error) {
+func (m *mockVariables) Create(ctx context.Context, workspaceID string, options tfe.VariableCreateOptions) (*tfe.Variable, error) {
 	v := &tfe.Variable{
 		ID:       generateID("var-"),
 		Key:      *options.Key,
@@ -980,7 +998,7 @@ func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOp
 		v.Sensitive = *options.Sensitive
 	}
 
-	workspace := options.Workspace.Name
+	workspace := workspaceID
 
 	if m.workspaces[workspace] == nil {
 		m.workspaces[workspace] = &tfe.VariableList{}
@@ -992,15 +1010,15 @@ func (m *mockVariables) Create(ctx context.Context, options tfe.VariableCreateOp
 	return v, nil
 }
 
-func (m *mockVariables) Read(ctx context.Context, variableID string) (*tfe.Variable, error) {
+func (m *mockVariables) Read(ctx context.Context, workspaceID string, variableID string) (*tfe.Variable, error) {
 	panic("not implemented")
 }
 
-func (m *mockVariables) Update(ctx context.Context, variableID string, options tfe.VariableUpdateOptions) (*tfe.Variable, error) {
+func (m *mockVariables) Update(ctx context.Context, workspaceID string, variableID string, options tfe.VariableUpdateOptions) (*tfe.Variable, error) {
 	panic("not implemented")
 }
 
-func (m *mockVariables) Delete(ctx context.Context, variableID string) error {
+func (m *mockVariables) Delete(ctx context.Context, workspaceID string, variableID string) error {
 	panic("not implemented")
 }
 

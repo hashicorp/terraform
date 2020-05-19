@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
@@ -269,6 +270,29 @@ func TestRemote_planWithTarget(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
+	// When the backend code creates a new run, we'll tweak it so that it
+	// has a cost estimation object with the "skipped_due_to_targeting" status,
+	// emulating how a real server is expected to behave in that case.
+	b.client.Runs.(*mockRuns).modifyNewRun = func(client *mockClient, options tfe.RunCreateOptions, run *tfe.Run) {
+		const fakeID = "fake"
+		// This is the cost estimate object embedded in the run itself which
+		// the backend will use to learn the ID to request from the cost
+		// estimates endpoint. It's pending to simulate what a freshly-created
+		// run is likely to look like.
+		run.CostEstimate = &tfe.CostEstimate{
+			ID:     fakeID,
+			Status: "pending",
+		}
+		// The backend will then use the main cost estimation API to retrieve
+		// the same ID indicated in the object above, where we'll then return
+		// the status "skipped_due_to_targeting" to trigger the special skip
+		// message in the backend output.
+		client.CostEstimates.estimations[fakeID] = &tfe.CostEstimate{
+			ID:     fakeID,
+			Status: "skipped_due_to_targeting",
+		}
+	}
+
 	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
@@ -283,16 +307,34 @@ func TestRemote_planWithTarget(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected plan operation to fail")
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected plan operation to succeed")
 	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(errOutput, "targeting is currently not supported") {
-		t.Fatalf("expected a targeting error, got: %v", errOutput)
+	// testBackendDefault above attached a "mock UI" to our backend, so we
+	// can retrieve its non-error output via the OutputWriter in-memory buffer.
+	gotOutput := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if wantOutput := "Not available for this plan, because it was created with the -target option."; !strings.Contains(gotOutput, wantOutput) {
+		t.Errorf("missing message about skipped cost estimation\ngot:\n%s\nwant substring: %s", gotOutput, wantOutput)
+	}
+
+	// We should find a run inside the mock client that has the same
+	// target address we requested above.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
+			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
+		}
+
+		if !strings.Contains(run.Message, "using -target") {
+			t.Errorf("incorrect Message on the created run: %s", run.Message)
+		}
 	}
 }
 

@@ -348,7 +348,7 @@ github.com/hashicorp/go-safetemp
 github.com/hashicorp/go-slug
 # github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86
 ## explicit
-# github.com/hashicorp/go-tfe v0.3.27
+# github.com/hashicorp/go-tfe v0.8.0
 ## explicit
 github.com/hashicorp/go-tfe
 # github.com/hashicorp/go-uuid v1.0.1
