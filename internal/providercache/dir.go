@@ -136,6 +136,7 @@ func (d *Dir) fillMetaCache() error {
 
 	allData, err := getproviders.SearchLocalDirectory(d.baseDir)
 	if err != nil {
+		log.Printf("[TRACE] providercache.fillMetaCache: error while scanning directory %s: %s", d.baseDir, err)
 		return err
 	}
 
