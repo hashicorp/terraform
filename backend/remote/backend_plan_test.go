@@ -338,6 +338,41 @@ func TestRemote_planWithTarget(t *testing.T) {
 	}
 }
 
+func TestRemote_planWithTargetIncompatibleAPIVersion(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	// Set the tfe client's RemoteAPIVersion to an empty string, to mimic
+	// API versions prior to 2.3.
+	b.client.SetFakeRemoteAPIVersion("")
+
+	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
+
+	op.Targets = []addrs.Targetable{addr}
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected plan operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	if !strings.Contains(errOutput, "Resource targeting is not supported") {
+		t.Fatalf("expected a targeting error, got: %v", errOutput)
+	}
+}
+
 func TestRemote_planWithVariables(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
