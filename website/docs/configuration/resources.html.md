@@ -346,6 +346,8 @@ that cannot be determined before apply, and a `-target` may be needed. `for_each
 cannot be the result (or rely on the result of) of impure functions, including `uuid`, `bcrypt`,
 or `timestamp`, as their evaluation is deferred resource during evaluation.
 
+Map:
+
 ```hcl
 resource "azurerm_resource_group" "rg" {
   for_each = {
@@ -356,7 +358,14 @@ resource "azurerm_resource_group" "rg" {
   location = each.value
 }
 ```
+Set of strings:
 
+```hcl
+resource "aws_iam_user" "the-accounts" {
+  for_each = toset( ["Todd", "James", "Alice", "Dottie"] )
+  name     = each.key
+}
+```
 #### The `each` Object
 
 In resource blocks where `for_each` is set, an additional `each` object is
@@ -680,4 +689,3 @@ The set of configurable operations is chosen by each resource type. Most
 resource types do not support the `timeouts` block at all. Consult the
 documentation for each resource type to see which operations it offers
 for configuration, if any.
-
