@@ -152,7 +152,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Make sure data sources are aware of any depends_on from the
 		// configuration
-		&AttachDependsOnTransformer{},
+		&attachDataResourceDependenciesTransformer{},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{

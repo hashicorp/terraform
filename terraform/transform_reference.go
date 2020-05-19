@@ -43,7 +43,7 @@ type GraphNodeAttachDependencies interface {
 	AttachDependencies([]addrs.ConfigResource)
 }
 
-// GraphNodeAttachDependsOn records all resources that are transitively
+// graphNodeAttachResourceDependencies records all resources that are transitively
 // referenced through depends_on in the configuration. This is used by data
 // resources to determine if they can be read during the plan, or if they need
 // to be further delayed until apply.
@@ -53,9 +53,9 @@ type GraphNodeAttachDependencies interface {
 // unrelated module instances, the fact that it only happens when there are any
 // resource updates pending means we can still avoid the problem of the
 // "perpetual diff"
-type GraphNodeAttachDependsOn interface {
+type graphNodeAttachResourceDependencies interface {
 	GraphNodeConfigResource
-	AttachDependsOn([]addrs.ConfigResource)
+	AttachResourceDependencies([]addrs.ConfigResource)
 	DependsOn() []*addrs.Reference
 }
 
@@ -138,12 +138,12 @@ func (m depMap) add(v dag.Vertex) {
 	}
 }
 
-// AttachDependsOnTransformer records all resources transitively referenced
+// attachDataResourceDependenciesTransformer records all resources transitively referenced
 // through a configuration depends_on.
-type AttachDependsOnTransformer struct {
+type attachDataResourceDependenciesTransformer struct {
 }
 
-func (t AttachDependsOnTransformer) Transform(g *Graph) error {
+func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
 	// First we need to make a map of referenceable addresses to their vertices.
 	// This is very similar to what's done in ReferenceTransformer, but we keep
 	// implementation separate as they may need to change independently.
@@ -151,7 +151,7 @@ func (t AttachDependsOnTransformer) Transform(g *Graph) error {
 	refMap := NewReferenceMap(vertices)
 
 	for _, v := range vertices {
-		depender, ok := v.(GraphNodeAttachDependsOn)
+		depender, ok := v.(graphNodeAttachResourceDependencies)
 		if !ok {
 			continue
 		}
@@ -182,7 +182,7 @@ func (t AttachDependsOnTransformer) Transform(g *Graph) error {
 		}
 
 		log.Printf("[TRACE] AttachDependsOnTransformer: %s depends on %s", depender.ResourceAddr(), deps)
-		depender.AttachDependsOn(deps)
+		depender.AttachResourceDependencies(deps)
 	}
 
 	return nil
@@ -357,7 +357,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 // DependsOn returns the set of vertices that the given vertex refers to from
 // the configured depends_on.
 func (m ReferenceMap) DependsOn(v dag.Vertex) []dag.Vertex {
-	depender, ok := v.(GraphNodeAttachDependsOn)
+	depender, ok := v.(graphNodeAttachResourceDependencies)
 	if !ok {
 		return nil
 	}
