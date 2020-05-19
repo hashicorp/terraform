@@ -316,7 +316,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
-		case "skipped_due_to_targeting": // TEMP: not available in the go-tfe library yet; will update this to be tfe.CostEstimateSkippedDueToTargeting once that's available.
+		case tfe.CostEstimateSkippedDueToTargeting:
 			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
