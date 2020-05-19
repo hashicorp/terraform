@@ -224,6 +224,12 @@ in order to capture the filesystem context the remote workspace expects:
 		Workspace:            w,
 	}
 
+	//Incident 16886: similar message (as TFE) when destroy is done via CLI
+	if *tfe.Bool(op.Destroy) {
+		rco := &runOptions
+		rco.Message = tfe.String("Queued manually using Terraform to destroy infrastructure")
+	}
+
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {
 		return r, generalError("Failed to create run", err)
