@@ -1,4 +1,9 @@
 ## 0.12.26 (Unreleased)
+
+ENHANCEMENTS:
+
+* backend/remote: Can now accept `-target` options when creating a plan using _remote operations_, if supported by the target server. (Server-side support for this in Terraform Cloud and Terraform Enterprise will follow in forthcoming releases of each.) [GH-24834]
+
 ## 0.12.25 (May 13, 2020)
 
 NOTES:
