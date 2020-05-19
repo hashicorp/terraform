@@ -13,7 +13,6 @@ BREAKING CHANGES:
 * command/import: fixed a bug where the `import` command was not properly attaching the configured provider for a resource to be imported, making the `-provider` command line argument unnecessary. [GH-22862]
 * command/providers: the output of this command is now a flat list that does not display providers per module. [GH-24634]
 * config: Inside `provisioner` blocks that have `when = destroy` set, and inside any `connection` blocks that are used by such `provisioner` blocks, it is now an error to refer to any objects other than `self`, `count`, or `each` [GH-24083]
-* config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
 * configs: At most one `terraform.required_providers` block is permitted per module [GH-24763]
 * The official MacOS builds of Terraform CLI are no longer compatible with Mac OS 10.10 Yosemite; Terraform now requires at least Mac OS 10.11 El Capitan. Terraform 0.13 is the last major release that will support 10.11 El Capitan, so if you are upgrading your OS we recommend upgrading to Mac OS 10.12 Sierra or later.
 * The official FreeBSD builds of Terraform CLI are no longer compatible with FreeBSD 10.x, which has reached end-of-life. Terraform now requires FreeBSD 11.2 or later.
@@ -21,19 +20,20 @@ BREAKING CHANGES:
 NOTES:
 
 * backend/s3: Region validation now automatically supports the new `af-south-1` (Africa (Cape Town)) region. For AWS operations to work in the new region, the region must be explicitly enabled as outlined in the [AWS Documentation](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html#rande-manage-enable). When the region is not enabled, the Terraform S3 Backend will return errors during credential validation (e.g. `error validating provider credentials: error calling sts:GetCallerIdentity: InvalidClientTokenId: The security token included in the request is invalid`). [GH-24744]
+* Terraform CLI now supports TLS 1.3 and supports Ed25519 certificates when making outgoing connections to remote TLS servers. While both of these changes are backwards compatible in principle, certain legacy TLS server implementations can reportedly encounter problems when attempting to negotiate TLS 1.3. (These changes affects only requests made by Terraform CLI itself, such as to module registries or backends. Provider plugins have separate TLS implementations that will gain these features on a separate release schedule.)
+* On Unix systems where `use-vc` is set in `resolv.conf`, Terraform will now use TCP for DNS resolution. We don't expect this to cause any problem for most users, but if you find you are seeing DNS resolution failures after upgrading please verify that you can either reach your configured nameservers using TCP or that your resolver configuration does not include the `use-vc` directive.
 
 ENHANCEMENTS:
 
 * config: `templatefile` function will now return a helpful error message if a given variable has an invalid name, rather than relying on a syntax error in the template parsing itself. [GH-24184]
 * config: The configuration language now uses Unicode 12.0 character tables for certain Unicode-version-sensitive operations on strings, such as the `upper` and `lower` functions. Those working with strings containing new characters introduced since Unicode 9.0 may see small differences in behavior as a result of these table updates.
-* core: added support for passing metadata from modules to providers using HCL [GH-22583]
-* core: significant performance enhancements for graph operations, which will help with highly-connected graphs [GH-23811]
-* command/state: Add state replace-provider subcommand to allow changing the provider source for existing resources [GH-24523]
-* lang: Add "sum" function, which takes a list or set of numbers and returns the sum of all elements [GH-24666]
 * cli: When installing providers from the Terraform Registry, Terraform will verify the trust signature for partner providers, and allow for self-signed community providers [GH-24617]
 * cli: It is now possible to optionally specify explicitly which installation methods can be used for different providers, such as forcing a particular provider to be loaded from a particular directory on local disk instead of consulting its origin provider registry. [GH-24728]
-* Terraform CLI now supports TLS 1.3 and supports Ed25519 certificates when making outgoing connections to remote TLS servers. While both of these changes are backwards compatible in principle, certain legacy TLS server implementations can reportedly encounter problems when attempting to negotiate TLS 1.3. (These changes affects only requests made by Terraform CLI itself, such as to module registries or backends. Provider plugins have separate TLS implementations that will gain these features on a separate release schedule.)
-* On Unix systems where `use-vc` is set in `resolv.conf`, Terraform will now use TCP for DNS resolution. We don't expect this to cause any problem for most users, but if you find you are seeing DNS resolution failures after upgrading please verify that you can either reach your configured nameservers using TCP or that your resolver configuration does not include the `use-vc` directive.
+* cli: Add state replace-provider subcommand to allow changing the provider source for existing resources [GH-24523]
+* config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
+* config: Add "sum" function, which takes a list or set of numbers and returns the sum of all elements [GH-24666]
+* config: added support for passing metadata from modules to providers using HCL [GH-22583]
+* core: significant performance enhancements for graph operations, which will help with highly-connected graphs [GH-23811]
 * backend/remote: Now supports `terraform state push -force`. [GH-24696]
 * backend/remote: Can now accept `-target` options when creating a plan using _remote operations_, if supported by the target server. (Server-side support for this in Terraform Cloud and Terraform Enterprise will follow in forthcoming releases of each.) [GH-24834]
 * backend/s3: Support automatic region validation for `af-south-1` [GH-24744]
