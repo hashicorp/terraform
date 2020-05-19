@@ -193,6 +193,12 @@ func TestConfigValidate(t *testing.T) {
 			},
 			1, // no more than one provider_installation block allowed
 		},
+		"plugin_cache_dir does not exist": {
+			&Config{
+				PluginCacheDir: "fake",
+			},
+			1, // The specified plugin cache dir %s cannot be opened
+		},
 	}
 
 	for name, test := range tests {
