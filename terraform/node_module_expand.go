@@ -31,7 +31,20 @@ var (
 	_ RemovableIfNotTargeted = (*nodeExpandModule)(nil)
 	_ GraphNodeEvalable      = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer    = (*nodeExpandModule)(nil)
+
+	// modules both record their expansion, and require expansion from their
+	// parent modules.
+	_ requiresInstanceExpansion = (*nodeExpandModule)(nil)
+	_ instanceExpander          = (*nodeExpandModule)(nil)
 )
+
+// requiresInstanceExpansion implementation
+func (n *nodeExpandModule) requiresExpansion() {}
+
+// instanceExander implementation
+func (n *nodeExpandModule) expandsInstances() addrs.Module {
+	return n.Addr
+}
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String() + " (expand)"
@@ -125,8 +138,7 @@ var (
 )
 
 func (n *nodeCloseModule) ModulePath() addrs.Module {
-	mod, _ := n.Addr.Call()
-	return mod
+	return n.Addr
 }
 
 func (n *nodeCloseModule) ReferenceableAddrs() []addrs.Referenceable {

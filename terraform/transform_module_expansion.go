@@ -42,6 +42,10 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// handled by the RemovedModuleTransformer, and those module closers are in
 	// the graph already, and need to be connected to their parent closers.
 	for _, v := range g.Vertices() {
+		// skip closers so they don't attach to themselves
+		if _, ok := v.(graphNodeModuleCloser); ok {
+			continue
+		}
 		// any node that executes within the scope of a module should be a
 		// GraphNodeModulePath
 		pather, ok := v.(GraphNodeModulePath)
@@ -49,7 +53,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 			continue
 		}
 		if closer, ok := t.closers[pather.ModulePath().String()]; ok {
-			// The module root depends on each child resource instance, since
+			// The module closer depends on each child resource instance, since
 			// during apply the module expansion will complete before the
 			// individual instances are applied.
 			g.Connect(dag.BasicEdge(closer, v))

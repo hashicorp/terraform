@@ -27,7 +27,15 @@ var (
 	_ GraphNodeReferencer        = (*nodeExpandModuleVariable)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandModuleVariable)(nil)
 	_ RemovableIfNotTargeted     = (*nodeExpandModuleVariable)(nil)
+	_ requiresInstanceExpansion  = (*nodeExpandModuleVariable)(nil)
 )
+
+// requiresInstanceExpansion implementation
+func (n *nodeExpandModuleVariable) requiresExpansion() {}
+
+func (n *nodeExpandModuleVariable) expandsInstances() addrs.Module {
+	return n.Module
+}
 
 func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true

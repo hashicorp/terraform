@@ -165,9 +165,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Prune unreferenced values, which may have interpolations that can't
 		// be resolved.
-		&PruneUnusedValuesTransformer{
-			Destroy: b.Destroy,
-		},
+		&pruneUnusedExpanderTransformer{},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{

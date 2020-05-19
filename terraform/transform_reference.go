@@ -259,7 +259,6 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 // values reference a resource that is no longer in the state the interpolation
 // could fail.
 type PruneUnusedValuesTransformer struct {
-	Destroy bool
 }
 
 func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
@@ -282,7 +281,7 @@ func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
 			// any referencers in the dependents means we need to keep this
 			// value for evaluation
 			removable := true
-			for _, d := range dependants.List() {
+			for _, d := range dependants {
 				if _, ok := d.(GraphNodeReferencer); ok {
 					removable = false
 					break

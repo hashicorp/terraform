@@ -37,7 +37,11 @@ var (
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeEvalable           = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ requiresInstanceExpansion   = (*NodeApplyableResourceInstance)(nil)
 )
+
+// requiresInstanceExpansion implementation
+func (n *NodeApplyableResourceInstance) requiresExpansion() {}
 
 // GraphNodeAttachDestroyer
 func (n *NodeApplyableResourceInstance) AttachDestroyNode(d GraphNodeDestroyerCBD) {

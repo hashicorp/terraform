@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"log"
+	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
@@ -163,46 +164,129 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	return t.pruneResources(g)
+	return nil
 }
 
-// If there are only destroy instances for a particular resource, there's no
-// reason for the resource node to prepare the state. Remove Resource nodes so
-// that they don't fail by trying to evaluate a resource that is only being
-// destroyed along with its dependencies.
-func (t *DestroyEdgeTransformer) pruneResources(g *Graph) error {
-	for _, v := range g.Vertices() {
-		n, ok := v.(*nodeExpandApplyableResource)
-		if !ok {
-			continue
-		}
+// Nodes that register instances in the instances.Expander are not needed
+// during apply if there are no instances that will lookup the expansion. This
+// is the case when a module tree is removed or during a full destroy, and we
+// may not be able to evaluate the expansion expression.
+type pruneUnusedExpanderTransformer struct {
+}
 
-		// if there are only destroy dependencies, we don't need this node
-		descendents, err := g.Descendents(n)
-		if err != nil {
-			return err
-		}
+func (t *pruneUnusedExpanderTransformer) Transform(g *Graph) error {
+	// We need a reverse depth first walk of modules, but it needs to be
+	// recursive so that we can process the lead modules first.
 
-		nonDestroyInstanceFound := false
-		for _, v := range descendents {
-			if _, ok := v.(*NodeApplyableResourceInstance); ok {
-				nonDestroyInstanceFound = true
-				break
-			}
-		}
-
-		if nonDestroyInstanceFound {
-			continue
-		}
-
-		// connect all the through-edges, then delete the node
-		for _, d := range g.DownEdges(n) {
-			for _, u := range g.UpEdges(n) {
-				g.Connect(dag.BasicEdge(u, d))
-			}
-		}
-		log.Printf("DestroyEdgeTransformer: pruning unused resource node %s", dag.VertexName(n))
-		g.Remove(n)
+	// collect all nodes into their containing module
+	type mod struct {
+		addr  addrs.Module
+		nodes []dag.Vertex
 	}
+
+	// first collect the nodes into their respective modules
+	moduleMap := make(map[string]*mod)
+	for _, v := range g.Vertices() {
+		var path addrs.Module
+		switch v := v.(type) {
+		case instanceExpander:
+			path = v.expandsInstances()
+
+		case graphNodeModuleCloser:
+			// module closers are connected like module calls, and report
+			// their parent module address
+			path = v.CloseModule()
+
+		case GraphNodeModulePath:
+			path = v.ModulePath()
+		}
+		m, ok := moduleMap[path.String()]
+		if !ok {
+			m = &mod{}
+			moduleMap[path.String()] = m
+		}
+
+		m.addr = path
+		m.nodes = append(m.nodes, v)
+	}
+
+	// now we need to restructure the modules so we can sort them
+	var modules []*mod
+
+	for _, mod := range moduleMap {
+		modules = append(modules, mod)
+	}
+
+	// Sort them by path length, longest first, so that we process the deepest
+	// modules first.  The order of modules at the same tree level doesn't
+	// matter, we just need to ensure that child modules are processed before
+	// parent modules.
+	sort.Slice(modules, func(i, j int) bool {
+		return len(modules[i].addr) > len(modules[j].addr)
+	})
+
+	for _, module := range modules {
+		t.removeUnused(module.nodes, g)
+	}
+
 	return nil
+}
+
+func (t *pruneUnusedExpanderTransformer) removeUnused(nodes []dag.Vertex, g *Graph) {
+	// since we have no defined structure within the module, just cycle through
+	// the nodes until there are no more removals
+	removed := true
+	for {
+		if !removed {
+			return
+		}
+		removed = false
+
+		last := len(nodes) - 1
+
+	NEXT:
+		for i := 0; i < len(nodes); i++ {
+			n := nodes[i]
+			switch n.(type) {
+			case graphNodeTemporaryValue:
+				if n, ok := n.(GraphNodeModulePath); ok {
+					// root outputs always have a dependency on remote state
+					if n.ModulePath().IsRoot() {
+						continue NEXT
+					}
+				}
+				for _, vv := range g.UpEdges(n) {
+					if _, ok := vv.(GraphNodeReferencer); ok {
+						continue NEXT
+					}
+				}
+
+			case instanceExpander:
+				for _, vv := range g.UpEdges(n) {
+					if _, ok := vv.(requiresInstanceExpansion); ok {
+						continue NEXT
+					}
+				}
+
+			default:
+				continue NEXT
+			}
+
+			removed = true
+
+			//// connect through edges
+			//for _, d := range g.DownEdges(n) {
+			//    for _, u := range g.UpEdges(n) {
+			//        g.Connect(dag.BasicEdge(u, d))
+			//    }
+			//}
+
+			g.Remove(n)
+
+			// remove the node from our iteration as well
+			nodes[i], nodes[last] = nodes[last], nodes[i]
+			nodes = nodes[:last]
+			last--
+		}
+	}
 }
