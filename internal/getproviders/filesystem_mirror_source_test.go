@@ -65,6 +65,13 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 				Filename:       "terraform-provider-random_1.2.0_linux_amd64.zip",
 				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64"),
 			},
+			{
+				Provider:       randomProvider,
+				Version:        versions.MustParseVersion("1.3.0"),
+				TargetPlatform: Platform{"linux", "amd64"},
+				Filename:       "terraform-provider-random_1.3.0_linux_amd64.zip",
+				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/random/1.3.0/linux_amd64"),
+			},
 		},
 
 		happycloudProvider: {
