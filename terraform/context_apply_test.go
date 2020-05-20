@@ -8724,7 +8724,20 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 // that resource to be applied first.
 func TestContext2Apply_dataDependsOn(t *testing.T) {
 	p := testProvider("null")
-	m := testModule(t, "apply-data-depends-on")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "null_instance" "write" {
+  foo = "attribute"
+}
+
+data "null_data_source" "read" {
+  depends_on = ["null_instance.write"]
+}
+
+resource "null_instance" "depends" {
+  foo = data.null_data_source.read.foo
+}
+`})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -8781,6 +8794,63 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	expected := "APPLIED"
 	if actual != expected {
 		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
+	}
+
+	// run another plan to make sure the data source doesn't show as a change
+	plan, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("unexpected change for %s", c.Addr)
+		}
+	}
+
+	// now we cause a change in the first resource, which should trigger a plan
+	// in the data source, and the resource that depends on the data source
+	// must plan a change as well.
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "null_instance" "write" {
+  foo = "new"
+}
+
+data "null_data_source" "read" {
+  depends_on = ["null_instance.write"]
+}
+
+resource "null_instance" "depends" {
+  foo = data.null_data_source.read.foo
+}
+`})
+
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		// the side effect of the resource being applied
+		provisionerOutput = "APPLIED_AGAIN"
+		return testApplyFn(info, s, d)
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags = ctx.Plan()
+	assertNoErrors(t, diags)
+
+	expectedChanges := map[string]plans.Action{
+		"null_instance.write":        plans.Update,
+		"data.null_data_source.read": plans.Read,
+		"null_instance.depends":      plans.Update,
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != expectedChanges[c.Addr.String()] {
+			t.Errorf("unexpected %s for %s", c.Action, c.Addr)
+		}
 	}
 }
 

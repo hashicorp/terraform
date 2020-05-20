@@ -3,8 +3,6 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -185,15 +183,17 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			// In this particular call to EvalReadData we include our planned
 			// change, which signals that we expect this read to complete fully
 			// with no unknown values; it'll produce an error if not.
-			&EvalReadData{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Planned:        &change, // setting this indicates that the result must be complete
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				OutputState:    &state,
+			&evalReadDataApply{
+				evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Planned:        &change,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					State:          &state,
+				},
 			},
 
 			&EvalWriteState{
@@ -226,7 +226,6 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
-	var configVal cty.Value
 	var deposedKey states.DeposedKey
 
 	return &EvalSequence{
@@ -304,7 +303,6 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				State:          &state,
 				PreviousDiff:   &diff,
 				OutputChange:   &diffApply,
-				OutputValue:    &configVal,
 				OutputState:    &state,
 			},
 

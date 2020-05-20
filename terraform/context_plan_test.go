@@ -1893,9 +1893,9 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	assertNoErrors(t, diags)
 
 	if p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource was called on provider during plan; should not have been called")
+		// there was no config change to read during plan
+		t.Fatalf("ReadDataSource should not have been called")
 	}
-
 }
 
 func TestContext2Plan_computedDataCountResource(t *testing.T) {
@@ -1993,6 +1993,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		DataSources: map[string]*configschema.Block{
 			"aws_data_source": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.String, Optional: true},
 				},
 			},
@@ -4992,8 +4993,10 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		}
 	}
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		cfg := req.Config.AsValueMap()
+		cfg["id"] = cty.StringVal("data_id")
 		return providers.ReadDataSourceResponse{
-			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
+			State: cty.ObjectVal(cfg),
 		}
 	}
 
@@ -5010,9 +5013,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	// thus the plan call below is forced to produce a deferred read action.
 
 	plan, diags := ctx.Plan()
-	if p.ReadDataSourceCalled {
-		t.Errorf("ReadDataSource was called on the provider, but should not have been because we didn't refresh")
-	}
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -5042,7 +5042,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"num":      cty.StringVal("2"),
-					"computed": cty.UnknownVal(cty.String),
+					"computed": cty.StringVal("data_id"),
 				}), ric.After)
 			case "aws_instance.foo[1]":
 				if res.Action != plans.Create {
@@ -5050,18 +5050,14 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"num":      cty.StringVal("2"),
-					"computed": cty.UnknownVal(cty.String),
+					"computed": cty.StringVal("data_id"),
 				}), ric.After)
 			case "data.aws_vpc.bar[0]":
 				if res.Action != plans.Read {
 					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					// In a normal flow we would've read an exact value in
-					// ReadDataSource, but because this test doesn't run
-					// cty.Refresh we have no opportunity to do that lookup
-					// and a deferred read is forced.
-					"id":  cty.UnknownVal(cty.String),
+					"id":  cty.StringVal("data_id"),
 					"foo": cty.StringVal("0"),
 				}), ric.After)
 			case "data.aws_vpc.bar[1]":
@@ -5069,11 +5065,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					// In a normal flow we would've read an exact value in
-					// ReadDataSource, but because this test doesn't run
-					// cty.Refresh we have no opportunity to do that lookup
-					// and a deferred read is forced.
-					"id":  cty.UnknownVal(cty.String),
+					"id":  cty.StringVal("data_id"),
 					"foo": cty.StringVal("1"),
 				}), ric.After)
 			default:
@@ -5513,11 +5505,18 @@ func TestContext2Plan_invalidOutput(t *testing.T) {
 data "aws_data_source" "name" {}
 
 output "out" {
-  value = "${data.aws_data_source.name.missing}"
+  value = data.aws_data_source.name.missing
 }`,
 	})
 
 	p := testProvider("aws")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5558,6 +5557,13 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{

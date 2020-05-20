@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeExpandRefreshableDataResource struct {
@@ -199,7 +198,6 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -209,41 +207,33 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Schema: &providerSchema,
 			},
 
-			// Always destroy the existing state first, since we must
-			// make sure that values from a previous read will not
-			// get interpolated if we end up needing to defer our
-			// loading until apply time.
-			&EvalWriteState{
+			&EvalReadState{
 				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				State:          &state, // a pointer to nil, here
+				Provider:       &provider,
 				ProviderSchema: &providerSchema,
+				Output:         &state,
 			},
 
-			// EvalReadData will _attempt_ to read the data source, but may
-			// generate an incomplete planned object if the configuration
+			// EvalReadDataRefresh will _attempt_ to read the data source, but
+			// may generate an incomplete planned object if the configuration
 			// includes values that won't be known until apply.
-			&EvalReadData{
-				Addr:              addr.Resource,
-				Config:            n.Config,
-				Provider:          &provider,
-				ProviderAddr:      n.ResolvedProvider,
-				ProviderMetas:     n.ProviderMetas,
-				ProviderSchema:    &providerSchema,
-				OutputChange:      &change,
-				OutputConfigValue: &configVal,
-				OutputState:       &state,
-				// If the config explicitly has a depends_on for this data
-				// source, assume the intention is to prevent refreshing ahead
-				// of that dependency, and therefore we need to deal with this
-				// resource during the apply phase. We do that by forcing this
-				// read to result in a plan.
-				ForcePlanRead: len(n.Config.DependsOn) > 0,
+			&evalReadDataRefresh{
+				evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					OutputChange:   &change,
+					State:          &state,
+				},
 			},
 
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					return (*state).Status != states.ObjectPlanned, nil
+					return change == nil, nil
+
 				},
 				Then: &EvalSequence{
 					Nodes: []EvalNode{

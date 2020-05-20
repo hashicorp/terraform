@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -51,7 +50,6 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -69,59 +67,24 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Output: &state,
 			},
 
-			// If we already have a non-planned state then we already dealt
-			// with this during the refresh walk and so we have nothing to do
-			// here.
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					depChanges := false
-
-					// Check and see if any of our dependencies have changes.
-					changes := ctx.Changes()
-					for _, d := range n.References() {
-						ri, ok := d.Subject.(addrs.ResourceInstance)
-						if !ok {
-							continue
-						}
-						change := changes.GetResourceInstanceChange(ri.Absolute(ctx.Path()), states.CurrentGen)
-						if change != nil && change.Action != plans.NoOp {
-							depChanges = true
-							break
-						}
-					}
-
-					refreshed := state != nil && state.Status != states.ObjectPlanned
-
-					// If there are no dependency changes, and it's not a forced
-					// read because we there was no Refresh, then we don't need
-					// to re-read. If any dependencies have changes, it means
-					// our config may also have changes and we need to Read the
-					// data source again.
-					if !depChanges && refreshed {
-						return false, EvalEarlyExitError{}
-					}
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
 			&EvalValidateSelfRef{
 				Addr:           addr.Resource,
 				Config:         config.Config,
 				ProviderSchema: &providerSchema,
 			},
 
-			&EvalReadData{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				ForcePlanRead:  true, // _always_ produce a Read change, even if the config seems ready
-				OutputChange:   &change,
-				OutputValue:    &configVal,
-				OutputState:    &state,
+			&evalReadDataPlan{
+				evalReadData: evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					OutputChange:   &change,
+					State:          &state,
+				},
+				dependsOn: n.dependsOn,
 			},
 
 			&EvalWriteState{
@@ -159,8 +122,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Addr:           addr.Resource,
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
-
-				Output: &state,
+				Output:         &state,
 			},
 
 			&EvalValidateSelfRef{

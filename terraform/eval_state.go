@@ -187,6 +187,18 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
+// evalWriteEmptyState wraps EvalWriteState to specifically record an empty
+// state for a particular object.
+type evalWriteEmptyState struct {
+	EvalWriteState
+}
+
+func (n *evalWriteEmptyState) Eval(ctx EvalContext) (interface{}, error) {
+	var state *states.ResourceInstanceObject
+	n.State = &state
+	return n.EvalWriteState.Eval(ctx)
+}
+
 // EvalWriteState is an EvalNode implementation that saves the given object
 // as the current object for the selected resource instance.
 type EvalWriteState struct {
