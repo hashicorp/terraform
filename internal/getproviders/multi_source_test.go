@@ -73,7 +73,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		}
 
 		_, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
-		if want, ok := err.(ErrProviderNotFound); !ok {
+		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
 	})
@@ -147,7 +147,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		}
 
 		_, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
-		if want, ok := err.(ErrProviderNotFound); !ok {
+		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
 	})
@@ -165,8 +165,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Fatal("expected error, got success")
 		}
 
-		wantErr := `provider registry.terraform.io/hashicorp/foo was not found in any of the search locations`
-		_ = []string{"mock source", "mock source"}
+		wantErr := `provider registry registry.terraform.io does not have a provider named registry.terraform.io/hashicorp/foo`
 
 		if err.Error() != wantErr {
 			t.Fatalf("wrong error.\ngot:  %s\nwant: %s\n", err, wantErr)

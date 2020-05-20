@@ -505,7 +505,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
-					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s\n\n%s ",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s\n\n%s",
 						provider.ForDisplay(), err, strings.Join(displaySources, "\n"),
 					),
 				))
@@ -513,7 +513,7 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
-					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s ",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
 						provider.ForDisplay(), err,
 					),
 				))
