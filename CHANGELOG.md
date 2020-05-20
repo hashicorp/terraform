@@ -34,6 +34,7 @@ ENHANCEMENTS:
 * config: Add "sum" function, which takes a list or set of numbers and returns the sum of all elements [GH-24666]
 * config: added support for passing metadata from modules to providers using HCL [GH-22583]
 * core: significant performance enhancements for graph operations, which will help with highly-connected graphs [GH-23811]
+* backend/azurerm: switching to use the Giovanni Storage SDK to communicate with Azure [GH-24669]
 * backend/remote: Now supports `terraform state push -force`. [GH-24696]
 * backend/remote: Can now accept `-target` options when creating a plan using _remote operations_, if supported by the target server. (Server-side support for this in Terraform Cloud and Terraform Enterprise will follow in forthcoming releases of each.) [GH-24834]
 * backend/s3: Support automatic region validation for `af-south-1` [GH-24744]
