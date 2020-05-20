@@ -163,9 +163,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Create a destroy node for outputs to remove them from the state.
 		&DestroyOutputTransformer{Destroy: b.Destroy},
 
-		// Prune unreferenced values, which may have interpolations that can't
-		// be resolved.
-		&pruneUnusedExpanderTransformer{},
+		// We need to remove configuration nodes that are not used at all, as
+		// they may not be able to evaluate, especially during destroy.
+		// These include variables, locals, and instance expanders.
+		&pruneUnusedNodesTransformer{},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{

@@ -43,7 +43,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// the graph already, and need to be connected to their parent closers.
 	for _, v := range g.Vertices() {
 		// skip closers so they don't attach to themselves
-		if _, ok := v.(graphNodeModuleCloser); ok {
+		if _, ok := v.(*nodeCloseModule); ok {
 			continue
 		}
 		// any node that executes within the scope of a module should be a
