@@ -423,10 +423,54 @@ deleted.
 
 ### Limitations when using module expansion
 
-Modules using `count` or `for_each` cannot pass different sets of providers to different instances.
+Modules using `count` or `for_each` cannot include configured `provider` blocks within the module.
+Only empty provider blocks, or those with only an alias defined, are allowed.
+
+If a module contains allowed provider blocks, the calling module block must be have the
+corresponding providers passed to the `providers` argument. If you
+attempt to use `count` or `for_each` with a module that does not satify this requirement, you will
+see an error:
+
+```
+Error: Module does not support count
+
+  on main.tf line 15, in module "child":
+  15:   count = 2
+
+Module "child" cannot be used with count because it contains a nested provider
+configuration for "aws", at child/main.tf:2,10-15.
+
+This module can be made compatible with count by changing it to receive all of
+its provider configurations from the calling module, by using the "providers"
+argument in the calling module block.
+```
+
+Assuming the child module has allowed provider blocks (empty or only an alias), the calling
+module block could be adjusted like so to remove this error:
+
+```
+provider "aws" {
+  region = "us-east-1"
+  alias  = "east"
+}
+
+module "child" {
+  count = 2
+  providers = {
+    aws = aws.east
+  }
+}
+```
+
+Note how we are now specifying the providers to [_proxy_](#passing-providers-explicitly) to the child module.
+
+In addition, modules using `count` or `for_each` cannot pass different sets of providers
+to different instances. For example, you cannot interpolate variables in the `providers`
+block on a module.
+
 This is because when a module instance is destroyed (such as a key-value being removed from the
-`for_each` map), the provider must be available in order to perform the destroy. You can pass
-different sets of providers by using multiple `module` blocks:
+`for_each` map), the appropriate provider must be available in order to perform the destroy.
+You can pass different sets of providers to different module instances by using multiple `module` blocks:
 
 ```
 # my_buckets.tf
