@@ -196,7 +196,7 @@ func (err ErrQueryFailed) Unwrap() error {
 // grow in future.
 func ErrIsNotExist(err error) bool {
 	switch err.(type) {
-	case ErrProviderNotFound, ErrPlatformNotSupported:
+	case ErrProviderNotFound, ErrRegistryProviderNotKnown, ErrPlatformNotSupported:
 		return true
 	default:
 		return false

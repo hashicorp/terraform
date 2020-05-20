@@ -311,3 +311,43 @@ func TestInit_fromModule(t *testing.T) {
 		t.Fatalf("main.tf doesn't appear to be a vault configuration: \n%s", content)
 	}
 }
+
+func TestInitProviderNotFound(t *testing.T) {
+	t.Parallel()
+
+	// This test will reach out to registry.terraform.io as one of the possible
+	// installation locations for hashicorp/nonexist, which should not exist.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "provider-not-found")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	t.Run("registry provider not found", func(t *testing.T) {
+		_, stderr, err := tf.Run("init")
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		if !strings.Contains(stderr, "provider registry registry.terraform.io does not have a\nprovider named registry.terraform.io/hashicorp/nonexist") {
+			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
+	})
+
+	t.Run("local provider not found", func(t *testing.T) {
+		// The -plugin-dir directory must exist for the provider installer to search it.
+		pluginDir := tf.Path("empty")
+		if err := os.Mkdir(pluginDir, os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+
+		_, stderr, err := tf.Run("init", "-plugin-dir="+pluginDir)
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		if !strings.Contains(stderr, "provider registry.terraform.io/hashicorp/nonexist was not\nfound in any of the search locations\n\n- "+pluginDir) {
+			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
+	})
+}

@@ -51,7 +51,7 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 	if len(ret) == 0 {
 		// In this case, we'll behave like a registry that doesn't know about
 		// this provider at all, rather than just returning an empty result.
-		return nil, ErrProviderNotFound{provider, []string{"mock source"}}
+		return nil, ErrRegistryProviderNotKnown{provider}
 	}
 	ret.Sort()
 	return ret, nil
