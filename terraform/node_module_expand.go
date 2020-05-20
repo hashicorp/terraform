@@ -133,12 +133,17 @@ type nodeCloseModule struct {
 }
 
 var (
-	_ graphNodeModuleCloser  = (*nodeCloseModule)(nil)
-	_ GraphNodeReferenceable = (*nodeCloseModule)(nil)
+	_ graphNodeModuleCloser     = (*nodeCloseModule)(nil)
+	_ GraphNodeReferenceable    = (*nodeCloseModule)(nil)
+	_ GraphNodeReferenceOutside = (*nodeCloseModule)(nil)
 )
 
 func (n *nodeCloseModule) ModulePath() addrs.Module {
 	return n.Addr
+}
+
+func (n *nodeCloseModule) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+	return n.Addr.Parent(), n.Addr
 }
 
 func (n *nodeCloseModule) ReferenceableAddrs() []addrs.Referenceable {
@@ -195,7 +200,14 @@ func (n *evalCloseModule) Eval(ctx EvalContext) (interface{}, error) {
 	var currentModuleInstances []addrs.ModuleInstance
 	// we can't expand if we're just removing
 	if !n.orphaned {
-		currentModuleInstances = expander.ExpandModule(n.Addr)
+		func() {
+			// FIXME: we need to "turn off" closers if their expander has been removed
+			defer func() {
+				recover()
+				n.orphaned = true
+			}()
+			currentModuleInstances = expander.ExpandModule(n.Addr)
+		}()
 	}
 
 	for modKey, mod := range state.Modules {
