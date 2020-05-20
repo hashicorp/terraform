@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/state"
@@ -24,6 +26,7 @@ type RemoteClient struct {
 	containerName      string
 	keyName            string
 	leaseID            string
+	versioning         bool
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -67,6 +70,17 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	ctx := context.TODO()
+
+	if c.versioning {
+		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
+
+		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.accountName, c.containerName, c.keyName, snapshotInput); err != nil {
+			return err
+		}
+
+		log.Print("[DEBUG] Created blob snapshot")
+	}
+
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
 	if err != nil {
 		if blob.StatusCode != 404 {

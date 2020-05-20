@@ -90,6 +90,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		containerName:      b.containerName,
 		keyName:            b.path(name),
 		accountName:        b.accountName,
+		versioning:         b.versioning,
 	}
 
 	stateMgr := &remote.State{Client: client}
