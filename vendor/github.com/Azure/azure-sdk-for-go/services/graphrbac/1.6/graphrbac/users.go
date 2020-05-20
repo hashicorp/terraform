@@ -37,7 +37,8 @@ func NewUsersClient(tenantID string) UsersClient {
 	return NewUsersClientWithBaseURI(DefaultBaseURI, tenantID)
 }
 
-// NewUsersClientWithBaseURI creates an instance of the UsersClient client.
+// NewUsersClientWithBaseURI creates an instance of the UsersClient client using a custom endpoint.  Use this when
+// interacting with an Azure cloud that uses a non-standard base URI (sovereign clouds, Azure stack).
 func NewUsersClientWithBaseURI(baseURI string, tenantID string) UsersClient {
 	return UsersClient{NewWithBaseURI(baseURI, tenantID)}
 }
@@ -112,8 +113,7 @@ func (client UsersClient) CreatePreparer(ctx context.Context, parameters UserCre
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) CreateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // CreateResponder handles the response to the Create request. The method always
@@ -187,8 +187,7 @@ func (client UsersClient) DeletePreparer(ctx context.Context, upnOrObjectID stri
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -261,8 +260,7 @@ func (client UsersClient) GetPreparer(ctx context.Context, upnOrObjectID string)
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -345,8 +343,7 @@ func (client UsersClient) GetMemberGroupsPreparer(ctx context.Context, objectID 
 // GetMemberGroupsSender sends the GetMemberGroups request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) GetMemberGroupsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetMemberGroupsResponder handles the response to the GetMemberGroups request. The method always
@@ -428,8 +425,7 @@ func (client UsersClient) ListPreparer(ctx context.Context, filter string) (*htt
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) ListSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -519,8 +515,7 @@ func (client UsersClient) ListNextPreparer(ctx context.Context, nextLink string)
 // ListNextSender sends the ListNext request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) ListNextSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListNextResponder handles the response to the ListNext request. The method always
@@ -597,8 +592,7 @@ func (client UsersClient) UpdatePreparer(ctx context.Context, upnOrObjectID stri
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // UpdateResponder handles the response to the Update request. The method always
