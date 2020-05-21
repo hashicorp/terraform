@@ -31,4 +31,4 @@ docker tag "hashicorp/terraform:${VERSION_SLUG}" "hashicorp/terraform:${VERSION_
 docker tag "hashicorp/terraform:${VERSION_SLUG}" "hashicorp/terraform:${VERSION_MAJOR_MINOR}"
 docker tag "hashicorp/terraform:${VERSION_SLUG}-full" "hashicorp/terraform:${VERSION_MAJOR_MINOR}-full"
 
-docker images --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}" | grep hashicorp/terraform:${VERSION_MAJOR_MINOR}
+docker images --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}" | grep hashicorp/terraform
