@@ -19,7 +19,7 @@ same limitations as the main backend configuration. You can use any number of
 `remote_state` data sources with differently configured backends, and you can
 use interpolations when configuring them.
 
-## Example Usage for remote backend
+## Example Usage (`remote` Backend)
 
 ```hcl
 data "terraform_remote_state" "vpc" {
