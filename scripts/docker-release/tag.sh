@@ -17,10 +17,18 @@ set -eu
 
 VERSION="$1"
 VERSION_SLUG="${VERSION#v}"
+VERSION_MAJOR_MINOR=$(echo ${VERSION_SLUG} |  awk -F . '{print $1"."$2}')
 
-echo "-- Updating tags to point to version $VERSION --"
+
+echo "-- Updating tags to point to version ${VERSION} --"
 echo ""
 
 docker tag "hashicorp/terraform:${VERSION_SLUG}" "hashicorp/terraform:light"
 docker tag "hashicorp/terraform:${VERSION_SLUG}" "hashicorp/terraform:latest"
 docker tag "hashicorp/terraform:${VERSION_SLUG}-full" "hashicorp/terraform:full"
+
+docker tag "hashicorp/terraform:${VERSION_SLUG}" "hashicorp/terraform:${VERSION_MAJOR_MINOR}-light"
+docker tag "hashicorp/terraform:${VERSION_SLUG}" "hashicorp/terraform:${VERSION_MAJOR_MINOR}"
+docker tag "hashicorp/terraform:${VERSION_SLUG}-full" "hashicorp/terraform:${VERSION_MAJOR_MINOR}-full"
+
+docker images --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}" | grep hashicorp/terraform:${VERSION_MAJOR_MINOR}
