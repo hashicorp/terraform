@@ -60,6 +60,16 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	// Modules implicitly depend on their child modules, so connect closers to
+	// other which contain their path.
+	for _, c := range t.closers {
+		for _, d := range t.closers {
+			if len(d.Addr) > len(c.Addr) && c.Addr.Equal(d.Addr[:len(c.Addr)]) {
+				g.Connect(dag.BasicEdge(c, d))
+			}
+		}
+	}
+
 	return nil
 }
 
