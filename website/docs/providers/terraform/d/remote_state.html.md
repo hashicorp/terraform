@@ -46,7 +46,7 @@ resource "aws_instance" "foo" {
 }
 ```
 
-## Example Usage for local backend
+## Example Usage (`local` Backend)
 
 ```hcl
 data "terraform_remote_state" "vpc" {
