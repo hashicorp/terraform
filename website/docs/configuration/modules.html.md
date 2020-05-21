@@ -428,10 +428,9 @@ deleted.
 Modules using `count` or `for_each` cannot include configured `provider` blocks within the module.
 Only [proxy configuration blocks](#proxy-configuration-blocks) are allowed.
 
-If a module contains allowed provider blocks, the calling module block must be have the
-corresponding providers passed to the `providers` argument. If you
-attempt to use `count` or `for_each` with a module that does not satify this requirement, you will
-see an error:
+If a module contains proxy configuration blocks, the calling module block must be have the
+corresponding providers passed to the `providers` argument. If you attempt to use `count` or
+`for_each` with a module that does not satify this requirement, you will see an error:
 
 ```
 Error: Module does not support count
