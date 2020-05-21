@@ -254,55 +254,6 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// PruneUnusedValuesTransformer is a GraphTransformer that removes local,
-// variable, and output values which are not referenced in the graph. If these
-// values reference a resource that is no longer in the state the interpolation
-// could fail.
-type PruneUnusedValuesTransformer struct {
-}
-
-func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
-	// Pruning a value can effect previously checked edges, so loop until there
-	// are no more changes.
-	for removed := 0; ; removed = 0 {
-		for _, v := range g.Vertices() {
-			// we're only concerned with values that don't need to be saved in state
-			switch v := v.(type) {
-			case graphNodeTemporaryValue:
-				if !v.temporaryValue() {
-					continue
-				}
-			default:
-				continue
-			}
-
-			dependants := g.UpEdges(v)
-
-			// any referencers in the dependents means we need to keep this
-			// value for evaluation
-			removable := true
-			for _, d := range dependants {
-				if _, ok := d.(GraphNodeReferencer); ok {
-					removable = false
-					break
-				}
-			}
-
-			if removable {
-				log.Printf("[TRACE] PruneUnusedValuesTransformer: removing unused value %s", dag.VertexName(v))
-				g.Remove(v)
-				removed++
-			}
-		}
-
-		if removed == 0 {
-			break
-		}
-	}
-
-	return nil
-}
-
 // ReferenceMap is a structure that can be used to efficiently check
 // for references on a graph, mapping internal reference keys (as produced by
 // the mapKey method) to one or more vertices that are identified by each key.
