@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -219,6 +220,15 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
 		a.dependsOn = n.dependsOn
+
+		if a.ResourceAddr().Resource.Mode == addrs.DataResourceMode && a.Config.Data.StorageType == configs.DataResourceStorageTransient {
+			// We use a different node type for transient data resources,
+			// because they don't support separated plan and apply: they are
+			// just re-read for every walk, and used only in memory.
+			return &nodeTransientDataResourceInstance{
+				NodeAbstractResourceInstance: a,
+			}
+		}
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,

@@ -1,7 +1,10 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -122,8 +125,19 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		a.ResolvedProvider = n.ResolvedProvider
 		a.ProviderMetas = n.ProviderMetas
 
-		return &NodeRefreshableDataResourceInstance{
-			NodeAbstractResourceInstance: a,
+		switch t := a.Config.Data.StorageType; t {
+		case configs.DataResourceStoragePersistent:
+			return &NodeRefreshableDataResourceInstance{
+				NodeAbstractResourceInstance: a,
+			}
+		case configs.DataResourceStorageTransient:
+			return &nodeTransientDataResourceInstance{
+				NodeAbstractResourceInstance: a,
+			}
+		default:
+			// Should never happen because the above should be exhaustive
+			// for all defined storage types.
+			panic(fmt.Sprintf("unsupported data resource storage type %#v", t))
 		}
 	}
 

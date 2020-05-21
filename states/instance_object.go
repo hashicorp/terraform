@@ -59,7 +59,7 @@ const (
 	// ObjectRead state, a tainted object must be replaced.
 	ObjectTainted ObjectStatus = 'T'
 
-	// ObjectPlanned is a special object status used only for the transient
+	// ObjectPlanned is a special object status used only for the temporary
 	// placeholder objects we place into state during the refresh and plan
 	// walks to stand in for objects that will be created during apply.
 	//
@@ -70,6 +70,11 @@ const (
 	// not yet known, and the plan must be consulted in order to "see" those
 	// unknown values, because the state is not able to represent them.
 	ObjectPlanned ObjectStatus = 'P'
+
+	// ObjectTransient is similar to ObjectReady but indicates an object that
+	// should not live beyond a particular operation and should thus never
+	// be included in a persistent snapshot.
+	ObjectTransient ObjectStatus = 'M'
 )
 
 // Encode marshals the value within the receiver to produce a

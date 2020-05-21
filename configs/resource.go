@@ -29,11 +29,17 @@ type Resource struct {
 	// For all other resource modes, this field is nil.
 	Managed *ManagedResource
 
+	// Data is populated only for Mode = addrs.DataResourceMode, containing
+	// the additional fields that apply to data resources. For all other
+	// resource modes, this field is nil.
+	Data *DataResource
+
 	DeclRange hcl.Range
 	TypeRange hcl.Range
 }
 
-// ManagedResource represents a "resource" block in a module or file.
+// ManagedResource represents the portions of a "resource" block that are
+// not also common to a "data" block. See Resource for the main container.
 type ManagedResource struct {
 	Connection   *Connection
 	Provisioners []*Provisioner
@@ -46,6 +52,36 @@ type ManagedResource struct {
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
 }
+
+// DataResource represents the portions of a "data" block that are
+// not also common to a "resource" block. See Resource for the main container.
+type DataResource struct {
+	// StorageType indicates the storage type to be used for this data resource,
+	// which dictates exactly when in the lifecycle it is read and where
+	// (if anywhere) its result is persisted between operations.
+	StorageType DataResourceStorageType
+}
+
+// DataResourceStorageType is an enumeration representing the available options
+// for DataResource.StorageType.
+type DataResourceStorageType string
+
+const (
+	// DataResourceStoragePersistent represents the "persistent" storage type,
+	// where a data resource instance is read as early as possible during each
+	// refresh/plan/apply cycle and then saved in the plan and state for use
+	// in the remainder of the run and on future runs.
+	DataResourceStoragePersistent DataResourceStorageType = "persistent"
+
+	// DataResourceStorageTransient represents the "transient" storage type,
+	// where a data resource instance is re-read separately for each operation
+	// and is not persisted in either plan or state. This storage type
+	// is only suitable for data resources used to retrieve short-lived
+	// data for use in "provider" blocks; values from a transient data resource
+	// cannot be used in any other context, because they are not retained
+	// in the state.
+	DataResourceStorageTransient DataResourceStorageType = "transient"
+)
 
 func (r *Resource) moduleUniqueKey() string {
 	return r.Addr().String()
@@ -296,6 +332,9 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
+		Data:      &DataResource{
+			StorageType: DataResourceStoragePersistent, // by default
+		},
 	}
 
 	content, remain, diags := block.Body.PartialContent(dataBlockSchema)
@@ -347,17 +386,43 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		r.DependsOn = append(r.DependsOn, deps...)
 	}
 
+	var seenLifecycle *hcl.Block
 	for _, block := range content.Blocks {
-		// All of the block types we accept are just reserved for future use, but some get a specialized error message.
 		switch block.Type {
 		case "lifecycle":
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported lifecycle block",
-				Detail:   "Data resources do not have lifecycle settings, so a lifecycle block is not allowed.",
-				Subject:  &block.DefRange,
-			})
+			if seenLifecycle != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate lifecycle block",
+					Detail:   fmt.Sprintf("This resource already has a lifecycle block at %s.", seenLifecycle.DefRange),
+					Subject:  &block.DefRange,
+				})
+				continue
+			}
+			seenLifecycle = block
+
+			lcContent, lcDiags := block.Body.Content(dataLifecycleBlockSchema)
+			diags = append(diags, lcDiags...)
+
+			if attr, exists := lcContent.Attributes["storage"]; exists {
+				kw := hcl.ExprAsKeyword(attr.Expr)
+				switch kw {
+				case "persistent":
+					r.Data.StorageType = DataResourceStoragePersistent
+				case "transient":
+					r.Data.StorageType = DataResourceStorageTransient
+				default:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid storage mode",
+						Detail:   "The 'storage' lifecycle argument must be set to either persistent or transient.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
+				}
+			}
 		default:
+			// Everything we didn't cover above is in our schema only to
+			// reserve it for future use.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in data block",
@@ -497,7 +562,7 @@ var resourceBlockSchema = &hcl.BodySchema{
 var dataBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
 	Blocks: []hcl.BlockHeaderSchema{
-		{Type: "lifecycle"}, // reserved for future use
+		{Type: "lifecycle"},
 		{Type: "locals"},    // reserved for future use
 	},
 }
@@ -512,6 +577,14 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "ignore_changes",
+		},
+	},
+}
+
+var dataLifecycleBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "storage",
 		},
 	},
 }

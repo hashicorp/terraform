@@ -417,6 +417,10 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		status = ""
 	case states.ObjectTainted:
 		status = "tainted"
+	case states.ObjectTransient:
+		// Nothing to do then, because transient objects are never included
+		// in state snapshots.
+		return isV4s, nil
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
