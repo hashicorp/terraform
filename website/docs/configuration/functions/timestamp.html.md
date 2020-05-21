@@ -13,7 +13,7 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-`timestamp` returns the current date and time.
+`timestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format.
 
 In the Terraform language, timestamps are conventionally represented as
 strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
