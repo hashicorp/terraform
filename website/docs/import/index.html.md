@@ -29,5 +29,4 @@ manually a `resource` configuration block for the resource, to which the
 imported object will be mapped.
 
 While this may seem tedious, it still gives Terraform users an avenue for
-importing existing resources. A future version of Terraform will fully generate
-configuration, significantly simplifying this process.
+importing existing resources.
