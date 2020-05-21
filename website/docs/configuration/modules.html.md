@@ -350,6 +350,8 @@ provider "aws" {
 Each resource should then have its own `provider` attribute set to either
 `"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
 
+### Proxy Configuration Blocks
+
 A proxy configuration block is one that is either completely empty or that
 contains only the `alias` argument. It serves as a placeholder for
 provider configurations passed between modules. Although an empty proxy
@@ -424,7 +426,7 @@ deleted.
 ### Limitations when using module expansion
 
 Modules using `count` or `for_each` cannot include configured `provider` blocks within the module.
-Only empty provider blocks, or those with only an alias defined, are allowed.
+Only [proxy configuration blocks](#proxy-configuration-blocks) are allowed.
 
 If a module contains allowed provider blocks, the calling module block must be have the
 corresponding providers passed to the `providers` argument. If you
@@ -445,7 +447,7 @@ its provider configurations from the calling module, by using the "providers"
 argument in the calling module block.
 ```
 
-Assuming the child module has allowed provider blocks (empty or only an alias), the calling
+Assuming the child module only has proxy configuration blocks, the calling
 module block could be adjusted like so to remove this error:
 
 ```
@@ -462,7 +464,7 @@ module "child" {
 }
 ```
 
-Note how we are now specifying the providers to [_proxy_](#passing-providers-explicitly) to the child module.
+Note how we are now [passing the providers](#passing-providers-explicitly) to the child module.
 
 In addition, modules using `count` or `for_each` cannot pass different sets of providers
 to different instances. For example, you cannot interpolate variables in the `providers`
