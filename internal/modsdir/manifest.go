@@ -78,7 +78,7 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 	var read manifestSnapshotFile
 	err = json.Unmarshal(src, &read)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling snapshot: %v", err)
+		return nil, fmt.Errorf("error unmarshalling snapshot: %v", err)
 	}
 	new := make(Manifest)
 	for _, record := range read.Records {
