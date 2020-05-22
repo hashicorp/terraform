@@ -53,14 +53,14 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	return nil
 }
 
-// DestroyOutputTransformer is a GraphTransformer that adds nodes to delete
+// destroyRootOutputTransformer is a GraphTransformer that adds nodes to delete
 // outputs during destroy. We need to do this to ensure that no stale outputs
 // are ever left in the state.
-type DestroyOutputTransformer struct {
+type destroyRootOutputTransformer struct {
 	Destroy bool
 }
 
-func (t *DestroyOutputTransformer) Transform(g *Graph) error {
+func (t *destroyRootOutputTransformer) Transform(g *Graph) error {
 	// Only clean root outputs on a full destroy
 	if !t.Destroy {
 		return nil
