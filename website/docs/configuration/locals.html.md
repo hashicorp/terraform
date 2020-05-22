@@ -51,7 +51,7 @@ locals {
 locals {
   # Common tags to be assigned to all resources
   common_tags = {
-    Service = local.service_name
+    Service = local.service_name #notice it's "local," no "s."
     Owner   = local.owner
   }
 }
@@ -65,7 +65,7 @@ each other in order to build more complex values from simpler ones.
 resource "aws_instance" "example" {
   # ...
 
-  tags = local.common_tags
+  tags = local.common_tags #notice it's "local," no "s."
 }
 ```
 
