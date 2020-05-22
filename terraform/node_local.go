@@ -23,15 +23,11 @@ var (
 	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandLocal)(nil)
-	_ requiresInstanceExpansion  = (*nodeExpandLocal)(nil)
+
+	_ graphNodeExpandsInstances = (*nodeExpandLocal)(nil)
 )
 
-func (n *nodeExpandLocal) expandsInstances() addrs.Module {
-	return n.Module
-}
-
-// requiresInstanceExpansion implementation
-func (n *nodeExpandLocal) requiresExpansion() {}
+func (n *nodeExpandLocal) expandsInstances() {}
 
 // graphNodeTemporaryValue
 func (n *nodeExpandLocal) temporaryValue() bool {

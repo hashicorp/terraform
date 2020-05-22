@@ -24,14 +24,10 @@ var (
 	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
-	_ requiresInstanceExpansion  = (*nodeExpandOutput)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)
 )
 
-func (n *nodeExpandOutput) expandsInstances() addrs.Module {
-	return n.Module
-}
-
-func (m *nodeExpandOutput) requiresExpansion() {}
+func (n *nodeExpandOutput) expandsInstances() {}
 
 func (n *nodeExpandOutput) temporaryValue() bool {
 	// this must always be evaluated if it is a root module output

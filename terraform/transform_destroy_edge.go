@@ -276,11 +276,18 @@ func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
 						}
 					}
 
-				case instanceExpander:
+				case graphNodeExpandsInstances:
 					// Any nodes that expand instances are kept when their
 					// instances may need to be evaluated.
 					for _, vv := range g.UpEdges(n) {
-						if _, ok := vv.(requiresInstanceExpansion); ok {
+						switch vv.(type) {
+						case graphNodeExpandsInstances:
+							// expanders can always depend on module expansion
+							// themselves
+							return
+						case GraphNodeResourceInstance:
+							// resource instances always depend on their
+							// resource node, which is an expander
 							return
 						}
 					}

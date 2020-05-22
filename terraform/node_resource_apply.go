@@ -22,19 +22,10 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
-
-	// Resource both expand instances and require module path expansion.
-	_ requiresInstanceExpansion = (*nodeExpandApplyableResource)(nil)
-	_ instanceExpander          = (*nodeExpandApplyableResource)(nil)
+	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 )
 
-// requiresInstanceExpansion implementation
-func (n *nodeExpandApplyableResource) requiresExpansion() {}
-
-// instanceExpander implementation
-func (n *nodeExpandApplyableResource) expandsInstances() addrs.Module {
-	return n.ModulePath()
-}
+func (n *nodeExpandApplyableResource) expandsInstances() {}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()

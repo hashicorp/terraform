@@ -26,19 +26,10 @@ var (
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
 
-	// modules both record their expansion, and require expansion from their
-	// parent modules.
-	_ requiresInstanceExpansion = (*nodeExpandModule)(nil)
-	_ instanceExpander          = (*nodeExpandModule)(nil)
+	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
 )
 
-// requiresInstanceExpansion implementation
-func (n *nodeExpandModule) requiresExpansion() {}
-
-// instanceExander implementation
-func (n *nodeExpandModule) expandsInstances() addrs.Module {
-	return n.Addr
-}
+func (n *nodeExpandModule) expandsInstances() {}
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String() + " (expand)"
