@@ -37,6 +37,11 @@ func (c *Changes) Empty() bool {
 			return false
 		}
 	}
+	for _, res := range c.Outputs {
+		if res.Action != NoOp {
+			return false
+		}
+	}
 	return true
 }
 

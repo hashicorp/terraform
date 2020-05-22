@@ -314,6 +314,18 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 			"%d to add, %d to change, %d to destroy.",
 		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
+
+	// If there is at least one planned change to the root module outputs
+	// then we'll render a summary of those too.
+	outputChangeCount := 0
+	for _, change := range plan.Changes.Outputs {
+		if change.Action != plans.NoOp {
+			outputChangeCount++
+		}
+	}
+	if outputChangeCount > 0 {
+		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(plan.Changes.Outputs, colorize)))
+	}
 }
 
 const planHeaderIntro = `

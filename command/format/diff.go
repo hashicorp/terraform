@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -128,6 +129,57 @@ func ResourceChange(
 		buf.WriteString(strings.Repeat(" ", 4))
 	}
 	buf.WriteString("}\n")
+
+	return buf.String()
+}
+
+// OutputChanges returns a string representation of a set of changes to output
+// values for inclusion in user-facing plan output.
+//
+// If "color" is non-nil, it will be used to color the result. Otherwise,
+// no color codes will be included.
+func OutputChanges(
+	changes []*plans.OutputChangeSrc,
+	color *colorstring.Colorize,
+) string {
+	var buf bytes.Buffer
+	p := blockBodyDiffPrinter{
+		buf:    &buf,
+		color:  color,
+		action: plans.Update, // not actually used in this case, because we're not printing a containing block
+	}
+
+	// We're going to reuse the codepath we used for printing resource block
+	// diffs, by pretending that the set of defined outputs are the attributes
+	// of some resource. It's a little forced to do this, but it gives us all
+	// the same formatting heuristics as we normally use for resource
+	// attributes.
+	oldVals := make(map[string]cty.Value, len(changes))
+	newVals := make(map[string]cty.Value, len(changes))
+	synthSchema := &configschema.Block{
+		Attributes: make(map[string]*configschema.Attribute, len(changes)),
+	}
+	for _, changeSrc := range changes {
+		name := changeSrc.Addr.OutputValue.Name
+		change, err := changeSrc.Decode()
+		if err != nil {
+			// It'd be weird to get a decoding error here because that would
+			// suggest that Terraform itself just produced an invalid plan, and
+			// we don't have any good way to ignore it in this codepath, so
+			// we'll just log it and ignore it.
+			log.Printf("[ERROR] format.OutputChanges: Failed to decode planned change for output %q: %s", name, err)
+			continue
+		}
+		synthSchema.Attributes[name] = &configschema.Attribute{
+			Type:      cty.DynamicPseudoType, // output types are decided dynamically based on the given value
+			Optional:  true,
+			Sensitive: change.Sensitive,
+		}
+		oldVals[name] = change.Before
+		newVals[name] = change.After
+	}
+
+	p.writeBlockBodyDiff(synthSchema, cty.ObjectVal(oldVals), cty.ObjectVal(newVals), 2, nil)
 
 	return buf.String()
 }

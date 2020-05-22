@@ -526,25 +526,23 @@ The -target option is not for routine use, and is provided only for exceptional 
 		ProviderSHA256s: c.providerSHA256s,
 	}
 
-	var operation walkOperation
+	operation := walkPlan
 	if c.destroy {
 		operation = walkPlanDestroy
-	} else {
-		// Set our state to be something temporary. We do this so that
-		// the plan can update a fake state so that variables work, then
-		// we replace it back with our old state.
-		old := c.state
-		if old == nil {
-			c.state = states.NewState()
-		} else {
-			c.state = old.DeepCopy()
-		}
-		defer func() {
-			c.state = old
-		}()
-
-		operation = walkPlan
 	}
+
+	// Set our state to be something temporary. We do this so that
+	// the plan can update a fake state so that variables work, then
+	// we replace it back with our old state.
+	priorState := c.state
+	if priorState == nil {
+		c.state = states.NewState()
+	} else {
+		c.state = priorState.DeepCopy()
+	}
+	defer func() {
+		c.state = priorState
+	}()
 
 	// Build the graph.
 	graphType := GraphTypePlan
@@ -565,6 +563,70 @@ The -target option is not for routine use, and is provided only for exceptional 
 		return nil, diags
 	}
 	p.Changes = c.changes
+
+	// HACK: Output evaluation during our graph walks can't currently properly
+	// generate before/after information for output values because evaluating
+	// an output just always clobbers the old value. In future we can hopefully
+	// address this better by having explicit plan vs. apply steps for output
+	// values as we do for resource types, but for now we're going to just fix
+	// up the planned output changes as a postprocessing step by comparing with
+	// the prior state to see which verb is actually appropriate for each
+	// change.
+	//
+	// For our work here we're assuming that the walk will have produced one
+	// planned change for each output, its "After" value will be accurate as
+	// the result of evaluating its expression, and its action will either
+	// be Create or Delete depending on whether the new value is null.
+	// We're going to overwrite the placeholder "Before" value and replace
+	// the action with a more accurate one based on how the value changed.
+	fixedOutputChanges := make([]*plans.OutputChangeSrc, 0, len(p.Changes.Outputs))
+	log.Printf("[TRACE] Context.Plan: finalizing output changes")
+	for _, changeSrc := range p.Changes.Outputs {
+		change, err := changeSrc.Decode()
+		if err != nil {
+			// It would be very strange to get an error here because it would
+			// suggest that the graph walk just wrote invalid data into the
+			// changeset, and so we'll just skip updating in this case and
+			// let the placeholder create/delete verb pass through.
+			log.Printf("[ERROR] Context.Plan: invalid change for %s: %s (ignoring)", change.Addr, err)
+			fixedOutputChanges = append(fixedOutputChanges, changeSrc)
+			continue
+		}
+		newValue := change.After
+		priorValue := cty.NullVal(cty.DynamicPseudoType)
+		priorOutputState := priorState.OutputValue(change.Addr)
+		if priorOutputState != nil {
+			priorValue = priorOutputState.Value
+			change.Sensitive = change.Sensitive || priorOutputState.Sensitive
+		}
+		change.Before = priorValue
+		switch {
+		case newValue.IsKnown() && newValue.RawEquals(priorValue):
+			change.Action = plans.NoOp
+		case newValue.IsNull() && priorValue.IsNull():
+			change.Action = plans.NoOp
+		case newValue.IsNull():
+			change.Action = plans.Delete
+		case priorValue.IsNull():
+			change.Action = plans.Create
+		default:
+			change.Action = plans.Update
+		}
+		log.Printf("[TRACE] Context.Plan: action for %s is %s", change.Addr, change.Action)
+		// DO NOT MERGE THE FOLLOWING ONE BECAUSE IT WILL DISCLOSE SENSITIVE STUFF IN THE LOGS
+		log.Printf("[TRACE] Context.Plan: values for %s are %#v -> %#v", change.Addr, change.Before, change.After)
+		newChangeSrc, err := change.Encode()
+		if err != nil {
+			// Again very strange, because we've just built up valid values
+			// ourselves right above.
+			log.Printf("[ERROR] Context.Plan: failed to encode change for %s: %s (ignoring)", change.Addr, err)
+			fixedOutputChanges = append(fixedOutputChanges, changeSrc)
+			continue
+		}
+		fixedOutputChanges = append(fixedOutputChanges, newChangeSrc)
+	}
+	log.Printf("[TRACE] Context.Plan: finished finalizing output changes")
+	p.Changes.Outputs = fixedOutputChanges
 
 	return p, diags
 }
