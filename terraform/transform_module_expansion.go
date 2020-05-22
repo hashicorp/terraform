@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -105,11 +106,22 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	t.closers[c.Path.String()] = closer
 
 	for _, childV := range g.Vertices() {
-		pather, ok := childV.(GraphNodeModulePath)
-		if !ok {
+		// don't connect a node to itself
+		if childV == v {
 			continue
 		}
-		if pather.ModulePath().Equal(c.Path) {
+
+		var path addrs.Module
+		switch t := childV.(type) {
+		case GraphNodeModulePath:
+			path = t.ModulePath()
+		case GraphNodeReferenceOutside:
+			path, _ = t.ReferenceOutside()
+		default:
+			continue
+		}
+
+		if path.Equal(c.Path) {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
 			g.Connect(dag.BasicEdge(childV, v))
 		}

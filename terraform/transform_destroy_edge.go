@@ -187,9 +187,6 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		var path addrs.Module
 		switch v := v.(type) {
-		case instanceExpander:
-			path = v.expandsInstances()
-
 		case GraphNodeModulePath:
 			path = v.ModulePath()
 		default:
