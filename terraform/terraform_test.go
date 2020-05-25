@@ -441,12 +441,6 @@ const testTerraformApplyEmptyModuleStr = `
 Outputs:
 
 end = XXXX
-
-module.child:
-<no state>
-Outputs:
-
-aws_route53_zone_id = XXXX
 `
 
 const testTerraformApplyDependsCreateBeforeStr = `
@@ -661,12 +655,6 @@ aws_instance.bar:
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = true
   type = aws_instance
-
-module.child:
-  <no state>
-  Outputs:
-
-  leader = true
 `
 
 const testTerraformApplyModuleDestroyOrderStr = `

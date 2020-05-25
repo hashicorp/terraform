@@ -8980,12 +8980,6 @@ Outputs:
 
 result_1 = hello
 result_3 = hello world
-
-module.child:
-  <no state>
-  Outputs:
-
-  result = hello
 `)
 	if got != want {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
