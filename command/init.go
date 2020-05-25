@@ -442,6 +442,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
+	// We capture any missing provider errors (404s from a Registry source) for
+	// later analysis, to provide more useful diagnostics if the providers
+	// appear to have been re-namespaced.
+	missingProviderErrors := make(map[addrs.Provider]error)
+
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -494,6 +499,22 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 						provider.ForDisplay(), err, strings.Join(displaySources, "\n"),
 					),
 				))
+			case getproviders.ErrRegistryProviderNotKnown:
+				// Default providers may have no explicit source, and the 404
+				// error could be caused by re-namespacing. Add the provider
+				// and error to a map to later check for this case. We don't
+				// run the check here to keep this event callback simple.
+				if provider.IsDefault() {
+					missingProviderErrors[provider] = err
+				} else {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to query available provider packages",
+						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+							provider.ForDisplay(), err,
+						),
+					))
+				}
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -586,12 +607,44 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	ctx := evts.OnContext(context.TODO())
 	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
+		// Try to look up any missing providers which may be redirected legacy
+		// providers. If we're successful, construct a "did you mean?" diag to
+		// suggest how to fix this. Otherwise, add a simple error diag
+		// explaining that the provider could not be found.
+		foundProviders := make(map[addrs.Provider]addrs.Provider)
+		source := c.providerInstallSource()
+		for provider, fetchErr := range missingProviderErrors {
+			addr := addrs.NewLegacyProvider(provider.Type)
+			p, err := getproviders.LookupLegacyProvider(addr, source)
+			if err == nil {
+				foundProviders[provider] = p
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s: %s", provider.ForDisplay(), fetchErr),
+				))
+			}
+		}
+		if len(foundProviders) > 0 {
+			var providerSuggestions string
+			for missingProvider, foundProvider := range foundProviders {
+				providerSuggestions += fmt.Sprintf("  %s -> %s\n", missingProvider.ForDisplay(), foundProvider.ForDisplay())
+			}
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install providers",
+				fmt.Sprintf("Could not find required providers, but found possible alternatives:\n\n%s\nIf these suggestions look correct, upgrade your configuration with the following command:\n    terraform 0.13upgrade", providerSuggestions),
+			))
+		}
+
 		// The errors captured in "err" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
 		// just return those as long as we have some.
 		if !diags.HasErrors() {
 			diags = diags.Append(err)
 		}
+
 		return true, diags
 	}
 
