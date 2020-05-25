@@ -139,6 +139,29 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				}
 			}
 
+			override := false
+			preTerraformfileSource := req.SourceAddr
+			preTerraformfileVersion := req.VersionConstraints
+			// Check for overwrites in Terraformfile
+			if tfile, err := NewTerraformfile(); err == nil {
+				if tfileModule, ok := tfile.GetTerraformEntryOk(req.SourceAddr); ok {
+					log.Printf("[TRACE] ModuleInstaller: Terraformfile source found %s new source: %s", req.SourceAddr, tfileModule.Source)
+					req.SourceAddr = tfileModule.Source
+					req.VersionConstraints = nil
+					override = true
+
+					if tfileModule.Version != "" {
+						constraints, err := version.NewConstraint(tfileModule.Version)
+						if err != nil {
+							log.Printf("[TRACE] ModuleInstaller: Terraformfile constraints error %v", err)
+						}
+						req.VersionConstraints = constraints
+					}
+				} else {
+					log.Printf("[TRACE] ModuleInstaller: Terraformfile not found %s", req.SourceAddr)
+				}
+			}
+
 			// If we _are_ planning to replace this module, then we'll remove
 			// it now so our installation code below won't conflict with any
 			// existing remnants.
@@ -201,6 +224,9 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				log.Printf("[TRACE] ModuleInstaller: %s has local path %q", key, req.SourceAddr)
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				diags = append(diags, mDiags...)
+				if override {
+					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, preTerraformfileVersion)
+				}
 				return mod, nil, diags
 
 			case isRegistrySourceAddr(req.SourceAddr):
@@ -213,6 +239,10 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 
 				mod, v, mDiags := i.installRegistryModule(req, key, instPath, addr, manifest, hooks, getter)
 				diags = append(diags, mDiags...)
+
+				if override {
+					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, preTerraformfileVersion)
+				}
 				return mod, v, diags
 
 			default:
@@ -220,9 +250,12 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 
 				mod, mDiags := i.installGoGetterModule(req, key, instPath, manifest, hooks, getter)
 				diags = append(diags, mDiags...)
+
+				if override {
+					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, preTerraformfileVersion)
+				}
 				return mod, nil, diags
 			}
-
 		},
 	))
 	diags = append(diags, cDiags...)
