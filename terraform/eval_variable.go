@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"unicode"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
@@ -161,6 +162,7 @@ func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
 	for _, validation := range n.Config.Validations {
 		const errInvalidCondition = "Invalid variable validation result"
 		const errInvalidValue = "Invalid value for variable"
+		const errInvalidErrorMessage = "Invalid validation error message"
 
 		result, moreDiags := validation.Condition.Value(hclCtx)
 		diags = diags.Append(moreDiags)
@@ -196,12 +198,46 @@ func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
 			continue
 		}
 
+		errorMessage, moreDiags := validation.ErrorMessage.Value(hclCtx)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition expression failed: %s", n.Addr, validation.DeclRange, diags.Err().Error())
+		}
+		if !errorMessage.IsKnown() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition value is unknown, so skipping validation for now", n.Addr, validation.DeclRange)
+			continue // We'll wait until we've learned more, then.
+		}
+		if errorMessage.IsNull() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidCondition,
+				Detail:      "Validation condition expression must return either true or false, not null.",
+				Subject:     validation.ErrorMessage.Range().Ptr(),
+				Expression:  validation.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+			continue
+		}
+		errorMessage, err = convert.Convert(errorMessage, cty.String)
+
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidErrorMessage,
+				Detail:      fmt.Sprintf("Invalid validation error message result value: %s.", tfdiags.FormatError(err)),
+				Subject:     validation.ErrorMessage.Range().Ptr(),
+				Expression:  validation.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+			continue
+		}
+
 		if result.False() {
 			if n.Expr != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  errInvalidValue,
-					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage.AsString(), validation.DeclRange.String()),
 					Subject:  n.Expr.Range().Ptr(),
 				})
 			} else {
@@ -211,10 +247,59 @@ func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  errInvalidValue,
-					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage.AsString(), validation.DeclRange.String()),
 					Subject:  n.Config.DeclRange.Ptr(),
 				})
 			}
+		}
+
+		if errorMessage.Type() != cty.String {
+			if n.Expr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errInvalidErrorMessage,
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage.AsString(), validation.DeclRange.String()),
+					Subject:  n.Expr.Range().Ptr(),
+				})
+			} else {
+				// Since we don't have a source expression for a root module
+				// variable, we'll just report the error from the perspective
+				// of the variable declaration itself.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errInvalidErrorMessage,
+					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage.AsString(), validation.DeclRange.String()),
+					Subject:  n.Config.DeclRange.Ptr(),
+				})
+			}
+		}
+
+		switch {
+		case errorMessage.AsString() == "":
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  errInvalidErrorMessage,
+				Detail:   "An empty string is not a valid nor useful error message.",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		case !looksLikeSentences(errorMessage.AsString()):
+			// Because we're going to include this string verbatim as part
+			// of a bigger error message written in our usual style in
+			// English, we'll require the given error message to conform
+			// to that. We might relax this in future if e.g. we start
+			// presenting these error messages in a different way, or if
+			// Terraform starts supporting producing error messages in
+			// other human languages, etc.
+			// For pragmatism we also allow sentences ending with
+			// exclamation points, but we don't mention it explicitly here
+			// because that's not really consistent with the Terraform UI
+			// writing style.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  errInvalidErrorMessage,
+				Detail:   "Validation error message must be at least one full English sentence starting with an uppercase letter and ending with a period or question mark.",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
 		}
 	}
 
@@ -242,4 +327,38 @@ func hclTypeName(i interface{}) string {
 		// fall back to the Go type if there's no match
 		return k.String()
 	}
+}
+
+// looksLikeSentence is a simple heuristic that encourages writing error
+// messages that will be presentable when included as part of a larger
+// Terraform error diagnostic whose other text is written in the Terraform
+// UI writing style.
+//
+// This is intentionally not a very strong validation since we're assuming
+// that module authors want to write good messages and might just need a nudge
+// about Terraform's specific style, rather than that they are going to try
+// to work around these rules to write a lower-quality message.
+func looksLikeSentences(s string) bool {
+	if len(s) < 1 {
+		return false
+	}
+	runes := []rune(s) // HCL guarantees that all strings are valid UTF-8
+	first := runes[0]
+	last := runes[len(s)-1]
+
+	// If the first rune is a letter then it must be an uppercase letter.
+	// (This will only see the first rune in a multi-rune combining sequence,
+	// but the first rune is generally the letter if any are, and if not then
+	// we'll just ignore it because we're primarily expecting English messages
+	// right now anyway, for consistency with all of Terraform's other output.)
+	if unicode.IsLetter(first) && !unicode.IsUpper(first) {
+		return false
+	}
+
+	// The string must be at least one full sentence, which implies having
+	// sentence-ending punctuation.
+	// (This assumes that if a sentence ends with quotes then the period
+	// will be outside the quotes, which is consistent with Terraform's UI
+	// writing style.)
+	return last == '.' || last == '?' || last == '!'
 }
