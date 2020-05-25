@@ -12,6 +12,169 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
+// DeepMergeFunc constructs a function that takes an arbitrary number of maps or
+// objects, and returns a single value that contains a merged set of keys and
+// values from all of the inputs.
+//
+// If more than one given map or object defines the same key then the one that
+// is later in the argument sequence takes precedence.
+//
+// Nested object will be recursed to the bottom, and partial maps will be combined to
+// create the final map. Types can be changed [array->string] without issue, so no
+// type checking occurs to prevent this.
+var DeepMergeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "maps",
+		Type:             cty.DynamicPseudoType,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		// empty args is accepted, so assume an empty object since we have no
+		// key-value types.
+		if len(args) == 0 {
+			return cty.EmptyObject, nil
+		}
+
+		// collect the possible object attrs
+		attrs := map[string]cty.Type{}
+
+		//premerge objects so we can determine final type
+		objectMap := make(map[string]cty.Value)
+
+		first := cty.NilType
+		matching := true
+		attrsKnown := true
+		for i, arg := range args {
+			ty := arg.Type()
+			// any dynamic args mean we can't compute a type
+			if ty.Equals(cty.DynamicPseudoType) {
+				return cty.DynamicPseudoType, nil
+			}
+
+			// check for invalid arguments
+			if !ty.IsMapType() && !ty.IsObjectType() {
+				return cty.NilType, fmt.Errorf("arguments must be maps or objects, got %#v", ty.FriendlyName())
+			}
+
+			switch {
+			case ty.IsObjectType() && !arg.IsNull():
+				preMerge := recursiveMerge(arg, objectMap)
+				for attr, aty := range preMerge {
+					attrs[attr] = aty.Type()
+				}
+			case ty.IsMapType():
+				switch {
+				case arg.IsNull():
+					// pass, nothing to add
+				case arg.IsKnown():
+					ety := arg.Type().ElementType()
+					for it := arg.ElementIterator(); it.Next(); {
+						attr, _ := it.Element()
+						attrs[attr.AsString()] = ety
+					}
+				default:
+					// any unknown maps means we don't know all possible attrs
+					// for the return type
+					attrsKnown = false
+				}
+			}
+
+			// record the first argument type for comparison
+			if i == 0 {
+				first = arg.Type()
+				continue
+			}
+
+			if !ty.Equals(first) && matching {
+				matching = false
+			}
+		}
+
+		// the types all match, so use the first argument type
+		if matching {
+			return first, nil
+		}
+
+		// We had a mix of unknown maps and objects, so we can't predict the
+		// attributes
+		if !attrsKnown {
+			return cty.DynamicPseudoType, nil
+		}
+
+		// returnType :=
+		return cty.Object(attrs), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		outputMap := make(map[string]cty.Value)
+
+		// if all inputs are null, return a null value rather than an object
+		// with null attributes
+		allNull := true
+		for _, arg := range args {
+			if arg.IsNull() {
+				continue
+			} else {
+				allNull = false
+			}
+
+			tempMap := outputMap
+			outputMap = recursiveMerge(arg, tempMap)
+		}
+
+		switch {
+		case allNull:
+			return cty.NullVal(retType), nil
+		case retType.IsMapType():
+			return cty.MapVal(outputMap), nil
+		case retType.IsObjectType(), retType.Equals(cty.DynamicPseudoType):
+			return cty.ObjectVal(outputMap), nil
+		default:
+			panic(fmt.Sprintf("unexpected return type: %#v", retType))
+		}
+	},
+})
+
+func recursiveMerge(newMap cty.Value, existingMap map[string]cty.Value) map[string]cty.Value {
+	var typesMatch bool = true
+	var firstType cty.Type = cty.NilType
+
+	for it := newMap.ElementIterator(); it.Next(); {
+		_, v := it.Element()
+		propType := v.Type()
+		if firstType == cty.NilType {
+			firstType = v.Type()
+		}
+		if !propType.Equals(firstType) {
+			typesMatch = false
+		}
+	}
+
+	for it := newMap.ElementIterator(); it.Next(); {
+		k, v := it.Element()
+		switch {
+		case v.Type().IsMapType(), v.Type().IsObjectType():
+			{
+				objectMap := make(map[string]cty.Value)
+				if oldVal, exists := existingMap[k.AsString()]; exists {
+					if !oldVal.Type().IsListType() {
+						objectMap = oldVal.AsValueMap()
+					}
+				}
+				if typesMatch {
+					existingMap[k.AsString()] = cty.MapVal(recursiveMerge(v, objectMap))
+					continue
+				}
+				existingMap[k.AsString()] = cty.ObjectVal(recursiveMerge(v, objectMap))
+			}
+		default:
+			existingMap[k.AsString()] = v
+		}
+	}
+	return existingMap
+}
+
 var LengthFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
@@ -574,6 +737,15 @@ func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) 
 		}
 	}
 	return append(slice, element), nil
+}
+
+// Merge takes an arbitrary number of maps and returns a single map that contains
+// a merged set of elements from all of the maps.
+//
+// If more than one given map defines the same key then the one that is later in
+// the argument sequence takes precedence.
+func DeepMerge(maps ...cty.Value) (cty.Value, error) {
+	return DeepMergeFunc.Call(maps)
 }
 
 // Length returns the number of elements in the given collection or number of

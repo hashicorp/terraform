@@ -53,6 +53,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"concat":           stdlib.ConcatFunc,
 			"contains":         stdlib.ContainsFunc,
 			"csvdecode":        stdlib.CSVDecodeFunc,
+			"deepmerge":        funcs.DeepMergeFunc,
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,

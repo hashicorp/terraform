@@ -8,6 +8,341 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
+func TestMerge(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"a2": cty.ObjectVal(map[string]cty.Value{
+							"a3": cty.StringVal("a3"),
+							"a4": cty.StringVal("a4"),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"a2": cty.ObjectVal(map[string]cty.Value{
+							"a3": cty.StringVal("a3-changed"),
+							"a5": cty.StringVal("a5-new"),
+						}),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a2": cty.MapVal(map[string]cty.Value{
+						"a3": cty.StringVal("a3-changed"),
+						"a4": cty.StringVal("a4"),
+						"a5": cty.StringVal("a5-new"),
+					}),
+				}),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("b"),
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle unknowns
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle null map
+			[]cty.Value{
+				cty.NullVal(cty.Map(cty.String)),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle null map
+			[]cty.Value{
+				cty.NullVal(cty.Map(cty.String)),
+				cty.NullVal(cty.Object(map[string]cty.Type{
+					"a": cty.List(cty.String),
+				})),
+			},
+			cty.NullVal(cty.EmptyObject),
+			false,
+		},
+		{ // handle null object
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+				cty.NullVal(cty.Object(map[string]cty.Type{
+					"a": cty.List(cty.String),
+				})),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // handle unknowns
+			[]cty.Value{
+				cty.UnknownVal(cty.Map(cty.String)),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.UnknownVal(cty.Map(cty.String)),
+			false,
+		},
+		{ // handle dynamic unknown
+			[]cty.Value{
+				cty.UnknownVal(cty.DynamicPseudoType),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.DynamicVal,
+			false,
+		},
+		{ // merge with conflicts is ok, last in wins
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"c": cty.StringVal("d"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("x"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("x"),
+				"c": cty.StringVal("d"),
+			}),
+			false,
+		},
+		{ // only accept maps
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"c": cty.StringVal("d"),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("x"),
+				}),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // argument error, for a null type
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.NullVal(cty.String),
+			},
+			cty.NilVal,
+			true,
+		},
+		{ // merge maps of maps //TODO: BROKEN
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.MapVal(map[string]cty.Value{
+						"b": cty.StringVal("c"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"d": cty.MapVal(map[string]cty.Value{
+						"e": cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"b": cty.StringVal("c"),
+				}),
+				"d": cty.MapVal(map[string]cty.Value{
+					"e": cty.StringVal("f"),
+				}),
+			}),
+			false,
+		},
+		{ // map of lists
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+						cty.StringVal("c"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"d": cty.ListVal([]cty.Value{
+						cty.StringVal("e"),
+						cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"d": cty.ListVal([]cty.Value{
+					cty.StringVal("e"),
+					cty.StringVal("f"),
+				}),
+			}),
+			false,
+		},
+		{ // merge map of various kinds //TODO: BROKEN
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+						cty.StringVal("c"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"d": cty.MapVal(map[string]cty.Value{
+						"e": cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"d": cty.MapVal(map[string]cty.Value{
+					"e": cty.StringVal("f"),
+				}),
+			}),
+			false,
+		},
+		{ // merge objects of various shapes
+			[]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"d": cty.DynamicVal,
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				"d": cty.DynamicVal,
+			}),
+			false,
+		},
+		{ // merge maps and objects
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"d": cty.NumberIntVal(2),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("b"),
+				}),
+				"d": cty.NumberIntVal(2),
+			}),
+			false,
+		},
+		// { // attr a type and value is overridden
+		// 	[]cty.Value{
+		// 		cty.ObjectVal(map[string]cty.Value{
+		// 			"a": cty.ListVal([]cty.Value{
+		// 				cty.StringVal("b"),
+		// 			}),
+		// 			"b": cty.StringVal("b"),
+		// 		}),
+		// 		cty.ObjectVal(map[string]cty.Value{
+		// 			"a": cty.ObjectVal(map[string]cty.Value{
+		// 				"e": cty.StringVal("f"),
+		// 			}),
+		// 		}),
+		// 	},
+		// 	cty.ObjectVal(map[string]cty.Value{
+		// 		"a": cty.MapVal(map[string]cty.Value{
+		// 			"e": cty.StringVal("f"),
+		// 		}),
+		// 		"b": cty.StringVal("b"),
+		// 	}),
+		// 	false,
+		// },
+		// { // argument error: non map type
+		// 	[]cty.Value{
+		// 		cty.MapVal(map[string]cty.Value{
+		// 			"a": cty.ListVal([]cty.Value{
+		// 				cty.StringVal("b"),
+		// 				cty.StringVal("c"),
+		// 			}),
+		// 		}),
+		// 		cty.ListVal([]cty.Value{
+		// 			cty.StringVal("d"),
+		// 			cty.StringVal("e"),
+		// 		}),
+		// 	},
+		// 	cty.NilVal,
+		// 	true,
+		// },
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("merge(%#v)", test.Values), func(t *testing.T) {
+			got, err := DeepMerge(test.Values...)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestLength(t *testing.T) {
 	tests := []struct {
 		Value cty.Value
