@@ -93,6 +93,62 @@ func TestModuleInstaller(t *testing.T) {
 	assertResultDeepEqual(t, gotTraces, wantTraces)
 }
 
+// TestModuleInstallerTerraformfile almost the same as TestModuleInstaller but
+// source should change from child_a to child_b
+func TestModuleInstallerTerraformfile(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/terraformfile")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+	assertNoDiagnostics(t, diags)
+
+	wantCalls := []testInstallHookCall{
+		{
+			Name:        "Install",
+			ModuleAddr:  "child_a",
+			PackageAddr: "",
+			LocalPath:   "child_b",
+		},
+	}
+
+	if assertResultDeepEqual(t, hooks.Calls, wantCalls) {
+		return
+	}
+
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure the configuration is loadable now.
+	// (This ensures that correct information is recorded in the manifest.)
+	config, loadDiags := loader.LoadConfig(".")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	wantTraces := map[string]string{
+		"":        "in root module",
+		"child_a": "in child_b module",
+	}
+	gotTraces := map[string]string{}
+	config.DeepEach(func(c *configs.Config) {
+		path := strings.Join(c.Path, ".")
+		if c.Module.Variables["v"] == nil {
+			gotTraces[path] = "<missing>"
+			return
+		}
+		varDesc := c.Module.Variables["v"].Description
+		gotTraces[path] = varDesc
+	})
+	assertResultDeepEqual(t, gotTraces, wantTraces)
+}
+
 func TestModuleInstaller_error(t *testing.T) {
 	fixtureDir := filepath.Clean("testdata/local-module-error")
 	dir, done := tempChdir(t, fixtureDir)

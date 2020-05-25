@@ -1,0 +1,5 @@
+{
+  "./child_a": {
+    "source": "./child_b"
+  }
+}
