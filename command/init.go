@@ -605,8 +605,8 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	// fail with an error instructing the user to re-run this command.
 	available = c.providerPluginSet() // re-discover to see newly-installed plugins
 
-	// internal providers were already filtered out, since we don't need to get them.
-	chosen := chooseProviders(available, nil, requirements)
+	// internal and unmanaged providers were already filtered out, since we don't need to get them.
+	chosen := chooseProviders(available, nil, nil, requirements)
 
 	digests := map[string][]byte{}
 	for name, meta := range chosen {
