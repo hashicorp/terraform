@@ -849,6 +849,55 @@ func TestInit_getProvider(t *testing.T) {
 	})
 }
 
+func TestInit_getProviderSource(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-provider-source"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	overrides := metaOverridesForProvider(testProvider())
+	ui := new(cli.MockUi)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		// looking for an exact version
+		"acme/alpha": []string{"1.2.3"},
+		// config doesn't specify versions for other providers
+		"registry.example.com/acme/beta": []string{"1.0.0"},
+		"gamma":                          []string{"2.0.0"},
+	})
+	defer close()
+	m := Meta{
+		testingOverrides: overrides,
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// check that we got the providers for our config
+	exactPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/acme/alpha/1.2.3/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
+		t.Fatal("provider 'alpha' not downloaded")
+	}
+	greaterThanPath := fmt.Sprintf(".terraform/plugins/registry.example.com/acme/beta/1.0.0/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(greaterThanPath); os.IsNotExist(err) {
+		t.Fatal("provider 'beta' not downloaded")
+	}
+	betweenPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/gamma/2.0.0/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
+		t.Fatal("provider 'gamma' not downloaded")
+	}
+}
+
 func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -1526,10 +1575,10 @@ func TestInit_syntaxErrorUpgradeHint(t *testing.T) {
 // longer needed, at which point it will clean up all of the temporary files
 // and the packages in the source will no longer be available for installation.
 //
-// For ease of use in the common case, this function just treats all of the
-// provider given names as "default" providers under
-// registry.terraform.io/hashicorp . If you need more control over the
-// provider addresses, construct a getproviders.MockSource directly instead.
+// Provider addresses must be valid source strings, and passing only the
+// provider name will be interpreted as a "default" provider under
+// registry.terraform.io/hashicorp. If you need more control over the
+// provider addresses, pass a full provider source string.
 //
 // This function also registers providers as belonging to the current platform,
 // to ensure that they will be available to a provider installer operating in
@@ -1548,18 +1597,18 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 			f()
 		}
 	}
-	for name, versions := range availableProviderVersions {
-		addr := addrs.NewDefaultProvider(name)
+	for source, versions := range availableProviderVersions {
+		addr := addrs.MustParseProviderSourceString(source)
 		for _, versionStr := range versions {
 			version, err := getproviders.ParseVersion(versionStr)
 			if err != nil {
 				close()
-				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, name, err)
+				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
 			}
 			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform)
 			if err != nil {
 				close()
-				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
+				t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), versionStr, err)
 			}
 			closes = append(closes, close)
 			packages = append(packages, meta)

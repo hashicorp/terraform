@@ -18,11 +18,10 @@ import (
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -199,21 +198,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
-	//
-	// Just as above, we'll try loading both with the early and normal config
-	// loaders here. Subsequent work will only use the early config, but loading
-	// both gives us an opportunity to prefer the better error messages from the
-	// normal loader if both fail.
-
-	earlyConfig, earlyConfDiags := c.loadConfigEarly(path)
-	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(earlyConfDiags)
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	_, confDiags = c.loadConfig(path)
+	config, confDiags := c.loadConfig(path)
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
@@ -225,7 +210,7 @@ func (c *InitCommand) Run(args []string) int {
 	// configuration declare that they don't support this Terraform version, so
 	// we can produce a version-related error message rather than
 	// potentially-confusing downstream errors.
-	versionDiags := initwd.CheckCoreVersionRequirements(earlyConfig)
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
 	diags = diags.Append(versionDiags)
 	if versionDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -294,7 +279,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade, flagPluginPath)
+	providersOutput, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
 	diags = diags.Append(providerDiags)
 	if providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -425,10 +410,10 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
-	reqs, moreDiags := earlyConfig.ProviderRequirements()
+	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return false, diags
