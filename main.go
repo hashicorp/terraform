@@ -377,24 +377,24 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 		var m map[string]reattachConfig
 		err := json.Unmarshal([]byte(in), &m)
 		if err != nil {
-			return unmanagedProviders, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+			return unmanagedProviders, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %s", err)
 		}
 		for p, c := range m {
 			a, diags := addrs.ParseProviderSourceString(p)
 			if diags.HasErrors() {
-				return unmanagedProviders, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+				return unmanagedProviders, fmt.Errorf("Error parsing %q as a provider address: %s", a, diags.Err())
 			}
 			var addr net.Addr
 			switch c.Addr.Network {
 			case "unix":
 				addr, err = net.ResolveUnixAddr("unix", c.Addr.String)
 				if err != nil {
-					return unmanagedProviders, fmt.Errorf("Invalid unix socket path %q for %q: %w", c.Addr.String, p, err)
+					return unmanagedProviders, fmt.Errorf("Invalid unix socket path %q for %q: %s", c.Addr.String, p, err)
 				}
 			case "tcp":
 				addr, err = net.ResolveTCPAddr("tcp", c.Addr.String)
 				if err != nil {
-					return unmanagedProviders, fmt.Errorf("Invalid TCP address %q for %q: %w", c.Addr.String, p, err)
+					return unmanagedProviders, fmt.Errorf("Invalid TCP address %q for %q: %s", c.Addr.String, p, err)
 				}
 			default:
 				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
