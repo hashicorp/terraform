@@ -4,7 +4,6 @@ package gcs
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/httpclient"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
 
@@ -145,26 +143,13 @@ func (b *Backend) configure(ctx context.Context) error {
 	if tokenSource != nil {
 		opts = append(opts, option.WithTokenSource(tokenSource))
 	} else if creds != "" {
-		var account accountFile
-
 		// to mirror how the provider works, we accept the file path or the contents
 		contents, _, err := pathorcontents.Read(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
 
-		if err := json.Unmarshal([]byte(contents), &account); err != nil {
-			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
-		}
-
-		conf := jwt.Config{
-			Email:      account.ClientEmail,
-			PrivateKey: []byte(account.PrivateKey),
-			Scopes:     []string{storage.ScopeReadWrite},
-			TokenURL:   "https://oauth2.googleapis.com/token",
-		}
-
-		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
+		opts = append(opts, option.WithCredentialsJSON([]byte(contents)), option.WithScopes(storage.ScopeReadWrite))
 	} else {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
 	}
@@ -202,12 +187,4 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// accountFile represents the structure of the account file JSON file.
-type accountFile struct {
-	PrivateKeyId string `json:"private_key_id"`
-	PrivateKey   string `json:"private_key"`
-	ClientEmail  string `json:"client_email"`
-	ClientId     string `json:"client_id"`
 }
