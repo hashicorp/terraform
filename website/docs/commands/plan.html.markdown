@@ -23,6 +23,9 @@ The optional `-out` argument can be used to save the generated plan to a file
 for later execution with `terraform apply`, which can be useful when
 [running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
 
+If Terraform detects no changes to resource or to root module output values,
+`terraform plan` will indicate that no changes are required.
+
 ## Usage
 
 Usage: `terraform plan [options] [dir]`
