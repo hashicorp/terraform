@@ -119,12 +119,11 @@ jobs:
           at: .
       # mkdir in powershell doesn't like environment variables
       - run: mkdir C:\Windows\TEMP\test-results
-      - run: go version
       - run: where gotestsum
       - run:
           name: Run Go E2E Tests on Windows
           command: |
-            Invoke-Expression -Command "C:\Users\circleci\go\bin\gotestsum --format=short-verbose --junitfile C:\Windows\TEMP\test-results\gotestsum-report.xml -- -p 2 .\command\e2etest .\tools\terraform-bundle\e2etest"
+            go test .\command\e2etest .\tools\terraform-bundle\e2etest
           environment:
             TF_ACC: 1
             CONSUL_VERSION: 1.7.2
