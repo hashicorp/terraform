@@ -3,6 +3,7 @@
 NEW FEATURES:
 
 * Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
+* `count` and `for_each` for modules [GH-24461]
 
 BREAKING CHANGES:
 
