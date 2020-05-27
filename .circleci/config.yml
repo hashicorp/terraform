@@ -124,7 +124,7 @@ jobs:
       - run:
           name: Run Go E2E Tests on Windows
           command: |
-            $Env:GOPATH\bin\gotestsum --format=short-verbose --junitfile C:\Windows\TEMP\test-results\gotestsum-report.xml -- -p 2 .\command\e2etest .\tools\terraform-bundle\e2etest
+            %GOPATH%\bin\gotestsum --format=short-verbose --junitfile C:\Windows\TEMP\test-results\gotestsum-report.xml -- -p 2 .\command\e2etest .\tools\terraform-bundle\e2etest
           environment:
             TF_ACC: 1
             CONSUL_VERSION: 1.7.2
