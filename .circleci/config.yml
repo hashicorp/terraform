@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@3.4.2
+  win: circleci/windows@2.2.0
 
 executors:
   go:
@@ -105,6 +106,44 @@ jobs:
           fail_only: true
           only_for_branches: master
 
+  go-test-windows-e2e:
+    executor: 
+      name: win/default
+    environment:
+      TF_ACC: 1
+      CONSUL_VERSION: 1.7.2
+      GOMAXPROCS: 4
+      GO111MODULE: "on"
+      GOPROXY: https://proxy.golang.org/
+      TEST_RESULTS_DIR: &TEST_RESULTS_DIR /tmp/test-results
+      ARTIFACTS_DIR: &ARTIFACTS_DIR /tmp/artifacts
+      GOFLAGS: "-mod=vendor"
+    steps:
+      - checkout
+      - run: choco install golang --version 1.14
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: Run Go E2E Tests on Windows
+          command: |
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./command/e2etest ./tools/terraform-bundle/e2etest
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+      - slack/status:
+          fail_only: true
+          only_for_branches: master
+
   # combine code coverage results from the parallel circleci executors
   coverage-merge:
     executor:
@@ -174,6 +213,9 @@ workflows:
           requires:
             - go-checks
       - go-test-e2e:
+          requires:
+            - go-checks
+      - go-test-e2e-windows:
           requires:
             - go-checks
       - coverage-merge:
