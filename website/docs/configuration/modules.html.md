@@ -531,7 +531,7 @@ The [taint command](/docs/commands/taint.html) can be used to _taint_ specific
 resources within a module:
 
 ```shell
-$ terraform taint -module=salt_master aws_instance.salt_master
+$ terraform taint module.salt_master.aws_instance.salt_master
 ```
 
 It is not possible to taint an entire module. Instead, each resource within
