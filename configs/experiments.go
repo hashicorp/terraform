@@ -139,18 +139,5 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
-	if !m.ActiveExperiments.Has(experiments.VariableValidation) {
-		for _, vc := range m.Variables {
-			if len(vc.Validations) != 0 {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Custom variable validation is experimental",
-					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding variable_validation to the list of active experiments.",
-					Subject:  vc.Validations[0].DeclRange.Ptr(),
-				})
-			}
-		}
-	}
-
 	return diags
 }

@@ -1,8 +1,4 @@
 
-terraform {
-  experiments = [variable_validation]
-}
-
 locals {
   foo = 1
 }
