@@ -4,6 +4,7 @@ NEW FEATURES:
 
 * Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
 * `count` and `for_each` for modules [GH-24461]
+* Terraform now supports [custom validation rules for module input variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules). This allows defining validation rules at the entry point to a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. [GH-25054]
 
 BREAKING CHANGES:
 
@@ -61,6 +62,12 @@ BUG FIXES:
 * provisioner/habitat: Fix permissions on user.toml [GH-24321]
 * provider/terraform: The `terraform_remote_state` data source will no longer attempt to "configure" the selected backend during validation, which means backends will not try to perform remote actions such as verifying credentials during `terraform validate`. Local validation still applies in all cases, and the configuration step will still occur prior to actually reading the remote state in a normal plan/apply operation. [GH-24887]
 * vendor: Fix crash when processing malformed JSON [GH-24650]
+
+EXPERIMENTS:
+
+* This release concludes the `variable_validation` [experiment](https://www.terraform.io/docs/configuration/terraform.html#experimental-language-features) that was started in Terraform v0.12.20. If you were participating in the experiment, you should remove the experiment opt-in from your configuration as part of upgrading to Terraform 0.13.
+
+    The experiment received only feedback that can be addressed with backward-compatible future enhancements, so it's been accepted into this release as stable with no changes to its original design so far. We'll consider additional features related to custom validation in future releases after seeing how it's used in real-world modules.
 
 ## Previous Releases
 
