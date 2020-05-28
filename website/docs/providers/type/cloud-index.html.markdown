@@ -22,7 +22,6 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Brightbox](/docs/providers/brightbox/index.html)
 - [CenturyLinkCloud](/docs/providers/clc/index.html)
 - [CherryServers](/docs/providers/cherryservers/index.html)
-- [Cisco ACI](/docs/providers/aci/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
 - [DigitalOcean](/docs/providers/do/index.html)
@@ -59,3 +58,4 @@ vendor in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Vultr](/docs/providers/vultr/index.html)
 - [Yandex.Cloud](/docs/providers/yandex/index.html)
 - [1&1](/docs/providers/oneandone/index.html)
+

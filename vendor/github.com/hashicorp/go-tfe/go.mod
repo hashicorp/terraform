@@ -11,3 +11,5 @@ require (
 	github.com/svanharmelen/jsonapi v0.0.0-20180618144545-0c0828c3f16d
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 )
+
+go 1.12

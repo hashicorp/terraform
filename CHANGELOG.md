@@ -1,3 +1,10 @@
+## 0.12.26 (May 27, 2020)
+
+ENHANCEMENTS:
+
+* backend/remote: Can now accept `-target` options when creating a plan using _remote operations_, if supported by the target server. (Server-side support for this in Terraform Cloud and Terraform Enterprise will follow in forthcoming releases of each.) ([#24834](https://github.com/hashicorp/terraform/issues/24834))
+* cli: A special new lifecycle mode for provider plugins where they are assumed to be controlled by an external process outside of Terraform. This is for automated provider plugin testing only, and is not an end-user feature. ([#24674](https://github.com/hashicorp/terraform/issues/24674))
+
 ## 0.12.25 (May 13, 2020)
 
 NOTES:

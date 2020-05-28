@@ -38,9 +38,8 @@ require (
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/mock v1.3.1
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.3.4
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-cmp v0.3.1
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
@@ -61,11 +60,11 @@ require (
 	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-msgpack v0.5.4 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/go-plugin v1.0.1-0.20190610192547-a1bc61569a26
+	github.com/hashicorp/go-plugin v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.5.2
 	github.com/hashicorp/go-rootcerts v1.0.0
 	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
-	github.com/hashicorp/go-tfe v0.3.27
+	github.com/hashicorp/go-tfe v0.8.1
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
@@ -134,9 +133,10 @@ require (
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 	golang.org/x/tools v0.0.0-20190628153133-6cdbf07be9d0
 	google.golang.org/api v0.9.0
-	google.golang.org/grpc v1.21.1
+	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
+	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
 )
 
 go 1.12

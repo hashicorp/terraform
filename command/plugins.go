@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
@@ -37,15 +38,28 @@ type multiVersionProviderResolver struct {
 	// exceptional circumstances since it forces the provider's release
 	// schedule to be tied to that of Terraform Core.
 	Internal map[addrs.Provider]providers.Factory
+
+	// Unmanaged is a map that overrides the usual plugin selection process
+	// for unmanaged plugins. these plugins are not managed by Terraform,
+	// and can be treated as always-present servers that Terraform is free
+	// to connect to and disconnect from without worrying about their state
+	// or lifecycle at all.
+	Unmanaged map[addrs.Provider]*plugin.ReattachConfig
 }
 
-func chooseProviders(avail discovery.PluginMetaSet, internal map[addrs.Provider]providers.Factory, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
+func chooseProviders(avail discovery.PluginMetaSet, internal map[addrs.Provider]providers.Factory, unmanaged map[addrs.Provider]*plugin.ReattachConfig, reqd discovery.PluginRequirements) map[string]discovery.PluginMeta {
 	candidates := avail.ConstrainVersions(reqd)
 	ret := map[string]discovery.PluginMeta{}
 	for name, metas := range candidates {
 		// If the provider is in our internal map then we ignore any
 		// discovered plugins for it since these are dealt with separately.
 		if _, isInternal := internal[addrs.NewLegacyProvider(name)]; isInternal {
+			continue
+		}
+		// If the provider is an unmanaged provider, we can ignore any
+		// discovered plugins for it, because we'll be attaching to it
+		// and don't need to start the server ourselves
+		if _, isUnmanaged := unmanaged[addrs.NewLegacyProvider(name)]; isUnmanaged {
 			continue
 		}
 
@@ -63,7 +77,7 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 	factories := make(map[addrs.Provider]providers.Factory, len(reqd))
 	var errs []error
 
-	chosen := chooseProviders(r.Available, r.Internal, reqd)
+	chosen := chooseProviders(r.Available, r.Internal, r.Unmanaged, reqd)
 	for name, req := range reqd {
 		if factory, isInternal := r.Internal[addrs.NewLegacyProvider(name)]; isInternal {
 			if !req.Versions.Unconstrained() {
@@ -71,6 +85,11 @@ func (r *multiVersionProviderResolver) ResolveProviders(
 				continue
 			}
 			factories[addrs.NewLegacyProvider(name)] = factory
+			continue
+		}
+
+		if reattach, isUnmanaged := r.Unmanaged[addrs.NewLegacyProvider(name)]; isUnmanaged {
+			factories[addrs.NewLegacyProvider(name)] = unmanagedProviderFactory(addrs.NewLegacyProvider(name), reattach)
 			continue
 		}
 
@@ -278,6 +297,7 @@ func (m *Meta) providerResolver() providers.Resolver {
 	return &multiVersionProviderResolver{
 		Available: m.providerPluginSet(),
 		Internal:  m.internalProviders(),
+		Unmanaged: m.UnmanagedProviders,
 	}
 }
 
@@ -299,6 +319,11 @@ func (m *Meta) missingPlugins(avail discovery.PluginMetaSet, reqd discovery.Plug
 	for name, versionSet := range reqd {
 		// internal providers can't be missing
 		if _, ok := internal[addrs.NewLegacyProvider(name)]; ok {
+			continue
+		}
+
+		// unmanaged providers can't be missing
+		if _, ok := m.UnmanagedProviders[addrs.NewLegacyProvider(name)]; ok {
 			continue
 		}
 
@@ -382,6 +407,50 @@ func providerFactory(meta discovery.PluginMeta) providers.Factory {
 		// store the client so that the plugin can kill the child process
 		p := raw.(*tfplugin.GRPCProvider)
 		p.PluginClient = client
+		return p, nil
+	}
+}
+
+// unmanagedProviderFactory produces a provider factory that uses the passed
+// reattach information to connect to go-plugin processes that are already
+// running, and implements providers.Interface against it.
+func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.ReattachConfig) providers.Factory {
+	return func() (providers.Interface, error) {
+		logger := hclog.New(&hclog.LoggerOptions{
+			Name:   "unmanaged-plugin",
+			Level:  hclog.Trace,
+			Output: os.Stderr,
+		})
+
+		config := &plugin.ClientConfig{
+			HandshakeConfig:  tfplugin.Handshake,
+			Logger:           logger,
+			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+			Managed:          false,
+			Reattach:         reattach,
+		}
+		// TODO: we probably shouldn't hardcode the protocol version
+		// here, but it'll do for now, because only one protocol
+		// version is supported. Eventually, we'll probably want to
+		// sneak it into the JSON ReattachConfigs.
+		if plugins, ok := tfplugin.VersionedPlugins[5]; !ok {
+			return nil, fmt.Errorf("no supported plugins for protocol 5")
+		} else {
+			config.Plugins = plugins
+		}
+
+		client := plugin.NewClient(config)
+		rpcClient, err := client.Client()
+		if err != nil {
+			return nil, err
+		}
+
+		raw, err := rpcClient.Dispense(tfplugin.ProviderPluginName)
+		if err != nil {
+			return nil, err
+		}
+
+		p := raw.(*tfplugin.GRPCProvider)
 		return p, nil
 	}
 }

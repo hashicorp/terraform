@@ -30,23 +30,17 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 
 	// Get the remote workspace name.
-	workspace := op.Workspace
-	switch {
-	case op.Workspace == backend.DefaultStateName:
-		workspace = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		workspace = b.prefix + op.Workspace
-	}
+	remoteWorkspaceName := b.getRemoteWorkspaceName(op.Workspace)
 
 	// Get the latest state.
-	log.Printf("[TRACE] backend/remote: requesting state manager for workspace %q", workspace)
+	log.Printf("[TRACE] backend/remote: requesting state manager for workspace %q", remoteWorkspaceName)
 	stateMgr, err := b.StateMgr(op.Workspace)
 	if err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
 		return nil, nil, diags
 	}
 
-	log.Printf("[TRACE] backend/remote: requesting state lock for workspace %q", workspace)
+	log.Printf("[TRACE] backend/remote: requesting state lock for workspace %q", remoteWorkspaceName)
 	if err := op.StateLocker.Lock(stateMgr, op.Type.String()); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error locking state: {{err}}", err))
 		return nil, nil, diags
@@ -63,7 +57,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		}
 	}()
 
-	log.Printf("[TRACE] backend/remote: reading remote state for workspace %q", workspace)
+	log.Printf("[TRACE] backend/remote: reading remote state for workspace %q", remoteWorkspaceName)
 	if err := stateMgr.RefreshState(); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
 		return nil, nil, diags
@@ -83,7 +77,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	// Load the latest state. If we enter contextFromPlanFile below then the
 	// state snapshot in the plan file must match this, or else it'll return
 	// error diagnostics.
-	log.Printf("[TRACE] backend/remote: retrieving remote state snapshot for workspace %q", workspace)
+	log.Printf("[TRACE] backend/remote: retrieving remote state snapshot for workspace %q", remoteWorkspaceName)
 	opts.State = stateMgr.State()
 
 	log.Printf("[TRACE] backend/remote: loading configuration for the current working directory")
@@ -94,11 +88,17 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 	opts.Config = config
 
-	log.Printf("[TRACE] backend/remote: retrieving variables from workspace %q", workspace)
-	tfeVariables, err := b.client.Variables.List(context.Background(), tfe.VariableListOptions{
-		Organization: tfe.String(b.organization),
-		Workspace:    tfe.String(workspace),
-	})
+	// The underlying API expects us to use the opaque workspace id to request
+	// variables, so we'll need to look that up using our organization name
+	// and workspace name.
+	remoteWorkspaceID, err := b.getRemoteWorkspaceID(context.Background(), op.Workspace)
+	if err != nil {
+		diags = diags.Append(errwrap.Wrapf("Error finding remote workspace: {{err}}", err))
+		return nil, nil, diags
+	}
+
+	log.Printf("[TRACE] backend/remote: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+	tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, tfe.VariableListOptions{})
 	if err != nil && err != tfe.ErrResourceNotFound {
 		diags = diags.Append(errwrap.Wrapf("Error loading variables: {{err}}", err))
 		return nil, nil, diags
@@ -140,6 +140,32 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	log.Printf("[TRACE] backend/remote: finished building terraform.Context")
 
 	return tfCtx, stateMgr, diags
+}
+
+func (b *Remote) getRemoteWorkspaceName(localWorkspaceName string) string {
+	switch {
+	case localWorkspaceName == backend.DefaultStateName:
+		// The default workspace name is a special case, for when the backend
+		// is configured to with to an exact remote workspace rather than with
+		// a remote workspace _prefix_.
+		return b.workspace
+	case b.prefix != "" && !strings.HasPrefix(localWorkspaceName, b.prefix):
+		return b.prefix + localWorkspaceName
+	default:
+		return localWorkspaceName
+	}
+}
+
+func (b *Remote) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName string) (string, error) {
+	remoteWorkspaceName := b.getRemoteWorkspaceName(localWorkspaceName)
+
+	log.Printf("[TRACE] backend/remote: looking up workspace id for %s/%s", b.organization, remoteWorkspaceName)
+	remoteWorkspace, err := b.client.Workspaces.Read(ctx, b.organization, remoteWorkspaceName)
+	if err != nil {
+		return "", err
+	}
+
+	return remoteWorkspace.ID, nil
 }
 
 func stubAllVariables(vv map[string]backend.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
