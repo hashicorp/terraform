@@ -33,11 +33,6 @@ Usage: `terraform plan [options] [dir]`
 By default, `plan` requires no flags and looks in the current directory
 for the configuration and state file to refresh.
 
-If the command is given an existing saved plan as an argument, the
-command will output the contents of the saved plan. In this scenario,
-the `plan` command will not modify the given plan. This can be used to
-inspect a planfile.
-
 The command-line flags are all optional. The list of available flags are:
 
 * `-compact-warnings` - If Terraform produces any warnings that are not
