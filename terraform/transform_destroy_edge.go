@@ -268,10 +268,10 @@ func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
 							return
 						}
 					}
-					for _, vv := range g.UpEdges(n) {
+					for _, v := range g.UpEdges(n) {
 						// keep any value which is connected through a
 						// reference
-						if _, ok := vv.(GraphNodeReferencer); ok {
+						if _, ok := v.(GraphNodeReferencer); ok {
 							return
 						}
 					}
@@ -279,8 +279,8 @@ func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
 				case graphNodeExpandsInstances:
 					// Any nodes that expand instances are kept when their
 					// instances may need to be evaluated.
-					for _, vv := range g.UpEdges(n) {
-						switch vv.(type) {
+					for _, v := range g.UpEdges(n) {
+						switch v.(type) {
 						case graphNodeExpandsInstances:
 							// expanders can always depend on module expansion
 							// themselves
@@ -296,6 +296,7 @@ func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
 					return
 				}
 
+				log.Printf("[DEBUG] pruneUnusedNodes: %s is no longer needed, removing", dag.VertexName(n))
 				g.Remove(n)
 				removed = true
 
