@@ -96,7 +96,7 @@ func TestBase64Sha256(t *testing.T) {
 			cty.StringVal("n4bQgYhMfWWaL+qgxVrQFaO/TxsrC4Is0V1sFbDwCgg="),
 			false,
 		},
-		// This would differ because we're base64-encoding hex represantiation, not raw bytes.
+		// This would differ because we're base64-encoding hex representation, not raw bytes.
 		// base64encode(sha256("test")) =
 		// "OWY4NmQwODE4ODRjN2Q2NTlhMmZlYWEwYzU1YWQwMTVhM2JmNGYxYjJiMGI4MjJjZDE1ZDZjMTViMGYwMGEwOA=="
 	}
@@ -166,6 +166,87 @@ func TestFileBase64Sha256(t *testing.T) {
 	}
 }
 
+func TestBase64Sha384(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("test"),
+			cty.StringVal("doQSMg97CqWBL85CjcRwazyuUOAqZMqhangiSb/o78S37xzLEmJV0ZYEff7fF6Cp"),
+			false,
+		},
+		// This would differ because we're base64-encoding hex representation, not raw bytes.
+		// base64encode(sha384("test")) =
+		// "NzY4NDEyMzIwZjdiMGFhNTgxMmZjZTQyOGRjNDcwNmIzY2FlNTBlMDJhNjRjYWExNmE3ODIyNDliZmU4ZWZjNGI3ZWYxY2NiMTI2MjU1ZDE5NjA0N2RmZWRmMTdhMGE5"
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("base64sha384(%#v)", test.String), func(t *testing.T) {
+			got, err := Base64Sha384(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestFileBase64Sha384(t *testing.T) {
+	tests := []struct {
+		Path cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.StringVal("testdata/hello.txt"),
+			cty.StringVal("mVFDKRhrL2rkoTKefubGEKcpY2M1F0rGt0D5AoOW/MgD0Ok4Y6fD2Q+Gvu54L08/"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/icon.png"),
+			cty.StringVal("Kvi0tHVxBPejVd0GkaJXHRgV83SOVdoZFu1OqXeYd1XS1Oe9+ZKOjUBQTkG25Duz"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/missing"),
+			cty.NilVal,
+			true, // no file exists
+		},
+	}
+
+	fileSHA384 := MakeFileBase64Sha384Func(".")
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("filebase64sha384(%#v)", test.Path), func(t *testing.T) {
+			got, err := fileSHA384.Call([]cty.Value{test.Path})
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestBase64Sha512(t *testing.T) {
 	tests := []struct {
 		String cty.Value
@@ -177,7 +258,7 @@ func TestBase64Sha512(t *testing.T) {
 			cty.StringVal("7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w=="),
 			false,
 		},
-		// This would differ because we're base64-encoding hex represantiation, not raw bytes
+		// This would differ because we're base64-encoding hex representation, not raw bytes
 		// base64encode(sha512("test")) =
 		// "OZWUyNmIwZGQ0YWY3ZTc0OWFhMWE4ZWUzYzEwYWU5OTIzZjYxODk4MDc3MmU0NzNmODgxOWE1ZDQ5NDBlMGRiMjdhYzE4NWY4YTBlMWQ1Zjg0Zjg4YmM4ODdmZDY3YjE0MzczMmMzMDRjYzVmYTlhZDhlNmY1N2Y1MDAyOGE4ZmY="
 	}
@@ -574,6 +655,84 @@ func TestFileSHA256(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filesha256(%#v)", test.Path), func(t *testing.T) {
 			got, err := fileSHA256.Call([]cty.Value{test.Path})
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestSha384(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("test"),
+			cty.StringVal("768412320f7b0aa5812fce428dc4706b3cae50e02a64caa16a782249bfe8efc4b7ef1ccb126255d196047dfedf17a0a9"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("sha384(%#v)", test.String), func(t *testing.T) {
+			got, err := Sha384(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestFileSHA384(t *testing.T) {
+	tests := []struct {
+		Path cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.StringVal("testdata/hello.txt"),
+			cty.StringVal("99514329186b2f6ae4a1329e7ee6c610a729636335174ac6b740f9028396fcc803d0e93863a7c3d90f86beee782f4f3f"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/icon.png"),
+			cty.StringVal("2af8b4b4757104f7a355dd0691a2571d1815f3748e55da1916ed4ea977987755d2d4e7bdf9928e8d40504e41b6e43bb3"),
+			false,
+		},
+		{
+			cty.StringVal("testdata/missing"),
+			cty.NilVal,
+			true, // no file exists
+		},
+	}
+
+	fileSHA384 := MakeFileSha384Func(".")
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("filesha384(%#v)", test.Path), func(t *testing.T) {
+			got, err := fileSHA384.Call([]cty.Value{test.Path})
 
 			if test.Err {
 				if err == nil {

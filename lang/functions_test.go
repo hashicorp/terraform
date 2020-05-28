@@ -95,6 +95,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"base64sha384": {
+			{
+				`base64sha384("test")`,
+				cty.StringVal("doQSMg97CqWBL85CjcRwazyuUOAqZMqhangiSb/o78S37xzLEmJV0ZYEff7fF6Cp"),
+			},
+		},
+
 		"base64sha512": {
 			{
 				`base64sha512("test")`,
@@ -357,6 +364,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"filebase64sha384": {
+			{
+				`filebase64sha384("hello.txt")`,
+				cty.StringVal("kic37vDMiXDAbuJfRUzE8DoM7tZdp8uRANawqr4TU8acc4565W6tQaJQoKkVM7wO"),
+			},
+		},
+
 		"filebase64sha512": {
 			{
 				`filebase64sha512("hello.txt")`,
@@ -382,6 +396,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`filesha256("hello.txt")`,
 				cty.StringVal("ce06092fb948d9ffac7d1a376e404b26b7575bcc11ee05a4615fef4fec3a308b"),
+			},
+		},
+
+		"filesha384": {
+			{
+				`filesha384("hello.txt")`,
+				cty.StringVal("922737eef0cc8970c06ee25f454cc4f03a0ceed65da7cb9100d6b0aabe1353c69c738e7ae56ead41a250a0a91533bc0e"),
 			},
 		},
 
@@ -719,6 +740,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`sha256("test")`,
 				cty.StringVal("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"),
+			},
+		},
+
+		"sha384": {
+			{
+				`sha384("test")`,
+				cty.StringVal("768412320f7b0aa5812fce428dc4706b3cae50e02a64caa16a782249bfe8efc4b7ef1ccb126255d196047dfedf17a0a9"),
 			},
 		},
 

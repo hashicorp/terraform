@@ -76,6 +76,16 @@ func MakeFileBase64Sha256Func(baseDir string) function.Function {
 	return makeFileHashFunction(baseDir, sha256.New, base64.StdEncoding.EncodeToString)
 }
 
+// Base64Sha384Func constructs a function that computes the SHA384 hash of a given string
+// and encodes it with Base64.
+var Base64Sha384Func = makeStringHashFunction(sha512.New384, base64.StdEncoding.EncodeToString)
+
+// MakeFileBase64Sha384Func constructs a function that is like Base64Sha384Func but reads the
+// contents of a file rather than hashing a given literal string.
+func MakeFileBase64Sha384Func(baseDir string) function.Function {
+	return makeFileHashFunction(baseDir, sha512.New384, base64.StdEncoding.EncodeToString)
+}
+
 // Base64Sha512Func constructs a function that computes the SHA256 hash of a given string
 // and encodes it with Base64.
 var Base64Sha512Func = makeStringHashFunction(sha512.New, base64.StdEncoding.EncodeToString)
@@ -179,7 +189,7 @@ var RsaDecryptFunc = function.New(&function.Spec{
 	},
 })
 
-// Sha1Func contructs a function that computes the SHA1 hash of a given string
+// Sha1Func constructs a function that computes the SHA1 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha1Func = makeStringHashFunction(sha1.New, hex.EncodeToString)
 
@@ -189,7 +199,7 @@ func MakeFileSha1Func(baseDir string) function.Function {
 	return makeFileHashFunction(baseDir, sha1.New, hex.EncodeToString)
 }
 
-// Sha256Func contructs a function that computes the SHA256 hash of a given string
+// Sha256Func constructs a function that computes the SHA256 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha256Func = makeStringHashFunction(sha256.New, hex.EncodeToString)
 
@@ -199,7 +209,17 @@ func MakeFileSha256Func(baseDir string) function.Function {
 	return makeFileHashFunction(baseDir, sha256.New, hex.EncodeToString)
 }
 
-// Sha512Func contructs a function that computes the SHA512 hash of a given string
+// Sha384Func constructs a function that computes the SHA384 hash of a given string
+// and encodes it with hexadecimal digits.
+var Sha384Func = makeStringHashFunction(sha512.New384, hex.EncodeToString)
+
+// MakeFileSha384Func constructs a function that is like Sha384Func but reads the
+// contents of a file rather than hashing a given literal string.
+func MakeFileSha384Func(baseDir string) function.Function {
+	return makeFileHashFunction(baseDir, sha512.New384, hex.EncodeToString)
+}
+
+// Sha512Func constructs a function that computes the SHA512 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha512Func = makeStringHashFunction(sha512.New, hex.EncodeToString)
 
@@ -278,6 +298,16 @@ func Base64Sha256(str cty.Value) (cty.Value, error) {
 	return Base64Sha256Func.Call([]cty.Value{str})
 }
 
+// Base64Sha384 computes the SHA384 hash of a given string and encodes it with
+// Base64.
+//
+// The given string is first encoded as UTF-8 and then the SHA384 algorithm is applied
+// as defined in RFC 4634. The raw hash is then encoded with Base64 before returning.
+// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
+func Base64Sha384(str cty.Value) (cty.Value, error) {
+	return Base64Sha384Func.Call([]cty.Value{str})
+}
+
 // Base64Sha512 computes the SHA512 hash of a given string and encodes it with
 // Base64.
 //
@@ -317,6 +347,11 @@ func Sha1(str cty.Value) (cty.Value, error) {
 // Sha256 computes the SHA256 hash of a given string and encodes it with hexadecimal digits.
 func Sha256(str cty.Value) (cty.Value, error) {
 	return Sha256Func.Call([]cty.Value{str})
+}
+
+// Sha384 computes the SHA384 hash of a given string and encodes it with hexadecimal digits.
+func Sha384(str cty.Value) (cty.Value, error) {
+	return Sha384Func.Call([]cty.Value{str})
 }
 
 // Sha512 computes the SHA512 hash of a given string and encodes it with hexadecimal digits.
