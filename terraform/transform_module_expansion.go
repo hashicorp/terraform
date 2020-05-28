@@ -47,6 +47,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 		if _, ok := v.(*nodeCloseModule); ok {
 			continue
 		}
+
 		// any node that executes within the scope of a module should be a
 		// GraphNodeModulePath
 		pather, ok := v.(GraphNodeModulePath)
@@ -113,6 +114,10 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 		var path addrs.Module
 		switch t := childV.(type) {
+		case GraphNodeDestroyer:
+			// skip destroyers, as they can only depend on other resources.
+			continue
+
 		case GraphNodeModulePath:
 			path = t.ModulePath()
 		case GraphNodeReferenceOutside:
