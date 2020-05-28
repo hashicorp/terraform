@@ -11116,3 +11116,146 @@ resource "aws_instance" "cbd" {
 		t.Fatal("aws_instance.foo should also be create_before_destroy")
 	}
 }
+
+func TestContext2Apply_moduleSelfReference(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "test" {
+  source = "./test"
+
+  a = module.test.b
+}
+
+output "c" {
+  value = module.test.c
+}
+`,
+		"test/main.tf": `
+variable "a" {}
+
+resource "test_instance" "test" {
+}
+
+output "b" {
+  value = test_instance.test.id
+}
+
+output "c" {
+  value = var.a
+}`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy: true,
+	})
+
+	_, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if !state.Empty() {
+		t.Fatal("expected empty state, got:", state)
+	}
+}
+
+func TestContext2Apply_moduleExpandDependsOn(t *testing.T) {
+	// enable once merged with module depends_on
+	return
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  count = 1
+  source = "./child"
+
+  depends_on = [test_instance.a, test_instance.b]
+}
+
+resource "test_instance" "a" {
+}
+
+
+resource "test_instance" "b" {
+}
+`,
+		"child/main.tf": `
+resource "test_instance" "foo" {
+}
+
+output "myoutput" {
+  value = "literal string"
+}
+`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy: true,
+		State:   state,
+	})
+
+	_, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if !state.Empty() {
+		t.Fatal("expected empty state, got:", state)
+	}
+}
