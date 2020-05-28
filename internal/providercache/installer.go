@@ -269,7 +269,8 @@ NeedProvider:
 
 	// Step 3: For each provider version we've decided we need to install,
 	// install its package into our target cache (possibly via the global cache).
-	targetPlatform := i.targetDir.targetPlatform // we inherit this to behave correctly in unit tests
+	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
+	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
 	for provider, version := range need {
 		if i.globalCacheDir != nil {
 			// Step 3a: If our global cache already has this version available then
@@ -368,10 +369,16 @@ NeedProvider:
 				continue
 			}
 		}
+		authResults[provider] = authResult
 		selected[provider] = version
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)
 		}
+	}
+
+	// Emit final event for fetching if any were successfully fetched
+	if cb := evts.ProvidersFetched; cb != nil && len(authResults) > 0 {
+		cb(authResults)
 	}
 
 	// We'll remember our selections in a lock file inside the target directory,
