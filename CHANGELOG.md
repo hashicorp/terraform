@@ -29,6 +29,7 @@ ENHANCEMENTS:
 * config: `templatefile` function will now return a helpful error message if a given variable has an invalid name, rather than relying on a syntax error in the template parsing itself. [GH-24184]
 * config: The configuration language now uses Unicode 12.0 character tables for certain Unicode-version-sensitive operations on strings, such as the `upper` and `lower` functions. Those working with strings containing new characters introduced since Unicode 9.0 may see small differences in behavior as a result of these table updates.
 * cli: When installing providers from the Terraform Registry, Terraform will verify the trust signature for partner providers, and allow for self-signed community providers [GH-24617]
+* cli: Display detailed trust signature information when installing providers from the Terraform Registry, including a link to more documentation on different levels of signature [GH-24932]
 * cli: It is now possible to optionally specify explicitly which installation methods can be used for different providers, such as forcing a particular provider to be loaded from a particular directory on local disk instead of consulting its origin provider registry. [GH-24728]
 * cli: Add state replace-provider subcommand to allow changing the provider source for existing resources [GH-24523]
 * config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
