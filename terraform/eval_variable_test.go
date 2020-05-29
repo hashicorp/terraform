@@ -85,3 +85,77 @@ variable "test" {
 		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 	}
 }
+
+func TestContext2Apply_variableCustomValidationsNilStringError(t *testing.T) {
+	// This test is for custom validation rules associated with root module
+	// variables, and specifically that we handle the situation where their
+	// values are unknown during validation, skipping the validation check
+	// altogether. (Root module variables are never known during validation.)
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "test" {
+  type = string
+	default = "four"
+
+  validation {
+		condition     = length(var.test) > 5
+		error_message = ""
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Apply()
+	want := `Invalid validation error message: An empty string is not a valid nor useful error message.`
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error that contained %q", want)
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, want) {
+		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+	}
+}
+
+func TestContext2Apply_variableCustomValidationsNonStringError(t *testing.T) {
+	// This test is for custom validation rules associated with root module
+	// variables, and specifically that we handle the situation where their
+	// values are unknown during validation, skipping the validation check
+	// altogether. (Root module variables are never known during validation.)
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "test" {
+  type = string
+	default = "four"
+
+  validation {
+		condition     = length(var.test) > 5
+		error_message = [4, 3]
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Apply()
+	want := `Invalid validation error message: Invalid validation error message result value: string required.`
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error that contained %q", want)
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, want) {
+		t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
+	}
+}
