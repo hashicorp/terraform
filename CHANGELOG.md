@@ -3,6 +3,7 @@
 NEW FEATURES:
 
 * **`count` and `for_each` for modules**: Similar to the arguments of the same name in `resource` and `data` blocks, these create multiple instances of a module from a single `module` block. [GH-24461]
+* **`depends_on` for modules**: Modules can now use the `depends_on` argument to ensure that all module resource changes have been applied after any changes to the `depends_on` targets have been applied. [GH-25005]
 * **Automatic installation of third-party providers**: Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
 * **Custom validation rules for input variables**: A new [`validation` block type](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) inside `variable` blocks allows module authors to define validation rules at the public interface into a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. [GH-25054]
 
@@ -36,7 +37,8 @@ ENHANCEMENTS:
 * config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
 * config: Add "sum" function, which takes a list or set of numbers and returns the sum of all elements [GH-24666]
 * config: added support for passing metadata from modules to providers using HCL [GH-22583]
-* core: significant performance enhancements for graph operations, which will help with highly-connected graphs [GH-23811]
+* core: Significant performance enhancements for graph operations, which will help with highly-connected graphs [GH-23811]
+* core: Data sources can now be evaluated during plan, allowing `depends_on` to work correctly, and allowing data sources to update immediately when their configuration changes. [GH-24904]
 * backend/azurerm: switching to use the Giovanni Storage SDK to communicate with Azure [GH-24669]
 * backend/remote: Now supports `terraform state push -force`. [GH-24696]
 * backend/remote: Can now accept `-target` options when creating a plan using _remote operations_, if supported by the target server. (Server-side support for this in Terraform Cloud and Terraform Enterprise will follow in forthcoming releases of each.) [GH-24834]
