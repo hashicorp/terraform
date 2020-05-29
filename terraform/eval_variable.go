@@ -211,7 +211,7 @@ func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     errInvalidCondition,
-				Detail:      "Validation condition expression must return either true or false, not null.",
+				Detail:      "Validation error message expression must return a string, not null.",
 				Subject:     validation.ErrorMessage.Range().Ptr(),
 				Expression:  validation.ErrorMessage,
 				EvalContext: hclCtx,
