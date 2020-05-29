@@ -23,8 +23,11 @@ var (
 	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
-	_ graphNodeTemporaryValue    = (*NodeApplyableOutput)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)
 )
+
+func (n *nodeExpandOutput) expandsInstances() {}
 
 func (n *nodeExpandOutput) temporaryValue() bool {
 	// this must always be evaluated if it is a root module output
@@ -254,7 +257,6 @@ type NodeDestroyableOutput struct {
 var (
 	_ RemovableIfNotTargeted    = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeTargetDownstream = (*NodeDestroyableOutput)(nil)
-	_ GraphNodeReferencer       = (*NodeDestroyableOutput)(nil)
 	_ GraphNodeEvalable         = (*NodeDestroyableOutput)(nil)
 	_ dag.GraphNodeDotter       = (*NodeDestroyableOutput)(nil)
 )
@@ -279,11 +281,6 @@ func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
 // node is also in the destroy graph.
 func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
 	return true
-}
-
-// GraphNodeReferencer
-func (n *NodeDestroyableOutput) References() []*addrs.Reference {
-	return referencesForOutput(n.Config)
 }
 
 // GraphNodeEvalable

@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -9,12 +8,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 )
-
-// graphNodeModuleCloser is an interface implemented by nodes that finalize the
-// evaluation of modules.
-type graphNodeModuleCloser interface {
-	CloseModule() addrs.Module
-}
 
 type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex
 
@@ -28,10 +21,14 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ RemovableIfNotTargeted = (*nodeExpandModule)(nil)
-	_ GraphNodeEvalable      = (*nodeExpandModule)(nil)
-	_ GraphNodeReferencer    = (*nodeExpandModule)(nil)
+	_ RemovableIfNotTargeted    = (*nodeExpandModule)(nil)
+	_ GraphNodeEvalable         = (*nodeExpandModule)(nil)
+	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
+	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
+	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
 )
+
+func (n *nodeExpandModule) expandsInstances() {}
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String() + " (expand)"
@@ -39,10 +36,7 @@ func (n *nodeExpandModule) Name() string {
 
 // GraphNodeModulePath implementation
 func (n *nodeExpandModule) ModulePath() addrs.Module {
-	// This node represents the module call within a module,
-	// so return the CallerAddr as the path as the module
-	// call may expand into multiple child instances
-	return n.Addr.Parent()
+	return n.Addr
 }
 
 // GraphNodeReferencer implementation
@@ -88,6 +82,11 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	return appendResourceDestroyReferences(refs)
 }
 
+// GraphNodeReferenceOutside
+func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+	return n.Addr, n.Addr.Parent()
+}
+
 // RemovableIfNotTargeted implementation
 func (n *nodeExpandModule) RemoveIfNotTargeted() bool {
 	// We need to add this so that this node will be removed if
@@ -113,20 +112,19 @@ func (n *nodeExpandModule) EvalTree() EvalNode {
 // empty resources and modules from the state.
 type nodeCloseModule struct {
 	Addr addrs.Module
-
-	// orphaned indicates that this module has no expansion, because it no
-	// longer exists in the configuration
-	orphaned bool
 }
 
 var (
-	_ graphNodeModuleCloser  = (*nodeCloseModule)(nil)
-	_ GraphNodeReferenceable = (*nodeCloseModule)(nil)
+	_ GraphNodeReferenceable    = (*nodeCloseModule)(nil)
+	_ GraphNodeReferenceOutside = (*nodeCloseModule)(nil)
 )
 
 func (n *nodeCloseModule) ModulePath() addrs.Module {
-	mod, _ := n.Addr.Call()
-	return mod
+	return n.Addr
+}
+
+func (n *nodeCloseModule) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+	return n.Addr.Parent(), n.Addr
 }
 
 func (n *nodeCloseModule) ReferenceableAddrs() []addrs.Referenceable {
@@ -143,10 +141,6 @@ func (n *nodeCloseModule) Name() string {
 	return n.Addr.String() + " (close)"
 }
 
-func (n *nodeCloseModule) CloseModule() addrs.Module {
-	return n.Addr
-}
-
 // RemovableIfNotTargeted implementation
 func (n *nodeCloseModule) RemoveIfNotTargeted() bool {
 	// We need to add this so that this node will be removed if
@@ -160,8 +154,7 @@ func (n *nodeCloseModule) EvalTree() EvalNode {
 			&EvalOpFilter{
 				Ops: []walkOperation{walkApply, walkDestroy},
 				Node: &evalCloseModule{
-					Addr:     n.Addr,
-					orphaned: n.orphaned,
+					Addr: n.Addr,
 				},
 			},
 		},
@@ -169,8 +162,7 @@ func (n *nodeCloseModule) EvalTree() EvalNode {
 }
 
 type evalCloseModule struct {
-	Addr     addrs.Module
-	orphaned bool
+	Addr addrs.Module
 }
 
 func (n *evalCloseModule) Eval(ctx EvalContext) (interface{}, error) {
@@ -178,13 +170,6 @@ func (n *evalCloseModule) Eval(ctx EvalContext) (interface{}, error) {
 	// transact over multiple module instances at the moment.
 	state := ctx.State().Lock()
 	defer ctx.State().Unlock()
-
-	expander := ctx.InstanceExpander()
-	var currentModuleInstances []addrs.ModuleInstance
-	// we can't expand if we're just removing
-	if !n.orphaned {
-		currentModuleInstances = expander.ExpandModule(n.Addr)
-	}
 
 	for modKey, mod := range state.Modules {
 		if !n.Addr.Equal(mod.Addr.Module()) {
@@ -198,27 +183,8 @@ func (n *evalCloseModule) Eval(ctx EvalContext) (interface{}, error) {
 			}
 		}
 
-		found := false
-		if n.orphaned {
-			// we're removing the entire module, so all instances must go
-			found = true
-		} else {
-			// if this instance is not in the current expansion, remove it from
-			// the state
-			for _, current := range currentModuleInstances {
-				if current.Equal(mod.Addr) {
-					found = true
-					break
-				}
-			}
-		}
-
-		if !found {
-			if len(mod.Resources) > 0 {
-				// FIXME: add more info to this error
-				return nil, fmt.Errorf("module %q still contains resources in state", mod.Addr)
-			}
-
+		// empty child modules are always removed
+		if len(mod.Resources) == 0 && !mod.Addr.IsRoot() {
 			delete(state.Modules, modKey)
 		}
 	}

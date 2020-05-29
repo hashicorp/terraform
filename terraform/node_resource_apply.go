@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
-	"github.com/hashicorp/terraform/states"
 )
 
 // nodeExpandApplyableResource handles the first layer of resource
@@ -23,7 +22,10 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
+	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 )
+
+func (n *nodeExpandApplyableResource) expandsInstances() {}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
@@ -46,26 +48,6 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			NodeAbstractResource: n.NodeAbstractResource,
 			Addr:                 n.Addr.Resource.Absolute(module),
 		})
-	}
-
-	// Lock the state while we inspect it to find any resources orphaned by
-	// changes in module expansion.
-	state := ctx.State().Lock()
-	defer ctx.State().Unlock()
-
-	var orphans []*states.Resource
-	for _, res := range state.Resources(n.Addr) {
-		found := false
-		for _, m := range moduleInstances {
-			if m.Equal(res.Addr.Module) {
-				found = true
-				break
-			}
-		}
-		// Address form state was not found in the current config
-		if !found {
-			orphans = append(orphans, res)
-		}
 	}
 
 	return &g, nil

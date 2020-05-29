@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -42,6 +43,11 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// handled by the RemovedModuleTransformer, and those module closers are in
 	// the graph already, and need to be connected to their parent closers.
 	for _, v := range g.Vertices() {
+		// skip closers so they don't attach to themselves
+		if _, ok := v.(*nodeCloseModule); ok {
+			continue
+		}
+
 		// any node that executes within the scope of a module should be a
 		// GraphNodeModulePath
 		pather, ok := v.(GraphNodeModulePath)
@@ -49,10 +55,20 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 			continue
 		}
 		if closer, ok := t.closers[pather.ModulePath().String()]; ok {
-			// The module root depends on each child resource instance, since
+			// The module closer depends on each child resource instance, since
 			// during apply the module expansion will complete before the
 			// individual instances are applied.
 			g.Connect(dag.BasicEdge(closer, v))
+		}
+	}
+
+	// Modules implicitly depend on their child modules, so connect closers to
+	// other which contain their path.
+	for _, c := range t.closers {
+		for _, d := range t.closers {
+			if len(d.Addr) > len(c.Addr) && c.Addr.Equal(d.Addr[:len(c.Addr)]) {
+				g.Connect(dag.BasicEdge(c, d))
+			}
 		}
 	}
 
@@ -91,11 +107,26 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	t.closers[c.Path.String()] = closer
 
 	for _, childV := range g.Vertices() {
-		pather, ok := childV.(GraphNodeModulePath)
-		if !ok {
+		// don't connect a node to itself
+		if childV == v {
 			continue
 		}
-		if pather.ModulePath().Equal(c.Path) {
+
+		var path addrs.Module
+		switch t := childV.(type) {
+		case GraphNodeDestroyer:
+			// skip destroyers, as they can only depend on other resources.
+			continue
+
+		case GraphNodeModulePath:
+			path = t.ModulePath()
+		case GraphNodeReferenceOutside:
+			path, _ = t.ReferenceOutside()
+		default:
+			continue
+		}
+
+		if path.Equal(c.Path) {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
 			g.Connect(dag.BasicEdge(childV, v))
 		}
