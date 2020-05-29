@@ -11188,9 +11188,6 @@ output "c" {
 }
 
 func TestContext2Apply_moduleExpandDependsOn(t *testing.T) {
-	// enable once merged with module depends_on
-	return
-
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 module "child" {
