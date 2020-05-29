@@ -37,9 +37,6 @@ func (n *nodeExpandModule) Name() string {
 
 // GraphNodeModulePath implementation
 func (n *nodeExpandModule) ModulePath() addrs.Module {
-	// This node represents the module call within a module,
-	// so return the CallerAddr as the path as the module
-	// call may expand into multiple child instances
 	return n.Addr
 }
 
