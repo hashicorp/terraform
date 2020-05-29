@@ -3,7 +3,7 @@
 NEW FEATURES:
 
 * **`count` and `for_each` for modules**: Similar to the arguments of the same name in `resource` and `data` blocks, these create multiple instances of a module from a single `module` block. [GH-24461]
-* **`depends_on` for modules**: Modules can now use the `depends_on` argument to ensure that all module resource changes have been applied after any changes to the `depends_on` targets have been applied. [GH-25005]
+* **`depends_on` for modules**: Modules can now use the `depends_on` argument to ensure that all module resource changes will be applied after any changes to the `depends_on` targets have been applied. [GH-25005]
 * **Automatic installation of third-party providers**: Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
 * **Custom validation rules for input variables**: A new [`validation` block type](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) inside `variable` blocks allows module authors to define validation rules at the public interface into a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. [GH-25054]
 
