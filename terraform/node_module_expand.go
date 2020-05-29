@@ -25,7 +25,6 @@ var (
 	_ GraphNodeEvalable         = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
-
 	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
 )
 

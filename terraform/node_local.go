@@ -23,8 +23,7 @@ var (
 	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandLocal)(nil)
-
-	_ graphNodeExpandsInstances = (*nodeExpandLocal)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandLocal)(nil)
 )
 
 func (n *nodeExpandLocal) expandsInstances() {}
