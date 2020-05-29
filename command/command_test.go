@@ -19,6 +19,9 @@ import (
 	"syscall"
 	"testing"
 
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/registry"
 
@@ -882,4 +885,78 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 		panic(diags.Err())
 	}
 	return addr.Config()
+}
+
+// This map from provider type name to namespace is used by the fake registry
+// when called via LookupLegacyProvider. Providers not in this map will return
+// a 404 Not Found error.
+var legacyProviderNamespaces = map[string]string{
+	"foo": "hashicorp",
+	"bar": "hashicorp",
+	"baz": "terraform-providers",
+}
+
+// testServices starts up a local HTTP server running a fake provider registry
+// service which responds only to discovery requests and legacy provider lookup
+// API calls.
+//
+// The final return value is a function to call at the end of a test function
+// to shut down the test server. After you call that function, the discovery
+// object becomes useless.
+func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
+	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
+
+	services = disco.New()
+	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
+		"providers.v1": server.URL + "/providers/v1/",
+	})
+
+	return services, func() {
+		server.Close()
+	}
+}
+
+// testRegistrySource is a wrapper around testServices that uses the created
+// discovery object to produce a Source instance that is ready to use with the
+// fake registry services.
+//
+// As with testServices, the final return value is a function to call at the end
+// of your test in order to shut down the test server.
+func testRegistrySource(t *testing.T) (source *getproviders.RegistrySource, cleanup func()) {
+	services, close := testServices(t)
+	source = getproviders.NewRegistrySource(services)
+	return source, close
+}
+
+func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
+	path := req.URL.EscapedPath()
+
+	if !strings.HasPrefix(path, "/providers/v1/") {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`not a provider registry endpoint`))
+		return
+	}
+
+	pathParts := strings.Split(path, "/")[3:]
+
+	if len(pathParts) != 3 {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`unrecognized path scheme`))
+		return
+	}
+
+	if pathParts[0] != "-" || pathParts[2] != "versions" {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`this registry only supports legacy namespace lookup requests`))
+	}
+
+	name := pathParts[1]
+	if namespace, ok := legacyProviderNamespaces[name]; ok {
+		resp.Header().Set("Content-Type", "application/json")
+		resp.WriteHeader(200)
+		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s"}`, namespace, name)))
+	} else {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`provider not found`))
+	}
 }

@@ -18,9 +18,14 @@ Usage: `terraform apply [options] [dir-or-plan]`
 
 By default, `apply` scans the current directory for the configuration
 and applies the changes appropriately. However, a path to another configuration
-or an execution plan can be provided. Explicit execution plans files can be
+or an execution plan can be provided. Explicit execution plan files can be
 used to split plan and apply into separate steps within
 [automation systems](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
+
+If no explicit plan file is given on the command line, `terraform apply` will
+create a new plan automatically and prompt for approval to apply it. If the
+created plan does not include any changes to resources or to root module
+output values then `terraform apply` will exit immediately, without prompting.
 
 The command-line flags are all optional. The list of available flags are:
 

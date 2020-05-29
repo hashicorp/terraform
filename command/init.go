@@ -18,11 +18,10 @@ import (
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -199,21 +198,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
-	//
-	// Just as above, we'll try loading both with the early and normal config
-	// loaders here. Subsequent work will only use the early config, but loading
-	// both gives us an opportunity to prefer the better error messages from the
-	// normal loader if both fail.
-
-	earlyConfig, earlyConfDiags := c.loadConfigEarly(path)
-	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		diags = diags.Append(earlyConfDiags)
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	_, confDiags = c.loadConfig(path)
+	config, confDiags := c.loadConfig(path)
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
@@ -225,7 +210,7 @@ func (c *InitCommand) Run(args []string) int {
 	// configuration declare that they don't support this Terraform version, so
 	// we can produce a version-related error message rather than
 	// potentially-confusing downstream errors.
-	versionDiags := initwd.CheckCoreVersionRequirements(earlyConfig)
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
 	diags = diags.Append(versionDiags)
 	if versionDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -294,7 +279,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providerDiags := c.getProviders(earlyConfig, state, flagUpgrade, flagPluginPath)
+	providersOutput, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
 	diags = diags.Append(providerDiags)
 	if providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -425,10 +410,10 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
-	reqs, moreDiags := earlyConfig.ProviderRequirements()
+	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return false, diags
@@ -456,6 +441,11 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 		log.Println("[DEBUG] init: overriding provider plugin search paths")
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
+
+	// We capture any missing provider errors (404s from a Registry source) for
+	// later analysis, to provide more useful diagnostics if the providers
+	// appear to have been re-namespaced.
+	missingProviderErrors := make(map[addrs.Provider]error)
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -509,6 +499,22 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 						provider.ForDisplay(), err, strings.Join(displaySources, "\n"),
 					),
 				))
+			case getproviders.ErrRegistryProviderNotKnown:
+				// Default providers may have no explicit source, and the 404
+				// error could be caused by re-namespacing. Add the provider
+				// and error to a map to later check for this case. We don't
+				// run the check here to keep this event callback simple.
+				if provider.IsDefault() {
+					missingProviderErrors[provider] = err
+				} else {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to query available provider packages",
+						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+							provider.ForDisplay(), err,
+						),
+					))
+				}
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -566,15 +572,29 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 			}
 		},
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
-			var warning string
-			if authResult != nil {
-				warning = authResult.Warning
+			var keyID string
+			if authResult != nil && authResult.ThirdPartySigned() {
+				keyID = authResult.KeyID
 			}
-			if warning != "" {
-				warning = c.Colorize().Color(fmt.Sprintf("\n  [reset][yellow]Warning: %s[reset]", warning))
+			if keyID != "" {
+				keyID = c.Colorize().Color(fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID))
 			}
 
-			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s)%s", provider.ForDisplay(), version, authResult, warning))
+			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s%s)", provider.ForDisplay(), version, authResult, keyID))
+		},
+		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
+			thirdPartySigned := false
+			for _, authResult := range authResults {
+				if authResult.ThirdPartySigned() {
+					thirdPartySigned = true
+					break
+				}
+			}
+			if thirdPartySigned {
+				c.Ui.Info(fmt.Sprintf("\nPartner and community providers are signed by their developers.\n" +
+					"If you'd like to know more about provider signing, you can read about it here:\n" +
+					"https://www.terraform.io/docs/plugins/signing.html"))
+			}
 		},
 	}
 
@@ -587,12 +607,44 @@ func (c *InitCommand) getProviders(earlyConfig *earlyconfig.Config, state *state
 	ctx := evts.OnContext(context.TODO())
 	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
+		// Try to look up any missing providers which may be redirected legacy
+		// providers. If we're successful, construct a "did you mean?" diag to
+		// suggest how to fix this. Otherwise, add a simple error diag
+		// explaining that the provider could not be found.
+		foundProviders := make(map[addrs.Provider]addrs.Provider)
+		source := c.providerInstallSource()
+		for provider, fetchErr := range missingProviderErrors {
+			addr := addrs.NewLegacyProvider(provider.Type)
+			p, err := getproviders.LookupLegacyProvider(addr, source)
+			if err == nil {
+				foundProviders[provider] = p
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s: %s", provider.ForDisplay(), fetchErr),
+				))
+			}
+		}
+		if len(foundProviders) > 0 {
+			var providerSuggestions string
+			for missingProvider, foundProvider := range foundProviders {
+				providerSuggestions += fmt.Sprintf("  %s -> %s\n", missingProvider.ForDisplay(), foundProvider.ForDisplay())
+			}
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install providers",
+				fmt.Sprintf("Could not find required providers, but found possible alternatives:\n\n%s\nIf these suggestions look correct, upgrade your configuration with the following command:\n    terraform 0.13upgrade", providerSuggestions),
+			))
+		}
+
 		// The errors captured in "err" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
 		// just return those as long as we have some.
 		if !diags.HasErrors() {
 			diags = diags.Append(err)
 		}
+
 		return true, diags
 	}
 

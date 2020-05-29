@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -182,12 +185,21 @@ func wrappedMain() int {
 		}
 	}
 
+	// The user can declare that certain providers are being managed on
+	// Terraform's behalf using this environment variable. Thsi is used
+	// primarily by the SDK's acceptance testing framework.
+	unmanagedProviders, err := parseReattachProviders(os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
+
 	// Initialize the backends.
 	backendInit.Init(services)
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(config, services, providerSrc)
+		initCommands(config, services, providerSrc, unmanagedProviders)
 	}
 
 	// Run checkpoint
@@ -364,4 +376,54 @@ func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 	copy(newArgs[idx:], extra)
 	copy(newArgs[len(extra)+idx:], args[idx:])
 	return newArgs, nil
+}
+
+// parse information on reattaching to unmanaged providers out of a
+// JSON-encoded environment variable.
+func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfig, error) {
+	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
+	if in != "" {
+		type reattachConfig struct {
+			Protocol string
+			Addr     struct {
+				Network string
+				String  string
+			}
+			Pid  int
+			Test bool
+		}
+		var m map[string]reattachConfig
+		err := json.Unmarshal([]byte(in), &m)
+		if err != nil {
+			return unmanagedProviders, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+		}
+		for p, c := range m {
+			a, diags := addrs.ParseProviderSourceString(p)
+			if diags.HasErrors() {
+				return unmanagedProviders, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+			}
+			var addr net.Addr
+			switch c.Addr.Network {
+			case "unix":
+				addr, err = net.ResolveUnixAddr("unix", c.Addr.String)
+				if err != nil {
+					return unmanagedProviders, fmt.Errorf("Invalid unix socket path %q for %q: %w", c.Addr.String, p, err)
+				}
+			case "tcp":
+				addr, err = net.ResolveTCPAddr("tcp", c.Addr.String)
+				if err != nil {
+					return unmanagedProviders, fmt.Errorf("Invalid TCP address %q for %q: %w", c.Addr.String, p, err)
+				}
+			default:
+				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
+			}
+			unmanagedProviders[a] = &plugin.ReattachConfig{
+				Protocol: plugin.Protocol(c.Protocol),
+				Pid:      c.Pid,
+				Test:     c.Test,
+				Addr:     addr,
+			}
+		}
+	}
+	return unmanagedProviders, nil
 }

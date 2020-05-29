@@ -26,13 +26,13 @@ const (
 
 // PackageAuthenticationResult is returned from a PackageAuthentication
 // implementation. It is a mostly-opaque type intended for use in UI, which
-// implements Stringer and includes an optional Warning field.
+// implements Stringer.
 //
 // A failed PackageAuthentication attempt will return an "unauthenticated"
 // result, which is represented by nil.
 type PackageAuthenticationResult struct {
-	result  packageAuthenticationResult
-	Warning string
+	result packageAuthenticationResult
+	KeyID  string
 }
 
 func (t *PackageAuthenticationResult) String() string {
@@ -41,10 +41,23 @@ func (t *PackageAuthenticationResult) String() string {
 	}
 	return []string{
 		"verified checksum",
-		"official provider",
-		"partner provider",
-		"community provider",
+		"signed by HashiCorp",
+		"signed by a HashiCorp partner",
+		"self-signed",
 	}[t.result]
+}
+
+// ThirdPartySigned returns whether the package was authenticated as signed by a party
+// other than HashiCorp.
+func (t *PackageAuthenticationResult) ThirdPartySigned() bool {
+	if t == nil {
+		return false
+	}
+	if t.result == partnerProvider || t.result == communityProvider {
+		return true
+	}
+
+	return false
 }
 
 // SigningKey represents a key used to sign packages from a registry, along
@@ -234,7 +247,7 @@ func NewSignatureAuthentication(document, signature []byte, keys []SigningKey) P
 func (s signatureAuthentication) AuthenticatePackage(location PackageLocation) (*PackageAuthenticationResult, error) {
 	// Find the key that signed the checksum file. This can fail if there is no
 	// valid signature for any of the provided keys.
-	signingKey, err := s.findSigningKey()
+	signingKey, keyID, err := s.findSigningKey()
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +260,7 @@ func (s signatureAuthentication) AuthenticatePackage(location PackageLocation) (
 	}
 	_, err = openpgp.CheckDetachedSignature(hashicorpKeyring, bytes.NewReader(s.Document), bytes.NewReader(s.Signature))
 	if err == nil {
-		return &PackageAuthenticationResult{result: officialProvider}, nil
+		return &PackageAuthenticationResult{result: officialProvider, KeyID: keyID}, nil
 	}
 
 	// If the signing key has a trust signature, attempt to verify it with the
@@ -273,14 +286,12 @@ func (s signatureAuthentication) AuthenticatePackage(location PackageLocation) (
 			return nil, fmt.Errorf("error verifying trust signature: %s", err)
 		}
 
-		return &PackageAuthenticationResult{result: partnerProvider}, nil
+		return &PackageAuthenticationResult{result: partnerProvider, KeyID: keyID}, nil
 	}
 
 	// We have a valid signature, but it's not from the HashiCorp key, and it
 	// also isn't a trusted partner. This is a community provider.
-	// FIXME: we may want to add a more detailed warning here explaining the
-	// difference between partner and community providers.
-	return &PackageAuthenticationResult{result: communityProvider}, nil
+	return &PackageAuthenticationResult{result: communityProvider, KeyID: keyID}, nil
 }
 
 // findSigningKey attempts to verify the signature using each of the keys
@@ -289,11 +300,11 @@ func (s signatureAuthentication) AuthenticatePackage(location PackageLocation) (
 //
 // Note: currently the registry only returns one key, but this may change in
 // the future.
-func (s signatureAuthentication) findSigningKey() (*SigningKey, error) {
+func (s signatureAuthentication) findSigningKey() (*SigningKey, string, error) {
 	for _, key := range s.Keys {
 		keyring, err := openpgp.ReadArmoredKeyRing(strings.NewReader(key.ASCIIArmor))
 		if err != nil {
-			return nil, fmt.Errorf("error decoding signing key: %s", err)
+			return nil, "", fmt.Errorf("error decoding signing key: %s", err)
 		}
 
 		entity, err := openpgp.CheckDetachedSignature(keyring, bytes.NewReader(s.Document), bytes.NewReader(s.Signature))
@@ -306,16 +317,21 @@ func (s signatureAuthentication) findSigningKey() (*SigningKey, error) {
 
 		// Any other signature error is terminal.
 		if err != nil {
-			return nil, fmt.Errorf("error checking signature: %s", err)
+			return nil, "", fmt.Errorf("error checking signature: %s", err)
+		}
+
+		keyID := "n/a"
+		if entity.PrimaryKey != nil {
+			keyID = entity.PrimaryKey.KeyIdString()
 		}
 
 		log.Printf("[DEBUG] Provider signed by %s", entityString(entity))
-		return &key, nil
+		return &key, keyID, nil
 	}
 
 	// If none of the provided keys issued the signature, this package is
 	// unsigned. This is currently a terminal authentication error.
-	return nil, fmt.Errorf("authentication signature from unknown issuer")
+	return nil, "", fmt.Errorf("authentication signature from unknown issuer")
 }
 
 // entityString extracts the key ID and identity name(s) from an openpgp.Entity

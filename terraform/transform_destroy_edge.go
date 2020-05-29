@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"log"
+	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
@@ -163,46 +164,141 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	return t.pruneResources(g)
+	return nil
 }
 
-// If there are only destroy instances for a particular resource, there's no
-// reason for the resource node to prepare the state. Remove Resource nodes so
-// that they don't fail by trying to evaluate a resource that is only being
-// destroyed along with its dependencies.
-func (t *DestroyEdgeTransformer) pruneResources(g *Graph) error {
+// Remove any nodes that aren't needed when destroying modules.
+// Variables, outputs, locals, and expanders may not be able to evaluate
+// correctly, so we can remove these if nothing depends on them. The module
+// closers also need to disable their use of expansion if the module itself is
+// no longer present.
+type pruneUnusedNodesTransformer struct {
+}
+
+func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
+	// We need a reverse depth first walk of modules, processing them in order
+	// from the leaf modules to the root. This allows us to remove unneeded
+	// dependencies from child modules, freeing up nodes in the parent module
+	// to also be removed.
+
+	// First collect the nodes into their respective modules based on
+	// configuration path.
+	moduleMap := make(map[string]pruneUnusedNodesMod)
 	for _, v := range g.Vertices() {
-		n, ok := v.(*nodeExpandApplyableResource)
-		if !ok {
+		var path addrs.Module
+		switch v := v.(type) {
+		case GraphNodeModulePath:
+			path = v.ModulePath()
+		default:
 			continue
 		}
+		m := moduleMap[path.String()]
+		m.addr = path
+		m.nodes = append(m.nodes, v)
 
-		// if there are only destroy dependencies, we don't need this node
-		descendents, err := g.Descendents(n)
-		if err != nil {
-			return err
-		}
-
-		nonDestroyInstanceFound := false
-		for _, v := range descendents {
-			if _, ok := v.(*NodeApplyableResourceInstance); ok {
-				nonDestroyInstanceFound = true
-				break
-			}
-		}
-
-		if nonDestroyInstanceFound {
-			continue
-		}
-
-		// connect all the through-edges, then delete the node
-		for _, d := range g.DownEdges(n) {
-			for _, u := range g.UpEdges(n) {
-				g.Connect(dag.BasicEdge(u, d))
-			}
-		}
-		log.Printf("DestroyEdgeTransformer: pruning unused resource node %s", dag.VertexName(n))
-		g.Remove(n)
+		moduleMap[path.String()] = m
 	}
+
+	// now we need to restructure the modules so we can sort them
+	var modules []pruneUnusedNodesMod
+
+	for _, mod := range moduleMap {
+		modules = append(modules, mod)
+	}
+
+	// Sort them by path length, longest first, so that start with the deepest
+	// modules.  The order of modules at the same tree level doesn't matter, we
+	// just need to ensure that child modules are processed before parent
+	// modules.
+	sort.Slice(modules, func(i, j int) bool {
+		return len(modules[i].addr) > len(modules[j].addr)
+	})
+
+	for _, mod := range modules {
+		mod.removeUnused(g)
+	}
+
 	return nil
+}
+
+// pruneUnusedNodesMod is a container to hold the nodes that belong to a
+// particular configuration module for the pruneUnusedNodesTransformer
+type pruneUnusedNodesMod struct {
+	addr  addrs.Module
+	nodes []dag.Vertex
+}
+
+// Remove any unused locals, variables, outputs and expanders.  Since module
+// closers can also lookup expansion info to detect orphaned instances, disable
+// them if their associated expander is removed.
+func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
+	// We modify the nodes slice during processing here.
+	// Make a copy so no one is surprised by this changing in the future.
+	nodes := make([]dag.Vertex, len(m.nodes))
+	copy(nodes, m.nodes)
+
+	// since we have no defined structure within the module, just cycle through
+	// the nodes in each module until there are no more removals
+	removed := true
+	for {
+		if !removed {
+			return
+		}
+		removed = false
+
+		for i := 0; i < len(nodes); i++ {
+			// run this in a closure, so we can return early rather than
+			// dealing with complex looping and labels
+			func() {
+				n := nodes[i]
+				switch n.(type) {
+				case graphNodeTemporaryValue:
+					// temporary value, which consist of variables, locals, and
+					// outputs, must be kept if anything refers to them.
+					if n, ok := n.(GraphNodeModulePath); ok {
+						// root outputs always have an implicit dependency on
+						// remote state.
+						if n.ModulePath().IsRoot() {
+							return
+						}
+					}
+					for _, v := range g.UpEdges(n) {
+						// keep any value which is connected through a
+						// reference
+						if _, ok := v.(GraphNodeReferencer); ok {
+							return
+						}
+					}
+
+				case graphNodeExpandsInstances:
+					// Any nodes that expand instances are kept when their
+					// instances may need to be evaluated.
+					for _, v := range g.UpEdges(n) {
+						switch v.(type) {
+						case graphNodeExpandsInstances:
+							// expanders can always depend on module expansion
+							// themselves
+							return
+						case GraphNodeResourceInstance:
+							// resource instances always depend on their
+							// resource node, which is an expander
+							return
+						}
+					}
+
+				default:
+					return
+				}
+
+				log.Printf("[DEBUG] pruneUnusedNodes: %s is no longer needed, removing", dag.VertexName(n))
+				g.Remove(n)
+				removed = true
+
+				// remove the node from our iteration as well
+				last := len(nodes) - 1
+				nodes[i], nodes[last] = nodes[last], nodes[i]
+				nodes = nodes[:last]
+			}()
+		}
+	}
 }

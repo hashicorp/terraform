@@ -19,7 +19,7 @@ const (
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
-	registerCurrentExperiment(VariableValidation)
+	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
 }
 
 // GetCurrent takes an experiment name and returns the experiment value

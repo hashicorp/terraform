@@ -130,6 +130,87 @@ func TestLocal_planNoConfig(t *testing.T) {
 	}
 }
 
+func TestLocal_planOutputsChanged(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "changed"},
+		}, cty.StringVal("before"), false)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "sensitive_before"},
+		}, cty.StringVal("before"), true)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "sensitive_after"},
+		}, cty.StringVal("before"), false)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "removed"}, // not present in the config fixture
+		}, cty.StringVal("before"), false)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "unchanged"},
+		}, cty.StringVal("before"), false)
+		// NOTE: This isn't currently testing the situation where the new
+		// value of an output is unknown, because to do that requires there to
+		// be at least one managed resource Create action in the plan and that
+		// would defeat the point of this test, which is to ensure that a
+		// plan containing only output changes is considered "non-empty".
+		// For now we're not too worried about testing the "new value is
+		// unknown" situation because that's already common for printing out
+		// resource changes and we already have many tests for that.
+	}))
+	b.CLI = cli.NewMockUi()
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	planPath := filepath.Join(outDir, "plan.tfplan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-outputs-changed")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type:   "local",
+		Config: cfgRaw,
+	}
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+	if run.PlanEmpty {
+		t.Fatal("plan should not be empty")
+	}
+
+	expectedOutput := strings.TrimSpace(`
+Plan: 0 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + added            = "after"
+  ~ changed          = "before" -> "after"
+  - removed          = "before" -> null
+  ~ sensitive_after  = (sensitive value)
+  ~ sensitive_before = (sensitive value)
+`)
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, expectedOutput) {
+		t.Fatalf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
+	}
+}
+
 func TestLocal_planTainted(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
