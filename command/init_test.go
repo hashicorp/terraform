@@ -898,6 +898,70 @@ func TestInit_getProviderSource(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderDetectedLegacy(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-provider-detected-legacy"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// We need to construct a multisource with a mock source and a registry
+	// source: the mock source will return ErrRegistryProviderNotKnown for an
+	// unknown provider, and the registry source will allow us to look up the
+	// appropriate namespace if possible.
+	providerSource, psClose := newMockProviderSource(t, map[string][]string{
+		"hashicorp/foo":           []string{"1.2.3"},
+		"terraform-providers/baz": []string{"2.3.4"}, // this will not be installed
+	})
+	defer psClose()
+	registrySource, rsClose := testRegistrySource(t)
+	defer rsClose()
+	multiSource := getproviders.MultiSource{
+		{Source: providerSource},
+		{Source: registrySource},
+	}
+
+	ui := new(cli.MockUi)
+	m := Meta{
+		Ui:             ui,
+		ProviderSource: multiSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
+	}
+
+	// foo should be installed
+	fooPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/foo/1.2.3/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(fooPath); os.IsNotExist(err) {
+		t.Error("provider 'foo' not installed")
+	}
+	// baz should not be installed
+	bazPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/terraform-providers/baz/2.3.4/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(bazPath); !os.IsNotExist(err) {
+		t.Error("provider 'baz' installed, but should not be")
+	}
+
+	// error output is the main focus of this test
+	errOutput := ui.ErrorWriter.String()
+	if !strings.Contains(errOutput, "Error while installing hashicorp/frob:") {
+		t.Fatalf("expected error for installing hashicorp/frob: %s", errOutput)
+	}
+	if !strings.Contains(errOutput, "Could not find required providers, but found possible alternatives") {
+		t.Fatalf("expected required provider suggestions: %s", errOutput)
+	}
+	if !strings.Contains(errOutput, "hashicorp/baz -> terraform-providers/baz") {
+		t.Fatalf("expected suggestion for hashicorp/baz: %s", errOutput)
+	}
+}
+
 func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
