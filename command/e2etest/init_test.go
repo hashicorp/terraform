@@ -246,7 +246,10 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	}
 
 	cmd := tf.Cmd("init")
-	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR=./cache")
+
+	// convert the slashes if building for windows.
+	p := filepath.FromSlash("./cache")
+	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR="+p)
 	cmd.Stdin = nil
 	cmd.Stderr = &bytes.Buffer{}
 
@@ -260,7 +263,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s\n", stderr)
 	}
 
-	path := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)
+	path := filepath.FromSlash(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
 	content, err := tf.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
@@ -269,12 +272,20 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("template plugin was not installed from local cache")
 	}
 
-	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
-		t.Errorf("null plugin was not installed")
+	nullLinkPath := filepath.FromSlash(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
+	if runtime.GOOS == "windows" {
+		nullLinkPath = nullLinkPath + ".exe"
+	}
+	if !tf.FileExists(nullLinkPath) {
+		t.Errorf("null plugin was not installed into %s", nullLinkPath)
 	}
 
-	if !tf.FileExists(fmt.Sprintf("cache/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
-		t.Errorf("null plugin is not in cache after install")
+	nullCachePath := filepath.FromSlash(fmt.Sprintf("cache/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
+	if runtime.GOOS == "windows" {
+		nullCachePath = nullCachePath + ".exe"
+	}
+	if !tf.FileExists(nullCachePath) {
+		t.Errorf("null plugin is not in cache after install. expected in: %s", nullCachePath)
 	}
 }
 
