@@ -50,8 +50,6 @@ github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlbuilder
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlele
 github.com/ChrisTrenkamp/goxpath/tree/xmltree/xmlnode
 github.com/ChrisTrenkamp/goxpath/xconst
-# github.com/Unknwon/com v0.0.0-20151008135407-28b053d5a292
-## explicit
 # github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af
 ## explicit
 # github.com/agext/levenshtein v1.2.2
@@ -214,8 +212,6 @@ github.com/davecgh/go-spew/spew
 github.com/dgrijalva/jwt-go
 # github.com/dimchansky/utfbom v1.1.0
 github.com/dimchansky/utfbom
-# github.com/dnaeon/go-vcr v0.0.0-20180920040454-5637cf3d8a31
-## explicit
 # github.com/dylanmei/iso8601 v0.1.0
 ## explicit
 github.com/dylanmei/iso8601
@@ -591,7 +587,7 @@ github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 ## explicit
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v1.4.1
+# github.com/zclconf/go-cty v1.4.2
 ## explicit
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert
