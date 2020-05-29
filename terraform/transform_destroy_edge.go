@@ -196,11 +196,6 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 		m.addr = path
 		m.nodes = append(m.nodes, v)
 
-		// We need to keep track of the closers, to make sure they don't look
-		// for an expansion if there's nothing being expanded.
-		if c, ok := v.(*nodeCloseModule); ok {
-			m.closer = c
-		}
 		moduleMap[path.String()] = m
 	}
 
@@ -229,9 +224,8 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 // pruneUnusedNodesMod is a container to hold the nodes that belong to a
 // particular configuration module for the pruneUnusedNodesTransformer
 type pruneUnusedNodesMod struct {
-	addr   addrs.Module
-	nodes  []dag.Vertex
-	closer *nodeCloseModule
+	addr  addrs.Module
+	nodes []dag.Vertex
 }
 
 // Remove any unused locals, variables, outputs and expanders.  Since module
