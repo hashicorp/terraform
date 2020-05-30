@@ -3,17 +3,18 @@ package logging
 import (
 	"bytes"
 	"io"
+	"regexp"
 	"sync"
 )
 
 // LogLevel is a special string, conventionally written all in uppercase, that
 // can be used to mark a log line for filtering and to specify filtering
-// levels in the LevelFilter type.
+// levels in the LogFilter type.
 type LogLevel string
 
-// LevelFilter is an io.Writer that can be used with a logger that
+// LogFilter is an io.Writer that can be used with a logger that
 // will attempt to filter out log messages that aren't at least a certain
-// level.
+// level or matching a configured pattern.
 //
 // This filtering is HEURISTIC-BASED, and so will not be 100% reliable. The
 // assumptions it makes are:
@@ -39,7 +40,7 @@ type LogLevel string
 //
 // Because logging is a cross-cutting concern and not fully under the control
 // of Terraform itself, there will certainly be cases where the above
-// heuristics will fail. For example, it is likely that LevelFilter will
+// heuristics will fail. For example, it is likely that LogFilter will
 // occasionally misinterpret a continuation line as a new message because the
 // code generating it doesn't know about our indentation convention.
 //
@@ -51,10 +52,13 @@ type LogLevel string
 //
 // Once the filter is in use somewhere, it is not safe to modify
 // the structure.
-type LevelFilter struct {
+type LogFilter struct {
 	// Levels is the list of log levels, in increasing order of
 	// severity. Example might be: {"DEBUG", "WARN", "ERROR"}.
 	Levels []LogLevel
+
+	// Pattern in log lines which are whitelisted regardless of the log level
+	Patterns []*regexp.Regexp
 
 	// MinLevel is the minimum level allowed through
 	MinLevel LogLevel
@@ -69,8 +73,8 @@ type LevelFilter struct {
 }
 
 // Check will check a given line if it would be included in the level
-// filter.
-func (f *LevelFilter) Check(line []byte) bool {
+// filter or a configured pattern.
+func (f *LogFilter) Check(line []byte) bool {
 	f.once.Do(f.init)
 
 	// Check for a log level
@@ -85,8 +89,17 @@ func (f *LevelFilter) Check(line []byte) bool {
 
 	//return level == ""
 
-	_, ok := f.badLevels[level]
-	return !ok
+	_, isBad := f.badLevels[level]
+
+	if isBad {
+		for _, pattern := range f.Patterns {
+			if pattern.Match(line) {
+				return true
+			}
+		}
+	}
+
+	return !isBad
 }
 
 // Write is a specialized implementation of io.Writer suitable for being
@@ -101,7 +114,7 @@ func (f *LevelFilter) Check(line []byte) bool {
 //
 // Behavior is undefined if any log line is split across multiple writes or
 // written without a trailing '\n' delimiter.
-func (f *LevelFilter) Write(p []byte) (n int, err error) {
+func (f *LogFilter) Write(p []byte) (n int, err error) {
 	for len(p) > 0 {
 		// Split at the first \n, inclusive
 		idx := bytes.IndexByte(p, '\n')
@@ -141,12 +154,12 @@ func (f *LevelFilter) Write(p []byte) (n int, err error) {
 }
 
 // SetMinLevel is used to update the minimum log level
-func (f *LevelFilter) SetMinLevel(min LogLevel) {
+func (f *LogFilter) SetMinLevel(min LogLevel) {
 	f.MinLevel = min
 	f.init()
 }
 
-func (f *LevelFilter) init() {
+func (f *LogFilter) init() {
 	badLevels := make(map[LogLevel]struct{})
 	for _, level := range f.Levels {
 		if level == f.MinLevel {
