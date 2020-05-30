@@ -78,3 +78,5 @@ A local value with the name "nonexist" has not been declared.
 
 * [`try`](./try.html), which tries evaluating a sequence of expressions and
   returns the result of the first one that succeeds.
+* [`raise`](./raise.html), which throws a custom error as a result of some condition being
+  evaluated.
