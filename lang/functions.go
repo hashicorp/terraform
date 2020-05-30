@@ -92,6 +92,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"parseint":         stdlib.ParseIntFunc,
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              stdlib.PowFunc,
+			"raise":            tryfunc.RaiseFunc, // TK - TODO: Add `RaiseFunc()` here: github.com/hashicorp/hcl/v2/ext/tryfunc
 			"range":            stdlib.RangeFunc,
 			"regex":            stdlib.RegexFunc,
 			"regexall":         stdlib.RegexAllFunc,
