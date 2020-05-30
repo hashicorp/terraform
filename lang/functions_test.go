@@ -598,6 +598,26 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"raise": {
+			{
+				// Note: "raise" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "raise" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference. That's okay because this
+				// function exists primarily to ease access to dynamically-typed
+				// structures that Terraform can't statically validate by
+				// definition.
+				`raise("MyError")`,
+				cty.ErrorVal("MyError"), // TK - TODO: How to test that error properly raised?
+			},
+		},
+
 		"range": {
 			{
 				`range(3)`,
