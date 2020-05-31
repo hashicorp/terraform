@@ -1,13 +1,13 @@
 ---
 layout: "functions"
-page_title: "can - Functions - Configuration Language"
-sidebar_current: "docs-funcs-conversion-can"
+page_title: "raise - Functions - Configuration Language"
+sidebar_current: "docs-funcs-conversion-raise"
 description: |-
-  The can function tries to evaluate an expression given as an argument and
+  The raise function tries to evaluate an expression given as an argument and
   indicates whether the evaluation succeeded.
 ---
 
-# `try` Function
+# `raise` Function
 
 -> **Note:** This page is about Terraform [TK - TODO: add version] and later.
 
