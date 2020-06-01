@@ -1,4 +1,4 @@
-## 0.13.0 (Unreleased)
+## 0.13.0-beta1 (Unreleased)
 
 NEW FEATURES:
 
