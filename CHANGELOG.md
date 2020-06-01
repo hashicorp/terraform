@@ -36,6 +36,7 @@ ENHANCEMENTS:
 * cli: It is now possible to optionally specify explicitly which installation methods can be used for different providers, such as forcing a particular provider to be loaded from a particular directory on local disk instead of consulting its origin provider registry. [GH-24728]
 * cli: Add state replace-provider subcommand to allow changing the provider source for existing resources [GH-24523]
 * cli: The `terraform plan` and `terraform apply` commands now recognize changes to root module outputs as side-effects to be approved and applied. This means you can apply root module output changes using the normal plan and apply workflow. [GH-25047]
+* cli: The new `terraform providers mirror` subcommand can automatically construct or update a local filesystem mirror directory containing the providers required for the current configuration. [GH-25084]
 * config: The `merge` function now returns more precise type information, making it usable for values passed to `for_each` [GH-24032]
 * config: Add "sum" function, which takes a list or set of numbers and returns the sum of all elements [GH-24666]
 * config: added support for passing metadata from modules to providers using HCL [GH-22583]
