@@ -40,6 +40,30 @@ func TestContext2Validate_badCount(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_badResource_reference(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
+
+	m := testModule(t, "validate-bad-resource-count")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+}
+
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
