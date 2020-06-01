@@ -311,7 +311,7 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		//-----------------------------------------------------------
 
 		"0.12upgrade": func() (cli.Command, error) {
-			return &command.ZeroThirteenUpgradeCommand{
+			return &command.ZeroTwelveUpgradeCommand{
 				Meta: meta,
 			}, nil
 		},
