@@ -183,7 +183,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		result = append(result, n.DependsOn()...)
 
 		if n.Schema == nil {
-			// Should never happens, but we'll log if it does so that we can
+			// Should never happen, but we'll log if it does so that we can
 			// see this easily when debugging.
 			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
@@ -192,7 +192,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		result = append(result, refs...)
 		refs, _ = lang.ReferencesInExpr(c.ForEach)
 		result = append(result, refs...)
-		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+
+		// ReferencesInBlock() requires a schema
+		if n.Schema != nil {
+			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+		}
+
 		result = append(result, refs...)
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
