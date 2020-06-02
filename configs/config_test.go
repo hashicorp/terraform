@@ -162,3 +162,14 @@ func TestConfigProviderForConfigAddr(t *testing.T) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}
 }
+
+func TestConfigAddProviderRequirements(t *testing.T) {
+	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
+	assertNoDiagnostics(t, diags)
+
+	reqs := getproviders.Requirements{
+		addrs.NewDefaultProvider("null"): nil,
+	}
+	diags = cfg.addProviderRequirements(reqs)
+	assertNoDiagnostics(t, diags)
+}
