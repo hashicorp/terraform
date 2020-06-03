@@ -53,7 +53,7 @@ object expecting the following arguments:
 * `version` - a [version constraint](#version-constraints) specifying
   which subset of available provider versions the module is compatible with.
 
--> **Note:** The `required_providers` object syntax described above was added in Terraform v0.13. Previous versions of Terraform used a single string instead of an object, with the string specifying only a version constraint. For example, `mycloud = "~> 1.0"`. Explicit provider source addresses are supported only in Terraform v0.13 and later.
+-> **Note:** The `required_providers` object syntax described above was added in Terraform v0.13. Previous versions of Terraform used a single string instead of an object, with the string specifying only a version constraint. For example, `mycloud = "~> 1.0"`. Explicit provider source addresses are supported only in Terraform v0.13 and later. If you want to write a module that works with both Terraform v0.12 and v0.13, see [v0.12-Compatible Provider Requirements](#v012-compatible-provider-requirements) below.
 
 ### Source Addresses
 
@@ -297,3 +297,69 @@ than an artifical local hostname, you can deploy the registry server at
 `terraform.example.com` and retain the same namespace and type names, in which
 case your existing modules will require no changes to locate the same provider
 using your registry server instead.
+
+### v0.12-Compatible Provider Requirements
+
+Explicit provider source addresses were introduced with Terraform v0.13, so the
+full provider requirements syntax is not supported by Terraform v0.12.
+
+However, in order to allow writing modules that are compatible with both
+Terraform v0.12 and v0.13 at the same time, later versions of Terraform v0.12
+will accept but ignore the `source` argument in a required_providers block.
+
+Consider the following example written for Terraform v0.13:
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 1.0"
+    }
+  }
+}
+```
+
+Terraform v0.12.26 will accept syntax like the above but will understand it
+in the same way as the following v0.12-style syntax:
+
+```hcl
+terraform {
+  required_providers {
+    aws = "~> 1.0"
+  }
+}
+```
+
+In other words, Terraform v0.12.26 ignores the `source` argument and considers
+only the `version` argument, using the given [local name](#local-names) as the
+un-namespaced provider type to install.
+
+When writing a module that is compatible with both Terraform v0.12.26 and
+Terraform v0.13.0 or later, you must follow the following additional rules so
+that both versions will select the same provider to install:
+
+* Use only providers that are automatically-installable under Terraform v0.12.
+  Third-party providers, such as community providers in the Terraform Registry,
+  cannot be selected by Terraform v0.12 because it does not support the
+  hierarchical source address namespace.
+
+* Ensure that your chosen local name exactly matches the "type" portion of the
+  source address given in the `source` argument, such as both being "aws" in
+  the examples above, because Terraform v0.12 will use the local name to
+  determine which provider plugin to download and install.
+
+* If the provider belongs to the `hashicorp` namespace, as with the
+  `hashicorp/aws` provider shown above, omit the `source` argument and allow
+  Terraform v0.13 select the `hashicorp` namespace by default.
+
+* Provider type names must always be written in lowercase. Terraform v0.13
+  treats provider source addresses as case-insensitive, but Terraform v0.12
+  considers its legacy-style provider names to be case-sensitive. Using
+  lowercase will ensure that the name is selectable by both Terraform major
+  versions.
+
+This compatibility mechanism is provided as a temporary transitional aid only.
+When Terraform v0.12 detects the use of the new `source` argument it doesn't
+understand, it will emit a warning to alert the user that it is disregarding
+the source address given in that argument.
