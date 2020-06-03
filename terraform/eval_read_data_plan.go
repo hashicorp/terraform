@@ -6,7 +6,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
@@ -18,12 +17,6 @@ import (
 // or generating a plan to do so.
 type evalReadDataPlan struct {
 	evalReadData
-
-	// dependsOn stores the list of transitive resource addresses that any
-	// configuration depends_on references may resolve to. This is used to
-	// determine if there are any changes that will force this data sources to
-	// be deferred to apply.
-	dependsOn []addrs.ConfigResource
 }
 
 func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {

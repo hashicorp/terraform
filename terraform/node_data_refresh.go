@@ -121,6 +121,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
 		a.ProviderMetas = n.ProviderMetas
+		a.dependsOn = n.dependsOn
 
 		return &NodeRefreshableDataResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -227,6 +228,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 					ProviderSchema: &providerSchema,
 					OutputChange:   &change,
 					State:          &state,
+					dependsOn:      n.dependsOn,
 				},
 			},
 
