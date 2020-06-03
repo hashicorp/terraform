@@ -154,18 +154,24 @@ func wrappedMain() int {
 	}
 
 	// Get any configured credentials from the config and initialize
-	// a service discovery object.
+	// a service discovery object. The slightly awkward predeclaration of
+	// disco is required to allow us to pass untyped nil as the creds source
+	// when creating the source fails. Otherwise we pass a typed nil which
+	// breaks the nil checks in the disco object
+	var services *disco.Disco
 	credsSrc, err := credentialsSource(config)
-	if err != nil {
+	if err == nil {
+		services = disco.NewWithCredentialsSource(credsSrc)
+	} else {
 		// Most commands don't actually need credentials, and most situations
 		// that would get us here would already have been reported by the config
 		// loading above, so we'll just log this one as an aid to debugging
 		// in the unlikely event that it _does_ arise.
 		log.Printf("[WARN] Cannot initialize remote host credentials manager: %s", err)
-		// credsSrc may be nil in this case, but that's okay because the disco
+		// passing (untyped) nil as the creds source is okay because the disco
 		// object checks that and just acts as though no credentials are present.
+		services = disco.NewWithCredentialsSource(nil)
 	}
-	services := disco.NewWithCredentialsSource(credsSrc)
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	providerSrc, diags := providerSource(config.ProviderInstallation, services)
