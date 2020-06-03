@@ -37,66 +37,33 @@ following sections.
 
 ## Configuring a Terraform Backend
 
-The selected _backend_ for a Terraform configuration defines exactly where
-and how operations are performed, where [state](/docs/state/index.html) is
-stored, etc. Most non-trivial Terraform configurations will have a backend
-configuration that configures a remote backend to allow collaboration within
-a team.
+The nested `backend` block configures which backend Terraform should use.
 
-A backend configuration is given in a nested `backend` block within a
-`terraform` block:
-
-```hcl
-terraform {
-  backend "s3" {
-    # (backend-specific settings...)
-  }
-}
-```
-
-More information on backend configuration can be found in
-[the _Backends_ section](/docs/backends/index.html).
+The syntax and behavior of the `backend` block is described in [Backend
+Configuration](./backend.html).
 
 ## Specifying a Required Terraform Version
 
-The `required_version` setting can be used to constrain which versions of
-the Terraform CLI can be used with your configuration. If the running version of
-Terraform doesn't match the constraints specified, Terraform will produce
-an error and exit without taking any further actions.
+The `required_version` setting accepts a [version constraint
+string,](./version-constraints.html) which specifies which versions of Terraform
+can be used with your configuration.
 
-When you use [child modules](./modules.html), each module
-can specify its own version requirements. The requirements of all modules
-in the tree must be satisfied.
+If the running version of Terraform doesn't match the constraints specified,
+Terraform will produce an error and exit without taking any further actions.
+
+When you use [child modules](./modules.html), each module can specify its own
+version requirements. The requirements of all modules in the tree must be
+satisfied.
 
 Use Terraform version constraints in a collaborative environment to
 ensure that everyone is using a specific Terraform version, or using at least
 a minimum Terraform version that has behavior expected by the configuration.
 
 The `required_version` setting applies only to the version of Terraform CLI.
-Various behaviors of Terraform are actually implemented by Terraform Providers,
+Various behaviors of Terraform are actually implemented by Terraform providers,
 which are released on a cycle independent of Terraform CLI and of each other.
 Use [provider version constraints](./providers.html#provider-versions)
 to make similar constraints on which provider versions may be used.
-
-The value for `required_version` is a string containing a comma-separated
-list of constraints. Each constraint is an operator followed by a version
-number, such as `> 0.12.0`. The following constraint operators are allowed:
-
-* `=` (or no operator): exact version equality
-
-* `!=`: version not equal
-
-* `>`, `>=`, `<`, `<=`: version comparison, where "greater than" is a larger
-  version number
-
-* `~>`: pessimistic constraint operator, constraining both the oldest and
-  newest version allowed. For example, `~> 0.9` is equivalent to
-  `>= 0.9, < 1.0`, and `~> 0.8.4`, is equivalent to `>= 0.8.4, < 0.9`
-
-Re-usable modules should constrain only the minimum allowed version, such
-as `>= 0.12.0`. This specifies the earliest version that the module is
-compatible with while leaving the user of the module flexibility to upgrade
-to newer versions of Terraform without altering the module.
 
 ## Specifying Required Provider Versions and Source
 
@@ -130,6 +97,7 @@ terraform {
 ```
 
 ### Third-Party Providers
+
 If you have a third-party provider that is not in the public registry,
 you will need to make up an arbitrary source for that provider and copy (or
 link) the binary to a directory corresponding to that source.
@@ -141,7 +109,7 @@ $PLUGINDIR/$SOURCEHOST/$NAMESPACE/$TYPE/$VERSION/$OS_$ARCH/
 ```
 
 The $OS_$ARCH must be the same operating system and architecture you are
-currently using for Terraform. 
+currently using for Terraform.
 
 For example, consider a provider called `terraform-provider-mycloud`. You can
 use any source, though a best practice is to choose something logical to you:
@@ -185,6 +153,7 @@ on versions for each provider they depend on, as described in
 [Provider Versions](providers.html#provider-versions).
 
 ### Source Constraint Strings
+
 A source constraint string within the `required_providers` is a string made up
 of one to three parts, separated by a forward-slash (`/`). The parts are:
 

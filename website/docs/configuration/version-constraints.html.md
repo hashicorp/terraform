@@ -3,67 +3,93 @@ layout: "docs"
 page_title: "Version Constraints - Configuration Language"
 ---
 
+# Version Constraints
 
-## from modules page
-
-The `version` attribute value may either be a single explicit version or
-a version constraint expression. Constraint expressions use the following
-syntax to specify a _range_ of versions that are acceptable:
-
-* `>= 1.2.0`: version 1.2.0 or newer
-* `<= 1.2.0`: version 1.2.0 or older
-* `~> 1.2.0`: any non-beta version `>= 1.2.0` and `< 1.3.0`, e.g. `1.2.X`
-* `~> 1.2`: any non-beta version `>= 1.2.0` and `< 2.0.0`, e.g. `1.X.Y`
-* `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
-
-When depending on third-party modules, references to specific versions are
-recommended since this ensures that updates only happen when convenient to you.
-
-For modules maintained within your organization, a version range strategy
-may be appropriate if a semantic versioning methodology is used consistently
-or if there is a well-defined release process that avoids unwanted updates.
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language](../configuration-0-11/index.html).
 
 
-## from terraform core version
+Anywhere that Terraform lets you specify a range of acceptable versions for
+something, it expects a specially formatted string known as a version
+constraint. Version constraints are used when configuring:
 
-The value for `required_version` is a string containing a comma-separated
-list of constraints. Each constraint is an operator followed by a version
-number, such as `> 0.12.0`. The following constraint operators are allowed:
+- [Modules](./modules.html)
+- [Provider sources](./provider-sources.html)
+- [The `required_version` setting](./terraform.html#specifying-a-required-terraform-version) in the `terraform` block.
 
-* `=` (or no operator): exact version equality
+## Version Constraint Syntax
 
-* `!=`: version not equal
+Terraform's syntax for version constraints is very similar to the syntax used by
+dependency management systems like Bundler and NPM.
 
-* `>`, `>=`, `<`, `<=`: version comparison, where "greater than" is a larger
-  version number
+```hcl
+version = ">= 1.2.0, < 2.0.0"
+```
 
-* `~>`: pessimistic constraint operator, constraining both the oldest and
-  newest version allowed. For example, `~> 0.9` is equivalent to
-  `>= 0.9, < 1.0`, and `~> 0.8.4`, is equivalent to `>= 0.8.4, < 0.9`
+A version constraint is a [string](./expressions.html#string-literals)
+containing one or more conditions, which are separated by commas.
 
-Re-usable modules should constrain only the minimum allowed version, such
-as `>= 0.12.0`. This specifies the earliest version that the module is
-compatible with while leaving the user of the module flexibility to upgrade
-to newer versions of Terraform without altering the module.
+Each condition consists of an operator and a version number.
 
-## from required_providers
+Version numbers should be a series of numbers separated by periods (like
+`1.2.0`), optionally with a suffix to indicate a beta release.
 
-Version constraint strings within the `required_providers` block use the
-same version constraint syntax as for
-[the `required_version` argument](#specifying-a-required-terraform-version)
-described above.
+The following operators are valid:
 
-When a configuration contains multiple version constraints for a single
-provider -- for example, if you're using multiple modules and each one has
-its own constraint -- _all_ of the constraints must hold to select a single
-provider version for the whole configuration.
+- `=` (or no operator): Allows only one exact version number. Cannot be combined
+  with other conditions.
 
-Re-usable modules should constrain only the minimum allowed version, such
-as `>= 1.0.0`. This specifies the earliest version that the module is
-compatible with while leaving the user of the module flexibility to upgrade
-to newer versions of the provider without altering the module.
+- `!=`: Excludes an exact version number.
 
-Root modules should use a `~>` constraint to set both a lower and upper bound
-on versions for each provider they depend on, as described in
-[Provider Versions](providers.html#provider-versions).
+- `>`, `>=`, `<`, `<=`: Comparisons against a specified version, allowing
+  versions for which the comparison is true. "Greater-than" requests newer
+  versions, and "less-than" requests older versions.
 
+- `~>`: Allows the specified version, plus newer versions that only
+  increase the _most specific_ segment of the specified version number. For
+  example, `~> 0.9` is equivalent to `>= 0.9, < 1.0`, and `~> 0.8.4`, is
+  equivalent to `>= 0.8.4, < 0.9`. This is usually called the pessimistic
+  constraint operator.
+
+## Version Constraint Behavior
+
+A version number that meets every applicable constraint is considered acceptable.
+
+Terraform consults version constraints to determine whether it has acceptable
+versions of itself, any required provider plugins, and any required modules. For
+plugins and modules, it will use the newest installed version that meets the
+applicable constraints.
+
+If Terraform doesn't have an acceptable version of a required plugin or module,
+it will attempt to download the newest version that meets the applicable
+constraints.
+
+If Terraform isn't able to obtain acceptable versions of external dependencies,
+or if it doesn't have an acceptable version of itself, it won't proceed with any
+plans, applies, or state manipulation actions.
+
+Both the root module and any child module can constrain the acceptable versions
+of Terraform and any providers they use. Terraform considers these constraints
+equal, and will only proceed if all of them can be met.
+
+## Best Practices
+
+### Module Versions
+
+- When depending on third-party modules, require specific versions to ensure
+  that updates only happen when convenient to you.
+
+- For modules maintained within your organization, specifying version ranges
+  may be appropriate if semantic versioning is used consistently or if there is
+  a well-defined release process that avoids unwanted updates.
+
+### Terraform Core and Provider Versions
+
+- Reusable modules should constrain only their minimum allowed versions of
+  Terraform and providers, such as `>= 0.12.0`. This helps avoid known
+  incompatibilities, while allowing the user of the module flexibility to
+  upgrade to newer versions of Terraform without altering the module.
+
+- Root modules should use a `~>` constraint to set both a lower and upper bound
+  on versions for each provider they depend on.
