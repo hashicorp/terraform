@@ -3,6 +3,7 @@ resource "test_instance" "a" {
 }
 
 data "test_data_source" "a" {
+  foo = "a"
 }
 
 output "out" {
