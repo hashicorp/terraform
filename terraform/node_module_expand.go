@@ -47,18 +47,7 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 		return nil
 	}
 
-	for _, traversal := range n.ModuleCall.DependsOn {
-		ref, diags := addrs.ParseRef(traversal)
-		if diags.HasErrors() {
-			// We ignore this here, because this isn't a suitable place to return
-			// errors. This situation should be caught and rejected during
-			// validation.
-			log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
-			continue
-		}
-
-		refs = append(refs, ref)
-	}
+	refs = append(refs, n.DependsOn()...)
 
 	// Expansion only uses the count and for_each expressions, so this
 	// particular graph node only refers to those.
@@ -80,6 +69,28 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 		refs = append(refs, forEachRefs...)
 	}
 	return appendResourceDestroyReferences(refs)
+}
+
+func (n *nodeExpandModule) DependsOn() []*addrs.Reference {
+	if n.ModuleCall == nil {
+		return nil
+	}
+
+	var refs []*addrs.Reference
+	for _, traversal := range n.ModuleCall.DependsOn {
+		ref, diags := addrs.ParseRef(traversal)
+		if diags.HasErrors() {
+			// We ignore this here, because this isn't a suitable place to return
+			// errors. This situation should be caught and rejected during
+			// validation.
+			log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
+			continue
+		}
+
+		refs = append(refs, ref)
+	}
+
+	return refs
 }
 
 // GraphNodeReferenceOutside
