@@ -61,8 +61,9 @@ type NodeAbstractResource struct {
 	// Set from GraphNodeTargetable
 	Targets []addrs.Targetable
 
-	// Set from GraphNodeDependsOn
-	dependsOn []addrs.ConfigResource
+	// Set from AttachResourceDependencies
+	dependsOn      []addrs.ConfigResource
+	forceDependsOn bool
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
@@ -402,8 +403,9 @@ func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 }
 
 // graphNodeAttachResourceDependencies
-func (n *NodeAbstractResource) AttachResourceDependencies(deps []addrs.ConfigResource) {
+func (n *NodeAbstractResource) AttachResourceDependencies(deps []addrs.ConfigResource, force bool) {
 	n.dependsOn = deps
+	n.forceDependsOn = force
 }
 
 // GraphNodeAttachResourceState

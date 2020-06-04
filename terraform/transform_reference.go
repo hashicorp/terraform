@@ -62,7 +62,15 @@ type graphNodeDependsOn interface {
 type graphNodeAttachResourceDependencies interface {
 	GraphNodeConfigResource
 	graphNodeDependsOn
-	AttachResourceDependencies([]addrs.ConfigResource)
+
+	// AttachResourceDependencies stored the discovered dependencies in the
+	// resource node for evaluation later.
+	//
+	// The force parameter indicates that even if there are no dependencies,
+	// force the data source to act as though there are for refresh purposes.
+	// This is needed because yet-to-be-created resources won't be in the
+	// initial refresh graph, but may still be referenced through depends_on.
+	AttachResourceDependencies(deps []addrs.ConfigResource, force bool)
 }
 
 // GraphNodeReferenceOutside is an interface that can optionally be implemented.
@@ -186,7 +194,7 @@ func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
 		}
 
 		log.Printf("[TRACE] attachDataDependenciesTransformer: %s depends on %s", depender.ResourceAddr(), res)
-		depender.AttachResourceDependencies(res)
+		depender.AttachResourceDependencies(res, false)
 	}
 
 	return nil

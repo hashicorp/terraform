@@ -58,6 +58,9 @@ type evalReadData struct {
 	// determine if there are any changes that will force this data sources to
 	// be deferred to apply.
 	dependsOn []addrs.ConfigResource
+	// forceDependsOn indicates that resources may be missing from dependsOn,
+	// but the parent module may have depends_on configured.
+	forceDependsOn bool
 }
 
 // readDataSource handles everything needed to call ReadDataSource on the provider.
@@ -302,5 +305,5 @@ func (n *evalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 // immediately reading from the data source where possible, instead forcing us
 // to generate a plan.
 func (n *evalReadDataRefresh) forcePlanRead() bool {
-	return len(n.Config.DependsOn) > 0 || len(n.dependsOn) > 0
+	return len(n.Config.DependsOn) > 0 || len(n.dependsOn) > 0 || n.forceDependsOn
 }
