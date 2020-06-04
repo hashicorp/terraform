@@ -1,5 +1,9 @@
 ## (UNRELEASED)
 
+BUG FIXES:
+
+* command: Fix `0.13upgrade` usage help text to include options [GH-25127]
+
 ## 0.13.0-beta1 (June 03, 2020)
 
 NEW FEATURES:
