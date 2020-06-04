@@ -689,6 +689,16 @@ Usage: terraform 0.13upgrade [module-dir]
 
   Updates module configuration files to add provider source attributes and
   merge multiple required_providers blocks into one.
+
+  By default, 0.13upgrade rewrites the files in the current working directory.
+  However, a path to a different directory can be provided. The command will
+  prompt for confirmation interactively unless the -yes option is given.
+
+Options:
+
+  -yes        Skip the initial introduction messages and interactive
+              confirmation. This can be used to run this command in
+              batch from a script.
 `
 	return strings.TrimSpace(helpText)
 }
