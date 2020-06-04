@@ -685,7 +685,7 @@ func noSourceDetectedComment(name string) hclwrite.Tokens {
 
 func (c *ZeroThirteenUpgradeCommand) Help() string {
 	helpText := `
-Usage: terraform 0.13upgrade [module-dir]
+Usage: terraform 0.13upgrade [options] [module-dir]
 
   Updates module configuration files to add provider source attributes and
   merge multiple required_providers blocks into one.
