@@ -257,6 +257,22 @@ func New() backend.Backend {
 				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
 				Default:     5,
 			},
+
+			"allowed_account_ids": {
+				Type:          schema.TypeSet,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Optional:      true,
+				ConflictsWith: []string{"forbidden_account_ids"},
+				Set:           schema.HashString,
+			},
+
+			"forbidden_account_ids": {
+				Type:          schema.TypeSet,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Optional:      true,
+				ConflictsWith: []string{"allowed_account_ids"},
+				Set:           schema.HashString,
+			},
 		},
 	}
 
@@ -280,6 +296,8 @@ type Backend struct {
 	kmsKeyID              string
 	ddbTable              string
 	workspaceKeyPrefix    string
+	allowedAccountIds     interface{}
+	forbiddenAccountIds   interface{}
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -346,8 +364,25 @@ func (b *Backend) configure(ctx context.Context) error {
 		},
 	}
 
-	sess, err := awsbase.GetSession(cfg)
+	sess, accountId, _, err := awsbase.GetSessionWithAccountIDAndPartition(cfg)
 	if err != nil {
+		return err
+	}
+
+	b.allowedAccountIds = data.Get("allowed_account_ids").(*schema.Set).List()
+	b.forbiddenAccountIds = data.Get("forbidden_account_ids").(*schema.Set).List()
+
+	allowedAccountIdsList := make([]string, len(b.allowedAccountIds.([]interface{})))
+	for i, av := range b.allowedAccountIds.([]interface{}) {
+		allowedAccountIdsList[i] = av.(string)
+	}
+
+	forbiddenAccountIdsList := make([]string, len(b.forbiddenAccountIds.([]interface{})))
+	for i, fv := range b.forbiddenAccountIds.([]interface{}) {
+		forbiddenAccountIdsList[i] = fv.(string)
+	}
+
+	if err := awsbase.ValidateAccountID(accountId, allowedAccountIdsList, forbiddenAccountIdsList); err != nil {
 		return err
 	}
 

@@ -134,6 +134,24 @@ func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
 	}
 }
 
+func TestBackendConfig_conflictingAllowedForbiddenAccountIds(t *testing.T) {
+	testACC(t)
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":                "us-west-1",
+		"bucket":                "tf-test",
+		"key":                   "state",
+		"encrypt":               true,
+		"dynamodb_table":        "dynamoTable",
+		"allowed_account_ids":   "['123456789012']",
+		"forbidden_account_ids": "['210987654321']",
+	})
+
+	diags := New().Configure(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected error for simultaneous usage of allowed_account_ids and forbidden_account_ids")
+	}
+}
+
 func TestBackend(t *testing.T) {
 	testACC(t)
 
