@@ -178,14 +178,10 @@ func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
 
 		// depMap will only add resource references then dedupe
 		deps := make(depMap)
-		for _, dep := range refMap.dependsOn(g, depender) {
+		dependsOnDeps, fromModule := refMap.dependsOn(g, depender)
+		for _, dep := range dependsOnDeps {
 			// any the dependency
 			deps.add(dep)
-			// and check any ancestors for transitive dependencies
-			ans, _ := g.Ancestors(dep)
-			for _, v := range ans {
-				deps.add(v)
-			}
 		}
 
 		res := make([]addrs.ConfigResource, 0, len(deps))
@@ -194,7 +190,7 @@ func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
 		}
 
 		log.Printf("[TRACE] attachDataDependenciesTransformer: %s depends on %s", depender.ResourceAddr(), res)
-		depender.AttachResourceDependencies(res, false)
+		depender.AttachResourceDependencies(res, fromModule)
 	}
 
 	return nil
@@ -266,6 +262,16 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+func isDependableResource(v dag.Vertex) bool {
+	switch v.(type) {
+	case GraphNodeResourceInstance:
+		return true
+	case GraphNodeConfigResource:
+		return true
+	}
+	return false
+}
+
 // ReferenceMap is a structure that can be used to efficiently check
 // for references on a graph, mapping internal reference keys (as produced by
 // the mapKey method) to one or more vertices that are identified by each key.
@@ -317,10 +323,18 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 }
 
 // dependsOn returns the set of vertices that the given vertex refers to from
-// the configured depends_on.
-func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
-	var matches []dag.Vertex
+// the configured depends_on. The bool return value indicates if depends_on was
+// found in a parent module configuration.
+func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
+	var res []dag.Vertex
+	fromModule := false
+
 	refs := depender.DependsOn()
+
+	// This is where we record that a module has depends_on configured.
+	if _, ok := depender.(*nodeExpandModule); ok && len(refs) > 0 {
+		fromModule = true
+	}
 
 	for _, ref := range refs {
 		subject := ref.Subject
@@ -328,7 +342,8 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 		key := m.referenceMapKey(depender, subject)
 		vertices, ok := m[key]
 		if !ok {
-			log.Printf("[WARN] DependsOn: reference not found: %q", subject)
+			// the ReferenceMap generates all possible keys, so any warning
+			// here is probably not useful for this implementation.
 			continue
 		}
 		for _, rv := range vertices {
@@ -336,42 +351,58 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 			if rv == depender {
 				continue
 			}
-			matches = append(matches, rv)
+			res = append(res, rv)
+
+			// and check any ancestors for transitive dependencies
+			ans, _ := g.Ancestors(rv)
+			for _, v := range ans {
+				if isDependableResource(v) {
+					res = append(res, v)
+				}
+			}
 		}
 	}
 
-	matches = append(matches, m.parentModuleDependsOn(g, depender)...)
+	parentDeps, fromParentModule := m.parentModuleDependsOn(g, depender)
+	res = append(res, parentDeps...)
 
-	return matches
+	return res, fromModule || fromParentModule
 }
 
 // parentModuleDependsOn returns the set of vertices that a data sources parent
-// module references through the module call's depends_on.
-func (n ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
+// module references through the module call's depends_on. The bool return
+// value indicates if depends_on was found in a parent module configuration.
+func (n ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
 	var res []dag.Vertex
+	fromModule := false
 
-	// look for containing modules with DependsOn
+	// Look for containing modules with DependsOn.
+	// This should be connected directly to the module node, so we only need to
+	// look one step away.
 	for _, v := range g.DownEdges(depender) {
+		// we're only concerned with module expansion nodes here.
 		mod, ok := v.(*nodeExpandModule)
 		if !ok {
 			continue
 		}
 
-		for _, dep := range n.dependsOn(g, mod) {
+		deps, fromParentModule := n.dependsOn(g, mod)
+		for _, dep := range deps {
 			// add the dependency
 			res = append(res, dep)
-			// and check any ancestors
+
+			// and check any transitive resource dependencies for more resources
 			ans, _ := g.Ancestors(dep)
 			for _, v := range ans {
-				res = append(res, v)
+				if isDependableResource(v) {
+					res = append(res, v)
+				}
 			}
 		}
-
-		// recurse up through parent modules
-		res = append(res, n.parentModuleDependsOn(g, mod)...)
+		fromModule = fromModule || fromParentModule
 	}
 
-	return res
+	return res, fromModule
 }
 
 func (m *ReferenceMap) mapKey(path addrs.Module, addr addrs.Referenceable) string {
