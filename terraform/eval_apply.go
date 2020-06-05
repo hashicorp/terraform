@@ -246,7 +246,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 						"Provider produced inconsistent result after apply",
 						fmt.Sprintf(
 							"When applying changes to %s, provider %q produced an unexpected new value: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-							absAddr, n.ProviderAddr.ProviderConfig.Type, tfdiags.FormatError(err),
+							absAddr, n.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
 						),
 					))
 				}
