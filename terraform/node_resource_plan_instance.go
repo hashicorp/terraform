@@ -83,8 +83,8 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 					ProviderSchema: &providerSchema,
 					OutputChange:   &change,
 					State:          &state,
+					dependsOn:      n.dependsOn,
 				},
-				dependsOn: n.dependsOn,
 			},
 
 			&EvalWriteState{
