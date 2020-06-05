@@ -3,6 +3,7 @@ package terraform
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
@@ -17,8 +18,8 @@ func TestMockResourceProvider_impl(t *testing.T) {
 // a single given.
 func testProviderComponentFactory(name string, provider providers.Interface) *basicComponentFactory {
 	return &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			name: providers.FactoryFixed(provider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider(name): providers.FactoryFixed(provider),
 		},
 	}
 }

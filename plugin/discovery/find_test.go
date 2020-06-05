@@ -11,19 +11,19 @@ func TestFindPluginPaths(t *testing.T) {
 	got := findPluginPaths(
 		"foo",
 		[]string{
-			"test-fixtures/current-style-plugins/mockos_mockarch",
-			"test-fixtures/legacy-style-plugins",
-			"test-fixtures/non-existent",
-			"test-fixtures/not-a-dir",
+			"testdata/current-style-plugins/mockos_mockarch",
+			"testdata/legacy-style-plugins",
+			"testdata/non-existent",
+			"testdata/not-a-dir",
 		},
 	)
 	want := []string{
-		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v0.0.1"),
-		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0.exe"),
+		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v0.0.1"),
+		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0.exe"),
 		// un-versioned plugins are still picked up, even in current-style paths
-		filepath.Join("test-fixtures", "current-style-plugins", "mockos_mockarch", "terraform-foo-missing-version"),
-		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-bar"),
-		filepath.Join("test-fixtures", "legacy-style-plugins", "terraform-foo-baz"),
+		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "terraform-foo-missing-version"),
+		filepath.Join("testdata", "legacy-style-plugins", "terraform-foo-bar"),
+		filepath.Join("testdata", "legacy-style-plugins", "terraform-foo-baz"),
 	}
 
 	// Turn the paths back into relative paths, since we don't care exactly

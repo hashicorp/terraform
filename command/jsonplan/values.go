@@ -26,7 +26,7 @@ type stateValues struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
-	if value == cty.NilVal {
+	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
 	ret := make(attributeValues)
@@ -96,15 +96,35 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 			containingModule := resource.Addr.Module.String()
 			moduleResourceMap[containingModule] = append(moduleResourceMap[containingModule], resource.Addr)
 
-			// root has no parents.
-			if containingModule != "" {
+			// the root module has no parents
+			if !resource.Addr.Module.IsRoot() {
 				parent := resource.Addr.Module.Parent().String()
-				// we likely will see multiple resources in one module, so we
+				// we expect to see multiple resources in one module, so we
 				// only need to report the "parent" module for each child module
 				// once.
 				if !seenModules[containingModule] {
 					moduleMap[parent] = append(moduleMap[parent], resource.Addr.Module)
 					seenModules[containingModule] = true
+				}
+
+				// If any given parent module has no resources, it needs to be
+				// added to the moduleMap. This walks through the current
+				// resources' modules' ancestors, taking advantage of the fact
+				// that Ancestors() returns an ordered slice, and verifies that
+				// each one is in the map.
+				ancestors := resource.Addr.Module.Ancestors()
+				for i, ancestor := range ancestors[:len(ancestors)-1] {
+					aStr := ancestor.String()
+
+					// childStr here is the immediate child of the current step
+					childStr := ancestors[i+1].String()
+					// we likely will see multiple resources in one module, so we
+					// only need to report the "parent" module for each child module
+					// once.
+					if !seenModules[childStr] {
+						moduleMap[aStr] = append(moduleMap[aStr], ancestors[i+1])
+						seenModules[childStr] = true
+					}
 				}
 			}
 		}
@@ -144,7 +164,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			Address:      r.Addr.String(),
 			Type:         r.Addr.Resource.Resource.Type,
 			Name:         r.Addr.Resource.Resource.Name,
-			ProviderName: r.ProviderAddr.ProviderConfig.StringCompact(),
+			ProviderName: r.ProviderAddr.Provider.String(),
 			Index:        r.Addr.Resource.Key,
 		}
 
@@ -161,7 +181,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		}
 
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			r.ProviderAddr.ProviderConfig.Type,
+			r.ProviderAddr.Provider,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)

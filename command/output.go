@@ -10,7 +10,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -23,11 +23,7 @@ type OutputCommand struct {
 }
 
 func (c *OutputCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var module, statePath string
 	var jsonOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("output")
@@ -36,6 +32,7 @@ func (c *OutputCommand) Run(args []string) int {
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -119,7 +116,7 @@ func (c *OutputCommand) Run(args []string) int {
 				"become available. If you are using interpolation, please verify\n" +
 				"the interpolated value is not empty. You can use the \n" +
 				"`terraform console` command to assist.")
-		return 1
+		return 0
 	}
 
 	if name == "" {

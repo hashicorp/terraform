@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/errwrap"
@@ -44,7 +43,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 
 	// Build the context
 	opts.Config = cfg
-	opts.State, err = terraform.ShimLegacyState(state)
+	opts.State, err = shimLegacyState(state)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +340,7 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 				v := newAttrs[attrK]
 				u := oldAttrs[attrK]
 
-				if v == config.UnknownVariableValue {
+				if v == hcl2shim.UnknownVariableValue {
 					v = "<computed>"
 				}
 				// NOTE: we don't support <sensitive> here because we would

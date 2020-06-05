@@ -70,9 +70,10 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.ProviderConfig{
-					Type: "aws",
-				}.Absolute(addrs.RootModuleInstance),
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("aws"),
+					Module:   addrs.RootModule,
+				},
 			)
 			s.SetResourceInstanceCurrent(
 				addrs.Resource{
@@ -86,9 +87,10 @@ func TestMissingProvisionerTransformer_module(t *testing.T) {
 					},
 					Status: states.ObjectReady,
 				},
-				addrs.ProviderConfig{
-					Type: "aws",
-				}.Absolute(addrs.RootModuleInstance),
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("aws"),
+					Module:   addrs.RootModule,
+				},
 			)
 		})
 
@@ -188,8 +190,7 @@ const testTransformMissingProvisionerModuleStr = `
 aws_instance.foo
   provisioner.shell
 module.child.aws_instance.foo
-  module.child.provisioner.shell
-module.child.provisioner.shell
+  provisioner.shell
 provisioner.shell
 `
 

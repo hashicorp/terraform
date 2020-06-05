@@ -6,6 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/instances"
 )
 
 func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
@@ -37,20 +38,19 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleOut(t *testing.T) {
 		},
 	})
 
+	addr := addrs.RootModule.Resource(addrs.DataResourceMode, "aws_instance", "foo")
 	n := &NodeRefreshableDataResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.DataResourceMode,
-				"aws_instance",
-				"foo",
-			),
+			Addr:   addr,
 			Config: m.Module.DataResources["data.aws_instance.foo"],
 		},
+		Addr: addr.Absolute(addrs.RootModuleInstance),
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   addrs.RootModuleInstance,
-		StateState: state.SyncWrapper(),
+		PathPath:                 addrs.RootModuleInstance,
+		StateState:               state.SyncWrapper(),
+		InstanceExpanderExpander: instances.NewExpander(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -120,25 +120,23 @@ func TestNodeRefreshableDataResourceDynamicExpand_scaleIn(t *testing.T) {
 		},
 	})
 
+	addr := addrs.RootModule.Resource(addrs.DataResourceMode, "aws_instance", "foo")
 	n := &NodeRefreshableDataResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.DataResourceMode,
-				"aws_instance",
-				"foo",
-			),
+			Addr:   addr,
 			Config: m.Module.DataResources["data.aws_instance.foo"],
 			ResolvedProvider: addrs.AbsProviderConfig{
-				ProviderConfig: addrs.ProviderConfig{
-					Type: "aws",
-				},
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
 			},
 		},
+		Addr: addr.Absolute(addrs.RootModuleInstance),
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   addrs.RootModuleInstance,
-		StateState: state.SyncWrapper(),
+		PathPath:                 addrs.RootModuleInstance,
+		StateState:               state.SyncWrapper(),
+		InstanceExpanderExpander: instances.NewExpander(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -174,7 +172,7 @@ root - terraform.graphNodeRoot
 		t.Fatal("failed to find a destroyableDataResource")
 	}
 
-	if destroyableDataResource.ResolvedProvider.ProviderConfig.Type == "" {
+	if destroyableDataResource.ResolvedProvider.Provider.Type == "" {
 		t.Fatal("NodeDestroyableDataResourceInstance missing provider config")
 	}
 }

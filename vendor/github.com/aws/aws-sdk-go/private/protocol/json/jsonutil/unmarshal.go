@@ -1,16 +1,39 @@
 package jsonutil
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/private/protocol"
 )
+
+// UnmarshalJSONError unmarshal's the reader's JSON document into the passed in
+// type. The value to unmarshal the json document into must be a pointer to the
+// type.
+func UnmarshalJSONError(v interface{}, stream io.Reader) error {
+	var errBuf bytes.Buffer
+	body := io.TeeReader(stream, &errBuf)
+
+	err := json.NewDecoder(body).Decode(v)
+	if err != nil {
+		msg := "failed decoding error message"
+		if err == io.EOF {
+			msg = "error message missing"
+			err = nil
+		}
+		return awserr.NewUnmarshalError(err, msg, errBuf.Bytes())
+	}
+
+	return nil
+}
 
 // UnmarshalJSON reads a stream and unmarshals the results in object v.
 func UnmarshalJSON(v interface{}, stream io.Reader) error {
@@ -23,10 +46,31 @@ func UnmarshalJSON(v interface{}, stream io.Reader) error {
 		return err
 	}
 
-	return unmarshalAny(reflect.ValueOf(v), out, "")
+	return unmarshaler{}.unmarshalAny(reflect.ValueOf(v), out, "")
 }
 
-func unmarshalAny(value reflect.Value, data interface{}, tag reflect.StructTag) error {
+// UnmarshalJSONCaseInsensitive reads a stream and unmarshals the result into the
+// object v. Ignores casing for structure members.
+func UnmarshalJSONCaseInsensitive(v interface{}, stream io.Reader) error {
+	var out interface{}
+
+	err := json.NewDecoder(stream).Decode(&out)
+	if err == io.EOF {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	return unmarshaler{
+		caseInsensitive: true,
+	}.unmarshalAny(reflect.ValueOf(v), out, "")
+}
+
+type unmarshaler struct {
+	caseInsensitive bool
+}
+
+func (u unmarshaler) unmarshalAny(value reflect.Value, data interface{}, tag reflect.StructTag) error {
 	vtype := value.Type()
 	if vtype.Kind() == reflect.Ptr {
 		vtype = vtype.Elem() // check kind of actual element type
@@ -58,17 +102,17 @@ func unmarshalAny(value reflect.Value, data interface{}, tag reflect.StructTag) 
 		if field, ok := vtype.FieldByName("_"); ok {
 			tag = field.Tag
 		}
-		return unmarshalStruct(value, data, tag)
+		return u.unmarshalStruct(value, data, tag)
 	case "list":
-		return unmarshalList(value, data, tag)
+		return u.unmarshalList(value, data, tag)
 	case "map":
-		return unmarshalMap(value, data, tag)
+		return u.unmarshalMap(value, data, tag)
 	default:
-		return unmarshalScalar(value, data, tag)
+		return u.unmarshalScalar(value, data, tag)
 	}
 }
 
-func unmarshalStruct(value reflect.Value, data interface{}, tag reflect.StructTag) error {
+func (u unmarshaler) unmarshalStruct(value reflect.Value, data interface{}, tag reflect.StructTag) error {
 	if data == nil {
 		return nil
 	}
@@ -92,7 +136,7 @@ func unmarshalStruct(value reflect.Value, data interface{}, tag reflect.StructTa
 	// unwrap any payloads
 	if payload := tag.Get("payload"); payload != "" {
 		field, _ := t.FieldByName(payload)
-		return unmarshalAny(value.FieldByName(payload), data, field.Tag)
+		return u.unmarshalAny(value.FieldByName(payload), data, field.Tag)
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -106,9 +150,19 @@ func unmarshalStruct(value reflect.Value, data interface{}, tag reflect.StructTa
 		if locName := field.Tag.Get("locationName"); locName != "" {
 			name = locName
 		}
+		if u.caseInsensitive {
+			if _, ok := mapData[name]; !ok {
+				// Fallback to uncased name search if the exact name didn't match.
+				for kn, v := range mapData {
+					if strings.EqualFold(kn, name) {
+						mapData[name] = v
+					}
+				}
+			}
+		}
 
 		member := value.FieldByIndex(field.Index)
-		err := unmarshalAny(member, mapData[name], field.Tag)
+		err := u.unmarshalAny(member, mapData[name], field.Tag)
 		if err != nil {
 			return err
 		}
@@ -116,7 +170,7 @@ func unmarshalStruct(value reflect.Value, data interface{}, tag reflect.StructTa
 	return nil
 }
 
-func unmarshalList(value reflect.Value, data interface{}, tag reflect.StructTag) error {
+func (u unmarshaler) unmarshalList(value reflect.Value, data interface{}, tag reflect.StructTag) error {
 	if data == nil {
 		return nil
 	}
@@ -131,7 +185,7 @@ func unmarshalList(value reflect.Value, data interface{}, tag reflect.StructTag)
 	}
 
 	for i, c := range listData {
-		err := unmarshalAny(value.Index(i), c, "")
+		err := u.unmarshalAny(value.Index(i), c, "")
 		if err != nil {
 			return err
 		}
@@ -140,7 +194,7 @@ func unmarshalList(value reflect.Value, data interface{}, tag reflect.StructTag)
 	return nil
 }
 
-func unmarshalMap(value reflect.Value, data interface{}, tag reflect.StructTag) error {
+func (u unmarshaler) unmarshalMap(value reflect.Value, data interface{}, tag reflect.StructTag) error {
 	if data == nil {
 		return nil
 	}
@@ -157,14 +211,14 @@ func unmarshalMap(value reflect.Value, data interface{}, tag reflect.StructTag) 
 		kvalue := reflect.ValueOf(k)
 		vvalue := reflect.New(value.Type().Elem()).Elem()
 
-		unmarshalAny(vvalue, v, "")
+		u.unmarshalAny(vvalue, v, "")
 		value.SetMapIndex(kvalue, vvalue)
 	}
 
 	return nil
 }
 
-func unmarshalScalar(value reflect.Value, data interface{}, tag reflect.StructTag) error {
+func (u unmarshaler) unmarshalScalar(value reflect.Value, data interface{}, tag reflect.StructTag) error {
 
 	switch d := data.(type) {
 	case nil:

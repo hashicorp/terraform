@@ -19,11 +19,13 @@ HashiCorp, and are tested by HashiCorp.
 ---
 
 
+- [Auth0](/docs/providers/auth0/index.html)
 - [Circonus](/docs/providers/circonus/index.html)
 - [Datadog](/docs/providers/datadog/index.html)
 - [Dyn](/docs/providers/dyn/index.html)
 - [Grafana](/docs/providers/grafana/index.html)
 - [Icinga2](/docs/providers/icinga2/index.html)
+- [LaunchDarkly](/docs/providers/launchdarkly/index.html)
 - [Librato](/docs/providers/librato/index.html)
 - [Logentries](/docs/providers/logentries/index.html)
 - [LogicMonitor](/docs/providers/logicmonitor/index.html)
@@ -31,4 +33,6 @@ HashiCorp, and are tested by HashiCorp.
 - [OpsGenie](/docs/providers/opsgenie/index.html)
 - [PagerDuty](/docs/providers/pagerduty/index.html)
 - [Runscope](/docs/providers/runscope/index.html)
+- [SignalFx](/docs/providers/signalfx/index.html)
 - [StatusCake](/docs/providers/statuscake/index.html)
+- [Sumo Logic](/docs/providers/sumologic/index.html)

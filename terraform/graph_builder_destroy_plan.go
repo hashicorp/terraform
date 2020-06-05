@@ -72,6 +72,9 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			State:           b.State,
 		},
 
+		// Attach the state
+		&AttachStateTransformer{State: b.State},
+
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
@@ -89,8 +92,8 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// created proper destroy ordering.
 		&TargetsTransformer{Targets: b.Targets},
 
-		// Single root
-		&RootTransformer{},
+		// Close the root module
+		&CloseRootModuleTransformer{},
 	}
 
 	return steps

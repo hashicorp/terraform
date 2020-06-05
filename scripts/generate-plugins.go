@@ -124,7 +124,7 @@ func listDirectories(path string) ([]string, error) {
 	for _, item := range items {
 		// We only want directories
 		if item.IsDir() {
-			if item.Name() == "test-fixtures" {
+			if item.Name() == "testdata" {
 				continue
 			}
 			currentDir := filepath.Join(path, item.Name())

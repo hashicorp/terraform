@@ -22,6 +22,7 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
+	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 )
 
 // Test empty directory with no config/state creates a local state.
@@ -1771,7 +1772,7 @@ func TestMetaBackend_configureWithExtra(t *testing.T) {
 	}
 }
 
-// when confniguring a default local state, don't delete local state
+// when configuring a default local state, don't delete local state
 func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -1860,10 +1861,34 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	}
 }
 
+// no config; return inmem backend stored in state
+func TestBackendFromState(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-from-state"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	// terraform caches a small "state" file that stores the backend config.
+	// This test must override m.dataDir so it loads the "terraform.tfstate" file in the
+	// test directory as the backend config cache
+	m.OverrideDataDir = td
+
+	stateBackend, diags := m.backendFromState()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if _, ok := stateBackend.(*backendInmem.Backend); !ok {
+		t.Fatal("did not get expected inmem backend")
+	}
+}
+
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
-	m.process(args, true)
+	m.process(args)
 	f := m.extendedFlagSet("test")
 	if err := f.Parse(args); err != nil {
 		t.Fatalf("unexpected error: %s", err)

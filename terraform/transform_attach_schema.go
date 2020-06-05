@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -11,7 +12,7 @@ import (
 // GraphNodeAttachResourceSchema is an interface implemented by node types
 // that need a resource schema attached.
 type GraphNodeAttachResourceSchema interface {
-	GraphNodeResource
+	GraphNodeConfigResource
 	GraphNodeProviderConsumer
 
 	AttachResourceSchema(schema *configschema.Block, version uint64)
@@ -43,6 +44,7 @@ type GraphNodeAttachProvisionerSchema interface {
 // and then passes them to a method implemented by the node.
 type AttachSchemaTransformer struct {
 	Schemas *Schemas
+	Config  *configs.Config
 }
 
 func (t *AttachSchemaTransformer) Transform(g *Graph) error {
@@ -58,10 +60,9 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			addr := tv.ResourceAddr()
 			mode := addr.Resource.Mode
 			typeName := addr.Resource.Type
-			providerAddr, _ := tv.ProvidedBy()
-			providerType := providerAddr.ProviderConfig.Type
+			providerFqn := tv.Provider()
 
-			schema, version := t.Schemas.ResourceTypeConfig(providerType, mode, typeName)
+			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
 				continue
@@ -72,7 +73,8 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
 			providerAddr := tv.ProviderAddr()
-			schema := t.Schemas.ProviderConfig(providerAddr.ProviderConfig.Type)
+			schema := t.Schemas.ProviderConfig(providerAddr.Provider)
+
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
 				continue

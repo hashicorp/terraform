@@ -186,6 +186,14 @@
             <a href="/docs/commands/init.html">init</a>
           </li>
 
+          <li<%= sidebar_current("docs-commands-login") %>>
+            <a href="/docs/commands/login.html">login</a>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-logout") %>>
+            <a href="/docs/commands/logout.html">logout</a>
+          </li>
+
           <li<%= sidebar_current("docs-commands-output") %>>
             <a href="/docs/commands/output.html">output</a>
           </li>
@@ -230,8 +238,8 @@
             <a href="/docs/commands/workspace/index.html">workspace</a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-012upgrade") %>>
-            <a href="/docs/commands/0.12upgrade.html">0.12upgrade</a>
+          <li<%= sidebar_current("docs-commands-013upgrade") %>>
+            <a href="/docs/commands/0.13upgrade.html">0.13upgrade</a>
           </li>
         </ul>
       </li>
@@ -331,29 +339,39 @@
             <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
           </li>
 
-          <li<%= sidebar_current("docs-provisioners-chef") %>>
-            <a href="/docs/provisioners/chef.html">chef Provisioner</a>
+          <li>
+            <a href="#">Built-in Provisioners</a>
+            <ul class="nav nav-auto-expand">
+              <li<%= sidebar_current("docs-provisioners-chef") %>>
+                <a href="/docs/provisioners/chef.html">chef Provisioner</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners-file") %>>
+                <a href="/docs/provisioners/file.html">file Provisioner</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners-habitat") %>>
+                <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners-local") %>>
+                <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners-puppet") %>>
+                <a href="/docs/provisioners/puppet.html">puppet Provisioner</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners-remote") %>>
+                <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
+                <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
+              </li>
+            </ul>
           </li>
 
-          <li<%= sidebar_current("docs-provisioners-file") %>>
-            <a href="/docs/provisioners/file.html">file Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-habitat") %>>
-            <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-local") %>>
-            <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-remote") %>>
-            <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
-            <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
-          </li>
         </ul>
       </li>
 
@@ -377,12 +395,12 @@
       <li<%= sidebar_current("docs-backends") %>>
         <a href="/docs/backends/index.html">Backends</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-backends-init") %>>
-            <a href="/docs/backends/init.html">Init</a>
-          </li>
-
           <li<%= sidebar_current("docs-backends-config") %>>
             <a href="/docs/backends/config.html">Configuration</a>
+          </li>
+
+          <li<%= sidebar_current("docs-backends-init") %>>
+            <a href="/docs/backends/init.html">Init</a>
           </li>
 
           <li<%= sidebar_current("docs-backends-state") %>>
@@ -406,6 +424,10 @@
             <a href="/docs/plugins/basics.html">Basics</a>
           </li>
 
+          <li<%= sidebar_current("docs-plugins-signing") %>>
+            <a href="/docs/plugins/signing.html">Signing</a>
+          </li>
+
           <li<%= sidebar_current("docs-plugins-provider") %>>
             <a href="/docs/plugins/provider.html">Provider</a>
           </li>
@@ -419,6 +441,10 @@
       <li<%= sidebar_current("docs-internals") %>>
         <a href="/docs/internals/index.html">Internals</a>
         <ul class="nav">
+          <li<%= sidebar_current("docs-internals-credentials-helpers") %>>
+            <a href="/docs/internals/credentials-helpers.html">Credentials Helpers</a>
+          </li>
+
           <li<%= sidebar_current("docs-internals-debug") %>>
             <a href="/docs/internals/debugging.html">Debugging Terraform</a>
           </li>
@@ -429,6 +455,10 @@
 
           <li<%= sidebar_current("docs-internals-lifecycle") %>>
             <a href="/docs/internals/lifecycle.html">Resource Lifecycle</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-login-protocol") %>>
+            <a href="/docs/internals/login-protocol.html">Login Protocol</a>
           </li>
 
           <li<%= sidebar_current("docs-internals-resource-addressing") %>>
@@ -445,6 +475,10 @@
 
           <li<%= sidebar_current("docs-internals-plugins") %>>
             <a href="/docs/internals/internal-plugins.html">Internal Plugins</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-provider-meta") %>>
+            <a href="/docs/internals/provider-meta.html">Provider Metadata</a>
           </li>
         </ul>
       </li>

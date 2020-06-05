@@ -52,6 +52,22 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 	}
 
 	return nil
+
+}
+
+// InstancesForConfigResource returns the planned change for the current objects
+// of the resource instances of the given address, if any. Returns nil if no
+// changes are planned.
+func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+	var changes []*ResourceInstanceChangeSrc
+	for _, rc := range c.Resources {
+		resAddr := rc.Addr.ContainingResource().Config()
+		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+			changes = append(changes, rc)
+		}
+	}
+
+	return changes
 }
 
 // ResourceInstanceDeposed returns the plan change of a deposed object of
@@ -79,6 +95,36 @@ func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	}
 
 	return nil
+}
+
+// OutputValues returns planned changes for all outputs for all module
+// instances that reside in the parent path.  Returns nil if no changes are
+// planned.
+func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChangeSrc {
+	var res []*OutputChangeSrc
+
+	for _, oc := range c.Outputs {
+		// we can't evaluate root module outputs
+		if oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+			continue
+		}
+
+		changeMod, changeCall := oc.Addr.Module.Call()
+		// this does not reside on our parent instance path
+		if !changeMod.Equal(parent) {
+			continue
+		}
+
+		// this is not the module you're looking for
+		if changeCall.Name != module.Name {
+			continue
+		}
+
+		res = append(res, oc)
+
+	}
+
+	return res
 }
 
 // SyncWrapper returns a wrapper object around the receiver that can be used

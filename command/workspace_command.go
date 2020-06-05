@@ -15,11 +15,7 @@ type WorkspaceCommand struct {
 }
 
 func (c *WorkspaceCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.extendedFlagSet("workspace")
@@ -33,7 +29,7 @@ func (c *WorkspaceCommand) Help() string {
 	helpText := `
 Usage: terraform workspace
 
-  New, list, select and delete Terraform workspaces.
+  new, list, show, select and delete Terraform workspaces.
 
 `
 	return strings.TrimSpace(helpText)

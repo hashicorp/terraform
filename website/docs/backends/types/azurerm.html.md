@@ -20,6 +20,7 @@ When authenticating using the Azure CLI or a Service Principal:
 ```hcl
 terraform {
   backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"
     storage_account_name = "abcd1234"
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
@@ -76,7 +77,7 @@ terraform {
 
 -> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/backends/config.html) for the credentials.
 
-## Example Referencing
+## Data Source Configuration
 
 When authenticating using a Service Principal:
 

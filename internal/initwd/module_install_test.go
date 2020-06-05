@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/copydir"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -33,7 +34,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestModuleInstaller(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/local-modules")
+	fixtureDir := filepath.Clean("testdata/local-modules")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -94,7 +95,7 @@ func TestModuleInstaller(t *testing.T) {
 }
 
 func TestModuleInstaller_error(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/local-module-error")
+	fixtureDir := filepath.Clean("testdata/local-module-error")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -111,8 +112,62 @@ func TestModuleInstaller_error(t *testing.T) {
 	}
 }
 
+func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-version-constraint")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
+func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-version-constraint")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
+func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-version-constraint-local")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+	}
+}
+
 func TestModuleInstaller_symlink(t *testing.T) {
-	fixtureDir := filepath.Clean("test-fixtures/local-module-symlink")
+	fixtureDir := filepath.Clean("testdata/local-module-symlink")
 	dir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -177,8 +232,17 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/registry-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	fixtureDir := filepath.Clean("testdata/registry-modules")
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
 	defer done()
 
 	hooks := &testInstallHooks{}
@@ -264,6 +328,14 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		return
 	}
 
+	//check that the registry reponses were cached
+	if _, ok := inst.moduleVersions["hashicorp/module-installer-acctest/aws"]; !ok {
+		t.Fatal("module versions cache was not populated")
+	}
+	if _, ok := inst.moduleVersionsUrl[moduleVersion{module: "hashicorp/module-installer-acctest/aws", version: "0.0.1"}]; !ok {
+		t.Fatal("module download url cache was not populated")
+	}
+
 	loader, err := configload.NewLoader(&configload.Config{
 		ModulesDir: modulesDir,
 	})
@@ -304,8 +376,16 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		t.Skip("this test accesses github.com; set TF_ACC=1 to run it")
 	}
 
-	fixtureDir := filepath.Clean("test-fixtures/go-getter-modules")
-	dir, done := tempChdir(t, fixtureDir)
+	fixtureDir := filepath.Clean("testdata/go-getter-modules")
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
 	defer done()
 
 	hooks := &testInstallHooks{}
@@ -464,7 +544,7 @@ func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 		return "", nil
 	}
 
-	if err := copyDir(tmpDir, sourceDir); err != nil {
+	if err := copydir.CopyDir(tmpDir, sourceDir); err != nil {
 		t.Fatalf("failed to copy fixture to temporary directory: %s", err)
 		return "", nil
 	}

@@ -26,7 +26,8 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 
 	stateIsFlatmap := len(src.AttrsJSON) == 0
 
-	providerType := addr.Resource.Resource.DefaultProviderConfig().Type
+	// TODO: This should eventually use a proper FQN.
+	providerType := addr.Resource.Resource.ImpliedProvider()
 	if src.SchemaVersion > currentVersion {
 		log.Printf("[TRACE] UpgradeResourceState: can't downgrade state for %s from version %d to %d", addr, src.SchemaVersion, currentVersion)
 		var diags tfdiags.Diagnostics

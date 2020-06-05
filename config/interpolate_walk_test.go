@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hil/ast"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -171,12 +172,12 @@ func TestInterpolationWalker_replace(t *testing.T) {
 			},
 			Output: map[string]interface{}{
 				"foo": []interface{}{
-					UnknownVariableValue,
+					hcl2shim.UnknownVariableValue,
 					"baz",
 					"bing",
 				},
 			},
-			Value: []interface{}{UnknownVariableValue, "baz"},
+			Value: []interface{}{hcl2shim.UnknownVariableValue, "baz"},
 		},
 	}
 

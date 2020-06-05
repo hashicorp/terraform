@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 
@@ -48,7 +49,11 @@ type Record struct {
 type Manifest map[string]Record
 
 func (m Manifest) ModuleKey(path addrs.Module) string {
-	return path.String()
+	if len(path) == 0 {
+		return ""
+	}
+	return strings.Join([]string(path), ".")
+
 }
 
 // manifestSnapshotFile is an internal struct used only to assist in our JSON
@@ -72,7 +77,9 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 
 	var read manifestSnapshotFile
 	err = json.Unmarshal(src, &read)
-
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling snapshot: %v", err)
+	}
 	new := make(Manifest)
 	for _, record := range read.Records {
 		if record.VersionStr != "" {
@@ -81,6 +88,11 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 				return nil, fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
 			}
 		}
+
+		// Ensure Windows is using the proper modules path format after
+		// reading the modules manifest Dir records
+		record.Dir = filepath.FromSlash(record.Dir)
+
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
@@ -115,6 +127,10 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 		} else {
 			record.VersionStr = ""
 		}
+
+		// Ensure Dir is written in a format that can be read by Linux and
+		// Windows nodes for remote and apply compatibility
+		record.Dir = filepath.ToSlash(record.Dir)
 		write.Records = append(write.Records, record)
 	}
 

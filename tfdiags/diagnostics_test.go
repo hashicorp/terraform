@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 func TestBuild(t *testing.T) {

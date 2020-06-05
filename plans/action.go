@@ -12,7 +12,7 @@ const (
 	Delete           Action = '-'
 )
 
-//go:generate stringer -type Action
+//go:generate go run golang.org/x/tools/cmd/stringer -type Action
 
 // IsReplace returns true if the action is one of the two actions that
 // represents replacing an existing object with a new object:

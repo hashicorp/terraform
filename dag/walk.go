@@ -15,7 +15,7 @@ import (
 // been walked. If two vertices can be walked at the same time, they will be.
 //
 // Update can be called to update the graph. This can be called even during
-// a walk, cahnging vertices/edges mid-walk. This should be done carefully.
+// a walk, changing vertices/edges mid-walk. This should be done carefully.
 // If a vertex is removed but has already been executed, the result of that
 // execution (any error) is still returned by Wait. Changing or re-adding
 // a vertex that has already executed has no effect. Changing edges of
@@ -62,6 +62,15 @@ type Walker struct {
 	diagsMap       map[Vertex]tfdiags.Diagnostics
 	upstreamFailed map[Vertex]struct{}
 	diagsLock      sync.Mutex
+}
+
+func (w *Walker) init() {
+	if w.vertices == nil {
+		w.vertices = make(Set)
+	}
+	if w.edges == nil {
+		w.edges = make(Set)
+	}
 }
 
 type walkerVertex struct {
@@ -139,8 +148,9 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
 func (w *Walker) Update(g *AcyclicGraph) {
-	log.Print("[TRACE] dag/walk: updating graph")
-	var v, e *Set
+	w.init()
+	v := make(Set)
+	e := make(Set)
 	if g != nil {
 		v, e = g.vertices, g.edges
 	}
@@ -157,20 +167,19 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Calculate all our sets
-	newEdges := e.Difference(&w.edges)
+	newEdges := e.Difference(w.edges)
 	oldEdges := w.edges.Difference(e)
-	newVerts := v.Difference(&w.vertices)
+	newVerts := v.Difference(w.vertices)
 	oldVerts := w.vertices.Difference(v)
 
 	// Add the new vertices
-	for _, raw := range newVerts.List() {
+	for _, raw := range newVerts {
 		v := raw.(Vertex)
 
 		// Add to the waitgroup so our walk is not done until everything finishes
 		w.wait.Add(1)
 
 		// Add to our own set so we know about it already
-		log.Printf("[TRACE] dag/walk: added new vertex: %q", VertexName(v))
 		w.vertices.Add(raw)
 
 		// Initialize the vertex info
@@ -185,7 +194,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Remove the old vertices
-	for _, raw := range oldVerts.List() {
+	for _, raw := range oldVerts {
 		v := raw.(Vertex)
 
 		// Get the vertex info so we can cancel it
@@ -201,14 +210,12 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Delete it out of the map
 		delete(w.vertexMap, v)
-
-		log.Printf("[TRACE] dag/walk: removed vertex: %q", VertexName(v))
 		w.vertices.Delete(raw)
 	}
 
 	// Add the new edges
-	var changedDeps Set
-	for _, raw := range newEdges.List() {
+	changedDeps := make(Set)
+	for _, raw := range newEdges {
 		edge := raw.(Edge)
 		waiter, dep := w.edgeParts(edge)
 
@@ -231,15 +238,11 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-
-		log.Printf(
-			"[TRACE] dag/walk: added edge: %q waiting on %q",
-			VertexName(waiter), VertexName(dep))
 		w.edges.Add(raw)
 	}
 
-	// Process reoved edges
-	for _, raw := range oldEdges.List() {
+	// Process removed edges
+	for _, raw := range oldEdges {
 		edge := raw.(Edge)
 		waiter, dep := w.edgeParts(edge)
 
@@ -255,16 +258,12 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-
-		log.Printf(
-			"[TRACE] dag/walk: removed edge: %q waiting on %q",
-			VertexName(waiter), VertexName(dep))
 		w.edges.Delete(raw)
 	}
 
 	// For each vertex with changed dependencies, we need to kick off
 	// a new waiter and notify the vertex of the changes.
-	for _, raw := range changedDeps.List() {
+	for _, raw := range changedDeps {
 		v := raw.(Vertex)
 		info, ok := w.vertexMap[v]
 		if !ok {
@@ -299,17 +298,13 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		}
 		info.depsCancelCh = cancelCh
 
-		log.Printf(
-			"[TRACE] dag/walk: dependencies changed for %q, sending new deps",
-			VertexName(v))
-
 		// Start the waiter
 		go w.waitDeps(v, deps, doneCh, cancelCh)
 	}
 
 	// Start all the new vertices. We do this at the end so that all
 	// the edge waiters and changes are setup above.
-	for _, raw := range newVerts.List() {
+	for _, raw := range newVerts {
 		v := raw.(Vertex)
 		go w.walkVertex(v, w.vertexMap[v])
 	}

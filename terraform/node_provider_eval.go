@@ -11,10 +11,8 @@ type NodeEvalableProvider struct {
 // GraphNodeEvalable
 func (n *NodeEvalableProvider) EvalTree() EvalNode {
 	addr := n.Addr
-	relAddr := addr.ProviderConfig
 
 	return &EvalInitProvider{
-		TypeName: relAddr.Type,
-		Addr:     addr.ProviderConfig,
+		Addr: addr,
 	}
 }

@@ -63,7 +63,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	result := make([]string, 1, len(envs)+1)
 	result[0] = backend.DefaultStateName
 
-	for k, _ := range envs {
+	for k := range envs {
 		result = append(result, k)
 	}
 
@@ -189,9 +189,9 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 
 func (b *Backend) objectName(name string) string {
 	if name != backend.DefaultStateName {
-		name = fmt.Sprintf("%s%s/%s", objectEnvPrefix, name, TFSTATE_NAME)
+		name = fmt.Sprintf("%s%s/%s", objectEnvPrefix, name, b.stateName)
 	} else {
-		name = TFSTATE_NAME
+		name = b.stateName
 	}
 
 	return name

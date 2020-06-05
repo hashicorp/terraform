@@ -17,11 +17,7 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var dryRun bool
 	cmdFlags := c.Meta.defaultFlagSet("state rm")
 	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
@@ -30,7 +26,8 @@ func (c *StateRmCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
 	}
 
 	args = cmdFlags.Args()

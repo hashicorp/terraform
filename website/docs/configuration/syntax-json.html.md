@@ -36,7 +36,7 @@ of a specification called _HCL_. It is not necessary to know all of the details
 of HCL syntax or its JSON mapping in order to use Terraform, and so this page
 summarizes the most important differences between native and JSON syntax.
 If you are interested, you can find a full definition of HCL's JSON syntax
-in [its specification](https://github.com/hashicorp/hcl2/blob/master/hcl/json/spec.md).
+in [its specification](https://github.com/hashicorp/hcl/blob/hcl2/json/spec.md).
 
 ## JSON File Structure
 
@@ -93,7 +93,7 @@ resource "aws_instance" "example" {
 ```
 
 Within each top-level block type the rules for mapping to JSON are slightly
-different (see [Block-type-specific Exceptions][inpage-exceptions] below), but the following general rules apply in most cases:
+different (see the [block-type-specific exceptions](#block-type-specific-exceptions) below), but the following general rules apply in most cases:
 
 * The JSON object representing the block body contains properties that
   correspond either to argument names or to nested block type names.
@@ -436,10 +436,15 @@ values are not interpreted as string templates.
 ```json
 {
   "provider": {
-    "aws": {
-      "alias": "usw1",
-      "region": "us-west-1"
-    }
+    "aws": [
+      {
+        "region": "us-east-1"
+      },
+      {
+        "alias": "usw1",
+        "region": "us-west-1"
+      }
+    ]
   }
 }
 ```

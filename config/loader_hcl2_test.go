@@ -6,8 +6,8 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	gohcl2 "github.com/hashicorp/hcl2/gohcl"
-	hcl2 "github.com/hashicorp/hcl2/hcl"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	gohcl2 "github.com/hashicorp/hcl/v2/gohcl"
 )
 
 func TestHCL2ConfigurableConfigurable(t *testing.T) {
@@ -16,7 +16,7 @@ func TestHCL2ConfigurableConfigurable(t *testing.T) {
 
 func TestHCL2Basic(t *testing.T) {
 	loader := globalHCL2Loader
-	cbl, _, err := loader.loadFile("test-fixtures/basic-hcl2.tf")
+	cbl, _, err := loader.loadFile("testdata/basic-hcl2.tf")
 	if err != nil {
 		if diags, isDiags := err.(hcl2.Diagnostics); isDiags {
 			for _, diag := range diags {

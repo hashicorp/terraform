@@ -3,9 +3,10 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
 )
@@ -55,8 +56,8 @@ For example, to correlate with indices of a referring resource, use:
 	evaluator := &Evaluator{
 		Config: cfg,
 		Schemas: &Schemas{
-			Providers: map[string]*ProviderSchema{
-				"aws": {
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewDefaultProvider("aws"): {
 					ResourceTypes: map[string]*configschema.Block{
 						"aws_instance": {},
 					},

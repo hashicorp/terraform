@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/hashicorp/hcl2/hclwrite"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/configs"
@@ -41,11 +41,7 @@ func (c *FmtCommand) Run(args []string) int {
 		c.input = os.Stdin
 	}
 
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("fmt")
 	cmdFlags.BoolVar(&c.list, "list", true, "list")
 	cmdFlags.BoolVar(&c.write, "write", true, "write")
@@ -54,6 +50,7 @@ func (c *FmtCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -165,6 +162,10 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 		diags = diags.Append(fmt.Errorf("Failed to read %s", path))
 		return diags
 	}
+
+	// Register this path as a synthetic configuration source, so that any
+	// diagnostic errors can include the source code snippet
+	c.registerSynthConfigSource(path, src)
 
 	// File must be parseable as HCL native syntax before we'll try to format
 	// it. If not, the formatter is likely to make drastic changes that would
@@ -289,6 +290,8 @@ Options:
 
   -check         Check if the input is formatted. Exit status will be 0 if all
                  input is properly formatted and non-zero otherwise.
+
+  -no-color      If specified, output won't contain any color.
 
   -recursive     Also process files in subdirectories. By default, only the
                  given directory (or current directory) is processed.

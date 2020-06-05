@@ -31,8 +31,8 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 	{
 		transform := &AttachSchemaTransformer{
 			Schemas: &Schemas{
-				Providers: map[string]*ProviderSchema{
-					"aws": {
+				Providers: map[addrs.Provider]*ProviderSchema{
+					addrs.NewDefaultProvider("aws"): {
 						ResourceTypes: map[string]*configschema.Block{
 							"aws_instance": &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{

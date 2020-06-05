@@ -18,7 +18,7 @@ func TestVersion(t *testing.T) {
 
 	t.Parallel()
 
-	fixturePath := filepath.Join("test-fixtures", "empty")
+	fixturePath := filepath.Join("testdata", "empty")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -47,7 +47,7 @@ func TestVersionWithProvider(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "template-provider")
+	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -88,7 +88,7 @@ func TestVersionWithProvider(t *testing.T) {
 			t.Errorf("unexpected stderr output:\n%s", stderr)
 		}
 
-		wantMsg := "+ provider.template v" // we don't know which version we'll get here
+		wantMsg := "+ provider registry.terraform.io/hashicorp/template v" // we don't know which version we'll get here
 		if !strings.Contains(stdout, wantMsg) {
 			t.Errorf("output does not contain provider information %q:\n%s", wantMsg, stdout)
 		}

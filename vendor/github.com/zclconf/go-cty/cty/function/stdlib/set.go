@@ -163,8 +163,23 @@ func SetSymmetricDifference(sets ...cty.Value) (cty.Value, error) {
 func setOperationReturnType(args []cty.Value) (ret cty.Type, err error) {
 	var etys []cty.Type
 	for _, arg := range args {
-		etys = append(etys, arg.Type().ElementType())
+		ty := arg.Type().ElementType()
+
+		// Do not unify types for empty dynamic pseudo typed collections. These
+		// will always convert to any other concrete type.
+		if arg.LengthInt() == 0 && ty.Equals(cty.DynamicPseudoType) {
+			continue
+		}
+
+		etys = append(etys, ty)
 	}
+
+	// If all element types were skipped (due to being empty dynamic collections),
+	// the return type should also be a set of dynamic pseudo type.
+	if len(etys) == 0 {
+		return cty.Set(cty.DynamicPseudoType), nil
+	}
+
 	newEty, _ := convert.UnifyUnsafe(etys)
 	if newEty == cty.NilType {
 		return cty.NilType, fmt.Errorf("given sets must all have compatible element types")

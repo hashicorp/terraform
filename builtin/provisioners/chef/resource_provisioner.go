@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -97,6 +98,7 @@ type provisioner struct {
 	PolicyName            string
 	HTTPProxy             string
 	HTTPSProxy            string
+	MaxRetries            int
 	NamedRunList          string
 	NOProxy               []string
 	NodeName              string
@@ -104,6 +106,7 @@ type provisioner struct {
 	OSType                string
 	RecreateClient        bool
 	PreventSudo           bool
+	RetryOnExitCode       map[int]bool
 	RunList               []string
 	SecretKey             string
 	ServerURL             string
@@ -114,6 +117,7 @@ type provisioner struct {
 	UserKey               string
 	Vaults                map[string][]string
 	Version               string
+	WaitForRetry          time.Duration
 
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
@@ -197,6 +201,11 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"max_retries": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  0,
+			},
 			"no_proxy": &schema.Schema{
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -215,12 +224,17 @@ func Provisioner() terraform.ResourceProvisioner {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"prevent_sudo": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"recreate_client": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"prevent_sudo": &schema.Schema{
-				Type:     schema.TypeBool,
+			"retry_on_exit_code": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeInt},
 				Optional: true,
 			},
 			"run_list": &schema.Schema{
@@ -251,6 +265,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"wait_for_retry": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  30,
 			},
 		},
 
@@ -371,11 +390,55 @@ func applyFn(ctx context.Context) error {
 	once.Do(cleanupUserKey)
 
 	o.Output("Starting initial Chef-Client run...")
-	if err := p.runChefClient(o, comm); err != nil {
-		return err
+
+	for attempt := 0; attempt <= p.MaxRetries; attempt++ {
+		// We need a new retry context for each attempt, to make sure
+		// they all get the correct timeout.
+		retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
+		defer cancel()
+
+		// Make sure to (re)connect before trying to run Chef-Client.
+		if err := communicator.Retry(retryCtx, func() error {
+			return comm.Connect(o)
+		}); err != nil {
+			return err
+		}
+
+		err = p.runChefClient(o, comm)
+		if err == nil {
+			return nil
+		}
+
+		// Allow RFC062 Exit Codes:
+		// https://github.com/chef/chef-rfc/blob/master/rfc062-exit-status.md
+		exitError, ok := err.(*remote.ExitError)
+		if !ok {
+			return err
+		}
+
+		switch exitError.ExitStatus {
+		case 35:
+			o.Output("Reboot has been scheduled in the run state")
+			err = nil
+		case 37:
+			o.Output("Reboot needs to be completed")
+			err = nil
+		case 213:
+			o.Output("Chef has exited during a client upgrade")
+			err = nil
+		}
+
+		if !p.RetryOnExitCode[exitError.ExitStatus] {
+			return err
+		}
+
+		if attempt < p.MaxRetries {
+			o.Output(fmt.Sprintf("Waiting %s before retrying Chef-Client run...", p.WaitForRetry))
+			time.Sleep(p.WaitForRetry)
+		}
 	}
 
-	return nil
+	return err
 }
 
 func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
@@ -730,12 +793,14 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		HTTPProxy:             d.Get("http_proxy").(string),
 		HTTPSProxy:            d.Get("https_proxy").(string),
 		NOProxy:               getStringList(d.Get("no_proxy")),
+		MaxRetries:            d.Get("max_retries").(int),
 		NamedRunList:          d.Get("named_run_list").(string),
 		NodeName:              d.Get("node_name").(string),
 		OhaiHints:             getStringList(d.Get("ohai_hints")),
 		OSType:                d.Get("os_type").(string),
 		RecreateClient:        d.Get("recreate_client").(bool),
 		PreventSudo:           d.Get("prevent_sudo").(bool),
+		RetryOnExitCode:       getRetryOnExitCodes(d),
 		RunList:               getStringList(d.Get("run_list")),
 		SecretKey:             d.Get("secret_key").(string),
 		ServerURL:             d.Get("server_url").(string),
@@ -745,6 +810,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserName:              d.Get("user_name").(string),
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
+		WaitForRetry:          time.Duration(d.Get("wait_for_retry").(int)) * time.Second,
 	}
 
 	// Make sure the supplied URL has a trailing slash
@@ -792,6 +858,31 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	}
 
 	return p, nil
+}
+
+func getRetryOnExitCodes(d *schema.ResourceData) map[int]bool {
+	result := make(map[int]bool)
+
+	v, ok := d.GetOk("retry_on_exit_code")
+	if !ok || v == nil {
+		// Use default exit codes
+		result[35] = true
+		result[37] = true
+		result[213] = true
+		return result
+	}
+
+	switch v := v.(type) {
+	case []interface{}:
+		for _, vv := range v {
+			if vv, ok := vv.(int); ok {
+				result[vv] = true
+			}
+		}
+		return result
+	default:
+		panic(fmt.Sprintf("Unsupported type: %T", v))
+	}
 }
 
 func getStringList(v interface{}) []string {

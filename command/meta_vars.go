@@ -6,14 +6,18 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	hcljson "github.com/hashicorp/hcl2/hcl/json"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
+
+// VarEnvPrefix is the prefix for environment variables that represent values
+// for root module input variables.
+const VarEnvPrefix = "TF_VAR_"
 
 // collectVariableValues inspects the various places that root module input variable
 // values can come from and constructs a map ready to be passed to the
@@ -31,10 +35,10 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	{
 		env := os.Environ()
 		for _, raw := range env {
-			if !strings.HasPrefix(raw, terraform.VarEnvPrefix) {
+			if !strings.HasPrefix(raw, VarEnvPrefix) {
 				continue
 			}
-			raw = raw[len(terraform.VarEnvPrefix):] // trim the prefix
+			raw = raw[len(VarEnvPrefix):] // trim the prefix
 
 			eq := strings.Index(raw, "=")
 			if eq == -1 {

@@ -1,22 +1,27 @@
 package configs
 
 import (
+	"bufio"
+	"bytes"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/google/go-cmp/cmp"
+
+	"github.com/hashicorp/hcl/v2"
 )
 
 // TestParseLoadConfigFileSuccess is a simple test that just verifies that
-// a number of test configuration files (in test-fixtures/valid-files) can
+// a number of test configuration files (in testdata/valid-files) can
 // be parsed without raising any diagnostics.
 //
 // This test does not verify that reading these files produces the correct
 // file element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigFileSuccess(t *testing.T) {
-	files, err := ioutil.ReadDir("test-fixtures/valid-files")
+	files, err := ioutil.ReadDir("testdata/valid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +29,7 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/valid-files", name))
+			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34,8 +39,8 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 			})
 
 			_, diags := parser.LoadConfigFile(name)
-			if diags.HasErrors() {
-				t.Errorf("unexpected error diagnostics")
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
@@ -45,14 +50,14 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 }
 
 // TestParseLoadConfigFileFailure is a simple test that just verifies that
-// a number of test configuration files (in test-fixtures/invalid-files)
+// a number of test configuration files (in testdata/invalid-files)
 // produce errors as expected.
 //
 // This test does not verify specific error messages, so more detailed
 // assertions should be made on some subset of these configuration files in
 // other tests.
 func TestParserLoadConfigFileFailure(t *testing.T) {
-	files, err := ioutil.ReadDir("test-fixtures/invalid-files")
+	files, err := ioutil.ReadDir("testdata/invalid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +65,7 @@ func TestParserLoadConfigFileFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/invalid-files", name))
+			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -110,25 +115,25 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			"Unsupported block type",
 		},
 		{
+			"invalid-files/resource-count-and-for_each.tf",
+			hcl.DiagError,
+			`Invalid combination of "count" and "for_each"`,
+		},
+		{
+			"invalid-files/data-count-and-for_each.tf",
+			hcl.DiagError,
+			`Invalid combination of "count" and "for_each"`,
+		},
+		{
 			"invalid-files/resource-lifecycle-badbool.tf",
 			hcl.DiagError,
 			"Unsuitable value type",
-		},
-		{
-			"valid-files/resources-ignorechanges-all-legacy.tf",
-			hcl.DiagWarning,
-			"Deprecated ignore_changes wildcard",
-		},
-		{
-			"valid-files/resources-ignorechanges-all-legacy.tf.json",
-			hcl.DiagWarning,
-			"Deprecated ignore_changes wildcard",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Filename, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures", test.Filename))
+			src, err := ioutil.ReadFile(filepath.Join("testdata", test.Filename))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -150,6 +155,130 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 			}
 			if diags[0].Summary != test.WantDiag {
 				t.Errorf("Wrong diagnostic summary\ngot:  %s\nwant: %s", diags[0].Summary, test.WantDiag)
+			}
+		})
+	}
+}
+
+// TestParseLoadConfigFileWarning is a test that verifies files from
+// testdata/warning-files produce particular warnings.
+//
+// This test does not verify that reading these files produces the correct
+// file element contents in spite of those warnings. More detailed assertions
+// may be made on some subset of these configuration files in other tests.
+func TestParserLoadConfigFileWarning(t *testing.T) {
+	files, err := ioutil.ReadDir("testdata/warning-files")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, info := range files {
+		name := info.Name()
+		t.Run(name, func(t *testing.T) {
+			src, err := ioutil.ReadFile(filepath.Join("testdata/warning-files", name))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// First we'll scan the file to see what warnings are expected.
+			// That's declared inside the files themselves by using the
+			// string "WARNING: " somewhere on each line that is expected
+			// to produce a warning, followed by the expected warning summary
+			// text. A single-line comment (with #) is the main way to do that.
+			const marker = "WARNING: "
+			sc := bufio.NewScanner(bytes.NewReader(src))
+			wantWarnings := make(map[int]string)
+			lineNum := 1
+			for sc.Scan() {
+				lineText := sc.Text()
+				if idx := strings.Index(lineText, marker); idx != -1 {
+					summaryText := lineText[idx+len(marker):]
+					wantWarnings[lineNum] = summaryText
+				}
+				lineNum++
+			}
+
+			parser := testParser(map[string]string{
+				name: string(src),
+			})
+
+			_, diags := parser.LoadConfigFile(name)
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
+				for _, diag := range diags {
+					t.Logf("- %s", diag)
+				}
+			}
+
+			gotWarnings := make(map[int]string)
+			for _, diag := range diags {
+				if diag.Severity != hcl.DiagWarning || diag.Subject == nil {
+					continue
+				}
+				gotWarnings[diag.Subject.Start.Line] = diag.Summary
+			}
+
+			if diff := cmp.Diff(wantWarnings, gotWarnings); diff != "" {
+				t.Errorf("wrong warnings\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestParseLoadConfigFileError is a test that verifies files from
+// testdata/warning-files produce particular errors.
+//
+// This test does not verify that reading these files produces the correct
+// file element contents in spite of those errors. More detailed assertions
+// may be made on some subset of these configuration files in other tests.
+func TestParserLoadConfigFileError(t *testing.T) {
+	files, err := ioutil.ReadDir("testdata/error-files")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, info := range files {
+		name := info.Name()
+		t.Run(name, func(t *testing.T) {
+			src, err := ioutil.ReadFile(filepath.Join("testdata/error-files", name))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// First we'll scan the file to see what warnings are expected.
+			// That's declared inside the files themselves by using the
+			// string "ERROR: " somewhere on each line that is expected
+			// to produce a warning, followed by the expected warning summary
+			// text. A single-line comment (with #) is the main way to do that.
+			const marker = "ERROR: "
+			sc := bufio.NewScanner(bytes.NewReader(src))
+			wantErrors := make(map[int]string)
+			lineNum := 1
+			for sc.Scan() {
+				lineText := sc.Text()
+				if idx := strings.Index(lineText, marker); idx != -1 {
+					summaryText := lineText[idx+len(marker):]
+					wantErrors[lineNum] = summaryText
+				}
+				lineNum++
+			}
+
+			parser := testParser(map[string]string{
+				name: string(src),
+			})
+
+			_, diags := parser.LoadConfigFile(name)
+
+			gotErrors := make(map[int]string)
+			for _, diag := range diags {
+				if diag.Severity != hcl.DiagError || diag.Subject == nil {
+					continue
+				}
+				gotErrors[diag.Subject.Start.Line] = diag.Summary
+			}
+
+			if diff := cmp.Diff(wantErrors, gotErrors); diff != "" {
+				t.Errorf("wrong errors\n%s", diff)
 			}
 		})
 	}

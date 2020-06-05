@@ -15,6 +15,14 @@ type Client interface {
 	Delete() error
 }
 
+// ClientForcePusher is an optional interface that allows a remote
+// state to force push by managing a flag on the client that is
+// toggled on by a call to EnableForcePush.
+type ClientForcePusher interface {
+	Client
+	EnableForcePush()
+}
+
 // ClientLocker is an optional interface that allows a remote state
 // backend to enable state lock/unlock.
 type ClientLocker interface {

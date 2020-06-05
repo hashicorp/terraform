@@ -43,7 +43,7 @@ import (
 //    Foo.
 //
 // If two configs exist for one certain method or service, the one specified
-// later overrides the privous config.
+// later overrides the previous config.
 func NewLoggerFromConfigString(s string) Logger {
 	if s == "" {
 		return nil
@@ -74,7 +74,7 @@ func (l *logger) fillMethodLoggerWithConfigString(config string) error {
 			return fmt.Errorf("invalid config: %q, %v", config, err)
 		}
 		if m == "*" {
-			return fmt.Errorf("invalid config: %q, %v", config, "* not allowd in blacklist config")
+			return fmt.Errorf("invalid config: %q, %v", config, "* not allowed in blacklist config")
 		}
 		if suffix != "" {
 			return fmt.Errorf("invalid config: %q, %v", config, "header/message limit not allowed in blacklist config")
@@ -180,7 +180,7 @@ func parseHeaderMessageLengthConfig(c string) (hdrLenStr, msgLenStr uint64, err 
 		if s := match[1]; s != "" {
 			msgLenStr, err = strconv.ParseUint(s, 10, 64)
 			if err != nil {
-				return 0, 0, fmt.Errorf("Failed to convert %q to uint", s)
+				return 0, 0, fmt.Errorf("failed to convert %q to uint", s)
 			}
 			return 0, msgLenStr, nil
 		}
@@ -195,13 +195,13 @@ func parseHeaderMessageLengthConfig(c string) (hdrLenStr, msgLenStr uint64, err 
 		if s := match[1]; s != "" {
 			hdrLenStr, err = strconv.ParseUint(s, 10, 64)
 			if err != nil {
-				return 0, 0, fmt.Errorf("Failed to convert %q to uint", s)
+				return 0, 0, fmt.Errorf("failed to convert %q to uint", s)
 			}
 		}
 		if s := match[2]; s != "" {
 			msgLenStr, err = strconv.ParseUint(s, 10, 64)
 			if err != nil {
-				return 0, 0, fmt.Errorf("Failed to convert %q to uint", s)
+				return 0, 0, fmt.Errorf("failed to convert %q to uint", s)
 			}
 		}
 		return hdrLenStr, msgLenStr, nil

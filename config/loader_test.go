@@ -12,36 +12,6 @@ func TestErrNoConfigsFound_impl(t *testing.T) {
 	var _ error = new(ErrNoConfigsFound)
 }
 
-func TestIsEmptyDir(t *testing.T) {
-	val, err := IsEmptyDir(fixtureDir)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if val {
-		t.Fatal("should not be empty")
-	}
-}
-
-func TestIsEmptyDir_noExist(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join(fixtureDir, "nopenopenope"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !val {
-		t.Fatal("should be empty")
-	}
-}
-
-func TestIsEmptyDir_noConfigs(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join(fixtureDir, "dir-empty"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !val {
-		t.Fatal("should be empty")
-	}
-}
-
 func TestLoadFile_badType(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "bad_type.tf.nope"))
 	if err == nil {
@@ -79,7 +49,7 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	if err == nil {
 		t.Fatal("should have error")
 	}
-	expected := "Error loading test-fixtures/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
+	expected := "Error loading testdata/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
 	if err.Error() != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
 	}
@@ -97,7 +67,7 @@ func TestLoadFile_dataSourceArityMistake(t *testing.T) {
 	if err == nil {
 		t.Fatal("should have error")
 	}
-	expected := "Error loading test-fixtures/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
+	expected := "Error loading testdata/data-source-arity-mistake.tf: position 2:6: 'data' must be followed by exactly two strings: a type and a name"
 	if err.Error() != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
 	}

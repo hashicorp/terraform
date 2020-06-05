@@ -67,7 +67,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteManagedResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeRefreshableManagedResource{
+		return &nodeExpandRefreshableManagedResource{
 			NodeAbstractResource: a,
 		}
 	}
@@ -87,7 +87,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeRefreshableDataResource{
+		return &nodeExpandRefreshableDataResource{
 			NodeAbstractResource: a,
 		}
 	}
@@ -160,11 +160,18 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{Config: b.Config},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
+		&attachDataResourceDependenciesTransformer{},
 
 		// Target
 		&TargetsTransformer{
@@ -180,8 +187,8 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
-		// Single root
-		&RootTransformer{},
+		// Close root module
+		&CloseRootModuleTransformer{},
 	}
 
 	if !b.DisableReduce {

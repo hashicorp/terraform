@@ -124,7 +124,10 @@ func TestPlan_destroy(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	outPath := testTempFile(t)
@@ -240,7 +243,10 @@ func TestPlan_outPathNoChange(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","ami":"bar","network_interface":[{"description":"Main network interface","device_index":"0"}]}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -280,26 +286,23 @@ func TestPlan_outBackend(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Our state
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"ami": "bar",
-							},
-						},
-					},
-				},
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","ami":"bar"}`),
+				Status:    states.ObjectReady,
 			},
-		},
-	}
-	originalState.Init()
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
 
 	// Setup our backend state
 	dataState, srv := testBackendState(t, originalState, 200)
@@ -575,6 +578,10 @@ func TestPlan_varsUnset(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
+	// The plan command will prompt for interactive input of var.foo.
+	// We'll answer "bar" to that prompt, which should then allow this
+	// configuration to apply even though var.foo doesn't have a
+	// default value and there are no -var arguments on our command line.
 	defaultInputReader = bytes.NewBufferString("bar\n")
 
 	p := planVarsFixtureProvider()
@@ -847,8 +854,36 @@ func TestPlan_shutdown(t *testing.T) {
 	}
 }
 
+func TestPlan_init_required(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("plan")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			// Running plan without setting testingOverrides is similar to plan without init
+			Ui: ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected error, got success")
+	}
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, `Plugin reinitialization required. Please run "terraform init".`) {
+		t.Fatal("wrong error message in output:", output)
+	}
+}
+
 // planFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan . This schema should be
+// configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
 func planFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -875,7 +910,7 @@ func planFixtureSchema() *terraform.ProviderSchema {
 }
 
 // planFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/plan. This mock has
+// operation with the configuration in testdata/plan. This mock has
 // GetSchemaReturn and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
 func planFixtureProvider() *terraform.MockProvider {
@@ -890,7 +925,7 @@ func planFixtureProvider() *terraform.MockProvider {
 }
 
 // planVarsFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan-vars . This schema should be
+// configuration in testdata/plan-vars . This schema should be
 // assigned to a mock provider named "test".
 func planVarsFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -906,7 +941,7 @@ func planVarsFixtureSchema() *terraform.ProviderSchema {
 }
 
 // planVarsFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/plan-vars. This mock has
+// operation with the configuration in testdata/plan-vars. This mock has
 // GetSchemaReturn and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
 func planVarsFixtureProvider() *terraform.MockProvider {

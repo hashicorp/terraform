@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
@@ -84,6 +84,14 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		var backendDiags tfdiags.Diagnostics
 		b, backendDiags = m.backendFromConfig(opts)
 		diags = diags.Append(backendDiags)
+
+		if opts.Init && b != nil && !diags.HasErrors() {
+			// Its possible that the currently selected workspace doesn't exist, so
+			// we call selectWorkspace to ensure an existing workspace is selected.
+			if err := m.selectWorkspace(b); err != nil {
+				diags = diags.Append(err)
+			}
+		}
 
 		if diags.HasErrors() {
 			return nil, diags
@@ -156,6 +164,56 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	return local, nil
 }
 
+// selectWorkspace gets a list of existing workspaces and then checks
+// if the currently selected workspace is valid. If not, it will ask
+// the user to select a workspace from the list.
+func (m *Meta) selectWorkspace(b backend.Backend) error {
+	workspaces, err := b.Workspaces()
+	if err == backend.ErrWorkspacesNotSupported {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("Failed to get existing workspaces: %s", err)
+	}
+	if len(workspaces) == 0 {
+		return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+	}
+
+	// Get the currently selected workspace.
+	workspace := m.Workspace()
+
+	// Check if any of the existing workspaces matches the selected
+	// workspace and create a numbered list of existing workspaces.
+	var list strings.Builder
+	for i, w := range workspaces {
+		if w == workspace {
+			return nil
+		}
+		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
+	}
+
+	// If the selected workspace doesn't exist, ask the user to select
+	// a workspace from the list of existing workspaces.
+	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id: "select-workspace",
+		Query: fmt.Sprintf(
+			"\n[reset][bold][yellow]The currently selected workspace (%s) does not exist.[reset]",
+			workspace),
+		Description: fmt.Sprintf(
+			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to select workspace: %s", err)
+	}
+
+	idx, err := strconv.Atoi(v)
+	if err != nil || (idx < 1 || idx > len(workspaces)) {
+		return fmt.Errorf("Failed to select workspace: input not a valid number")
+	}
+
+	return m.SetWorkspace(workspaces[idx-1])
+}
+
 // BackendForPlan is similar to Backend, but uses backend settings that were
 // stored in a plan.
 //
@@ -185,9 +243,8 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
 
 	// If the backend supports CLI initialization, do it.
@@ -289,9 +346,10 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	if opts.Config == nil {
 		// check if the config was missing, or just not required
-		conf, err := m.loadBackendConfig(".")
-		if err != nil {
-			return nil, 0, err
+		conf, moreDiags := m.loadBackendConfig(".")
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, 0, diags
 		}
 
 		if conf == nil {
@@ -463,12 +521,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Potentially changing a backend configuration
 	case c != nil && !s.Backend.Empty():
-		// If we're not initializing, then it's sufficient for the configuration
-		// hashes to match, since that suggests that the static backend
-		// settings in the configuration files are unchanged. (The only
-		// record we have of CLI overrides is in the settings cache in this
-		// case, so we have no other source to compare with.
-		if !opts.Init && uint64(cHash) == s.Backend.Hash {
+		// We are not going to migrate if were not initializing and the hashes
+		// match indicating that the stored config is valid. If we are
+		// initializing, then we also assume the the backend config is OK if
+		// the hashes match, as long as we're not providing any new overrides.
+		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
 			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
 		}
@@ -503,6 +560,75 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		))
 		return nil, diags
 	}
+}
+
+// backendFromState returns the initialized (not configured) backend directly
+// from the state. This should be used only when a user runs `terraform init
+// -backend=false`. This function returns a local backend if there is no state
+// or no backend configured.
+func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	// Get the path to where we store a local cache of backend configuration
+	// if we're using a remote backend. This may not yet exist which means
+	// we haven't used a non-local backend before. That is okay.
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &state.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		return nil, diags
+	}
+	s := sMgr.State()
+	if s == nil {
+		// no state, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
+		return backendLocal.New(), diags
+	}
+	if s.Backend == nil {
+		// s.Backend is nil, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
+		return backendLocal.New(), diags
+	}
+	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+
+	//backend init function
+	if s.Backend.Type == "" {
+		return backendLocal.New(), diags
+	}
+	f := backendInit.Backend(s.Backend.Type)
+	if f == nil {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
+		return nil, diags
+	}
+	b := f()
+
+	// The configuration saved in the working directory state file is used
+	// in this case, since it will contain any additional values that
+	// were provided via -backend-config arguments on terraform init.
+	schema := b.ConfigSchema()
+	configVal, err := s.Backend.Config(schema)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to decode current backend config",
+			fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
+		))
+		return nil, diags
+	}
+
+	// Validate the config and then configure the backend
+	newVal, validDiags := b.PrepareConfig(configVal)
+	diags = diags.Append(validDiags)
+	if validDiags.HasErrors() {
+		return nil, diags
+	}
+
+	configDiags := b.Configure(newVal)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return b, diags
 }
 
 //-------------------------------------------------------------------
@@ -731,66 +857,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
 
-	// Its possible that the currently selected workspace is not migrated,
-	// so we call selectWorkspace to ensure a valid workspace is selected.
-	if err := m.selectWorkspace(b); err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	// Return the backend
 	return b, diags
-}
-
-// selectWorkspace gets a list of migrated workspaces and then checks
-// if the currently selected workspace is valid. If not, it will ask
-// the user to select a workspace from the list.
-func (m *Meta) selectWorkspace(b backend.Backend) error {
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		if err == backend.ErrWorkspacesNotSupported {
-			return nil
-		}
-		return fmt.Errorf("Failed to get migrated workspaces: %s", err)
-	}
-
-	if len(workspaces) == 0 {
-		return fmt.Errorf(strings.TrimSpace(errBackendNoMigratedWorkspaces))
-	}
-
-	// Get the currently selected workspace.
-	workspace := m.Workspace()
-
-	// Check if any of the migrated workspaces match the selected workspace
-	// and create a numbered list with migrated workspaces.
-	var list strings.Builder
-	for i, w := range workspaces {
-		if w == workspace {
-			return nil
-		}
-		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
-	}
-
-	// If the selected workspace is not migrated, ask the user to select
-	// a workspace from the list of migrated workspaces.
-	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id: "select-workspace",
-		Query: fmt.Sprintf(
-			"\n[reset][bold][yellow]The currently selected workspace (%s) is not migrated.[reset]",
-			workspace),
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendSelectWorkspace), list.String()),
-	})
-	if err != nil {
-		return fmt.Errorf("Failed to select workspace: %s", err)
-	}
-
-	idx, err := strconv.Atoi(v)
-	if err != nil || (idx < 1 || idx > len(workspaces)) {
-		return fmt.Errorf("Failed to select workspace: input not a valid number")
-	}
-
-	return m.SetWorkspace(workspaces[idx-1])
 }
 
 // Changing a previously saved backend.
@@ -923,9 +990,8 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 	if validDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configDiags := b.Configure(configVal)
+	configDiags := b.Configure(newVal)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags
@@ -1052,9 +1118,8 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	if validateDiags.HasErrors() {
 		return nil, cty.NilVal, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config))
 
 	return b, configVal, diags
@@ -1083,9 +1148,8 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	if validateDiags.HasErrors() {
 		return nil, diags
 	}
-	configVal = newVal
 
-	configureDiags := b.Configure(configVal)
+	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
 
 	return b, diags
@@ -1183,8 +1247,8 @@ If you'd like to run Terraform and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
 `
 
-const errBackendNoMigratedWorkspaces = `
-No workspaces are migrated.
+const errBackendNoExistingWorkspaces = `
+No existing workspaces.
 
 Use the "terraform workspace" command to create and select a new workspace.
 If the backend already contains existing workspaces, you may need to update

@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -28,11 +28,7 @@ type ApplyCommand struct {
 
 func (c *ApplyCommand) Run(args []string) int {
 	var destroyForce, refresh, autoApprove bool
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdName := "apply"
 	if c.Destroy {
 		cmdName = "destroy"
@@ -248,11 +244,15 @@ Usage: terraform apply [options] [DIR-OR-PLAN]
 
 Options:
 
+  -auto-approve          Skip interactive approval of plan before applying.
+
   -backup=path           Path to backup the existing state file before
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
-  -auto-approve          Skip interactive approval of plan before applying.
+  -compact-warnings      If Terraform produces any warnings that are not
+                         accompanied by errors, show them in a more compact
+                         form that includes only the summary messages.
 
   -lock=true             Lock the state file when locking is supported.
 

@@ -62,6 +62,29 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
 }
 
+// GetChangesForConfigResource searched the set of resource instance
+// changes and returns all changes related to a given configuration address.
+// This is be used to find possible changes related to a configuration
+// reference.
+//
+// If no such changes exist, nil is returned.
+//
+// The returned objects are a deep copy of the change recorded in the plan, so
+// callers may mutate them although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+	if cs == nil {
+		panic("GetChangesForConfigResource on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	var changes []*ResourceInstanceChangeSrc
+	for _, c := range cs.changes.InstancesForConfigResource(addr) {
+		changes = append(changes, c.DeepCopy())
+	}
+	return changes
+}
+
 // RemoveResourceInstanceChange searches the set of resource instance changes
 // for one matching the given address and generation, and removes it from the
 // set if it exists.
@@ -121,6 +144,23 @@ func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChangeS
 	defer cs.lock.Unlock()
 
 	return cs.changes.OutputValue(addr)
+}
+
+// GetOutputChanges searches the set of output changes for any that reside in
+// module instances beneath the given module. If no changes exist, nil
+// is returned.
+//
+// The returned objects are a deep copy of the change recorded in the plan, so
+// callers may mutate them although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetOutputChanges(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChangeSrc {
+	if cs == nil {
+		panic("GetOutputChange on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	return cs.changes.OutputValues(parent, module)
 }
 
 // RemoveOutputChange searches the set of output value changes for one matching

@@ -93,3 +93,28 @@ resource "test_resource_config_mode" "foo" {
 		},
 	})
 }
+
+func TestResourceConfigMode_nestedSet(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_config_mode" "foo" {
+	resource_as_attr = []
+
+	nested_set {
+		value = "a"
+	}
+	nested_set {
+		value = "b"
+		set = []
+	}
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(),
+			},
+		},
+	})
+}

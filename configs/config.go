@@ -1,11 +1,13 @@
 package configs
 
 import (
+	"fmt"
 	"sort"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 // A Config is a node in the tree of modules within a configuration.
@@ -162,7 +164,88 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
-// ProviderTypes returns the names of each distinct provider type referenced
+// ProviderRequirements searches the full tree of modules under the receiver
+// for both explicit and implicit dependencies on providers.
+//
+// The result is a full manifest of all of the providers that must be available
+// in order to work with the receiving configuration.
+//
+// If the returned diagnostics includes errors then the resulting Requirements
+// may be incomplete.
+func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnostics) {
+	reqs := make(getproviders.Requirements)
+	diags := c.addProviderRequirements(reqs)
+	return reqs, diags
+}
+
+// addProviderRequirements is the main part of the ProviderRequirements
+// implementation, gradually mutating a shared requirements object to
+// eventually return.
+func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// First we'll deal with the requirements directly in _our_ module...
+	for _, providerReqs := range c.Module.ProviderRequirements.RequiredProviders {
+		fqn := providerReqs.Type
+		if _, ok := reqs[fqn]; !ok {
+			// We'll at least have an unconstrained dependency then, but might
+			// add to this in the loop below.
+			reqs[fqn] = nil
+		}
+		// The model of version constraints in this package is still the
+		// old one using a different upstream module to represent versions,
+		// so we'll need to shim that out here for now. We assume this
+		// will always succeed because these constraints already succeeded
+		// parsing with the other constraint parser, which uses the same
+		// syntax.
+		constraints := getproviders.MustParseVersionConstraints(providerReqs.Requirement.Required.String())
+		reqs[fqn] = append(reqs[fqn], constraints...)
+	}
+	// Each resource in the configuration creates an *implicit* provider
+	// dependency, though we'll only record it if there isn't already
+	// an explicit dependency on the same provider.
+	for _, rc := range c.Module.ManagedResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+	for _, rc := range c.Module.DataResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	// "provider" block can also contain version constraints
+	for _, provider := range c.Module.ProviderConfigs {
+		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
+		if _, ok := reqs[fqn]; !ok {
+			// We'll at least have an unconstrained dependency then, but might
+			// add to this in the loop below.
+			reqs[fqn] = nil
+		}
+		if provider.Version.Required != nil {
+			constraints := getproviders.MustParseVersionConstraints(provider.Version.Required.String())
+			reqs[fqn] = append(reqs[fqn], constraints...)
+		}
+	}
+
+	// ...and now we'll recursively visit all of the child modules to merge
+	// in their requirements too.
+	for _, childConfig := range c.Children {
+		moreDiags := childConfig.addProviderRequirements(reqs)
+		diags = append(diags, moreDiags...)
+	}
+
+	return diags
+}
+
+// ProviderTypes returns the FQNs of each distinct provider type referenced
 // in the receiving configuration.
 //
 // This is a helper for easily determining which provider types are required
@@ -170,36 +253,96 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 // information and so callers are expected to have already dealt with
 // provider version selection in an earlier step and have identified suitable
 // versions for each provider.
-func (c *Config) ProviderTypes() []string {
-	m := make(map[string]struct{})
+func (c *Config) ProviderTypes() []addrs.Provider {
+	m := make(map[addrs.Provider]struct{})
 	c.gatherProviderTypes(m)
 
-	ret := make([]string, 0, len(m))
+	ret := make([]addrs.Provider, 0, len(m))
 	for k := range m {
 		ret = append(ret, k)
 	}
-	sort.Strings(ret)
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].String() < ret[j].String()
+	})
 	return ret
 }
-func (c *Config) gatherProviderTypes(m map[string]struct{}) {
+
+func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
 	if c == nil {
 		return
 	}
 
 	for _, pc := range c.Module.ProviderConfigs {
-		m[pc.Name] = struct{}{}
+		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pc.Name})
+		m[fqn] = struct{}{}
 	}
 	for _, rc := range c.Module.ManagedResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		fqn := c.Module.ProviderForLocalConfig(providerAddr)
+		m[fqn] = struct{}{}
 	}
 	for _, rc := range c.Module.DataResources {
 		providerAddr := rc.ProviderConfigAddr()
-		m[providerAddr.Type] = struct{}{}
+		fqn := c.Module.ProviderForLocalConfig(providerAddr)
+		m[fqn] = struct{}{}
 	}
 
 	// Must also visit our child modules, recursively.
 	for _, cc := range c.Children {
 		cc.gatherProviderTypes(m)
 	}
+}
+
+// ResolveAbsProviderAddr returns the AbsProviderConfig represented by the given
+// ProviderConfig address, which must not be nil or this method will panic.
+//
+// If the given address is already an AbsProviderConfig then this method returns
+// it verbatim, and will always succeed. If it's a LocalProviderConfig then
+// it will consult the local-to-FQN mapping table for the given module
+// to find the absolute address corresponding to the given local one.
+//
+// The module address to resolve local addresses in must be given in the second
+// argument, and must refer to a module that exists under the receiver or
+// else this method will panic.
+func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.Module) addrs.AbsProviderConfig {
+	switch addr := addr.(type) {
+
+	case addrs.AbsProviderConfig:
+		return addr
+
+	case addrs.LocalProviderConfig:
+		// Find the descendent Config that contains the module that this
+		// local config belongs to.
+		mc := c.Descendent(inModule)
+		if mc == nil {
+			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
+		}
+
+		var provider addrs.Provider
+		if providerReq, exists := c.Module.ProviderRequirements.RequiredProviders[addr.LocalName]; exists {
+			provider = providerReq.Type
+		} else {
+			provider = addrs.ImpliedProviderForUnqualifiedType(addr.LocalName)
+		}
+
+		return addrs.AbsProviderConfig{
+			Module:   inModule,
+			Provider: provider,
+			Alias:    addr.Alias,
+		}
+
+	default:
+		panic(fmt.Sprintf("cannot ResolveAbsProviderAddr(%v, ...)", addr))
+	}
+
+}
+
+// ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
+// by checking for the provider in module.ProviderRequirements and falling
+// back to addrs.NewDefaultProvider if it is not found.
+func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+	if provider, exists := c.Module.ProviderRequirements.RequiredProviders[addr.LocalName]; exists {
+		return provider.Type
+	}
+	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
 }

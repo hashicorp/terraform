@@ -3,6 +3,7 @@ package terraform
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
@@ -13,9 +14,9 @@ import (
 // to create a base testing scenario. This is used to represent some common
 // situations used as the basis for multiple tests.
 type contextTestFixture struct {
-	Config           *configs.Config
-	ProviderResolver providers.Resolver
-	Provisioners     map[string]ProvisionerFactory
+	Config       *configs.Config
+	Providers    map[addrs.Provider]providers.Factory
+	Provisioners map[string]ProvisionerFactory
 }
 
 // ContextOpts returns a ContextOps pre-populated with the elements of this
@@ -23,15 +24,15 @@ type contextTestFixture struct {
 // _shallow_ modifications to the options as needed.
 func (f *contextTestFixture) ContextOpts() *ContextOpts {
 	return &ContextOpts{
-		Config:           f.Config,
-		ProviderResolver: f.ProviderResolver,
-		Provisioners:     f.Provisioners,
+		Config:       f.Config,
+		Providers:    f.Providers,
+		Provisioners: f.Provisioners,
 	}
 }
 
 // contextFixtureApplyVars builds and returns a test fixture for testing
 // input variables, primarily during the apply phase. The configuration is
-// loaded from test-fixtures/apply-vars, and the provider resolver is
+// loaded from testdata/apply-vars, and the provider resolver is
 // configured with a resource type schema for aws_instance that matches
 // what's used in that configuration.
 func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
@@ -51,17 +52,15 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 	p.DiffFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	}
 }
 
 // contextFixtureApplyVarsEnv builds and returns a test fixture for testing
 // input variables set from the environment. The configuration is
-// loaded from test-fixtures/apply-vars-env, and the provider resolver is
+// loaded from testdata/apply-vars-env, and the provider resolver is
 // configured with a resource type schema for aws_instance that matches
 // what's used in that configuration.
 func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
@@ -79,10 +78,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 	p.DiffFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	}
 }

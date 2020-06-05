@@ -26,9 +26,10 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 
 		// The orphan
@@ -44,9 +45,10 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -92,9 +94,10 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -108,9 +111,10 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -155,9 +159,10 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -171,9 +176,10 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -218,9 +224,10 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -234,9 +241,10 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.ProviderConfig{
-				Type: "aws",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 

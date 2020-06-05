@@ -35,7 +35,7 @@ func (d *BitBucketDetector) detectHTTP(src string) (string, bool, error) {
 	var info struct {
 		SCM string `json:"scm"`
 	}
-	infoUrl := "https://api.bitbucket.org/1.0/repositories" + u.Path
+	infoUrl := "https://api.bitbucket.org/2.0/repositories" + u.Path
 	resp, err := http.Get(infoUrl)
 	if err != nil {
 		return "", true, fmt.Errorf("error looking up BitBucket URL: %s", err)

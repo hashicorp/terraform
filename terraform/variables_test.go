@@ -24,7 +24,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.StringVal("foo"),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic/main.tf",
+						Filename: "testdata/vars-basic/main.tf",
 						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
 					},
@@ -33,7 +33,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.ListValEmpty(cty.DynamicPseudoType),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic/main.tf",
+						Filename: "testdata/vars-basic/main.tf",
 						Start:    tfdiags.SourcePos{Line: 6, Column: 1, Byte: 58},
 						End:      tfdiags.SourcePos{Line: 6, Column: 13, Byte: 70},
 					},
@@ -42,7 +42,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.MapValEmpty(cty.DynamicPseudoType),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic/main.tf",
+						Filename: "testdata/vars-basic/main.tf",
 						Start:    tfdiags.SourcePos{Line: 11, Column: 1, Byte: 111},
 						End:      tfdiags.SourcePos{Line: 11, Column: 13, Byte: 123},
 					},
@@ -91,7 +91,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.True,
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic-bool/main.tf",
+						Filename: "testdata/vars-basic-bool/main.tf",
 						Start:    tfdiags.SourcePos{Line: 4, Column: 1, Byte: 177},
 						End:      tfdiags.SourcePos{Line: 4, Column: 13, Byte: 189},
 					},
@@ -100,7 +100,7 @@ func TestVariables(t *testing.T) {
 					Value:      cty.False,
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
-						Filename: "test-fixtures/vars-basic-bool/main.tf",
+						Filename: "testdata/vars-basic-bool/main.tf",
 						Start:    tfdiags.SourcePos{Line: 8, Column: 1, Byte: 214},
 						End:      tfdiags.SourcePos{Line: 8, Column: 13, Byte: 226},
 					},
@@ -163,45 +163,120 @@ func TestVariables(t *testing.T) {
 	}
 }
 
-func TestSMCUserVariables(t *testing.T) {
-	c := testModule(t, "smc-uservars")
+func TestCheckInputVariables(t *testing.T) {
+	c := testModule(t, "input-variables")
 
-	// No variables set
-	diags := checkInputVariables(c.Module.Variables, nil)
-	if !diags.HasErrors() {
-		t.Fatal("check succeeded, but want errors")
-	}
+	t.Run("No variables set", func(t *testing.T) {
+		// No variables set
+		diags := checkInputVariables(c.Module.Variables, nil)
+		if !diags.HasErrors() {
+			t.Fatal("check succeeded, but want errors")
+		}
 
-	// Required variables set, optional variables unset
-	// This is still an error at this layer, since it's the caller's
-	// responsibility to have already merged in any default values.
-	diags = checkInputVariables(c.Module.Variables, InputValues{
-		"foo": &InputValue{
-			Value:      cty.StringVal("bar"),
-			SourceType: ValueFromCLIArg,
-		},
+		// Required variables set, optional variables unset
+		// This is still an error at this layer, since it's the caller's
+		// responsibility to have already merged in any default values.
+		diags = checkInputVariables(c.Module.Variables, InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCLIArg,
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("check succeeded, but want errors")
+		}
 	})
-	if !diags.HasErrors() {
-		t.Fatal("check succeeded, but want errors")
-	}
 
-	// All variables set
-	diags = checkInputVariables(c.Module.Variables, InputValues{
-		"foo": &InputValue{
-			Value:      cty.StringVal("bar"),
-			SourceType: ValueFromCLIArg,
-		},
-		"bar": &InputValue{
-			Value:      cty.StringVal("baz"),
-			SourceType: ValueFromCLIArg,
-		},
-		"map": &InputValue{
-			Value:      cty.StringVal("baz"), // okay because config has no type constraint
-			SourceType: ValueFromCLIArg,
-		},
+	t.Run("All variables set", func(t *testing.T) {
+		diags := checkInputVariables(c.Module.Variables, InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCLIArg,
+			},
+			"bar": &InputValue{
+				Value:      cty.StringVal("baz"),
+				SourceType: ValueFromCLIArg,
+			},
+			"map": &InputValue{
+				Value:      cty.StringVal("baz"), // okay because config has no type constraint
+				SourceType: ValueFromCLIArg,
+			},
+			"object_map": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"uno": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("baz"),
+						"bar": cty.NumberIntVal(2), // type = any
+					}),
+					"dos": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("bat"),
+						"bar": cty.NumberIntVal(99), // type = any
+					}),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+			"object_list": &InputValue{
+				Value: cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("baz"),
+						"bar": cty.NumberIntVal(2), // type = any
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("bang"),
+						"bar": cty.NumberIntVal(42), // type = any
+					}),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		})
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
 	})
-	if diags.HasErrors() {
-		//t.Fatal("check succeeded, but want errors")
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
+
+	t.Run("Invalid Complex Types", func(t *testing.T) {
+		diags := checkInputVariables(c.Module.Variables, InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCLIArg,
+			},
+			"bar": &InputValue{
+				Value:      cty.StringVal("baz"),
+				SourceType: ValueFromCLIArg,
+			},
+			"map": &InputValue{
+				Value:      cty.StringVal("baz"), // okay because config has no type constraint
+				SourceType: ValueFromCLIArg,
+			},
+			"object_map": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"uno": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("baz"),
+						"bar": cty.NumberIntVal(2), // type = any
+					}),
+					"dos": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("bat"),
+						"bar": cty.NumberIntVal(99), // type = any
+					}),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+			"object_list": &InputValue{
+				Value: cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("baz"),
+						"bar": cty.NumberIntVal(2), // type = any
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("bang"),
+						"bar": cty.StringVal("42"), // type = any, but mismatch with the first list item
+					}),
+				}),
+				SourceType: ValueFromCLIArg,
+			},
+		})
+
+		if diags.HasErrors() {
+			t.Fatalf("unexpected errors: %s", diags.Err())
+		}
+	})
 }

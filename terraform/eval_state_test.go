@@ -214,7 +214,7 @@ func TestEvalWriteState(t *testing.T) {
 		State: &obj,
 
 		ProviderSchema: &providerSchema,
-		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("aws")),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -224,7 +224,7 @@ func TestEvalWriteState(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = i-abc123
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 	`)
 }
 
@@ -261,7 +261,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 		State: &obj,
 
 		ProviderSchema: &providerSchema,
-		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault("aws"),
+		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("aws")),
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -271,7 +271,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.foo: (1 deposed)
   ID = <not created>
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
   Deposed ID 1 = i-abc123
 	`)
 }

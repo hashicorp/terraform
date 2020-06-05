@@ -5,12 +5,37 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/states"
 )
 
 func TestDestroyEdgeTransformer_basic(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B"})
+	g.Add(testDestroyNode("test_object.A"))
+	g.Add(testDestroyNode("test_object.B"))
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
 	tf := &DestroyEdgeTransformer{
 		Config:  testModule(t, "transform-destroy-edge-basic"),
 		Schemas: simpleTestSchemas(),
@@ -26,31 +51,48 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 	}
 }
 
-func TestDestroyEdgeTransformer_create(t *testing.T) {
-	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B"})
-	g.Add(&graphNodeCreatorTest{AddrString: "test_object.A"})
-	tf := &DestroyEdgeTransformer{
-		Config:  testModule(t, "transform-destroy-edge-basic"),
-		Schemas: simpleTestSchemas(),
-	}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformDestroyEdgeCreatorStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
-	}
-}
-
 func TestDestroyEdgeTransformer_multi(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.B"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.C"})
+	g.Add(testDestroyNode("test_object.A"))
+	g.Add(testDestroyNode("test_object.B"))
+	g.Add(testDestroyNode("test_object.C"))
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.C").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"C","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{
+				mustResourceAddr("test_object.A"),
+				mustResourceAddr("test_object.B"),
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
 	tf := &DestroyEdgeTransformer{
 		Config:  testModule(t, "transform-destroy-edge-multi"),
 		Schemas: simpleTestSchemas(),
@@ -68,7 +110,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 
 func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.A"})
+	g.Add(testDestroyNode("test_object.A"))
 	tf := &DestroyEdgeTransformer{
 		Config:  testModule(t, "transform-destroy-edge-self-ref"),
 		Schemas: simpleTestSchemas(),
@@ -86,8 +128,33 @@ func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
 
 func TestDestroyEdgeTransformer_module(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.b"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "test_object.a"})
+	g.Add(testDestroyNode("module.child.test_object.b"))
+	g.Add(testDestroyNode("test_object.a"))
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.b")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"b","test_string":"x"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
 	tf := &DestroyEdgeTransformer{
 		Config:  testModule(t, "transform-destroy-edge-module"),
 		Schemas: simpleTestSchemas(),
@@ -105,9 +172,46 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 
 func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.a"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.b"})
-	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.test_object.c"})
+	g.Add(testDestroyNode("module.child.test_object.a"))
+	g.Add(testDestroyNode("module.child.test_object.b"))
+	g.Add(testDestroyNode("module.child.test_object.c"))
+
+	state := states.NewState()
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"a"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.c").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"c","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{
+				mustResourceAddr("module.child.test_object.a"),
+				mustResourceAddr("module.child.test_object.b"),
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
 	tf := &DestroyEdgeTransformer{
 		Config:  testModule(t, "transform-destroy-edge-module-only"),
 		Schemas: simpleTestSchemas(),
@@ -130,86 +234,12 @@ module.child.test_object.c (destroy)
 	}
 }
 
-type graphNodeCreatorTest struct {
-	AddrString string
-	Refs       []string
-}
+func testDestroyNode(addrString string) GraphNodeDestroyer {
+	instAddr := mustResourceInstanceAddr(addrString)
 
-var (
-	_ GraphNodeCreator    = (*graphNodeCreatorTest)(nil)
-	_ GraphNodeReferencer = (*graphNodeCreatorTest)(nil)
-)
+	inst := NewNodeAbstractResourceInstance(instAddr)
 
-func (n *graphNodeCreatorTest) Name() string {
-	return n.CreateAddr().String()
-}
-
-func (n *graphNodeCreatorTest) mustAddr() addrs.AbsResourceInstance {
-	addr, diags := addrs.ParseAbsResourceInstanceStr(n.AddrString)
-	if diags.HasErrors() {
-		panic(diags.Err())
-	}
-	return addr
-}
-
-func (n *graphNodeCreatorTest) Path() addrs.ModuleInstance {
-	return n.mustAddr().Module
-}
-
-func (n *graphNodeCreatorTest) CreateAddr() *addrs.AbsResourceInstance {
-	addr := n.mustAddr()
-	return &addr
-}
-
-func (n *graphNodeCreatorTest) References() []*addrs.Reference {
-	ret := make([]*addrs.Reference, len(n.Refs))
-	for i, str := range n.Refs {
-		ref, diags := addrs.ParseRefStr(str)
-		if diags.HasErrors() {
-			panic(diags.Err())
-		}
-		ret[i] = ref
-	}
-	return ret
-}
-
-type graphNodeDestroyerTest struct {
-	AddrString string
-	CBD        bool
-	Modified   bool
-}
-
-var _ GraphNodeDestroyer = (*graphNodeDestroyerTest)(nil)
-
-func (n *graphNodeDestroyerTest) Name() string {
-	result := n.DestroyAddr().String() + " (destroy)"
-	if n.Modified {
-		result += " (modified)"
-	}
-
-	return result
-}
-
-func (n *graphNodeDestroyerTest) mustAddr() addrs.AbsResourceInstance {
-	addr, diags := addrs.ParseAbsResourceInstanceStr(n.AddrString)
-	if diags.HasErrors() {
-		panic(diags.Err())
-	}
-	return addr
-}
-
-func (n *graphNodeDestroyerTest) CreateBeforeDestroy() bool {
-	return n.CBD
-}
-
-func (n *graphNodeDestroyerTest) ModifyCreateBeforeDestroy(v bool) error {
-	n.Modified = true
-	return nil
-}
-
-func (n *graphNodeDestroyerTest) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.mustAddr()
-	return &addr
+	return &NodeDestroyResourceInstance{NodeAbstractResourceInstance: inst}
 }
 
 const testTransformDestroyEdgeBasicStr = `

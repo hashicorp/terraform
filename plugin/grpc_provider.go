@@ -12,7 +12,6 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 )
@@ -106,6 +105,13 @@ func (p *GRPCProvider) getDatasourceSchema(name string) providers.Schema {
 	return dataSchema
 }
 
+// getProviderMetaSchema is a helper to extract the schema for the meta info
+// defined for a provider,
+func (p *GRPCProvider) getProviderMetaSchema() providers.Schema {
+	schema := p.getSchema()
+	return schema.ProviderMeta
+}
+
 func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	log.Printf("[TRACE] GRPCProvider: GetSchema")
 	p.mu.Lock()
@@ -138,6 +144,11 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	}
 
 	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider)
+	if protoResp.ProviderMeta == nil {
+		log.Printf("[TRACE] No provider meta schema returned")
+	} else {
+		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta)
+	}
 
 	for name, res := range protoResp.ResourceSchemas {
 		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res)
@@ -287,7 +298,7 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 	}
 
 	protoReq := &proto.Configure_Request{
-		TerraformVersion: version.Version,
+		TerraformVersion: r.TerraformVersion,
 		Config: &proto.DynamicValue{
 			Msgpack: mp,
 		},
@@ -320,6 +331,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	log.Printf("[TRACE] GRPCProvider: ReadResource")
 
 	resSchema := p.getResourceSchema(r.TypeName)
+	metaSchema := p.getProviderMetaSchema()
 
 	mp, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -330,6 +342,16 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	protoReq := &proto.ReadResource_Request{
 		TypeName:     r.TypeName,
 		CurrentState: &proto.DynamicValue{Msgpack: mp},
+		Private:      r.Private,
+	}
+
+	if metaSchema.Block != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ReadResource(p.ctx, protoReq)
@@ -348,6 +370,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		}
 	}
 	resp.NewState = state
+	resp.Private = protoResp.Private
 
 	return resp
 }
@@ -356,6 +379,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	log.Printf("[TRACE] GRPCProvider: PlanResourceChange")
 
 	resSchema := p.getResourceSchema(r.TypeName)
+	metaSchema := p.getProviderMetaSchema()
 
 	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -381,6 +405,15 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		Config:           &proto.DynamicValue{Msgpack: configMP},
 		ProposedNewState: &proto.DynamicValue{Msgpack: propMP},
 		PriorPrivate:     r.PriorPrivate,
+	}
+
+	if metaSchema.Block != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.PlanResourceChange(p.ctx, protoReq)
@@ -415,6 +448,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	log.Printf("[TRACE] GRPCProvider: ApplyResourceChange")
 
 	resSchema := p.getResourceSchema(r.TypeName)
+	metaSchema := p.getProviderMetaSchema()
 
 	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
 	if err != nil {
@@ -438,6 +472,15 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		PlannedState:   &proto.DynamicValue{Msgpack: plannedMP},
 		Config:         &proto.DynamicValue{Msgpack: configMP},
 		PlannedPrivate: r.PlannedPrivate,
+	}
+
+	if metaSchema.Block != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ApplyResourceChange(p.ctx, protoReq)
@@ -505,6 +548,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	log.Printf("[TRACE] GRPCProvider: ReadDataSource")
 
 	dataSchema := p.getDatasourceSchema(r.TypeName)
+	metaSchema := p.getProviderMetaSchema()
 
 	config, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
 	if err != nil {
@@ -517,6 +561,15 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		Config: &proto.DynamicValue{
 			Msgpack: config,
 		},
+	}
+
+	if metaSchema.Block != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ReadDataSource(p.ctx, protoReq)

@@ -26,7 +26,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -38,11 +38,11 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
+	if !strings.Contains(stdout, "Installing hashicorp/template v") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
+	if !strings.Contains(stdout, "Installing hashicorp/null v") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}

@@ -3,6 +3,7 @@ package terraform
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
@@ -26,8 +27,8 @@ func simpleMockComponentFactory() *basicComponentFactory {
 	provider := simpleMockProvider()
 	provisioner := simpleMockProvisioner()
 	return &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": func() (providers.Interface, error) {
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
 				return provider, nil
 			},
 		},

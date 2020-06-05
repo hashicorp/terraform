@@ -2,12 +2,11 @@ package terraform
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -15,10 +14,22 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// Input asks for input to fill variables and provider configurations.
+// Input asks for input to fill unset required arguments in provider
+// configurations.
+//
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
 func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
+	// This function used to be responsible for more than it is now, so its
+	// interface is more general than its current functionality requires.
+	// It now exists only to handle interactive prompts for provider
+	// configurations, with other prompts the responsibility of the CLI
+	// layer prior to calling in to this package.
+	//
+	// (Hopefully in future the remaining functionality here can move to the
+	// CLI layer too in order to avoid this odd situation where core code
+	// produces UI input prompts.)
+
 	var diags tfdiags.Diagnostics
 	defer c.acquireRun("input")()
 
@@ -28,85 +39,6 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 	}
 
 	ctx := context.Background()
-
-	if mode&InputModeVar != 0 {
-		log.Printf("[TRACE] Context.Input: Prompting for variables")
-
-		// Walk the variables first for the root module. We walk them in
-		// alphabetical order for UX reasons.
-		configs := c.config.Module.Variables
-		names := make([]string, 0, len(configs))
-		for name := range configs {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-	Variables:
-		for _, n := range names {
-			v := configs[n]
-
-			// If we only care about unset variables, then we should set any
-			// variable that is already set.
-			if mode&InputModeVarUnset != 0 {
-				if _, isSet := c.variables[n]; isSet {
-					continue
-				}
-			}
-
-			// this should only happen during tests
-			if c.uiInput == nil {
-				log.Println("[WARN] Context.uiInput is nil during input walk")
-				continue
-			}
-
-			// Ask the user for a value for this variable
-			var rawValue string
-			retry := 0
-			for {
-				var err error
-				rawValue, err = c.uiInput.Input(ctx, &InputOpts{
-					Id:          fmt.Sprintf("var.%s", n),
-					Query:       fmt.Sprintf("var.%s", n),
-					Description: v.Description,
-				})
-				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Failed to request interactive input",
-						fmt.Sprintf("Terraform attempted to request a value for var.%s interactively, but encountered an error: %s.", n, err),
-					))
-					return diags
-				}
-
-				if rawValue == "" && v.Default == cty.NilVal {
-					// Redo if it is required, but abort if we keep getting
-					// blank entries
-					if retry > 2 {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Required variable not assigned",
-							fmt.Sprintf("The variable %q is required, so Terraform cannot proceed without a defined value for it.", n),
-						))
-						continue Variables
-					}
-					retry++
-					continue
-				}
-
-				break
-			}
-
-			val, valDiags := v.ParsingMode.Parse(n, rawValue)
-			diags = diags.Append(valDiags)
-			if diags.HasErrors() {
-				continue
-			}
-
-			c.variables[n] = &InputValue{
-				Value:      val,
-				SourceType: ValueFromInput,
-			}
-		}
-	}
 
 	if mode&InputModeProvider != 0 {
 		log.Printf("[TRACE] Context.Input: Prompting for provider arguments")
@@ -121,7 +53,7 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 		// us to keep this relatively simple without significant hardship.
 
 		pcs := make(map[string]*configs.Provider)
-		pas := make(map[string]addrs.ProviderConfig)
+		pas := make(map[string]addrs.LocalProviderConfig)
 		for _, pc := range c.config.Module.ProviderConfigs {
 			addr := pc.Addr()
 			pcs[addr.String()] = pc
@@ -164,12 +96,13 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				UIInput:     c.uiInput,
 			}
 
-			schema := c.schemas.ProviderConfig(pa.Type)
+			providerFqn := c.config.Module.ProviderForLocalConfig(pa)
+			schema := c.schemas.ProviderConfig(providerFqn)
 			if schema == nil {
 				// Could either be an incorrect config or just an incomplete
 				// mock in tests. We'll let a later pass decide, and just
 				// ignore this for the purposes of gathering input.
-				log.Printf("[TRACE] Context.Input: No schema available for provider type %q", pa.Type)
+				log.Printf("[TRACE] Context.Input: No schema available for provider type %q", pa.LocalName)
 				continue
 			}
 
@@ -224,7 +157,13 @@ func (c *Context) Input(mode InputMode) tfdiags.Diagnostics {
 				vals[key] = cty.StringVal(rawVal)
 			}
 
-			c.providerInputConfig[pk] = vals
+			absConfigAddr := addrs.AbsProviderConfig{
+				Provider: providerFqn,
+				Alias:    pa.Alias,
+				Module:   c.Config().Path,
+			}
+			c.providerInputConfig[absConfigAddr.String()] = vals
+
 			log.Printf("[TRACE] Context.Input: Input for %s: %#v", pk, vals)
 		}
 	}

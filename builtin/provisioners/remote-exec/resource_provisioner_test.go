@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -134,7 +133,7 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
 	conf := map[string]interface{}{
-		"script": "test-fixtures/script1.sh",
+		"script": "testdata/script1.sh",
 	}
 
 	scripts, err := collectScripts(
@@ -162,9 +161,9 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 	conf := map[string]interface{}{
 		"scripts": []interface{}{
-			"test-fixtures/script1.sh",
-			"test-fixtures/script1.sh",
-			"test-fixtures/script1.sh",
+			"testdata/script1.sh",
+			"testdata/script1.sh",
+			"testdata/script1.sh",
 		},
 	}
 
@@ -264,10 +263,5 @@ func TestProvisionerTimeout(t *testing.T) {
 }
 
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	r, err := config.NewRawConfig(c)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-
-	return terraform.NewResourceConfig(r)
+	return terraform.NewResourceConfigRaw(c)
 }

@@ -28,7 +28,7 @@ type GraphNodeTargetable interface {
 // they must get updated if any of their dependent resources get updated,
 // which would not normally be true if one of their dependencies were targeted.
 type GraphNodeTargetDownstream interface {
-	TargetDownstream(targeted, untargeted *dag.Set) bool
+	TargetDownstream(targeted, untargeted dag.Set) bool
 }
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
@@ -58,7 +58,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 
 		for _, v := range g.Vertices() {
 			removable := false
-			if _, ok := v.(GraphNodeResource); ok {
+			if _, ok := v.(GraphNodeConfigResource); ok {
 				removable = true
 			}
 
@@ -79,8 +79,8 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node. Destroy mode keeps dependents instead of dependencies.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (*dag.Set, error) {
-	targetedNodes := new(dag.Set)
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (dag.Set, error) {
+	targetedNodes := make(dag.Set)
 
 	vertices := g.Vertices()
 
@@ -95,7 +95,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				tn.SetTargets(addrs)
 			}
 
-			var deps *dag.Set
+			var deps dag.Set
 			var err error
 			if t.Destroy {
 				deps, err = g.Descendents(v)
@@ -106,7 +106,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				return nil, err
 			}
 
-			for _, d := range deps.List() {
+			for _, d := range deps {
 				targetedNodes.Add(d)
 			}
 		}
@@ -114,7 +114,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	return t.addDependencies(targetedNodes, g)
 }
 
-func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (*dag.Set, error) {
+func (t *TargetsTransformer) addDependencies(targetedNodes dag.Set, g *Graph) (dag.Set, error) {
 	// Handle nodes that need to be included if their dependencies are included.
 	// This requires multiple passes since we need to catch transitive
 	// dependencies if and only if they are via other nodes that also
@@ -150,7 +150,7 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 				continue
 			}
 
-			for _, dv := range dependers.List() {
+			for _, dv := range dependers {
 				if targetedNodes.Include(dv) {
 					// Already present, so nothing to do
 					continue
@@ -186,14 +186,14 @@ func (t *TargetsTransformer) addDependencies(targetedNodes *dag.Set, g *Graph) (
 // This essentially maintains the previous behavior where interpolation in
 // outputs would fail silently, but can now surface errors where the output
 // is required.
-func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool {
+func filterPartialOutputs(v interface{}, targetedNodes dag.Set, g *Graph) bool {
 	// should this just be done with TargetDownstream?
 	if _, ok := v.(*NodeApplyableOutput); !ok {
 		return true
 	}
 
 	dependers := g.UpEdges(v)
-	for _, d := range dependers.List() {
+	for _, d := range dependers {
 		if _, ok := d.(*NodeCountBoundary); ok {
 			continue
 		}
@@ -210,7 +210,7 @@ func filterPartialOutputs(v interface{}, targetedNodes *dag.Set, g *Graph) bool 
 
 	depends := g.DownEdges(v)
 
-	for _, d := range depends.List() {
+	for _, d := range depends {
 		if !targetedNodes.Include(d) {
 			log.Printf("[WARN] %s missing targeted dependency %s, removing from the graph",
 				dag.VertexName(v), dag.VertexName(d))
@@ -225,14 +225,10 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	switch r := v.(type) {
 	case GraphNodeResourceInstance:
 		vertexAddr = r.ResourceInstanceAddr()
-	case GraphNodeResource:
+	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
 	default:
 		// Only resource and resource instance nodes can be targeted.
-		return false
-	}
-	_, ok := v.(GraphNodeResource)
-	if !ok {
 		return false
 	}
 

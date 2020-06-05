@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/providers"
-
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -19,14 +21,14 @@ func TestLocal_refresh(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, b.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -42,7 +44,7 @@ func TestLocal_refresh(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
 }
 
@@ -50,13 +52,13 @@ func TestLocal_refreshNoConfig(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -72,7 +74,7 @@ func TestLocal_refreshNoConfig(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
 }
 
@@ -81,7 +83,7 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
@@ -89,7 +91,7 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 
 	b.OpInput = true
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -105,7 +107,7 @@ func TestLocal_refreshNilModuleWithInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
 }
 
@@ -113,7 +115,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, b.StatePath, testRefreshState())
 
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		Provider: &configschema.Block{
@@ -146,7 +148,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	b.OpInput = true
 	b.ContextOpts.UIInput = &terraform.MockUIInput{InputReturnString: "bar"}
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh-var-unset")
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh-var-unset")
 	defer configCleanup()
 	op.UIIn = b.ContextOpts.UIInput
 
@@ -163,7 +165,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
 }
 
@@ -171,7 +173,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
@@ -180,7 +182,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	// Enable validation
 	b.OpValidation = true
 
-	op, configCleanup := testOperationRefresh(t, "./test-fixtures/refresh")
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -196,7 +198,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
 }
 
@@ -213,28 +215,22 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 }
 
 // testRefreshState is just a common state that we use for testing refresh.
-func testRefreshState() *terraform.State {
-	return &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-				Outputs: map[string]*terraform.OutputState{},
-			},
+func testRefreshState() *states.State {
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	}
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	return state
 }
 
 // refreshFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/refresh . This schema should be
+// configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
 func refreshFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

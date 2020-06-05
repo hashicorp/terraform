@@ -1,13 +1,11 @@
 package command
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,17 +14,19 @@ import (
 	"strings"
 	"time"
 
+	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
@@ -64,17 +64,37 @@ type Meta struct {
 	// the specific commands being run.
 	RunningInAutomation bool
 
+	// CLIConfigDir is the directory from which CLI configuration files were
+	// read by the caller and the directory where any changes to CLI
+	// configuration files by commands should be made.
+	//
+	// If this is empty then no configuration directory is available and
+	// commands which require one cannot proceed.
+	CLIConfigDir string
+
 	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
 	// into the given directory.
 	PluginCacheDir string
+
+	// ProviderSource allows determining the available versions of a provider
+	// and determines where a distribution package for a particular
+	// provider version can be obtained.
+	ProviderSource getproviders.Source
 
 	// OverrideDataDir, if non-empty, overrides the return value of the
 	// DataDir method for situations where the local .terraform/ directory
 	// is not suitable, e.g. because of a read-only filesystem.
 	OverrideDataDir string
 
+	// BrowserLauncher is used by commands that need to open a URL in a
+	// web browser.
+	BrowserLauncher webbrowser.Launcher
+
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}
+
+	// UnmanagedProviders are a set of providers that exist as processes predating Terraform, which Terraform should use but not worry about the lifecycle of.
+	UnmanagedProviders map[addrs.Provider]*plugin.ReattachConfig
 
 	//----------------------------------------------------------
 	// Protected: commands can set these
@@ -147,6 +167,9 @@ type Meta struct {
 	// init.
 	//
 	// reconfigure forces init to ignore any stored configuration.
+	//
+	// compactWarnings (-compact-warnings) selects a more compact presentation
+	// of warnings in the output when they are not accompanied by errors.
 	statePath        string
 	stateOutPath     string
 	backupPath       string
@@ -156,6 +179,7 @@ type Meta struct {
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
 	reconfigure      bool
+	compactWarnings  bool
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
@@ -167,8 +191,8 @@ type PluginOverrides struct {
 }
 
 type testingOverrides struct {
-	ProviderResolver providers.Resolver
-	Provisioners     map[string]provisioners.Factory
+	Providers    map[addrs.Provider]providers.Factory
+	Provisioners map[string]provisioners.Factory
 }
 
 // initStatePaths is used to initialize the default values for
@@ -232,8 +256,6 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	mode |= terraform.InputModeVar
-	mode |= terraform.InputModeVarUnset
 
 	return mode
 }
@@ -257,7 +279,7 @@ func (m *Meta) StdinPiped() bool {
 }
 
 // RunOperation executes the given operation on the given backend, blocking
-// until that operation completes or is inteerrupted, and then returns
+// until that operation completes or is interrupted, and then returns
 // the RunningOperation object representing the completed or
 // aborted operation that is, despite the name, no longer running.
 //
@@ -332,10 +354,22 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	// and just work with what we've been given, thus allowing the tests
 	// to provide mock providers and provisioners.
 	if m.testingOverrides != nil {
-		opts.ProviderResolver = m.testingOverrides.ProviderResolver
+		opts.Providers = m.testingOverrides.Providers
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
-		opts.ProviderResolver = m.providerResolver()
+		providerFactories, err := m.providerFactories()
+		if err != nil {
+			// providerFactories can fail if the plugin selections file is
+			// invalid in some way, but we don't have any way to report that
+			// from here so we'll just behave as if no providers are available
+			// in that case. However, we will produce a warning in case this
+			// shows up unexpectedly and prompts a bug report.
+			// This situation shouldn't arise commonly in practice because
+			// the selections file is generated programmatically.
+			log.Printf("[WARN] Failed to determine selected providers: %s", err)
+			providerFactories = nil
+		}
+		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
 	}
 
@@ -354,26 +388,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 // defaultFlagSet creates a default flag set for commands.
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
-
-	// Create an io.Writer that writes to our Ui properly for errors.
-	// This is kind of a hack, but it does the job. Basically: create
-	// a pipe, use a scanner to break it into lines, and output each line
-	// to the UI. Do this forever.
-	errR, errW := io.Pipe()
-	errScanner := bufio.NewScanner(errR)
-	go func() {
-		// This only needs to be alive long enough to write the help info if
-		// there is a flag error. Kill the scanner after a short duriation to
-		// prevent these from accumulating during tests, and cluttering up the
-		// stack traces.
-		time.AfterFunc(2*time.Second, func() {
-			errW.Close()
-		})
-		for errScanner.Scan() {
-			m.Ui.Error(errScanner.Text())
-		}
-	}()
-	f.SetOutput(errW)
+	f.SetOutput(ioutil.Discard)
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
@@ -388,6 +403,7 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 
 	f.BoolVar(&m.input, "input", true, "input")
 	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
+	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
 
 	if m.variableArgs.items == nil {
 		m.variableArgs = newRawFlags("-var")
@@ -407,23 +423,10 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
-// moduleStorage returns the module.Storage implementation used to store
-// modules for commands.
-func (m *Meta) moduleStorage(root string, mode module.GetMode) *module.Storage {
-	s := module.NewStorage(filepath.Join(root, "modules"), m.Services)
-	s.Ui = m.Ui
-	s.Mode = mode
-	return s
-}
-
 // process will process the meta-parameters out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice.
-//
-// vars is now ignored. It used to control whether to process variables, but
-// that is no longer the responsibility of this function. (That happens
-// instead in Meta.collectVariableValues.)
-func (m *Meta) process(args []string, vars bool) ([]string, error) {
+func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -452,7 +455,7 @@ func (m *Meta) process(args []string, vars bool) ([]string, error) {
 		},
 	}
 
-	return args, nil
+	return args
 }
 
 // uiHook returns the UiHook to use with the context.
@@ -499,6 +502,34 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(vals...)
 	diags.Sort()
+
+	if len(diags) == 0 {
+		return
+	}
+
+	diags = diags.ConsolidateWarnings(1)
+
+	// Since warning messages are generally competing
+	if m.compactWarnings {
+		// If the user selected compact warnings and all of the diagnostics are
+		// warnings then we'll use a more compact representation of the warnings
+		// that only includes their summaries.
+		// We show full warnings if there are also errors, because a warning
+		// can sometimes serve as good context for a subsequent error.
+		useCompact := true
+		for _, diag := range diags {
+			if diag.Severity() != tfdiags.Warning {
+				useCompact = false
+				break
+			}
+		}
+		if useCompact {
+			msg := format.DiagnosticWarningsCompact(diags, m.Colorize())
+			msg = "\n" + msg + "\nTo see the full warning notes, run Terraform without -compact-warnings.\n"
+			m.Ui.Warn(msg)
+			return
+		}
+	}
 
 	for _, diag := range diags {
 		// TODO: Actually measure the terminal width and pass it here.

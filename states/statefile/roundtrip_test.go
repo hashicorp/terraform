@@ -2,7 +2,6 @@ package statefile
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -35,14 +34,20 @@ func TestRoundtrip(t *testing.T) {
 		outName := name + outSuffix
 
 		t.Run(name, func(t *testing.T) {
-			ir, err := os.Open(filepath.Join(dir, inName))
-			if err != nil {
-				t.Fatal(err)
-			}
 			oSrcWant, err := ioutil.ReadFile(filepath.Join(dir, outName))
 			if err != nil {
 				t.Fatal(err)
 			}
+			oWant, diags := readStateV4(oSrcWant)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			ir, err := os.Open(filepath.Join(dir, inName))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer ir.Close()
 
 			f, err := Read(ir)
 			if err != nil {
@@ -54,16 +59,11 @@ func TestRoundtrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			oSrcGot := buf.Bytes()
+			oSrcWritten := buf.Bytes()
 
-			var oGot, oWant interface{}
-			err = json.Unmarshal(oSrcGot, &oGot)
-			if err != nil {
-				t.Fatalf("result isn't JSON: %s", err)
-			}
-			err = json.Unmarshal(oSrcWant, &oWant)
-			if err != nil {
-				t.Fatalf("wanted result isn't JSON: %s", err)
+			oGot, diags := readStateV4(oSrcWritten)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
 			}
 
 			problems := deep.Equal(oGot, oWant)

@@ -1,0 +1,28 @@
+{
+    "format_version": "0.1",
+    "provider_schemas": {
+        "registry.terraform.io/hashicorp/test": {
+            "resource_schemas": {
+                "test_instance": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "ami": {
+                                "type": "string",
+                                "optional": true,
+                                "description_kind": "plain"
+                            },
+                            "id": {
+                                "type": "string",
+                                "optional": true,
+                                "computed": true,
+                                "description_kind": "plain"
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            }
+        }
+    }
+}

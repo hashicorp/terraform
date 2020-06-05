@@ -23,10 +23,7 @@ func TestMetaColorize(t *testing.T) {
 	m.Color = true
 	args = []string{"foo", "bar"}
 	args2 = []string{"foo", "bar"}
-	args, err := m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -38,10 +35,7 @@ func TestMetaColorize(t *testing.T) {
 	m = new(Meta)
 	args = []string{"foo", "bar"}
 	args2 = []string{"foo", "bar"}
-	args, err = m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -54,10 +48,7 @@ func TestMetaColorize(t *testing.T) {
 	m.Color = true
 	args = []string{"foo", "-no-color", "bar"}
 	args2 = []string{"foo", "bar"}
-	args, err = m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -78,7 +69,7 @@ func TestMetaInputMode(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if m.InputMode() != terraform.InputModeStd|terraform.InputModeVarUnset {
+	if m.InputMode() != terraform.InputModeStd {
 		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }
@@ -98,7 +89,7 @@ func TestMetaInputMode_envVar(t *testing.T) {
 	}
 
 	off := terraform.InputMode(0)
-	on := terraform.InputModeStd | terraform.InputModeVarUnset
+	on := terraform.InputModeStd
 	cases := []struct {
 		EnvVar   string
 		Expected terraform.InputMode
@@ -130,63 +121,6 @@ func TestMetaInputMode_disable(t *testing.T) {
 	}
 
 	if m.InputMode() > 0 {
-		t.Fatalf("bad: %#v", m.InputMode())
-	}
-}
-
-func TestMetaInputMode_defaultVars(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
-	// Create a temporary directory for our cwd
-	d := tempDir(t)
-	os.MkdirAll(d, 0755)
-	defer os.RemoveAll(d)
-	defer testChdir(t, d)()
-
-	// Create the default vars file
-	err := ioutil.WriteFile(
-		filepath.Join(d, DefaultVarsFilename),
-		[]byte(""),
-		0644)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	m := new(Meta)
-	args := []string{}
-	args, err = m.process(args, false)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	fs := m.extendedFlagSet("foo")
-	if err := fs.Parse(args); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if m.InputMode()&terraform.InputModeVar == 0 {
-		t.Fatalf("bad: %#v", m.InputMode())
-	}
-}
-
-func TestMetaInputMode_vars(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
-	m := new(Meta)
-	args := []string{"-var", "foo=bar"}
-
-	fs := m.extendedFlagSet("foo")
-	if err := fs.Parse(args); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if m.InputMode()&terraform.InputModeVar == 0 {
-		t.Fatalf("bad: %#v", m.InputMode())
-	}
-
-	if m.InputMode()&terraform.InputModeVarUnset == 0 {
 		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }
@@ -349,10 +283,7 @@ func TestMeta_process(t *testing.T) {
 			m := new(Meta)
 			m.Color = true // this is the default also for normal use, overridden by -no-color
 			args := test.GivenArgs
-			args, err = m.process(args, true)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
+			args = m.process(args)
 
 			if !cmp.Equal(test.FilteredArgs, args) {
 				t.Errorf("wrong filtered arguments\n%s", cmp.Diff(test.FilteredArgs, args))

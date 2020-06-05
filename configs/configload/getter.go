@@ -19,7 +19,9 @@ import (
 
 var goGetterDetectors = []getter.Detector{
 	new(getter.GitHubDetector),
+	new(getter.GitDetector),
 	new(getter.BitBucketDetector),
+	new(getter.GCSDetector),
 	new(getter.S3Detector),
 	new(getter.FileDetector),
 }
@@ -44,6 +46,7 @@ var goGetterDecompressors = map[string]getter.Decompressor{
 
 var goGetterGetters = map[string]getter.Getter{
 	"file":  new(getter.FileGetter),
+	"gcs":   new(getter.GCSGetter),
 	"git":   new(getter.GitGetter),
 	"hg":    new(getter.HgGetter),
 	"s3":    new(getter.S3Getter),
@@ -82,7 +85,7 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 
 	log.Printf("[DEBUG] will download %q to %s", packageAddr, instPath)
 
-	realAddr, err := getter.Detect(packageAddr, instPath, getter.Detectors)
+	realAddr, err := getter.Detect(packageAddr, instPath, goGetterDetectors)
 	if err != nil {
 		return "", err
 	}

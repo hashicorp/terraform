@@ -19,9 +19,6 @@ When used in the root module of a configuration, variables can be set from CLI
 arguments and environment variables. For [_child_ modules](./modules.html),
 they allow values to pass from parent to child.
 
-Input variable usage is introduced in the Getting Started guide section
-[_Input Variables_](/intro/getting-started/variables.html).
-
 This page assumes you're familiar with the
 [configuration syntax](./syntax.html)
 already.
@@ -45,6 +42,7 @@ variable "images" {
 }
 
 variable "zones" {
+  type = "list"
   default = ["us-east-1a", "us-east-1b"]
 }
 ```

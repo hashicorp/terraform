@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	gohcl2 "github.com/hashicorp/hcl2/gohcl"
-	hcl2 "github.com/hashicorp/hcl2/hcl"
-	hcl2parse "github.com/hashicorp/hcl2/hclparse"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	hcl2 "github.com/hashicorp/hcl/v2"
+	gohcl2 "github.com/hashicorp/hcl/v2/gohcl"
+	hcl2parse "github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -184,7 +184,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 		// caller than then type-assert if desired to recover the individual
 		// diagnostics.
 		// FIXME: The current API gives us no way to return warnings in the
-		// absense of any errors.
+		// absence of any errors.
 		return config, diags
 	}
 
@@ -463,7 +463,7 @@ func (t *hcl2Configurable) Config() (*Config, error) {
 	}
 
 	// FIXME: The current API gives us no way to return warnings in the
-	// absense of any errors.
+	// absence of any errors.
 	var err error
 	if diags.HasErrors() {
 		err = diags

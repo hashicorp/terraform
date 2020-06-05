@@ -33,7 +33,7 @@ func TestGraph(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "provider.test") {
+	if !strings.Contains(output, `provider["registry.terraform.io/hashicorp/test"]`) {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }
@@ -80,7 +80,7 @@ func TestGraph_noArgs(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "provider.test") {
+	if !strings.Contains(output, `provider["registry.terraform.io/hashicorp/test"]`) {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }
@@ -125,7 +125,10 @@ func TestGraph_plan(t *testing.T) {
 			Before: plans.DynamicValue(`{}`),
 			After:  plans.DynamicValue(`null`),
 		},
-		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	})
 	emptyConfig, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
 	if err != nil {
@@ -158,7 +161,7 @@ func TestGraph_plan(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "provider.test") {
+	if !strings.Contains(output, `provider["registry.terraform.io/hashicorp/test"]`) {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }

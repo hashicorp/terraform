@@ -12,8 +12,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 )
@@ -22,34 +22,23 @@ func TestContext2Refresh(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 
-	startingState := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"id":  "foo",
-								"foo": "bar",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo","foo":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: startingState,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
@@ -103,9 +92,10 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -131,11 +121,9 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 		State: startingState,
 	})
 
@@ -167,11 +155,9 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 	m := testModule(t, "refresh-data-module-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ReadResourceFn = nil
@@ -255,27 +241,20 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	m := testModule(t, "refresh-targeted")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_vpc.metoo":      resourceState("aws_vpc", "vpc-abc123"),
-						"aws_instance.notme": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.me":    resourceState("aws_instance", "i-abc123"),
-						"aws_elb.meneither":  resourceState("aws_elb", "lb-abc123"),
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "me",
@@ -338,29 +317,22 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[0]", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[1]", `{"id":"i-cde567"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[2]", `{"id":"i-cde789"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_vpc.metoo":      resourceState("aws_vpc", "vpc-abc123"),
-						"aws_instance.notme": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.me.0":  resourceState("aws_instance", "i-abc123"),
-						"aws_instance.me.1":  resourceState("aws_instance", "i-cde567"),
-						"aws_instance.me.2":  resourceState("aws_instance", "i-cde789"),
-						"aws_elb.meneither":  resourceState("aws_elb", "lb-abc123"),
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "me",
@@ -431,29 +403,22 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[0]", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[1]", `{"id":"i-cde567"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[2]", `{"id":"i-cde789"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_vpc.metoo":      resourceState("aws_vpc", "vpc-abc123"),
-						"aws_instance.notme": resourceState("aws_instance", "i-bcd345"),
-						"aws_instance.me.0":  resourceState("aws_instance", "i-abc123"),
-						"aws_instance.me.1":  resourceState("aws_instance", "i-cde567"),
-						"aws_instance.me.2":  resourceState("aws_instance", "i-cde789"),
-						"aws_elb.meneither":  resourceState("aws_elb", "lb-abc123"),
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.ResourceInstance(
 				addrs.ManagedResourceMode, "aws_instance", "me", addrs.IntKey(0),
@@ -503,11 +468,9 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	// This was failing (see GH-2188) at some point, so this test just
@@ -520,28 +483,17 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 func TestContext2Refresh_delete(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	p.ReadResourceFn = nil
@@ -565,11 +517,9 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 	m := testModule(t, "refresh-basic")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: nil,
 	})
 
@@ -593,29 +543,18 @@ func TestContext2Refresh_hook(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
@@ -632,41 +571,18 @@ func TestContext2Refresh_hook(t *testing.T) {
 func TestContext2Refresh_modules(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-modules")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
-			},
 
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-						},
-					},
-				},
-			},
-		},
-	})
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	testSetResourceInstanceCurrent(child, "aws_instance.web", `{"id":"baz"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
@@ -724,11 +640,9 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
@@ -742,11 +656,9 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
@@ -760,11 +672,9 @@ func TestContext2Refresh_noState(t *testing.T) {
 	m := testModule(t, "refresh-no-state")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	p.ReadResourceFn = nil
@@ -800,40 +710,18 @@ func TestContext2Refresh_output(t *testing.T) {
 	}
 
 	m := testModule(t, "refresh-output")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo","foo":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	root.SetOutputValue("foo", cty.StringVal("foo"), false)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-								Attributes: map[string]string{
-									"id":  "foo",
-									"foo": "bar",
-								},
-							},
-						},
-					},
-
-					Outputs: map[string]*OutputState{
-						"foo": &OutputState{
-							Type:      "string",
-							Sensitive: false,
-							Value:     "foo",
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	s, diags := ctx.Refresh()
@@ -876,29 +764,16 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.foo", `{}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
-						},
-					},
-					Outputs: map[string]*OutputState{},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	s, diags := ctx.Refresh()
@@ -916,28 +791,16 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 func TestContext2Refresh_stateBasic(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
@@ -1008,11 +871,9 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 		Config: m,
 	})
 
@@ -1037,28 +898,14 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 
 func TestContext2Refresh_dataOrphan(t *testing.T) {
 	p := testProvider("null")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"data.null_data_source.bar": &ResourceState{
-						Type: "null_data_source",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-						Provider: "provider.null",
-					},
-				},
-			},
-		},
-	})
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "data.null_data_source.bar", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/null"]`)
+
 	ctx := testContext2(t, &ContextOpts{
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
@@ -1072,19 +919,7 @@ func TestContext2Refresh_dataOrphan(t *testing.T) {
 
 func TestContext2Refresh_dataState(t *testing.T) {
 	m := testModule(t, "refresh-data-resource-basic")
-
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				// Intentionally no resources since data resources are
-				// supposed to refresh themselves even if they didn't
-				// already exist.
-				Resources: map[string]*ResourceState{},
-			},
-		},
-	})
-
+	state := states.NewState()
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"inputs": {
@@ -1104,11 +939,9 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
@@ -1116,32 +949,11 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		m := req.Config.AsValueMap()
-		m["inputs"] = cty.MapVal(map[string]cty.Value{"test": cty.StringVal("yes")})
 		readStateVal = cty.ObjectVal(m)
 
 		return providers.ReadDataSourceResponse{
 			State: readStateVal,
 		}
-
-		// FIXME: should the "outputs" value here be added to the reutnred state?
-		// Attributes: map[string]*ResourceAttrDiff{
-		// 	"inputs.#": {
-		// 		Old:  "0",
-		// 		New:  "1",
-		// 		Type: DiffAttrInput,
-		// 	},
-		// 	"inputs.test": {
-		// 		Old:  "",
-		// 		New:  "yes",
-		// 		Type: DiffAttrInput,
-		// 	},
-		// 	"outputs.#": {
-		// 		Old:         "",
-		// 		New:         "",
-		// 		NewComputed: true,
-		// 		Type:        DiffAttrOutput,
-		// 	},
-		// },
 	}
 
 	s, diags := ctx.Refresh()
@@ -1152,14 +964,6 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	if !p.ReadDataSourceCalled {
 		t.Fatal("ReadDataSource should have been called")
 	}
-
-	// mod := s.RootModule()
-	// if got := mod.Resources["data.null_data_source.testing"].Primary.ID; got != "-" {
-	// 	t.Fatalf("resource id is %q; want %s", got, "-")
-	// }
-	// if !reflect.DeepEqual(mod.Resources["data.null_data_source.testing"].Primary, p.ReadDataApplyReturn) {
-	// 	t.Fatalf("bad: %#v", mod.Resources)
-	// }
 
 	mod := s.RootModule()
 
@@ -1198,24 +1002,12 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	}
 
 	m := testModule(t, "refresh-data-ref-data")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				// Intentionally no resources since data resources are
-				// supposed to refresh themselves even if they didn't
-				// already exist.
-				Resources: map[string]*ResourceState{},
-			},
-		},
-	})
+	state := states.NewState()
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
@@ -1244,29 +1036,16 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
-			},
-		},
-	})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -1304,33 +1083,21 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	_, diags := NewContext(&ContextOpts{
-		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Config:    m,
+		Providers: map[addrs.Provider]providers.Factory{},
+		State:     state,
 	})
 
 	if !diags.HasErrors() {
 		t.Fatal("successfully created context; want error")
 	}
 
-	if !regexp.MustCompile(`provider ".+" is not available`).MatchString(diags.Err().Error()) {
+	if !regexp.MustCompile(`Failed to instantiate provider ".+"`).MatchString(diags.Err().Error()) {
 		t.Fatalf("wrong error: %s", diags.Err())
 	}
 }
@@ -1357,29 +1124,16 @@ func TestContext2Refresh_vars(t *testing.T) {
 	}
 
 	m := testModule(t, "refresh-vars")
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
@@ -1421,7 +1175,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 	}
 
 	for _, r := range mod.Resources {
-		if r.Addr.Type == "" {
+		if r.Addr.Resource.Type == "" {
 			t.Fatalf("no type: %#v", r)
 		}
 	}
@@ -1444,95 +1198,45 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 		}
 	}
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "i-abc123",
-							Attributes: map[string]string{
-								"id":           "i-abc123",
-								"childid":      "i-bcd234",
-								"grandchildid": "i-cde345",
-							},
-						},
-						Dependencies: []string{
-							"module.child",
-							"module.child",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
-			&ModuleState{
-				Path: append(rootModulePath, "child"),
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "i-bcd234",
-							Attributes: map[string]string{
-								"id":           "i-bcd234",
-								"grandchildid": "i-cde345",
-							},
-						},
-						Dependencies: []string{
-							"module.grandchild",
-						},
-						Provider: "provider.aws",
-					},
-				},
-				Outputs: map[string]*OutputState{
-					"id": &OutputState{
-						Value: "i-bcd234",
-						Type:  "string",
-					},
-					"grandchild_id": &OutputState{
-						Value: "i-cde345",
-						Type:  "string",
-					},
-				},
-			},
-			&ModuleState{
-				Path: append(rootModulePath, "child", "grandchild"),
-				Resources: map[string]*ResourceState{
-					"aws_instance.baz": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "i-cde345",
-							Attributes: map[string]string{
-								"id": "i-cde345",
-							},
-						},
-						Provider: "provider.aws",
-					},
-				},
-				Outputs: map[string]*OutputState{
-					"id": &OutputState{
-						Value: "i-cde345",
-						Type:  "string",
-					},
-				},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{Module: addrs.Module{"module.child"}},
+				addrs.ConfigResource{Module: addrs.Module{"module.child"}},
 			},
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"i-bcd23"}`),
+			Dependencies: []addrs.ConfigResource{addrs.ConfigResource{Module: addrs.Module{"module.grandchild"}}},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	grandchild := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey).Child("grandchild", addrs.NoKey))
+	testSetResourceInstanceCurrent(grandchild, "aws_instance.baz", `{"id":"i-cde345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
 	testCheckDeadlock(t, func() {
 		_, err := ctx.Refresh()
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("err: %s", err.Err())
 		}
 
 		// TODO: handle order properly for orphaned modules / resources
@@ -1566,11 +1270,9 @@ func TestContext2Validate(t *testing.T) {
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -1594,46 +1296,17 @@ func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
 	// we need to make DiffFn available to let that complete.
 	p.DiffFn = testDiffFn
 
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Deposed: []*InstanceState{
-							&InstanceState{
-								ID: "foo",
-								Attributes: map[string]string{
-									"id": "foo",
-								},
-							},
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Deposed: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-								Attributes: map[string]string{
-									"id": "foo",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.foo[0]", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.foo[1]", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		State: state,
 	})
 
@@ -1655,47 +1328,29 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"id": "foo",
-							},
-						},
-						Provider: "provider.aws.baz",
-					},
-				},
-			},
-		},
-	})
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"].baz`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	expected := strings.TrimSpace(`
 aws_instance.bar:
   ID = foo
-  provider = provider.aws.foo`)
+  provider = provider["registry.terraform.io/hashicorp/aws"].foo`)
 
-	state, diags := ctx.Refresh()
+	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
 
-	actual := state.String()
+	actual := s.String()
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
@@ -1739,17 +1394,18 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 					"id": "foo",
 				},
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -1777,7 +1433,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   name = foo
 `)
 		if got != want {
@@ -1822,17 +1478,18 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 				SchemaVersion: 3,
 				AttrsJSON:     []byte(`{"id":"foo"}`),
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 		State: s,
 	})
 
@@ -1858,11 +1515,186 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   name = foo
 `)
 		if got != want {
 			t.Fatalf("wrong result state\ngot:\n%s\n\nwant:\n%s", got, want)
 		}
 	}
+}
+
+func TestContext2Refresh_dataValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "aws_data_source" "foo" {
+  foo = "bar"
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		// Should get this error:
+		// Unsupported attribute: This object does not have an attribute named "missing"
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ValidateDataSourceConfigCalled {
+		t.Fatal("ValidateDataSourceConfig not called during plan")
+	}
+}
+
+func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
+	m := testModule(t, "plan-data-depends-on")
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data": {
+				Attributes: map[string]*configschema.Attribute{
+					"compute": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+	p.DiffFn = testDiffFn
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"compute": cty.StringVal("value"),
+		}),
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	testSetResourceInstanceCurrent(root, "test_resource.a", `{"id":"a"}`, `provider["registry.terraform.io/hashicorp/test"]`)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+}
+
+// verify that dependencies are updated in the state during refresh
+func TestRefresh_updateDependencies(t *testing.T) {
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.ConfigResource{
+				// Existing dependencies should not be removed during refresh
+				{
+					Module: addrs.RootModule,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+				},
+			},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "bar" {
+  foo = aws_instance.foo.id
+}
+
+resource "aws_instance" "foo" {
+}`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	result, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	expect := strings.TrimSpace(`
+aws_instance.bar:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = foo
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+
+  Dependencies:
+    aws_instance.baz
+`)
+
+	checkStateString(t, result, expect)
 }
