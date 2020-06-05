@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
@@ -15,16 +16,28 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
+const (
+	// Maximum network retries.
+	// We depend on the AWS Go SDK DefaultRetryer exponential backoff.
+	// Ensure that if the AWS Config MaxRetries is set high (which it is by
+	// default), that we only retry for a few seconds with typically
+	// unrecoverable network errors, such as DNS lookup failures.
+	MaxNetworkRetryCount = 9
+)
+
 // GetSessionOptions attempts to return valid AWS Go SDK session authentication
 // options based on pre-existing credential provider, configured profile, or
 // fallback to automatically a determined session via the AWS Go SDK.
 func GetSessionOptions(c *Config) (*session.Options, error) {
 	options := &session.Options{
 		Config: aws.Config{
-			HTTPClient: cleanhttp.DefaultClient(),
-			MaxRetries: aws.Int(0),
-			Region:     aws.String(c.Region),
+			EndpointResolver: c.EndpointResolver(),
+			HTTPClient:       cleanhttp.DefaultClient(),
+			MaxRetries:       aws.Int(0),
+			Region:           aws.String(c.Region),
 		},
+		Profile:           c.Profile,
+		SharedConfigState: session.SharedConfigEnable,
 	}
 
 	// get and validate credentials
@@ -53,6 +66,10 @@ func GetSessionOptions(c *Config) (*session.Options, error) {
 
 // GetSession attempts to return valid AWS Go SDK session.
 func GetSession(c *Config) (*session.Session, error) {
+	if c.SkipMetadataApiCheck {
+		os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	}
+
 	options, err := GetSessionOptions(c)
 
 	if err != nil {
@@ -62,9 +79,9 @@ func GetSession(c *Config) (*session.Session, error) {
 	sess, err := session.NewSessionWithOptions(*options)
 	if err != nil {
 		if IsAWSErr(err, "NoCredentialProviders", "") {
-			return nil, ErrNoValidCredentialSources
+			return nil, c.NewNoValidCredentialSourcesError(err)
 		}
-		return nil, fmt.Errorf("Error creating AWS session: %s", err)
+		return nil, fmt.Errorf("Error creating AWS session: %w", err)
 	}
 
 	if c.MaxRetries > 0 {
@@ -82,9 +99,7 @@ func GetSession(c *Config) (*session.Session, error) {
 	// NOTE: This logic can be fooled by other request errors raising the retry count
 	//       before any networking error occurs
 	sess.Handlers.Retry.PushBack(func(r *request.Request) {
-		// We currently depend on the DefaultRetryer exponential backoff here.
-		// ~10 retries gives a fair backoff of a few seconds.
-		if r.RetryCount < 9 {
+		if r.RetryCount < MaxNetworkRetryCount {
 			return
 		}
 		// RequestError: send request failed
@@ -102,9 +117,8 @@ func GetSession(c *Config) (*session.Session, error) {
 	})
 
 	if !c.SkipCredsValidation {
-		stsClient := sts.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)}))
-		if _, _, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsClient); err != nil {
-			return nil, fmt.Errorf("error using credentials to get account ID: %s", err)
+		if _, _, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(sts.New(sess)); err != nil {
+			return nil, fmt.Errorf("error validating provider credentials: %w", err)
 		}
 	}
 
@@ -125,14 +139,14 @@ func GetSessionWithAccountIDAndPartition(c *Config) (*session.Session, string, s
 		return sess, accountID, partition, nil
 	}
 
-	iamClient := iam.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)}))
-	stsClient := sts.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)}))
+	iamClient := iam.New(sess)
+	stsClient := sts.New(sess)
 
 	if !c.SkipCredsValidation {
 		accountID, partition, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsClient)
 
 		if err != nil {
-			return nil, "", "", fmt.Errorf("error validating provider credentials: %s", err)
+			return nil, "", "", fmt.Errorf("error validating provider credentials: %w", err)
 		}
 
 		return sess, accountID, partition, nil
@@ -154,7 +168,7 @@ func GetSessionWithAccountIDAndPartition(c *Config) (*session.Session, string, s
 		return nil, "", "", fmt.Errorf(
 			"AWS account ID not previously found and failed retrieving via all available methods. "+
 				"See https://www.terraform.io/docs/providers/aws/index.html#skip_requesting_account_id for workaround and implications. "+
-				"Errors: %s", err)
+				"Errors: %w", err)
 	}
 
 	var partition string
