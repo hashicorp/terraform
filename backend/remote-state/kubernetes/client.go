@@ -212,14 +212,11 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	lease, err := c.getLease(leaseName)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return nil
-		}
 		return err
 	}
 
 	if lease.Spec.HolderIdentity == nil {
-		return nil
+		return fmt.Errorf("state is already unlocked")
 	}
 
 	lockInfo, err := c.getLockInfo(lease)
@@ -245,7 +242,6 @@ func (c *RemoteClient) Unlock(id string) error {
 	return nil
 }
 
-//getLockInfo takes a secret and attempts to read the lockInfo field.
 func (c *RemoteClient) getLockInfo(lease *coordinationv1.Lease) (*state.LockInfo, error) {
 	lockData, ok := getLockInfo(lease)
 	if len(lockData) == 0 || !ok {
