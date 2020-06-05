@@ -51,6 +51,8 @@ down to see all providers.
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
 - [Cobbler](/docs/providers/cobbler/index.html)
+- [Cohesity](/docs/providers/cohesity/index.html)
+- [Constellix](/docs/providers/constellix/index.html)
 - [Consul](/docs/providers/consul/index.html)
 - [Datadog](/docs/providers/datadog/index.html)
 - [DigitalOcean](/docs/providers/do/index.html)
@@ -60,6 +62,7 @@ down to see all providers.
 - [Docker](/docs/providers/docker/index.html)
 - [Dome9](/docs/providers/dome9/index.html)
 - [Dyn](/docs/providers/dyn/index.html)
+- [EnterpriseCloud](/docs/providers/ecl/index.html)
 - [Exoscale](/docs/providers/exoscale/index.html)
 - [External](/docs/providers/external/index.html)
 - [F5 BIG-IP](/docs/providers/bigip/index.html)
@@ -87,6 +90,7 @@ down to see all providers.
 - [JDCloud](/docs/providers/jdcloud/index.html)
 - [KingsoftCloud](/docs/providers/ksyun/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
+- [Lacework](/docs/providers/lacework/index.html)
 - [LaunchDarkly](/docs/providers/launchdarkly/index.html)
 - [Librato](/docs/providers/librato/index.html)
 - [Linode](/docs/providers/linode/index.html)
@@ -157,6 +161,7 @@ down to see all providers.
 - [VMware vRA7](/docs/providers/vra7/index.html)
 - [VMware vSphere](/docs/providers/vsphere/index.html)
 - [Vultr](/docs/providers/vultr/index.html)
+- [Wavefront](/docs/providers/wavefront/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
 
 
