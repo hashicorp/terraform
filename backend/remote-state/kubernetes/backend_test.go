@@ -77,8 +77,8 @@ func TestBackendLocksSoak(t *testing.T) {
 	testACC(t)
 	defer cleanupK8sResources(t)
 
-	clientCount := 1000
-	lockCount := 0
+	clientCount := 100
+	lockAttempts := 100
 
 	lockers := []statemgr.Locker{}
 	for i := 0; i < clientCount; i++ {
@@ -97,30 +97,31 @@ func TestBackendLocksSoak(t *testing.T) {
 	wg := sync.WaitGroup{}
 	for i, l := range lockers {
 		wg.Add(1)
-		go func(locker statemgr.Locker, i int) {
-			r := rand.Intn(10)
-			time.Sleep(time.Duration(r) * time.Microsecond)
+		go func(locker statemgr.Locker, n int) {
+			defer wg.Done()
+
 			li := state.NewLockInfo()
 			li.Operation = "test"
-			li.Who = fmt.Sprintf("client-%v", i)
-			_, err := locker.Lock(li)
-			if err == nil {
-				t.Logf("[INFO] Client %v got the lock\r\n", i)
-				lockCount++
+			li.Who = fmt.Sprintf("client-%v", n)
+
+			for i := 0; i < lockAttempts; i++ {
+				id, err := locker.Lock(li)
+				if err != nil {
+					continue
+				}
+
+				// hold onto the lock for a little bit
+				time.Sleep(time.Duration(rand.Intn(10)) * time.Microsecond)
+
+				err = locker.Unlock(id)
+				if err != nil {
+					t.Errorf("failed to unlock: %v", err)
+				}
 			}
-			wg.Done()
 		}(l, i)
 	}
 
 	wg.Wait()
-
-	if lockCount > 1 {
-		t.Fatalf("multiple backend clients were able to acquire a lock, count: %v", lockCount)
-	}
-
-	if lockCount == 0 {
-		t.Fatal("no clients were able to acquire a lock")
-	}
 }
 
 func cleanupK8sResources(t *testing.T) {
