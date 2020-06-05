@@ -1,7 +1,8 @@
-## (UNRELEASED)
+## 0.13.0-beta2 (UNRELEASED)
 
 BUG FIXES:
 
+* backend/remote: do not panic if PrepareConfig or Configure receive null values (can occur when the user cancels the init command) [GH-25135]
 * command: Fix `0.13upgrade` usage help text to include options [GH-25127]
 
 ## 0.13.0-beta1 (June 03, 2020)
