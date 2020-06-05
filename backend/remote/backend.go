@@ -142,6 +142,9 @@ func (b *Remote) ConfigSchema() *configschema.Block {
 // PrepareConfig implements backend.Backend.
 func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return obj, diags
+	}
 
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
 		diags = diags.Append(tfdiags.AttributeValue(
@@ -188,6 +191,9 @@ func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 // Configure implements backend.Enhanced.
 func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return diags
+	}
 
 	// Get the hostname.
 	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
