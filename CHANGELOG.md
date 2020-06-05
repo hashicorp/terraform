@@ -1,8 +1,25 @@
 ## 0.13.0-beta2 (UNRELEASED)
 
+NOTES:
+
+* backend/s3: Deprecated `lock_table`, `skip_get_ec2_platforms`, and `skip_requesting_account_id` arguments have been removed [GH-25134]
+* backend/s3: Credential ordering has changed from static, environment, shared credentials, EC2 metadata, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) to static, environment, shared credentials, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) [GH-25134]
+* backend/s3: The `AWS_METADATA_TIMEOUT` environment variable no longer has any effect as we now depend on the default AWS Go SDK EC2 Metadata client timeout of one second with two retries [GH-25134]
+
+ENHANCEMENTS:
+
+* backend/s3: Always enable shared configuration file support (no longer require `AWS_SDK_LOAD_CONFIG` environment variable) [GH-25134]
+* backend/s3: Automatically expand `~` prefix for home directories in `shared_credentials_file` argument [GH-25134]
+* backend/s3: Add `assume_role_duration_seconds`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys` arguments [GH-25134]
+
 BUG FIXES:
 
 * backend/remote: do not panic if PrepareConfig or Configure receive null values (can occur when the user cancels the init command) [GH-25135]
+* backend/s3: Ensure configured profile is used [GH-25134]
+* backend/s3: Ensure configured STS endpoint is used during AssumeRole API calls [GH-25134]
+* backend/s3: Prefer AWS shared configuration over EC2 metadata credentials by default [GH-25134]
+* backend/s3: Prefer ECS credentials over EC2 metadata credentials by default [GH-25134]
+* backend/s3: Remove hardcoded AWS Provider messaging [GH-25134]
 * command: Fix `0.13upgrade` usage help text to include options [GH-25127]
 
 ## 0.13.0-beta1 (June 03, 2020)
