@@ -47,6 +47,7 @@ down to see all providers.
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
+- [Cloud-init](/docs/providers/cloudinit/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
 - [Cobbler](/docs/providers/cobbler/index.html)
@@ -82,7 +83,9 @@ down to see all providers.
 - [Ignition](/docs/providers/ignition/index.html)
 - [Incapsula](/docs/providers/incapsula/index.html)
 - [InfluxDB](/docs/providers/influxdb/index.html)
+- [Infoblox](/docs/providers/infoblox/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
+- [KingsoftCloud](/docs/providers/ksyun/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
 - [LaunchDarkly](/docs/providers/launchdarkly/index.html)
 - [Librato](/docs/providers/librato/index.html)
@@ -103,7 +106,7 @@ down to see all providers.
 - [Nutanix](/docs/providers/nutanix/index.html)
 - [1&1](/docs/providers/oneandone/index.html)
 - [Okta](/docs/providers/okta/index.html)
-- [Okta ASA](/docs/providers/oktaasa/index.html)
+- [Okta Advanced Server Access](/docs/providers/oktaasa/index.html)
 - [OpenNebula](/docs/providers/opennebula/index.html)
 - [OpenStack](/docs/providers/openstack/index.html)
 - [OpenTelekomCloud](/docs/providers/opentelekomcloud/index.html)
@@ -140,6 +143,7 @@ down to see all providers.
 - [TencentCloud](/docs/providers/tencentcloud/index.html)
 - [Terraform](/docs/providers/terraform/index.html)
 - [Terraform Cloud](/docs/providers/tfe/index.html)
+- [Time](/docs/providers/time/index.html)
 - [TLS](/docs/providers/tls/index.html)
 - [Triton](/docs/providers/triton/index.html)
 - [Turbot](/docs/providers/turbot/index.html)
@@ -154,6 +158,7 @@ down to see all providers.
 - [VMware vSphere](/docs/providers/vsphere/index.html)
 - [Vultr](/docs/providers/vultr/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
+
 
 
 </div>
