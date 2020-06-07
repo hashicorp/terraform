@@ -1,6 +1,6 @@
-# "Try" and "can" functions
+# Error handling function: "try", "can", and "raise"
 
-This Go package contains two `cty` functions intended for use in an
+This Go package contains three `cty` functions intended for use in an
 `hcl.EvalContext` when evaluating HCL native syntax expressions.
 
 The first function `try` attempts to evaluate each of its argument expressions
@@ -17,7 +17,10 @@ The second function `can` is similar except that it ignores the result of
 the given expression altogether and simply returns `true` if the expression
 produced a successful result or `false` if it produced errors.
 
-Both of these are primarily intended for working with deep data structures
+The third function `raise` simply raises a specific custom error message any time it is
+evaluated.
+
+All of these function are primarily intended for working with deep data structures
 which might not have a dependable shape. For example, we can use `try` to
 attempt to fetch a value from deep inside a data structure but produce a
 default value if any step of the traversal fails:
@@ -26,8 +29,9 @@ default value if any step of the traversal fails:
 result = try(foo.deep[0].lots.of["traversals"], null)
 ```
 
-The final result to `try` should generally be some sort of constant value that
-will always evaluate successfully.
+The final result to `try` should generally be (1) some sort of constant value that
+will always evaluate successfully or (2) a call to `raise` that provides a clear error
+message to the user.
 
 ## Using these functions
 
@@ -37,8 +41,9 @@ exporting them in the `hcl.EvalContext` used for expression evaluation:
 ```go
 ctx := &hcl.EvalContext{
     Functions: map[string]function.Function{
-        "try": tryfunc.TryFunc,
         "can": tryfunc.CanFunc,
+        "try": tryfunc.TryFunc,
+        "raise": tryfunc.RaiseFunc,
     },
 }
 ```
