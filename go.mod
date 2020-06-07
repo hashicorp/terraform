@@ -146,5 +146,5 @@ replace github.com/Azure/go-autorest/autorest => github.com/tombuildsstuff/go-au
 
 replace github.com/Azure/go-autorest/autorest/azure/auth => github.com/tombuildsstuff/go-autorest/autorest/azure/auth v0.4.3-0.20200416184303-d4e299a3c04a
 
-# TK - TEMPORARY UNTIL HCL PR is Merged: https://github.com/hashicorp/hcl/pull/384
+// TK - TEMPORARY UNTIL HCL PR is Merged: https://github.com/hashicorp/hcl/pull/384
 replace github.com/hashicorp/hcl/v2/ext/tryfunc => github.com/aaronsteers/hcl/v2/ext/tryfunc v0.0.0-beta
