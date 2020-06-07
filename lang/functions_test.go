@@ -597,28 +597,28 @@ func TestFunctions(t *testing.T) {
 				cty.NumberFloatVal(1),
 			},
 		},
-
 		"raise": {
-			{
-				// Note: "raise" only works with expressions that pass static
-				// validation, because it only gets an opportunity to run in
-				// that case. The following "works" (captures the error) because
-				// Terraform understands it as a reference to an attribute
-				// that does not exist during dynamic evaluation.
-				//
-				// "raise" doesn't work with references that could never possibly
-				// be valid and are thus caught during static validation, such
-				// as an expression like "foo" alone which would be understood
-				// as an invalid resource reference. That's okay because this
-				// function exists primarily to ease access to dynamically-typed
-				// structures that Terraform can't statically validate by
-				// definition.
-				`raise("MyError")`,
-				// TK - TODO: How to test that error properly raised?
-				`test.hcl:1,1-7: Error in function call; Call to function "raise" failed: foo.`,
-			},
+			/*
+				// TK - TODO: Add support for test when error expected
+				{
+					// Note: "raise" only works with expressions that pass static
+					// validation, because it only gets an opportunity to run in
+					// that case. The following "works" (captures the error) because
+					// Terraform understands it as a reference to an attribute
+					// that does not exist during dynamic evaluation.
+					//
+					// "raise" doesn't work with references that could never possibly
+					// be valid and are thus caught during static validation, such
+					// as an expression like "foo" alone which would be understood
+					// as an invalid resource reference. That's okay because this
+					// function exists primarily to ease access to dynamically-typed
+					// structures that Terraform can't statically validate by
+					// definition.
+					`raise("MyError")`,
+					`test.hcl:1,1-7: Error in function call; Call to function "raise" failed: foo.`,
+				},
+			*/
 		},
-
 		"range": {
 			{
 				`range(3)`,
