@@ -145,3 +145,6 @@ replace github.com/Azure/go-autorest => github.com/tombuildsstuff/go-autorest v1
 replace github.com/Azure/go-autorest/autorest => github.com/tombuildsstuff/go-autorest/autorest v0.10.1-0.20200416184303-d4e299a3c04a
 
 replace github.com/Azure/go-autorest/autorest/azure/auth => github.com/tombuildsstuff/go-autorest/autorest/azure/auth v0.4.3-0.20200416184303-d4e299a3c04a
+
+# TK - TEMPORARY UNTIL HCL PR is Merged: https://github.com/hashicorp/hcl/pull/384
+replace github.com/hashicorp/hcl/v2/ext/tryfunc => github.com/aaronsteers/hcl/v2/ext/tryfunc feature/raise-error-function
