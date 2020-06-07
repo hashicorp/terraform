@@ -614,7 +614,8 @@ func TestFunctions(t *testing.T) {
 				// structures that Terraform can't statically validate by
 				// definition.
 				`raise("MyError")`,
-				cty.ErrorVal("MyError"), // TK - TODO: How to test that error properly raised?
+				// TK - TODO: How to test that error properly raised?
+				`test.hcl:1,1-7: Error in function call; Call to function "raise" failed: foo.`,
 			},
 		},
 
