@@ -120,8 +120,6 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 		case GraphNodeModulePath:
 			path = t.ModulePath()
-		case GraphNodeReferenceOutside:
-			path, _ = t.ReferenceOutside()
 		default:
 			continue
 		}
@@ -134,7 +132,9 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 	// Also visit child modules, recursively.
 	for _, cc := range c.Children {
-		return t.transform(g, cc, v)
+		if err := t.transform(g, cc, v); err != nil {
+			return err
+		}
 	}
 
 	return nil
