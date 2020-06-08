@@ -1552,3 +1552,83 @@ resource "aws_instance" "foo" {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
+
+func TestContext2Validate_expandMultipleNestedModules(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "modA" {
+  for_each = {
+    first = "m"
+	second = "n"
+  }
+  source = "./modA"
+}
+`,
+		"modA/main.tf": `
+locals {
+  m = {
+    first = "m"
+	second = "n"
+  }
+}
+
+module "modB" {
+  for_each = local.m
+  source = "./modB"
+  y = each.value
+}
+
+module "modC" {
+  for_each = local.m
+  source = "./modC"
+  x = module.modB[each.key].out
+  y = module.modB[each.key].out
+}
+
+`,
+		"modA/modB/main.tf": `
+variable "y" {
+  type = string
+}
+
+resource "aws_instance" "foo" {
+  foo = var.y
+}
+
+output "out" {
+  value = aws_instance.foo.id
+}
+`,
+		"modA/modC/main.tf": `
+variable "x" {
+  type = string
+}
+
+variable "y" {
+  type = string
+}
+
+resource "aws_instance" "foo" {
+  foo = var.x
+}
+
+output "out" {
+  value = var.y
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
