@@ -15,6 +15,7 @@
 /backend/remote-state/pg                Unmaintained
 /backend/remote-state/s3                @hashicorp/terraform-aws
 /backend/remote-state/swift             Unmaintained
+/backend/remote-state/kubernetes        @jrhouston @alexsomesan 
 
 # Provisioners
 builtin/provisioners/chef               Unmaintained
