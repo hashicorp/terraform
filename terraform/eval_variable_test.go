@@ -38,7 +38,6 @@ func Test_looksLikeSentences(t *testing.T) {
 	}
 }
 
-
 func TestContext2Apply_variableCustomValidationsRoot(t *testing.T) {
 	// This test is for custom validation rules associated with root module
 	// variables, and specifically that we handle the situation where their
