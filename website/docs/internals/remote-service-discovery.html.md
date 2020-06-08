@@ -87,6 +87,7 @@ At present, the following service identifiers are in use:
 
 * `login.v1`: [login protocol version 1](/docs/commands/login.html#protocol-v1)
 * `modules.v1`: [module registry API version 1](/docs/registry/api.html)
+* `providers.v1`: [provider registry API version 1](provider-registry-protocol.html)
 
 ## Authentication
 
