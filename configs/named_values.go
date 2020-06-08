@@ -399,7 +399,7 @@ func looksLikeSentences(s string) bool {
 	}
 	runes := []rune(s) // HCL guarantees that all strings are valid UTF-8
 	first := runes[0]
-	last := runes[len(s)-1]
+	last := runes[len(runes)-1]
 
 	// If the first rune is a letter then it must be an uppercase letter.
 	// (This will only see the first rune in a multi-rune combining sequence,
