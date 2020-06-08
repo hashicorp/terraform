@@ -10,6 +10,35 @@ import (
 	"github.com/hashicorp/terraform/providers"
 )
 
+func Test_looksLikeSentences(t *testing.T) {
+	tests := map[string]struct {
+		args string
+		want bool
+	}{
+		"empty sentence": {
+			args: "",
+			want: false,
+		},
+		"valid sentence": {
+			args: "A valid sentence.",
+			want: true,
+		},
+		"valid sentence with an accent": {
+			args: `A Valid sentence with an accent "é".`,
+			want: true,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := looksLikeSentences(tt.args); got != tt.want {
+				t.Errorf("looksLikeSentences() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+
 func TestContext2Apply_variableCustomValidationsRoot(t *testing.T) {
 	// This test is for custom validation rules associated with root module
 	// variables, and specifically that we handle the situation where their
