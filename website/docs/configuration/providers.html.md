@@ -1,69 +1,45 @@
 ---
 layout: "docs"
-page_title: "Providers - Configuration Language"
+page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
 description: |-
   Providers are responsible in Terraform for managing the lifecycle of a resource: create, read, update, delete.
 ---
 
-# Providers
+# Provider Configuration
 
 -> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
 earlier, see
 [0.11 Configuration Language: Providers](../configuration-0-11/providers.html).
 
-While [resources](./resources.html) are the primary construct
-in the Terraform language, the _behaviors_ of resources rely on their
-associated resource types, and these types are defined by _providers_.
-
-Each provider offers a set of named resource types, and defines for each
+Terraform relies on plugins called "providers" to define the available
+[resource](./resources.html) types and the behaviors associated with those
+types. Each provider offers a set of named resource types, and defines for each
 resource type which arguments it accepts, which attributes it exports,
 and how changes to resources of that type are actually applied to remote
 APIs.
 
-Most of the available providers correspond to one cloud or on-premises
-infrastructure platform, and offer resource types that correspond to each
-of the features of that platform.
+A Terraform configuration usually needs to provide some information about the
+provider plugins it relies on. There are two kinds of provider information
+Terraform might need:
+
+- [The source and version of each required provider.](./provider-sources.html)
+  Although Terraform can often guess the correct providers based on the
+  resources in a configuration, we always recommend being explicit about which
+  providers you need and which versions of those providers are compatible with
+  your configuration.
+
+- Configuration for an _instance_ of a given provider, which is described on
+  this page.
+
+
+
 
 Providers usually require some configuration of their own to specify endpoint
 URLs, regions, authentication settings, and so on. All resource types belonging
 to the same provider will share the same configuration, avoiding the need to
 repeat this common information across every resource declaration.
 
-### Provider Type
-
-The type of a provider identifies what is being provided. It is frequently the
-name of the service provider, such as `google`, or the functionality provided,
-like `random` and `dns`. The provider type matches first word of the resource type
-name (separated by underscores), and so the `google` provider is assumed to be
-the provider for the resource type name `google_compute_instance`.
-
-### Provider Fully-Qualified Name
-
-A provider's fully-qualified name (FQN) is an unambiguous name for a provider
-which allows using multiple providers with the same type. A provider FQN is made
-up of the following parts:
-
-```
-hostname/namespace/type
-```
-
-Some examples of provider FQNs include:
-```
-registry.terraform.io/hashicorp/google
-example.com/mycorp/happycloud
-```
-
-For convenience, Terraform allows omitting the hostname portion for providers on
-registry.terraform.io, so we'd normally write `hashicorp/aws` in this case. This
-simplified format is also used in the CLI output for various commands.
-
-### Provider Localname
-
-If you have multiple providers with the same type in a single configuration, you
-can define a module-specific `localnames` for them. The `localname` will take the
-place of the type in the provider configuration. See the [Provider Source](#provider-source)
-section of this document for instructions on setting a provider's localname.
 
 ## Provider Configuration
 
@@ -181,37 +157,6 @@ configuration that may cause problems particularly when writing shared modules.
 For that reason, we recommend using the `required_providers` block as described
 above, and _not_ using the `version` argument within `provider` blocks.
 `version` is still supported for compatibility with older Terraform versions.
-
-## Provider Source
-
--> **Note:** The provider `source` attribute was introduced in Terraform v0.13.
-
-The `required_providers` setting in can be used to declare the source for a
-terraform provider. You do not need to declare the source of any provider owned
-by HashiCorp(official provider / link?), but it is required for all other
-providers, including locally-installed third-party providers.
-
-To declare a provider's source, add a `required_providers` setting inside a `terrafrom` block:
-
-```hcl
-terraform {
-  required_providers {
-    mycloud = {
-      version = "~> 1.0"
-      source = "mycorp/mycloud"
-    }
-  }
-}
-```
-
-The map keys in the required_providers block will be used as the provider
-[localname](#localname) (for instance, `mycloud` in the example above). The best
-practice is to use the type as the local name, however in configurations with
-provider type collisions choose whatever localname makes the most sense for you.
-
-
-For more information on the `required_providers` block, see
-[Specifying Required Provider Versions and Source](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions-and-source).
 
 ## `alias`: Multiple Provider Instances
 
