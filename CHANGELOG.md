@@ -23,6 +23,7 @@ BUG FIXES:
 * backend/s3: Prefer ECS credentials over EC2 metadata credentials by default [GH-25134]
 * backend/s3: Remove hardcoded AWS Provider messaging [GH-25134]
 * command: Fix `0.13upgrade` usage help text to include options [GH-25127]
+* config: Fix crash in validation with non-ascii characters [GH-25144]
 * core: Fix crash with multiple nested modules [GH-25176]
 
 ## 0.13.0-beta1 (June 03, 2020)
