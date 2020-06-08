@@ -100,7 +100,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				if !lineRange.Overlaps(snippetRange) {
 					continue
 				}
-				if lineRange.Overlaps(highlightRange) {
+				if !lineRange.Overlap(highlightRange).Empty() {
 					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
 					before := beforeRange.SliceBytes(src)
 					highlighted := highlightedRange.SliceBytes(src)

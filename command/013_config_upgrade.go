@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -148,7 +150,11 @@ command and dealing with them before running this command again.
 		if dir != "." {
 			query = fmt.Sprintf("Would you like to upgrade the module in %s?", dir)
 		}
-		v, err := c.Ui.Ask(query)
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+			Id:          "approve",
+			Query:       query,
+			Description: `Only 'yes' will be accepted to confirm.`,
+		})
 		if err != nil {
 			diags = diags.Append(err)
 			c.showDiagnostics(diags)
@@ -685,10 +691,20 @@ func noSourceDetectedComment(name string) hclwrite.Tokens {
 
 func (c *ZeroThirteenUpgradeCommand) Help() string {
 	helpText := `
-Usage: terraform 0.13upgrade [module-dir]
+Usage: terraform 0.13upgrade [options] [module-dir]
 
   Updates module configuration files to add provider source attributes and
   merge multiple required_providers blocks into one.
+
+  By default, 0.13upgrade rewrites the files in the current working directory.
+  However, a path to a different directory can be provided. The command will
+  prompt for confirmation interactively unless the -yes option is given.
+
+Options:
+
+  -yes        Skip the initial introduction messages and interactive
+              confirmation. This can be used to run this command in
+              batch from a script.
 `
 	return strings.TrimSpace(helpText)
 }

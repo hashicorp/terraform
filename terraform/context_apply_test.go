@@ -11121,16 +11121,35 @@ func TestContext2Apply_moduleDependsOn(t *testing.T) {
 	m := testModule(t, "apply-module-depends-on")
 
 	p := testProvider("test")
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
-		State: cty.ObjectVal(map[string]cty.Value{
-			"id":  cty.StringVal("data"),
-			"foo": cty.NullVal(cty.String),
-		}),
-	}
-	p.DiffFn = testDiffFn
 
 	// each instance being applied should happen in sequential order
 	applied := int64(0)
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		cfg := req.Config.AsValueMap()
+		foo := cfg["foo"].AsString()
+		ord := atomic.LoadInt64(&applied)
+
+		resp := providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("data"),
+				"foo": cfg["foo"],
+			}),
+		}
+
+		if foo == "a" && ord < 4 {
+			// due to data source "a"'s module depending on instance 4, this
+			// should not be less than 4
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source a read too early"))
+		}
+		if foo == "b" && ord < 1 {
+			// due to data source "b"'s module depending on instance 1, this
+			// should not be less than 1
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source b read too early"))
+		}
+		return resp
+	}
+	p.DiffFn = testDiffFn
 
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 		state := req.PlannedState.AsValueMap()
@@ -11154,7 +11173,12 @@ func TestContext2Apply_moduleDependsOn(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan()
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -11165,6 +11189,10 @@ func TestContext2Apply_moduleDependsOn(t *testing.T) {
 	}
 
 	// run the plan again to ensure that data sources are not going to be re-read
+	_, diags = ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())

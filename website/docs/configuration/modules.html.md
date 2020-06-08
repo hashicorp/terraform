@@ -158,9 +158,13 @@ described in more detail in other sections:
   If not specified, the child module inherits all of the default (un-aliased)
   provider configurations from the calling module.
 
-In addition to the above, the argument names `depends_on` and
-`lifecycle` are not currently used by Terraform but are reserved for planned
-future features.
+* `depends_on` - (Optional) Create explicit dependencies between the entire
+  module and the listed targets. This will delay the final evaluation of the
+  module, and any sub-modules, until after the dependencies have been applied.
+  Modules have the same dependency resolution behavior [as defined for managed resources](./resources.html#resource-dependencies).
+
+In addition to the above, the `lifecycle` argument is not currently used by
+Terraform but is reserved for planned future features.
 
 Since modules are a complex feature in their own right, further detail
 about how modules can be used, created, and published is included in

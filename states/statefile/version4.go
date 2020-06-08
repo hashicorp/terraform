@@ -87,7 +87,8 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			// If ParseAbsProviderConfigStr returns an error, the state may have
 			// been written before Provider FQNs were introduced and the
 			// AbsProviderConfig string format will need normalization. If so,
-			// we assume it is a default (hashicorp) provider.
+			// we treat it like a legacy provider (namespace "-") and let the
+			// provider installer handle detecting the FQN.
 			var legacyAddrDiags tfdiags.Diagnostics
 			providerAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
 			if legacyAddrDiags.HasErrors() {

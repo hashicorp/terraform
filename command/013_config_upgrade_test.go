@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path"
@@ -215,10 +214,10 @@ func TestZeroThirteenUpgrade_confirm(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// Ask input
+	defer testInteractiveInput(t, []string{"yes"})()
+
 	ui := new(cli.MockUi)
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("yes")
 	c := &ZeroThirteenUpgradeCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -244,10 +243,10 @@ func TestZeroThirteenUpgrade_cancel(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// Ask input
+	defer testInteractiveInput(t, []string{"no"})()
+
 	ui := new(cli.MockUi)
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("no")
 	c := &ZeroThirteenUpgradeCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),

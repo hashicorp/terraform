@@ -22,6 +22,7 @@ var (
 	_ RemovableIfNotTargeted     = (*nodeExpandOutput)(nil)
 	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceOutside  = (*nodeExpandOutput)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
 	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)

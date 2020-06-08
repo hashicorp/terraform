@@ -6,12 +6,12 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"hash"
+	"strings"
 
 	uuidv5 "github.com/google/uuid"
 	uuid "github.com/hashicorp/go-uuid"
@@ -19,6 +19,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ssh"
 )
 
 var UUIDFunc = function.New(&function.Spec{
@@ -152,27 +153,30 @@ var RsaDecryptFunc = function.New(&function.Spec{
 
 		b, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode input %q: cipher text must be base64-encoded", s)
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "failed to decode input %q: cipher text must be base64-encoded", s)
 		}
 
-		block, _ := pem.Decode([]byte(key))
-		if block == nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to parse key: no key found")
-		}
-		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-			return cty.UnknownVal(cty.String), fmt.Errorf(
-				"failed to parse key: password protected keys are not supported. Please decrypt the key prior to use",
-			)
-		}
-
-		x509Key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		rawKey, err := ssh.ParseRawPrivateKey([]byte(key))
 		if err != nil {
-			return cty.UnknownVal(cty.String), err
+			var errStr string
+			switch e := err.(type) {
+			case asn1.SyntaxError:
+				errStr = strings.ReplaceAll(e.Error(), "asn1: syntax error", "invalid ASN1 data in the given private key")
+			case asn1.StructuralError:
+				errStr = strings.ReplaceAll(e.Error(), "asn1: struture error", "invalid ASN1 data in the given private key")
+			default:
+				errStr = fmt.Sprintf("invalid private key: %s", e)
+			}
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, errStr)
+		}
+		privateKey, ok := rawKey.(*rsa.PrivateKey)
+		if !ok {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "invalid private key type %t", rawKey)
 		}
 
-		out, err := rsa.DecryptPKCS1v15(nil, x509Key, b)
+		out, err := rsa.DecryptPKCS1v15(nil, privateKey, b)
 		if err != nil {
-			return cty.UnknownVal(cty.String), err
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decrypt: %s", err)
 		}
 
 		return cty.StringVal(string(out)), nil

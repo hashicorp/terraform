@@ -222,8 +222,8 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 	}
 
 	// "provider" block can also contain version constraints
-	for name, provider := range c.Module.ProviderConfigs {
-		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: name})
+	for _, provider := range c.Module.ProviderConfigs {
+		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
 		if _, ok := reqs[fqn]; !ok {
 			// We'll at least have an unconstrained dependency then, but might
 			// add to this in the loop below.

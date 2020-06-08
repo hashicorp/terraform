@@ -150,7 +150,7 @@ func (n *nodeModuleVariable) Path() addrs.ModuleInstance {
 
 // GraphNodeModulePath
 func (n *nodeModuleVariable) ModulePath() addrs.Module {
-	return n.Addr.Module.Parent().Module()
+	return n.Addr.Module.Module()
 }
 
 // RemovableIfNotTargeted

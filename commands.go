@@ -218,6 +218,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		"providers mirror": func() (cli.Command, error) {
+			return &command.ProvidersMirrorCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"providers schema": func() (cli.Command, error) {
 			return &command.ProvidersSchemaCommand{
 				Meta: meta,
@@ -311,7 +317,7 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		//-----------------------------------------------------------
 
 		"0.12upgrade": func() (cli.Command, error) {
-			return &command.ZeroThirteenUpgradeCommand{
+			return &command.ZeroTwelveUpgradeCommand{
 				Meta: meta,
 			}, nil
 		},
