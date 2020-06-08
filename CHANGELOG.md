@@ -5,6 +5,7 @@ NOTES:
 * backend/s3: Deprecated `lock_table`, `skip_get_ec2_platforms`, and `skip_requesting_account_id` arguments have been removed [GH-25134]
 * backend/s3: Credential ordering has changed from static, environment, shared credentials, EC2 metadata, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) to static, environment, shared credentials, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) [GH-25134]
 * backend/s3: The `AWS_METADATA_TIMEOUT` environment variable no longer has any effect as we now depend on the default AWS Go SDK EC2 Metadata client timeout of one second with two retries [GH-25134]
+* Removed unused targets from Makefile. If you were previously using `make dev` or `make quickdev`, replace that usage with `go install` [GH-25146]
 
 ENHANCEMENTS:
 
