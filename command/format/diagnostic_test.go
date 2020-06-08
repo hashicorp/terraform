@@ -120,3 +120,50 @@ Error: Some error
 		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
 	}
 }
+
+func TestDiagnostic_emptyOverlapHighlightContext(t *testing.T) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Some error",
+		Detail:   "...",
+		Subject: &hcl.Range{
+			Filename: "source.tf",
+			Start:    hcl.Pos{Line: 3, Column: 10, Byte: 38},
+			End:      hcl.Pos{Line: 4, Column: 1, Byte: 39},
+		},
+		Context: &hcl.Range{
+			Filename: "source.tf",
+			Start:    hcl.Pos{Line: 2, Column: 13, Byte: 27},
+			End:      hcl.Pos{Line: 4, Column: 1, Byte: 39},
+		},
+	})
+	sources := map[string][]byte{
+		"source.tf": []byte(`variable "x" {
+  default = {
+    "foo"
+  }
+`),
+	}
+	color := &colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: true,
+	}
+	expected := `
+Error: Some error
+
+  on source.tf line 3, in variable "x":
+   2:   default = {
+   3:     "foo"
+   4:   }
+
+...
+`
+	output := Diagnostic(diags[0], sources, color, 80)
+
+	if output != expected {
+		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}
