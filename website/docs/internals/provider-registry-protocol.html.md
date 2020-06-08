@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Provider Registry Protocol"
-sidebar_current: "docs-internals-providers-protocol"
+sidebar_current: "docs-internals-provider-registry-protocol"
 description: |-
   The provider registry protocol is implemented by a host intending to be the
   origin host for one or more Terraform providers, specifying which providers

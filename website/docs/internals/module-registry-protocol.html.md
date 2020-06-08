@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Module Registry Protocol"
-sidebar_current: "docs-internals-modules-protocol"
+sidebar_current: "docs-internals-module-registry-protocol"
 description: |-
   The module registry protocol is implemented by a host intending to be the
   host of one or more Terraform modules, specifying which modules are available
