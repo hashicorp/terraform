@@ -15,6 +15,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* addrs: detect builtin "terraform" provider in legacy state [GH-25154]
 * backend/remote: do not panic if PrepareConfig or Configure receive null values (can occur when the user cancels the init command) [GH-25135]
 * backend/s3: Ensure configured profile is used [GH-25134]
 * backend/s3: Ensure configured STS endpoint is used during AssumeRole API calls [GH-25134]
