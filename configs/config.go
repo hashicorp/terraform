@@ -77,6 +77,15 @@ type Config struct {
 	Version *version.Version
 }
 
+// ModuleRequirements represents the provider requirements for an individual
+// module, along with references to any child modules. This is used to
+// determine which modules require which providers.
+type ModuleRequirements struct {
+	Module       *Module
+	Requirements getproviders.Requirements
+	Children     map[string]*ModuleRequirements
+}
+
 // NewEmptyConfig constructs a single-node configuration tree with an empty
 // root module. This is generally a pretty useless thing to do, so most callers
 // should instead use BuildConfig.
@@ -175,12 +184,45 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnostics) {
 	reqs := make(getproviders.Requirements)
 	diags := c.addProviderRequirements(reqs)
+
+	for _, childConfig := range c.Children {
+		moreDiags := childConfig.addProviderRequirements(reqs)
+		diags = append(diags, moreDiags...)
+	}
+
 	return reqs, diags
+}
+
+// ProviderRequirementsByModule searches the full tree of modules under the
+// receiver for both explicit and implicit dependencies on providers,
+// constructing a tree where the requirements are broken out by module.
+//
+// If the returned diagnostics includes errors then the resulting Requirements
+// may be incomplete.
+func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagnostics) {
+	reqs := make(getproviders.Requirements)
+	diags := c.addProviderRequirements(reqs)
+
+	children := make(map[string]*ModuleRequirements)
+	for name, child := range c.Children {
+		childReqs, childDiags := child.ProviderRequirementsByModule()
+		children[name] = childReqs
+		diags = append(diags, childDiags...)
+	}
+
+	ret := &ModuleRequirements{
+		Module:       c.Module,
+		Requirements: reqs,
+		Children:     children,
+	}
+
+	return ret, diags
 }
 
 // addProviderRequirements is the main part of the ProviderRequirements
 // implementation, gradually mutating a shared requirements object to
-// eventually return.
+// eventually return. This function only adds requirements for the top-level
+// module.
 func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
@@ -233,13 +275,6 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 			constraints := getproviders.MustParseVersionConstraints(provider.Version.Required.String())
 			reqs[fqn] = append(reqs[fqn], constraints...)
 		}
-	}
-
-	// ...and now we'll recursively visit all of the child modules to merge
-	// in their requirements too.
-	for _, childConfig := range c.Children {
-		moreDiags := childConfig.addProviderRequirements(reqs)
-		diags = append(diags, moreDiags...)
 	}
 
 	return diags
