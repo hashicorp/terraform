@@ -12,6 +12,94 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
+var LengthFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:             "value",
+			Type:             cty.DynamicPseudoType,
+			AllowDynamicType: true,
+			AllowUnknown:     true,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		collTy := args[0].Type()
+		switch {
+		case collTy == cty.String || collTy.IsTupleType() || collTy.IsObjectType() || collTy.IsListType() || collTy.IsMapType() || collTy.IsSetType() || collTy == cty.DynamicPseudoType:
+			return cty.Number, nil
+		default:
+			return cty.Number, errors.New("argument must be a string, a collection type, or a structural type")
+		}
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		coll := args[0]
+		collTy := args[0].Type()
+		switch {
+		case collTy == cty.DynamicPseudoType:
+			return cty.UnknownVal(cty.Number), nil
+		case collTy.IsTupleType():
+			l := len(collTy.TupleElementTypes())
+			return cty.NumberIntVal(int64(l)), nil
+		case collTy.IsObjectType():
+			l := len(collTy.AttributeTypes())
+			return cty.NumberIntVal(int64(l)), nil
+		case collTy == cty.String:
+			// We'll delegate to the cty stdlib strlen function here, because
+			// it deals with all of the complexities of tokenizing unicode
+			// grapheme clusters.
+			return stdlib.Strlen(coll)
+		case collTy.IsListType() || collTy.IsSetType() || collTy.IsMapType():
+			return coll.Length(), nil
+		default:
+			// Should never happen, because of the checks in our Type func above
+			return cty.UnknownVal(cty.Number), errors.New("impossible value type for length(...)")
+		}
+	},
+})
+
+// CoalesceFunc constructs a function that takes any number of arguments and
+// returns the first one that isn't empty. This function was copied from go-cty
+// stdlib and modified so that it returns the first *non-empty* non-null element
+// from a sequence, instead of merely the first non-null.
+var CoalesceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		argTypes := make([]cty.Type, len(args))
+		for i, val := range args {
+			argTypes[i] = val.Type()
+		}
+		retType, _ := convert.UnifyUnsafe(argTypes)
+		if retType == cty.NilType {
+			return cty.NilType, errors.New("all arguments must have the same type")
+		}
+		return retType, nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		for _, argVal := range args {
+			// We already know this will succeed because of the checks in our Type func above
+			argVal, _ = convert.Convert(argVal, retType)
+			if !argVal.IsKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+			if argVal.IsNull() {
+				continue
+			}
+			if retType == cty.String && argVal.RawEquals(cty.StringVal("")) {
+				continue
+			}
+
+			return argVal, nil
+		}
+		return cty.NilVal, errors.New("no non-null, non-empty-string arguments")
+	},
+})
+
 // DeepMergeFunc constructs a function that takes an arbitrary number of maps or
 // objects, and returns a single value that contains a merged set of keys and
 // values from all of the inputs.
@@ -174,94 +262,6 @@ func recursiveMerge(newMap cty.Value, existingMap map[string]cty.Value) map[stri
 	}
 	return existingMap
 }
-
-var LengthFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name:             "value",
-			Type:             cty.DynamicPseudoType,
-			AllowDynamicType: true,
-			AllowUnknown:     true,
-		},
-	},
-	Type: func(args []cty.Value) (cty.Type, error) {
-		collTy := args[0].Type()
-		switch {
-		case collTy == cty.String || collTy.IsTupleType() || collTy.IsObjectType() || collTy.IsListType() || collTy.IsMapType() || collTy.IsSetType() || collTy == cty.DynamicPseudoType:
-			return cty.Number, nil
-		default:
-			return cty.Number, errors.New("argument must be a string, a collection type, or a structural type")
-		}
-	},
-	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		coll := args[0]
-		collTy := args[0].Type()
-		switch {
-		case collTy == cty.DynamicPseudoType:
-			return cty.UnknownVal(cty.Number), nil
-		case collTy.IsTupleType():
-			l := len(collTy.TupleElementTypes())
-			return cty.NumberIntVal(int64(l)), nil
-		case collTy.IsObjectType():
-			l := len(collTy.AttributeTypes())
-			return cty.NumberIntVal(int64(l)), nil
-		case collTy == cty.String:
-			// We'll delegate to the cty stdlib strlen function here, because
-			// it deals with all of the complexities of tokenizing unicode
-			// grapheme clusters.
-			return stdlib.Strlen(coll)
-		case collTy.IsListType() || collTy.IsSetType() || collTy.IsMapType():
-			return coll.Length(), nil
-		default:
-			// Should never happen, because of the checks in our Type func above
-			return cty.UnknownVal(cty.Number), errors.New("impossible value type for length(...)")
-		}
-	},
-})
-
-// CoalesceFunc constructs a function that takes any number of arguments and
-// returns the first one that isn't empty. This function was copied from go-cty
-// stdlib and modified so that it returns the first *non-empty* non-null element
-// from a sequence, instead of merely the first non-null.
-var CoalesceFunc = function.New(&function.Spec{
-	Params: []function.Parameter{},
-	VarParam: &function.Parameter{
-		Name:             "vals",
-		Type:             cty.DynamicPseudoType,
-		AllowUnknown:     true,
-		AllowDynamicType: true,
-		AllowNull:        true,
-	},
-	Type: func(args []cty.Value) (ret cty.Type, err error) {
-		argTypes := make([]cty.Type, len(args))
-		for i, val := range args {
-			argTypes[i] = val.Type()
-		}
-		retType, _ := convert.UnifyUnsafe(argTypes)
-		if retType == cty.NilType {
-			return cty.NilType, errors.New("all arguments must have the same type")
-		}
-		return retType, nil
-	},
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		for _, argVal := range args {
-			// We already know this will succeed because of the checks in our Type func above
-			argVal, _ = convert.Convert(argVal, retType)
-			if !argVal.IsKnown() {
-				return cty.UnknownVal(retType), nil
-			}
-			if argVal.IsNull() {
-				continue
-			}
-			if retType == cty.String && argVal.RawEquals(cty.StringVal("")) {
-				continue
-			}
-
-			return argVal, nil
-		}
-		return cty.NilVal, errors.New("no non-null, non-empty-string arguments")
-	},
-})
 
 // IndexFunc constructs a function that finds the element index for a given value in a list.
 var IndexFunc = function.New(&function.Spec{
@@ -739,15 +739,6 @@ func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) 
 	return append(slice, element), nil
 }
 
-// Merge takes an arbitrary number of maps and returns a single map that contains
-// a merged set of elements from all of the maps.
-//
-// If more than one given map defines the same key then the one that is later in
-// the argument sequence takes precedence.
-func DeepMerge(maps ...cty.Value) (cty.Value, error) {
-	return DeepMergeFunc.Call(maps)
-}
-
 // Length returns the number of elements in the given collection or number of
 // Unicode characters in the given string.
 func Length(collection cty.Value) (cty.Value, error) {
@@ -757,6 +748,20 @@ func Length(collection cty.Value) (cty.Value, error) {
 // Coalesce takes any number of arguments and returns the first one that isn't empty.
 func Coalesce(args ...cty.Value) (cty.Value, error) {
 	return CoalesceFunc.Call(args)
+}
+
+// DeepMergeFunc constructs a function that takes an arbitrary number of maps or
+// objects, and returns a single value that contains a merged set of keys and
+// values from all of the inputs.
+//
+// If more than one given map or object defines the same key then the one that
+// is later in the argument sequence takes precedence.
+//
+// Nested object will be recursed to the bottom, and partial maps will be combined to
+// create the final map. Types can be changed [array->string] without issue, so no
+// type checking occurs to prevent this.
+func DeepMerge(maps ...cty.Value) (cty.Value, error) {
+	return DeepMergeFunc.Call(maps)
 }
 
 // Index finds the element index for a given value in a list.
