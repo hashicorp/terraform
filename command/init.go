@@ -607,6 +607,12 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	ctx := evts.OnContext(context.TODO())
 	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
+		// Build a map of provider address to modules using the provider,
+		// so that we can later show diagnostics about affected modules
+		reqs, _ := config.ProviderRequirementsByModule()
+		providerToReqs := make(map[addrs.Provider][]*configs.ModuleRequirements)
+		c.populateProviderToReqs(providerToReqs, reqs)
+
 		// Try to look up any missing providers which may be redirected legacy
 		// providers. If we're successful, construct a "did you mean?" diag to
 		// suggest how to fix this. Otherwise, add a simple error diag
@@ -627,14 +633,63 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			}
 		}
 		if len(foundProviders) > 0 {
+			// Build list of provider suggestions, and track a list of local
+			// and remote modules which need to be upgraded
 			var providerSuggestions string
+			localModules := make(map[string]struct{})
+			remoteModules := make(map[*configs.ModuleRequirements]struct{})
 			for missingProvider, foundProvider := range foundProviders {
 				providerSuggestions += fmt.Sprintf("  %s -> %s\n", missingProvider.ForDisplay(), foundProvider.ForDisplay())
+				exists := struct{}{}
+				for _, reqs := range providerToReqs[missingProvider] {
+					src := reqs.SourceAddr
+					// Treat the root module and any others with local source
+					// addresses as fixable with 0.13upgrade. Remote modules
+					// must be upgraded elsewhere and therefore are listed
+					// separately
+					if src == "" || isLocalSourceAddr(src) {
+						localModules[reqs.SourceDir] = exists
+					} else {
+						remoteModules[reqs] = exists
+					}
+				}
 			}
+
+			// Create sorted list of 0.13upgrade commands with the affected
+			// source dirs
+			var upgradeCommands []string
+			for dir := range localModules {
+				upgradeCommands = append(upgradeCommands, fmt.Sprintf("terraform 0.13upgrade %s", dir))
+			}
+			sort.Strings(upgradeCommands)
+			command := "command"
+			if len(upgradeCommands) > 1 {
+				command = "commands"
+			}
+
+			// Display detailed diagnostic results, including the missing and
+			// found provider FQNs, and the suggested series of upgrade
+			// commands to fix this
+			var detail strings.Builder
+
+			fmt.Fprintf(&detail, "Could not find required providers, but found possible alternatives:\n\n%s\n", providerSuggestions)
+
+			fmt.Fprintf(&detail, "If these suggestions look correct, upgrade your configuration with the following %s:", command)
+			for _, upgradeCommand := range upgradeCommands {
+				fmt.Fprintf(&detail, "\n    %s", upgradeCommand)
+			}
+
+			if len(remoteModules) > 0 {
+				fmt.Fprintf(&detail, "\n\nThe following remote modules must also be upgraded for Terraform 0.13 compatibility:")
+				for remoteModule := range remoteModules {
+					fmt.Fprintf(&detail, "\n- module.%s at %s", remoteModule.Name, remoteModule.SourceAddr)
+				}
+			}
+
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install providers",
-				fmt.Sprintf("Could not find required providers, but found possible alternatives:\n\n%s\nIf these suggestions look correct, upgrade your configuration with the following command:\n    terraform 0.13upgrade", providerSuggestions),
+				detail.String(),
 			))
 		}
 
@@ -673,6 +728,16 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	}
 
 	return true, diags
+}
+
+func (c *InitCommand) populateProviderToReqs(reqs map[addrs.Provider][]*configs.ModuleRequirements, node *configs.ModuleRequirements) {
+	for fqn := range node.Requirements {
+		reqs[fqn] = append(reqs[fqn], node)
+	}
+
+	for _, child := range node.Children {
+		c.populateProviderToReqs(reqs, child)
+	}
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
@@ -1045,3 +1110,20 @@ Alternatively, upgrade to the latest version of Terraform for compatibility with
 
 // No version of the provider is compatible.
 const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`
+
+// Logic from internal/initwd/getter.go
+var localSourcePrefixes = []string{
+	"./",
+	"../",
+	".\\",
+	"..\\",
+}
+
+func isLocalSourceAddr(addr string) bool {
+	for _, prefix := range localSourcePrefixes {
+		if strings.HasPrefix(addr, prefix) {
+			return true
+		}
+	}
+	return false
+}
