@@ -1,0 +1,7 @@
+- id: fmt
+  name: Terraform Format
+  description: Formats Terraform files
+  entry: terraform fmt
+  pass_filenames: false
+  language: golang
+  types: ["file", "non-executable", "terraform", "text"]
