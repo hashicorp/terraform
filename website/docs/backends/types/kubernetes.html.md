@@ -12,7 +12,7 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/) with locking done in the same secret.
+Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/) with locking done using a Lease resource.
 
 ## Example Configuration
 
@@ -53,8 +53,8 @@ data "terraform_remote_state" "foo" {
 The following configuration options are supported:
 
 * `secret_suffix` - (Required) Suffix used when creating secrets. Secrets will be named in the format: `tfstate-{workspace}-{secret_suffix}`.
-* `labels` - (Optional) Map of additional labels to be applied to the secret.
-* `namespace` - (Optional) Namespace to store the secret in. Can be sourced from `KUBE_NAMESPACE`.
+* `labels` - (Optional) Map of additional labels to be applied to the secret and lease.
+* `namespace` - (Optional) Namespace to store the secret and lease in. Can be sourced from `KUBE_NAMESPACE`.
 * `in_cluster_config` - (Optional) Used to authenticate to the cluster from inside a pod. Can be sourced from `KUBE_IN_CLUSTER_CONFIG`.
 * `load_config_file` - (Optional) Use a kubeconfig file to access the cluster. Can be sourced from `KUBE_LOAD_CONFIG_FILE`.
 * `host` - (Optional) The hostname (in form of URI) of Kubernetes master. Can be sourced from `KUBE_HOST`. Defaults to `https://localhost`.
