@@ -5,7 +5,11 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/zclconf/go-cty/cty"
 
+	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -141,6 +145,59 @@ func TestConfigProviderRequirements(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestConfigProviderRequirementsByModule(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	assertNoDiagnostics(t, diags)
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultRegistryHost,
+		"hashicorp", "tls",
+	)
+	happycloudProvider := addrs.NewProvider(
+		svchost.Hostname("tf.example.com"),
+		"awesomecorp", "happycloud",
+	)
+	nullProvider := addrs.NewDefaultProvider("null")
+	randomProvider := addrs.NewDefaultProvider("random")
+	impliedProvider := addrs.NewDefaultProvider("implied")
+	terraformProvider := addrs.NewBuiltInProvider("terraform")
+	configuredProvider := addrs.NewDefaultProvider("configured")
+
+	got, diags := cfg.ProviderRequirementsByModule()
+	assertNoDiagnostics(t, diags)
+	child, ok := cfg.Children["kinder"]
+	if !ok {
+		t.Fatalf(`could not find child config "kinder" in config children`)
+	}
+	want := &ModuleRequirements{
+		Module: cfg.Module,
+		Requirements: getproviders.Requirements{
+			// Only the root module's version is present here
+			nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
+			randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
+			tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
+			configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+			impliedProvider:    nil,
+			terraformProvider:  nil,
+		},
+		Children: map[string]*ModuleRequirements{
+			"kinder": {
+				Module: child.Module,
+				Requirements: getproviders.Requirements{
+					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
+					happycloudProvider: nil,
+				},
+				Children: map[string]*ModuleRequirements{},
+			},
+		},
+	}
+
+	ignore := cmpopts.IgnoreUnexported(version.Constraint{}, cty.Value{}, hclsyntax.Body{})
+	if diff := cmp.Diff(want, got, ignore); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
 	}
 }

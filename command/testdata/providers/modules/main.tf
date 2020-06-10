@@ -10,6 +10,6 @@ provider "bar" {
   version = "2.0.0"
 }
 
-module "child" {
+module "kiddo" {
   source = "./child"
 }
