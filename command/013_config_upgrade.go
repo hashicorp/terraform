@@ -213,6 +213,11 @@ command and dealing with them before running this command again.
 		for _, rps := range file.RequiredProviders {
 			rewritePaths[path] = true
 			for _, rp := range rps.RequiredProviders {
+				// Skip internal providers
+				if rp.Type.IsBuiltIn() {
+					continue
+				}
+
 				if previous, exist := requiredProviders[rp.Name]; exist {
 					diags = diags.Append(&hcl.Diagnostic{
 						Summary:  "Duplicate required provider configuration",
@@ -240,6 +245,11 @@ command and dealing with them before running this command again.
 	for _, file := range files {
 		// Step 2: add missing provider requirements from provider blocks
 		for _, p := range file.ProviderConfigs {
+			// Skip internal providers
+			if p.Name == "terraform" {
+				continue
+			}
+
 			// If no explicit provider configuration exists for the
 			// provider configuration's local name, add one with a legacy
 			// provider address.
@@ -264,6 +274,11 @@ command and dealing with them before running this command again.
 					localName = r.ProviderConfigRef.Name
 				} else {
 					localName = r.Addr().ImpliedProvider()
+				}
+
+				// Skip internal providers
+				if localName == "terraform" {
+					continue
 				}
 
 				// If no explicit provider configuration exists for this local
