@@ -86,10 +86,7 @@ func (t *destroyRootOutputTransformer) Transform(g *Graph) error {
 		log.Printf("[TRACE] creating %s", node.Name())
 		g.Add(node)
 
-		deps, err := g.Descendents(v)
-		if err != nil {
-			return err
-		}
+		deps := g.UpEdges(v)
 
 		// the destroy node must depend on the eval node
 		deps.Add(v)
