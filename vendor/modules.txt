@@ -100,7 +100,7 @@ github.com/apparentlymart/go-userdirs/macosbase
 github.com/apparentlymart/go-userdirs/userdirs
 github.com/apparentlymart/go-userdirs/windowsbase
 github.com/apparentlymart/go-userdirs/xdgbase
-# github.com/apparentlymart/go-versions v0.0.2-0.20180815153302-64b99f7cb171
+# github.com/apparentlymart/go-versions v1.0.0
 ## explicit
 github.com/apparentlymart/go-versions/versions
 github.com/apparentlymart/go-versions/versions/constraints
