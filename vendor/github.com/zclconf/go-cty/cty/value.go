@@ -106,3 +106,37 @@ func (val Value) IsWhollyKnown() bool {
 		return true
 	}
 }
+
+// HasWhollyKnownType checks if the value is dynamic, or contains any nested
+// DynamicVal. This implies that both the value is not known, and the final
+// type may change.
+func (val Value) HasWhollyKnownType() bool {
+	// a null dynamic type is known
+	if val.IsNull() {
+		return true
+	}
+
+	// an unknown DynamicPseudoType is a DynamicVal, but we don't want to
+	// check that value for equality here, since this method is used within the
+	// equality check.
+	if !val.IsKnown() && val.ty == DynamicPseudoType {
+		return false
+	}
+
+	if val.CanIterateElements() {
+		// if the value is not known, then we can look directly at the internal
+		// types
+		if !val.IsKnown() {
+			return !val.ty.HasDynamicTypes()
+		}
+
+		for it := val.ElementIterator(); it.Next(); {
+			_, ev := it.Element()
+			if !ev.HasWhollyKnownType() {
+				return false
+			}
+		}
+	}
+
+	return true
+}

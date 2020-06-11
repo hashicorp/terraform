@@ -87,7 +87,7 @@ func (t Type) HasDynamicTypes() bool {
 	case t.IsPrimitiveType():
 		return false
 	case t.IsCollectionType():
-		return false
+		return t.ElementType().HasDynamicTypes()
 	case t.IsObjectType():
 		attrTypes := t.AttributeTypes()
 		for _, at := range attrTypes {
