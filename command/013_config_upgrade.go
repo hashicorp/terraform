@@ -213,11 +213,6 @@ command and dealing with them before running this command again.
 		for _, rps := range file.RequiredProviders {
 			rewritePaths[path] = true
 			for _, rp := range rps.RequiredProviders {
-				// Skip internal providers
-				if rp.Type.IsBuiltIn() {
-					continue
-				}
-
 				if previous, exist := requiredProviders[rp.Name]; exist {
 					diags = diags.Append(&hcl.Diagnostic{
 						Summary:  "Duplicate required provider configuration",
