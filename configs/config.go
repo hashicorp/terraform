@@ -236,11 +236,22 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 		}
 		// The model of version constraints in this package is still the
 		// old one using a different upstream module to represent versions,
-		// so we'll need to shim that out here for now. We assume this
-		// will always succeed because these constraints already succeeded
-		// parsing with the other constraint parser, which uses the same
-		// syntax.
-		constraints := getproviders.MustParseVersionConstraints(providerReqs.Requirement.Required.String())
+		// so we'll need to shim that out here for now. The two parsers
+		// don't exactly agree in practice 🙄 so this might produce new errors.
+		// TODO: Use the new parser throughout this package so we can get the
+		// better error messages it produces in more situations.
+		constraints, err := getproviders.ParseVersionConstraints(providerReqs.Requirement.Required.String())
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid version constraint",
+				// The errors returned by ParseVersionConstraint already include
+				// the section of input that was incorrect, so we don't need to
+				// include that here.
+				Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+				Subject: providerReqs.Requirement.DeclRange.Ptr(),
+			})
+		}
 		reqs[fqn] = append(reqs[fqn], constraints...)
 	}
 	// Each resource in the configuration creates an *implicit* provider
@@ -272,7 +283,24 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 			reqs[fqn] = nil
 		}
 		if provider.Version.Required != nil {
-			constraints := getproviders.MustParseVersionConstraints(provider.Version.Required.String())
+			// The model of version constraints in this package is still the
+			// old one using a different upstream module to represent versions,
+			// so we'll need to shim that out here for now. The two parsers
+			// don't exactly agree in practice 🙄 so this might produce new errors.
+			// TODO: Use the new parser throughout this package so we can get the
+			// better error messages it produces in more situations.
+			constraints, err := getproviders.ParseVersionConstraints(provider.Version.Required.String())
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					// The errors returned by ParseVersionConstraint already include
+					// the section of input that was incorrect, so we don't need to
+					// include that here.
+					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+					Subject: provider.Version.DeclRange.Ptr(),
+				})
+			}
 			reqs[fqn] = append(reqs[fqn], constraints...)
 		}
 	}
