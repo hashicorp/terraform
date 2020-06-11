@@ -25,6 +25,7 @@ BUG FIXES:
 * backend/s3: Prefer ECS credentials over EC2 metadata credentials by default [GH-25134]
 * backend/s3: Remove hardcoded AWS Provider messaging [GH-25134]
 * command: Fix `0.13upgrade` usage help text to include options [GH-25127]
+* command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location [GH-25214]
 * command/format: Fix bug which caused some diagnostics to print empty source lines [GH-25156]
 * config: Fix crash in validation with non-ascii characters [GH-25144]
 * core: Fix crash with multiple nested modules [GH-25176]
