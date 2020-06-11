@@ -36,7 +36,7 @@ func (g *AcyclicGraph) Ancestors(v Vertex) (Set, error) {
 		return nil
 	}
 
-	if err := g.DepthFirstWalk(g.DownEdges(v), memoFunc); err != nil {
+	if err := g.DepthFirstWalk(g.downEdgesNoCopy(v), memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (g *AcyclicGraph) Descendents(v Vertex) (Set, error) {
 		return nil
 	}
 
-	if err := g.ReverseDepthFirstWalk(g.UpEdges(v), memoFunc); err != nil {
+	if err := g.ReverseDepthFirstWalk(g.upEdgesNoCopy(v), memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func (g *AcyclicGraph) Descendents(v Vertex) (Set, error) {
 func (g *AcyclicGraph) Root() (Vertex, error) {
 	roots := make([]Vertex, 0, 1)
 	for _, v := range g.Vertices() {
-		if g.UpEdges(v).Len() == 0 {
+		if g.upEdgesNoCopy(v).Len() == 0 {
 			roots = append(roots, v)
 		}
 	}
@@ -101,10 +101,10 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	//
 	// For each v-prime reachable from v, remove the edge (u, v-prime).
 	for _, u := range g.Vertices() {
-		uTargets := g.DownEdges(u)
+		uTargets := g.downEdgesNoCopy(u)
 
-		g.DepthFirstWalk(g.DownEdges(u), func(v Vertex, d int) error {
-			shared := uTargets.Intersection(g.DownEdges(v))
+		g.DepthFirstWalk(g.downEdgesNoCopy(u), func(v Vertex, d int) error {
+			shared := uTargets.Intersection(g.downEdgesNoCopy(v))
 			for _, vPrime := range shared {
 				g.RemoveEdge(BasicEdge(u, vPrime))
 			}
@@ -208,7 +208,7 @@ func (g *AcyclicGraph) DepthFirstWalk(start Set, f DepthWalkFunc) error {
 			return err
 		}
 
-		for _, v := range g.DownEdges(current.Vertex) {
+		for _, v := range g.downEdgesNoCopy(current.Vertex) {
 			frontier = append(frontier, &vertexAtDepth{
 				Vertex: v,
 				Depth:  current.Depth + 1,
@@ -248,7 +248,7 @@ func (g *AcyclicGraph) SortedDepthFirstWalk(start []Vertex, f DepthWalkFunc) err
 		}
 
 		// Visit targets of this in a consistent order.
-		targets := AsVertexList(g.DownEdges(current.Vertex))
+		targets := AsVertexList(g.downEdgesNoCopy(current.Vertex))
 		sort.Sort(byVertexName(targets))
 
 		for _, t := range targets {
@@ -285,7 +285,7 @@ func (g *AcyclicGraph) ReverseDepthFirstWalk(start Set, f DepthWalkFunc) error {
 		}
 		seen[current.Vertex] = struct{}{}
 
-		for _, t := range g.UpEdges(current.Vertex) {
+		for _, t := range g.upEdgesNoCopy(current.Vertex) {
 			frontier = append(frontier, &vertexAtDepth{
 				Vertex: t,
 				Depth:  current.Depth + 1,
@@ -325,7 +325,7 @@ func (g *AcyclicGraph) SortedReverseDepthFirstWalk(start []Vertex, f DepthWalkFu
 		seen[current.Vertex] = struct{}{}
 
 		// Add next set of targets in a consistent order.
-		targets := AsVertexList(g.UpEdges(current.Vertex))
+		targets := AsVertexList(g.upEdgesNoCopy(current.Vertex))
 		sort.Sort(byVertexName(targets))
 		for _, t := range targets {
 			frontier = append(frontier, &vertexAtDepth{
