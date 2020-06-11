@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -82,7 +83,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		if detected, err := getter.Detect(configPath, pwd, getter.Detectors); err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid path: %s", err))
 			return 1
-		} else if !strings.HasPrefix(detected, "file") {
+		} else if !strings.HasPrefix(detected, "file") && !filepath.IsAbs(detected) {
 			// If this isn't a file URL then we're doing an init +
 			// apply.
 			var init InitCommand
