@@ -32,6 +32,8 @@ BUG FIXES:
 * config: Fix crash in validation with non-ascii characters [GH-25144]
 * config: Don't panic if version constraint syntax isn't accepted by new version constraint parser [GH-25223]
 * core: Fix crash with multiple nested modules [GH-25176]
+* core: Fix panic when importing with modules [GH-25208]
+* core: Allow targeting with expanded module addresses [GH-25206]
 
 ## 0.13.0-beta1 (June 03, 2020)
 
