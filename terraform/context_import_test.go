@@ -527,7 +527,7 @@ func TestContextImport_module(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
 				ID: "bar",
@@ -565,7 +565,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).Child("nested", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
 				ID: "baz",
@@ -603,7 +603,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
 				ID: "baz",
@@ -765,7 +765,7 @@ aws_instance.foo.0:
 
 const testImportModuleStr = `
 <no state>
-module.child:
+module.child[0]:
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
@@ -773,7 +773,7 @@ module.child:
 
 const testImportModuleDepth2Str = `
 <no state>
-module.child.nested:
+module.child[0].nested:
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
