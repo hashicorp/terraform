@@ -169,12 +169,10 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirementsByModule()
 	assertNoDiagnostics(t, diags)
-	child, ok := cfg.Children["kinder"]
-	if !ok {
-		t.Fatalf(`could not find child config "kinder" in config children`)
-	}
 	want := &ModuleRequirements{
-		Module: cfg.Module,
+		Name:       "",
+		SourceAddr: "",
+		SourceDir:  "testdata/provider-reqs",
 		Requirements: getproviders.Requirements{
 			// Only the root module's version is present here
 			nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
@@ -186,7 +184,9 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 		},
 		Children: map[string]*ModuleRequirements{
 			"kinder": {
-				Module: child.Module,
+				Name:       "kinder",
+				SourceAddr: "./child",
+				SourceDir:  "testdata/provider-reqs/child",
 				Requirements: getproviders.Requirements{
 					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
 					happycloudProvider: nil,

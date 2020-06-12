@@ -81,7 +81,9 @@ type Config struct {
 // module, along with references to any child modules. This is used to
 // determine which modules require which providers.
 type ModuleRequirements struct {
-	Module       *Module
+	Name         string
+	SourceAddr   string
+	SourceDir    string
 	Requirements getproviders.Requirements
 	Children     map[string]*ModuleRequirements
 }
@@ -206,12 +208,14 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 	children := make(map[string]*ModuleRequirements)
 	for name, child := range c.Children {
 		childReqs, childDiags := child.ProviderRequirementsByModule()
+		childReqs.Name = name
 		children[name] = childReqs
 		diags = append(diags, childDiags...)
 	}
 
 	ret := &ModuleRequirements{
-		Module:       c.Module,
+		SourceAddr:   c.SourceAddr,
+		SourceDir:    c.Module.SourceDir,
 		Requirements: reqs,
 		Children:     children,
 	}

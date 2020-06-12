@@ -951,14 +951,19 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 
 	// error output is the main focus of this test
 	errOutput := ui.ErrorWriter.String()
-	if !strings.Contains(errOutput, "Error while installing hashicorp/frob:") {
-		t.Fatalf("expected error for installing hashicorp/frob: %s", errOutput)
+	errors := []string{
+		"Error while installing hashicorp/frob:",
+		"Could not find required providers, but found possible alternatives",
+		"hashicorp/baz -> terraform-providers/baz",
+		"terraform 0.13upgrade .",
+		"terraform 0.13upgrade child",
+		"The following remote modules must also be upgraded",
+		"- module.dicerolls at acme/bar/random",
 	}
-	if !strings.Contains(errOutput, "Could not find required providers, but found possible alternatives") {
-		t.Fatalf("expected required provider suggestions: %s", errOutput)
-	}
-	if !strings.Contains(errOutput, "hashicorp/baz -> terraform-providers/baz") {
-		t.Fatalf("expected suggestion for hashicorp/baz: %s", errOutput)
+	for _, want := range errors {
+		if !strings.Contains(errOutput, want) {
+			t.Fatalf("expected error %q: %s", want, errOutput)
+		}
 	}
 }
 
