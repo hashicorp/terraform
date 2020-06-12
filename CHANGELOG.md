@@ -30,6 +30,7 @@ BUG FIXES:
 * command/format: Fix bug which caused some diagnostics to print empty source lines [GH-25156]
 * config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. [GH-25216]
 * config: Fix crash in validation with non-ascii characters [GH-25144]
+* config: Don't panic if version constraint syntax isn't accepted by new version constraint parser [GH-25223]
 * core: Fix crash with multiple nested modules [GH-25176]
 
 ## 0.13.0-beta1 (June 03, 2020)
