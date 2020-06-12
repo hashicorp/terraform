@@ -5882,3 +5882,68 @@ output"out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Plan_targetExpandedAddress(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  count = 2
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	targets := []addrs.Targetable{}
+	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo[0]")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	targets = append(targets, target.Subject)
+
+	target, diags = addrs.ParseTargetStr("module.mod[2]")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	targets = append(targets, target.Subject)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: targets,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		// the single targeted mod[1] instances
+		`module.mod[1].aws_instance.foo[0]`: plans.Create,
+		// the whole mode[2]
+		`module.mod[2].aws_instance.foo[0]`: plans.Create,
+		`module.mod[2].aws_instance.foo[1]`: plans.Create,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}

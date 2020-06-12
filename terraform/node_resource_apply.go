@@ -23,6 +23,7 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 )
 
 func (n *nodeExpandApplyableResource) expandsInstances() {}

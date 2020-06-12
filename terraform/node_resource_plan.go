@@ -29,6 +29,7 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 )
 
 func (n *nodeExpandPlannableResource) Name() string {

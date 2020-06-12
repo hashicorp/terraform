@@ -43,10 +43,6 @@ type TargetsTransformer struct {
 	// counted resources have not yet been expanded, since otherwise
 	// the unexpanded nodes (which never have indices) would not match.
 	IgnoreIndices bool
-
-	// Set to true when we're in a `terraform destroy` or a
-	// `terraform plan -destroy`
-	Destroy bool
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
@@ -78,7 +74,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
-// targeted node. Destroy mode keeps dependents instead of dependencies.
+// targeted node.
 func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (dag.Set, error) {
 	targetedNodes := make(dag.Set)
 
@@ -95,13 +91,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				tn.SetTargets(addrs)
 			}
 
-			var deps dag.Set
-			var err error
-			if t.Destroy {
-				deps, err = g.Descendents(v)
-			} else {
-				deps, err = g.Ancestors(v)
-			}
+			deps, err := g.Ancestors(v)
 			if err != nil {
 				return nil, err
 			}
@@ -239,8 +229,11 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 			// vertexAddr because instance addresses are contained within
 			// their associated resources, and so .TargetContains will take
 			// care of this for us.
-			if instance, isInstance := targetAddr.(addrs.AbsResourceInstance); isInstance {
-				targetAddr = instance.ContainingResource()
+			switch instance := targetAddr.(type) {
+			case addrs.AbsResourceInstance:
+				targetAddr = instance.ContainingResource().Config()
+			case addrs.ModuleInstance:
+				targetAddr = instance.Module()
 			}
 		}
 		if targetAddr.TargetContains(vertexAddr) {

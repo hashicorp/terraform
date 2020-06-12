@@ -145,6 +145,10 @@ func (n *nodeCloseModule) ReferenceableAddrs() []addrs.Referenceable {
 	}
 }
 
+func (n *nodeCloseModule) TargetDownstream(targeted, untargeted dag.Set) bool {
+	return true
+}
+
 func (n *nodeCloseModule) Name() string {
 	if len(n.Addr) == 0 {
 		return "root"
