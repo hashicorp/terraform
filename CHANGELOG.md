@@ -26,6 +26,7 @@ BUG FIXES:
 * backend/s3: Remove hardcoded AWS Provider messaging [GH-25134]
 * command/0.13upgrade: Fix `0.13upgrade` usage help text to include options [GH-25127]
 * command/0.13upgrade: Do not add source for builtin provider [GH-25215]
+* command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path [GH-25233]
 * command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location [GH-25214]
 * command/format: Fix bug which caused some diagnostics to print empty source lines [GH-25156]
 * config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. [GH-25216]
