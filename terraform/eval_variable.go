@@ -218,8 +218,8 @@ func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
 			})
 			continue
 		}
-		errorMessage, err = convert.Convert(errorMessage, cty.String)
 
+		errorMessage, err = convert.Convert(errorMessage, cty.String)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
