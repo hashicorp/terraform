@@ -8,7 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-func TestMerge(t *testing.T) {
+func TestDeepMerge(t *testing.T) {
 	tests := []struct {
 		Values []cty.Value
 		Want   cty.Value
@@ -33,7 +33,7 @@ func TestMerge(t *testing.T) {
 					}),
 				}),
 			},
-			cty.ObjectVal(map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"a": cty.MapVal(map[string]cty.Value{
 					"a2": cty.MapVal(map[string]cty.Value{
 						"a3": cty.StringVal("a3-changed"),
@@ -86,7 +86,7 @@ func TestMerge(t *testing.T) {
 			}),
 			false,
 		},
-		{ // handle null map
+		{ // handle null map **BROKEN**
 			[]cty.Value{
 				cty.NullVal(cty.Map(cty.String)),
 				cty.NullVal(cty.Object(map[string]cty.Type{
@@ -105,7 +105,7 @@ func TestMerge(t *testing.T) {
 					"a": cty.List(cty.String),
 				})),
 			},
-			cty.ObjectVal(map[string]cty.Value{
+			cty.MapVal(map[string]cty.Value{
 				"c": cty.StringVal("d"),
 			}),
 			false,
@@ -170,7 +170,7 @@ func TestMerge(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
-		{ // merge maps of maps //TODO: BROKEN
+		{ // merge maps of maps
 			[]cty.Value{
 				cty.MapVal(map[string]cty.Value{
 					"a": cty.MapVal(map[string]cty.Value{
@@ -220,7 +220,7 @@ func TestMerge(t *testing.T) {
 			}),
 			false,
 		},
-		{ // merge map of various kinds //TODO: BROKEN
+		{ // merge map of various kinds
 			[]cty.Value{
 				cty.MapVal(map[string]cty.Value{
 					"a": cty.ListVal([]cty.Value{
@@ -283,44 +283,44 @@ func TestMerge(t *testing.T) {
 			}),
 			false,
 		},
-		// { // attr a type and value is overridden
-		// 	[]cty.Value{
-		// 		cty.ObjectVal(map[string]cty.Value{
-		// 			"a": cty.ListVal([]cty.Value{
-		// 				cty.StringVal("b"),
-		// 			}),
-		// 			"b": cty.StringVal("b"),
-		// 		}),
-		// 		cty.ObjectVal(map[string]cty.Value{
-		// 			"a": cty.ObjectVal(map[string]cty.Value{
-		// 				"e": cty.StringVal("f"),
-		// 			}),
-		// 		}),
-		// 	},
-		// 	cty.ObjectVal(map[string]cty.Value{
-		// 		"a": cty.MapVal(map[string]cty.Value{
-		// 			"e": cty.StringVal("f"),
-		// 		}),
-		// 		"b": cty.StringVal("b"),
-		// 	}),
-		// 	false,
-		// },
-		// { // argument error: non map type
-		// 	[]cty.Value{
-		// 		cty.MapVal(map[string]cty.Value{
-		// 			"a": cty.ListVal([]cty.Value{
-		// 				cty.StringVal("b"),
-		// 				cty.StringVal("c"),
-		// 			}),
-		// 		}),
-		// 		cty.ListVal([]cty.Value{
-		// 			cty.StringVal("d"),
-		// 			cty.StringVal("e"),
-		// 		}),
-		// 	},
-		// 	cty.NilVal,
-		// 	true,
-		// },
+		{ // attr a type and value is overridden
+			[]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+					}),
+					"b": cty.StringVal("b"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"e": cty.StringVal("f"),
+					}),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"e": cty.StringVal("f"),
+				}),
+				"b": cty.StringVal("b"),
+			}),
+			false,
+		},
+		{ // argument error: non map type
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.ListVal([]cty.Value{
+						cty.StringVal("b"),
+						cty.StringVal("c"),
+					}),
+				}),
+				cty.ListVal([]cty.Value{
+					cty.StringVal("d"),
+					cty.StringVal("e"),
+				}),
+			},
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {

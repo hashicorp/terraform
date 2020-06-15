@@ -131,10 +131,7 @@ var DeepMergeFunc = function.New(&function.Spec{
 		//premerge objects so we can determine final type
 		objectMap := make(map[string]cty.Value)
 
-		first := cty.NilType
-		matching := true
-		attrsKnown := true
-		for i, arg := range args {
+		for _, arg := range args {
 			ty := arg.Type()
 			// any dynamic args mean we can't compute a type
 			if ty.Equals(cty.DynamicPseudoType) {
@@ -146,53 +143,32 @@ var DeepMergeFunc = function.New(&function.Spec{
 				return cty.NilType, fmt.Errorf("arguments must be maps or objects, got %#v", ty.FriendlyName())
 			}
 
-			switch {
-			case ty.IsObjectType() && !arg.IsNull():
+			if !arg.IsNull() && arg.IsKnown() {
 				preMerge := recursiveMerge(arg, objectMap)
 				for attr, aty := range preMerge {
 					attrs[attr] = aty.Type()
 				}
-			case ty.IsMapType():
-				switch {
-				case arg.IsNull():
-					// pass, nothing to add
-				case arg.IsKnown():
-					ety := arg.Type().ElementType()
-					for it := arg.ElementIterator(); it.Next(); {
-						attr, _ := it.Element()
-						attrs[attr.AsString()] = ety
-					}
-				default:
-					// any unknown maps means we don't know all possible attrs
-					// for the return type
-					attrsKnown = false
-				}
 			}
+		}
 
-			// record the first argument type for comparison
-			if i == 0 {
-				first = arg.Type()
+		if len(attrs) == 0 {
+			return cty.EmptyObject, nil
+		}
+
+		var defaultType cty.Type
+		for _, attrType := range attrs {
+			if defaultType == cty.NilType {
+				defaultType = attrType
 				continue
 			}
 
-			if !ty.Equals(first) && matching {
-				matching = false
+			if defaultType != attrType {
+				//if all types don't match, its an object
+				return cty.Object(attrs), nil
 			}
 		}
-
-		// the types all match, so use the first argument type
-		if matching {
-			return first, nil
-		}
-
-		// We had a mix of unknown maps and objects, so we can't predict the
-		// attributes
-		if !attrsKnown {
-			return cty.DynamicPseudoType, nil
-		}
-
-		// returnType :=
-		return cty.Object(attrs), nil
+		// types all match, so make it a map
+		return cty.Map(defaultType), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		outputMap := make(map[string]cty.Value)
@@ -225,8 +201,12 @@ var DeepMergeFunc = function.New(&function.Spec{
 })
 
 func recursiveMerge(newMap cty.Value, existingMap map[string]cty.Value) map[string]cty.Value {
-	var typesMatch bool = true
+	typesMatch := true
 	var firstType cty.Type = cty.NilType
+
+	if newMap.IsNull() {
+		return existingMap
+	}
 
 	for it := newMap.ElementIterator(); it.Next(); {
 		_, v := it.Element()

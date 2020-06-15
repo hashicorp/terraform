@@ -278,7 +278,7 @@ func TestFunctions(t *testing.T) {
 		"deepmerge": {
 			{
 				`deepmerge({"a"="b"}, {"c"="d"})`,
-				cty.ObjectVal(map[string]cty.Value{
+				cty.MapVal(map[string]cty.Value{
 					"a": cty.StringVal("b"),
 					"c": cty.StringVal("d"),
 				}),
