@@ -18,11 +18,13 @@ and are tested by HashiCorp.
 ---
 
 - [Chef](/docs/providers/chef/index.html)
+- [Cohesity](/docs/providers/cohesity/index.html)
 - [Consul](/docs/providers/consul/index.html)
 - [Docker](/docs/providers/docker/index.html)
 - [Dome9](/docs/providers/dome9/index.html)
 - [Helm](/docs/providers/helm/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
+- [Lacework](/docs/providers/lacework/index.html)
 - [Mailgun](/docs/providers/mailgun/index.html)
 - [Nomad](/docs/providers/nomad/index.html)
 - [Okta](/docs/providers/okta/index.html)
