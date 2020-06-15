@@ -264,24 +264,25 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			}
 			parentNew := retManifest[parentKey]
 
-			if parentOld.Dir == "." {
-				absDir, err := filepath.Abs(parentOld.Dir)
-				if err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Failed to create module install directory",
-						fmt.Sprintf("Error creating directory %s for module %s: %s.", instPath, newKey, err),
-					))
-					continue
-				}
-				parentOld.Dir = absDir
-			}
-
 			// We need to figure out which portion of our directory is the
 			// parent package path and which portion is the subdirectory
 			// under that.
 			baseDirRel, err := filepath.Rel(parentOld.Dir, record.Dir)
 			if err != nil {
+				// This error may occur when installing a local module with a relative path
+				if parentOld.Dir == "." {
+					absDir, err := filepath.Abs(parentOld.Dir)
+					if err != nil {
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Failed to create module install directory",
+							fmt.Sprintf("Error creating directory %s for module %s: %s.", instPath, newKey, err),
+						))
+						continue
+					}
+					parentOld.Dir = absDir
+				}
+
 				// Should never happen, because we constructed both directories
 				// from the same base and so they must have a common prefix.
 				panic(err)
