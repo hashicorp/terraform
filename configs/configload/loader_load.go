@@ -103,15 +103,14 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	// The providers associated with expanding modules must be present in the proxy/passed providers
 	// block. Guarding here for accessing the module call just in case.
 	if mc, exists := req.Parent.Module.ModuleCalls[req.Name]; exists {
-		validateDiags := validateProviderConfigs(mc, mod, req.Parent)
+		var validateDiags hcl.Diagnostics
+		validateDiags = validateProviderConfigs(mc, mod, req.Parent, validateDiags)
 		diags = append(diags, validateDiags...)
 	}
 	return mod, record.Version, diags
 }
 
-func validateProviderConfigs(mc *configs.ModuleCall, mod *configs.Module, parent *configs.Config) hcl.Diagnostics {
-	var diags hcl.Diagnostics
-
+func validateProviderConfigs(mc *configs.ModuleCall, mod *configs.Module, parent *configs.Config, diags hcl.Diagnostics) hcl.Diagnostics {
 	if mc.Count != nil || mc.ForEach != nil {
 		for key, pc := range mod.ProviderConfigs {
 			// Use these to track if a provider is configured (not allowed),
@@ -160,9 +159,10 @@ func validateProviderConfigs(mc *configs.ModuleCall, mod *configs.Module, parent
 		path := parent.Path
 		name := path[len(path)-1]
 		// This parent's module call, so we can check for count/for_each here,
-		// guarding with exists just in case
+		// guarding with exists just in case. We pass the diags through to the recursive
+		// call so they will accumulate if needed.
 		if mc, exists := parent.Parent.Module.ModuleCalls[name]; exists {
-			return validateProviderConfigs(mc, mod, parent.Parent)
+			return validateProviderConfigs(mc, mod, parent.Parent, diags)
 		}
 	}
 
