@@ -254,12 +254,28 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			var parentKey string
 			if lastDot := strings.LastIndexByte(newKey, '.'); lastDot != -1 {
 				parentKey = newKey[:lastDot]
-			} else {
-				parentKey = "" // parent is the root module
 			}
 
-			parentOld := instManifest[initFromModuleRootKeyPrefix+parentKey]
+			var parentOld modsdir.Record
+			if parentKey == "" {
+				parentOld = instManifest[parentKey]
+			} else {
+				parentOld = instManifest[initFromModuleRootKeyPrefix+parentKey]
+			}
 			parentNew := retManifest[parentKey]
+
+			if parentOld.Dir == "." {
+				absDir, err := filepath.Abs(parentOld.Dir)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to create module install directory",
+						fmt.Sprintf("Error creating directory %s for module %s: %s.", instPath, newKey, err),
+					))
+					continue
+				}
+				parentOld.Dir = absDir
+			}
 
 			// We need to figure out which portion of our directory is the
 			// parent package path and which portion is the subdirectory
