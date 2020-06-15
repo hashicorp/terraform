@@ -86,7 +86,7 @@ func TestDeepMerge(t *testing.T) {
 			}),
 			false,
 		},
-		{ // handle null map **BROKEN**
+		{ // handle null map
 			[]cty.Value{
 				cty.NullVal(cty.Map(cty.String)),
 				cty.NullVal(cty.Object(map[string]cty.Type{
