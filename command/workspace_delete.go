@@ -91,7 +91,12 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	if workspace == c.Workspace() {
+	currentWorkspace, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
+	if workspace == currentWorkspace {
 		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDelCurrent), workspace))
 		return 1
 	}

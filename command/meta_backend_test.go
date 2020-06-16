@@ -1002,7 +1002,11 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	}
 
 	// Verify we are now in the default env, or we may not be able to access the new backend
-	if env := m.Workspace(); env != backend.DefaultStateName {
+	env, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env != backend.DefaultStateName {
 		t.Fatal("using non-default env with single-env backend")
 	}
 }

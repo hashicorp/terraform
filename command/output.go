@@ -64,7 +64,11 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 
 	// Get the state
 	stateStore, err := b.StateMgr(env)

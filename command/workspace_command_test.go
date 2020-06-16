@@ -27,7 +27,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 	newCmd := &WorkspaceNewCommand{}
 
-	current := newCmd.Workspace()
+	current, _ := newCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
@@ -39,7 +39,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Workspace()
+	current, _ = newCmd.Workspace()
 	if current != "test" {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
@@ -52,7 +52,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current = newCmd.Workspace()
+	current, _ = newCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
@@ -307,7 +307,7 @@ func TestWorkspace_delete(t *testing.T) {
 		Meta: Meta{Ui: ui},
 	}
 
-	current := delCmd.Workspace()
+	current, _ := delCmd.Workspace()
 	if current != "test" {
 		t.Fatal("wrong workspace:", current)
 	}
@@ -330,7 +330,7 @@ func TestWorkspace_delete(t *testing.T) {
 		t.Fatalf("error deleting workspace: %s", ui.ErrorWriter)
 	}
 
-	current = delCmd.Workspace()
+	current, _ = delCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatalf("wrong workspace: %q", current)
 	}

@@ -341,7 +341,12 @@ const (
 
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
-func (m *Meta) contextOpts() *terraform.ContextOpts {
+func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
+	workspace, err := m.Workspace()
+	if err != nil {
+		return nil, err
+	}
+
 	var opts terraform.ContextOpts
 	opts.Hooks = []terraform.Hook{m.uiHook()}
 	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
@@ -379,10 +384,10 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.Meta = &terraform.ContextMeta{
-		Env: m.Workspace(),
+		Env: workspace,
 	}
 
-	return &opts
+	return &opts, nil
 }
 
 // defaultFlagSet creates a default flag set for commands.
@@ -599,11 +604,16 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
+var invalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
+
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
-func (m *Meta) Workspace() string {
-	current, _ := m.WorkspaceOverridden()
-	return current
+func (m *Meta) Workspace() (string, error) {
+	current, overridden := m.WorkspaceOverridden()
+	if overridden && !validWorkspaceName(current) {
+		return "", invalidWorkspaceNameEnvVar
+	}
+	return current, nil
 }
 
 // WorkspaceOverridden returns the name of the currently configured workspace,
