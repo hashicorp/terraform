@@ -5947,3 +5947,48 @@ resource "aws_instance" "foo" {
 		t.Errorf("missing %s change for %s", action, res)
 	}
 }
+
+func TestContext2Plan_moduleRefIndex(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  for_each = {
+    a = "thing"
+  }
+  in = null
+  source = "./mod"
+}
+
+module "single" {
+  source = "./mod"
+  in = module.mod["a"]
+}
+`,
+		"mod/main.tf": `
+variable "in" {
+}
+
+output "out" {
+  value = "foo"
+}
+
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
