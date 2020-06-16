@@ -34,6 +34,7 @@ BUG FIXES:
 * config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. [GH-25216]
 * config: Fix crash in validation with non-ascii characters [GH-25144]
 * config: Don't panic if version constraint syntax isn't accepted by new version constraint parser [GH-25223]
+* config: Validate depends_on references in modules and outputs [GH-25261]
 * core: Fix crash with multiple nested modules [GH-25176]
 * core: Fix panic when importing with modules [GH-25208]
 * core: Allow targeting with expanded module addresses [GH-25206]
