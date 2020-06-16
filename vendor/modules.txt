@@ -292,7 +292,7 @@ github.com/gophercloud/utils/openstack/clientconfig
 github.com/gophercloud/utils/terraform/auth
 # github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1
 ## explicit
-# github.com/gorilla/websocket v1.4.0
+# github.com/gorilla/websocket v1.4.1
 ## explicit
 # github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 ## explicit
