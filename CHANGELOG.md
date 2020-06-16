@@ -29,6 +29,7 @@ BUG FIXES:
 * command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path [GH-25233]
 * command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location [GH-25214]
 * command/format: Fix bug which caused some diagnostics to print empty source lines [GH-25156]
+* command/version: add -json flag for machine-parsable version output [GH-25252]
 * config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. [GH-25216]
 * config: Fix crash in validation with non-ascii characters [GH-25144]
 * config: Don't panic if version constraint syntax isn't accepted by new version constraint parser [GH-25223]
