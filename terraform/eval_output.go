@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 )
@@ -32,9 +32,8 @@ func (n *EvalDeleteOutput) Eval(ctx EvalContext) (interface{}, error) {
 // EvalWriteOutput is an EvalNode implementation that writes the output
 // for the given name to the current state.
 type EvalWriteOutput struct {
-	Addr      addrs.OutputValue
-	Sensitive bool
-	Expr      hcl.Expression
+	Addr   addrs.OutputValue
+	Config *configs.Output
 	// ContinueOnErr allows interpolation to fail during Input
 	ContinueOnErr bool
 }
@@ -45,8 +44,12 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 
 	// This has to run before we have a state lock, since evaluation also
 	// reads the state
-	val, diags := ctx.EvaluateExpr(n.Expr, cty.DynamicPseudoType, nil)
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
 	// We'll handle errors below, after we have loaded the module.
+
+	// Outputs don't have a separate mode for validation, so validate
+	// depends_on expressions here too
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
 	state := ctx.State()
 	if state == nil {
@@ -80,7 +83,7 @@ func (n *EvalWriteOutput) setValue(addr addrs.AbsOutputValue, state *states.Sync
 		// changeset below, if we have one on this graph walk.
 		log.Printf("[TRACE] EvalWriteOutput: Saving value for %s in state", addr)
 		stateVal := cty.UnknownAsNull(val)
-		state.SetOutputValue(addr, stateVal, n.Sensitive)
+		state.SetOutputValue(addr, stateVal, n.Config.Sensitive)
 	} else {
 		log.Printf("[TRACE] EvalWriteOutput: Removing %s from state (it is now null)", addr)
 		state.RemoveOutputValue(addr)
@@ -100,7 +103,7 @@ func (n *EvalWriteOutput) setValue(addr addrs.AbsOutputValue, state *states.Sync
 		if !val.IsNull() {
 			change = &plans.OutputChange{
 				Addr:      addr,
-				Sensitive: n.Sensitive,
+				Sensitive: n.Config.Sensitive,
 				Change: plans.Change{
 					Action: plans.Create,
 					Before: cty.NullVal(cty.DynamicPseudoType),
@@ -110,7 +113,7 @@ func (n *EvalWriteOutput) setValue(addr addrs.AbsOutputValue, state *states.Sync
 		} else {
 			change = &plans.OutputChange{
 				Addr:      addr,
-				Sensitive: n.Sensitive,
+				Sensitive: n.Config.Sensitive,
 				Change: plans.Change{
 					// This is just a weird placeholder delete action since
 					// we don't have an actual prior value to indicate.
