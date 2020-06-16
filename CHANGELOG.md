@@ -14,6 +14,7 @@ ENHANCEMENTS:
 * backend/s3: Automatically expand `~` prefix for home directories in `shared_credentials_file` argument [GH-25134]
 * backend/s3: Add `assume_role_duration_seconds`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys` arguments [GH-25134]
 * command/providers: Show providers in a tree of modules requiring them, along with a list of providers required by state [GH-25190]
+* provisioner/remote-exec: Return an error when the host field is empty [GH-24080]
 
 BUG FIXES:
 
