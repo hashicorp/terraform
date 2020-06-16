@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex
@@ -271,6 +272,7 @@ type evalValidateModule struct {
 
 func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 	_, call := n.Addr.Call()
+	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
 
 	// Modules all evaluate to single instances during validation, only to
@@ -285,20 +287,23 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 		// a full expansion, presuming these errors will be caught in later steps
 		switch {
 		case n.ModuleCall.Count != nil:
-			_, diags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
+			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
+			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			_, diags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
+			_, forEachDiags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx)
+			diags = diags.Append(forEachDiags)
 		}
+
+		diags = diags.Append(validateDependsOn(ctx, n.ModuleCall.DependsOn))
 
 		// now set our own mode to single
 		expander.SetModuleSingle(module, call)
 	}
+
+	if diags.HasErrors() {
+		return nil, diags.ErrWithWarnings()
+	}
+
 	return nil, nil
 }
