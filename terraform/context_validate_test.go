@@ -1632,3 +1632,83 @@ output "out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Validate_invalidModuleDependsOn(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+  depends_on = [resource_foo.bar.baz]
+}
+
+module "mod2" {
+  source = "./mod"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+		"mod/main.tf": `
+output "out" {
+  value = "foo"
+}
+`,
+	})
+
+	diags := testContext2(t, &ContextOpts{
+		Config: m,
+	}).Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("wanted 2 diagnostic errors, got %q", diags)
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
+	}
+}
+
+func TestContext2Validate_invalidOutputDependsOn(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+}
+
+output "out" {
+  value = "bar"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+		"mod/main.tf": `
+output "out" {
+  value = "bar"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+	})
+
+	diags := testContext2(t, &ContextOpts{
+		Config: m,
+	}).Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("wanted 2 diagnostic errors, got %q", diags)
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
+	}
+}
