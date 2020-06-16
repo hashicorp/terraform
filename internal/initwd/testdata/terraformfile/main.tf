@@ -4,5 +4,5 @@ variable "v" {
 }
 
 module "child_a" {
-  source = "./child_a"
+  source = "fakemodule/childa/null"
 }

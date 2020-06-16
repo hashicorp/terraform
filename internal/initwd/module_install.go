@@ -141,13 +141,16 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 
 			override := false
 			preTerraformfileSource := req.SourceAddr
-			preTerraformfileVersion := req.VersionConstraints
+			var terraformfileSetVersion string
 			// Check for overwrites in Terraformfile
 			if tfile, err := NewTerraformfile(); err == nil {
 				if tfileModule, ok := tfile.GetTerraformEntryOk(req.SourceAddr); ok {
 					log.Printf("[TRACE] ModuleInstaller: Terraformfile source found %s new source: %s", req.SourceAddr, tfileModule.Source)
 					req.SourceAddr = tfileModule.Source
 					req.VersionConstraints = nil
+					if tfileModule.SetVersion != nil {
+						terraformfileSetVersion = *tfileModule.SetVersion
+					}
 					override = true
 
 					if tfileModule.Version != "" {
@@ -225,7 +228,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				diags = append(diags, mDiags...)
 				if override {
-					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, preTerraformfileVersion)
+					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, terraformfileSetVersion)
 				}
 				return mod, nil, diags
 
@@ -241,7 +244,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				diags = append(diags, mDiags...)
 
 				if override {
-					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, preTerraformfileVersion)
+					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, terraformfileSetVersion)
 				}
 				return mod, v, diags
 
@@ -252,7 +255,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 				diags = append(diags, mDiags...)
 
 				if override {
-					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, preTerraformfileVersion)
+					terraformFileOverrideManifestEntry(key, manifest, preTerraformfileSource, terraformfileSetVersion)
 				}
 				return mod, nil, diags
 			}

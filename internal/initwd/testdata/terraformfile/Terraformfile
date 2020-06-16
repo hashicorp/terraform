@@ -1,5 +1,6 @@
 {
-  "./child_a": {
+  "fakemodule/childa/null": {
     "source": "./child_b"
+    "version_set": "1.2.3"
   }
 }
