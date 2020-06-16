@@ -745,7 +745,10 @@ func TestImport_missingModuleConfig(t *testing.T) {
 }
 
 func TestImportModuleVarFile(t *testing.T) {
-	defer testChdir(t, testFixturePath("import-module-var-file"))()
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-module-var-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)
 
