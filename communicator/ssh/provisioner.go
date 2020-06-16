@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/communicator/shared"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
-	"github.com/xanzy/ssh-agent"
+	sshagent "github.com/xanzy/ssh-agent"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -91,6 +91,12 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
+	}
+
+	// Check if host is empty.
+	// Otherwise return error.
+	if connInfo.Host == "" {
+		return nil, fmt.Errorf("host for provisioner cannot be empty")
 	}
 
 	// Format the host if needed.

@@ -149,6 +149,25 @@ func TestNew_Invalid(t *testing.T) {
 	}
 }
 
+func TestNew_InvalidHost(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "i-am-invalid",
+				"port":     "22",
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	_, err := New(r)
+	if err == nil {
+		t.Fatal("should have had an error creating communicator")
+	}
+}
+
 func TestStart(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
@@ -691,6 +710,7 @@ func TestScriptPath(t *testing.T) {
 			Ephemeral: terraform.EphemeralState{
 				ConnInfo: map[string]string{
 					"type":        "ssh",
+					"host":        "127.0.0.1",
 					"script_path": tc.Input,
 				},
 			},
@@ -715,7 +735,14 @@ func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
 	staticSeedPath := "/tmp/terraform_1298498081.sh"
-	c, err := New(&terraform.InstanceState{})
+	c, err := New(&terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type": "ssh",
+				"host": "127.0.0.1",
+			},
+		},
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
