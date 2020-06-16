@@ -86,24 +86,24 @@ func TestLoaderLoadConfig_moduleExpand(t *testing.T) {
 	// We do not allow providers to be configured in expanding modules
 	// In addition, if a provider is present but an empty block, it is allowed,
 	// but IFF a provider is passed through the module call
-	paths := []string{"provider-configured", "no-provider-passed"}
+	paths := []string{"provider-configured", "no-provider-passed", "nested-provider", "more-nested-provider"}
 	for _, p := range paths {
 		fixtureDir := filepath.Clean(fmt.Sprintf("testdata/expand-modules/%s", p))
 		loader, err := NewLoader(&Config{
 			ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
 		})
 		if err != nil {
-			t.Fatalf("unexpected error from NewLoader: %s", err)
+			t.Fatalf("unexpected error from NewLoader at path %s: %s", p, err)
 		}
 
 		_, diags := loader.LoadConfig(fixtureDir)
 		if !diags.HasErrors() {
-			t.Fatalf("success; want error")
+			t.Fatalf("success; want error at path %s", p)
 		}
 		got := diags.Error()
 		want := "Module does not support count"
 		if !strings.Contains(got, want) {
-			t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+			t.Fatalf("wrong error at path %s \ngot:\n%s\n\nwant: containing %q", p, got, want)
 		}
 	}
 }
