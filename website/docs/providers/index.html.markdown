@@ -46,6 +46,7 @@ down to see all providers.
 - [Circonus](/docs/providers/circonus/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
+- [Cisco MSO](/docs/providers/mso/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cloud-init](/docs/providers/cloudinit/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
