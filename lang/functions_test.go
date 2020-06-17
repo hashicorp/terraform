@@ -978,6 +978,12 @@ func TestFunctions(t *testing.T) {
 				`yamldecode("true")`,
 				cty.True,
 			},
+			{
+				`yamldecode("key: 0ba")`,
+				cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("0ba"),
+				}),
+			},
 		},
 
 		"yamlencode": {
