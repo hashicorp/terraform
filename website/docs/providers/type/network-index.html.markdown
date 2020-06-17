@@ -25,6 +25,7 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
+- [Cisco MSO](/docs/providers/mso/index.html)
 - [Constellix](/docs/providers/constellix/index.html)
 - [DNS](/docs/providers/dns/index.html)
 - [DNSimple](/docs/providers/dnsimple/index.html)
