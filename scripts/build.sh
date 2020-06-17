@@ -36,11 +36,14 @@ fi
 
 if ! which gox > /dev/null; then
     echo "==> Installing gox..."
-    go get -u github.com/mitchellh/gox
+    go get github.com/mitchellh/gox
 fi
 
 # Instruct gox to build statically linked binaries
 export CGO_ENABLED=0
+
+# Set module download mode to readonly to not implicitly update go.mod
+export GOFLAGS="-mod=readonly"
 
 # In release mode we don't want debug information in the binary
 if [[ -n "${TF_RELEASE}" ]]; then
