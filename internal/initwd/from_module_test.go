@@ -188,8 +188,9 @@ func TestDirFromModule_submodules(t *testing.T) {
 // https://github.com/hashicorp/terraform/issues/23010
 func TestDirFromModule_rel_submodules(t *testing.T) {
 	// This test creates a tmpdir with the following directory structure:
-	// - tmpdir/local-modules (with contents of testsdata/local-modules)
-	// - tmpdir/empty (empty, the destination for init -from-module)
+	// - tmpdir/local-modules (with contents of testdata/local-modules)
+	// - tmpdir/empty: the workDir we CD into for the test
+	// - tmpdir/empty/target (target, the destination for init -from-module)
 	tmpDir, err := ioutil.TempDir("", "terraform-configload")
 	if err != nil {
 		t.Fatal(err)
@@ -205,11 +206,16 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	if err := os.Mkdir(workDir, os.ModePerm); err != nil {
 		t.Fatal(err)
 	}
+
+	targetDir := filepath.Join(tmpDir, "target")
+	if err := os.Mkdir(targetDir, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
 	oldDir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = os.Chdir(workDir)
+	err = os.Chdir(targetDir)
 	if err != nil {
 		t.Fatalf("failed to switch to temp dir %s: %s", tmpDir, err)
 	}
@@ -217,20 +223,10 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	hooks := &testInstallHooks{}
-	dir, err := filepath.EvalSymlinks(workDir)
-	if err != nil {
-		t.Error(err)
-	}
-	modInstallDir := filepath.Join(dir, ".terraform/modules")
 
-	relSource := "../local-modules"
-
-	sourceDir, err := filepath.EvalSymlinks(fromModuleDir)
-	if err != nil {
-		t.Error(err)
-	}
-
-	diags := DirFromModule(dir, modInstallDir, relSource, nil, hooks)
+	modInstallDir := ".terraform/modules"
+	sourceDir := "../local-modules"
+	diags := DirFromModule(".", modInstallDir, sourceDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{

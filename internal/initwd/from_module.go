@@ -257,6 +257,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			}
 
 			var parentOld modsdir.Record
+			// "" is the root module; all other modules get `root.` added as a prefix
 			if parentKey == "" {
 				parentOld = instManifest[parentKey]
 			} else {
@@ -267,25 +268,38 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			// We need to figure out which portion of our directory is the
 			// parent package path and which portion is the subdirectory
 			// under that.
-			baseDirRel, err := filepath.Rel(parentOld.Dir, record.Dir)
+			var baseDirRel string
+			baseDirRel, err = filepath.Rel(parentOld.Dir, record.Dir)
 			if err != nil {
-				// This error may occur when installing a local module with a relative path
+				// This error may occur when installing a local module with a
+				// relative path, for e.g. if the source is in a directory above
+				// the destination ("../")
 				if parentOld.Dir == "." {
 					absDir, err := filepath.Abs(parentOld.Dir)
 					if err != nil {
 						diags = diags.Append(tfdiags.Sourceless(
 							tfdiags.Error,
-							"Failed to create module install directory",
-							fmt.Sprintf("Error creating directory %s for module %s: %s.", instPath, newKey, err),
+							"Failed to determine module install directory",
+							fmt.Sprintf("Error determine relative source directory for module %s: %s.", newKey, err),
 						))
 						continue
 					}
-					parentOld.Dir = absDir
+					baseDirRel, err = filepath.Rel(absDir, record.Dir)
+					if err != nil {
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Failed to determine relative module source location",
+							fmt.Sprintf("Error determining relative source for module %s: %s.", newKey, err),
+						))
+						continue
+					}
+				} else {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to determine relative module source location",
+						fmt.Sprintf("Error determining relative source for module %s: %s.", newKey, err),
+					))
 				}
-
-				// Should never happen, because we constructed both directories
-				// from the same base and so they must have a common prefix.
-				panic(err)
 			}
 
 			newDir := filepath.Join(parentNew.Dir, baseDirRel)
