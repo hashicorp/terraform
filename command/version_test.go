@@ -33,7 +33,7 @@ func TestVersion(t *testing.T) {
 		ProviderSource:   providerSource,
 	}
 
-	// `terrafrom init`
+	// `terraform init`
 	ic := &InitCommand{
 		Meta: m,
 	}
@@ -61,6 +61,30 @@ func TestVersion(t *testing.T) {
 
 }
 
+func TestVersion_flags(t *testing.T) {
+	ui := new(cli.MockUi)
+	m := Meta{
+		Ui: ui,
+	}
+
+	// `terraform version`
+	c := &VersionCommand{
+		Meta:              m,
+		Version:           "4.5.6",
+		VersionPrerelease: "foo",
+	}
+
+	if code := c.Run([]string{"-v", "-version"}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "Terraform v4.5.6-foo"
+	if actual != expected {
+		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
+	}
+}
+
 func TestVersion_json(t *testing.T) {
 	fixtureDir := "testdata/providers-schema/basic"
 	td := tempDir(t)
@@ -81,7 +105,7 @@ func TestVersion_json(t *testing.T) {
 		ProviderSource:   providerSource,
 	}
 
-	// `terrafrom init`
+	// `terraform init`
 	ic := &InitCommand{
 		Meta: m,
 	}
