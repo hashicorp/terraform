@@ -8,7 +8,7 @@
 # binary from releases.hashicorp.com; these are built instead from
 # scripts/docker-release/Dockerfile-release.
 
-FROM golang:alpine
+FROM golang:1.13-alpine
 LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
 
 RUN apk add --no-cache git bash openssh
