@@ -1,0 +1,19 @@
+
+version: build-{build}.{branch}
+
+clone_folder: C:\gopath\src\github.com\mitchellh\gox
+shallow_clone: true
+
+environment:
+  GOPATH: C:\gopath
+
+platform:
+  - x64
+
+test_script:
+  - go get ./...
+  - go test -v ./...
+
+build: off
+
+deploy: off

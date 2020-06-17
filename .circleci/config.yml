@@ -165,6 +165,16 @@ jobs:
       XC_OS: "freebsd linux"
       XC_ARCH: "arm"
 
+  test-docker-full:
+    executor:
+      name: go
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: test docker build for 'full' image
+          command: docker build -t test-docker-full .
+
 workflows:
   version: 2
   test:
@@ -180,6 +190,13 @@ workflows:
           requires:
             - go-test
             - go-test-e2e
+      - test-docker-full:
+          filters:
+            branches:
+              only:
+                - master
+                - /^v\d+\.\d+$/ # v0.11, v0.12, etc.
+
   build-distros:
     jobs:
       - build-386
