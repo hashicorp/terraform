@@ -95,11 +95,7 @@ func (n *nodeExpandModuleVariable) ReferenceOutside() (selfPath, referencePath a
 
 // GraphNodeReferenceable
 func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
-	// FIXME: References for module variables probably need to be thought out a bit more
-	// Otherwise, we can reference the output via the address itself, or the
-	// module call
-	_, call := n.Module.Call()
-	return []addrs.Referenceable{n.Addr, call}
+	return []addrs.Referenceable{n.Addr}
 }
 
 // RemovableIfNotTargeted
