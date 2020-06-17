@@ -1,44 +1,44 @@
-## 0.13.0-beta2 (UNRELEASED)
+## 0.13.0-beta2 (June 17, 2020)
 
 NOTES:
 
-* backend/s3: Deprecated `lock_table`, `skip_get_ec2_platforms`, and `skip_requesting_account_id` arguments have been removed [GH-25134]
-* backend/s3: Credential ordering has changed from static, environment, shared credentials, EC2 metadata, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) to static, environment, shared credentials, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) [GH-25134]
-* backend/s3: The `AWS_METADATA_TIMEOUT` environment variable no longer has any effect as we now depend on the default AWS Go SDK EC2 Metadata client timeout of one second with two retries [GH-25134]
-* Removed unused targets from Makefile. If you were previously using `make dev` or `make quickdev`, replace that usage with `go install` [GH-25146]
+* backend/s3: Deprecated `lock_table`, `skip_get_ec2_platforms`, and `skip_requesting_account_id` arguments have been removed ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Credential ordering has changed from static, environment, shared credentials, EC2 metadata, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) to static, environment, shared credentials, default AWS Go SDK (shared configuration, web identity, ECS, EC2 Metadata) ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: The `AWS_METADATA_TIMEOUT` environment variable no longer has any effect as we now depend on the default AWS Go SDK EC2 Metadata client timeout of one second with two retries ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* Removed unused targets from Makefile. If you were previously using `make dev` or `make quickdev`, replace that usage with `go install` ([#25146](https://github.com/hashicorp/terraform/issues/25146))
 
 ENHANCEMENTS:
 
-* backend/kubernetes: New `kubernetes` remote state storage backend [GH-19525]
-* backend/s3: Always enable shared configuration file support (no longer require `AWS_SDK_LOAD_CONFIG` environment variable) [GH-25134]
-* backend/s3: Automatically expand `~` prefix for home directories in `shared_credentials_file` argument [GH-25134]
-* backend/s3: Add `assume_role_duration_seconds`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys` arguments [GH-25134]
-* command/providers: Show providers in a tree of modules requiring them, along with a list of providers required by state [GH-25190]
-* provisioner/remote-exec: Return an error when the host field is empty [GH-24080]
+* backend/kubernetes: New `kubernetes` remote state storage backend ([#19525](https://github.com/hashicorp/terraform/issues/19525))
+* backend/s3: Always enable shared configuration file support (no longer require `AWS_SDK_LOAD_CONFIG` environment variable) ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Automatically expand `~` prefix for home directories in `shared_credentials_file` argument ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Add `assume_role_duration_seconds`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys` arguments ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* command/providers: Show providers in a tree of modules requiring them, along with a list of providers required by state ([#25190](https://github.com/hashicorp/terraform/issues/25190))
+* provisioner/remote-exec: Return an error when the host field is empty ([#24080](https://github.com/hashicorp/terraform/issues/24080))
 
 BUG FIXES:
 
-* addrs: detect builtin "terraform" provider in legacy state [GH-25154]
-* backend/remote: do not panic if PrepareConfig or Configure receive null values (can occur when the user cancels the init command) [GH-25135]
-* backend/s3: Ensure configured profile is used [GH-25134]
-* backend/s3: Ensure configured STS endpoint is used during AssumeRole API calls [GH-25134]
-* backend/s3: Prefer AWS shared configuration over EC2 metadata credentials by default [GH-25134]
-* backend/s3: Prefer ECS credentials over EC2 metadata credentials by default [GH-25134]
-* backend/s3: Remove hardcoded AWS Provider messaging [GH-25134]
-* command/0.13upgrade: Fix `0.13upgrade` usage help text to include options [GH-25127]
-* command/0.13upgrade: Do not add source for builtin provider [GH-25215]
-* command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path [GH-25233]
-* command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location [GH-25214]
-* command/format: Fix bug which caused some diagnostics to print empty source lines [GH-25156]
-* command/version: add -json flag for machine-parsable version output [GH-25252]
-* config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. [GH-25216]
-* config: Fix crash in validation with non-ascii characters [GH-25144]
-* config: Don't panic if version constraint syntax isn't accepted by new version constraint parser [GH-25223]
-* config: Validate depends_on references in modules and outputs [GH-25261]
-* core: Fix crash with multiple nested modules [GH-25176]
-* core: Fix panic when importing with modules [GH-25208]
-* core: Allow targeting with expanded module addresses [GH-25206]
-* core: Allow referencing module instances [GH-25258]
+* addrs: detect builtin "terraform" provider in legacy state ([#25154](https://github.com/hashicorp/terraform/issues/25154))
+* backend/remote: do not panic if PrepareConfig or Configure receive null values (can occur when the user cancels the init command) ([#25135](https://github.com/hashicorp/terraform/issues/25135))
+* backend/s3: Ensure configured profile is used ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Ensure configured STS endpoint is used during AssumeRole API calls ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Prefer AWS shared configuration over EC2 metadata credentials by default ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Prefer ECS credentials over EC2 metadata credentials by default ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* backend/s3: Remove hardcoded AWS Provider messaging ([#25134](https://github.com/hashicorp/terraform/issues/25134))
+* command/0.13upgrade: Fix `0.13upgrade` usage help text to include options ([#25127](https://github.com/hashicorp/terraform/issues/25127))
+* command/0.13upgrade: Do not add source for builtin provider ([#25215](https://github.com/hashicorp/terraform/issues/25215))
+* command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path ([#25233](https://github.com/hashicorp/terraform/issues/25233))
+* command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location ([#25214](https://github.com/hashicorp/terraform/issues/25214))
+* command/format: Fix bug which caused some diagnostics to print empty source lines ([#25156](https://github.com/hashicorp/terraform/issues/25156))
+* command/version: add -json flag for machine-parsable version output ([#25252](https://github.com/hashicorp/terraform/issues/25252))
+* config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. ([#25216](https://github.com/hashicorp/terraform/issues/25216))
+* config: Fix crash in validation with non-ascii characters ([#25144](https://github.com/hashicorp/terraform/issues/25144))
+* config: Don't panic if version constraint syntax isn't accepted by new version constraint parser ([#25223](https://github.com/hashicorp/terraform/issues/25223))
+* config: Validate depends_on references in modules and outputs ([#25261](https://github.com/hashicorp/terraform/issues/25261))
+* core: Fix crash with multiple nested modules ([#25176](https://github.com/hashicorp/terraform/issues/25176))
+* core: Fix panic when importing with modules ([#25208](https://github.com/hashicorp/terraform/issues/25208))
+* core: Allow targeting with expanded module addresses ([#25206](https://github.com/hashicorp/terraform/issues/25206))
+* core: Allow referencing module instances ([#25258](https://github.com/hashicorp/terraform/issues/25258))
 
 ## 0.13.0-beta1 (June 03, 2020)
 
