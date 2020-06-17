@@ -496,9 +496,14 @@ github.com/mitchellh/go-testing-interface
 # github.com/mitchellh/go-wordwrap v1.0.0
 ## explicit
 github.com/mitchellh/go-wordwrap
+# github.com/mitchellh/gox v1.0.1
+## explicit
+github.com/mitchellh/gox
 # github.com/mitchellh/hashstructure v1.0.0
 ## explicit
 github.com/mitchellh/hashstructure
+# github.com/mitchellh/iochan v1.0.0
+github.com/mitchellh/iochan
 # github.com/mitchellh/mapstructure v1.1.2
 ## explicit
 github.com/mitchellh/mapstructure
