@@ -38,6 +38,7 @@ BUG FIXES:
 * core: Fix crash with multiple nested modules [GH-25176]
 * core: Fix panic when importing with modules [GH-25208]
 * core: Allow targeting with expanded module addresses [GH-25206]
+* core: Allow referencing module instances [GH-25258]
 
 ## 0.13.0-beta1 (June 03, 2020)
 
