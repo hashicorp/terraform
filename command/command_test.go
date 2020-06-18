@@ -540,7 +540,7 @@ func testChdir(t *testing.T, new string) func() {
 }
 
 // testCwd is used to change the current working directory
-// into a test directory that should be remoted after
+// into a test directory that should be removed after
 func testCwd(t *testing.T) (string, string) {
 	t.Helper()
 
