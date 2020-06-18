@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -38,7 +39,16 @@ type VersionCheckInfo struct {
 }
 
 func (c *VersionCommand) Help() string {
-	return ""
+	helpText := `
+Usage: terraform version [options]
+
+  Displays the version of Terraform and all installed plugins
+
+Options:
+
+  -json       Output the version information as a JSON object.
+`
+	return strings.TrimSpace(helpText)
 }
 
 func (c *VersionCommand) Run(args []string) int {
@@ -48,6 +58,13 @@ func (c *VersionCommand) Run(args []string) int {
 	var jsonOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("version")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	// Enable but ignore the global version flags. In main.go, if any of the
+	// arguments are -v, -version, or --version, this command will be called
+	// with the rest of the arguments, so we need to be able to cope with
+	// those.
+	cmdFlags.Bool("v", true, "version")
+	cmdFlags.Bool("version", true, "version")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
