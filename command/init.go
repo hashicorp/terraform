@@ -137,6 +137,7 @@ func (c *InitCommand) Run(args []string) int {
 	empty, err := configs.IsEmptyDir(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if empty {
