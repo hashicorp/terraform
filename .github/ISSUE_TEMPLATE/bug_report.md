@@ -30,7 +30,7 @@ Paste the relevant parts of your Terraform configuration between the ``` marks b
 For large Terraform configs, please use a service like Dropbox and share a link to the ZIP file. For security, you can also encrypt the files using our GPG public key.
 -->
 
-```hcl
+```terraform
 ...
 ```
 
