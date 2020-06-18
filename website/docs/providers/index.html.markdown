@@ -34,6 +34,7 @@ down to see all providers.
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
+- [Azure DevOps](/docs/providers/azuredevops/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
 - [A10 Networks](/docs/providers/vthunder/index.html)
 - [BaiduCloud](/docs/providers/baiducloud/index.html)
