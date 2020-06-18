@@ -40,8 +40,28 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			false,
+		},
+		"workspace": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend":   cty.StringVal("local"),
 				"workspace": cty.StringVal(backend.DefaultStateName),
-				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend":   cty.StringVal("local"),
+				"workspace": cty.StringVal(backend.DefaultStateName),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/basic.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
@@ -60,8 +80,7 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.StringVal(backend.DefaultStateName),
-				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
@@ -94,8 +113,7 @@ func TestState_basic(t *testing.T) {
 						cty.StringVal("test2"),
 					}),
 				}),
-				"workspace": cty.StringVal(backend.DefaultStateName),
-				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
@@ -115,8 +133,7 @@ func TestState_basic(t *testing.T) {
 					"map":  cty.NullVal(cty.DynamicPseudoType),
 					"list": cty.NullVal(cty.DynamicPseudoType),
 				}),
-				"workspace": cty.StringVal(backend.DefaultStateName),
-				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
 			}),
 			false,
 		},
@@ -141,7 +158,6 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			false,
 		},
@@ -157,9 +173,8 @@ func TestState_basic(t *testing.T) {
 				"config": cty.ObjectVal(map[string]cty.Value{
 					"path": cty.StringVal("./testdata/missing.tfstate"),
 				}),
-				"defaults":  cty.NullVal(cty.DynamicPseudoType),
-				"outputs":   cty.EmptyObjectVal,
-				"workspace": cty.StringVal(backend.DefaultStateName),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
+				"outputs":  cty.EmptyObjectVal,
 			}),
 			true,
 		},
@@ -210,9 +225,8 @@ func TestState_basic(t *testing.T) {
 				"config": cty.MapVal(map[string]cty.Value{
 					"path": cty.StringVal("./testdata/empty.tfstate"),
 				}),
-				"defaults":  cty.NullVal(cty.DynamicPseudoType),
-				"outputs":   cty.EmptyObjectVal,
-				"workspace": cty.StringVal(backend.DefaultStateName),
+				"defaults": cty.NullVal(cty.DynamicPseudoType),
+				"outputs":  cty.EmptyObjectVal,
 			}),
 			false,
 		},
@@ -233,7 +247,6 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
-				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			false,
 		},

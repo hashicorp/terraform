@@ -104,8 +104,6 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		workspaceName = workspaceVal.AsString()
 	}
 
-	newState["workspace"] = cty.StringVal(workspaceName)
-
 	state, err := b.StateMgr(workspaceName)
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
