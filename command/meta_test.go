@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -235,6 +236,39 @@ func TestMeta_Workspace_override(t *testing.T) {
 				t.Errorf("Unexpected error\n got: %s\nwant: %s\n", err, tc.err)
 			}
 		})
+	}
+}
+
+func TestMeta_Workspace_invalidSelected(t *testing.T) {
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// this is an invalid workspace name
+	workspace := "test workspace"
+
+	// create the workspace directories
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, workspace), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// create the workspace file to select it
+	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := new(Meta)
+
+	ws, err := m.Workspace()
+	if ws != workspace {
+		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
+	}
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
 	}
 }
 
