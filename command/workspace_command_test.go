@@ -335,6 +335,39 @@ func TestWorkspace_delete(t *testing.T) {
 		t.Fatalf("wrong workspace: %q", current)
 	}
 }
+
+func TestWorkspace_deleteInvalid(t *testing.T) {
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// choose an invalid workspace name
+	workspace := "test workspace"
+	path := filepath.Join(local.DefaultWorkspaceDir, workspace)
+
+	// create the workspace directories
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	ui := new(cli.MockUi)
+	delCmd := &WorkspaceDeleteCommand{
+		Meta: Meta{Ui: ui},
+	}
+
+	// delete the workspace
+	if code := delCmd.Run([]string{workspace}); code != 0 {
+		t.Fatalf("error deleting workspace: %s", ui.ErrorWriter)
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		t.Fatalf("should have deleted workspace, but %s still exists", path)
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("unexpected error for workspace path: %s", err)
+	}
+}
+
 func TestWorkspace_deleteWithState(t *testing.T) {
 	td := tempDir(t)
 	os.MkdirAll(td, 0755)
