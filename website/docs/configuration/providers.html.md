@@ -1,34 +1,30 @@
 ---
 layout: "docs"
-page_title: "Providers - Configuration Language"
+page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
 description: |-
   Providers are responsible in Terraform for managing the lifecycle of a resource: create, read, update, delete.
 ---
 
-# Providers
+# Provider Configuration
 
 -> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
 earlier, see
 [0.11 Configuration Language: Providers](../configuration-0-11/providers.html).
 
-While [resources](./resources.html) are the primary construct
-in the Terraform language, the _behaviors_ of resources rely on their
-associated resource types, and these types are defined by _providers_.
+Terraform relies on plugins called "providers" to interact with remote systems.
+Each provider offers a set of named
+[resource types](resources.html#resource-types-and-arguments), and defines for
+each resource type which arguments it accepts, which attributes it exports, and
+how changes to resources of that type are actually applied to remote APIs.
 
-Each provider offers a set of named resource types, and defines for each
-resource type which arguments it accepts, which attributes it exports,
-and how changes to resources of that type are actually applied to remote
-APIs.
+Before you can use a particular provider, you must declare a dependency on it
+using [provider requirements syntax](./provider-requirements.html).
 
-Most of the available providers correspond to one cloud or on-premises
-infrastructure platform, and offer resource types that correspond to each
-of the features of that platform.
-
-Providers usually require some configuration of their own to specify endpoint
-URLs, regions, authentication settings, and so on. All resource types belonging
-to the same provider will share the same configuration, avoiding the need to
-repeat this common information across every resource declaration.
+Some providers require additional configuration to specify information such
+as endpoint URLs and regions. A _provider configuration_ allows specifying that
+information once and then reusing it for many resources in the same
+configuration.
 
 ## Provider Configuration
 
@@ -41,14 +37,12 @@ provider "google" {
 }
 ```
 
-The name given in the block header (`"google"` in this example) is the name
-of the provider to configure. Terraform associates each resource type with
-a provider by taking the first word of the resource type name (separated by
-underscores), and so the "google" provider is assumed to be the provider for
-the resource type name `google_compute_instance`.
+The name given in the block header (`"google"` in this example) is the
+[local name](./provider-requirements.html#local-names) of the provider
+to configure.
 
 The body of the block (between `{` and `}`) contains configuration arguments
-for the provider itself. Most arguments in this section are specified by
+for the provider itself. Most arguments in this section are defined by
 the provider itself; in this example both `project` and `region`
 are specific to the `google` provider.
 
@@ -71,24 +65,20 @@ Unlike many other objects in the Terraform language, a `provider` block may
 be omitted if its contents would otherwise be empty. Terraform assumes an
 empty default configuration for any provider that is not explicitly configured.
 
-## Initialization
+## Installation
 
 Each time a new provider is added to configuration -- either explicitly via
-a `provider` block or by adding a resource from that provider -- Terraform
-must initialize the provider before it can be used. Initialization downloads
-and installs the provider's plugin so that it can later be executed.
+a `provider` block or by adding a resource from that provider without an
+associated `provider` block -- Terraform must install the provider before
+it can be used. Installation locates and downloads the provider's plugin so
+that it can be executed later.
 
 Provider initialization is one of the actions of `terraform init`. Running
-this command will download and initialize any providers that are not already
-initialized.
+this command will install any providers that are not already installed.
 
 Providers downloaded by `terraform init` are only installed for the current
 working directory; other working directories can have their own installed
-provider versions.
-
-Note that `terraform init` cannot automatically download providers that are not
-distributed by HashiCorp. See [Third-party Plugins](#third-party-plugins) below
-for installation instructions.
+provider plugins, which may be of differing versions.
 
 For more information, see
 [the `terraform init` command](/docs/commands/init.html).
@@ -103,51 +93,22 @@ constrain the acceptable provider versions via configuration, to ensure that
 new versions with breaking changes will not be automatically installed by
 `terraform init` in future.
 
-When `terraform init` is run _without_ provider version constraints, it
-prints a suggested version constraint string for each provider:
+For more information on specifying version constraints, see
+[Provider Requirements](./provider-requirements.html).
 
-```
-The following providers do not have any version constraints in configuration,
-so the latest version was installed.
-
-To prevent automatic upgrades to new major versions that may contain breaking
-changes, it is recommended to add version = "..." constraints to the
-corresponding provider blocks in configuration, with the constraint strings
-suggested below.
-
-* provider.aws: version = "~> 1.0"
-```
-
-To constrain the provider version as suggested, add a `required_providers`
-block inside a `terraform` block:
-
-```hcl
-terraform {
-  required_providers {
-    aws = "~> 1.0"
-  }
-}
-```
-
-Use [the `terraform providers` command](/docs/commands/providers.html)
-to view the specified version constraints for all providers used in the
-current configuration.
-
-For more information on the `required_providers` block, see
-[Specifying Required Provider Versions](https://www.terraform.io/docs/configuration/terraform.html#specifying-required-provider-versions).
-
-When `terraform init` is re-run with providers already installed, it will
-use an already-installed provider that meets the constraints in preference
+When you re-run `terraform init` with providers already installed, Terraform
+will use an already-installed provider that meets the constraints in preference
 to downloading a new version. To upgrade to the latest acceptable version
 of each provider, run `terraform init -upgrade`. This command also upgrades
-to the latest versions of all Terraform modules.
+to the latest versions of all remote Terraform modules.
 
-Provider version constraints can also be specified using a `version` argument
-within a `provider` block, but that simultaneously declares a new provider
-configuration that may cause problems particularly when writing shared modules.
-For that reason, we recommend using the `required_providers` block as described
-above, and _not_ using the `version` argument within `provider` blocks.
-`version` is still supported for compatibility with older Terraform versions.
+In versions of Terraform prior to Terraform 0.12, provider version constraints
+could be specified using a `version` argument within a `provider` block, which
+would simultaneously declare a new provider requirement _and_ provider
+configuration, but that overloading can cause problems particularly when
+writing shared modules. For that reason, we recommend always omitting the
+`version` argument within `provider` blocks, and specifying version
+constraints instead using [Provider Requirements](./provider-requirements.html).
 
 ## `alias`: Multiple Provider Instances
 
@@ -240,25 +201,9 @@ provider registry is
 [part of the public Terraform Registry](https://registry.terraform.io/browse/providers),
 along with public shared modules.
 
-Providers distributed via a public registry to not require any special
-additional configuration to use, once you know their source addresses. You can
-specify both official and third-party source addresses in the
-`required_providers` block in your module:
-
-```hcl
-terraform {
-  required_providers {
-    # An example third-party provider. Not actually available.
-    example = {
-      source = "example.com/examplecorp/example"
-    }
-  }
-}
-```
-
 Installing directly from a registry is not appropriate for all situations,
 though. If you are running Terraform from a system that cannot access some or
-all of the necessary origin registries, you can configure Terraform to obtain
+all of the necessary registry hosts, you can configure Terraform to obtain
 providers from a local mirror instead. For more information, see
 [Provider Installation](../commands/cli-config.html#provider-installation)
 in the CLI configuration documentation.
