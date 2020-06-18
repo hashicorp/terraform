@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -100,23 +101,49 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
+	var proposedVal cty.Value
+
 	// If we have a stored state we may not need to re-read the data source.
 	// Check the config against the state to see if there are any difference.
 	if !priorVal.IsNull() {
 		// Applying the configuration to the prior state lets us see if there
 		// are any differences.
-		proposed := objchange.ProposedNewObject(schema, priorVal, configVal)
-		if proposed.Equals(priorVal).True() {
+		proposedVal = objchange.ProposedNewObject(schema, priorVal, configVal)
+		if proposedVal.Equals(priorVal).True() {
 			log.Printf("[TRACE] evalReadDataPlan: %s no change detected, using existing state", absAddr)
 			// state looks up to date, and must have been read during refresh
 			return nil, diags.ErrWithWarnings()
 		}
+		log.Printf("[TRACE] evalReadDataPlan: %s configuration changed, planning data source", absAddr)
 	}
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return nil, diags.ErrWithWarnings()
+	}
+
+	// if we have a prior value, we can check for any irregularities in the response
+	if !priorVal.IsNull() {
+		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
+			// Resources have the LegacyTypeSystem field to signal when they are
+			// using an SDK which may not produce precise values. While data
+			// sources are read-only, they can still return a value which is not
+			// compatible with the config+schema. Since we can't detect the legacy
+			// type system, we can only warn about this for now.
+			var buf strings.Builder
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s."+
+				n.ProviderAddr.Provider.String(), absAddr)
+			for _, err := range errs {
+				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+			}
+			log.Print(buf.String())
+		}
+	}
+
+	action := plans.Read
+	if priorVal.Equals(newVal).True() {
+		action = plans.NoOp
 	}
 
 	// The returned value from ReadDataSource must be non-nil and known,
@@ -127,7 +154,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		Addr:         absAddr,
 		ProviderAddr: n.ProviderAddr,
 		Change: plans.Change{
-			Action: plans.Read,
+			Action: action,
 			Before: priorVal,
 			After:  newVal,
 		},
