@@ -19,8 +19,7 @@ import (
 const target = "command/internal_plugin_list.go"
 
 func main() {
-	wd, _ := os.Getwd()
-	if filepath.Base(wd) != "terraform" {
+	if isProjectRoot() == false {
 		log.Fatalf("This program must be invoked in the terraform project root; in %s", wd)
 	}
 
@@ -78,6 +77,14 @@ func makeProviderMap(items []plugin) string {
 		output += fmt.Sprintf("\t\"%s\":   %s.%s,\n", item.PluginName, item.ImportName, item.TypeName)
 	}
 	return output
+}
+
+func isProjectRoot() bool {
+  if _, err := os.Stat("go.mod"); os.IsNotExist(err) {
+    return false
+  }
+
+  return true;
 }
 
 // makeProvisionerMap creates a map of provisioners like this:

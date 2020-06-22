@@ -61,7 +61,7 @@ gox \
     -arch="${XC_ARCH}" \
     -osarch="${XC_EXCLUDE_OSARCH}" \
     -ldflags "${LD_FLAGS}" \
-    -output "pkg/{{.OS}}_{{.Arch}}/${PWD##*/}" \
+    -output "pkg/{{.OS}}_{{.Arch}}/terraform" \
     .
 
 # Move all the compiled things to the $GOPATH/bin
