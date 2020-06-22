@@ -80,11 +80,12 @@ func makeProviderMap(items []plugin) string {
 }
 
 func isProjectRoot() bool {
-  if _, err := os.Stat("go.mod"); os.IsNotExist(err) {
-    return false
-  }
+	_, err := os.Stat("go.mod")
+	if os.IsNotExist(err) {
+		return false
+	}
 
-  return true;
+	return true
 }
 
 // makeProvisionerMap creates a map of provisioners like this:
