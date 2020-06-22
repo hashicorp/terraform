@@ -9,3 +9,7 @@ terraform {
     }
   }
 }
+
+module "nested" {
+  source = "./grandchild"
+}

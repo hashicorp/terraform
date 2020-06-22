@@ -185,12 +185,7 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 // may be incomplete.
 func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnostics) {
 	reqs := make(getproviders.Requirements)
-	diags := c.addProviderRequirements(reqs)
-
-	for _, childConfig := range c.Children {
-		moreDiags := childConfig.addProviderRequirements(reqs)
-		diags = append(diags, moreDiags...)
-	}
+	diags := c.addProviderRequirements(reqs, true)
 
 	return reqs, diags
 }
@@ -203,7 +198,7 @@ func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnost
 // may be incomplete.
 func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagnostics) {
 	reqs := make(getproviders.Requirements)
-	diags := c.addProviderRequirements(reqs)
+	diags := c.addProviderRequirements(reqs, false)
 
 	children := make(map[string]*ModuleRequirements)
 	for name, child := range c.Children {
@@ -225,9 +220,9 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 
 // addProviderRequirements is the main part of the ProviderRequirements
 // implementation, gradually mutating a shared requirements object to
-// eventually return. This function only adds requirements for the top-level
-// module.
-func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Diagnostics {
+// eventually return. If the recurse argument is true, the requirements will
+// include all descendant modules; otherwise, only the specified module.
+func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse bool) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// First we'll deal with the requirements directly in _our_ module...
@@ -306,6 +301,13 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) hcl.Dia
 				})
 			}
 			reqs[fqn] = append(reqs[fqn], constraints...)
+		}
+	}
+
+	if recurse {
+		for _, childConfig := range c.Children {
+			moreDiags := childConfig.addProviderRequirements(reqs, true)
+			diags = append(diags, moreDiags...)
 		}
 	}
 
