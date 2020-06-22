@@ -130,6 +130,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 	impliedProvider := addrs.NewDefaultProvider("implied")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
 	configuredProvider := addrs.NewDefaultProvider("configured")
+	grandchildProvider := addrs.NewDefaultProvider("grandchild")
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
@@ -142,6 +143,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 		impliedProvider:    nil,
 		happycloudProvider: nil,
 		terraformProvider:  nil,
+		grandchildProvider: nil,
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -166,6 +168,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 	impliedProvider := addrs.NewDefaultProvider("implied")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
 	configuredProvider := addrs.NewDefaultProvider("configured")
+	grandchildProvider := addrs.NewDefaultProvider("grandchild")
 
 	got, diags := cfg.ProviderRequirementsByModule()
 	assertNoDiagnostics(t, diags)
@@ -191,7 +194,17 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
 					happycloudProvider: nil,
 				},
-				Children: map[string]*ModuleRequirements{},
+				Children: map[string]*ModuleRequirements{
+					"nested": {
+						Name:       "nested",
+						SourceAddr: "./grandchild",
+						SourceDir:  "testdata/provider-reqs/child/grandchild",
+						Requirements: getproviders.Requirements{
+							grandchildProvider: nil,
+						},
+						Children: map[string]*ModuleRequirements{},
+					},
+				},
 			},
 		},
 	}
@@ -227,6 +240,6 @@ func TestConfigAddProviderRequirements(t *testing.T) {
 	reqs := getproviders.Requirements{
 		addrs.NewDefaultProvider("null"): nil,
 	}
-	diags = cfg.addProviderRequirements(reqs)
+	diags = cfg.addProviderRequirements(reqs, true)
 	assertNoDiagnostics(t, diags)
 }
