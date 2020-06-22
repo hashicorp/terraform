@@ -39,6 +39,7 @@ BUG FIXES:
 * config: Fix crash in validation with non-ascii characters ([#25144](https://github.com/hashicorp/terraform/issues/25144))
 * config: Don't panic if version constraint syntax isn't accepted by new version constraint parser ([#25223](https://github.com/hashicorp/terraform/issues/25223))
 * config: Validate depends_on references in modules and outputs ([#25261](https://github.com/hashicorp/terraform/issues/25261))
+* configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
 * core: Fix crash with multiple nested modules ([#25176](https://github.com/hashicorp/terraform/issues/25176))
 * core: Fix panic when importing with modules ([#25208](https://github.com/hashicorp/terraform/issues/25208))
 * core: Allow targeting with expanded module addresses ([#25206](https://github.com/hashicorp/terraform/issues/25206))
