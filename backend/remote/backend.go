@@ -495,7 +495,7 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 		// The retry logic in the TFE client will retry both rate limited
 		// requests and server errors, but in the remote backend we only
 		// care about server errors so we ignore rate limit (429) errors.
-		if attemptNum == 0 || resp.StatusCode == 429 {
+		if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
 			// Reset the last retry time.
 			b.lastRetry = time.Now()
 			return
