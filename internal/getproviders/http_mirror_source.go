@@ -26,8 +26,8 @@ func NewHTTPMirrorSource(baseURL *url.URL) *HTTPMirrorSource {
 
 // AvailableVersions retrieves the available versions for the given provider
 // from the object's underlying HTTP mirror service.
-func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
-	return nil, fmt.Errorf("Network-based provider mirrors are not supported in this version of Terraform")
+func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+	return nil, nil, fmt.Errorf("Network-based provider mirrors are not supported in this version of Terraform")
 }
 
 // PackageMeta retrieves metadata for the requested provider package

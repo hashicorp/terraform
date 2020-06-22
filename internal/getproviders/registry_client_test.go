@@ -220,7 +220,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		case "weaksauce/no-versions":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
-			resp.Write([]byte(`{"versions":[]}`))
+			resp.Write([]byte(`{"versions":[],"warnings":["this provider is weaksauce"]}`))
 		case "-/legacy":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
@@ -335,7 +335,7 @@ func TestProviderVersions(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gotVersions, err := client.ProviderVersions(test.provider)
+			gotVersions, _, err := client.ProviderVersions(test.provider)
 
 			if err != nil {
 				if test.wantErr == "" {

@@ -59,7 +59,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		// AvailableVersions produces the union of all versions available
 		// across all of the sources.
-		got, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -72,7 +72,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -122,7 +122,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			},
 		}
 
-		got, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -134,7 +134,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		got, err = multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
+		got, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -146,7 +146,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -160,7 +160,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			{Source: s2},
 		}
 
-		_, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		_, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
 		if err == nil {
 			t.Fatal("expected error, got success")
 		}

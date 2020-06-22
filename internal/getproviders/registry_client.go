@@ -97,24 +97,23 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 // 404 Not Found to indicate that the namespace or provider type are not known,
 // ErrUnauthorized if the registry responds with 401 or 403 status codes, or
 // ErrQueryFailed for any other protocol or operational problem.
-func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]string, error) {
+func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]string, []string, error) {
 	endpointPath, err := url.Parse(path.Join(addr.Namespace, addr.Type, "versions"))
 	if err != nil {
 		// Should never happen because we're constructing this from
 		// already-validated components.
-		return nil, err
+		return nil, nil, err
 	}
 	endpointURL := c.baseURL.ResolveReference(endpointPath)
-
 	req, err := retryablehttp.NewRequest("GET", endpointURL.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	c.addHeadersToRequest(req.Request)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, c.errQueryFailed(addr, err)
+		return nil, nil, c.errQueryFailed(addr, err)
 	}
 	defer resp.Body.Close()
 
@@ -122,13 +121,13 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 	case http.StatusOK:
 		// Great!
 	case http.StatusNotFound:
-		return nil, ErrRegistryProviderNotKnown{
+		return nil, nil, ErrRegistryProviderNotKnown{
 			Provider: addr,
 		}
 	case http.StatusUnauthorized, http.StatusForbidden:
-		return nil, c.errUnauthorized(addr.Hostname)
+		return nil, nil, c.errUnauthorized(addr.Hostname)
 	default:
-		return nil, c.errQueryFailed(addr, errors.New(resp.Status))
+		return nil, nil, c.errQueryFailed(addr, errors.New(resp.Status))
 	}
 
 	// We ignore the platforms portion of the response body, because the
@@ -139,23 +138,25 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 			Version   string   `json:"version"`
 			Protocols []string `json:"protocols"`
 		} `json:"versions"`
+		Warnings []string `json:"warnings"`
 	}
 	var body ResponseBody
 
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(&body); err != nil {
-		return nil, c.errQueryFailed(addr, err)
+		return nil, nil, c.errQueryFailed(addr, err)
 	}
 
 	if len(body.Versions) == 0 {
-		return nil, nil
+		return nil, body.Warnings, nil
 	}
 
 	ret := make(map[string][]string, len(body.Versions))
 	for _, v := range body.Versions {
 		ret[v.Version] = v.Protocols
 	}
-	return ret, nil
+
+	return ret, body.Warnings, nil
 }
 
 // PackageMeta returns metadata about a distribution package for a provider.
@@ -360,7 +361,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 // findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
 func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Provider, version Version) (Version, error) {
 	var match Version
-	available, err := c.ProviderVersions(provider)
+	available, _, err := c.ProviderVersions(provider)
 	if err != nil {
 		return UnspecifiedVersion, err
 	}

@@ -58,16 +58,8 @@ func TestSourceAvailableVersions(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.provider, func(t *testing.T) {
-			// TEMP: We don't yet have a function for parsing provider
-			// source addresses so we'll just fake it in here for now.
-			parts := strings.Split(test.provider, "/")
-			providerAddr := addrs.Provider{
-				Hostname:  svchost.Hostname(parts[0]),
-				Namespace: parts[1],
-				Type:      parts[2],
-			}
-
-			gotVersions, err := source.AvailableVersions(providerAddr)
+			provider := addrs.MustParseProviderSourceString(test.provider)
+			gotVersions, _, err := source.AvailableVersions(provider)
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -95,6 +87,21 @@ func TestSourceAvailableVersions(t *testing.T) {
 				t.Errorf("wrong result\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestSourceAvailableVersions_warnings(t *testing.T) {
+	source, _, close := testRegistrySource(t)
+	defer close()
+
+	provider := addrs.MustParseProviderSourceString("example.com/weaksauce/no-versions")
+	_, warnings, err := source.AvailableVersions(provider)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	if len(warnings) != 1 {
+		t.Fatalf("wrong number of warnings. Expected 1, got %d", len(warnings))
 	}
 
 }

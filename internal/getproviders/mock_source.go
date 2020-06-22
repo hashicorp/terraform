@@ -40,7 +40,7 @@ func NewMockSource(packages []PackageMeta) *MockSource {
 // AvailableVersions returns all of the versions of the given provider that
 // are available in the fixed set of packages that were passed to
 // NewMockSource when creating the receiving source.
-func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	s.calls = append(s.calls, []interface{}{"AvailableVersions", provider})
 	var ret VersionList
 	for _, pkg := range s.packages {
@@ -51,10 +51,10 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 	if len(ret) == 0 {
 		// In this case, we'll behave like a registry that doesn't know about
 		// this provider at all, rather than just returning an empty result.
-		return nil, ErrRegistryProviderNotKnown{provider}
+		return nil, nil, ErrRegistryProviderNotKnown{provider}
 	}
 	ret.Sort()
-	return ret, nil
+	return ret, nil, nil
 }
 
 // PackageMeta returns the first package from the list given to NewMockSource

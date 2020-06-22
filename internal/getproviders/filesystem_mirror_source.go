@@ -28,11 +28,11 @@ func NewFilesystemMirrorSource(baseDir string) *FilesystemMirrorSource {
 // AvailableVersions scans the directory structure under the source's base
 // directory for locally-mirrored packages for the given provider, returning
 // a list of version numbers for the providers it found.
-func (s *FilesystemMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *FilesystemMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	// s.allPackages is populated if scanAllVersions succeeds
 	err := s.scanAllVersions()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// There might be multiple packages for a given version in the filesystem,
@@ -47,7 +47,7 @@ func (s *FilesystemMirrorSource) AvailableVersions(provider addrs.Provider) (Ver
 		ret = append(ret, v)
 	}
 	ret.Sort()
-	return ret, nil
+	return ret, nil, nil
 }
 
 // PackageMeta checks to see if the source's base directory contains a
