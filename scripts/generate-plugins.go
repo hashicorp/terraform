@@ -20,7 +20,7 @@ const target = "command/internal_plugin_list.go"
 
 func main() {
 	if isProjectRoot() == false {
-		log.Fatalf("This program must be invoked in the terraform project root; in %s", wd)
+		log.Fatalf("This program must be invoked in the terraform project root")
 	}
 
 	//// Collect all of the data we need about plugins we have in the project
