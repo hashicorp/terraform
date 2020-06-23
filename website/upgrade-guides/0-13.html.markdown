@@ -32,7 +32,7 @@ upgrade their syntax using the latest minor release of Terraform v0.12 before
 using Terraform v0.13.
 
 -> If you run into any problems during upgrading that are not solved by the
-content below, please free free to start a topic in
+content below, please feel free to start a topic in
 [The Terraform community forum](https://discuss.hashicorp.com/c/terraform-core),
 describing the problem you've encountered in enough detail that other readers
 may be able to reproduce it and offer advice.
@@ -51,7 +51,7 @@ for providers packaged and distributed by HashiCorp. Providers built by the
 community have previously required manual installation by extracting their
 distribution packages into specific local filesystem locations.
 
-Terraform v0.13 introduces a new heirarchical namespace for providers that
+Terraform v0.13 introduces a new hierarchical namespace for providers that
 allows specifying both HashiCorp-maintained and community-maintained providers
 as dependencies of a module, with community providers distributed from other
 namespaces on [Terraform Registry](https://registry.terraform.io/) from a
@@ -122,8 +122,8 @@ run `terraform init` again to re-run the provider installer.
 
 ## New Filesystem Layout for Local Copies of Providers
 
-As part of introducing the heirarchical provider namespace discussed in the
-previous section, Terraform v0.13 also introduces a new heirarchical directory
+As part of introducing the hierarchical provider namespace discussed in the
+previous section, Terraform v0.13 also introduces a new hierarchical directory
 structure for manually-installed providers in the local filesystem.
 
 If you use local copies of official providers or if you use custom in-house
