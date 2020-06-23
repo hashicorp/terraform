@@ -122,3 +122,24 @@ func TestLoaderLoadConfig_moduleExpandValid(t *testing.T) {
 	_, diags := loader.LoadConfig(fixtureDir)
 	assertNoDiagnostics(t, diags)
 }
+
+func TestLoaderLoadConfig_moduleDependsOnProviders(t *testing.T) {
+	// We do not allow providers to be configured in module using depends_on.
+	fixtureDir := filepath.Clean("testdata/module-depends-on")
+	loader, err := NewLoader(&Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	_, diags := loader.LoadConfig(fixtureDir)
+	if !diags.HasErrors() {
+		t.Fatal("success; want error")
+	}
+	got := diags.Error()
+	want := "Module does not support depends_on"
+	if !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+	}
+}

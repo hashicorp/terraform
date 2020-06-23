@@ -111,7 +111,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 }
 
 func validateProviderConfigs(mc *configs.ModuleCall, mod *configs.Module, parent *configs.Config, diags hcl.Diagnostics) hcl.Diagnostics {
-	if mc.Count != nil || mc.ForEach != nil {
+	if mc.Count != nil || mc.ForEach != nil || mc.DependsOn != nil {
 		for key, pc := range mod.ProviderConfigs {
 			// Use these to track if a provider is configured (not allowed),
 			// or if we've found its matching proxy
@@ -148,6 +148,14 @@ func validateProviderConfigs(mc *configs.ModuleCall, mod *configs.Module, parent
 						Summary:  "Module does not support for_each",
 						Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "for_each", key, pc.NameRange),
 						Subject:  mc.ForEach.Range().Ptr(),
+					})
+				}
+				if mc.DependsOn != nil {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Module does not support depends_on",
+						Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "depends_on", key, pc.NameRange),
+						Subject:  mc.SourceAddrRange.Ptr(),
 					})
 				}
 			}
