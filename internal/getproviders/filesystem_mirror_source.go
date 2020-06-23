@@ -124,3 +124,7 @@ func (s *FilesystemMirrorSource) scanAllVersions() error {
 func (s *FilesystemMirrorSource) ForDisplay(provider addrs.Provider) string {
 	return s.baseDir
 }
+
+func (s *FilesystemMirrorSource) LocalDirs() []string {
+	return []string{s.baseDir}
+}

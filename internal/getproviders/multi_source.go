@@ -249,3 +249,11 @@ func (s MultiSource) sourcesForProvider(provider addrs.Provider) []string {
 	}
 	return ret
 }
+
+func (s MultiSource) LocalDirs() []string {
+	var dirs []string
+	for _, source := range s {
+		dirs = append(dirs, source.Source.LocalDirs()...)
+	}
+	return dirs
+}

@@ -202,3 +202,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 func (s *MockSource) ForDisplay(provider addrs.Provider) string {
 	return "mock source"
 }
+
+func (s *MockSource) LocalDirs() []string {
+	return nil
+}

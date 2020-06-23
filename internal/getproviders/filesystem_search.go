@@ -10,6 +10,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // SearchLocalDirectory performs an immediate, one-off scan of the given base
@@ -20,10 +21,40 @@ import (
 // management in the "internal/providercache" package, to use the same
 // directory structure conventions.
 func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, error) {
+	available, diags := SearchLocalDirectoryDiags(baseDir)
+
+	// Filter out error diagnostics to build a return error, and log warning diagnostics here
+	var errDiags tfdiags.Diagnostics
+	for _, diag := range diags {
+		if diag.Severity() == tfdiags.Error {
+			errDiags = errDiags.Append(diag)
+		} else if diag.Severity() == tfdiags.Warning {
+			desc := diag.Description()
+			err := desc.Summary
+			if desc.Detail == "" {
+				err = fmt.Sprintf("%s: %s", desc.Summary, desc.Detail)
+			}
+			log.Printf("[WARN] SearchLocalDirectory: %s", err)
+		}
+	}
+
+	return available, errDiags.Err()
+}
+
+// SearchLocalDirectoryDiags implements the logic for SearchLocalDirectory, but
+// returning detailed diagnostic information instead of logging warnings and
+// returning only errors.
+func SearchLocalDirectoryDiags(baseDir string) (map[addrs.Provider]PackageMetaList, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	ret := make(map[addrs.Provider]PackageMetaList)
-	err := filepath.Walk(baseDir, func(fullPath string, info os.FileInfo, err error) error {
+	filepath.Walk(baseDir, func(fullPath string, info os.FileInfo, err error) error {
 		if err != nil {
-			return fmt.Errorf("cannot search %s: %s", fullPath, err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Cannot search %s", fullPath),
+				err.Error(),
+			))
+			return diags.Err()
 		}
 
 		// There are two valid directory structures that we support here...
@@ -36,7 +67,11 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		if err != nil {
 			// This should never happen because the filepath.Walk contract is
 			// for the paths to include the base path.
-			log.Printf("[TRACE] getproviders.SearchLocalDirectory: ignoring malformed path %q during walk: %s", fullPath, err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				fmt.Sprintf("Ignoring malformed path %q", fullPath),
+				err.Error(),
+			))
 			return nil
 		}
 		relPath := filepath.ToSlash(fsPath)
@@ -57,26 +92,42 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		if namespace != addrs.LegacyProviderNamespace {
 			_, err = addrs.ParseProviderPart(namespace)
 			if err != nil {
-				log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring local provider at %s", relPath),
+					fmt.Sprintf("Provider contains invalid namespace %s: %s", namespace, err),
+				))
 				return nil
 			}
 		}
 
 		_, err = addrs.ParseProviderPart(typeName)
 		if err != nil {
-			log.Printf("[WARN] local provider path %q contains invalid type %q; ignoring", fullPath, typeName)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				fmt.Sprintf("Ignoring local provider at %s", relPath),
+				fmt.Sprintf("Provider contains invalid type %s: %s", typeName, err),
+			))
 			return nil
 		}
 
 		hostname, err := svchost.ForComparison(hostnameGiven)
 		if err != nil {
-			log.Printf("[WARN] local provider path %q contains invalid hostname %q; ignoring", fullPath, hostnameGiven)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				fmt.Sprintf("Ignoring local provider at %s", relPath),
+				fmt.Sprintf("Provider contains invalid hostname %s: %s", hostnameGiven, err),
+			))
 			return nil
 		}
 		var providerAddr addrs.Provider
 		if namespace == addrs.LegacyProviderNamespace {
 			if hostname != addrs.DefaultRegistryHost {
-				log.Printf("[WARN] local provider path %q indicates a legacy provider not on the default registry host; ignoring", fullPath)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring local provider at %s", relPath),
+					fmt.Sprintf("Provider indicates a legacy provider not on the default registry host: %s", err),
+				))
 				return nil
 			}
 			providerAddr = addrs.NewLegacyProvider(typeName)
@@ -90,7 +141,12 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		// filesystem object below.
 		info, err = os.Stat(fullPath)
 		if err != nil {
-			return fmt.Errorf("failed to read metadata about %s: %s", fullPath, err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Failed to read metadata about %s", fullPath),
+				err.Error(),
+			))
+			return diags.Err()
 		}
 
 		switch len(parts) {
@@ -102,14 +158,22 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			versionStr := parts[3]
 			version, err := ParseVersion(versionStr)
 			if err != nil {
-				log.Printf("[WARN] ignoring local provider path %q with invalid version %q: %s", fullPath, versionStr, err)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring local provider %s", providerAddr),
+					fmt.Sprintf("Provider has invalid version %q: %s. Path: %q", versionStr, err, fullPath),
+				))
 				return nil
 			}
 
 			platformStr := parts[4]
 			platform, err := ParsePlatform(platformStr)
 			if err != nil {
-				log.Printf("[WARN] ignoring local provider path %q with invalid platform %q: %s", fullPath, platformStr, err)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring local provider %s", providerAddr),
+					fmt.Sprintf("Provider has invalid platform %q: %s. Path: %q", platformStr, err, fullPath),
+				))
 				return nil
 			}
 
@@ -157,11 +221,19 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			prefix := "terraform-provider-" + providerAddr.Type + "_"
 			const suffix = ".zip"
 			if !strings.HasPrefix(normFilename, prefix) {
-				log.Printf("[WARN] ignoring file %q as possible package for %s: filename lacks expected prefix %q", fsPath, providerAddr, prefix)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring file %q as possible package for %s", filename, providerAddr),
+					fmt.Sprintf("Filename %s lacks expected prefix %q", fsPath, prefix),
+				))
 				return nil
 			}
 			if !strings.HasSuffix(normFilename, suffix) {
-				log.Printf("[WARN] ignoring file %q as possible package for %s: filename lacks expected suffix %q", fsPath, providerAddr, suffix)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring file %q as possible package for %s", filename, providerAddr),
+					fmt.Sprintf("Filename %s lacks expected suffix %q", fsPath, suffix),
+				))
 				return nil
 			}
 
@@ -170,14 +242,22 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			infoSlice := normFilename[len(prefix) : len(normFilename)-len(suffix)]
 			infoParts := strings.Split(infoSlice, "_")
 			if len(infoParts) < 3 {
-				log.Printf("[WARN] ignoring file %q as possible package for %s: filename does not include version number, target OS, and target architecture", fsPath, providerAddr)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring file %q as possible package for %s", filename, providerAddr),
+					fmt.Sprintf("Filename %s does not include version number, target OS, and target architecture", fsPath),
+				))
 				return nil
 			}
 
 			versionStr := infoParts[0]
 			version, err := ParseVersion(versionStr)
 			if err != nil {
-				log.Printf("[WARN] ignoring local provider path %q with invalid version %q: %s", fullPath, versionStr, err)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring local provider %s", providerAddr),
+					fmt.Sprintf("Provider has invalid version %q: %s", versionStr, err),
+				))
 				return nil
 			}
 
@@ -186,7 +266,11 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			platformStr := infoParts[1] + "_" + infoParts[2]
 			platform, err := ParsePlatform(platformStr)
 			if err != nil {
-				log.Printf("[WARN] ignoring local provider path %q with invalid platform %q: %s", fullPath, platformStr, err)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					fmt.Sprintf("Ignoring local provider %s", providerAddr),
+					fmt.Sprintf("Provider has invalid platform %q: %s", platformStr, err),
+				))
 				return nil
 			}
 
@@ -219,15 +303,15 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 
 		return nil
 	})
-	if err != nil {
-		return nil, err
+	if diags.HasErrors() {
+		return nil, diags
 	}
 	// Sort the results to be deterministic (aside from semver build metadata)
 	// and consistent with ordering from other functions.
 	for _, l := range ret {
 		l.Sort()
 	}
-	return ret, nil
+	return ret, diags
 }
 
 // UnpackedDirectoryPathForPackage is similar to

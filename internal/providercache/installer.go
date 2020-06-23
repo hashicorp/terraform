@@ -478,6 +478,10 @@ func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, erro
 	return ret, nil
 }
 
+func (i *Installer) Source() getproviders.Source {
+	return i.source
+}
+
 // InstallMode customizes the details of how an install operation treats
 // providers that have versions already cached in the target directory.
 type InstallMode rune

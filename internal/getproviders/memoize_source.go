@@ -98,3 +98,7 @@ func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, ta
 func (s *MemoizeSource) ForDisplay(provider addrs.Provider) string {
 	return s.underlying.ForDisplay(provider)
 }
+
+func (s *MemoizeSource) LocalDirs() []string {
+	return s.underlying.LocalDirs()
+}

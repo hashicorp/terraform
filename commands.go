@@ -218,6 +218,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		"providers list": func() (cli.Command, error) {
+			return &command.ProvidersListCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"providers mirror": func() (cli.Command, error) {
 			return &command.ProvidersMirrorCommand{
 				Meta: meta,

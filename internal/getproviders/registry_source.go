@@ -171,3 +171,7 @@ func (s *RegistrySource) registryClient(hostname svchost.Hostname) (*registryCli
 func (s *RegistrySource) ForDisplay(provider addrs.Provider) string {
 	return fmt.Sprintf("registry %s", provider.Hostname.ForDisplay())
 }
+
+func (s *RegistrySource) LocalDirs() []string {
+	return nil
+}

@@ -40,3 +40,7 @@ func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version,
 func (s *HTTPMirrorSource) ForDisplay(provider addrs.Provider) string {
 	return "Network-based provider mirrors are not supported in this version of Terraform"
 }
+
+func (s *HTTPMirrorSource) LocalDirs() []string {
+	return nil
+}
