@@ -30,27 +30,23 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 			return fmt.Errorf("Module %s not found.", target.Addr.Module.Module())
 		}
 
-		// Get the resource config
-		rsCfg := modCfg.Module.ResourceByAddr(target.Addr.Resource.Resource)
-		if rsCfg == nil {
-			return fmt.Errorf("Resource %s not found in the configuration.", target.Addr)
-		}
-
-		// Get the provider FQN for the resource from the resource configuration
-		providerFqn := rsCfg.Provider
-
-		// This is only likely to happen in misconfigured tests.
-		if rsCfg == nil {
-			return fmt.Errorf("provider for resource %s not found in the configuration.", target.Addr)
-		}
-
-		// Get the provider local config for the resource
-		localpCfg := rsCfg.ProviderConfigAddr()
-
 		providerAddr := addrs.AbsProviderConfig{
-			Provider: providerFqn,
-			Alias:    localpCfg.Alias,
-			Module:   target.Addr.Module.Module(),
+			Module: target.Addr.Module.Module(),
+		}
+
+		// Try to find the resource config
+		rsCfg := modCfg.Module.ResourceByAddr(target.Addr.Resource.Resource)
+		if rsCfg != nil {
+			// Get the provider FQN for the resource from the resource configuration
+			providerAddr.Provider = rsCfg.Provider
+
+			// Get the alias from the resource's provider local config
+			providerAddr.Alias = rsCfg.ProviderConfigAddr().Alias
+		} else {
+			// Resource has no matching config, so use an implied provider
+			// based on the resource type
+			rsProviderType := target.Addr.Resource.Resource.ImpliedProvider()
+			providerAddr.Provider = modCfg.Module.ImpliedProviderForUnqualifiedType(rsProviderType)
 		}
 
 		node := &graphNodeImportState{
