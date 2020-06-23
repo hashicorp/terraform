@@ -43,7 +43,8 @@ default unless a plan file is provided on the command line. When
 [running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation)
 it is always recommended to separate plan from apply, but if existing automation
 was running `terraform apply` with no arguments it may now be necessary to
-update it to either generate an explicit plan using `terraform plan -out=...`
+update it to 
+er generate an explicit plan using `terraform plan -out=...`
 or to run `terraform apply -auto-approve` to bypass the interactive confirmation
 step. The latter should be done only in unimportant environments.
 
@@ -68,7 +69,7 @@ explicitly by beginning the string with either `./` (for a module in a child
 directory) or `../` (for a module in the parent directory).
 
 **Action:** Update existing module `source` values containing relative paths
-to start eith either `./` or `../` to prevent misinterpretation of the source
+to start with either `./` or `../` to prevent misinterpretation of the source
 as a Terraform Registry module.
 
 ## Interactions Between Providers and Modules
