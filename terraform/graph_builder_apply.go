@@ -176,13 +176,13 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// These include variables, locals, and instance expanders.
 		&pruneUnusedNodesTransformer{},
 
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
+
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{
 			Config: b.Config,
 		},
-
-		// Target
-		&TargetsTransformer{Targets: b.Targets},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
