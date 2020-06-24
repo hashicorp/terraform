@@ -14,7 +14,7 @@ If your issue relates to a specific Terraform provider, please open it in the pr
 
 ### Terraform Version
 <!---
-Run `terraform -v` to show the version, and paste the result between the ``` marks below.
+Run `terraform version` to show the version, and paste the result between the ``` marks below.
 
 If you are not running the latest version of Terraform, please try upgrading because your issue may have already been fixed.
 -->
