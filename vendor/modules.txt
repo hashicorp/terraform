@@ -168,6 +168,7 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 github.com/bgentry/go-netrc/netrc
 # github.com/bgentry/speakeasy v0.1.0
+## explicit
 github.com/bgentry/speakeasy
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
@@ -476,6 +477,7 @@ github.com/masterzen/winrm/soap
 ## explicit
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.5
+## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-shellwords v1.0.4
 ## explicit
