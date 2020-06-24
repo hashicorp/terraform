@@ -49,40 +49,6 @@ func TestContextImport_basic(t *testing.T) {
 	}
 }
 
-// Importing a resource which does not exist in the configuration results in an error
-func TestContextImport_basic_errpr(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "import-provider")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-	})
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-	}
-
-	_, diags := ctx.Import(&ImportOpts{
-		Targets: []*ImportTarget{
-			&ImportTarget{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
-					addrs.ManagedResourceMode, "aws_instance", "test", addrs.NoKey,
-				),
-				ID: "bar",
-			},
-		},
-	})
-
-	if !diags.HasErrors() {
-		t.Fatal("should error")
-	}
-}
-
 func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
