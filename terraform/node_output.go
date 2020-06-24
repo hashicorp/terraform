@@ -270,6 +270,11 @@ func (n *NodeDestroyableOutput) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }
 
+func (n *NodeDestroyableOutput) temporaryValue() bool {
+	// this must always be evaluated if it is a root module output
+	return !n.Addr.Module.IsRoot()
+}
+
 // RemovableIfNotTargeted
 func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
 	// We need to add this so that this node will be removed if
