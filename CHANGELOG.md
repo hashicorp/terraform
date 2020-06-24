@@ -1,4 +1,9 @@
 ## 0.12.27 (Unreleased)
+
+BUG FIXES:
+
+* backend/remote: fix panic when there's a connection error to the remote backend [GH-25341]
+
 ## 0.12.26 (May 27, 2020)
 
 ENHANCEMENTS:
