@@ -39,6 +39,7 @@ BUG FIXES:
 * command/0.13upgrade: Fix `0.13upgrade` usage help text to include options ([#25127](https://github.com/hashicorp/terraform/issues/25127))
 * command/0.13upgrade: Do not add source for builtin provider ([#25215](https://github.com/hashicorp/terraform/issues/25215))
 * command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path ([#25233](https://github.com/hashicorp/terraform/issues/25233))
+* command/import: Fix `-allow-missing-config` option [GH-25352]
 * command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location ([#25214](https://github.com/hashicorp/terraform/issues/25214))
 * command/init: Fix silent exit bug when configuration directory argument points at a non-directory ([#25300](https://github.com/hashicorp/terraform/pull/25300))
 * command/format: Fix bug which caused some diagnostics to print empty source lines ([#25156](https://github.com/hashicorp/terraform/issues/25156))
@@ -48,6 +49,7 @@ BUG FIXES:
 * config: Don't panic if version constraint syntax isn't accepted by new version constraint parser ([#25223](https://github.com/hashicorp/terraform/issues/25223))
 * config: Validate depends_on references in modules and outputs ([#25261](https://github.com/hashicorp/terraform/issues/25261))
 * configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
+* configs: Fix panic when `required_providers` blocks have non-string attribute values [GH-25369]
 * core: Fix crash with multiple nested modules ([#25176](https://github.com/hashicorp/terraform/issues/25176))
 * core: Fix panic when importing with modules ([#25208](https://github.com/hashicorp/terraform/issues/25208))
 * core: Allow targeting with expanded module addresses ([#25206](https://github.com/hashicorp/terraform/issues/25206))
