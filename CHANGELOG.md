@@ -1,8 +1,8 @@
-## 0.12.27 (Unreleased)
+## 0.12.27 (June 24, 2020)
 
 BUG FIXES:
 
-* backend/remote: fix panic when there's a connection error to the remote backend [GH-25341]
+* backend/remote: fix panic when there's a connection error to the remote backend ([#25341](https://github.com/hashicorp/terraform/issues/25341))
 
 ## 0.12.26 (May 27, 2020)
 
