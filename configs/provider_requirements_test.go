@@ -306,6 +306,32 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Error: "Invalid required_providers syntax",
 		},
+		"invalid source attribute type": {
+			Block: &hcl.Block{
+				Type: "required_providers",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"my-test": {
+							Name: "my-test",
+							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+								"source": cty.DynamicVal,
+							})),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			Want: &RequiredProviders{
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:      "my-test",
+						DeclRange: mockRange,
+					},
+				},
+				DeclRange: blockRange,
+			},
+			Error: "Invalid source",
+		},
 	}
 
 	for name, test := range tests {
