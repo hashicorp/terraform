@@ -33,6 +33,7 @@ BUG FIXES:
 * command/0.13upgrade: Do not add source for builtin provider ([#25215](https://github.com/hashicorp/terraform/issues/25215))
 * command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path ([#25233](https://github.com/hashicorp/terraform/issues/25233))
 * command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location ([#25214](https://github.com/hashicorp/terraform/issues/25214))
+* command/init: Fix silent exit bug when configuration directory argument points at a non-directory ([#25300](https://github.com/hashicorp/terraform/pull/25300))
 * command/format: Fix bug which caused some diagnostics to print empty source lines ([#25156](https://github.com/hashicorp/terraform/issues/25156))
 * command/version: add -json flag for machine-parsable version output ([#25252](https://github.com/hashicorp/terraform/issues/25252))
 * config: Function argument expansion with `...` will no longer incorrectly return "Invalid expanding argument value" in situations where the expanding argument type isn't known yet. ([#25216](https://github.com/hashicorp/terraform/issues/25216))
