@@ -158,7 +158,6 @@ var DeepMergeFunc = function.New(&function.Spec{
 })
 
 func recursiveMerge(newValue cty.Value, existingValue cty.Value) cty.Value {
-	// TODO test around overriding with null. should it leave existing stuff alone or wipe it out?
 	// New value isn't mergeable, so just replace.
 	newValueMergeable := newValue.Type().IsMapType() || newValue.Type().IsObjectType()
 	existingValueMergeable := existingValue.Type().IsMapType() || existingValue.Type().IsObjectType()
