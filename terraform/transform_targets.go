@@ -53,16 +53,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		}
 
 		for _, v := range g.Vertices() {
-			removable := false
-			if _, ok := v.(GraphNodeConfigResource); ok {
-				removable = true
-			}
-
-			if vr, ok := v.(RemovableIfNotTargeted); ok {
-				removable = vr.RemoveIfNotTargeted()
-			}
-
-			if removable && !targetedNodes.Include(v) {
+			if !targetedNodes.Include(v) {
 				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
 				g.Remove(v)
 			}
@@ -91,123 +82,63 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				tn.SetTargets(addrs)
 			}
 
-			deps, err := g.Ancestors(v)
-			if err != nil {
-				return nil, err
-			}
-
+			deps, _ := g.Ancestors(v)
 			for _, d := range deps {
 				targetedNodes.Add(d)
 			}
 		}
 	}
-	return t.addDependencies(targetedNodes, g)
-}
 
-func (t *TargetsTransformer) addDependencies(targetedNodes dag.Set, g *Graph) (dag.Set, error) {
-	// Handle nodes that need to be included if their dependencies are included.
-	// This requires multiple passes since we need to catch transitive
-	// dependencies if and only if they are via other nodes that also
-	// support TargetDownstream. For example:
-	// output -> output -> targeted-resource: both outputs need to be targeted
-	// output -> non-targeted-resource -> targeted-resource: output not targeted
-	//
-	// We'll keep looping until we stop targeting more nodes.
-	queue := targetedNodes.List()
-	for len(queue) > 0 {
-		vertices := queue
-		queue = nil // ready to append for next iteration if neccessary
-		for _, v := range vertices {
-			// providers don't cause transitive dependencies, so don't target
-			// downstream from them.
-			if _, ok := v.(GraphNodeProvider); ok {
-				continue
-			}
-
-			dependers := g.UpEdges(v)
-			if dependers == nil {
-				// indicates that there are no up edges for this node, so
-				// we have nothing to do here.
-				continue
-			}
-
-			dependers = dependers.Filter(func(dv interface{}) bool {
-				_, ok := dv.(GraphNodeTargetDownstream)
-				return ok
-			})
-
-			if dependers.Len() == 0 {
-				continue
-			}
-
-			for _, dv := range dependers {
-				if targetedNodes.Include(dv) {
-					// Already present, so nothing to do
-					continue
-				}
-
-				// We'll give the node some information about what it's
-				// depending on in case that informs its decision about whether
-				// it is safe to be targeted.
-				deps := g.DownEdges(v)
-
-				depsTargeted := deps.Intersection(targetedNodes)
-				depsUntargeted := deps.Difference(depsTargeted)
-
-				if dv.(GraphNodeTargetDownstream).TargetDownstream(depsTargeted, depsUntargeted) {
-					targetedNodes.Add(dv)
-					// Need to visit this node on the next pass to see if it
-					// has any transitive dependers.
-					queue = append(queue, dv)
-				}
-			}
-		}
-	}
-
-	return targetedNodes.Filter(func(dv interface{}) bool {
-		return filterPartialOutputs(dv, targetedNodes, g)
-	}), nil
-}
-
-// Outputs may have been included transitively, but if any of their
-// dependencies have been pruned they won't be resolvable.
-// If nothing depends on the output, and the output is missing any
-// dependencies, remove it from the graph.
-// This essentially maintains the previous behavior where interpolation in
-// outputs would fail silently, but can now surface errors where the output
-// is required.
-func filterPartialOutputs(v interface{}, targetedNodes dag.Set, g *Graph) bool {
-	// should this just be done with TargetDownstream?
-	if _, ok := v.(*NodeApplyableOutput); !ok {
-		return true
-	}
-
-	dependers := g.UpEdges(v)
-	for _, d := range dependers {
-		if _, ok := d.(*NodeCountBoundary); ok {
+	// It is expected that outputs which are only derived from targeted
+	// resources are also updated. While we don't include any other possible
+	// side effects from the targeted nodes, these are added because outputs
+	// cannot be targeted on their own.
+	// Start by finding the root module output nodes themselves
+	for _, v := range vertices {
+		// outputs are all temporary value types
+		tv, ok := v.(graphNodeTemporaryValue)
+		if !ok {
 			continue
 		}
 
-		if !targetedNodes.Include(d) {
-			// this one is going to be removed, so it doesn't count
+		// root module outputs indicate that while they are an output type,
+		// they not temporary and will return false here.
+		if tv.temporaryValue() {
 			continue
 		}
 
-		// as soon as we see a real dependency, we mark this as
-		// non-removable
-		return true
-	}
+		// If this output is descended only from targeted resources, then we
+		// will keep it
+		deps, _ := g.Ancestors(v)
+		found := 0
+		for _, d := range deps {
+			switch d.(type) {
+			case GraphNodeResourceInstance:
+			case GraphNodeConfigResource:
+			default:
+				continue
+			}
 
-	depends := g.DownEdges(v)
+			if !targetedNodes.Include(d) {
+				// this dependency isn't being targeted, so we can't process this
+				// output
+				found = 0
+				break
+			}
 
-	for _, d := range depends {
-		if !targetedNodes.Include(d) {
-			log.Printf("[WARN] %s missing targeted dependency %s, removing from the graph",
-				dag.VertexName(v), dag.VertexName(d))
-			return false
+			found++
+		}
+
+		if found > 0 {
+			// we found an output we can keep; add it, and all it's dependencies
+			targetedNodes.Add(v)
+			for _, d := range deps {
+				targetedNodes.Add(d)
+			}
 		}
 	}
-	return true
+
+	return targetedNodes, nil
 }
 
 func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
