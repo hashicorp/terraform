@@ -276,14 +276,9 @@ func TestStateRmNonExist(t *testing.T) {
 		"-state", statePath,
 		"test_instance.baz", // doesn't exist in the state constructed above
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("expected exit status %d, got: %d", 0, code)
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected exit status %d, got: %d", 1, code)
 	}
-
-	if msg := ui.OutputWriter.String(); !strings.Contains(msg, "No matching resource instances found") {
-		t.Fatalf("unexpected output:\n%s", msg)
-	}
-
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
