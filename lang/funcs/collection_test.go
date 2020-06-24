@@ -93,7 +93,9 @@ func TestDeepMerge(t *testing.T) {
 					"a": cty.List(cty.String),
 				})),
 			},
-			cty.NullVal(cty.EmptyObject),
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.String),
+			})),
 			false,
 		},
 		{ // handle null object
@@ -298,11 +300,57 @@ func TestDeepMerge(t *testing.T) {
 				}),
 			},
 			cty.ObjectVal(map[string]cty.Value{
-				"a": cty.MapVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
 					"e": cty.StringVal("f"),
 				}),
 				"b": cty.StringVal("b"),
 			}),
+			false,
+		},
+		{ // replacing a non-map/object with a map/object
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.MapVal(map[string]cty.Value{
+						"c": cty.StringVal("d"),
+					}),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			}),
+			false,
+		},
+		{ // replacing a map/object with a non-map/object
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.MapVal(map[string]cty.Value{
+						"c": cty.StringVal("d"),
+					}),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("b"),
+			}),
+			false,
+		},
+		{ // value of null deletes a field
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.NullVal(cty.String),
+				}),
+			},
+			cty.EmptyObjectVal,
 			false,
 		},
 		{ // argument error: non map type

@@ -125,122 +125,90 @@ var DeepMergeFunc = function.New(&function.Spec{
 			return cty.EmptyObject, nil
 		}
 
-		// collect the possible object attrs
-		attrs := map[string]cty.Type{}
-
-		//premerge objects so we can determine final type
-		objectMap := make(map[string]cty.Value)
-
+		// check for invalid arguments
 		for _, arg := range args {
 			ty := arg.Type()
-			// any dynamic args mean we can't compute a type
-			if ty.Equals(cty.DynamicPseudoType) {
-				return cty.DynamicPseudoType, nil
-			}
-
-			// check for invalid arguments
 			if !ty.IsMapType() && !ty.IsObjectType() {
 				return cty.NilType, fmt.Errorf("arguments must be maps or objects, got %#v", ty.FriendlyName())
 			}
-
-			if !arg.IsNull() && arg.IsKnown() {
-				preMerge := recursiveMerge(arg, objectMap)
-				for attr, aty := range preMerge {
-					attrs[attr] = aty.Type()
-				}
-			}
 		}
 
-		if len(attrs) == 0 {
-			return cty.EmptyObject, nil
+		//premerge objects so we can determine final type
+		outputMap := cty.NullVal(cty.NilType)
+
+		for _, arg := range args {
+			outputMap = recursiveMerge(arg, outputMap)
 		}
 
-		var defaultType cty.Type
-		for _, attrType := range attrs {
-			if defaultType == cty.NilType {
-				defaultType = attrType
-				continue
-			}
-
-			if defaultType != attrType {
-				//if all types don't match, its an object
-				return cty.Object(attrs), nil
-			}
+		if outputMap.Type().HasDynamicTypes() {
+			return cty.DynamicPseudoType, nil
 		}
-		// types all match, so make it a map
-		return cty.Map(defaultType), nil
+
+		return outputMap.Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		outputMap := make(map[string]cty.Value)
+		outputMap := cty.NullVal(cty.NilType)
 
-		// if all inputs are null, return a null value rather than an object
-		// with null attributes
-		allNull := true
 		for _, arg := range args {
-			if arg.IsNull() {
-				continue
-			} else {
-				allNull = false
-			}
-
-			tempMap := outputMap
-			outputMap = recursiveMerge(arg, tempMap)
+			outputMap = recursiveMerge(arg, outputMap)
 		}
 
-		switch {
-		case allNull:
-			return cty.NullVal(retType), nil
-		case retType.IsMapType():
-			return cty.MapVal(outputMap), nil
-		case retType.IsObjectType(), retType.Equals(cty.DynamicPseudoType):
-			return cty.ObjectVal(outputMap), nil
-		default:
-			panic(fmt.Sprintf("unexpected return type: %#v", retType))
-		}
+		return outputMap, nil
 	},
 })
 
-func recursiveMerge(newMap cty.Value, existingMap map[string]cty.Value) map[string]cty.Value {
-	typesMatch := true
-	var firstType cty.Type = cty.NilType
-
-	if newMap.IsNull() {
-		return existingMap
+func recursiveMerge(newValue cty.Value, existingValue cty.Value) cty.Value {
+	// TODO test around overriding with null. should it leave existing stuff alone or wipe it out?
+	// New value isn't mergeable, so just replace.
+	newValueMergeable := newValue.Type().IsMapType() || newValue.Type().IsObjectType()
+	existingValueMergeable := existingValue.Type().IsMapType() || existingValue.Type().IsObjectType()
+	if !newValueMergeable || !existingValueMergeable || existingValue.IsNull() {
+		return newValue
 	}
 
-	for it := newMap.ElementIterator(); it.Next(); {
-		_, v := it.Element()
-		propType := v.Type()
-		if firstType == cty.NilType {
-			firstType = v.Type()
+	if newValue.IsNull() {
+		return existingValue
+	}
+
+	mergedMap := existingValue.AsValueMap()
+	for it := newValue.ElementIterator(); it.Next(); {
+		k, newValue := it.Element()
+		key := k.AsString()
+		if newValue.IsNull() {
+			delete(mergedMap, key)
+			continue
 		}
-		if !propType.Equals(firstType) {
+
+		mergedMap[key] = recursiveMerge(newValue, mergedMap[key])
+	}
+
+	return wrapAsObjectOrMap(mergedMap)
+}
+
+func wrapAsObjectOrMap(input map[string]cty.Value) cty.Value {
+	if len(input) == 0 {
+		return cty.EmptyObjectVal
+	}
+
+	typesMatch := true
+	firstType := cty.NilType
+
+	for _, value := range input {
+		ty := value.Type()
+		if firstType == cty.NilType {
+			firstType = ty
+		}
+
+		if !ty.Equals(firstType) {
 			typesMatch = false
 		}
 	}
 
-	for it := newMap.ElementIterator(); it.Next(); {
-		k, v := it.Element()
-		switch {
-		case v.Type().IsMapType(), v.Type().IsObjectType():
-			{
-				objectMap := make(map[string]cty.Value)
-				if oldVal, exists := existingMap[k.AsString()]; exists {
-					if !oldVal.Type().IsListType() {
-						objectMap = oldVal.AsValueMap()
-					}
-				}
-				if typesMatch {
-					existingMap[k.AsString()] = cty.MapVal(recursiveMerge(v, objectMap))
-					continue
-				}
-				existingMap[k.AsString()] = cty.ObjectVal(recursiveMerge(v, objectMap))
-			}
-		default:
-			existingMap[k.AsString()] = v
-		}
+	if typesMatch {
+		return cty.MapVal(input)
 	}
-	return existingMap
+
+	return cty.ObjectVal(input)
 }
 
 // IndexFunc constructs a function that finds the element index for a given value in a list.
