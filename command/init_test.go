@@ -357,6 +357,40 @@ func TestInit_backendConfigFile(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	// SUBTLE: when using -flag=value with Powershell, unquoted values are
+	// broken into separate arguments. This results in the init command
+	// interpreting the flags as an empty backend-config setting (which is
+	// semantically valid!) followed by a custom configuration path.
+	//
+	// Adding the "=" here forces this codepath to be checked, and it should
+	// result in an early exit with a diagnostic that the provided
+	// configuration file is not a diretory.
+	args := []string{"-backend-config=", "./input.config"}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	output := ui.ErrorWriter.String()
+	if got, want := output, `Module directory ./input.config does not exist`; !strings.Contains(got, want) {
+		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
+	}
+}
+
 func TestInit_backendConfigFileChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
