@@ -22,7 +22,6 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ RemovableIfNotTargeted    = (*nodeExpandModule)(nil)
 	_ GraphNodeEvalable         = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
@@ -99,13 +98,6 @@ func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Mod
 	return n.Addr, n.Addr.Parent()
 }
 
-// RemovableIfNotTargeted implementation
-func (n *nodeExpandModule) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
-}
-
 // GraphNodeEvalable
 func (n *nodeExpandModule) EvalTree() EvalNode {
 	return &evalPrepareModuleExpansion{
@@ -146,22 +138,11 @@ func (n *nodeCloseModule) ReferenceableAddrs() []addrs.Referenceable {
 	}
 }
 
-func (n *nodeCloseModule) TargetDownstream(targeted, untargeted dag.Set) bool {
-	return true
-}
-
 func (n *nodeCloseModule) Name() string {
 	if len(n.Addr) == 0 {
 		return "root"
 	}
 	return n.Addr.String() + " (close)"
-}
-
-// RemovableIfNotTargeted implementation
-func (n *nodeCloseModule) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 func (n *nodeCloseModule) EvalTree() EvalNode {

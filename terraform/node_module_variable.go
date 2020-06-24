@@ -26,7 +26,6 @@ var (
 	_ GraphNodeReferenceable     = (*nodeExpandModuleVariable)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandModuleVariable)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandModuleVariable)(nil)
-	_ RemovableIfNotTargeted     = (*nodeExpandModuleVariable)(nil)
 	_ graphNodeExpandsInstances  = (*nodeExpandModuleVariable)(nil)
 )
 
@@ -98,16 +97,6 @@ func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
-// RemovableIfNotTargeted
-func (n *nodeExpandModuleVariable) RemoveIfNotTargeted() bool {
-	return true
-}
-
-// GraphNodeTargetDownstream
-func (n *nodeExpandModuleVariable) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	return true
-}
-
 // nodeModuleVariable represents a module variable input during
 // the apply step.
 type nodeModuleVariable struct {
@@ -123,7 +112,6 @@ type nodeModuleVariable struct {
 // implementing.
 var (
 	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
-	_ RemovableIfNotTargeted  = (*nodeModuleVariable)(nil)
 	_ GraphNodeEvalable       = (*nodeModuleVariable)(nil)
 	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
 	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
@@ -147,13 +135,6 @@ func (n *nodeModuleVariable) Path() addrs.ModuleInstance {
 // GraphNodeModulePath
 func (n *nodeModuleVariable) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
-}
-
-// RemovableIfNotTargeted
-func (n *nodeModuleVariable) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 // GraphNodeEvalable

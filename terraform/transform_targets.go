@@ -16,21 +16,6 @@ type GraphNodeTargetable interface {
 	SetTargets([]addrs.Targetable)
 }
 
-// GraphNodeTargetDownstream is an interface for graph nodes that need to
-// be remain present under targeting if any of their dependencies are targeted.
-// TargetDownstream is called with the set of vertices that are direct
-// dependencies for the node, and it should return true if the node must remain
-// in the graph in support of those dependencies.
-//
-// This is used in situations where the dependency edges are representing an
-// ordering relationship but the dependency must still be visited if its
-// dependencies are visited. This is true for outputs, for example, since
-// they must get updated if any of their dependent resources get updated,
-// which would not normally be true if one of their dependencies were targeted.
-type GraphNodeTargetDownstream interface {
-	TargetDownstream(targeted, untargeted dag.Set) bool
-}
-
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
 // their dependencies.
@@ -173,15 +158,4 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	}
 
 	return false
-}
-
-// RemovableIfNotTargeted is a special interface for graph nodes that
-// aren't directly addressable, but need to be removed from the graph when they
-// are not targeted. (Nodes that are not directly targeted end up in the set of
-// targeted nodes because something that _is_ targeted depends on them.) The
-// initial use case for this interface is GraphNodeConfigVariable, which was
-// having trouble interpolating for module variables in targeted scenarios that
-// filtered out the resource node being referenced.
-type RemovableIfNotTargeted interface {
-	RemoveIfNotTargeted() bool
 }
