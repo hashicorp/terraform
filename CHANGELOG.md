@@ -1,5 +1,12 @@
 ## (UNRELEASED)
 
+BUG FIXES:
+
+* backend/remote: Prevent panic when there's a connection error [GH-25341]
+* config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
+* core: Hide empty plans for misbehaving data sources [GH-25302]
+* provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
+
 ## 0.13.0-beta2 (June 17, 2020)
 
 NOTES:
