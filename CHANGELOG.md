@@ -1,8 +1,8 @@
-## 0.12.28 (Unreleased)
+## 0.12.28 (June 25, 2020)
 
 BUG FIXES:
 
-* build: build the 0.12 version of Terraform with Go 1.12.13, rather than 0.13 Terraform's 1.14.2 [GH-25386]
+* build: build the 0.12 version of Terraform with Go 1.12.13, rather than 0.13 Terraform's 1.14.2 ([#25386](https://github.com/hashicorp/terraform/issues/25386))
 
 ## 0.12.27 (June 24, 2020)
 
