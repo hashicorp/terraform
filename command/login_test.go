@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bytes"
 	"context"
 	"io/ioutil"
 	"net/http/httptest"
@@ -34,7 +33,7 @@ func TestLogin(t *testing.T) {
 	ts := httptest.NewServer(tfeserver.Handler)
 	defer ts.Close()
 
-	loginTestCase := func(test func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string))) func(t *testing.T) {
+	loginTestCase := func(test func(t *testing.T, c *LoginCommand, ui *cli.MockUi)) func(t *testing.T) {
 		return func(t *testing.T) {
 			t.Helper()
 			workDir, err := ioutil.TempDir("", "terraform-test-command-login")
@@ -48,14 +47,14 @@ func TestLogin(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			ui := cli.NewMockUi()
+			// Do not use the NewMockUi initializer here, as we want to delay
+			// the call to init until after setting up the input mocks
+			ui := new(cli.MockUi)
+
 			browserLauncher := webbrowser.NewMockLauncher(ctx)
 			creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
 			svcs := disco.NewWithCredentialsSource(creds)
 			svcs.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
-
-			inputBuf := &bytes.Buffer{}
-			ui.InputReader = inputBuf
 
 			svcs.ForceHostServices(svchost.Hostname("app.terraform.io"), map[string]interface{}{
 				"login.v1": map[string]interface{}{
@@ -96,16 +95,16 @@ func TestLogin(t *testing.T) {
 				},
 			}
 
-			test(t, c, ui, func(data string) {
-				t.Helper()
-				inputBuf.WriteString(data)
-			})
+			test(t, c, ui)
 		}
 	}
 
-	t.Run("defaulting to app.terraform.io with password flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
-		// Enter "yes" at the consent prompt, then a username and then a password.
-		inp("yes\nfoo\nbar\n")
+	t.Run("defaulting to app.terraform.io with password flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+		defer testInputMap(t, map[string]string{
+			"approve":  "yes",
+			"username": "foo",
+			"password": "bar",
+		})()
 		status := c.Run(nil)
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -121,9 +120,11 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
+	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt.
-		inp("yes\n")
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
 		status := c.Run([]string{"example.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -139,10 +140,13 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
+	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		inp("yes\n good-token \n")
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+			"token":   "  good-token ",
+		})()
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -158,9 +162,12 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
+	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
-		inp("yes\ngood-tok\n")
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+			"token":   "good-tok",
+		})()
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -176,13 +183,43 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi, inp func(string)) {
+	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		status := c.Run([]string{"unsupported.example.net"})
 		if status == 0 {
 			t.Fatalf("successful exit; want error")
 		}
 
 		if got, want := ui.ErrorWriter.String(), "Error: Host does not support Terraform tokens API"; !strings.Contains(got, want) {
+			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
+		}
+	}))
+
+	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+		// Enter "no" at the consent prompt
+		defer testInputMap(t, map[string]string{
+			"approve": "no",
+		})()
+		status := c.Run(nil)
+		if status != 1 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+		}
+
+		if got, want := ui.ErrorWriter.String(), "Login cancelled"; !strings.Contains(got, want) {
+			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
+		}
+	}))
+
+	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+		// Enter "y" at the consent prompt
+		defer testInputMap(t, map[string]string{
+			"approve": "y",
+		})()
+		status := c.Run(nil)
+		if status != 1 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+		}
+
+		if got, want := ui.ErrorWriter.String(), "Login cancelled"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	}))

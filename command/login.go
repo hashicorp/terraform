@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -453,12 +454,19 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
 	c.Ui.Output("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n")
 
-	username, err := c.Ui.Ask(fmt.Sprintf("Username for %s:", hostname.ForDisplay()))
+	username, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id:    "username",
+		Query: fmt.Sprintf("Username for %s:", hostname.ForDisplay()),
+	})
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to request username: %s", err))
 		return nil, diags
 	}
-	password, err := c.Ui.AskSecret(fmt.Sprintf("Password for %s:", username))
+	password, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id:     "password",
+		Query:  fmt.Sprintf("Password for %s:", hostname.ForDisplay()),
+		Secret: true,
+	})
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to request password: %s", err))
 		return nil, diags
@@ -494,6 +502,8 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		return "", diags
 	}
 
+	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+
 	tokensURL := url.URL{
 		Scheme:   "https",
 		Host:     service.Hostname(),
@@ -508,6 +518,7 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the tokens page for %s.\n", hostname.ForDisplay()))
 			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", tokensURL.String()))
 		} else {
+			log.Printf("[DEBUG] error opening web browser: %s", err)
 			// Assume we're on a platform where opening a browser isn't possible.
 			launchBrowserManually = true
 		}
@@ -533,7 +544,11 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		}
 	}
 
-	token, err := c.Ui.AskSecret(fmt.Sprintf(c.Colorize().Color("Token for [bold]%s[reset]:"), hostname.ForDisplay()))
+	token, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id:     "token",
+		Query:  fmt.Sprintf("Token for %s:", hostname.ForDisplay()),
+		Secret: true,
+	})
 	if err != nil {
 		diags := diags.Append(fmt.Errorf("Failed to retrieve token: %s", err))
 		return "", diags
@@ -590,7 +605,11 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 		}
 	}
 
-	v, err := c.Ui.Ask("Do you want to proceed? (y/n)")
+	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		Id:          "approve",
+		Query:       "Do you want to proceed?",
+		Description: `Only 'yes' will be accepted to confirm.`,
+	})
 	if err != nil {
 		// Should not happen because this command checks that input is enabled
 		// before we get to this point.
@@ -598,12 +617,7 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 		return false, diags
 	}
 
-	switch strings.ToLower(v) {
-	case "y", "yes":
-		return true, diags
-	default:
-		return false, diags
-	}
+	return strings.ToLower(v) == "yes", diags
 }
 
 func (c *LoginCommand) listenerForCallback(minPort, maxPort uint16) (net.Listener, string, error) {
