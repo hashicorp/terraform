@@ -4,13 +4,20 @@ BUG FIXES:
 
 * backend/azurerm: support for snapshotting the blob used for remote state storage prior to change [GH-24069]
 * backend/remote: Prevent panic when there's a connection error [GH-25341]
+* command: Fix bug with global `-v`/`-version`/`--version` flags introduced in 0.13.0beta2 [GH-25277]
+* command: Fix command test fixture modify-in-place bugs, which could cause state leak between tests [GH-25299]
+* command: Preserve more comments when rerunning 0.13upgrade [GH-25381]
+* command/import: Fix `-allow-missing-config` option [GH-25352]
 * communicator/winrm: Inlcude any user-configured timeout for winrm connection [GH-25350]
 * config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
+* configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
+* configs: Fix panic when `required_providers` blocks have non-string attribute values [GH-25369]
 * core: Hide empty plans for misbehaving data sources [GH-25302]
 * provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
 
 BREAKING CHANGES:
 * command/state: exit code 1 if `state rm` is called on a resource that does not exist [GH-22300]
+* command/login: Require "yes" to confirm, no longer accepting "y" [GH-25379]
 
 ## 0.13.0-beta2 (June 17, 2020)
 
@@ -39,12 +46,9 @@ BUG FIXES:
 * backend/s3: Prefer AWS shared configuration over EC2 metadata credentials by default ([#25134](https://github.com/hashicorp/terraform/issues/25134))
 * backend/s3: Prefer ECS credentials over EC2 metadata credentials by default ([#25134](https://github.com/hashicorp/terraform/issues/25134))
 * backend/s3: Remove hardcoded AWS Provider messaging ([#25134](https://github.com/hashicorp/terraform/issues/25134))
-* command: Fix bug with global `-v`/`-version`/`--version` flags introduced in 0.13.0beta2 [GH-25277]
-* command: Fix command test fixture modify-in-place bugs, which could cause state leak between tests [GH-25299]
 * command/0.13upgrade: Fix `0.13upgrade` usage help text to include options ([#25127](https://github.com/hashicorp/terraform/issues/25127))
 * command/0.13upgrade: Do not add source for builtin provider ([#25215](https://github.com/hashicorp/terraform/issues/25215))
 * command/apply: Fix bug which caused Terraform to silently exit on Windows when using absolute plan path ([#25233](https://github.com/hashicorp/terraform/issues/25233))
-* command/import: Fix `-allow-missing-config` option [GH-25352]
 * command/init: Fix bug which caused the default local plugindir to be omitted as a provider source location ([#25214](https://github.com/hashicorp/terraform/issues/25214))
 * command/init: Fix silent exit bug when configuration directory argument points at a non-directory ([#25300](https://github.com/hashicorp/terraform/pull/25300))
 * command/format: Fix bug which caused some diagnostics to print empty source lines ([#25156](https://github.com/hashicorp/terraform/issues/25156))
@@ -53,8 +57,6 @@ BUG FIXES:
 * config: Fix crash in validation with non-ascii characters ([#25144](https://github.com/hashicorp/terraform/issues/25144))
 * config: Don't panic if version constraint syntax isn't accepted by new version constraint parser ([#25223](https://github.com/hashicorp/terraform/issues/25223))
 * config: Validate depends_on references in modules and outputs ([#25261](https://github.com/hashicorp/terraform/issues/25261))
-* configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
-* configs: Fix panic when `required_providers` blocks have non-string attribute values [GH-25369]
 * core: Fix crash with multiple nested modules ([#25176](https://github.com/hashicorp/terraform/issues/25176))
 * core: Fix panic when importing with modules ([#25208](https://github.com/hashicorp/terraform/issues/25208))
 * core: Allow targeting with expanded module addresses ([#25206](https://github.com/hashicorp/terraform/issues/25206))
