@@ -21,7 +21,7 @@ list of changes will always be the
 After reviewing this guide, we recommend reviewing the Changelog to check for
 specific notes about less-commonly-used features.
 
-This guide focuses on changes from v0.12 to v0.13. Terraform guarantees upgrade
+This guide focuses on changes from v0.12 to v0.13. Terraform supports upgrade
 tools and features only for one major release upgrade at a time, so if you are
 currently using a version of Terraform prior to v0.12 please upgrade through
 the latest minor releases of all of the intermediate versions first, reviewing
@@ -35,8 +35,8 @@ using Terraform v0.13.
 
 ---
 
-If you run into any problems during upgrading that are not solved by the
-content below, please free free to start a topic in
+If you run into any problems during upgrading that are not addressed by the
+information in this guide, please feel free to start a topic in
 [The Terraform community forum](https://discuss.hashicorp.com/c/terraform-core),
 describing the problem you've encountered in enough detail that other readers
 may be able to reproduce it and offer advice.
@@ -47,6 +47,7 @@ Upgrade guide sections:
 
 * [Explicit Provider Source Locations](#explicit-provider-source-locations)
 * [New Filesystem Layout for Local Copies of Providers](#new-filesystem-layout-for-local-copies-of-providers)
+  * [Special considerations for in-house providers](#in-house-providers)
 * [Destroy-time provisioners may not refer to other resources](#destroy-time-provisioners-may-not-refer-to-other-resources)
 * [Data resource reads can no longer be disabled by `-refresh=false`](#data-resource-reads-can-no-longer-be-disabled-by--refresh-false)
 
@@ -57,13 +58,13 @@ for providers packaged and distributed by HashiCorp. Providers built by the
 community have previously required manual installation by extracting their
 distribution packages into specific local filesystem locations.
 
-Terraform v0.13 introduces a new heirarchical namespace for providers that
+Terraform v0.13 introduces a new hierarchical namespace for providers that
 allows specifying both HashiCorp-maintained and community-maintained providers
 as dependencies of a module, with community providers distributed from other
 namespaces on [Terraform Registry](https://registry.terraform.io/) from a
 third-party provider registry.
 
-In order to establish the heirarchical namespace, Terraform now requires
+In order to establish the hierarchical namespace, Terraform now requires
 explicit source information for any providers that are not HashiCorp-maintained,
 using a new syntax in the `required_providers` nested block inside the
 `terraform` configuration block:
@@ -72,16 +73,19 @@ using a new syntax in the `required_providers` nested block inside the
 terraform {
   required_providers {
     azurerm = {
+      # The "hashicorp" namespace is the new home for the HashiCorp-maintained
+      # provider plugins.
+      #
       # source is not required for the hashicorp/* namespace as a measure of
       # backward compatibility for commonly-used providers, but recommended for
       # explicitness.
       source  = "hashicorp/azurerm"
       version = "~> 2.12"
     }
-    datadog = {
+    newrelic = {
       # source is required for providers in other namespaces, to avoid ambiguity.
-      source  = "terraform-providers/datadog"
-      version = "~> 2.7.0"
+      source  = "newrelic/newrelic"
+      version = "~> 2.1.1"
     }
   }
 }
@@ -104,36 +108,42 @@ following command:
 ```
 
 As mentioned in the error message, Terraform v0.13 includes an automatic
-upgrade command `terraform 0.13upgrade` that is able to automatically generate
-source addresses for unlabelled providers by consulting the same lookup table
-that was previously used for Terraform v0.12 provider installation. This command
-will automatically modify the configuration of your current module, so you can
-use the features of your version control system to inspect the proposed changes
-before committing them.
+upgrade command
+`terraform 0.13upgrade`
+that is able to automatically generate source addresses for unlabelled
+providers by consulting the same lookup table that was previously used for
+Terraform v0.12 provider installation. This command will automatically modify
+the configuration of your current module, so you can use the features of your
+version control system to inspect the proposed changes before committing them.
 
 We recommend running `terraform 0.13upgrade` even if you don't see the message,
 because it will generate the recommended explicit source addresses for
 providers in the "hashicorp" namespace.
 
-For more information on declaring provider dependencies, see
-**[TODO: Link to the yet-to-be-finalized docs on the new `required_providers` syntax]**.
-That section also includes some guidance on how to write provider dependencies
-for a module that must be compatible with both Terraform v0.12 and
-Terraform v0.13.
+For some introductory information on provider dependencies, see
+[the beta guide for provider sources](https://github.com/hashicorp/terraform/tree/guide-v0.13-beta/provider-sources).
+Fuller instructions will follow on the main Terraform documentation website
+after the v0.13.0 release, including some guidance on how you can write
+modules that are compatible with both v0.12 and v0.13 during a transitional
+period.
+
+Each module must declare its own set of provider requirements, so if you have
+a configuration which calls other modules then you'll need to run this upgrade
+command for each module separately.
 
 After you've added explicit provider source addresses to your configuration,
 run `terraform init` again to re-run the provider installer.
 
 ---
 
--> **Action:** Either run `terraform 0.13upgrade` for your module, or manually update the provider declarations to use explicit source addresses.
+**Action:** Either run `terraform 0.13upgrade` for each of your modules, or manually update the provider declarations to use explicit source addresses.
 
 ---
 
 ## New Filesystem Layout for Local Copies of Providers
 
-As part of introducing the heirarchical provider namespace discussed in the
-previous section, Terraform v0.13 also introduces a new heirarchical directory
+As part of introducing the hierarchical provider namespace discussed in the
+previous section, Terraform v0.13 also introduces a new hierarchical directory
 structure for manually-installed providers in the local filesystem.
 
 If you use local copies of official providers or if you use custom in-house
@@ -147,13 +157,18 @@ Google Cloud Platform provider for that target platform within one of the local
 search directories would be the following:
 
 ```
-registry.terraform.io/hashicorp/google/v2.0.0/linux_amd64/terraform-provider-google_v2.0.0
+registry.terraform.io/hashicorp/google/2.0.0/linux_amd64/terraform-provider-google_v2.0.0
 ```
 
 The `registry.terraform.io` above is the hostname of the registry considered
 to be the origin for this provider. The provider source address
 `hashicorp/google` is a shorthand for `registry.terraform.io/hashicorp/google`,
 and the full, explicit form is required for a local directory.
+
+Note that the version number given as a directory name must be written _without_
+the "v" prefix that tends to be included when a version number is used as part
+of a git branch name. If you include that prefix, Terraform will not recognize
+the directory as containing provider packages.
 
 As before, the recommended default location for locally-installed providers
 is one of the following, depending on which operating system you are running
@@ -163,13 +178,13 @@ Terraform under:
 * All other systems: `~/.terraform.d/plugins`
 
 Terraform v0.13 introduces some additional options for customizing where
-Terraform looks for providers in the local filesystem. There will be more
-information on this new syntax in the main documentation after the Terraform
-v0.13.0 final release.
+Terraform looks for providers in the local filesystem. For more information on
+those new options, see [Provider Installation](/docs/commands/cli-config.html#provider-installation).
 
 If you use only providers that are automatically installable from Terraform
-provider registries then Terraform v0.13 includes
-a helper command
+provider registries but still want to avoid Terraform re-downloading them from
+registries each time, Terraform v0.13 includes
+the `terraform providers mirror` command
 which you can use to automatically populate a local directory based on the
 requirements of the current configuration file:
 
@@ -179,7 +194,7 @@ terraform providers mirror ~/.terraform.d/plugins
 
 ---
 
-**Action:** If you use local copies of official providers rather than installing automatically from Terraform Registry, adopt the new expected directory structure for your local directory either by running `terraform providers mirror` or by manually reorganizing the existing files.
+**Action:** If you use local copies of official providers rather than installing them automatically from Terraform Registry, adopt the new expected directory structure for your local directory either by running `terraform providers mirror` or by manually reorganizing the existing files.
 
 ---
 
@@ -230,6 +245,66 @@ only after your initial upgrade using the new local filesystem layout.
 ---
 
 **Action:** If you use in-house providers that are not installable from a provider registry, assign them a new source address under a domain name you control and update your modules to specify that new source address.
+
+---
+
+If your configuration using one or more in-house providers has existing state
+snapshots that include resources belonging to those providers, you'll also need
+to perform a one-time migration of the provider references in the state, so
+Terraform can understand them as belonging to your in-house providers rather
+than to providers in the public Terraform Registry. If you are in this
+situation, `terraform init` will produce the following error message after
+you complete the configuration changes described above:
+
+```
+Error: Failed to query available provider packages
+
+Could not retrieve the list of available versions for provider -/happycloud:
+provider registry registry.terraform.io does not have a provider named
+registry.terraform.io/-/happycloud
+```
+
+Provider source addresses starting with `registry.terraform.io/-/` are a special
+way Terraform marks legacy addresses where the true namespace is unknown.
+For providers that were automatically-installable in Terraform 0.12, Terraform
+0.13 can automatically determine the new addresses for these using a lookup
+table in the public Terraform Registry, but for in-house providers you will
+need to provide the appropriate mapping manually.
+
+The `terraform state replace-provider` subcommand allows re-assigning provider
+source addresses recorded in the Terraform state, and so we can use this
+command to tell Terraform how to reinterpret the "legacy" provider addresses
+as properly-namespaced providers that match with the provider source addresses
+in the configuration.
+
+---
+
+**Warning:** The `terraform state replace-provider` subcommand, like all of the `terraform state` subcommands, will create a new state snapshot and write it to the configured backend. After the command succeeds the latest state snapshot will use syntax that Terraform v0.12 cannot understand, so you should perform this step only when you are ready to permanently upgrade to Terraform v0.13.
+
+---
+
+```
+terraform state replace-provider 'registry.terraform.io/-/happycloud' 'terraform.example.com/awesomecorp/happycloud'
+```
+
+The command above asks Terraform to update any resource instance in the state
+that belongs to a legacy (non-namespaced) provider called "happycloud" to
+instead belong to the fully-qualified source address
+`terraform.example.com/awesomecorp/happycloud`.
+
+Whereas the configuration changes for provider requirements are made on a
+per-module basis, the Terraform state captures data from throughout the
+configuration (all of the existing module instances) and so you only need to
+run `terraform state replace-provider` once per configuration.
+
+Running `terraform init` again after completing this step should cause
+Terraform to attempt to install `terraform.example.com/awesomecorp/happycloud`
+and to find it in the local filesystem directory you populated in an earlier
+step.
+
+---
+
+**Action:** If you use in-house providers that are not installable from a provider registry and your existing state contains resource instances that were created with any of those providers, use the `terraform state replace-provider` command to update the state to use the new source addressing scheme only once you are ready to commit to your v0.13 upgrade. (Terraform v0.12 cannot parse a state snapshot that was created by this command.)
 
 ---
 
@@ -294,7 +369,7 @@ The provisioner's `connection` configuration can refer to that value via
 `self`, whereas referring directly to `aws_instance.example.private_ip` in that
 context is forbidden.
 
-[Provisioners are a last resort](https://terraform.io/docs/provisioners/#provisioners-are-a-last-resort),
+[Provisioners are a last resort](/docs/provisioners/#provisioners-are-a-last-resort),
 so we recommend avoiding both create-time and destroy-time provisioners wherever
 possible. Other options for destroy-time actions include using `systemd` to
 run commands within your virtual machines during shutdown or using virtual
