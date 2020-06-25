@@ -4,6 +4,7 @@ BUG FIXES:
 
 * backend/azurerm: support for snapshotting the blob used for remote state storage prior to change [GH-24069]
 * backend/remote: Prevent panic when there's a connection error [GH-25341]
+* communicator/winrm: Inlcude any user-configured timeout for winrm connection [GH-25350]
 * config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
 * core: Hide empty plans for misbehaving data sources [GH-25302]
 * provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
