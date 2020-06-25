@@ -404,7 +404,18 @@ command and dealing with them before running this command again.
 			} else {
 				attributesObject = cty.EmptyObjectVal
 			}
-			body.SetAttributeValue(localName, attributesObject)
+			// If this block already has an entry for this local name, we only
+			// want to replace it if it's semantically different
+			if existing := body.GetAttribute(localName); existing != nil {
+				bytes := existing.Expr().BuildTokens(nil).Bytes()
+				expr, _ := hclsyntax.ParseExpression(bytes, "", hcl.InitialPos)
+				value, _ := expr.Value(nil)
+				if !attributesObject.RawEquals(value) {
+					body.SetAttributeValue(localName, attributesObject)
+				}
+			} else {
+				body.SetAttributeValue(localName, attributesObject)
+			}
 
 			// If we don't have a source attribute, manually construct a commented
 			// block explaining what to do
