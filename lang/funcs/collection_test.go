@@ -112,26 +112,26 @@ func TestDeepMerge(t *testing.T) {
 			}),
 			false,
 		},
-		// { // handle unknowns
-		// 	[]cty.Value{
-		// 		cty.UnknownVal(cty.Map(cty.String)),
-		// 		cty.MapVal(map[string]cty.Value{
-		// 			"c": cty.StringVal("d"),
-		// 		}),
-		// 	},
-		// 	cty.UnknownVal(cty.Map(cty.String)),
-		// 	false,
-		// },
-		// { // handle dynamic unknown
-		// 	[]cty.Value{
-		// 		cty.UnknownVal(cty.DynamicPseudoType),
-		// 		cty.MapVal(map[string]cty.Value{
-		// 			"c": cty.StringVal("d"),
-		// 		}),
-		// 	},
-		// 	cty.DynamicVal,
-		// 	false,
-		// },
+		{ // handle unknowns
+			[]cty.Value{
+				cty.UnknownVal(cty.Map(cty.String)),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.UnknownVal(cty.Map(cty.String)),
+			false,
+		},
+		{ // handle dynamic unknown
+			[]cty.Value{
+				cty.UnknownVal(cty.DynamicPseudoType),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("d"),
+				}),
+			},
+			cty.DynamicVal,
+			false,
+		},
 		{ // merge with conflicts is ok, last in wins
 			[]cty.Value{
 				cty.MapVal(map[string]cty.Value{

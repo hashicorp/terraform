@@ -128,6 +128,12 @@ var DeepMergeFunc = function.New(&function.Spec{
 		// check for invalid arguments
 		for _, arg := range args {
 			ty := arg.Type()
+
+			// we can't work with dynamic types, so move along
+			if ty.Equals(cty.DynamicPseudoType) {
+				return cty.DynamicPseudoType, nil
+			}
+
 			if !ty.IsMapType() && !ty.IsObjectType() {
 				return cty.NilType, fmt.Errorf("arguments must be maps or objects, got %#v", ty.FriendlyName())
 			}
@@ -158,6 +164,12 @@ var DeepMergeFunc = function.New(&function.Spec{
 })
 
 func recursiveMerge(newValue cty.Value, existingValue cty.Value) cty.Value {
+
+	// unknown types trump known ones, don't merge
+	if !existingValue.IsKnown() {
+		return existingValue
+	}
+
 	// New value isn't mergeable, so just replace.
 	newValueMergeable := newValue.Type().IsMapType() || newValue.Type().IsObjectType()
 	existingValueMergeable := existingValue.Type().IsMapType() || existingValue.Type().IsObjectType()
