@@ -213,7 +213,7 @@ control to establish a _virtual_ source registry to serve as a separate
 namespace for your local use. For example:
 
 ```
-terraform.example.com/awesomecorp/happycloud/v1.0.0/linux_amd64/terraform-provider-happycloud_v1.0.0
+terraform.example.com/awesomecorp/happycloud/1.0.0/linux_amd64/terraform-provider-happycloud_v1.0.0
 ```
 
 You can then specify explicitly the requirement for that in-house provider
