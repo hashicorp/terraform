@@ -125,12 +125,12 @@ github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 h1:VBj0QYQ0
 github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90/go.mod h1:o4zcYY1e0GEZI6eSEr+43QDYmuGglw1qSO6qdHUHCgg=
 github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc h1:wAa9fGALVHfjYxZuXRnmuJG2CnwRpJYOTvY6YdErAh0=
 github.com/hashicorp/go-safetemp v0.0.0-20180326211150-b1a1dbde6fdc/go.mod h1:oaerMy3BhqiTbVye6QuFhFtIceqFoDHxNAB65b+Rj1I=
-github.com/hashicorp/go-slug v0.3.0 h1:L0c+AvH/J64iMNF4VqRaRku2DMTEuHioPVS7kMjWIU8=
-github.com/hashicorp/go-slug v0.3.0/go.mod h1:I5tq5Lv0E2xcNXNkmx7BSfzi1PsJ2cNjs3cC3LwyhK8=
+github.com/hashicorp/go-slug v0.4.0 h1:YSz3afoEZZJVVB46NITf0+opd2cHpaYJ1XSojOyP0x8=
+github.com/hashicorp/go-slug v0.4.0/go.mod h1:I5tq5Lv0E2xcNXNkmx7BSfzi1PsJ2cNjs3cC3LwyhK8=
 github.com/hashicorp/go-sockaddr v1.0.0 h1:GeH6tui99pF4NJgfnhp+L6+FfobzVW3Ah46sLo0ICXs=
 github.com/hashicorp/go-sockaddr v1.0.0/go.mod h1:7Xibr9yA9JjQq1JpNB2Vw7kxv8xerXegt+ozgdvDeDU=
-github.com/hashicorp/go-tfe v0.3.14 h1:1eWmq4RAICGufydNUWu7ahb0gtq24pN9jatD2FkdxdE=
-github.com/hashicorp/go-tfe v0.3.14/go.mod h1:SuPHR+OcxvzBZNye7nGPfwZTEyd3rWPfLVbCgyZPezM=
+github.com/hashicorp/go-tfe v0.3.25 h1:4rPk/9rSYuRoujKk5FsxSvtC/AjJCQphLS/57yr6wUM=
+github.com/hashicorp/go-tfe v0.3.25/go.mod h1:IJQ30WzRajD/W0Z8SY4lhuoOX8h5saTe95t80z8hRsk=
 github.com/hashicorp/go-uuid v1.0.0 h1:RS8zrF7PhGwyNPOtxSClXXj9HA8feRnJzgnI1RJCSnM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
 github.com/hashicorp/go-uuid v1.0.1 h1:fv1ep09latC32wFoVwnqcnKJGnMSdBanPczbHAYm1BE=

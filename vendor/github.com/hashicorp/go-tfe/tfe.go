@@ -32,6 +32,8 @@ const (
 	DefaultAddress = "https://app.terraform.io"
 	// DefaultBasePath on which the API is served.
 	DefaultBasePath = "/api/v2/"
+	// No-op API endpoint used to configure the rate limiter
+	PingEndpoint = "ping"
 )
 
 var (
@@ -106,12 +108,14 @@ type Client struct {
 
 	Applies                    Applies
 	ConfigurationVersions      ConfigurationVersions
+	CostEstimates              CostEstimates
 	NotificationConfigurations NotificationConfigurations
 	OAuthClients               OAuthClients
 	OAuthTokens                OAuthTokens
 	Organizations              Organizations
 	OrganizationTokens         OrganizationTokens
 	Plans                      Plans
+	PlanExports                PlanExports
 	Policies                   Policies
 	PolicyChecks               PolicyChecks
 	PolicySets                 PolicySets
@@ -195,12 +199,14 @@ func NewClient(cfg *Config) (*Client, error) {
 	// Create the services.
 	client.Applies = &applies{client: client}
 	client.ConfigurationVersions = &configurationVersions{client: client}
+	client.CostEstimates = &costEstimates{client: client}
 	client.NotificationConfigurations = &notificationConfigurations{client: client}
 	client.OAuthClients = &oAuthClients{client: client}
 	client.OAuthTokens = &oAuthTokens{client: client}
 	client.Organizations = &organizations{client: client}
 	client.OrganizationTokens = &organizationTokens{client: client}
 	client.Plans = &plans{client: client}
+	client.PlanExports = &planExports{client: client}
 	client.Policies = &policies{client: client}
 	client.PolicyChecks = &policyChecks{client: client}
 	client.PolicySets = &policySets{client: client}
@@ -247,7 +253,7 @@ func (c *Client) retryHTTPBackoff(min, max time.Duration, attemptNum int, resp *
 	}
 
 	// Use the rate limit backoff function when we are rate limited.
-	if resp.StatusCode == 429 {
+	if resp != nil && resp.StatusCode == 429 {
 		return rateLimitBackoff(min, max, attemptNum, resp)
 	}
 
@@ -289,7 +295,11 @@ func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Respons
 // configureLimiter configures the rate limiter.
 func (c *Client) configureLimiter() error {
 	// Create a new request.
-	req, err := http.NewRequest("GET", c.baseURL.String(), nil)
+	u, err := c.baseURL.Parse(PingEndpoint)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return err
 	}

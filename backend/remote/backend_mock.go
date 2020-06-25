@@ -108,6 +108,14 @@ func (m *mockApplies) Read(ctx context.Context, applyID string) (*tfe.Apply, err
 	return a, nil
 }
 
+func (m *mockWorkspaces) ReadByID(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return w, nil
+}
+
 func (m *mockApplies) Logs(ctx context.Context, applyID string) (io.Reader, error) {
 	a, err := m.Read(ctx, applyID)
 	if err != nil {
@@ -311,8 +319,38 @@ func (m *mockOrganizations) Update(ctx context.Context, name string, options tfe
 
 }
 
+func (m *mockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, options tfe.WorkspaceUpdateOptions) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	if options.Name != nil {
+		w.Name = *options.Name
+	}
+	if options.TerraformVersion != nil {
+		w.TerraformVersion = *options.TerraformVersion
+	}
+	if options.WorkingDirectory != nil {
+		w.WorkingDirectory = *options.WorkingDirectory
+	}
+
+	delete(m.workspaceNames, w.Name)
+	m.workspaceNames[w.Name] = w
+
+	return w, nil
+}
+
 func (m *mockOrganizations) Delete(ctx context.Context, name string) error {
 	delete(m.organizations, name)
+	return nil
+}
+
+func (m *mockWorkspaces) DeleteByID(ctx context.Context, workspaceID string) error {
+	if w, ok := m.workspaceIDs[workspaceID]; ok {
+		delete(m.workspaceIDs, w.Name)
+	}
+	delete(m.workspaceIDs, workspaceID)
 	return nil
 }
 
@@ -987,6 +1025,15 @@ func (m *mockWorkspaces) Delete(ctx context.Context, organization, workspace str
 
 func (m *mockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
 	w, ok := m.workspaceNames[workspace]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	w.VCSRepo = nil
+	return w, nil
+}
+
+func (m *mockWorkspaces) RemoveVCSConnectionByID(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	w, ok := m.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
