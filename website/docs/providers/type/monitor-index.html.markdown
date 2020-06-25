@@ -29,7 +29,7 @@ HashiCorp, and are tested by HashiCorp.
 - [Librato](/docs/providers/librato/index.html)
 - [Logentries](/docs/providers/logentries/index.html)
 - [LogicMonitor](/docs/providers/logicmonitor/index.html)
-- [New Relic](/docs/providers/newrelic/index.html)
+- [New Relic](https://registry.terraform.io/providers/newrelic/newrelic/latest/docs)
 - [OpsGenie](/docs/providers/opsgenie/index.html)
 - [PagerDuty](/docs/providers/pagerduty/index.html)
 - [Runscope](/docs/providers/runscope/index.html)
