@@ -133,6 +133,7 @@ down to see all providers.
 - [Rancher2](/docs/providers/rancher2/index.html)
 - [Random](/docs/providers/random/index.html)
 - [RightScale](/docs/providers/rightscale/index.html)
+- [Rubrik](/docs/providers/rubrik/index.html)
 - [Rundeck](/docs/providers/rundeck/index.html)
 - [RunScope](/docs/providers/runscope/index.html)
 - [Scaleway](/docs/providers/scaleway/index.html)
