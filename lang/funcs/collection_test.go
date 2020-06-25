@@ -14,6 +14,27 @@ func TestDeepMerge(t *testing.T) {
 		Want   cty.Value
 		Err    bool
 	}{
+		{ // remove props if set to null
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+					"c": cty.NullVal(cty.String),
+					"d": cty.StringVal("d"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"b": cty.NullVal(cty.String),
+					"c": cty.StringVal("c"),
+					"e": cty.NullVal(cty.String),
+				}),
+			},
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("a"),
+				"c": cty.StringVal("c"),
+				"d": cty.StringVal("d"),
+			}),
+			false,
+		},
 		{
 			[]cty.Value{
 				cty.ObjectVal(map[string]cty.Value{

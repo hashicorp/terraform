@@ -23,6 +23,10 @@ or object that contains a merged set of elements from all arguments.
 The behavior is exactly the same as `merge`, but it will recurse in to objects, and supports
 partial updates of nested objects.
 
+## Null Values
+Any properties that are set to a `null` value will be removed from the final object/map. If you wish
+to keep these properties, make sure to fill them with a default value (ex: `{}`)
+
 ## Examples
 
 ```

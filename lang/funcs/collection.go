@@ -192,6 +192,12 @@ func recursiveMerge(newValue cty.Value, existingValue cty.Value) cty.Value {
 
 		mergedMap[key] = recursiveMerge(newValue, mergedMap[key])
 	}
+	// strip out any null properties
+	for key, value := range mergedMap {
+		if value.IsNull() {
+			delete(mergedMap, key)
+		}
+	}
 
 	return wrapAsObjectOrMap(mergedMap)
 }
