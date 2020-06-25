@@ -8,7 +8,7 @@ description: |-
 
 # swift
 
-**Kind: Standard (with no locking)**
+**Kind: Standard (with locking)**
 
 Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/latest/).
 
