@@ -167,7 +167,7 @@ func setOperationReturnType(args []cty.Value) (ret cty.Type, err error) {
 
 		// Do not unify types for empty dynamic pseudo typed collections. These
 		// will always convert to any other concrete type.
-		if arg.LengthInt() == 0 && ty.Equals(cty.DynamicPseudoType) {
+		if arg.IsKnown() && arg.LengthInt() == 0 && ty.Equals(cty.DynamicPseudoType) {
 			continue
 		}
 
