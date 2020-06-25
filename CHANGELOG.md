@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* backend/azurerm: support for snapshotting the blob used for remote state storage prior to change [GH-24069]
 * backend/remote: Prevent panic when there's a connection error [GH-25341]
 * config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
 * core: Hide empty plans for misbehaving data sources [GH-25302]
