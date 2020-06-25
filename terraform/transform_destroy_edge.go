@@ -62,9 +62,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// are only being updated.
 	creators := make(map[string]GraphNodeCreator)
 
-	// destroyersByResource records each destroyer by the AbsResourceAddress.
-	// We use this because dependencies are only referenced as resources, but we
-	// will want to connect all the individual instances for correct ordering.
+	// destroyersByResource records each destroyer by the ConfigResource
+	// address.  We use this because dependencies are only referenced as
+	// resources and have no index or module instance information, but we will
+	// want to connect all the individual instances for correct ordering.
 	destroyersByResource := make(map[string][]GraphNodeDestroyer)
 	for _, v := range g.Vertices() {
 		switch n := v.(type) {
@@ -80,7 +81,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
 			destroyers[key] = append(destroyers[key], n)
 
-			resAddr := addr.Resource.Resource.Absolute(addr.Module).String()
+			resAddr := addr.ContainingResource().Config().String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
