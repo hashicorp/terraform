@@ -534,7 +534,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
-				"",
+				"Additional provider information from registry",
 				fmt.Sprintf("The remote registry returned warnings for %s:\n%s",
 					provider.String(),
 					strings.Join(displayWarnings, "\n"),

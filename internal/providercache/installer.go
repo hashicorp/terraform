@@ -248,7 +248,7 @@ NeedProvider:
 			// We will take no further actions for this provider.
 			continue
 		}
-		if warnings != nil {
+		if len(warnings) > 0 {
 			if cb := evts.QueryPackagesWarning; cb != nil {
 				cb(provider, warnings)
 			}
