@@ -104,7 +104,7 @@ func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
 
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
-	got, err := source.AvailableVersions(nullProvider)
+	got, _, err := source.AvailableVersions(nullProvider)
 	if err != nil {
 		t.Fatal(err)
 	}

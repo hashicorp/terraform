@@ -17,10 +17,10 @@ func TestMemoizeSource(t *testing.T) {
 	nonexistPlatform := Platform{OS: "gamegear", Arch: "z80"}
 
 	t.Run("AvailableVersions for existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta})
+		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
-		got, err := source.AvailableVersions(provider)
+		got, _, err := source.AvailableVersions(provider)
 		want := VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -29,7 +29,7 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("wrong result from first call to AvailableVersions\n%s", diff)
 		}
 
-		got, err = source.AvailableVersions(provider)
+		got, _, err = source.AvailableVersions(provider)
 		want = VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -38,12 +38,12 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("wrong result from second call to AvailableVersions\n%s", diff)
 		}
 
-		_, err = source.AvailableVersions(nonexistProvider)
+		_, _, err = source.AvailableVersions(nonexistProvider)
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type from nonexist call:\ngot:  %T\nwant: %T", err, want)
 		}
 
-		got, err = source.AvailableVersions(provider)
+		got, _, err = source.AvailableVersions(provider)
 		want = VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -64,8 +64,30 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("unexpected call log\n%s", diff)
 		}
 	})
+	t.Run("AvailableVersions with warnings", func(t *testing.T) {
+		warnProvider := addrs.NewDefaultProvider("warning")
+		meta := FakePackageMeta(warnProvider, version, protocols, platform)
+		mock := NewMockSource([]PackageMeta{meta}, map[addrs.Provider]Warnings{warnProvider: {"WARNING!"}})
+		source := NewMemoizeSource(mock)
+
+		got, warns, err := source.AvailableVersions(warnProvider)
+		want := VersionList{version}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong result from first call to AvailableVersions\n%s", diff)
+		}
+		if len(warns) != 1 {
+			t.Fatalf("wrong number of warnings. Got %d, expected 1", len(warns))
+		}
+		if warns[0] != "WARNING!" {
+			t.Fatalf("wrong result! Got %s, expected \"WARNING!\"", warns[0])
+		}
+
+	})
 	t.Run("PackageMeta for existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta})
+		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
 		got, err := source.PackageMeta(provider, version, platform)
@@ -118,14 +140,14 @@ func TestMemoizeSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions for non-existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta})
+		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
-		_, err := source.AvailableVersions(nonexistProvider)
+		_, _, err := source.AvailableVersions(nonexistProvider)
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type from first call:\ngot:  %T\nwant: %T", err, want)
 		}
-		_, err = source.AvailableVersions(nonexistProvider)
+		_, _, err = source.AvailableVersions(nonexistProvider)
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type from second call:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -140,7 +162,7 @@ func TestMemoizeSource(t *testing.T) {
 		}
 	})
 	t.Run("PackageMeta for non-existing provider", func(t *testing.T) {
-		mock := NewMockSource([]PackageMeta{meta})
+		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
 		_, err := source.PackageMeta(nonexistProvider, version, platform)

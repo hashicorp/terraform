@@ -237,7 +237,7 @@ NeedProvider:
 		if cb := evts.QueryPackagesBegin; cb != nil {
 			cb(provider, reqs[provider])
 		}
-		available, err := i.source.AvailableVersions(provider)
+		available, warnings, err := i.source.AvailableVersions(provider)
 		if err != nil {
 			// TODO: Consider retrying a few times for certain types of
 			// source errors that seem likely to be transient.
@@ -247,6 +247,11 @@ NeedProvider:
 			}
 			// We will take no further actions for this provider.
 			continue
+		}
+		if len(warnings) > 0 {
+			if cb := evts.QueryPackagesWarning; cb != nil {
+				cb(provider, warnings)
+			}
 		}
 		available.Sort()                           // put the versions in increasing order of precedence
 		for i := len(available) - 1; i >= 0; i-- { // walk backwards to consider newer versions first

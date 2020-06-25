@@ -64,9 +64,12 @@ type InstallerEvents struct {
 	//
 	// The Begin, Success, and Failure events will each occur only once per
 	// distinct provider.
+	//
+	// The Warning event is unique to the registry source
 	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints)
 	QueryPackagesSuccess func(provider addrs.Provider, selectedVersion getproviders.Version)
 	QueryPackagesFailure func(provider addrs.Provider, err error)
+	QueryPackagesWarning func(provider addrs.Provider, warn []string)
 
 	// The LinkFromCache... family of events delimit the operation of linking
 	// a selected provider package from the system-wide shared cache into the

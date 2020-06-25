@@ -123,7 +123,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		// First we'll look for the latest version that matches the given
 		// constraint, which we'll then try to mirror for each target platform.
 		acceptable := versions.MeetingConstraints(constraints)
-		avail, err := source.AvailableVersions(provider)
+		avail, _, err := source.AvailableVersions(provider)
 		candidates := avail.Filter(acceptable)
 		if err == nil && len(candidates) == 0 {
 			err = fmt.Errorf("no releases match the given constraints %s", constraintsStr)

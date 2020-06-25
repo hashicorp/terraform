@@ -527,6 +527,21 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			}
 
 		},
+		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
+			displayWarnings := make([]string, len(warnings))
+			for i, warning := range warnings {
+				displayWarnings[i] = fmt.Sprintf("- %s", warning)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Additional provider information from registry",
+				fmt.Sprintf("The remote registry returned warnings for %s:\n%s",
+					provider.String(),
+					strings.Join(displayWarnings, "\n"),
+				),
+			))
+		},
 		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

@@ -362,3 +362,25 @@ func TestInitProviderNotFound(t *testing.T) {
 		}
 	})
 }
+
+func TestInitProviderWarnings(t *testing.T) {
+	t.Parallel()
+
+	// This test will reach out to registry.terraform.io as one of the possible
+	// installation locations for hashicorp/nonexist, which should not exist.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "provider-warnings")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	stdout, _, err := tf.Run("init")
+	if err == nil {
+		t.Fatal("expected error, got success")
+	}
+
+	if !strings.Contains(stdout, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
+		t.Errorf("expected warning message is missing from output:\n%s", stdout)
+	}
+
+}

@@ -20,6 +20,7 @@ import (
 // This should not be used outside of unit test code.
 type MockSource struct {
 	packages []PackageMeta
+	warnings map[addrs.Provider]Warnings
 	calls    [][]interface{}
 }
 
@@ -31,16 +32,17 @@ var _ Source = (*MockSource)(nil)
 // exist on disk or over the network, unless the calling test is planning to
 // use (directly or indirectly) the results for further provider installation
 // actions.
-func NewMockSource(packages []PackageMeta) *MockSource {
+func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *MockSource {
 	return &MockSource{
 		packages: packages,
+		warnings: warns,
 	}
 }
 
 // AvailableVersions returns all of the versions of the given provider that
 // are available in the fixed set of packages that were passed to
 // NewMockSource when creating the receiving source.
-func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	s.calls = append(s.calls, []interface{}{"AvailableVersions", provider})
 	var ret VersionList
 	for _, pkg := range s.packages {
@@ -48,13 +50,19 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 			ret = append(ret, pkg.Version)
 		}
 	}
+	var warns []string
+	if s.warnings != nil {
+		if warnings, ok := s.warnings[provider]; ok {
+			warns = warnings
+		}
+	}
 	if len(ret) == 0 {
 		// In this case, we'll behave like a registry that doesn't know about
 		// this provider at all, rather than just returning an empty result.
-		return nil, ErrRegistryProviderNotKnown{provider}
+		return nil, warns, ErrRegistryProviderNotKnown{provider}
 	}
 	ret.Sort()
-	return ret, nil
+	return ret, warns, nil
 }
 
 // PackageMeta returns the first package from the list given to NewMockSource

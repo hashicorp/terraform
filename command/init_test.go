@@ -1718,7 +1718,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages), close
+	return getproviders.NewMockSource(packages, nil), close
 }
 
 // installFakeProviderPackages installs a fake package for the given provider

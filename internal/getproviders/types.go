@@ -32,6 +32,9 @@ type VersionSet = versions.Set
 // define the membership of a VersionSet by exclusion.
 type VersionConstraints = constraints.IntersectionSpec
 
+// Warnings represents a list of warnings returned by a Registry source.
+type Warnings = []string
+
 // Requirements gathers together requirements for many different providers
 // into a single data structure, as a convenient way to represent the full
 // set of requirements for a particular configuration or state or both.
