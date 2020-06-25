@@ -5,11 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 )
 
 const (
@@ -24,6 +27,7 @@ type RemoteClient struct {
 	containerName      string
 	keyName            string
 	leaseID            string
+	snapshot           bool
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -67,6 +71,18 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	ctx := context.TODO()
+
+	if c.snapshot {
+		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
+
+		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
+		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.accountName, c.containerName, c.keyName, snapshotInput); err != nil {
+			return fmt.Errorf("error snapshotting Blob %q (Container %q / Account %q): %+v", c.keyName, c.containerName, c.accountName, err)
+		}
+
+		log.Print("[DEBUG] Created blob snapshot")
+	}
+
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
 	if err != nil {
 		if blob.StatusCode != 404 {
