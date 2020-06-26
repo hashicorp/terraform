@@ -142,16 +142,13 @@ require (
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
-	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
-	k8s.io/client-go v10.0.0+incompatible
+	k8s.io/api v0.18.4
+	k8s.io/apimachinery v0.18.4
+	k8s.io/client-go v0.18.4
 	k8s.io/utils v0.0.0-20200411171748-3d5a2fe318e4
 )
 
-replace (
-	github.com/Azure/go-autorest v11.1.2+incompatible => github.com/Azure/go-autorest v12.1.0+incompatible
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
-)
+replace github.com/Azure/go-autorest v11.1.2+incompatible => github.com/Azure/go-autorest v12.1.0+incompatible
 
 go 1.14
 
