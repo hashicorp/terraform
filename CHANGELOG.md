@@ -14,6 +14,8 @@ BUG FIXES:
 * configs: Fix panic when `required_providers` blocks have non-string attribute values [GH-25369]
 * core: Hide empty plans for misbehaving data sources [GH-25302]
 * provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
+* vendor: The `merge` function will no longer panic if all given maps are empty [GH-25303]
+* vendor: The various set-manipulation functions, like `setunion`, will no longer panic if given an unknown set value [GH-25318]
 
 BREAKING CHANGES:
 * command/state: exit code 1 if `state rm` is called on a resource that does not exist [GH-22300]
