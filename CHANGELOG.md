@@ -8,6 +8,7 @@ BUG FIXES:
 * command: Fix command test fixture modify-in-place bugs, which could cause state leak between tests [GH-25299]
 * command: Preserve more comments when rerunning 0.13upgrade [GH-25381]
 * command/import: Fix `-allow-missing-config` option [GH-25352]
+* command/init: return an error with invalid -backend-config files [GH-25411]
 * communicator/winrm: Inlcude any user-configured timeout for winrm connection [GH-25350]
 * config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
 * configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
