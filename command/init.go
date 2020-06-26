@@ -803,6 +803,18 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 			// The value is interpreted as a filename.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
+			// Verify that the file contains only key-values pairs, and not a
+			// full backend config block. JustAttributes() will return an error
+			// if blocks are found
+			_, attrDiags := newBody.JustAttributes()
+			if attrDiags.HasErrors() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid backend configuration file",
+					fmt.Sprintf("The backend configuration file %q given on the command line must contain key-value pairs only, and not configuration blocks.", item.Value),
+				))
+				continue
+			}
 			flushVals() // deal with any accumulated individual values first
 			mergeBody(newBody)
 		} else {
