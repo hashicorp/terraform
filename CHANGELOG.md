@@ -12,6 +12,7 @@ BUG FIXES:
 * config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
 * configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
 * configs: Fix panic when `required_providers` blocks have non-string attribute values [GH-25369]
+* configs: Fix panic for invalid resource provider [GH-25408]
 * core: Hide empty plans for misbehaving data sources [GH-25302]
 * provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
 * vendor: The `merge` function will no longer panic if all given maps are empty [GH-25303]
