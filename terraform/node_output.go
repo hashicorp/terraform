@@ -19,7 +19,6 @@ type nodeExpandOutput struct {
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*nodeExpandOutput)(nil)
 	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
 	_ GraphNodeReferenceOutside  = (*nodeExpandOutput)(nil)
@@ -100,16 +99,6 @@ func (n *nodeExpandOutput) References() []*addrs.Reference {
 	return appendResourceDestroyReferences(referencesForOutput(n.Config))
 }
 
-// RemovableIfNotTargeted
-func (n *nodeExpandOutput) RemoveIfNotTargeted() bool {
-	return true
-}
-
-// GraphNodeTargetDownstream
-func (n *nodeExpandOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	return true
-}
-
 // NodeApplyableOutput represents an output that is "applyable":
 // it is ready to be applied.
 type NodeApplyableOutput struct {
@@ -119,8 +108,6 @@ type NodeApplyableOutput struct {
 
 var (
 	_ GraphNodeModuleInstance   = (*NodeApplyableOutput)(nil)
-	_ RemovableIfNotTargeted    = (*NodeApplyableOutput)(nil)
-	_ GraphNodeTargetDownstream = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceable    = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
@@ -146,21 +133,6 @@ func (n *NodeApplyableOutput) Path() addrs.ModuleInstance {
 // GraphNodeModulePath
 func (n *NodeApplyableOutput) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
-}
-
-// RemovableIfNotTargeted
-func (n *NodeApplyableOutput) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
-}
-
-// GraphNodeTargetDownstream
-func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	// If any of the direct dependencies of an output are targeted then
-	// the output must always be targeted as well, so its value will always
-	// be up-to-date at the completion of an apply walk.
-	return true
 }
 
 func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePath addrs.Module) {
@@ -255,10 +227,8 @@ type NodeDestroyableOutput struct {
 }
 
 var (
-	_ RemovableIfNotTargeted    = (*NodeDestroyableOutput)(nil)
-	_ GraphNodeTargetDownstream = (*NodeDestroyableOutput)(nil)
-	_ GraphNodeEvalable         = (*NodeDestroyableOutput)(nil)
-	_ dag.GraphNodeDotter       = (*NodeDestroyableOutput)(nil)
+	_ GraphNodeEvalable   = (*NodeDestroyableOutput)(nil)
+	_ dag.GraphNodeDotter = (*NodeDestroyableOutput)(nil)
 )
 
 func (n *NodeDestroyableOutput) Name() string {
@@ -270,17 +240,9 @@ func (n *NodeDestroyableOutput) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }
 
-// RemovableIfNotTargeted
-func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
-}
-
-// This will keep the destroy node in the graph if its corresponding output
-// node is also in the destroy graph.
-func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	return true
+func (n *NodeDestroyableOutput) temporaryValue() bool {
+	// this must always be evaluated if it is a root module output
+	return !n.Addr.Module.IsRoot()
 }
 
 // GraphNodeEvalable

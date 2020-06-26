@@ -7389,7 +7389,7 @@ aws_instance.foo.1:
 }
 
 func TestContext2Apply_targetedDestroy(t *testing.T) {
-	m := testModule(t, "apply-targeted")
+	m := testModule(t, "destroy-targeted")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
@@ -7397,18 +7397,21 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		mustResourceInstanceAddr("aws_instance.a").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
-	root.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("aws_instance.bar").Resource,
+	root.SetOutputValue("out", cty.StringVal("bar"), false)
+
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.b").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -7421,11 +7424,15 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
+				addrs.ManagedResourceMode, "aws_instance", "a",
 			),
 		},
 		Destroy: true,
 	})
+
+	if diags := ctx.Validate(); diags.HasErrors() {
+		t.Fatalf("validate errors: %s", diags.Err())
+	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
@@ -7437,15 +7444,21 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	}
 
 	mod := state.RootModule()
-	if len(mod.Resources) != 1 {
-		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	if len(mod.Resources) != 0 {
+		t.Fatalf("expected 0 resources, got: %#v", mod.Resources)
 	}
 
-	checkStateString(t, state, `
-aws_instance.bar:
-  ID = i-abc123
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-	`)
+	// the root output should have been removed too, since it is derived solely
+	// from the targeted resource
+	if len(mod.OutputValues) != 0 {
+		t.Fatalf("expected 0 outputs, got: %#v", mod.OutputValues)
+	}
+
+	// the module instance should remain
+	mod = state.Module(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resources, got: %#v", mod.Resources)
+	}
 }
 
 func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {

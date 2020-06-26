@@ -18,7 +18,6 @@ type nodeExpandLocal struct {
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*nodeExpandLocal)(nil)
 	_ GraphNodeReferenceable     = (*nodeExpandLocal)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
@@ -46,11 +45,6 @@ func (n *nodeExpandLocal) Name() string {
 // GraphNodeModulePath
 func (n *nodeExpandLocal) ModulePath() addrs.Module {
 	return n.Module
-}
-
-// RemovableIfNotTargeted
-func (n *nodeExpandLocal) RemoveIfNotTargeted() bool {
-	return true
 }
 
 // GraphNodeReferenceable
@@ -89,7 +83,6 @@ type NodeLocal struct {
 
 var (
 	_ GraphNodeModuleInstance = (*NodeLocal)(nil)
-	_ RemovableIfNotTargeted  = (*NodeLocal)(nil)
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
 	_ GraphNodeEvalable       = (*NodeLocal)(nil)
@@ -114,11 +107,6 @@ func (n *NodeLocal) Path() addrs.ModuleInstance {
 // GraphNodeModulePath
 func (n *NodeLocal) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
-}
-
-// RemovableIfNotTargeted
-func (n *NodeLocal) RemoveIfNotTargeted() bool {
-	return true
 }
 
 // GraphNodeReferenceable
