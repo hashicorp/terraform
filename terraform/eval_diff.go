@@ -62,9 +62,9 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 		default:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Provider produced inconsistent final plan",
+				"Terraform produced inconsistent final plan",
 				fmt.Sprintf(
-					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis us a bug in either Terraform or the provider, please report it.",
 					absAddr, n.ProviderAddr.Provider.String(),
 					plannedChange.Action, actualChange.Action,
 				),
@@ -76,9 +76,9 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 	for _, err := range errs {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Provider produced inconsistent final plan",
+			"Terraform produced inconsistent final plan",
 			fmt.Sprintf(
-				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis us a bug in either Terraform or the provider, please report it.",
 				absAddr, n.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
 			),
 		))
@@ -140,6 +140,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
 	}
+
+	// TODO: It may be advantageous to create a new objchange check to verify
+	// that this newly evaluated config could still result in the original
+	// plan. This way we could detect incorrectly evaluated configuration here
+	// where we know it can't be the fault of the provider. The later check in
+	// EvalCheckPlannedChange only has the two planned values, and can't
+	// determine if the provider or terraform is at fault.
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.ProviderMetas != nil {
@@ -419,6 +426,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
+
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
