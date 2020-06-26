@@ -422,6 +422,9 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 	name := traversal.RootName()
 	nameDiags := checkProviderNameNormalized(name, traversal[0].SourceRange())
 	diags = append(diags, nameDiags...)
+	if diags.HasErrors() {
+		return nil, diags
+	}
 
 	ret := &ProviderConfigRef{
 		Name:      name,
