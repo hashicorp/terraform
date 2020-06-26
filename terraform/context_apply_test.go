@@ -11357,3 +11357,85 @@ output "myoutput" {
 		t.Fatal("expected empty state, got:", state)
 	}
 }
+
+func TestContext2Apply_scaleInCBD(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  count = 1
+  lifecycle {
+	create_before_destroy = true
+  }
+}
+
+resource "test_instance" "b" {
+  foo = join(".", test_instance.a[*].id)
+}
+
+output "out" {
+  value = join(".", test_instance.a[*].id)
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a0"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a1"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b", "foo":"old.old"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	p := testProvider("test")
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		return testApplyFn(info, s, d)
+	}
+
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// if resource b isn't going to apply correctly, we will get an error about
+	// an invalid plan value
+	state, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// check the output, as those can't cause an error planning the value
+	out := state.RootModule().OutputValues["out"].Value.AsString()
+	if out != "a0" {
+		t.Fatalf(`expected output "new", got: %q`, out)
+	}
+}
