@@ -94,9 +94,6 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// configuration
 		&attachDataResourceDependenciesTransformer{},
 
-		// This validates that the providers only depend on variables
-		&ImportProviderValidateTransformer{},
-
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
