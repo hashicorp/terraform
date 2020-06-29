@@ -48,7 +48,6 @@ The release must meet the following criteria:
 * There are 1 or more zip files containing the built provider binary for a single architecture
     * The binary name is `terraform-provider-{NAME}_v{VERSION}`
     * The archive name is `terraform-provider-{NAME}_{VERSION}_{OS}_{ARCH}.zip`
-    * It's recommended to build for all of the available OS/architecture pairs if possible.
 * There is a `terraform-provider-{NAME}_{VERSION}_SHA256SUMS` file, which contains a sha256 sum for each zip file in the release.
     * `shasum -a 256 *.zip > terraform-provider-{NAME}_{VERSION}_SHA256SUMS`
 * There is a `terraform-provider-{NAME}_{VERSION}_SHA256SUMS.sig` file, which is a valid GPG signature of the `terraform-provider-{NAME}_{VERSION}_SHA256SUMS` file using the keypair.
