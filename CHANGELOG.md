@@ -17,6 +17,7 @@ BUG FIXES:
 * configs: Fix panic for invalid resource provider [GH-25408]
 * core: Hide empty plans for misbehaving data sources [GH-25302]
 * provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
+* terraform: Relax import-specific provider configuration constraints, to permit any values that can be evaluated statically [GH-25420]
 * vendor: The `merge` function will no longer panic if all given maps are empty [GH-25303]
 * vendor: The various set-manipulation functions, like `setunion`, will no longer panic if given an unknown set value [GH-25318]
 
