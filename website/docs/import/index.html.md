@@ -30,3 +30,6 @@ imported object will be mapped.
 
 While this may seem tedious, it still gives Terraform users an avenue for
 importing existing resources.
+
+You can follow the [Terraform Import guide](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) on HashiCorp learn for a hands-on
+introduction to using the `terraform import` command.
