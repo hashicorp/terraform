@@ -7,6 +7,7 @@ BUG FIXES:
 * command: Fix bug with global `-v`/`-version`/`--version` flags introduced in 0.13.0beta2 [GH-25277]
 * command: Fix command test fixture modify-in-place bugs, which could cause state leak between tests [GH-25299]
 * command: Preserve more comments when rerunning 0.13upgrade [GH-25381]
+* command/console: Fix "workspace already unlocked" error that resulted from a backend context error [GH-25427]
 * command/import: Fix `-allow-missing-config` option [GH-25352]
 * command/init: return an error with invalid -backend-config files [GH-25411]
 * communicator/winrm: Inlcude any user-configured timeout for winrm connection [GH-25350]
