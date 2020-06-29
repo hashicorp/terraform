@@ -124,7 +124,6 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 			root := traversal.RootName()
 			if _, ok := ctx.Variables[root]; !ok {
 				missingVars[root] = append(missingVars[root], traversal[0].SourceRange().String())
-				// return cty.DynamicVal, function.NewArgErrorf(1, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
 			}
 		}
 
@@ -132,6 +131,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		// message and return an error.
 		if len(missingVars) > 0 {
 			var sb strings.Builder
+			errorMsgArr := []string{}
 			sb.WriteString("vars map does not contain")
 			for key, value := range missingVars {
 				sb.WriteString(fmt.Sprintf(" key %q, referenced at %s", key, value[0]))
@@ -141,8 +141,11 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 						sb.WriteString(fmt.Sprintf(" and at %s", sourceList[index]))
 					}
 				}
+				errorMsgArr = append(errorMsgArr, sb.String())
+				sb.Reset()
 			}
-			return cty.DynamicVal, function.NewArgErrorf(1, sb.String())
+
+			return cty.DynamicVal, function.NewArgErrorf(1, strings.Join(errorMsgArr, ","))
 		}
 
 		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems
