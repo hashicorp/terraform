@@ -655,10 +655,20 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
 
+		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
+		if change != nil {
+			// Don't take any resources that are yet to be deleted into account.
+			// If the referenced resource is CreateBeforeDestroy, then orphaned
+			// instances will be in the state, as they are not destroyed until
+			// after their dependants are updated.
+			if change.Action == plans.Delete {
+				continue
+			}
+		}
+
 		// Planned resources are temporarily stored in state with empty values,
 		// and need to be replaced bu the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
-			change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
 			if change == nil {
 				// If the object is in planned status then we should not get
 				// here, since we should have found a pending value in the plan
