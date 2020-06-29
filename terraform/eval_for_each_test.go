@@ -125,6 +125,11 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
 		},
+		"set containing dynamic unknown value": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
+			"Invalid for_each argument",
+			"depends on resource attributes that cannot be determined until apply",
+		},
 	}
 
 	for name, test := range tests {
