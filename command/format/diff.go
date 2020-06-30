@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
@@ -202,6 +203,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 	blankBeforeBlocks := false
 	{
 		attrNames := make([]string, 0, len(schema.Attributes))
+		displayAttrNames := make(map[string]string, len(schema.Attributes))
 		attrNameLen := 0
 		for name := range schema.Attributes {
 			oldVal := ctyGetAttrMaybeNull(old, name)
@@ -215,8 +217,9 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			}
 
 			attrNames = append(attrNames, name)
-			if len(name) > attrNameLen {
-				attrNameLen = len(name)
+			displayAttrNames[name] = displayAttributeName(name)
+			if len(displayAttrNames[name]) > attrNameLen {
+				attrNameLen = len(displayAttrNames[name])
 			}
 		}
 		sort.Strings(attrNames)
@@ -230,7 +233,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			newVal := ctyGetAttrMaybeNull(new, name)
 
 			bodyWritten = true
-			p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
+			p.writeAttrDiff(displayAttrNames[name], attrS, oldVal, newVal, attrNameLen, indent, path)
 		}
 	}
 
@@ -638,23 +641,26 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		atys := ty.AttributeTypes()
 		attrNames := make([]string, 0, len(atys))
+		displayAttrNames := make(map[string]string, len(atys))
 		nameLen := 0
 		for attrName := range atys {
 			attrNames = append(attrNames, attrName)
-			if len(attrName) > nameLen {
-				nameLen = len(attrName)
+			displayAttrNames[attrName] = displayAttributeName(attrName)
+			if len(displayAttrNames[attrName]) > nameLen {
+				nameLen = len(displayAttrNames[attrName])
 			}
 		}
 		sort.Strings(attrNames)
 
 		for _, attrName := range attrNames {
 			val := val.GetAttr(attrName)
+			displayAttrName := displayAttrNames[attrName]
 
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
-			p.buf.WriteString(attrName)
-			p.buf.WriteString(strings.Repeat(" ", nameLen-len(attrName)))
+			p.buf.WriteString(displayAttrName)
+			p.buf.WriteString(strings.Repeat(" ", nameLen-len(displayAttrName)))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
 		}
@@ -956,21 +962,24 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			forcesNewResource := p.pathForcesNewResource(path)
 
 			var allKeys []string
+			displayKeys := make(map[string]string)
 			keyLen := 0
 			for it := old.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 			for it := new.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 
@@ -999,8 +1008,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				path := append(path, cty.GetAttrStep{Name: kV})
 
 				p.writeActionSymbol(action)
-				p.buf.WriteString(k)
-				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
+				p.buf.WriteString(displayKeys[k])
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(displayKeys[k])))
 				p.buf.WriteString(" = ")
 
 				switch action {
@@ -1265,4 +1274,11 @@ func DiffActionSymbol(action plans.Action) string {
 	default:
 		return "  ?"
 	}
+}
+
+func displayAttributeName(name string) string {
+	if !hclsyntax.ValidIdentifier(name) {
+		return fmt.Sprintf("%q", name)
+	}
+	return name
 }

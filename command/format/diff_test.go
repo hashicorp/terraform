@@ -72,6 +72,35 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
     }
 `,
 		},
+		"creation (object with quoted keys)": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"unquoted":   cty.StringVal("value"),
+					"quoted:key": cty.StringVal("some-value"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"object": {Type: cty.Object(map[string]cty.Type{
+						"unquoted":   cty.String,
+						"quoted:key": cty.String,
+					}), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + object = {
+          + "quoted:key" = "some-value"
+          + unquoted     = "value"
+        }
+    }
+`,
+		},
 		"deletion": {
 			Action: plans.Delete,
 			Mode:   addrs.ManagedResourceMode,
@@ -137,6 +166,36 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"update with quoted key": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.StringVal("i-02ae66f368e8518a9"),
+				"saml:aud": cty.StringVal("https://example.com/saml"),
+				"zeta":     cty.StringVal("alpha"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.StringVal("i-02ae66f368e8518a9"),
+				"saml:aud": cty.StringVal("https://saml.example.com"),
+				"zeta":     cty.StringVal("alpha"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Optional: true, Computed: true},
+					"saml:aud": {Type: cty.String, Optional: true},
+					"zeta":     {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id         = "i-02ae66f368e8518a9"
+      ~ "saml:aud" = "https://example.com/saml" -> "https://saml.example.com"
+        zeta       = "alpha"
     }
 `,
 		},
@@ -509,6 +568,38 @@ func TestResourceChange_JSON(t *testing.T) {
           ~ {
                 aaa = "value"
               + bbb = "new_value"
+            }
+        )
+    }
+`,
+		},
+		"in-place update of object with quoted keys": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"json_field": cty.StringVal(`{"aaa": "value", "c:c": "old_value"}`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`{"aaa": "value", "b:bb": "new_value"}`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ {
+                aaa    = "value"
+              + "b:bb" = "new_value"
+              - "c:c"  = "old_value" -> null
             }
         )
     }
