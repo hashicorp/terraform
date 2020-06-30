@@ -119,11 +119,18 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		// We'll pre-check references in the template here so we can give a
 		// more specialized error message than HCL would by default, so it's
 		// clearer that this problem is coming from a templatefile call.
-		missingVars := make(map[string][]string)
+
+		// Tracker used to ensure that a variable does not get included
+		// more than once.
+		missingVarsTracker := make(map[string]struct{})
+		missingVars := []string{}
 		for _, traversal := range expr.Variables() {
 			root := traversal.RootName()
 			if _, ok := ctx.Variables[root]; !ok {
-				missingVars[root] = append(missingVars[root], traversal[0].SourceRange().String())
+				if _, ok := missingVarsTracker[root]; !ok {
+					missingVarsTracker[root] = struct{}{}
+					missingVars = append(missingVars, fmt.Sprintf(" key %q, referenced at %s", root, traversal[0].SourceRange()))
+				}
 			}
 		}
 
@@ -131,21 +138,9 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		// message and return an error.
 		if len(missingVars) > 0 {
 			var sb strings.Builder
-			errorMsgArr := []string{}
 			sb.WriteString("vars map does not contain")
-			for key, value := range missingVars {
-				sb.WriteString(fmt.Sprintf(" key %q, referenced at %s", key, value[0]))
-				if len(value) > 1 {
-					var sourceList []string = value[1:len(value)]
-					for index := range sourceList {
-						sb.WriteString(fmt.Sprintf(" and at %s", sourceList[index]))
-					}
-				}
-				errorMsgArr = append(errorMsgArr, sb.String())
-				sb.Reset()
-			}
-
-			return cty.DynamicVal, function.NewArgErrorf(1, strings.Join(errorMsgArr, ","))
+			sb.WriteString(strings.Join(missingVars, ","))
+			return cty.DynamicVal, function.NewArgErrorf(1, sb.String())
 		}
 
 		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems
