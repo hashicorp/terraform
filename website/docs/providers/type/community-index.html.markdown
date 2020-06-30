@@ -122,6 +122,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Ksyun](https://github.com/KscSDK/terraform-provider-ksyun)
 - [Kubectl](https://github.com/gavinbunney/terraform-provider-kubectl)
 - [Kubernetes](https://github.com/mingfang/terraform-provider-k8s)
+- [Lambda Store](https://github.com/Lambda-Store/terraform-provider-lambdastore)
 - [Lastpass](https://github.com/nrkno/terraform-provider-lastpass)
 - [libvirt](https://github.com/dmacvicar/terraform-provider-libvirt)
 - [Logentries](https://github.com/dikhan/terraform-provider-logentries)
