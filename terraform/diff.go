@@ -730,6 +730,11 @@ func (d *InstanceDiff) applySingleAttrDiff(path []string, attrs map[string]strin
 		if attrSchema.Type == cty.String {
 			result[attr] = ""
 		}
+
+		// this can only be a valid empty string value in map
+		if attrSchema.Type.IsMapType() && attrSchema.Type.ElementType() == cty.String {
+			result[attr] = ""
+		}
 		return result, nil
 	}
 
