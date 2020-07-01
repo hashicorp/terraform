@@ -75,6 +75,15 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
 
 	// Before we do anything else we'll take a snapshot of the prior state
 	// so we can use it for some fixups to our detection of whether the plan
