@@ -51,12 +51,6 @@ $ echo "1 + 5" | terraform console
 6
 ```
 
-## Impure Functions
-
-Some `terraform` [functions](/docs/configuration/functions.html) are impure
-functions, which means that they return different results each time they are run
-- even with the same inputs. 
-
 ## Remote State
 
 If [remote state](/docs/state/remote.html) is used by the current backend,
