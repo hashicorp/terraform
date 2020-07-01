@@ -71,7 +71,7 @@ func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable) *lang.Scope 
 	return &lang.Scope{
 		Data:     data,
 		SelfAddr: self,
-		PureOnly: e.Operation != walkApply && e.Operation != walkDestroy,
+		PureOnly: e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
 		BaseDir:  ".", // Always current working directory for now.
 	}
 }
