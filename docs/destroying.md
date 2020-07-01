@@ -32,6 +32,11 @@ digraph create {
 }
 -->
 
+Order of operations:
+1. `A` is created
+1. `B` is created
+1. `C` is created
+
 ## Resource Updates
 
 An existing resource may be updated with references to a newly created
@@ -51,6 +56,11 @@ digraph update {
     }
 }
 -->
+
+Order of operations:
+1. `A` is created
+1. `B` is created
+1. `C` is created
 
 ## Simple Resource Destruction
 
@@ -74,12 +84,15 @@ digraph destroy {
 }
 -->
 
+Order of operations:
+1. `C` is destroyed
+1. `B` is destroyed
+1. `A` is Destroyed
 
 ## Resource Replacement
 
 Resource replacement is the logical combination of the above scenarios. Here we
 will show the replacement steps involved when `B` depends on `A`.
-
 
 In this first example, we simultaneously replace both `A` and `B`. Here `B` is
 destroyed before `A`, then `A` is recreated before `B`.
@@ -106,6 +119,12 @@ digraph replacement {
 }
 -->
 
+Order of operations:
+1. `B` is destroyed
+1. `A` is destroyed
+1. `A` is created
+1. `B` is created
+
 
 This second example replaces only `A`, while updating `B`. Resource `B` is only
 updated once `A` has been destroyed and recreated.
@@ -128,6 +147,12 @@ digraph replacement {
     b -> a_d [style=dotted];
 }
 -->
+
+Order of operations:
+1. `A` is destroyed
+1. `A` is created
+1. `B` is updated
+
 
 While the dependency edge from `B update` to `A destroy` isn't necessary in
 these examples, it is shown here as an implementation detail which will be
@@ -166,6 +191,12 @@ digraph replacement {
 }
 -->
 
+
+Order of operations:
+1. `B` is destroyed AND `A` is created
+1. `B` is created
+1. `A` is destroyed
+
 Note that in this first example, the creation of `B` is inserted in between the
 creation of `A` and the destruction of `A`. This becomes more important in the
 update example below.
@@ -190,10 +221,17 @@ digraph replacement {
 }
 -->
 
+Order of operations:
+1. `A` is created
+1. `B` is updated
+1. `A` is destroyed
+
 Here we can see clearly how `B` is updated after the creation of `A` and before
-the destruction of `A`. To introduce another term, the prior resource `A` is
+the destruction of the _deposed_ resource `A`. (The prior resource `A` is
 sometimes referred to as "deposed" before it is destroyed, to disambiguate it
-from the newly created `A`.
+from the newly created `A`.) This ordering is important for resource that
+"register" other resources, and require updating before the dependent resource
+can be destroyed.
 
 The transformation used to create these graphs is also where we use the extra
 edges mentioned above connecting `B` to `A destroy`. The algorithm to change a
@@ -219,6 +257,9 @@ digraph update {
 }
 -->
 
+Order of operations:
+1. `B` is updated
+1. `A` is destroyed
 
 ### Forced Create Before Destroy
 
@@ -255,9 +296,9 @@ digraph replacement {
 }
 -->
 
-In order to resolve these cycles, and all resources that precede a resource
+In order to resolve these cycles, all resources that precede a resource
 with `create_before_destroy` must in turn be handled in the same manner.
-Reversing the incoming edged to `A destroy` resolves the problem:
+Reversing the incoming edges to `A destroy` resolves the problem:
 
 ![Correct create_before_destroy replacement](./images/replace_all_cbd.png)
 <!--
@@ -280,6 +321,12 @@ digraph replacement {
     b -> b_d [dir=back];
 }
 -->
+
+Order of operations:
+1. `A` is created
+1. `B` is created
+1. `B` is destroyed
+1. `A` is destroyed
 
 This also demonstrates why `create_before_destroy` cannot be overridden when
 it is inherited; changing the behaviour here isn't possible without removing
