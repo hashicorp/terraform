@@ -259,7 +259,7 @@ In order to resolve these cycles, and all resources that precede a resource
 with `create_before_destroy` must in turn be handled in the same manner.
 Reversing the incoming edged to `A destroy` resolves the problem:
 
-![Correct create_before_destroy replacement](./images/replace_cbd_all.png)
+![Correct create_before_destroy replacement](./images/replace_all_cbd.png)
 <!--
 digraph replacement {
     subgraph create {
@@ -281,7 +281,7 @@ digraph replacement {
 }
 -->
 
-This also demonstrates why `create_before_destry` cannot be overridden when
+This also demonstrates why `create_before_destroy` cannot be overridden when
 it is inherited; changing the behaviour here isn't possible without removing
 the initial reason for `create_before_destroy`; otherwise cycles are always
 introduced into the graph.
