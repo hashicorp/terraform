@@ -191,9 +191,11 @@ digraph replacement {
 -->
 
 Here we can see clearly how `B` is updated after the creation of `A` and before
-the destruction of `A`. To introduce another term, the prior resource `A` is
+the destruction of the _deposed_ resource `A`. (The prior resource `A` is
 sometimes referred to as "deposed" before it is destroyed, to disambiguate it
-from the newly created `A`.
+from the newly created `A`.) This ordering is important for resource that
+"register" other resources, and require updating before the dependent resource
+can be destroyed.
 
 The transformation used to create these graphs is also where we use the extra
 edges mentioned above connecting `B` to `A destroy`. The algorithm to change a
@@ -255,9 +257,9 @@ digraph replacement {
 }
 -->
 
-In order to resolve these cycles, and all resources that precede a resource
+In order to resolve these cycles, all resources that precede a resource
 with `create_before_destroy` must in turn be handled in the same manner.
-Reversing the incoming edged to `A destroy` resolves the problem:
+Reversing the incoming edges to `A destroy` resolves the problem:
 
 ![Correct create_before_destroy replacement](./images/replace_all_cbd.png)
 <!--
