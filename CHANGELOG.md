@@ -1,29 +1,29 @@
-## 0.13.0-beta3 (Unreleased)
+## 0.13.0-beta3 (July 01, 2020)
 
 BUG FIXES:
 
-* backend/azurerm: support for snapshotting the blob used for remote state storage prior to change [GH-24069]
-* backend/remote: Prevent panic when there's a connection error [GH-25341]
-* command: Fix bug with global `-v`/`-version`/`--version` flags introduced in 0.13.0beta2 [GH-25277]
-* command: Fix command test fixture modify-in-place bugs, which could cause state leak between tests [GH-25299]
-* command: Preserve more comments when rerunning 0.13upgrade [GH-25381]
-* command/console: enable use of impure functions in console (for example, bcrypt()) [GH-25442]
-* command/import: Fix `-allow-missing-config` option [GH-25352]
-* command/init: return an error with invalid -backend-config files [GH-25411]
-* communicator/winrm: Inlcude any user-configured timeout for winrm connection [GH-25350]
-* config: Add missing validation to prevent provider configuration within modules using `depends_on` [GH-25345]
-* configs: Fix nested provider requirements bug introduced in 0.13.0beta2 [GH-25334]
-* configs: Fix panic when `required_providers` blocks have non-string attribute values [GH-25369]
-* configs: Fix panic for invalid resource provider [GH-25408]
-* core: Hide empty plans for misbehaving data sources [GH-25302]
-* provider/terraform: Don't change non-computed attribute, which result in a perpetual diff [GH-25297]
-* terraform: Relax import-specific provider configuration constraints, to permit any values that can be evaluated statically [GH-25420]
-* vendor: The `merge` function will no longer panic if all given maps are empty [GH-25303]
-* vendor: The various set-manipulation functions, like `setunion`, will no longer panic if given an unknown set value [GH-25318]
+* backend/azurerm: support for snapshotting the blob used for remote state storage prior to change ([#24069](https://github.com/hashicorp/terraform/issues/24069))
+* backend/remote: Prevent panic when there's a connection error ([#25341](https://github.com/hashicorp/terraform/issues/25341))
+* command: Fix bug with global `-v`/`-version`/`--version` flags introduced in 0.13.0beta2 ([#25277](https://github.com/hashicorp/terraform/issues/25277))
+* command: Fix command test fixture modify-in-place bugs, which could cause state leak between tests ([#25299](https://github.com/hashicorp/terraform/issues/25299))
+* command: Preserve more comments when rerunning 0.13upgrade ([#25381](https://github.com/hashicorp/terraform/issues/25381))
+* command/console: enable use of impure functions in console (for example, bcrypt()) ([#25442](https://github.com/hashicorp/terraform/issues/25442))
+* command/import: Fix `-allow-missing-config` option ([#25352](https://github.com/hashicorp/terraform/issues/25352))
+* command/init: return an error with invalid -backend-config files ([#25411](https://github.com/hashicorp/terraform/issues/25411))
+* communicator/winrm: Inlcude any user-configured timeout for winrm connection ([#25350](https://github.com/hashicorp/terraform/issues/25350))
+* config: Add missing validation to prevent provider configuration within modules using `depends_on` ([#25345](https://github.com/hashicorp/terraform/issues/25345))
+* configs: Fix nested provider requirements bug introduced in 0.13.0beta2 ([#25334](https://github.com/hashicorp/terraform/issues/25334))
+* configs: Fix panic when `required_providers` blocks have non-string attribute values ([#25369](https://github.com/hashicorp/terraform/issues/25369))
+* configs: Fix panic for invalid resource provider ([#25408](https://github.com/hashicorp/terraform/issues/25408))
+* core: Hide empty plans for misbehaving data sources ([#25302](https://github.com/hashicorp/terraform/issues/25302))
+* provider/terraform: Don't change non-computed attribute, which result in a perpetual diff ([#25297](https://github.com/hashicorp/terraform/issues/25297))
+* terraform: Relax import-specific provider configuration constraints, to permit any values that can be evaluated statically ([#25420](https://github.com/hashicorp/terraform/issues/25420))
+* vendor: The `merge` function will no longer panic if all given maps are empty ([#25303](https://github.com/hashicorp/terraform/issues/25303))
+* vendor: The various set-manipulation functions, like `setunion`, will no longer panic if given an unknown set value ([#25318](https://github.com/hashicorp/terraform/issues/25318))
 
 BREAKING CHANGES:
-* command/state: exit code 1 if `state rm` is called on a resource that does not exist [GH-22300]
-* command/login: Require "yes" to confirm, no longer accepting "y" [GH-25379]
+* command/state: exit code 1 if `state rm` is called on a resource that does not exist ([#22300](https://github.com/hashicorp/terraform/issues/22300))
+* command/login: Require "yes" to confirm, no longer accepting "y" ([#25379](https://github.com/hashicorp/terraform/issues/25379))
 
 ## 0.13.0-beta2 (June 17, 2020)
 
