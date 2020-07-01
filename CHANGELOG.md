@@ -1,4 +1,4 @@
-## (UNRELEASED)
+## 0.13.0-beta3 (Unreleased)
 
 BUG FIXES:
 
