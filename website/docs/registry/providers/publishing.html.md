@@ -18,7 +18,7 @@ The provider repository on GitHub must match the pattern `terraform-provider-{NA
 
 ### Documenting your Provider
 
-Your provider should contain an overview document (index.md), as well as a doc for each resource and data-source. See [Documenting Providers](documenting.html) for details about how to ensure your provider documentation renders properly on the Terraform Registry.
+Your provider should contain an overview document (index.md), as well as a doc for each resource and data-source. See [Documenting Providers](./docs.html) for details about how to ensure your provider documentation renders properly on the Terraform Registry.
 
 ### Creating a GitHub Release
 
