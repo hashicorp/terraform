@@ -34,7 +34,7 @@ RUN apk add --no-cache git curl openssh gnupg && \
     rm -f terraform_${TERRAFORM_VERSION}_linux_amd64.zip terraform_${TERRAFORM_VERSION}_SHA256SUMS*
 
 FROM alpine:latest as final
-
+ARG TERRAFORM_VERSION=UNSPECIFIED
 LABEL "com.hashicorp.terraform.version"="${TERRAFORM_VERSION}"
 
 RUN apk add --no-cache git openssh
