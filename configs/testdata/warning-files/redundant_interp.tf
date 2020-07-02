@@ -34,3 +34,20 @@ resource "null_resource" "a" {
     wrapped = ["${var.triggers["greeting"]}"]
   }
 }
+
+module "foo" {
+  source = "./foo"
+  foo = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
+
+data "null_data_source" "b" {
+  has_computed_default = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
+
+output "output" {
+  value = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
+
+locals {
+  foo = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
