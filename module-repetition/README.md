@@ -83,7 +83,7 @@ later releases.
 
 From Terraform 0.11 onwards the Terraform team has recommended placing provider
 configurations only in the _root_ module of a configuration, and then having
-child modules either implicitly inherit or explicitly recieve provider
+child modules either implicitly inherit or explicitly receive provider
 configurations from the root:
 
 ```hcl
