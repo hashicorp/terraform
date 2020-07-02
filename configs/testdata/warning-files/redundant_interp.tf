@@ -34,3 +34,8 @@ resource "null_resource" "a" {
     wrapped = ["${var.triggers["greeting"]}"]
   }
 }
+
+module "foo" {
+  source = "./foo"
+  foo = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
