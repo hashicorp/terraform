@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -75,6 +76,12 @@ func TestRemote_applyBasic(t *testing.T) {
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("expected apply summery in output: %s", output)
 	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
+	}
 }
 
 func TestRemote_applyCanceled(t *testing.T) {
@@ -97,6 +104,11 @@ func TestRemote_applyCanceled(t *testing.T) {
 	<-run.Done()
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
+	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after cancelling apply: %s", err.Error())
 	}
 }
 
@@ -385,6 +397,12 @@ func TestRemote_applyNoConfig(t *testing.T) {
 	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
 	if !strings.Contains(errOutput, "configuration files found") {
 		t.Fatalf("expected configuration files error, got: %v", errOutput)
+	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after failed apply: %s", err.Error())
 	}
 }
 
