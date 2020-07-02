@@ -216,7 +216,7 @@ digraph replacement {
         a_d [label="A destroy"];
     }
 
-    a -> a_d [dir=back];
+    a -> a_d [dir=back, style=dotted];
     b -> a_d [dir=back];
 }
 -->
@@ -317,7 +317,7 @@ digraph replacement {
     }
 
     a -> a_d [dir=back];
-    b -> a_d [dir=back];
+    b -> a_d [dir=back, style=dotted];
     b -> b_d [dir=back];
 }
 -->
