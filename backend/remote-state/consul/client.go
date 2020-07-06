@@ -14,8 +14,8 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -54,7 +54,7 @@ type RemoteClient struct {
 	consulLock *consulapi.Lock
 	lockCh     <-chan struct{}
 
-	info *state.LockInfo
+	info *statemgr.LockInfo
 
 	// cancel our goroutine which is monitoring the lock to automatically
 	// reacquire it when possible.
@@ -161,7 +161,7 @@ func (c *RemoteClient) Delete() error {
 	return err
 }
 
-func (c *RemoteClient) putLockInfo(info *state.LockInfo) error {
+func (c *RemoteClient) putLockInfo(info *statemgr.LockInfo) error {
 	info.Path = c.Path
 	info.Created = time.Now().UTC()
 
@@ -174,7 +174,7 @@ func (c *RemoteClient) putLockInfo(info *state.LockInfo) error {
 	return err
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	path := c.Path + lockInfoSuffix
 	pair, _, err := c.Client.KV().Get(path, nil)
 	if err != nil {
@@ -184,7 +184,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		return nil, nil
 	}
 
-	li := &state.LockInfo{}
+	li := &statemgr.LockInfo{}
 	err = json.Unmarshal(pair.Value, li)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling lock info: %s", err)
@@ -193,7 +193,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	return li, nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -260,7 +260,7 @@ func (c *RemoteClient) lock() (string, error) {
 		return "", err
 	}
 
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 
 	lockCh, err := c.consulLock.Lock(make(chan struct{}))
 	if err != nil {

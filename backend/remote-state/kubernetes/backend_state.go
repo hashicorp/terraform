@@ -6,9 +6,9 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -71,7 +71,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return client.Delete()
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	c, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// If we have no state, we have to create an empty state
 	if v := stateMgr.State(); v == nil {
 
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockID, err := stateMgr.Lock(lockInfo)
 		if err != nil {

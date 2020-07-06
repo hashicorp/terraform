@@ -10,8 +10,9 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -41,8 +42,8 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return err
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
-	var stateMgr state.State = &remote.State{
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+	var stateMgr statemgr.Full = &remote.State{
 		Client: &RemoteClient{
 			Client: b.client,
 			DoLock: b.lock,
@@ -54,7 +55,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		stateMgr = &state.LockDisabled{Inner: stateMgr}
 	}
 
-	lockInfo := state.NewLockInfo()
+	lockInfo := statemgr.NewLockInfo()
 	lockInfo.Operation = "init"
 	lockId, err := stateMgr.Lock(lockInfo)
 	if err != nil {

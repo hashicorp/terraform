@@ -9,7 +9,7 @@ import (
 )
 
 // StateHook is a hook that continuously updates the state by calling
-// WriteState on a state.State.
+// WriteState on a statemgr.Full.
 type StateHook struct {
 	terraform.NilHook
 	sync.Mutex

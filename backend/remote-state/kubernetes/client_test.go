@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -72,7 +72,7 @@ func TestForceUnlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Who = "clientA"
 
@@ -98,7 +98,7 @@ func TestForceUnlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info = state.NewLockInfo()
+	info = statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Who = "clientA"
 

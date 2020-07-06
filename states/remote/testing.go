@@ -6,12 +6,13 @@ import (
 
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // TestClient is a generic function to test any client.
 func TestClient(t *testing.T, c Client) {
 	var buf bytes.Buffer
-	s := state.TestStateInitial()
+	s := statemgr.TestFullInitialState()
 	sf := statefile.New(s, "stub-lineage", 2)
 	err := statefile.Write(sf, &buf)
 	if err != nil {
@@ -59,11 +60,11 @@ func TestRemoteLocks(t *testing.T, a, b Client) {
 		t.Fatal("client B not a state.Locker")
 	}
 
-	infoA := state.NewLockInfo()
+	infoA := statemgr.NewLockInfo()
 	infoA.Operation = "test"
 	infoA.Who = "clientA"
 
-	infoB := state.NewLockInfo()
+	infoB := statemgr.NewLockInfo()
 	infoB.Operation = "test"
 	infoB.Who = "clientB"
 
