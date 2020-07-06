@@ -265,7 +265,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 	}
 
 	newPath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
-	envState := state.LocalState{Path: newPath}
+	envState := statemgr.NewFilesystem(newPath)
 	err = envState.RefreshState()
 	if err != nil {
 		t.Fatal(err)
