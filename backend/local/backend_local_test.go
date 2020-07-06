@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func TestLocalContext(t *testing.T) {
@@ -28,15 +27,12 @@ func TestLocalContext(t *testing.T) {
 		t.Fatalf("unexpected error: %s", diags.Err().Error())
 	}
 
-	// Context() retains a lock on success, so this should fail.
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
-	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err == nil {
-		t.Fatalf("unexpected success locking state")
-	}
+	// Context() retains a lock on success
+	assertBackendStateLocked(t, b)
 }
 
 func TestLocalContext_error(t *testing.T) {
-	configDir := "./testdata/apply-error"
+	configDir := "./testdata/apply"
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
@@ -55,10 +51,7 @@ func TestLocalContext_error(t *testing.T) {
 		t.Fatal("unexpected success")
 	}
 
-	// When Context() returns an error, it also unlocks the state.
-	// This should therefore succeed.
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
-	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
-		t.Fatalf("unexpected error locking state: %s", err.Error())
-	}
+	// Context() unlocks the state on failure
+	assertBackendStateUnlocked(t, b)
+
 }
