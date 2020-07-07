@@ -143,13 +143,15 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 // to a temporary archive file that could actually be installed in principle.
 //
 // Installing it will not produce a working provider though: just a fake file
-// posing as an executable.
+// posing as an executable. The filename for the executable defaults to the
+// standard terraform-provider-NAME_X.Y.Z format, but can be overridden with
+// the execFilename argument.
 //
 // It's the caller's responsibility to call the close callback returned
 // alongside the result in order to clean up the temporary file. The caller
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
-func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) (PackageMeta, func(), error) {
+func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, func(), error) {
 	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
@@ -162,10 +164,12 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		os.Remove(f.Name())
 	}
 
-	execFilename := fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
-	if target.OS == "windows" {
-		// For a little more (technically unnecessary) realism...
-		execFilename += ".exe"
+	if execFilename == "" {
+		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
+		if target.OS == "windows" {
+			// For a little more (technically unnecessary) realism...
+			execFilename += ".exe"
+		}
 	}
 
 	zw := zip.NewWriter(f)
