@@ -207,10 +207,10 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 		modules = append(modules, mod)
 	}
 
-	// Sort them by path length, longest first, so that start with the deepest
-	// modules.  The order of modules at the same tree level doesn't matter, we
-	// just need to ensure that child modules are processed before parent
-	// modules.
+	// Sort them by path length, longest first, so that we start with the
+	// deepest modules. The order of modules at the same tree level doesn't
+	// matter, we just need to ensure that child modules are processed before
+	// parent modules.
 	sort.Slice(modules, func(i, j int) bool {
 		return len(modules[i].addr) > len(modules[j].addr)
 	})
