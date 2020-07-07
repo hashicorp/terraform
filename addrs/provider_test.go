@@ -379,6 +379,20 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{},
 			true,
 		},
+
+		// We forbid the terraform- prefix both because it's redundant to
+		// include "terraform" in a Terraform provider name and because we use
+		// the longer prefix terraform-provider- to hint for users who might be
+		// accidentally using the git repository name or executable file name
+		// instead of the provider type.
+		"example.com/hashicorp/terraform-provider-bad": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/terraform-bad": {
+			Provider{},
+			true,
+		},
 	}
 
 	for name, test := range tests {
