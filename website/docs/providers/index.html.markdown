@@ -52,6 +52,7 @@ down to see all providers.
 - [Cloud-init](/docs/providers/cloudinit/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
+- [CloudSigma](/docs/providers/cloudsigma/index.html)
 - [Cobbler](/docs/providers/cobbler/index.html)
 - [Cohesity](/docs/providers/cohesity/index.html)
 - [Constellix](/docs/providers/constellix/index.html)
