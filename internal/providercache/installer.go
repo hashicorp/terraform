@@ -400,6 +400,14 @@ NeedProvider:
 			}
 			continue
 		}
+		if _, err := cached.ExecutableFile(); err != nil {
+			err := fmt.Errorf("provider binary not found: %s", err)
+			errs[provider] = err
+			if cb := evts.HashPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		}
 		hash, err := cached.Hash()
 		if err != nil {
 			errs[provider] = fmt.Errorf("failed to calculate checksum for installed provider %s package: %s", provider, err)
