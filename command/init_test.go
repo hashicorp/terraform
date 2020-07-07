@@ -951,6 +951,67 @@ func TestInit_getProviderSource(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderInvalidPackage(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-provider-invalid-package"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	overrides := metaOverridesForProvider(testProvider())
+	ui := new(cli.MockUi)
+
+	// create a provider source which allows installing an invalid package
+	addr := addrs.MustParseProviderSourceString("invalid/package")
+	version := getproviders.MustParseVersion("1.0.0")
+	meta, close, err := getproviders.FakeInstallablePackageMeta(
+		addr,
+		version,
+		getproviders.VersionList{getproviders.MustParseVersion("5.0")},
+		getproviders.CurrentPlatform,
+		"terraform-package", // should be "terraform-provider-package"
+	)
+	defer close()
+	if err != nil {
+		t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), version, err)
+	}
+	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil)
+
+	m := Meta{
+		testingOverrides: overrides,
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// invalid provider should be installed
+	packagePath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/invalid/package/1.0.0/%s/terraform-package", getproviders.CurrentPlatform)
+	if _, err := os.Stat(packagePath); os.IsNotExist(err) {
+		t.Fatal("provider 'invalid/package' not downloaded")
+	}
+
+	wantErrors := []string{
+		"Failed to validate installed provider",
+		"could not find executable file starting with terraform-provider-package",
+	}
+	got := ui.ErrorWriter.String()
+	for _, wantError := range wantErrors {
+		if !strings.Contains(got, wantError) {
+			t.Fatalf("missing error:\nwant: %q\n got: %q", wantError, got)
+		}
+	}
+}
+
 func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
