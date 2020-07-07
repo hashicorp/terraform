@@ -58,8 +58,7 @@ func TestInstallPackage(t *testing.T) {
 
 				Version: versions.MustParseVersion("2.1.0"),
 
-				PackageDir:     tmpDirPath + "/registry.terraform.io/hashicorp/null/2.1.0/linux_amd64",
-				ExecutableFile: tmpDirPath + "/registry.terraform.io/hashicorp/null/2.1.0/linux_amd64/terraform-provider-null",
+				PackageDir: tmpDirPath + "/registry.terraform.io/hashicorp/null/2.1.0/linux_amd64",
 			},
 		},
 	}
@@ -101,8 +100,7 @@ func TestLinkFromOtherCache(t *testing.T) {
 				// still packed and thus not considered to be a cache member.
 				Version: versions.MustParseVersion("2.0.0"),
 
-				PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
-				ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
+				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
 			},
 		},
 	}
@@ -138,8 +136,7 @@ func TestLinkFromOtherCache(t *testing.T) {
 				// still packed and thus not considered to be a cache member.
 				Version: versions.MustParseVersion("2.0.0"),
 
-				PackageDir:     tmpDirPath + "/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
-				ExecutableFile: tmpDirPath + "/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
+				PackageDir: tmpDirPath + "/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
 			},
 		},
 	}

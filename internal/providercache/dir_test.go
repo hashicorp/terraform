@@ -37,6 +37,9 @@ func TestDirReading(t *testing.T) {
 		addrs.DefaultRegistryHost, "bloop", "nonexist",
 	)
 	legacyProvider := addrs.NewLegacyProvider("legacy")
+	missingExecutableProvider := addrs.NewProvider(
+		addrs.DefaultRegistryHost, "missing", "executable",
+	)
 
 	t.Run("ProviderLatestVersion", func(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
@@ -50,8 +53,7 @@ func TestDirReading(t *testing.T) {
 				// still packed and thus not considered to be a cache member.
 				Version: versions.MustParseVersion("2.0.0"),
 
-				PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
-				ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
+				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
 			}
 
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -91,8 +93,7 @@ func TestDirReading(t *testing.T) {
 				Provider: nullProvider,
 				Version:  versions.MustParseVersion("2.0.0"),
 
-				PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
-				ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
+				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
 			}
 
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -141,34 +142,37 @@ func TestDirReading(t *testing.T) {
 		want := map[addrs.Provider][]CachedProvider{
 			legacyProvider: {
 				{
-					Provider:       legacyProvider,
-					Version:        versions.MustParseVersion("1.0.0"),
-					PackageDir:     "testdata/cachedir/registry.terraform.io/-/legacy/1.0.0/linux_amd64",
-					ExecutableFile: "testdata/cachedir/registry.terraform.io/-/legacy/1.0.0/linux_amd64/terraform-provider-legacy",
+					Provider:   legacyProvider,
+					Version:    versions.MustParseVersion("1.0.0"),
+					PackageDir: "testdata/cachedir/registry.terraform.io/-/legacy/1.0.0/linux_amd64",
 				},
 			},
 			nullProvider: {
 				{
-					Provider:       nullProvider,
-					Version:        versions.MustParseVersion("2.0.0"),
-					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64",
-					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64/terraform-provider-null",
+					Provider:   nullProvider,
+					Version:    versions.MustParseVersion("2.0.0"),
+					PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64",
 				},
 			},
 			randomProvider: {
 				{
-					Provider:       randomProvider,
-					Version:        versions.MustParseVersion("1.2.0"),
-					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64",
-					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64/terraform-provider-random",
+					Provider:   randomProvider,
+					Version:    versions.MustParseVersion("1.2.0"),
+					PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64",
 				},
 			},
 			randomBetaProvider: {
 				{
-					Provider:       randomBetaProvider,
-					Version:        versions.MustParseVersion("1.2.0"),
-					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64",
-					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64/terraform-provider-random-beta",
+					Provider:   randomBetaProvider,
+					Version:    versions.MustParseVersion("1.2.0"),
+					PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64",
+				},
+			},
+			missingExecutableProvider: {
+				{
+					Provider:   missingExecutableProvider,
+					Version:    versions.MustParseVersion("2.0.0"),
+					PackageDir: "testdata/cachedir/registry.terraform.io/missing/executable/2.0.0/linux_amd64",
 				},
 			},
 		}
