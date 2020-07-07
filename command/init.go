@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 
@@ -518,6 +519,44 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 						),
 					))
 				}
+			case getproviders.ErrHostNoProviders:
+				switch {
+				case errorTy.Hostname == svchost.Hostname("github.com") && !errorTy.HasOtherVersion:
+					// If a user copies the URL of a GitHub repository into
+					// the source argument and removes the schema to make it
+					// provider-address-shaped then that's one way we can end up
+					// here. We'll use a specialized error message in anticipation
+					// of that mistake. We only do this if github.com isn't a
+					// provider registry, to allow for the (admittedly currently
+					// rather unlikely) possibility that github.com starts being
+					// a real Terraform provider registry in the future.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a Terraform provider. Refer to the documentation of the provider to find the correct source address to use.",
+							provider.String(),
+						),
+					))
+
+				case errorTy.HasOtherVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+				}
+
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
