@@ -145,39 +145,41 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	// Before we do anything else, we'll try loading configuration with both
-	// our "normal" and "early" configuration codepaths. If early succeeds
-	// while normal fails, that strongly suggests that the configuration is
-	// using syntax that worked in 0.11 but no longer in v0.12.
+	// For Terraform v0.12 we introduced a special loading mode where we would
+	// use the 0.11-syntax-compatible "earlyconfig" package as a heuristic to
+	// identify situations where it was likely that the user was trying to use
+	// 0.11-only syntax that the upgrade tool might help with.
+	//
+	// However, as the language has moved on that is no longer a suitable
+	// heuristic in Terraform 0.13 and later: other new additions to the
+	// language can cause the main loader to disagree with earlyconfig, which
+	// would lead us to give poor advice about how to respond.
+	//
+	// For that reason, we no longer use a different error message in that
+	// situation, but for now we still use both codepaths because some of our
+	// initialization functionality remains built around "earlyconfig" and
+	// so we need to still load the module via that mechanism anyway until we
+	// can do some more invasive refactoring here.
 	rootMod, confDiags := c.loadSingleModule(path)
 	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
 	if confDiags.HasErrors() {
-		if earlyConfDiags.HasErrors() {
-			// If both parsers produced errors then we'll assume the config
-			// is _truly_ invalid and produce error messages as normal.
-			// Since this may be the user's first ever interaction with Terraform,
-			// we'll provide some additional context in this case.
-			c.Ui.Error(strings.TrimSpace(errInitConfigError))
-			diags = diags.Append(confDiags)
-			c.showDiagnostics(diags)
-			return 1
-		}
-		// If _only_ the main loader produced errors then that suggests the
-		// configuration is written in 0.11-style syntax. We will return an
-		// error suggesting the user upgrade their config manually or with
-		// Terraform v0.12
-		c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
+		// TODO: It would be nice to check the version constraints in
+		// rootModEarly.RequiredCore and print out a hint if the module is
+		// declaring that it's not compatible with this version of Terraform,
+		// though we're deferring that for now because we're intending to
+		// refactor our use of "earlyconfig" here anyway and so whatever we
+		// might do here right now would likely be invalidated by that.
 		c.showDiagnostics(confDiags)
 		return 1
 	}
-
 	// If _only_ the early loader encountered errors then that's unusual
 	// (it should generally be a superset of the normal loader) but we'll
 	// return those errors anyway since otherwise we'll probably get
 	// some weird behavior downstream. Errors from the early loader are
 	// generally not as high-quality since it has less context to work with.
 	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		// Errors from the early loader are generally not as high-quality since
 		// it has less context to work with.
 		diags = diags.Append(confDiags)
@@ -940,23 +942,10 @@ func (c *InitCommand) Synopsis() string {
 }
 
 const errInitConfigError = `
-There are some problems with the configuration, described below.
+[reset]There are some problems with the configuration, described below.
 
 The Terraform configuration must be valid before initialization so that
 Terraform can determine which modules and providers need to be installed.
-`
-
-const errInitConfigErrorMaybeLegacySyntax = `
-There are some problems with the configuration, described below.
-
-Terraform found syntax errors in the configuration that prevented full
-initialization. If you've recently upgraded to Terraform v0.13 from Terraform
-v0.11, this may be because your configuration uses syntax constructs that are no
-longer valid, and so must be updated before full initialization is possible.
-
-Manually update your configuration syntax, or install Terraform v0.12 and run
-terraform init for this configuration at a shell prompt for more information
-on how to update it for Terraform v0.12+ compatibility.
 `
 
 const errInitCopyNotEmpty = `
