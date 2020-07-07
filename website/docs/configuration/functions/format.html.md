@@ -117,6 +117,10 @@ The function produces an error if the format string requests an impossible
 conversion or access more arguments than are given. An error is produced also
 for an unsupported format verb.
 
+-> **Note:** Width and precision modifiers with non-numeric types such as
+strings (`%s`) are interpreted differently. Setting either width or precision to
+zero is the same as not including them at all.
+
 ## Related Functions
 
 * [`formatdate`](./formatdate.html) is a specialized formatting function for
