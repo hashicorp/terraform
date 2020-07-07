@@ -1657,38 +1657,6 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	}
 }
 
-// The module in this test uses terraform 0.11-style syntax. We expect that the
-// earlyconfig will succeed but the main loader fail, and return an error that
-// indicates that syntax upgrades may be required.
-func TestInit_syntaxErrorUpgradeHint(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-
-	// This module
-	copy.CopyDir(testFixturePath("init-sniff-version-error"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	// Check output.
-	output := ui.ErrorWriter.String()
-	if got, want := output, "If you've recently upgraded to Terraform v0.13 from Terraform\nv0.11, this may be because your configuration uses syntax constructs that are no\nlonger valid"; !strings.Contains(got, want) {
-		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
-	}
-}
-
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
