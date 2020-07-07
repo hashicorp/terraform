@@ -535,6 +535,8 @@ func (sr sortResourcesV4) Len() int      { return len(sr) }
 func (sr sortResourcesV4) Swap(i, j int) { sr[i], sr[j] = sr[j], sr[i] }
 func (sr sortResourcesV4) Less(i, j int) bool {
 	switch {
+	case sr[i].Module != sr[j].Module:
+		return sr[i].Module < sr[j].Module
 	case sr[i].Mode != sr[j].Mode:
 		return sr[i].Mode < sr[j].Mode
 	case sr[i].Type != sr[j].Type:
