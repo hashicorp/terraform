@@ -11,7 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func main() {
@@ -19,11 +20,11 @@ func main() {
 		log.Fatal(os.Args[0], "statefile")
 	}
 
-	s := &state.LocalState{
+	s := &terraform.LocalState{
 		Path: os.Args[1],
 	}
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Info = "state locker"
 
