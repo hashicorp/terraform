@@ -150,6 +150,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [OpenFaaS](https://github.com/ewilde/terraform-provider-openfaas)
 - [Openshift](https://github.com/llomgui/terraform-provider-openshift)
 - [OpenvCloud](https://github.com/gig-tech/terraform-provider-ovc)
+- [Outlook](https://github.com/magodo/terraform-provider-outlook)
 - [oVirt](https://github.com/oVirt/terraform-provider-ovirt)
 - [Pass](https://github.com/camptocamp/terraform-provider-pass)
 - [PHPIPAM](https://github.com/lord-kyron/terraform-provider-phpipaim)
