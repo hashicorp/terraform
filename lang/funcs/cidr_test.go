@@ -165,6 +165,13 @@ func TestCidrSubnet(t *testing.T) {
 			cty.StringVal("192.168.6.0/24"),
 			false,
 		},
+		{
+			cty.StringVal("fe80::/48"),
+			cty.NumberIntVal(33),
+			cty.NumberIntVal(6),
+			cty.StringVal("fe80::3:0:0:0/81"),
+			false,
+		},
 		{ // not enough bits left
 			cty.StringVal("192.168.0.0/30"),
 			cty.NumberIntVal(4),
