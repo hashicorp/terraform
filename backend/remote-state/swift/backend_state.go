@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -111,7 +110,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 
 	// If we're not locking, disable it
 	if !b.lock {
-		stateMgr = &state.LockDisabled{Inner: stateMgr}
+		stateMgr = &statemgr.LockDisabled{Inner: stateMgr}
 	}
 
 	// Check to see if this state already exists.

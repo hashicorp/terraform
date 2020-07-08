@@ -9,7 +9,6 @@ import (
 	etcdv3 "github.com/coreos/etcd/clientv3"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -52,7 +51,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	}
 
 	if !b.lock {
-		stateMgr = &state.LockDisabled{Inner: stateMgr}
+		stateMgr = &statemgr.LockDisabled{Inner: stateMgr}
 	}
 
 	lockInfo := statemgr.NewLockInfo()

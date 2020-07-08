@@ -1,8 +1,6 @@
-package state
+package statemgr
 
-import (
-	"github.com/hashicorp/terraform/states"
-)
+import "github.com/hashicorp/terraform/states"
 
 // LockDisabled implements State and Locker but disables state locking.
 // If State doesn't support locking, this is a no-op. This is useful for
@@ -10,7 +8,7 @@ import (
 type LockDisabled struct {
 	// We can't embed State directly since Go dislikes that a field is
 	// State and State interface has a method State
-	Inner State
+	Inner Full
 }
 
 func (s *LockDisabled) State() *states.State {
