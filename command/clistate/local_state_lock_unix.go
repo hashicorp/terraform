@@ -1,6 +1,6 @@
 // +build !windows
 
-package terraform
+package clistate
 
 import (
 	"io"

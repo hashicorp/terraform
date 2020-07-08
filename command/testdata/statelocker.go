@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 		log.Fatal(os.Args[0], "statefile")
 	}
 
-	s := &terraform.LocalState{
+	s := &clistate.LocalState{
 		Path: os.Args[1],
 	}
 

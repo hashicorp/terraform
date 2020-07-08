@@ -439,7 +439,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// if we're using a remote backend. This may not yet exist which means
 	// we haven't used a non-local backend before. That is okay.
 	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
-	sMgr := &terraform.LocalState{Path: statePath}
+	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
 		return nil, diags
@@ -572,7 +572,7 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 	// if we're using a remote backend. This may not yet exist which means
 	// we haven't used a non-local backend before. That is okay.
 	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
-	sMgr := &terraform.LocalState{Path: statePath}
+	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
 		return nil, diags
@@ -649,7 +649,7 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 //-------------------------------------------------------------------
 
 // Unconfiguring a backend (moving from backend => local).
-func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *terraform.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
 	s := sMgr.State()
 
 	// Get the backend type for output
@@ -704,7 +704,7 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *terraform.Loca
 }
 
 // Legacy remote state
-func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *terraform.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -714,7 +714,7 @@ func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *terraform.LocalState) (ba
 }
 
 // Unsetting backend, saved backend, legacy remote state
-func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *terraform.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -724,7 +724,7 @@ func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *terraform.Loca
 }
 
 // Configuring a backend for the first time with legacy remote state.
-func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *terraform.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -734,7 +734,7 @@ func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *terraform.LocalState) (ba
 }
 
 // Configuring a backend for the first time.
-func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *terraform.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	// Get the backend
 	b, configVal, diags := m.backendInitFromConfig(c)
 	if diags.HasErrors() {
@@ -861,7 +861,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *terraform.Loca
 }
 
 // Changing a previously saved backend.
-func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *terraform.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
 	if output {
 		// Notify the user
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -946,7 +946,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *terraf
 }
 
 // Initiailizing an unchanged saved backend
-func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *terraform.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := sMgr.State()
@@ -1001,7 +1001,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *terr
 }
 
 // Initiailizing a changed saved backend with legacy remote state.
-func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *terraform.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -1011,7 +1011,7 @@ func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *terraform.LocalSt
 }
 
 // Initiailizing an unchanged saved backend with legacy remote state.
-func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *terraform.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")

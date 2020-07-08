@@ -1,4 +1,4 @@
-package terraform
+package clistate
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // LocalState manages a state storage that is local to the filesystem.
@@ -38,13 +39,13 @@ type LocalState struct {
 	// hurt to remove file we never wrote to.
 	created bool
 
-	state     *State
-	readState *State
+	state     *terraform.State
+	readState *terraform.State
 	written   bool
 }
 
 // SetState will force a specific state in-memory for this local state.
-func (s *LocalState) SetState(state *State) {
+func (s *LocalState) SetState(state *terraform.State) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -53,7 +54,7 @@ func (s *LocalState) SetState(state *State) {
 }
 
 // StateReader impl.
-func (s *LocalState) State() *State {
+func (s *LocalState) State() *terraform.State {
 	return s.state.DeepCopy()
 }
 
@@ -63,7 +64,7 @@ func (s *LocalState) State() *State {
 // the original.
 //
 // StateWriter impl.
-func (s *LocalState) WriteState(state *State) error {
+func (s *LocalState) WriteState(state *terraform.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -99,7 +100,7 @@ func (s *LocalState) WriteState(state *State) error {
 		s.state.Serial++
 	}
 
-	if err := WriteState(s.state, s.stateFileOut); err != nil {
+	if err := terraform.WriteState(s.state, s.stateFileOut); err != nil {
 		return err
 	}
 
@@ -160,9 +161,9 @@ func (s *LocalState) RefreshState() error {
 		reader = s.stateFileOut
 	}
 
-	state, err := ReadState(reader)
+	state, err := terraform.ReadState(reader)
 	// if there's no state we just assign the nil return value
-	if err != nil && err != ErrNoState {
+	if err != nil && err != terraform.ErrNoState {
 		return err
 	}
 
