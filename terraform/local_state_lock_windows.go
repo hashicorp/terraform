@@ -1,6 +1,6 @@
 // +build windows
 
-package state
+package terraform
 
 import (
 	"math"

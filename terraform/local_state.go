@@ -1,4 +1,4 @@
-package state
+package terraform
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // LocalState manages a state storage that is local to the filesystem.
@@ -38,13 +38,13 @@ type LocalState struct {
 	// hurt to remove file we never wrote to.
 	created bool
 
-	state     *terraform.State
-	readState *terraform.State
+	state     *State
+	readState *State
 	written   bool
 }
 
 // SetState will force a specific state in-memory for this local state.
-func (s *LocalState) SetState(state *terraform.State) {
+func (s *LocalState) SetState(state *State) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -53,7 +53,7 @@ func (s *LocalState) SetState(state *terraform.State) {
 }
 
 // StateReader impl.
-func (s *LocalState) State() *terraform.State {
+func (s *LocalState) State() *State {
 	return s.state.DeepCopy()
 }
 
@@ -63,7 +63,7 @@ func (s *LocalState) State() *terraform.State {
 // the original.
 //
 // StateWriter impl.
-func (s *LocalState) WriteState(state *terraform.State) error {
+func (s *LocalState) WriteState(state *State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -99,7 +99,7 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		s.state.Serial++
 	}
 
-	if err := terraform.WriteState(s.state, s.stateFileOut); err != nil {
+	if err := WriteState(s.state, s.stateFileOut); err != nil {
 		return err
 	}
 
@@ -160,9 +160,9 @@ func (s *LocalState) RefreshState() error {
 		reader = s.stateFileOut
 	}
 
-	state, err := terraform.ReadState(reader)
+	state, err := ReadState(reader)
 	// if there's no state we just assign the nil return value
-	if err != nil && err != terraform.ErrNoState {
+	if err != nil && err != ErrNoState {
 		return err
 	}
 
@@ -172,7 +172,7 @@ func (s *LocalState) RefreshState() error {
 }
 
 // Lock implements a local filesystem state.Locker.
-func (s *LocalState) Lock(info *LockInfo) (string, error) {
+func (s *LocalState) Lock(info *statemgr.LockInfo) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -192,7 +192,7 @@ func (s *LocalState) Lock(info *LockInfo) (string, error) {
 			err = multierror.Append(err, infoErr)
 		}
 
-		lockErr := &LockError{
+		lockErr := &statemgr.LockError{
 			Info: info,
 			Err:  err,
 		}
@@ -219,7 +219,7 @@ func (s *LocalState) Unlock(id string) error {
 			idErr = multierror.Append(idErr, err)
 		}
 
-		return &LockError{
+		return &statemgr.LockError{
 			Err:  idErr,
 			Info: info,
 		}
@@ -284,14 +284,14 @@ func (s *LocalState) lockInfoPath() string {
 }
 
 // lockInfo returns the data in a lock info file
-func (s *LocalState) lockInfo() (*LockInfo, error) {
+func (s *LocalState) lockInfo() (*statemgr.LockInfo, error) {
 	path := s.lockInfoPath()
 	infoData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	info := LockInfo{}
+	info := statemgr.LockInfo{}
 	err = json.Unmarshal(infoData, &info)
 	if err != nil {
 		return nil, fmt.Errorf("state file %q locked, but could not unmarshal lock info: %s", s.Path, err)
@@ -300,7 +300,7 @@ func (s *LocalState) lockInfo() (*LockInfo, error) {
 }
 
 // write a new lock info file
-func (s *LocalState) writeLockInfo(info *LockInfo) error {
+func (s *LocalState) writeLockInfo(info *statemgr.LockInfo) error {
 	path := s.lockInfoPath()
 	info.Path = s.Path
 	info.Created = time.Now().UTC()
