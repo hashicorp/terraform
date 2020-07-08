@@ -165,7 +165,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// directly.  A destroy is identical to a normal apply, except for the
 		// fact that we also have configuration to evaluate. While the rest of
 		// the unused nodes can be programmatically pruned (via
-		// pruneUnusedNodesTransformer), root module outputs only have an
+		// pruneUnusedNodesTransformer), root module outputs always have an
 		// implied dependency on remote state. This means that if they exist in
 		// the configuration, the only signal to remove them is via the destroy
 		// command itself.
