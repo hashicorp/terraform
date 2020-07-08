@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -196,7 +195,7 @@ func (s *State) PersistState() error {
 }
 
 // Lock calls the Client's Lock method if it's implemented.
-func (s *State) Lock(info *state.LockInfo) (string, error) {
+func (s *State) Lock(info *statemgr.LockInfo) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

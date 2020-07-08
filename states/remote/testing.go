@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
@@ -50,14 +49,14 @@ func TestClient(t *testing.T, c Client) {
 // clients since some implementations may tie the client to the lock, or may
 // have reentrant locks.
 func TestRemoteLocks(t *testing.T, a, b Client) {
-	lockerA, ok := a.(state.Locker)
+	lockerA, ok := a.(statemgr.Locker)
 	if !ok {
-		t.Fatal("client A not a state.Locker")
+		t.Fatal("client A not a statemgr.Locker")
 	}
 
-	lockerB, ok := b.(state.Locker)
+	lockerB, ok := b.(statemgr.Locker)
 	if !ok {
-		t.Fatal("client B not a state.Locker")
+		t.Fatal("client B not a statemgr.Locker")
 	}
 
 	infoA := statemgr.NewLockInfo()
