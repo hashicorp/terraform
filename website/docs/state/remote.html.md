@@ -37,7 +37,7 @@ resources in a read-only way without relying on any additional configuration
 store.
 
 For example, a core infrastructure team can handle building the core
-machines, networking, etc. and can expose some information to other
+machines, networking, etc, and can expose some information to other
 teams to run their own infrastructure. As a more specific example with AWS:
 you can expose things such as VPC IDs, subnets, NAT instance IDs, etc. through
 remote state and have other Terraform states consume that.
