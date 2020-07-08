@@ -56,6 +56,12 @@ func TestCidrHost(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			true, // can't have an octet >255
 		},
+		{ // fractions are Not Ok
+			cty.StringVal("10.256.0.0/8"),
+			cty.NumberFloatVal(.75),
+			cty.UnknownVal(cty.String),
+			true,
+		},
 	}
 
 	for _, test := range tests {
@@ -183,21 +189,28 @@ func TestCidrSubnet(t *testing.T) {
 			cty.StringVal("192.168.0.0/168"),
 			cty.NumberIntVal(2),
 			cty.NumberIntVal(16),
-			cty.StringVal("fe80:0:0:6::/64"),
+			cty.UnknownVal(cty.String),
 			true,
 		},
 		{ // not a valid CIDR mask
 			cty.StringVal("not-a-cidr"),
 			cty.NumberIntVal(4),
 			cty.NumberIntVal(6),
-			cty.StringVal("fe80:0:0:6::/64"),
+			cty.UnknownVal(cty.String),
 			true,
 		},
 		{ // can't have an octet >255
 			cty.StringVal("10.256.0.0/8"),
 			cty.NumberIntVal(4),
 			cty.NumberIntVal(6),
-			cty.StringVal("fe80:0:0:6::/64"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+		{ // fractions are Not Ok
+			cty.StringVal("10.256.0.0/8"),
+			cty.NumberFloatVal(2 / 3),
+			cty.NumberFloatVal(.75),
+			cty.UnknownVal(cty.String),
 			true,
 		},
 	}

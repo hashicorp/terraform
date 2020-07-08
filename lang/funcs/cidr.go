@@ -97,10 +97,6 @@ var CidrSubnetFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
 
-		if newbits > 64 {
-			return cty.UnknownVal(cty.String), fmt.Errorf("may not extend prefix by more than 64 bits")
-		}
-
 		newNetwork, err := cidr.SubnetBig(network, newbits, netnum)
 		if err != nil {
 			return cty.UnknownVal(cty.String), err
