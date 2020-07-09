@@ -209,12 +209,17 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 			Output: os.Stderr,
 		})
 
+		execFile, err := meta.ExecutableFile()
+		if err != nil {
+			return nil, err
+		}
+
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
 			Logger:           logger,
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          true,
-			Cmd:              exec.Command(meta.ExecutableFile),
+			Cmd:              exec.Command(execFile),
 			AutoMTLS:         enableProviderAutoMTLS,
 			VersionedPlugins: tfplugin.VersionedPlugins,
 		}

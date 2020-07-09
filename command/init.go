@@ -653,6 +653,18 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					"https://www.terraform.io/docs/plugins/signing.html"))
 			}
 		},
+		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to validate installed provider",
+				fmt.Sprintf(
+					"Validating provider %s v%s failed: %s",
+					provider.ForDisplay(),
+					version,
+					err,
+				),
+			))
+		},
 	}
 
 	mode := providercache.InstallNewProvidersOnly
