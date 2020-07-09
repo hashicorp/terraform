@@ -1,11 +1,19 @@
+data "test_data_source" "bar" {
+  for_each = {
+    a = "b"
+  }
+  foo = "zing"
+}
+
 data "test_data_source" "foo" {
+  for_each = data.test_data_source.bar
   foo = "ok"
 }
 
 locals {
   l = [
     {
-      name = data.test_data_source.foo.id
+      name = data.test_data_source.foo["a"].id
       val = "null"
     },
   ]

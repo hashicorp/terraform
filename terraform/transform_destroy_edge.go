@@ -252,17 +252,16 @@ func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
 			// dealing with complex looping and labels
 			func() {
 				n := nodes[i]
-				switch n.(type) {
+				switch n := n.(type) {
 				case graphNodeTemporaryValue:
-					// temporary value, which consist of variables, locals, and
-					// outputs, must be kept if anything refers to them.
-					if n, ok := n.(GraphNodeModulePath); ok {
-						// root outputs always have an implicit dependency on
-						// remote state.
-						if n.ModulePath().IsRoot() {
-							return
-						}
+					// root module outputs indicate they are not temporary by
+					// returning false here.
+					if !n.temporaryValue() {
+						return
 					}
+
+					// temporary values, which consist of variables, locals,
+					// and outputs, must be kept if anything refers to them.
 					for _, v := range g.UpEdges(n) {
 						// keep any value which is connected through a
 						// reference
