@@ -119,6 +119,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	newState.Value = resp.NewState
 	newState.Private = resp.Private
 	newState.Dependencies = state.Dependencies
+	newState.CreateBeforeDestroy = state.CreateBeforeDestroy
 
 	// Call post-refresh hook
 	err = ctx.Hook(func(h Hook) (HookAction, error) {

@@ -166,9 +166,7 @@ commentary for module maintainers, use comments.
 
 ## Custom Validation Rules
 
-~> *Warning:* This feature is currently experimental and is subject to breaking
-changes even in minor releases. We welcome your feedback, but cannot
-recommend using this feature in production modules yet.
+-> This feature was introduced in Terraform CLI v0.13.0.
 
 In addition to Type Constraints as described above, a module author can specify
 arbitrary custom validation rules for a particular variable using a `validation`
@@ -211,16 +209,6 @@ If `condition` evaluates to `false`, Terraform will produce an error message
 that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
-
-This is [an experimental language feature](./terraform.html#experimental-language-features)
-that currently requires an explicit opt-in using the experiment keyword
-`variable_validation`:
-
-```hcl
-terraform {
-  experiments = [variable_validation]
-}
-```
 
 ## Assigning Values to Root Module Variables
 

@@ -23,17 +23,15 @@ The optional `-out` argument can be used to save the generated plan to a file
 for later execution with `terraform apply`, which can be useful when
 [running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
 
+If Terraform detects no changes to resource or to root module output values,
+`terraform plan` will indicate that no changes are required.
+
 ## Usage
 
 Usage: `terraform plan [options] [dir]`
 
 By default, `plan` requires no flags and looks in the current directory
 for the configuration and state file to refresh.
-
-If the command is given an existing saved plan as an argument, the
-command will output the contents of the saved plan. In this scenario,
-the `plan` command will not modify the given plan. This can be used to
-inspect a planfile.
 
 The command-line flags are all optional. The list of available flags are:
 

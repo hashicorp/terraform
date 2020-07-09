@@ -32,34 +32,47 @@ func NewRegistrySource(services *disco.Disco) *RegistrySource {
 // ErrHostNoProviders, ErrHostUnreachable, ErrUnauthenticated,
 // ErrProviderNotKnown, or ErrQueryFailed. Callers must be defensive and
 // expect errors of other types too, to allow for future expansion.
-func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	client, err := s.registryClient(provider.Hostname)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	versionStrs, err := client.ProviderVersions(provider)
+	versionsResponse, warnings, err := client.ProviderVersions(provider)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if len(versionStrs) == 0 {
-		return nil, nil
+	if len(versionsResponse) == 0 {
+		return nil, warnings, nil
 	}
 
-	ret := make(VersionList, len(versionStrs))
-	for i, str := range versionStrs {
+	// We ignore protocols here because our goal is to find out which versions
+	// are available _at all_. Which ones are compatible with the current
+	// Terraform becomes relevant only once we've selected one, at which point
+	// we'll return an error if the selected one is incompatible.
+	//
+	// We intentionally produce an error on incompatibility, rather than
+	// silently ignoring an incompatible version, in order to give the user
+	// explicit feedback about why their selection wasn't valid and allow them
+	// to decide whether to fix that by changing the selection or by some other
+	// action such as upgrading Terraform, using a different OS to run
+	// Terraform, etc. Changes that affect compatibility are considered breaking
+	// changes from a provider API standpoint, so provider teams should change
+	// compatibility only in new major versions.
+	ret := make(VersionList, 0, len(versionsResponse))
+	for str := range versionsResponse {
 		v, err := ParseVersion(str)
 		if err != nil {
-			return nil, ErrQueryFailed{
+			return nil, nil, ErrQueryFailed{
 				Provider: provider,
 				Wrapped:  fmt.Errorf("registry response includes invalid version string %q: %s", str, err),
 			}
 		}
-		ret[i] = v
+		ret = append(ret, v)
 	}
 	ret.Sort() // lowest precedence first, preserving order when equal precedence
-	return ret, nil
+	return ret, warnings, nil
 }
 
 // PackageMeta returns metadata about the location and capabilities of
@@ -152,4 +165,8 @@ func (s *RegistrySource) registryClient(hostname svchost.Hostname) (*registryCli
 	}
 
 	return newRegistryClient(url, creds), nil
+}
+
+func (s *RegistrySource) ForDisplay(provider addrs.Provider) string {
+	return fmt.Sprintf("registry %s", provider.Hostname.ForDisplay())
 }

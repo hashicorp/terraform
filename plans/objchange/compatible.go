@@ -28,12 +28,17 @@ func AssertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Value, path cty.Path) []error {
 	var errs []error
+	var atRoot string
+	if len(path) == 0 {
+		atRoot = "Root resource "
+	}
+
 	if planned.IsNull() && !actual.IsNull() {
-		errs = append(errs, path.NewErrorf("was absent, but now present"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas absent, but now present", atRoot)))
 		return errs
 	}
 	if actual.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf("was present, but now absent"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas present, but now absent", atRoot)))
 		return errs
 	}
 	if planned.IsNull() {

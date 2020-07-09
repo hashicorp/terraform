@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -127,6 +130,7 @@ func wrappedMain() int {
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
 	config, diags := cliconfig.LoadConfig()
+
 	if len(diags) > 0 {
 		// Since we haven't instantiated a command.Meta yet, we need to do
 		// some things manually here and use some "safe" defaults for things
@@ -150,32 +154,58 @@ func wrappedMain() int {
 	}
 
 	// Get any configured credentials from the config and initialize
-	// a service discovery object.
+	// a service discovery object. The slightly awkward predeclaration of
+	// disco is required to allow us to pass untyped nil as the creds source
+	// when creating the source fails. Otherwise we pass a typed nil which
+	// breaks the nil checks in the disco object
+	var services *disco.Disco
 	credsSrc, err := credentialsSource(config)
-	if err != nil {
+	if err == nil {
+		services = disco.NewWithCredentialsSource(credsSrc)
+	} else {
 		// Most commands don't actually need credentials, and most situations
 		// that would get us here would already have been reported by the config
 		// loading above, so we'll just log this one as an aid to debugging
 		// in the unlikely event that it _does_ arise.
 		log.Printf("[WARN] Cannot initialize remote host credentials manager: %s", err)
-		// credsSrc may be nil in this case, but that's okay because the disco
+		// passing (untyped) nil as the creds source is okay because the disco
 		// object checks that and just acts as though no credentials are present.
+		services = disco.NewWithCredentialsSource(nil)
 	}
-	services := disco.NewWithCredentialsSource(credsSrc)
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
-	// For the moment, we just always use the registry source to install
-	// direct from a registry. In future there should be a mechanism to
-	// configure providers sources from the CLI config, which will then
-	// change how we construct this object.
-	providerSrc := providerSource(services)
+	providerSrc, diags := providerSource(config.ProviderInstallation, services)
+	if len(diags) > 0 {
+		Ui.Error("There are some problems with the provider_installation configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+		}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform's provider installer may not behave as intended.\n\n")
+			// We continue to run anyway, because most commands don't do provider installation.
+		}
+	}
+
+	// The user can declare that certain providers are being managed on
+	// Terraform's behalf using this environment variable. Thsi is used
+	// primarily by the SDK's acceptance testing framework.
+	unmanagedProviders, err := parseReattachProviders(os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
 
 	// Initialize the backends.
 	backendInit.Init(services)
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(config, services, providerSrc)
+		initCommands(config, services, providerSrc, unmanagedProviders)
 	}
 
 	// Run checkpoint
@@ -352,4 +382,54 @@ func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 	copy(newArgs[idx:], extra)
 	copy(newArgs[len(extra)+idx:], args[idx:])
 	return newArgs, nil
+}
+
+// parse information on reattaching to unmanaged providers out of a
+// JSON-encoded environment variable.
+func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfig, error) {
+	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
+	if in != "" {
+		type reattachConfig struct {
+			Protocol string
+			Addr     struct {
+				Network string
+				String  string
+			}
+			Pid  int
+			Test bool
+		}
+		var m map[string]reattachConfig
+		err := json.Unmarshal([]byte(in), &m)
+		if err != nil {
+			return unmanagedProviders, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+		}
+		for p, c := range m {
+			a, diags := addrs.ParseProviderSourceString(p)
+			if diags.HasErrors() {
+				return unmanagedProviders, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+			}
+			var addr net.Addr
+			switch c.Addr.Network {
+			case "unix":
+				addr, err = net.ResolveUnixAddr("unix", c.Addr.String)
+				if err != nil {
+					return unmanagedProviders, fmt.Errorf("Invalid unix socket path %q for %q: %w", c.Addr.String, p, err)
+				}
+			case "tcp":
+				addr, err = net.ResolveTCPAddr("tcp", c.Addr.String)
+				if err != nil {
+					return unmanagedProviders, fmt.Errorf("Invalid TCP address %q for %q: %w", c.Addr.String, p, err)
+				}
+			default:
+				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
+			}
+			unmanagedProviders[a] = &plugin.ReattachConfig{
+				Protocol: plugin.Protocol(c.Protocol),
+				Pid:      c.Pid,
+				Test:     c.Test,
+				Addr:     addr,
+			}
+		}
+	}
+	return unmanagedProviders, nil
 }

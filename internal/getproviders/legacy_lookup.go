@@ -80,6 +80,11 @@ func findLegacyProviderLookupSource(host svchost.Hostname, source Source) *Regis
 		// just use it.
 		return source
 
+	case *MemoizeSource:
+		// Also easy: the source is a memoize wrapper, so defer to its
+		// underlying source.
+		return findLegacyProviderLookupSource(host, source.underlying)
+
 	case MultiSource:
 		// Trickier case: if it's a multisource then we need to scan over
 		// its selectors until we find one that is a *RegistrySource _and_

@@ -10,7 +10,7 @@ import (
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
 // Pass the associated resource type's schema type to method Decode to
-// obtain a ResourceInstancChange.
+// obtain a ResourceInstanceChange.
 type ResourceInstanceChangeSrc struct {
 	// Addr is the absolute address of the resource instance that the change
 	// will apply to.

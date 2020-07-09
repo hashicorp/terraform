@@ -786,6 +786,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"sum": {
+			{
+				`sum([2340.5,10,3])`,
+				cty.NumberFloatVal(2353.5),
+			},
+		},
+
 		"templatefile": {
 			{
 				`templatefile("hello.tmpl", {name = "Jodie"})`,
@@ -970,6 +977,12 @@ func TestFunctions(t *testing.T) {
 			{
 				`yamldecode("true")`,
 				cty.True,
+			},
+			{
+				`yamldecode("key: 0ba")`,
+				cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("0ba"),
+				}),
 			},
 		},
 

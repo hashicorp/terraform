@@ -29,7 +29,12 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 )
+
+func (n *nodeExpandPlannableResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
 
 // GraphNodeDestroyerCBD
 func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
@@ -214,6 +219,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		a.Schema = n.Schema
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
+		a.dependsOn = n.dependsOn
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,

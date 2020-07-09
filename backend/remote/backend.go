@@ -142,6 +142,9 @@ func (b *Remote) ConfigSchema() *configschema.Block {
 // PrepareConfig implements backend.Backend.
 func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return obj, diags
+	}
 
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
 		diags = diags.Append(tfdiags.AttributeValue(
@@ -188,6 +191,9 @@ func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 // Configure implements backend.Enhanced.
 func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return diags
+	}
 
 	// Get the hostname.
 	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
@@ -489,7 +495,7 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 		// The retry logic in the TFE client will retry both rate limited
 		// requests and server errors, but in the remote backend we only
 		// care about server errors so we ignore rate limit (429) errors.
-		if attemptNum == 0 || resp.StatusCode == 429 {
+		if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
 			// Reset the last retry time.
 			b.lastRetry = time.Now()
 			return
@@ -657,7 +663,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				"workspace %s not found\n\n"+
 					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
 					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. When the resource does exists, please check the rights for the used token.",
+					"to. If the resource does exist, please check the rights for the used token.",
 				name,
 			)
 		default:
@@ -863,7 +869,7 @@ func generalError(msg string, err error) error {
 			fmt.Sprintf("%s: %v", msg, err),
 			`The configured "remote" backend returns '404 Not Found' errors for resources `+
 				`that do not exist, as well as for resources that a user doesn't have access `+
-				`to. If the resource does exists, please check the rights for the used token.`,
+				`to. If the resource does exist, please check the rights for the used token.`,
 		))
 		return diags.Err()
 	default:

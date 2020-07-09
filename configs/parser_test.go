@@ -92,10 +92,18 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
 		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
-			// SourceAddr as a path relative to our fixture directory.
+			// SourceAddr as a path relative to the calling module.
 			// A "real" implementation of ModuleWalker should accept the
 			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join(path, req.SourceAddr)
+
+			// Build a full path by walking up the module tree, prepending each
+			// source address path until we hit the root
+			paths := []string{req.SourceAddr}
+			for config := req.Parent; config != nil && config.Parent != nil; config = config.Parent {
+				paths = append([]string{config.SourceAddr}, paths...)
+			}
+			paths = append([]string{path}, paths...)
+			sourcePath := filepath.Join(paths...)
 
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))

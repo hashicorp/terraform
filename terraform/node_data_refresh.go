@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type nodeExpandRefreshableDataResource struct {
@@ -21,6 +20,10 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandRefreshableDataResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandRefreshableDataResource)(nil)
 )
+
+func (n *nodeExpandRefreshableDataResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
 
 func (n *nodeExpandRefreshableDataResource) References() []*addrs.Reference {
 	return (&NodeRefreshableManagedResource{NodeAbstractResource: n.NodeAbstractResource}).References()
@@ -65,43 +68,46 @@ func (n *NodeRefreshableDataResource) Path() addrs.ModuleInstance {
 func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var diags tfdiags.Diagnostics
 
-	count, countKnown, countDiags := evaluateResourceCountExpressionKnown(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-	if !countKnown {
-		// If the count isn't known yet, we'll skip refreshing and try expansion
-		// again during the plan walk.
-		return nil, nil
-	}
+	expander := ctx.InstanceExpander()
 
-	forEachMap, forEachKnown, forEachDiags := evaluateResourceForEachExpressionKnown(n.Config.ForEach, ctx)
-	diags = diags.Append(forEachDiags)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-	if !forEachKnown {
-		// If the for_each isn't known yet, we'll skip refreshing and try expansion
-		// again during the plan walk.
-		return nil, nil
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+		if !count.IsKnown() {
+			// If the count isn't known yet, we'll skip refreshing and try expansion
+			// again during the plan walk.
+			return nil, nil
+		}
+
+		c, _ := count.AsBigFloat().Int64()
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, int(c))
+
+	case n.Config.ForEach != nil:
+		forEachVal, forEachDiags := evaluateForEachExpressionValue(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+		if !forEachVal.IsKnown() {
+			// If the for_each isn't known yet, we'll skip refreshing and try expansion
+			// again during the plan walk.
+			return nil, nil
+		}
+
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachVal.AsValueMap())
+
+	default:
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
 
 	// Next we need to potentially rename an instance address in the state
 	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.ResourceAddr(), count != -1)
+	fixResourceCountSetTransition(ctx, n.ResourceAddr(), n.Config.Count != nil)
 
-	// Inform our instance expander about our expansion results above,
-	// and then use it to calculate the instance addresses we'll expand for.
-	expander := ctx.InstanceExpander()
-	switch {
-	case count >= 0:
-		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
-	case forEachMap != nil:
-		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEachMap)
-	default:
-		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
-	}
 	instanceAddrs := expander.ExpandResource(n.Addr)
 
 	// Our graph transformers require access to the full state, so we'll
@@ -115,6 +121,9 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
 		a.ProviderMetas = n.ProviderMetas
+		a.dependsOn = n.dependsOn
+		a.forceDependsOn = n.forceDependsOn
+		a.Targets = n.Targets
 
 		return &NodeRefreshableDataResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -192,7 +201,6 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -202,41 +210,35 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 				Schema: &providerSchema,
 			},
 
-			// Always destroy the existing state first, since we must
-			// make sure that values from a previous read will not
-			// get interpolated if we end up needing to defer our
-			// loading until apply time.
-			&EvalWriteState{
+			&EvalReadState{
 				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				State:          &state, // a pointer to nil, here
+				Provider:       &provider,
 				ProviderSchema: &providerSchema,
+				Output:         &state,
 			},
 
-			// EvalReadData will _attempt_ to read the data source, but may
-			// generate an incomplete planned object if the configuration
+			// EvalReadDataRefresh will _attempt_ to read the data source, but
+			// may generate an incomplete planned object if the configuration
 			// includes values that won't be known until apply.
-			&EvalReadData{
-				Addr:              addr.Resource,
-				Config:            n.Config,
-				Provider:          &provider,
-				ProviderAddr:      n.ResolvedProvider,
-				ProviderMetas:     n.ProviderMetas,
-				ProviderSchema:    &providerSchema,
-				OutputChange:      &change,
-				OutputConfigValue: &configVal,
-				OutputState:       &state,
-				// If the config explicitly has a depends_on for this data
-				// source, assume the intention is to prevent refreshing ahead
-				// of that dependency, and therefore we need to deal with this
-				// resource during the apply phase. We do that by forcing this
-				// read to result in a plan.
-				ForcePlanRead: len(n.Config.DependsOn) > 0,
+			&evalReadDataRefresh{
+				evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					OutputChange:   &change,
+					State:          &state,
+					dependsOn:      n.dependsOn,
+					forceDependsOn: n.forceDependsOn,
+				},
 			},
 
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
-					return (*state).Status != states.ObjectPlanned, nil
+					return change == nil, nil
+
 				},
 				Then: &EvalSequence{
 					Nodes: []EvalNode{

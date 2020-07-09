@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@3.4.2
+
 executors:
   go:
     docker:
@@ -68,6 +71,10 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
 
+      - slack/status:
+          fail_only: true
+          only_for_branches: master
+
   go-test-e2e:
     executor:
       name: go
@@ -81,10 +88,7 @@ jobs:
       - run:
           name: Run Go E2E Tests
           command: |
-            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
-            echo $PACKAGE_NAMES
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./command/e2etest
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./command/e2etest ./tools/terraform-bundle/e2etest
 
       # save coverage report parts
       - persist_to_workspace:
@@ -96,6 +100,10 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
+
+      - slack/status:
+          fail_only: true
+          only_for_branches: master
 
   # combine code coverage results from the parallel circleci executors
   coverage-merge:
@@ -157,6 +165,16 @@ jobs:
       XC_OS: "freebsd linux"
       XC_ARCH: "arm"
 
+  test-docker-full:
+    executor:
+      name: go
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: test docker build for 'full' image
+          command: docker build -t test-docker-full .
+
 workflows:
   version: 2
   test:
@@ -172,6 +190,13 @@ workflows:
           requires:
             - go-test
             - go-test-e2e
+      - test-docker-full:
+          filters:
+            branches:
+              only:
+                - master
+                - /^v\d+\.\d+$/ # v0.11, v0.12, etc.
+
   build-distros:
     jobs:
       - build-386

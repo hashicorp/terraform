@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -42,12 +43,12 @@ type EvalModuleCallArgument struct {
 	Expr           hcl.Expression
 	ModuleInstance addrs.ModuleInstance
 
-	// If this flag is set, any diagnostics are discarded and this operation
-	// will always succeed, though may produce an unknown value in the
-	// event of an error.
-	IgnoreDiagnostics bool
-
 	Values map[string]cty.Value
+
+	// validateOnly indicates that this evaluation is only for config
+	// validation, and we will not have any expansion module instance
+	// repetition data.
+	validateOnly bool
 }
 
 func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
@@ -69,9 +70,24 @@ func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// Get the repetition data for this module instance,
-	// so we can create the appropriate scope for evaluating our expression
-	moduleInstanceRepetitionData := ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
+	var moduleInstanceRepetitionData instances.RepetitionData
+
+	switch {
+	case n.validateOnly:
+		// the instance expander does not track unknown expansion values, so we
+		// have to assume all RepetitionData is unknown.
+		moduleInstanceRepetitionData = instances.RepetitionData{
+			CountIndex: cty.UnknownVal(cty.Number),
+			EachKey:    cty.UnknownVal(cty.String),
+			EachValue:  cty.DynamicVal,
+		}
+
+	default:
+		// Get the repetition data for this module instance,
+		// so we can create the appropriate scope for evaluating our expression
+		moduleInstanceRepetitionData = ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
+	}
+
 	scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
 	val, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 
@@ -96,9 +112,6 @@ func (n *EvalModuleCallArgument) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	n.Values[name] = val
-	if n.IgnoreDiagnostics {
-		return nil, nil
-	}
 	return nil, diags.ErrWithWarnings()
 }
 
@@ -116,15 +129,10 @@ type evalVariableValidations struct {
 	// This will be nil for root module variables, because their values come
 	// from outside the configuration.
 	Expr hcl.Expression
-
-	// If this flag is set, this node becomes a no-op.
-	// This is here for consistency with EvalModuleCallArgument so that it
-	// can be populated with the same value, where needed.
-	IgnoreDiagnostics bool
 }
 
 func (n *evalVariableValidations) Eval(ctx EvalContext) (interface{}, error) {
-	if n.Config == nil || n.IgnoreDiagnostics || len(n.Config.Validations) == 0 {
+	if n.Config == nil || len(n.Config.Validations) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: not active for %s, so skipping", n.Addr)
 		return nil, nil
 	}

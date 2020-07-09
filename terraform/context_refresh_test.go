@@ -949,32 +949,11 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		m := req.Config.AsValueMap()
-		m["inputs"] = cty.MapVal(map[string]cty.Value{"test": cty.StringVal("yes")})
 		readStateVal = cty.ObjectVal(m)
 
 		return providers.ReadDataSourceResponse{
 			State: readStateVal,
 		}
-
-		// FIXME: should the "outputs" value here be added to the reutnred state?
-		// Attributes: map[string]*ResourceAttrDiff{
-		// 	"inputs.#": {
-		// 		Old:  "0",
-		// 		New:  "1",
-		// 		Type: DiffAttrInput,
-		// 	},
-		// 	"inputs.test": {
-		// 		Old:  "",
-		// 		New:  "yes",
-		// 		Type: DiffAttrInput,
-		// 	},
-		// 	"outputs.#": {
-		// 		Old:         "",
-		// 		New:         "",
-		// 		NewComputed: true,
-		// 		Type:        DiffAttrOutput,
-		// 	},
-		// },
 	}
 
 	s, diags := ctx.Refresh()
@@ -985,14 +964,6 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	if !p.ReadDataSourceCalled {
 		t.Fatal("ReadDataSource should have been called")
 	}
-
-	// mod := s.RootModule()
-	// if got := mod.Resources["data.null_data_source.testing"].Primary.ID; got != "-" {
-	// 	t.Fatalf("resource id is %q; want %s", got, "-")
-	// }
-	// if !reflect.DeepEqual(mod.Resources["data.null_data_source.testing"].Primary, p.ReadDataApplyReturn) {
-	// 	t.Fatalf("bad: %#v", mod.Resources)
-	// }
 
 	mod := s.RootModule()
 
@@ -1612,6 +1583,11 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 		},
 	}
 	p.DiffFn = testDiffFn
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"compute": cty.StringVal("value"),
+		}),
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)

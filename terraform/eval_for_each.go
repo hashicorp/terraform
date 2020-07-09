@@ -8,14 +8,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// evaluateResourceForEachExpression interprets a "for_each" argument on a resource.
+// evaluateForEachExpression is our standard mechanism for interpreting an
+// expression given for a "for_each" argument on a resource or a module. This
+// should be called during expansion in order to determine the final keys and
+// values.
 //
-// Returns a cty.Value map, and diagnostics if necessary. It will return nil if
-// the expression is nil, and is used to distinguish between an unset for_each and an
-// empty map
-func evaluateResourceForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
-	forEachMap, known, diags := evaluateResourceForEachExpressionKnown(expr, ctx)
-	if !known {
+// evaluateForEachExpression differs from evaluateForEachExpressionValue by
+// returning an error if the count value is not known, and converting the
+// cty.Value to a map[string]cty.Value for compatibility with other calls.
+func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
+	forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
+	if !forEachVal.IsKnown() {
 		// Attach a diag as we do with count, with the same downsides
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -24,23 +27,31 @@ func evaluateResourceForEachExpression(expr hcl.Expression, ctx EvalContext) (fo
 			Subject:  expr.Range().Ptr(),
 		})
 	}
-	return forEachMap, diags
+
+	if forEachVal.IsNull() || !forEachVal.IsKnown() || forEachVal.LengthInt() == 0 {
+		// we check length, because an empty set return a nil map
+		return map[string]cty.Value{}, diags
+	}
+
+	return forEachVal.AsValueMap(), diags
 }
 
-// evaluateResourceForEachExpressionKnown is like evaluateResourceForEachExpression
-// except that it handles an unknown result by returning an empty map and
-// a known = false, rather than by reporting the unknown value as an error
-// diagnostic.
-func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, known bool, diags tfdiags.Diagnostics) {
+// evaluateForEachExpressionValue is like evaluateForEachExpression
+// except that it returns a cty.Value map or set which can be unknown.
+func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	nullMap := cty.NullVal(cty.Map(cty.DynamicPseudoType))
+
 	if expr == nil {
-		return nil, true, nil
+		return nullMap, diags
 	}
 
 	forEachVal, forEachDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
 	diags = diags.Append(forEachDiags)
 	if diags.HasErrors() {
-		return nil, true, diags
+		return nullMap, diags
 	}
+	ty := forEachVal.Type()
 
 	switch {
 	case forEachVal.IsNull():
@@ -50,44 +61,42 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 			Detail:   `The given "for_each" argument value is unsuitable: the given "for_each" argument value is null. A map, or set of strings is allowed.`,
 			Subject:  expr.Range().Ptr(),
 		})
-		return nil, true, diags
+		return nullMap, diags
 	case !forEachVal.IsKnown():
-		return map[string]cty.Value{}, false, diags
-	}
+		// ensure that we have a map, and not a DynamicValue
+		return cty.UnknownVal(cty.Map(cty.DynamicPseudoType)), diags
 
-	if !forEachVal.CanIterateElements() || forEachVal.Type().IsListType() || forEachVal.Type().IsTupleType() {
+	case !(ty.IsMapType() || ty.IsSetType() || ty.IsObjectType()):
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid for_each argument",
-			Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: the "for_each" argument must be a map, or set of strings, and you have provided a value of type %s.`, forEachVal.Type().FriendlyName()),
+			Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: the "for_each" argument must be a map, or set of strings, and you have provided a value of type %s.`, ty.FriendlyName()),
 			Subject:  expr.Range().Ptr(),
 		})
-		return nil, true, diags
+		return nullMap, diags
+
+	case forEachVal.LengthInt() == 0:
+		// If the map is empty ({}), return an empty map, because cty will
+		// return nil when representing {} AsValueMap. This also covers an empty
+		// set (toset([]))
+		return forEachVal, diags
 	}
 
-	// If the map is empty ({}), return an empty map, because cty will return nil when representing {} AsValueMap
-	// This also covers an empty set (toset([]))
-	if forEachVal.LengthInt() == 0 {
-		return map[string]cty.Value{}, true, diags
-	}
+	if ty.IsSetType() {
+		// since we can't use a set values that are unknown, we treat the
+		// entire set as unknown
+		if !forEachVal.IsWhollyKnown() {
+			return cty.UnknownVal(ty), diags
+		}
 
-	if forEachVal.Type().IsSetType() {
-		if forEachVal.Type().ElementType() != cty.String {
+		if ty.ElementType() != cty.String {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid for_each set argument",
 				Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" supports maps and sets of strings, but you have provided a set containing type %s.`, forEachVal.Type().ElementType().FriendlyName()),
 				Subject:  expr.Range().Ptr(),
 			})
-			return nil, true, diags
-		}
-
-		// A set may contain unknown values that must be
-		// discovered by checking with IsWhollyKnown (which iterates through the
-		// structure), while for maps in cty, keys can never be unknown or null,
-		// thus the earlier IsKnown check suffices for maps
-		if !forEachVal.IsWhollyKnown() {
-			return map[string]cty.Value{}, false, diags
+			return cty.NullVal(ty), diags
 		}
 
 		// A set of strings may contain null, which makes it impossible to
@@ -102,10 +111,10 @@ func evaluateResourceForEachExpressionKnown(expr hcl.Expression, ctx EvalContext
 					Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" sets must not contain null values.`),
 					Subject:  expr.Range().Ptr(),
 				})
-				return nil, true, diags
+				return cty.NullVal(ty), diags
 			}
 		}
 	}
 
-	return forEachVal.AsValueMap(), true, nil
+	return forEachVal, nil
 }

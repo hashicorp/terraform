@@ -132,6 +132,27 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 	}
 }
 
+func TestProvisioner_connInfoEmptyHostname(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":        "ssh",
+				"user":        "root",
+				"password":    "supersecret",
+				"private_key": "someprivatekeycontents",
+				"host":        "",
+				"port":        "22",
+				"timeout":     "30s",
+			},
+		},
+	}
+
+	_, err := parseConnectionInfo(r)
+	if err == nil {
+		t.Fatalf("bad: should not allow empty host")
+	}
+}
+
 func TestProvisioner_connInfoProxy(t *testing.T) {
 	r := &terraform.InstanceState{
 		Ephemeral: terraform.EphemeralState{
@@ -160,7 +181,7 @@ func TestProvisioner_connInfoProxy(t *testing.T) {
 		t.Fatalf("bad: %v", conf)
 	}
 
-	if conf.ProxyHost != "proxy.exmaple.com" {
+	if conf.ProxyHost != "proxy.example.com" {
 		t.Fatalf("bad: %v", conf)
 	}
 
@@ -168,12 +189,11 @@ func TestProvisioner_connInfoProxy(t *testing.T) {
 		t.Fatalf("bad: %v", conf)
 	}
 
-	if conf.ProxyUser != "proxyuser" {
+	if conf.ProxyUserName != "proxyuser" {
 		t.Fatalf("bad: %v", conf)
 	}
 
 	if conf.ProxyUserPassword != "proxyuser_password" {
 		t.Fatalf("bad: %v", conf)
 	}
-
 }

@@ -2,7 +2,9 @@ package getproviders
 
 import (
 	"archive/zip"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -18,6 +20,7 @@ import (
 // This should not be used outside of unit test code.
 type MockSource struct {
 	packages []PackageMeta
+	warnings map[addrs.Provider]Warnings
 	calls    [][]interface{}
 }
 
@@ -29,16 +32,17 @@ var _ Source = (*MockSource)(nil)
 // exist on disk or over the network, unless the calling test is planning to
 // use (directly or indirectly) the results for further provider installation
 // actions.
-func NewMockSource(packages []PackageMeta) *MockSource {
+func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *MockSource {
 	return &MockSource{
 		packages: packages,
+		warnings: warns,
 	}
 }
 
 // AvailableVersions returns all of the versions of the given provider that
 // are available in the fixed set of packages that were passed to
 // NewMockSource when creating the receiving source.
-func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	s.calls = append(s.calls, []interface{}{"AvailableVersions", provider})
 	var ret VersionList
 	for _, pkg := range s.packages {
@@ -46,13 +50,19 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 			ret = append(ret, pkg.Version)
 		}
 	}
+	var warns []string
+	if s.warnings != nil {
+		if warnings, ok := s.warnings[provider]; ok {
+			warns = warnings
+		}
+	}
 	if len(ret) == 0 {
 		// In this case, we'll behave like a registry that doesn't know about
 		// this provider at all, rather than just returning an empty result.
-		return nil, ErrProviderNotKnown{provider}
+		return nil, warns, ErrRegistryProviderNotKnown{provider}
 	}
 	ret.Sort()
-	return ret, nil
+	return ret, warns, nil
 }
 
 // PackageMeta returns the first package from the list given to NewMockSource
@@ -115,11 +125,12 @@ func (s *MockSource) CallLog() [][]interface{} {
 // FakePackageMeta constructs and returns a PackageMeta that carries the given
 // metadata but has fake location information that is likely to fail if
 // attempting to install from it.
-func FakePackageMeta(provider addrs.Provider, version Version, target Platform) PackageMeta {
+func FakePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) PackageMeta {
 	return PackageMeta{
-		Provider:       provider,
-		Version:        version,
-		TargetPlatform: target,
+		Provider:         provider,
+		Version:          version,
+		ProtocolVersions: protocols,
+		TargetPlatform:   target,
 
 		// Some fake but somewhat-realistic-looking other metadata. This
 		// points nowhere, so will fail if attempting to actually use it.
@@ -138,7 +149,7 @@ func FakePackageMeta(provider addrs.Provider, version Version, target Platform) 
 // alongside the result in order to clean up the temporary file. The caller
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
-func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, func(), error) {
+func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) (PackageMeta, func(), error) {
 	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
@@ -168,10 +179,19 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target
 		return PackageMeta{}, close, fmt.Errorf("failed to close the mock zip file: %s", err)
 	}
 
+	// Compute the SHA256 checksum of the generated file, to allow package
+	// authentication code to be exercised.
+	f.Seek(0, io.SeekStart)
+	h := sha256.New()
+	io.Copy(h, f)
+	checksum := [32]byte{}
+	h.Sum(checksum[:0])
+
 	meta := PackageMeta{
-		Provider:       provider,
-		Version:        version,
-		TargetPlatform: target,
+		Provider:         provider,
+		Version:          version,
+		ProtocolVersions: protocols,
+		TargetPlatform:   target,
 
 		Location: PackageLocalArchive(f.Name()),
 
@@ -181,6 +201,12 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, target
 		// (At the time of writing, no caller actually does that, but who
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
+
+		Authentication: NewArchiveChecksumAuthentication(checksum),
 	}
 	return meta, close, nil
+}
+
+func (s *MockSource) ForDisplay(provider addrs.Provider) string {
+	return "mock source"
 }

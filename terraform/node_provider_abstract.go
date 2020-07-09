@@ -27,7 +27,6 @@ type NodeAbstractProvider struct {
 
 var (
 	_ GraphNodeModulePath                 = (*NodeAbstractProvider)(nil)
-	_ RemovableIfNotTargeted              = (*NodeAbstractProvider)(nil)
 	_ GraphNodeReferencer                 = (*NodeAbstractProvider)(nil)
 	_ GraphNodeProvider                   = (*NodeAbstractProvider)(nil)
 	_ GraphNodeAttachProvider             = (*NodeAbstractProvider)(nil)
@@ -49,13 +48,6 @@ func (n *NodeAbstractProvider) Path() addrs.ModuleInstance {
 // GraphNodeModulePath
 func (n *NodeAbstractProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
-}
-
-// RemovableIfNotTargeted
-func (n *NodeAbstractProvider) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 // GraphNodeReferencer

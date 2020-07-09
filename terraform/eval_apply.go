@@ -22,17 +22,18 @@ import (
 // EvalApply is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalApply struct {
-	Addr           addrs.ResourceInstance
-	Config         *configs.Resource
-	State          **states.ResourceInstanceObject
-	Change         **plans.ResourceInstanceChange
-	ProviderAddr   addrs.AbsProviderConfig
-	Provider       *providers.Interface
-	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
-	ProviderSchema **ProviderSchema
-	Output         **states.ResourceInstanceObject
-	CreateNew      *bool
-	Error          *error
+	Addr                addrs.ResourceInstance
+	Config              *configs.Resource
+	State               **states.ResourceInstanceObject
+	Change              **plans.ResourceInstanceChange
+	ProviderAddr        addrs.AbsProviderConfig
+	Provider            *providers.Interface
+	ProviderMetas       map[addrs.Provider]*configs.ProviderMeta
+	ProviderSchema      **ProviderSchema
+	Output              **states.ResourceInstanceObject
+	CreateNew           *bool
+	Error               *error
+	CreateBeforeDestroy bool
 }
 
 // TODO: test
@@ -61,7 +62,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	configVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.Config != nil {
 		var configDiags tfdiags.Diagnostics
-		forEach, _ := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
+		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 		keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
@@ -244,7 +245,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 						tfdiags.Error,
 						"Provider produced inconsistent result after apply",
 						fmt.Sprintf(
-							"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							"When applying changes to %s, provider %q produced an unexpected new value: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 							absAddr, n.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
 						),
 					))
@@ -305,9 +306,10 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:  newStatus,
-			Value:   newVal,
-			Private: resp.Private,
+			Status:              newStatus,
+			Value:               newVal,
+			Private:             resp.Private,
+			CreateBeforeDestroy: n.CreateBeforeDestroy,
 		}
 	}
 
@@ -595,7 +597,7 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		// in its result. That's okay because each.value is prohibited for
 		// destroy-time provisioners.
 		if n.When != configs.ProvisionerWhenDestroy {
-			m, forEachDiags := evaluateResourceForEachExpression(n.ResourceConfig.ForEach, ctx)
+			m, forEachDiags := evaluateForEachExpression(n.ResourceConfig.ForEach, ctx)
 			diags = diags.Append(forEachDiags)
 			forEach = m
 		}

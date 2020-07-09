@@ -58,24 +58,30 @@ type NodeAbstractResource struct {
 
 	ProvisionerSchemas map[string]*configschema.Block
 
-	Targets []addrs.Targetable // Set from GraphNodeTargetable
+	// Set from GraphNodeTargetable
+	Targets []addrs.Targetable
+
+	// Set from AttachResourceDependencies
+	dependsOn      []addrs.ConfigResource
+	forceDependsOn bool
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
 }
 
 var (
-	_ GraphNodeReferenceable             = (*NodeAbstractResource)(nil)
-	_ GraphNodeReferencer                = (*NodeAbstractResource)(nil)
-	_ GraphNodeProviderConsumer          = (*NodeAbstractResource)(nil)
-	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResource)(nil)
-	_ GraphNodeConfigResource            = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResource)(nil)
-	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResource)(nil)
-	_ GraphNodeTargetable                = (*NodeAbstractResource)(nil)
-	_ dag.GraphNodeDotter                = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferenceable              = (*NodeAbstractResource)(nil)
+	_ GraphNodeReferencer                 = (*NodeAbstractResource)(nil)
+	_ GraphNodeProviderConsumer           = (*NodeAbstractResource)(nil)
+	_ GraphNodeProvisionerConsumer        = (*NodeAbstractResource)(nil)
+	_ GraphNodeConfigResource             = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceConfig       = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachResourceSchema       = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProvisionerSchema    = (*NodeAbstractResource)(nil)
+	_ GraphNodeAttachProviderMetaConfigs  = (*NodeAbstractResource)(nil)
+	_ GraphNodeTargetable                 = (*NodeAbstractResource)(nil)
+	_ graphNodeAttachResourceDependencies = (*NodeAbstractResource)(nil)
+	_ dag.GraphNodeDotter                 = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -175,21 +181,10 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 	if c := n.Config; c != nil {
 		var result []*addrs.Reference
 
-		for _, traversal := range c.DependsOn {
-			ref, diags := addrs.ParseRef(traversal)
-			if diags.HasErrors() {
-				// We ignore this here, because this isn't a suitable place to return
-				// errors. This situation should be caught and rejected during
-				// validation.
-				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
-				continue
-			}
-
-			result = append(result, ref)
-		}
+		result = append(result, n.DependsOn()...)
 
 		if n.Schema == nil {
-			// Should never happens, but we'll log if it does so that we can
+			// Should never happen, but we'll log if it does so that we can
 			// see this easily when debugging.
 			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
@@ -198,7 +193,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		result = append(result, refs...)
 		refs, _ = lang.ReferencesInExpr(c.ForEach)
 		result = append(result, refs...)
-		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+
+		// ReferencesInBlock() requires a schema
+		if n.Schema != nil {
+			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+		}
+
 		result = append(result, refs...)
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
@@ -228,6 +228,26 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 
 	// Otherwise, we have no references.
 	return nil
+}
+
+func (n *NodeAbstractResource) DependsOn() []*addrs.Reference {
+	var result []*addrs.Reference
+	if c := n.Config; c != nil {
+
+		for _, traversal := range c.DependsOn {
+			ref, diags := addrs.ParseRef(traversal)
+			if diags.HasErrors() {
+				// We ignore this here, because this isn't a suitable place to return
+				// errors. This situation should be caught and rejected during
+				// validation.
+				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
+				continue
+			}
+
+			result = append(result, ref)
+		}
+	}
+	return result
 }
 
 // GraphNodeReferencer
@@ -380,6 +400,12 @@ func (n *NodeAbstractResourceInstance) ResourceInstanceAddr() addrs.AbsResourceI
 // GraphNodeTargetable
 func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 	n.Targets = targets
+}
+
+// graphNodeAttachResourceDependencies
+func (n *NodeAbstractResource) AttachResourceDependencies(deps []addrs.ConfigResource, force bool) {
+	n.dependsOn = deps
+	n.forceDependsOn = force
 }
 
 // GraphNodeAttachResourceState

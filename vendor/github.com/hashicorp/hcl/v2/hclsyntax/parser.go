@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"github.com/apparentlymart/go-textseg/textseg"
+	"github.com/apparentlymart/go-textseg/v12/textseg"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -670,6 +670,7 @@ Traversal:
 				trav := make(hcl.Traversal, 0, 1)
 				var firstRange, lastRange hcl.Range
 				firstRange = p.NextRange()
+				lastRange = marker.Range
 				for p.Peek().Type == TokenDot {
 					dot := p.Read()
 

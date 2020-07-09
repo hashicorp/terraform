@@ -187,6 +187,18 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
+// evalWriteEmptyState wraps EvalWriteState to specifically record an empty
+// state for a particular object.
+type evalWriteEmptyState struct {
+	EvalWriteState
+}
+
+func (n *evalWriteEmptyState) Eval(ctx EvalContext) (interface{}, error) {
+	var state *states.ResourceInstanceObject
+	n.State = &state
+	return n.EvalWriteState.Eval(ctx)
+}
+
 // EvalWriteState is an EvalNode implementation that saves the given object
 // as the current object for the selected resource instance.
 type EvalWriteState struct {
@@ -466,36 +478,32 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 	// can refer to it. Since this node represents the abstract module, we need
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
-	}
 
-	eachMode := states.NoEach
-	if count >= 0 { // -1 signals "count not set"
-		eachMode = states.EachList
-	}
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return nil, diags.Err()
+		}
 
-	forEach, forEachDiags := evaluateResourceForEachExpression(n.Config.ForEach, ctx)
-	diags = diags.Append(forEachDiags)
-	if forEachDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
-	if forEach != nil {
-		eachMode = states.EachMap
-	}
-	// This method takes care of all of the business logic of updating this
-	// while ensuring that any existing instances are preserved, etc.
-	state.SetResourceMeta(n.Addr, eachMode, n.ProviderAddr)
-
-	switch eachMode {
-	case states.EachList:
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
-	case states.EachMap:
+
+	case n.Config.ForEach != nil:
+		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return nil, diags.Err()
+		}
+
+		// This method takes care of all of the business logic of updating this
+		// while ensuring that any existing instances are preserved, etc.
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEach)
+
 	default:
+		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
 

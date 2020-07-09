@@ -21,6 +21,7 @@ func TestBackendConfig(t *testing.T) {
 		"storage_account_name": "tfaccount",
 		"container_name":       "tfcontainer",
 		"key":                  "state",
+		"snapshot":             false,
 		// Access Key must be Base64
 		"access_key": "QUNDRVNTX0tFWQ0K",
 	}
@@ -32,6 +33,9 @@ func TestBackendConfig(t *testing.T) {
 	}
 	if b.keyName != "state" {
 		t.Fatalf("Incorrect keyName was populated")
+	}
+	if b.snapshot != false {
+		t.Fatalf("Incorrect snapshot was populated")
 	}
 }
 

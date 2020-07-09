@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -39,7 +40,8 @@ func body(response *http.Response) (string, error) {
 
 type clientRequest struct {
 	transport http.RoundTripper
-	dial func(network, addr string) (net.Conn, error)
+	dial      func(network, addr string) (net.Conn, error)
+	proxyfunc func(req *http.Request) (*url.URL, error)
 }
 
 func (c *clientRequest) Transport(endpoint *Endpoint) error {
@@ -53,13 +55,18 @@ func (c *clientRequest) Transport(endpoint *Endpoint) error {
 		dial = c.dial
 	}
 
+	proxyfunc := http.ProxyFromEnvironment
+	if c.proxyfunc != nil {
+		proxyfunc = c.proxyfunc
+	}
+
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy: proxyfunc,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: endpoint.Insecure,
 			ServerName:         endpoint.TLSServerName,
 		},
-		Dial: dial,
+		Dial:                  dial,
 		ResponseHeaderTimeout: endpoint.Timeout,
 	}
 
@@ -108,9 +115,14 @@ func (c clientRequest) Post(client *Client, request *soap.SoapMessage) (string, 
 	return body, err
 }
 
-
 func NewClientWithDial(dial func(network, addr string) (net.Conn, error)) *clientRequest {
 	return &clientRequest{
-		dial:dial,
+		dial: dial,
+	}
+}
+
+func NewClientWithProxyFunc(proxyfunc func(req *http.Request) (*url.URL, error)) *clientRequest {
+	return &clientRequest{
+		proxyfunc: proxyfunc,
 	}
 }

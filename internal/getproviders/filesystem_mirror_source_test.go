@@ -48,6 +48,15 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64"),
 			},
 		},
+		randomBetaProvider: {
+			{
+				Provider:       randomBetaProvider,
+				Version:        versions.MustParseVersion("1.2.0"),
+				TargetPlatform: Platform{"linux", "amd64"},
+				Filename:       "terraform-provider-random-beta_1.2.0_linux_amd64.zip",
+				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64"),
+			},
+		},
 		randomProvider: {
 			{
 				Provider:       randomProvider,
@@ -57,6 +66,7 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64"),
 			},
 		},
+
 		happycloudProvider: {
 			{
 				Provider:       happycloudProvider,
@@ -82,9 +92,19 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 	}
 }
 
+// In this test the directory layout is invalid (missing the hostname
+// subdirectory). The provider installer should ignore the invalid directory.
+func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
+	source := NewFilesystemMirrorSource("testdata/filesystem-mirror-invalid")
+	_, err := source.AllAvailablePackages()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
-	got, err := source.AvailableVersions(nullProvider)
+	got, _, err := source.AvailableVersions(nullProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,6 +177,11 @@ var randomProvider = addrs.Provider{
 	Hostname:  svchost.Hostname("registry.terraform.io"),
 	Namespace: "hashicorp",
 	Type:      "random",
+}
+var randomBetaProvider = addrs.Provider{
+	Hostname:  svchost.Hostname("registry.terraform.io"),
+	Namespace: "hashicorp",
+	Type:      "random-beta",
 }
 var happycloudProvider = addrs.Provider{
 	Hostname:  svchost.Hostname("tfe.example.com"),

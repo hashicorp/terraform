@@ -414,9 +414,26 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 		}
 		for i, ourStep := range m {
 			otherStep := to[i]
-			if ourStep != otherStep {
+
+			if ourStep.Name != otherStep.Name {
 				return false
 			}
+
+			// if this is our last step, because all targets are parsed as
+			// instances, this may be a ModuleInstance intended to be used as a
+			// Module.
+			if i == len(m)-1 {
+				if ourStep.InstanceKey == NoKey {
+					// If the other step is a keyed instance, then we contain that
+					// step, and if it isn't it's a match, which is true either way
+					return true
+				}
+			}
+
+			if ourStep.InstanceKey != otherStep.InstanceKey {
+				return false
+			}
+
 		}
 		return true
 

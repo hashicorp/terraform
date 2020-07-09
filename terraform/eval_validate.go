@@ -391,7 +391,9 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	mode := cfg.Mode
 
 	keyData := EvalDataForNoInstanceKey
-	if n.Config.Count != nil {
+
+	switch {
+	case n.Config.Count != nil:
 		// If the config block has count, we'll evaluate with an unknown
 		// number as count.index so we can still type check even though
 		// we won't expand count until the plan phase.
@@ -403,9 +405,8 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		// of this will happen when we DynamicExpand during the plan walk.
 		countDiags := n.validateCount(ctx, n.Config.Count)
 		diags = diags.Append(countDiags)
-	}
 
-	if n.Config.ForEach != nil {
+	case n.Config.ForEach != nil:
 		keyData = InstanceKeyEvalData{
 			EachKey:   cty.UnknownVal(cty.String),
 			EachValue: cty.UnknownVal(cty.DynamicPseudoType),
@@ -416,29 +417,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(forEachDiags)
 	}
 
-	for _, traversal := range n.Config.DependsOn {
-		ref, refDiags := addrs.ParseRef(traversal)
-		diags = diags.Append(refDiags)
-		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid depends_on reference",
-				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
-				Subject:  ref.Remaining.SourceRange().Ptr(),
-			})
-		}
-
-		// The ref must also refer to something that exists. To test that,
-		// we'll just eval it and count on the fact that our evaluator will
-		// detect references to non-existent objects.
-		if !diags.HasErrors() {
-			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
-			if scope != nil { // sometimes nil in tests, due to incomplete mocks
-				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
-				diags = diags.Append(refDiags)
-			}
-		}
-	}
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
 	// Validate the provider_meta block for the provider this resource
 	// belongs to, if there is one.
@@ -624,10 +603,10 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 }
 
 func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	_, known, forEachDiags := evaluateResourceForEachExpressionKnown(expr, ctx)
+	val, forEachDiags := evaluateForEachExpressionValue(expr, ctx)
 	// If the value isn't known then that's the best we can do for now, but
 	// we'll check more thoroughly during the plan walk
-	if !known {
+	if !val.IsKnown() {
 		return diags
 	}
 
@@ -635,5 +614,32 @@ func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Express
 		diags = diags.Append(forEachDiags)
 	}
 
+	return diags
+}
+
+func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiags.Diagnostics) {
+	for _, traversal := range dependsOn {
+		ref, refDiags := addrs.ParseRef(traversal)
+		diags = diags.Append(refDiags)
+		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid depends_on reference",
+				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
+				Subject:  ref.Remaining.SourceRange().Ptr(),
+			})
+		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
+		}
+	}
 	return diags
 }

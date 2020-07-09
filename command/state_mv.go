@@ -279,10 +279,6 @@ func (c *StateMvCommand) Run(args []string) int {
 				ssFrom.ForgetResourceInstanceAll(addrFrom)
 				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
 
-				// since this is moving an instance, we can infer the target
-				// mode from the address.
-				toEachMode := eachModeForInstanceKey(addrTo.Resource.Key)
-
 				rs := stateTo.Resource(addrTo.ContainingResource())
 				if rs == nil {
 					// If we're moving to an address without an index then that
@@ -291,15 +287,13 @@ func (c *StateMvCommand) Run(args []string) int {
 					// address covers both). If there's an index in the
 					// target then allow creating the new instance here.
 					resourceAddr := addrTo.ContainingResource()
-					stateTo.SyncWrapper().SetResourceMeta(
+					stateTo.SyncWrapper().SetResourceProvider(
 						resourceAddr,
-						toEachMode,
 						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
 					)
 					rs = stateTo.Resource(resourceAddr)
 				}
 
-				rs.EachMode = toEachMode
 				rs.Instances[addrTo.Resource.Key] = is
 			}
 		default:
@@ -372,20 +366,6 @@ func (c *StateMvCommand) Run(args []string) int {
 	return 0
 }
 
-func eachModeForInstanceKey(key addrs.InstanceKey) states.EachMode {
-	switch key.(type) {
-	case addrs.IntKey:
-		return states.EachList
-	case addrs.StringKey:
-		return states.EachMap
-	default:
-		if key == addrs.NoKey {
-			return states.NoEach
-		}
-		panic(fmt.Sprintf("don't know an each mode for instance key %#v", key))
-	}
-}
-
 // sourceObjectAddrs takes a single source object address and expands it to
 // potentially multiple objects that need to be handled within it.
 //
@@ -415,10 +395,12 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 		//   terraform state mv aws_instance.foo aws_instance.bar[1]
 		// That wouldn't be allowed if aws_instance.foo had multiple instances
 		// since we can't move multiple instances into one.
-		if rs := state.Resource(addr); rs != nil && rs.EachMode == states.NoEach {
-			ret = append(ret, addr.Instance(addrs.NoKey))
-		} else {
-			ret = append(ret, addr)
+		if rs := state.Resource(addr); rs != nil {
+			if _, ok := rs.Instances[addrs.NoKey]; ok {
+				ret = append(ret, addr.Instance(addrs.NoKey))
+			} else {
+				ret = append(ret, addr)
+			}
 		}
 	default:
 		ret = append(ret, matched)

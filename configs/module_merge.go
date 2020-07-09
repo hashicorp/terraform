@@ -35,25 +35,6 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeProviderVersionConstraints(recv map[string]ProviderRequirements, ovrd []*RequiredProvider) {
-	// Any provider name that's mentioned in the override gets nilled out in
-	// our map so that we'll rebuild it below. Any provider not mentioned is
-	// left unchanged.
-	for _, reqd := range ovrd {
-		delete(recv, reqd.Name)
-	}
-	for _, reqd := range ovrd {
-		var fqn addrs.Provider
-		if reqd.Source.SourceStr != "" {
-			// any errors parsing the source string will have already been captured.
-			fqn, _ = addrs.ParseProviderSourceString(reqd.Source.SourceStr)
-		} else {
-			fqn = addrs.ImpliedProviderForUnqualifiedType(reqd.Name)
-		}
-		recv[reqd.Name] = ProviderRequirements{Type: fqn, VersionConstraints: []VersionConstraint{reqd.Requirement}}
-	}
-}
-
 func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
@@ -197,7 +178,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func (r *Resource) merge(or *Resource, prs map[string]ProviderRequirements) hcl.Diagnostics {
+func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -215,7 +196,7 @@ func (r *Resource) merge(or *Resource, prs map[string]ProviderRequirements) hcl.
 
 	if or.ProviderConfigRef != nil {
 		r.ProviderConfigRef = or.ProviderConfigRef
-		if existing, exists := prs[or.ProviderConfigRef.Name]; exists {
+		if existing, exists := rps[or.ProviderConfigRef.Name]; exists {
 			r.Provider = existing.Type
 		} else {
 			r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigRef.Name)

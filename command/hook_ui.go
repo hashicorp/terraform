@@ -60,6 +60,7 @@ const (
 	uiResourceCreate
 	uiResourceModify
 	uiResourceDestroy
+	uiResourceRead
 )
 
 func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -83,6 +84,9 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	case plans.Update:
 		operation = "Modifying..."
 		op = uiResourceModify
+	case plans.Read:
+		operation = "Reading..."
+		op = uiResourceRead
 	default:
 		// We don't expect any other actions in here, so anything else is a
 		// bug in the caller but we'll ignore it in order to be robust.
@@ -196,6 +200,8 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 			msg = "Still destroying..."
 		case uiResourceCreate:
 			msg = "Still creating..."
+		case uiResourceRead:
+			msg = "Still reading..."
 		case uiResourceUnknown:
 			return
 		}
@@ -241,6 +247,8 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 		msg = "Destruction complete"
 	case uiResourceCreate:
 		msg = "Creation complete"
+	case uiResourceRead:
+		msg = "Read complete"
 	case uiResourceUnknown:
 		return terraform.HookActionContinue, nil
 	}

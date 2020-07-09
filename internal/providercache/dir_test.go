@@ -30,6 +30,9 @@ func TestDirReading(t *testing.T) {
 	randomProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost, "hashicorp", "random",
 	)
+	randomBetaProvider := addrs.NewProvider(
+		addrs.DefaultRegistryHost, "hashicorp", "random-beta",
+	)
 	nonExistProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost, "bloop", "nonexist",
 	)
@@ -37,7 +40,7 @@ func TestDirReading(t *testing.T) {
 
 	t.Run("ProviderLatestVersion", func(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			got := dir.ProviderLatestVersion(nullProvider)
 			want := &CachedProvider{
@@ -56,7 +59,7 @@ func TestDirReading(t *testing.T) {
 			}
 		})
 		t.Run("no package for current platform", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			// random provider is only cached for linux_amd64 in our fixtures dir
 			got := dir.ProviderLatestVersion(randomProvider)
@@ -67,7 +70,7 @@ func TestDirReading(t *testing.T) {
 			}
 		})
 		t.Run("no versions available at all", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			// nonexist provider is not present in our fixtures dir at all
 			got := dir.ProviderLatestVersion(nonExistProvider)
@@ -81,7 +84,7 @@ func TestDirReading(t *testing.T) {
 
 	t.Run("ProviderVersion", func(t *testing.T) {
 		t.Run("exists", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			got := dir.ProviderVersion(nullProvider, versions.MustParseVersion("2.0.0"))
 			want := &CachedProvider{
@@ -97,7 +100,7 @@ func TestDirReading(t *testing.T) {
 			}
 		})
 		t.Run("specified version is not cached", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			// there is no v5.0.0 package in our fixtures dir
 			got := dir.ProviderVersion(nullProvider, versions.MustParseVersion("5.0.0"))
@@ -108,7 +111,7 @@ func TestDirReading(t *testing.T) {
 			}
 		})
 		t.Run("no package for current platform", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			// random provider 1.2.0 is only cached for linux_amd64 in our fixtures dir
 			got := dir.ProviderVersion(randomProvider, versions.MustParseVersion("1.2.0"))
@@ -119,7 +122,7 @@ func TestDirReading(t *testing.T) {
 			}
 		})
 		t.Run("no versions available at all", func(t *testing.T) {
-			dir := newDirWithPlatform(testDir, windowsPlatform)
+			dir := NewDirWithPlatform(testDir, windowsPlatform)
 
 			// nonexist provider is not present in our fixtures dir at all
 			got := dir.ProviderVersion(nonExistProvider, versions.MustParseVersion("1.0.0"))
@@ -132,7 +135,7 @@ func TestDirReading(t *testing.T) {
 	})
 
 	t.Run("AllAvailablePackages", func(t *testing.T) {
-		dir := newDirWithPlatform(testDir, linuxPlatform)
+		dir := NewDirWithPlatform(testDir, linuxPlatform)
 
 		got := dir.AllAvailablePackages()
 		want := map[addrs.Provider][]CachedProvider{
@@ -158,6 +161,14 @@ func TestDirReading(t *testing.T) {
 					Version:        versions.MustParseVersion("1.2.0"),
 					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64",
 					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64/terraform-provider-random",
+				},
+			},
+			randomBetaProvider: {
+				{
+					Provider:       randomBetaProvider,
+					Version:        versions.MustParseVersion("1.2.0"),
+					PackageDir:     "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64",
+					ExecutableFile: "testdata/cachedir/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64/terraform-provider-random-beta",
 				},
 			},
 		}

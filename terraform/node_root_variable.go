@@ -15,7 +15,6 @@ type NodeRootVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable  = (*NodeRootVariable)(nil)
-	_ dag.GraphNodeDotter     = (*NodeApplyableModuleVariable)(nil)
 )
 
 func (n *NodeRootVariable) Name() string {
@@ -51,8 +50,6 @@ func (n *NodeRootVariable) EvalTree() EvalNode {
 		Addr:   addrs.RootModuleInstance.InputVariable(n.Addr.Name),
 		Config: n.Config,
 		Expr:   nil, // not set for root module variables
-
-		IgnoreDiagnostics: false,
 	}
 }
 

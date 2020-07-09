@@ -41,7 +41,7 @@ func NewSetFromSlice(rules Rules, vals []interface{}) Set {
 }
 
 func sameRules(s1 Set, s2 Set) bool {
-	return s1.rules == s2.rules
+	return s1.rules.SameRules(s2.rules)
 }
 
 func mustHaveSameRules(s1 Set, s2 Set) {
@@ -53,7 +53,7 @@ func mustHaveSameRules(s1 Set, s2 Set) {
 // HasRules returns true if and only if the receiving set has the given rules
 // instance as its rules.
 func (s Set) HasRules(rules Rules) bool {
-	return s.rules == rules
+	return s.rules.SameRules(rules)
 }
 
 // Rules returns the receiving set's rules instance.

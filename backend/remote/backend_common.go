@@ -269,6 +269,14 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			return generalError("Failed to retrieve cost estimate", err)
 		}
 
+		// If the run is canceled or errored, but the cost-estimate still has
+		// no result, there is nothing further to render.
+		if ce.Status != tfe.CostEstimateFinished {
+			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+				return nil
+			}
+		}
+
 		switch ce.Status {
 		case tfe.CostEstimateFinished:
 			delta, err := strconv.ParseFloat(ce.DeltaMonthlyCost, 64)
@@ -308,6 +316,10 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
+		case tfe.CostEstimateSkippedDueToTargeting:
+			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
+			b.CLI.Output("\n------------------------------------------------------------------------")
+			return nil
 		case tfe.CostEstimateErrored:
 			return fmt.Errorf(msgPrefix + " errored.")
 		case tfe.CostEstimateCanceled:
@@ -324,6 +336,8 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
 	for i, pc := range r.PolicyChecks {
+		// Read the policy check logs. This is a blocking call that will only
+		// return once the policy check is complete.
 		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("Failed to retrieve policy check logs", err)
@@ -334,6 +348,15 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("Failed to retrieve policy check", err)
+		}
+
+		// If the run is canceled or errored, but the policy check still has
+		// no result, there is nothing further to render.
+		if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+			switch pc.Status {
+			case tfe.PolicyPending, tfe.PolicyQueued, tfe.PolicyUnreachable:
+				continue
+			}
 		}
 
 		var msgPrefix string

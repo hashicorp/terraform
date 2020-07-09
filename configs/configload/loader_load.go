@@ -17,7 +17,7 @@ import (
 // in spite of the errors.
 //
 // LoadConfig performs the basic syntax and uniqueness validations that are
-// required to process the individual modules, and also detects
+// required to process the individual modules
 func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 	rootMod, diags := l.parser.LoadConfigDir(rootDir)
 	if rootMod == nil {
@@ -31,8 +31,7 @@ func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 }
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that
-// are presumed to have already been installed. A different function
-// (moduleWalkerInstall) is used for installation.
+// are presumed to have already been installed.
 func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 	// Since we're just loading here, we expect that all referenced modules
 	// will be already installed and described in our manifest. However, we
@@ -101,5 +100,83 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 		}
 	}
 
+	// The providers associated with expanding modules must be present in the proxy/passed providers
+	// block. Guarding here for accessing the module call just in case.
+	if mc, exists := req.Parent.Module.ModuleCalls[req.Name]; exists {
+		var validateDiags hcl.Diagnostics
+		validateDiags = validateProviderConfigs(mc, mod, req.Parent, validateDiags)
+		diags = append(diags, validateDiags...)
+	}
 	return mod, record.Version, diags
 }
+
+func validateProviderConfigs(mc *configs.ModuleCall, mod *configs.Module, parent *configs.Config, diags hcl.Diagnostics) hcl.Diagnostics {
+	if mc.Count != nil || mc.ForEach != nil || mc.DependsOn != nil {
+		for key, pc := range mod.ProviderConfigs {
+			// Use these to track if a provider is configured (not allowed),
+			// or if we've found its matching proxy
+			var isConfigured bool
+			var foundMatchingProxy bool
+
+			// Validate the config against an empty schema to see if it's empty.
+			_, pcConfigDiags := pc.Config.Content(&hcl.BodySchema{})
+			if pcConfigDiags.HasErrors() || pc.Version.Required != nil {
+				isConfigured = true
+			}
+
+			// If it is empty or only has an alias,
+			// does this provider exist in our proxy configs?
+			for _, r := range mc.Providers {
+				// Must match on name and Alias
+				if pc.Name == r.InChild.Name && pc.Alias == r.InChild.Alias {
+					foundMatchingProxy = true
+					break
+				}
+			}
+			if isConfigured || !foundMatchingProxy {
+				if mc.Count != nil {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Module does not support count",
+						Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "count", key, pc.NameRange),
+						Subject:  mc.Count.Range().Ptr(),
+					})
+				}
+				if mc.ForEach != nil {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Module does not support for_each",
+						Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "for_each", key, pc.NameRange),
+						Subject:  mc.ForEach.Range().Ptr(),
+					})
+				}
+				if mc.DependsOn != nil {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Module does not support depends_on",
+						Detail:   fmt.Sprintf(moduleProviderError, mc.Name, "depends_on", key, pc.NameRange),
+						Subject:  mc.SourceAddrRange.Ptr(),
+					})
+				}
+			}
+		}
+	}
+	// If this module has further parents, go through them recursively
+	if !parent.Path.IsRoot() {
+		// Use the path to get the name so we can look it up in the parent module calls
+		path := parent.Path
+		name := path[len(path)-1]
+		// This parent's module call, so we can check for count/for_each here,
+		// guarding with exists just in case. We pass the diags through to the recursive
+		// call so they will accumulate if needed.
+		if mc, exists := parent.Parent.Module.ModuleCalls[name]; exists {
+			return validateProviderConfigs(mc, mod, parent.Parent, diags)
+		}
+	}
+
+	return diags
+}
+
+var moduleProviderError = `Module "%s" cannot be used with %s because it contains a nested provider configuration for "%s", at %s.
+
+This module can be made compatible with %[2]s by changing it to receive all of its provider configurations from the calling module, by using the "providers" argument in the calling module block.`

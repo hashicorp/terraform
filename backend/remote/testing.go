@@ -207,6 +207,12 @@ func testServer(t *testing.T) *httptest.Server {
 }`, path.Base(r.URL.Path)))
 	})
 
+	// Respond to pings to get the API version header.
+	mux.HandleFunc("/api/v2/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("TFP-API-Version", "2.3")
+	})
+
 	// Respond to the initial query to read the hashicorp org entitlements.
 	mux.HandleFunc("/api/v2/organizations/hashicorp/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")

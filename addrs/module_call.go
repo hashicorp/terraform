@@ -80,6 +80,15 @@ type AbsModuleCallOutput struct {
 	Name string
 }
 
+// ModuleCallOutput returns the referenceable ModuleCallOutput for this
+// particular instance.
+func (co AbsModuleCallOutput) ModuleCallOutput() ModuleCallOutput {
+	return ModuleCallOutput{
+		Call: co.Call.Call,
+		Name: co.Name,
+	}
+}
+
 func (co AbsModuleCallOutput) String() string {
 	return fmt.Sprintf("%s.%s", co.Call.String(), co.Name)
 }

@@ -150,10 +150,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 
-		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{
-			Config: b.Config,
-		},
+		// Make sure data sources are aware of any depends_on from the
+		// configuration
+		&attachDataResourceDependenciesTransformer{},
 
 		// Target
 		&TargetsTransformer{
@@ -169,6 +168,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
+
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{
+			Config: b.Config,
+		},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

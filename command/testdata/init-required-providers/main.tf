@@ -4,5 +4,8 @@ terraform {
     source = {
       version = "1.2.3"
     }
+    test-beta = {
+      version = "1.2.4"
+    }
   }
 }

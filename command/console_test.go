@@ -3,10 +3,12 @@ package command
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -131,5 +133,48 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	want := `Error: Result depends on values that cannot be determined`
 	if !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant string containing %q", got, want)
+	}
+}
+
+func TestConsole_modules(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("modules"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+
+	c := &ConsoleCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	commands := map[string]string{
+		"module.child.myoutput\n":          "bar\n",
+		"module.count_child[0].myoutput\n": "bar\n",
+		"local.foo\n":                      "3\n",
+	}
+
+	args := []string{
+		testFixturePath("modules"),
+	}
+
+	for cmd, val := range commands {
+		var output bytes.Buffer
+		defer testStdinPipe(t, strings.NewReader(cmd))()
+		outCloser := testStdoutCapture(t, &output)
+		code := c.Run(args)
+		outCloser()
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := output.String()
+		if output.String() != val {
+			t.Fatalf("bad: %q, expected %q", actual, val)
+		}
 	}
 }

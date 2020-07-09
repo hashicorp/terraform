@@ -51,9 +51,29 @@ func (p Path) Index(v Value) Path {
 	return ret
 }
 
+// IndexInt is a typed convenience method for Index.
+func (p Path) IndexInt(v int) Path {
+	return p.Index(NumberIntVal(int64(v)))
+}
+
+// IndexString is a typed convenience method for Index.
+func (p Path) IndexString(v string) Path {
+	return p.Index(StringVal(v))
+}
+
 // IndexPath is a convenience method to start a new Path with an IndexStep.
 func IndexPath(v Value) Path {
 	return Path{}.Index(v)
+}
+
+// IndexIntPath is a typed convenience method for IndexPath.
+func IndexIntPath(v int) Path {
+	return IndexPath(NumberIntVal(int64(v)))
+}
+
+// IndexStringPath is a typed convenience method for IndexPath.
+func IndexStringPath(v string) Path {
+	return IndexPath(StringVal(v))
 }
 
 // GetAttr returns a new Path that is the reciever with a GetAttrStep appended

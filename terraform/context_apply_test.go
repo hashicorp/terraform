@@ -2637,7 +2637,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 			Type: "test_thing",
 			Name: "one",
 		}.Absolute(addrs.RootModuleInstance)
-		s.SetResourceMeta(oneAddr, states.EachList, providerAddr)
+		s.SetResourceProvider(oneAddr, providerAddr)
 		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{}`),
@@ -6111,9 +6111,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 	//Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`
-<no state>
-module.child:
-  <no state>`)
+<no state>`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
@@ -6269,9 +6267,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 	//Test that things were destroyed
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(`
-<no state>
-module.child.child2:
-  <no state>`)
+<no state>`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
@@ -6279,13 +6275,24 @@ module.child.child2:
 
 func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
-	p := testProvider("aws")
+	p := testProvider("test")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		// add the required id
+		m := req.Config.AsValueMap()
+		m["id"] = cty.StringVal("foo")
+
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(m),
+		}
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6306,7 +6313,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 		State:   state,
 		Config:  m,
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6330,7 +6337,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 		State:   state,
 		Config:  m,
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7393,7 +7400,7 @@ aws_instance.foo.1:
 }
 
 func TestContext2Apply_targetedDestroy(t *testing.T) {
-	m := testModule(t, "apply-targeted")
+	m := testModule(t, "destroy-targeted")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
@@ -7401,18 +7408,21 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		mustResourceInstanceAddr("aws_instance.a").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
-	root.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("aws_instance.bar").Resource,
+	root.SetOutputValue("out", cty.StringVal("bar"), false)
+
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.b").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -7425,11 +7435,15 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
+				addrs.ManagedResourceMode, "aws_instance", "a",
 			),
 		},
 		Destroy: true,
 	})
+
+	if diags := ctx.Validate(); diags.HasErrors() {
+		t.Fatalf("validate errors: %s", diags.Err())
+	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
@@ -7441,15 +7455,21 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	}
 
 	mod := state.RootModule()
-	if len(mod.Resources) != 1 {
-		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	if len(mod.Resources) != 0 {
+		t.Fatalf("expected 0 resources, got: %#v", mod.Resources)
 	}
 
-	checkStateString(t, state, `
-aws_instance.bar:
-  ID = i-abc123
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-	`)
+	// the root output should have been removed too, since it is derived solely
+	// from the targeted resource
+	if len(mod.OutputValues) != 0 {
+		t.Fatalf("expected 0 outputs, got: %#v", mod.OutputValues)
+	}
+
+	// the module instance should remain
+	mod = state.Module(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resources, got: %#v", mod.Resources)
+	}
 }
 
 func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
@@ -8728,7 +8748,20 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 // that resource to be applied first.
 func TestContext2Apply_dataDependsOn(t *testing.T) {
 	p := testProvider("null")
-	m := testModule(t, "apply-data-depends-on")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "null_instance" "write" {
+  foo = "attribute"
+}
+
+data "null_data_source" "read" {
+  depends_on = ["null_instance.write"]
+}
+
+resource "null_instance" "depends" {
+  foo = data.null_data_source.read.foo
+}
+`})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -8785,6 +8818,63 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 	expected := "APPLIED"
 	if actual != expected {
 		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
+	}
+
+	// run another plan to make sure the data source doesn't show as a change
+	plan, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("unexpected change for %s", c.Addr)
+		}
+	}
+
+	// now we cause a change in the first resource, which should trigger a plan
+	// in the data source, and the resource that depends on the data source
+	// must plan a change as well.
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "null_instance" "write" {
+  foo = "new"
+}
+
+data "null_data_source" "read" {
+  depends_on = ["null_instance.write"]
+}
+
+resource "null_instance" "depends" {
+  foo = data.null_data_source.read.foo
+}
+`})
+
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		// the side effect of the resource being applied
+		provisionerOutput = "APPLIED_AGAIN"
+		return testApplyFn(info, s, d)
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags = ctx.Plan()
+	assertNoErrors(t, diags)
+
+	expectedChanges := map[string]plans.Action{
+		"null_instance.write":        plans.Update,
+		"data.null_data_source.read": plans.Read,
+		"null_instance.depends":      plans.Update,
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != expectedChanges[c.Addr.String()] {
+			t.Errorf("unexpected %s for %s", c.Action, c.Addr)
+		}
 	}
 }
 
@@ -8914,12 +9004,6 @@ Outputs:
 
 result_1 = hello
 result_3 = hello world
-
-module.child:
-  <no state>
-  Outputs:
-
-  result = hello
 `)
 	if got != want {
 		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s", got, want)
@@ -10938,5 +11022,431 @@ func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
 	}
 	if !invalidErr {
 		t.Errorf("Expected unsupported argument error, none received")
+	}
+}
+
+func TestContext2Apply_expandModuleVariables(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  for_each = toset(["a"])
+  source = "./mod"
+}
+
+module "mod2" {
+  source = "./mod"
+  in = module.mod1["a"].out
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  foo = var.in
+}
+
+variable "in" {
+  type = string
+  default = "default"
+}
+
+output "out" {
+  value = aws_instance.foo.id
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := `<no state>
+module.mod1["a"]:
+  aws_instance.foo:
+    ID = foo
+    provider = provider["registry.terraform.io/hashicorp/aws"]
+    foo = default
+    type = aws_instance
+
+  Outputs:
+
+  out = foo
+module.mod2:
+  aws_instance.foo:
+    ID = foo
+    provider = provider["registry.terraform.io/hashicorp/aws"]
+    foo = foo
+    type = aws_instance
+
+    Dependencies:
+      module.mod1.aws_instance.foo`
+
+	if state.String() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s\n", expected, state)
+	}
+}
+
+func TestContext2Apply_inheritAndStoreCBD(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "foo" {
+}
+
+resource "aws_instance" "cbd" {
+  foo = aws_instance.foo.id
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	foo := state.ResourceInstance(mustResourceInstanceAddr("aws_instance.foo"))
+	if !foo.Current.CreateBeforeDestroy {
+		t.Fatal("aws_instance.foo should also be create_before_destroy")
+	}
+}
+
+func TestContext2Apply_moduleDependsOn(t *testing.T) {
+	m := testModule(t, "apply-module-depends-on")
+
+	p := testProvider("test")
+
+	// each instance being applied should happen in sequential order
+	applied := int64(0)
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		cfg := req.Config.AsValueMap()
+		foo := cfg["foo"].AsString()
+		ord := atomic.LoadInt64(&applied)
+
+		resp := providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("data"),
+				"foo": cfg["foo"],
+			}),
+		}
+
+		if foo == "a" && ord < 4 {
+			// due to data source "a"'s module depending on instance 4, this
+			// should not be less than 4
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source a read too early"))
+		}
+		if foo == "b" && ord < 1 {
+			// due to data source "b"'s module depending on instance 1, this
+			// should not be less than 1
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source b read too early"))
+		}
+		return resp
+	}
+	p.DiffFn = testDiffFn
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		state := req.PlannedState.AsValueMap()
+		num, _ := state["num"].AsBigFloat().Float64()
+		ord := int64(num)
+		if !atomic.CompareAndSwapInt64(&applied, ord-1, ord) {
+			actual := atomic.LoadInt64(&applied)
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("instance %d was applied after %d", ord, actual))
+		}
+
+		state["id"] = cty.StringVal(fmt.Sprintf("test_%d", ord))
+		resp.NewState = cty.ObjectVal(state)
+
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// run the plan again to ensure that data sources are not going to be re-read
+	_, diags = ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.NoOp {
+			t.Fatalf("expected NoOp, got %s for %s", res.Action, res.Addr)
+		}
+	}
+}
+
+func TestContext2Apply_moduleSelfReference(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "test" {
+  source = "./test"
+
+  a = module.test.b
+}
+
+output "c" {
+  value = module.test.c
+}
+`,
+		"test/main.tf": `
+variable "a" {}
+
+resource "test_instance" "test" {
+}
+
+output "b" {
+  value = test_instance.test.id
+}
+
+output "c" {
+  value = var.a
+}`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy: true,
+	})
+
+	_, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if !state.Empty() {
+		t.Fatal("expected empty state, got:", state)
+	}
+}
+
+func TestContext2Apply_moduleExpandDependsOn(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  count = 1
+  source = "./child"
+
+  depends_on = [test_instance.a, test_instance.b]
+}
+
+resource "test_instance" "a" {
+}
+
+
+resource "test_instance" "b" {
+}
+`,
+		"child/main.tf": `
+resource "test_instance" "foo" {
+}
+
+output "myoutput" {
+  value = "literal string"
+}
+`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy: true,
+		State:   state,
+	})
+
+	_, diags = ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if !state.Empty() {
+		t.Fatal("expected empty state, got:", state)
+	}
+}
+
+func TestContext2Apply_scaleInCBD(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  count = 1
+  lifecycle {
+	create_before_destroy = true
+  }
+}
+
+resource "test_instance" "b" {
+  foo = join(".", test_instance.a[*].id)
+}
+
+output "out" {
+  value = join(".", test_instance.a[*].id)
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a0"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a1"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b", "foo":"old.old"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	p := testProvider("test")
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		return testApplyFn(info, s, d)
+	}
+
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// if resource b isn't going to apply correctly, we will get an error about
+	// an invalid plan value
+	state, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// check the output, as those can't cause an error planning the value
+	out := state.RootModule().OutputValues["out"].Value.AsString()
+	if out != "a0" {
+		t.Fatalf(`expected output "new", got: %q`, out)
 	}
 }

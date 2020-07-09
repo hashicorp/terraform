@@ -105,7 +105,7 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 
 		// Add a plannable node, as the variable may expand
 		// during module expansion
-		node := &NodePlannableModuleVariable{
+		node := &nodeExpandModuleVariable{
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
@@ -113,7 +113,6 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Config: v,
 			Expr:   expr,
 		}
-
 		g.Add(node)
 	}
 

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
@@ -91,6 +92,9 @@ type Meta struct {
 
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}
+
+	// UnmanagedProviders are a set of providers that exist as processes predating Terraform, which Terraform should use but not worry about the lifecycle of.
+	UnmanagedProviders map[addrs.Provider]*plugin.ReattachConfig
 
 	//----------------------------------------------------------
 	// Protected: commands can set these

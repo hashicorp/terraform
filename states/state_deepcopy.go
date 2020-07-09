@@ -88,7 +88,6 @@ func (rs *Resource) DeepCopy() *Resource {
 
 	return &Resource{
 		Addr:           rs.Addr,
-		EachMode:       rs.EachMode,
 		Instances:      instances,
 		ProviderConfig: rs.ProviderConfig, // technically mutable, but immutable by convention
 	}
@@ -159,12 +158,6 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		copy(dependencies, obj.Dependencies)
 	}
 
-	var dependsOn []addrs.Referenceable
-	if obj.DependsOn != nil {
-		dependsOn = make([]addrs.Referenceable, len(obj.DependsOn))
-		copy(dependsOn, obj.DependsOn)
-	}
-
 	return &ResourceInstanceObjectSrc{
 		Status:              obj.Status,
 		SchemaVersion:       obj.SchemaVersion,
@@ -172,7 +165,6 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		AttrsFlat:           attrsFlat,
 		AttrsJSON:           attrsJSON,
 		Dependencies:        dependencies,
-		DependsOn:           dependsOn,
 		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}
 }
@@ -226,6 +218,7 @@ func (os *OutputValue) DeepCopy() *OutputValue {
 	}
 
 	return &OutputValue{
+		Addr:      os.Addr,
 		Value:     os.Value,
 		Sensitive: os.Sensitive,
 	}

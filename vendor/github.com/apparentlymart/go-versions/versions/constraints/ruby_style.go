@@ -136,9 +136,9 @@ func parseRubyStyle(str string) (SelectionSpec, string, error) {
 
 	switch raw.sep {
 	case "":
-		if raw.op != "" {
-			return spec, remain, fmt.Errorf("a space separator is required after the operator %q", raw.op)
-		}
+		// No separator is always okay. Although all of the examples in the
+		// rubygems docs show a space separator, the parser doesn't actually
+		// require it.
 	case " ":
 		if raw.op == "" {
 			return spec, remain, fmt.Errorf("extraneous spaces at start of specification")

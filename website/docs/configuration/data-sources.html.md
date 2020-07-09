@@ -114,18 +114,8 @@ operation, and is re-calculated each time a new plan is created.
 
 Data resources have the same dependency resolution behavior
 [as defined for managed resources](./resources.html#resource-dependencies).
-
-In particular, the `depends_on` meta-argument is also available within `data`
-blocks, with the same meaning and syntax as in `resource` blocks.
-
-However, due to the data resource behavior of deferring the read until the
-apply phase when depending on values that are not yet known, using `depends_on`
-with data resources will force the read to _always_ be deferred to the apply
-phase, and therefore a configuration that uses `depends_on` with a data
-resource can never converge.
-
-Due to this behavior, we do not recommend using `depends_on` with data
-resources.
+Setting the `depends_on` meta-argument within `data` blocks defers reading of
+the data source until after all changes to the dependencies have been applied.
 
 ## Multiple Resource Instances
 

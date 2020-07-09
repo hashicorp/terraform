@@ -273,7 +273,7 @@ tuple = "[" (
 object = "{" (
     (objectelem ("," objectelem)* ","?)?
 ) "}";
-objectelem = (Identifier | Expression) "=" Expression;
+objectelem = (Identifier | Expression) ("=" | ":") Expression;
 ```
 
 Only tuple and object values can be directly constructed via native syntax.

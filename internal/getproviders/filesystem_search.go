@@ -52,6 +52,22 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		namespace := parts[1]
 		typeName := parts[2]
 
+		// validate each part
+		// The legacy provider namespace is a special case.
+		if namespace != addrs.LegacyProviderNamespace {
+			_, err = addrs.ParseProviderPart(namespace)
+			if err != nil {
+				log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
+				return nil
+			}
+		}
+
+		_, err = addrs.ParseProviderPart(typeName)
+		if err != nil {
+			log.Printf("[WARN] local provider path %q contains invalid type %q; ignoring", fullPath, typeName)
+			return nil
+		}
+
 		hostname, err := svchost.ForComparison(hostnameGiven)
 		if err != nil {
 			log.Printf("[WARN] local provider path %q contains invalid hostname %q; ignoring", fullPath, hostnameGiven)
@@ -225,5 +241,18 @@ func UnpackedDirectoryPathForPackage(baseDir string, provider addrs.Provider, ve
 		provider.Hostname.ForDisplay(), provider.Namespace, provider.Type,
 		version.String(),
 		platform.String(),
+	))
+}
+
+// PackedFilePathForPackage is similar to
+// PackageMeta.PackedFilePath but makes its decision based on
+// individually-passed provider address, version, and target platform so that
+// it can be used by callers outside this package that may have other
+// types that represent package identifiers.
+func PackedFilePathForPackage(baseDir string, provider addrs.Provider, version Version, platform Platform) string {
+	return filepath.ToSlash(filepath.Join(
+		baseDir,
+		provider.Hostname.ForDisplay(), provider.Namespace, provider.Type,
+		fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), platform.String()),
 	))
 }

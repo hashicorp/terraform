@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestEvaluateResourceForEachExpression_valid(t *testing.T) {
+func TestEvaluateForEachExpression_valid(t *testing.T) {
 	tests := map[string]struct {
 		Expr       hcl.Expression
 		ForEachMap map[string]cty.Value
@@ -58,7 +58,7 @@ func TestEvaluateResourceForEachExpression_valid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, diags := evaluateResourceForEachExpression(test.Expr, ctx)
+			forEachMap, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -75,7 +75,7 @@ func TestEvaluateResourceForEachExpression_valid(t *testing.T) {
 	}
 }
 
-func TestEvaluateResourceForEachExpression_errors(t *testing.T) {
+func TestEvaluateForEachExpression_errors(t *testing.T) {
 	tests := map[string]struct {
 		Expr                     hcl.Expression
 		Summary, DetailSubstring string
@@ -125,13 +125,18 @@ func TestEvaluateResourceForEachExpression_errors(t *testing.T) {
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
 		},
+		"set containing dynamic unknown value": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
+			"Invalid for_each argument",
+			"depends on resource attributes that cannot be determined until apply",
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			_, diags := evaluateResourceForEachExpression(test.Expr, ctx)
+			_, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 1 {
 				t.Fatalf("got %d diagnostics; want 1", diags)
@@ -149,7 +154,7 @@ func TestEvaluateResourceForEachExpression_errors(t *testing.T) {
 	}
 }
 
-func TestEvaluateResourceForEachExpressionKnown(t *testing.T) {
+func TestEvaluateForEachExpressionKnown(t *testing.T) {
 	tests := map[string]hcl.Expression{
 		"unknown string set": hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
 		"unknown map":        hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.Bool))),
@@ -159,23 +164,15 @@ func TestEvaluateResourceForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, known, diags := evaluateResourceForEachExpressionKnown(expr, ctx)
+			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
 			}
 
-			if known {
-				t.Errorf("got %v known, want false", known)
+			if forEachVal.IsKnown() {
+				t.Error("got known, want unknown")
 			}
-
-			if len(forEachMap) != 0 {
-				t.Errorf(
-					"expected empty map\ngot:  %s",
-					spew.Sdump(forEachMap),
-				)
-			}
-
 		})
 	}
 }

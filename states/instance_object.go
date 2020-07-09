@@ -42,11 +42,6 @@ type ResourceInstanceObject struct {
 	// destroy operations, we need to record the status to ensure a resource
 	// removed from the config will still be destroyed in the same manner.
 	CreateBeforeDestroy bool
-
-	// DependsOn corresponds to the deprecated `depends_on` field in the state.
-	// This field contained the configuration `depends_on` values, and some of
-	// the references from within a single module.
-	DependsOn []addrs.Referenceable
 }
 
 // ObjectStatus represents the status of a RemoteObject.
@@ -109,11 +104,12 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	}
 
 	return &ResourceInstanceObjectSrc{
-		SchemaVersion: schemaVersion,
-		AttrsJSON:     src,
-		Private:       o.Private,
-		Status:        o.Status,
-		Dependencies:  o.Dependencies,
+		SchemaVersion:       schemaVersion,
+		AttrsJSON:           src,
+		Private:             o.Private,
+		Status:              o.Status,
+		Dependencies:        o.Dependencies,
+		CreateBeforeDestroy: o.CreateBeforeDestroy,
 	}, nil
 }
 

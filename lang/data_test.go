@@ -43,7 +43,7 @@ func (d *dataForTests) GetLocalValue(addr addrs.LocalValue, rng tfdiags.SourceRa
 	return d.LocalValues[addr.Name], nil
 }
 
-func (d *dataForTests) GetModuleInstance(addr addrs.ModuleCallInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *dataForTests) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.Modules[addr.String()], nil
 }
 

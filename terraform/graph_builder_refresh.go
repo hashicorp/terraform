@@ -171,6 +171,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
+		&attachDataResourceDependenciesTransformer{},
 
 		// Target
 		&TargetsTransformer{

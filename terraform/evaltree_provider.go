@@ -18,19 +18,6 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 		Addr: addr,
 	})
 
-	// Input stuff
-	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkImport},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalGetProvider{
-					Addr:   addr,
-					Output: &provider,
-				},
-			},
-		},
-	})
-
 	seq = append(seq, &EvalOpFilter{
 		Ops: []walkOperation{walkValidate},
 		Node: &EvalSequence{
@@ -48,7 +35,6 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 		},
 	})
 
-	// Apply stuff
 	seq = append(seq, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy, walkImport},
 		Node: &EvalSequence{
@@ -64,13 +50,26 @@ func ProviderEvalTree(n *NodeApplyableProvider, config *configs.Provider) EvalNo
 	// We configure on everything but validate, since validate may
 	// not have access to all the variables.
 	seq = append(seq, &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy, walkImport},
+		Ops: []walkOperation{walkRefresh, walkPlan, walkApply, walkDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalConfigProvider{
 					Addr:     addr,
 					Provider: &provider,
 					Config:   config,
+				},
+			},
+		},
+	})
+	seq = append(seq, &EvalOpFilter{
+		Ops: []walkOperation{walkImport},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalConfigProvider{
+					Addr:                addr,
+					Provider:            &provider,
+					Config:              config,
+					VerifyConfigIsKnown: true,
 				},
 			},
 		},

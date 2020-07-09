@@ -111,10 +111,10 @@ func (g *Graph) Remove(v Vertex) Vertex {
 	g.vertices.Delete(v)
 
 	// Delete the edges to non-existent things
-	for _, target := range g.DownEdges(v) {
+	for _, target := range g.downEdgesNoCopy(v) {
 		g.RemoveEdge(BasicEdge(v, target))
 	}
-	for _, source := range g.UpEdges(v) {
+	for _, source := range g.upEdgesNoCopy(v) {
 		g.RemoveEdge(BasicEdge(source, v))
 	}
 
@@ -137,10 +137,10 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 
 	// Add our new vertex, then copy all the edges
 	g.Add(replacement)
-	for _, target := range g.DownEdges(original) {
+	for _, target := range g.downEdgesNoCopy(original) {
 		g.Connect(BasicEdge(replacement, target))
 	}
-	for _, source := range g.UpEdges(original) {
+	for _, source := range g.upEdgesNoCopy(original) {
 		g.Connect(BasicEdge(source, replacement))
 	}
 
@@ -166,14 +166,29 @@ func (g *Graph) RemoveEdge(edge Edge) {
 	}
 }
 
-// DownEdges returns the outward edges from the source Vertex v.
+// UpEdges returns the vertices connected to the outward edges from the source
+// Vertex v.
+func (g *Graph) UpEdges(v Vertex) Set {
+	return g.upEdgesNoCopy(v).Copy()
+}
+
+// DownEdges returns the vertices connected from the inward edges to Vertex v.
 func (g *Graph) DownEdges(v Vertex) Set {
+	return g.downEdgesNoCopy(v).Copy()
+}
+
+// downEdgesNoCopy returns the outward edges from the source Vertex v as a Set.
+// This Set is the same as used internally bu the Graph to prevent a copy, and
+// must not be modified by the caller.
+func (g *Graph) downEdgesNoCopy(v Vertex) Set {
 	g.init()
 	return g.downEdges[hashcode(v)]
 }
 
-// UpEdges returns the inward edges to the destination Vertex v.
-func (g *Graph) UpEdges(v Vertex) Set {
+// upEdgesNoCopy returns the inward edges to the destination Vertex v as a Set.
+// This Set is the same as used internally bu the Graph to prevent a copy, and
+// must not be modified by the caller.
+func (g *Graph) upEdgesNoCopy(v Vertex) Set {
 	g.init()
 	return g.upEdges[hashcode(v)]
 }

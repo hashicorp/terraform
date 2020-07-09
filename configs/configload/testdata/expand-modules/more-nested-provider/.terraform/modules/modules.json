@@ -1,0 +1,34 @@
+{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": "testdata/expand-modules/nested-provider"
+        },
+        {
+            "Key": "child",
+            "Source": "./child",
+            "Dir": "testdata/expand-modules/nested-provider/child"
+        },
+        {
+            "Key": "child2",
+            "Source": "./child2",
+            "Dir": "testdata/expand-modules/nested-provider/child2"
+        },
+        {
+            "Key": "child3",
+            "Source": "./child3",
+            "Dir": "testdata/expand-modules/nested-provider/child3"
+        },
+        {
+            "Key": "child.child2",
+            "Source": "../child2",
+            "Dir": "testdata/expand-modules/nested-provider/child2"
+        },
+        {
+            "Key": "child.child2.child3",
+            "Source": "../child3",
+            "Dir": "testdata/expand-modules/nested-provider/child3"
+        }
+    ]
+}

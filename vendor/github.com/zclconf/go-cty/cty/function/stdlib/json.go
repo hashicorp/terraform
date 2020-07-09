@@ -12,6 +12,7 @@ var JSONEncodeFunc = function.New(&function.Spec{
 			Name:             "val",
 			Type:             cty.DynamicPseudoType,
 			AllowDynamicType: true,
+			AllowNull:        true,
 		},
 	},
 	Type: function.StaticReturnType(cty.String),
@@ -22,6 +23,10 @@ var JSONEncodeFunc = function.New(&function.Spec{
 			// contains any _nested_ unknowns then our result must be
 			// unknown.
 			return cty.UnknownVal(retType), nil
+		}
+
+		if val.IsNull() {
+			return cty.StringVal("null"), nil
 		}
 
 		buf, err := json.Marshal(val, val.Type())

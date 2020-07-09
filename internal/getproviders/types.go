@@ -15,6 +15,10 @@ import (
 // Version represents a particular single version of a provider.
 type Version = versions.Version
 
+// UnspecifiedVersion is the zero value of Version, representing the absense
+// of a version number.
+var UnspecifiedVersion Version = versions.Unspecified
+
 // VersionList represents a list of versions. It is a []Version with some
 // extra methods for convenient filtering.
 type VersionList = versions.List
@@ -27,6 +31,9 @@ type VersionSet = versions.Set
 // VersionConstraints represents a set of version constraints, which can
 // define the membership of a VersionSet by exclusion.
 type VersionConstraints = constraints.IntersectionSpec
+
+// Warnings represents a list of warnings returned by a Registry source.
+type Warnings = []string
 
 // Requirements gathers together requirements for many different providers
 // into a single data structure, as a convenient way to represent the full
@@ -92,6 +99,13 @@ func MustParseVersionConstraints(str string) VersionConstraints {
 		panic(err)
 	}
 	return ret
+}
+
+// MeetingConstraints returns a version set that contains all of the versions
+// that meet the given constraints, specified using the Spec type from the
+// constraints package.
+func MeetingConstraints(vc VersionConstraints) VersionSet {
+	return versions.MeetingConstraints(vc)
 }
 
 // Platform represents a target platform that a provider is or might be
@@ -219,11 +233,23 @@ func (m PackageMeta) UnpackedDirectoryPath(baseDir string) string {
 	return UnpackedDirectoryPathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
 }
 
+// PackedFilePath determines the path under the given base
+// directory where SearchLocalDirectory or the FilesystemMirrorSource would
+// expect to find packed copy (a .zip archive) of the receiving PackageMeta.
+//
+// The result always uses forward slashes as path separator, even on Windows,
+// to produce a consistent result on all platforms. Windows accepts both
+// direction of slash as long as each individual path string is self-consistent.
+func (m PackageMeta) PackedFilePath(baseDir string) string {
+	return PackedFilePathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
+}
+
 // PackageLocation represents a location where a provider distribution package
 // can be obtained. A value of this type contains one of the following
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
 type PackageLocation interface {
 	packageLocation()
+	String() string
 }
 
 // PackageLocalArchive is the location of a provider distribution archive file
@@ -233,6 +259,7 @@ type PackageLocation interface {
 type PackageLocalArchive string
 
 func (p PackageLocalArchive) packageLocation() {}
+func (p PackageLocalArchive) String() string   { return string(p) }
 
 // PackageLocalDir is the location of a directory containing an unpacked
 // provider distribution archive in the local filesystem. Its value is a local
@@ -241,12 +268,14 @@ func (p PackageLocalArchive) packageLocation() {}
 type PackageLocalDir string
 
 func (p PackageLocalDir) packageLocation() {}
+func (p PackageLocalDir) String() string   { return string(p) }
 
 // PackageHTTPURL is a provider package location accessible via HTTP.
 // Its value is a URL string using either the http: scheme or the https: scheme.
 type PackageHTTPURL string
 
 func (p PackageHTTPURL) packageLocation() {}
+func (p PackageHTTPURL) String() string   { return string(p) }
 
 // PackageMetaList is a list of PackageMeta. It's just []PackageMeta with
 // some methods for convenient sorting and filtering.

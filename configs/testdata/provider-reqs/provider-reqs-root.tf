@@ -16,7 +16,7 @@ terraform {
 resource "implied_foo" "bar" {
 }
 
-module "child" {
+module "kinder" {
   source = "./child"
 }
 
@@ -25,4 +25,10 @@ module "child" {
 # to avoid selecting the now-unmaintained
 # registry.terraform.io/hashicorp/terraform.
 data "terraform_remote_state" "bar" {
+}
+
+# There is no provider in required_providers called "configured", so the version
+# constraint should come from this configuration block.
+provider "configured" {
+  version = "~> 1.4"
 }

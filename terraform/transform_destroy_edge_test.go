@@ -172,12 +172,12 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 
 func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(testDestroyNode("module.child.test_object.a"))
-	g.Add(testDestroyNode("module.child.test_object.b"))
-	g.Add(testDestroyNode("module.child.test_object.c"))
+	g.Add(testDestroyNode("module.child[0].test_object.a"))
+	g.Add(testDestroyNode("module.child[0].test_object.b"))
+	g.Add(testDestroyNode("module.child[0].test_object.c"))
 
 	state := states.NewState()
-	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.IntKey(0)))
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.a").Resource,
 		&states.ResourceInstanceObjectSrc{
@@ -222,12 +222,12 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
-module.child.test_object.a (destroy)
-  module.child.test_object.b (destroy)
-  module.child.test_object.c (destroy)
-module.child.test_object.b (destroy)
-  module.child.test_object.c (destroy)
-module.child.test_object.c (destroy)
+module.child[0].test_object.a (destroy)
+  module.child[0].test_object.b (destroy)
+  module.child[0].test_object.c (destroy)
+module.child[0].test_object.b (destroy)
+  module.child[0].test_object.c (destroy)
+module.child[0].test_object.c (destroy)
 `)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)

@@ -234,40 +234,44 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 					},
 				},
 
-				// Make sure we handle data sources properly.
+				// Managed resources need to be destroyed, while data sources
+				// are only removed from state.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						return addr.Resource.Resource.Mode == addrs.DataResourceMode, nil
+						return addr.Resource.Resource.Mode == addrs.ManagedResourceMode, nil
 					},
 
-					Then: &EvalReadDataApply{
-						Addr:           addr.Resource,
-						Config:         n.Config,
-						Change:         &changeApply,
-						Provider:       &provider,
-						ProviderAddr:   n.ResolvedProvider,
-						ProviderSchema: &providerSchema,
-						Output:         &state,
+					Then: &EvalSequence{
+						Nodes: []EvalNode{
+							&EvalApply{
+								Addr:           addr.Resource,
+								Config:         nil, // No configuration because we are destroying
+								State:          &state,
+								Change:         &changeApply,
+								Provider:       &provider,
+								ProviderAddr:   n.ResolvedProvider,
+								ProviderMetas:  n.ProviderMetas,
+								ProviderSchema: &providerSchema,
+								Output:         &state,
+								Error:          &err,
+							},
+							&EvalWriteState{
+								Addr:           addr.Resource,
+								ProviderAddr:   n.ResolvedProvider,
+								ProviderSchema: &providerSchema,
+								State:          &state,
+							},
+						},
 					},
-					Else: &EvalApply{
-						Addr:           addr.Resource,
-						Config:         nil, // No configuration because we are destroying
-						State:          &state,
-						Change:         &changeApply,
-						Provider:       &provider,
-						ProviderAddr:   n.ResolvedProvider,
-						ProviderMetas:  n.ProviderMetas,
-						ProviderSchema: &providerSchema,
-						Output:         &state,
-						Error:          &err,
+					Else: &evalWriteEmptyState{
+						EvalWriteState{
+							Addr:           addr.Resource,
+							ProviderAddr:   n.ResolvedProvider,
+							ProviderSchema: &providerSchema,
+						},
 					},
 				},
-				&EvalWriteState{
-					Addr:           addr.Resource,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-				},
+
 				&EvalApplyPost{
 					Addr:  addr.Resource,
 					State: &state,

@@ -20,6 +20,12 @@ for some connection settings, so that `connection` blocks could sometimes be
 omitted. This feature was removed in 0.12 in order to make Terraform's behavior
 more predictable.
 
+-> **Note:** Since the SSH connection type is most often used with
+newly-created remote resources, validation of SSH host keys is disabled by
+default. In scenarios where this is not acceptable, a separate mechanism for
+key distribution could be established and the `host_key` directive documented
+below explicitly set to verify against a specific key or signing CA.
+
 Connection blocks don't take a block label, and can be nested within either a
 `resource` or a `provisioner`.
 

@@ -1055,6 +1055,178 @@ func TestMatchkeys(t *testing.T) {
 	}
 }
 
+func TestSum(t *testing.T) {
+	tests := []struct {
+		List cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1),
+				cty.NumberIntVal(2),
+				cty.NumberIntVal(3),
+			}),
+			cty.NumberIntVal(6),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(1476),
+				cty.NumberIntVal(2093),
+				cty.NumberIntVal(2092495),
+				cty.NumberIntVal(64589234),
+				cty.NumberIntVal(234),
+			}),
+			cty.NumberIntVal(66685532),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(10),
+				cty.NumberIntVal(-19),
+				cty.NumberIntVal(5),
+			}),
+			cty.NumberIntVal(-4),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberFloatVal(10.2),
+				cty.NumberFloatVal(19.4),
+				cty.NumberFloatVal(5.7),
+			}),
+			cty.NumberFloatVal(35.3),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberFloatVal(-10.2),
+				cty.NumberFloatVal(-19.4),
+				cty.NumberFloatVal(-5.7),
+			}),
+			cty.NumberFloatVal(-35.3),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+				cty.StringVal("c"),
+			}),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.NumberIntVal(10),
+				cty.NumberIntVal(-19),
+				cty.NumberIntVal(5),
+			}),
+			cty.NumberIntVal(-4),
+			false,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.NumberIntVal(10),
+				cty.NumberIntVal(25),
+				cty.NumberIntVal(30),
+			}),
+			cty.NumberIntVal(65),
+			false,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.NumberFloatVal(2340.8),
+				cty.NumberFloatVal(10.2),
+				cty.NumberFloatVal(3),
+			}),
+			cty.NumberFloatVal(2354),
+			false,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.NumberFloatVal(2),
+			}),
+			cty.NumberFloatVal(2),
+			false,
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.NumberFloatVal(-2),
+				cty.NumberFloatVal(-50),
+				cty.NumberFloatVal(-20),
+				cty.NumberFloatVal(-123),
+				cty.NumberFloatVal(-4),
+			}),
+			cty.NumberFloatVal(-199),
+			false,
+		},
+		{
+			cty.TupleVal([]cty.Value{
+				cty.NumberIntVal(12),
+				cty.StringVal("a"),
+				cty.NumberIntVal(38),
+			}),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+		{
+			cty.NumberIntVal(12),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.ListValEmpty(cty.Number),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{"hello": cty.True}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("sum(%#v)", test.List), func(t *testing.T) {
+			got, err := Sum(test.List)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestTranspose(t *testing.T) {
 	tests := []struct {
 		Values cty.Value

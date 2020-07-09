@@ -36,7 +36,8 @@ func NewSignedInUserClient(tenantID string) SignedInUserClient {
 	return NewSignedInUserClientWithBaseURI(DefaultBaseURI, tenantID)
 }
 
-// NewSignedInUserClientWithBaseURI creates an instance of the SignedInUserClient client.
+// NewSignedInUserClientWithBaseURI creates an instance of the SignedInUserClient client using a custom endpoint.  Use
+// this when interacting with an Azure cloud that uses a non-standard base URI (sovereign clouds, Azure stack).
 func NewSignedInUserClientWithBaseURI(baseURI string, tenantID string) SignedInUserClient {
 	return SignedInUserClient{NewWithBaseURI(baseURI, tenantID)}
 }
@@ -96,8 +97,7 @@ func (client SignedInUserClient) GetPreparer(ctx context.Context) (*http.Request
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client SignedInUserClient) GetSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -174,8 +174,7 @@ func (client SignedInUserClient) ListOwnedObjectsPreparer(ctx context.Context) (
 // ListOwnedObjectsSender sends the ListOwnedObjects request. The method will close the
 // http.Response Body if it receives an error.
 func (client SignedInUserClient) ListOwnedObjectsSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListOwnedObjectsResponder handles the response to the ListOwnedObjects request. The method always
@@ -265,8 +264,7 @@ func (client SignedInUserClient) ListOwnedObjectsNextPreparer(ctx context.Contex
 // ListOwnedObjectsNextSender sends the ListOwnedObjectsNext request. The method will close the
 // http.Response Body if it receives an error.
 func (client SignedInUserClient) ListOwnedObjectsNextSender(req *http.Request) (*http.Response, error) {
-	sd := autorest.GetSendDecorators(req.Context(), autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	return autorest.SendWithSender(client, req, sd...)
+	return client.Send(req, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
 // ListOwnedObjectsNextResponder handles the response to the ListOwnedObjectsNext request. The method always

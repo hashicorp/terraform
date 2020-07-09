@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 )
 
 // This is the directory where our test fixtures are.
@@ -169,6 +170,35 @@ func TestConfigValidate(t *testing.T) {
 			},
 			1, // no more than one credentials_helper block allowed
 		},
+		"provider_installation good none": {
+			&Config{
+				ProviderInstallation: nil,
+			},
+			0,
+		},
+		"provider_installation good one": {
+			&Config{
+				ProviderInstallation: []*ProviderInstallation{
+					{},
+				},
+			},
+			0,
+		},
+		"provider_installation too many": {
+			&Config{
+				ProviderInstallation: []*ProviderInstallation{
+					{},
+					{},
+				},
+			},
+			1, // no more than one provider_installation block allowed
+		},
+		"plugin_cache_dir does not exist": {
+			&Config{
+				PluginCacheDir: "fake",
+			},
+			1, // The specified plugin cache dir %s cannot be opened
+		},
 	}
 
 	for name, test := range tests {
@@ -209,6 +239,19 @@ func TestConfig_Merge(t *testing.T) {
 		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
 			"buz": {},
 		},
+		ProviderInstallation: []*ProviderInstallation{
+			{
+				Methods: []*ProviderInstallationMethod{
+					{Location: ProviderInstallationFilesystemMirror("a")},
+					{Location: ProviderInstallationFilesystemMirror("b")},
+				},
+			},
+			{
+				Methods: []*ProviderInstallationMethod{
+					{Location: ProviderInstallationFilesystemMirror("c")},
+				},
+			},
+		},
 	}
 
 	c2 := &Config{
@@ -233,6 +276,13 @@ func TestConfig_Merge(t *testing.T) {
 		},
 		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
 			"biz": {},
+		},
+		ProviderInstallation: []*ProviderInstallation{
+			{
+				Methods: []*ProviderInstallationMethod{
+					{Location: ProviderInstallationFilesystemMirror("d")},
+				},
+			},
 		},
 	}
 
@@ -270,11 +320,29 @@ func TestConfig_Merge(t *testing.T) {
 			"buz": {},
 			"biz": {},
 		},
+		ProviderInstallation: []*ProviderInstallation{
+			{
+				Methods: []*ProviderInstallationMethod{
+					{Location: ProviderInstallationFilesystemMirror("a")},
+					{Location: ProviderInstallationFilesystemMirror("b")},
+				},
+			},
+			{
+				Methods: []*ProviderInstallationMethod{
+					{Location: ProviderInstallationFilesystemMirror("c")},
+				},
+			},
+			{
+				Methods: []*ProviderInstallationMethod{
+					{Location: ProviderInstallationFilesystemMirror("d")},
+				},
+			},
+		},
 	}
 
 	actual := c1.Merge(c2)
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
