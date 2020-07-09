@@ -1,5 +1,9 @@
 ## 0.13.0-rc1 (Unreleased)
 
+BUG FIXES:
+
+* command/init: Fix confusing error message for locally-installed providers with invalid package structure [GH-25504]
+
 ## 0.13.0-beta3 (July 01, 2020)
 
 BUG FIXES:
