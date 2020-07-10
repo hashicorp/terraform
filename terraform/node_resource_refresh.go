@@ -215,7 +215,7 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		if n.ResourceState == nil {
+		if n.instanceState == nil {
 			log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s has no existing state to refresh", addr)
 			return n.evalTreeManagedResourceNoState()
 		}
@@ -253,7 +253,7 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 
 	// This happened during initial development. All known cases were
 	// fixed and tested but as a sanity check let's assert here.
-	if n.ResourceState == nil {
+	if n.instanceState == nil {
 		err := fmt.Errorf(
 			"No resource state attached for addr: %s\n\n"+
 				"This is a bug. Please report this to Terraform with your configuration\n"+

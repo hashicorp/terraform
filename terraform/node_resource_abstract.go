@@ -101,11 +101,14 @@ type NodeAbstractResourceInstance struct {
 	NodeAbstractResource
 	Addr addrs.AbsResourceInstance
 
-	// The fields below will be automatically set using the Attach
-	// interfaces if you're running those transforms, but also be explicitly
-	// set if you already have that information.
-	ResourceState *states.Resource
-	Dependencies  []addrs.ConfigResource
+	// These are set via the AttachState method.
+	instanceState *states.ResourceInstance
+	// storedProviderConfig is the provider address retrieved from the
+	// state, but since it is only stored in the whole Resource rather than the
+	// ResourceInstance, we extract it out here.
+	storedProviderConfig addrs.AbsProviderConfig
+
+	Dependencies []addrs.ConfigResource
 }
 
 var (
@@ -287,11 +290,9 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 
 // StateDependencies returns the dependencies saved in the state.
 func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResource {
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
-			if s.Current != nil {
-				return s.Current.Dependencies
-			}
+	if s := n.instanceState; s != nil {
+		if s.Current != nil {
+			return s.Current.Dependencies
 		}
 	}
 
@@ -339,12 +340,12 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool)
 		}, false
 	}
 
-	// If we have state, then we will use the provider from there
-	if n.ResourceState != nil {
+	// See if we have a valid provider config from the state.
+	if n.storedProviderConfig.Provider.Type != "" {
 		// An address from the state must match exactly, since we must ensure
 		// we refresh/destroy a resource with the same provider configuration
 		// that created it.
-		return n.ResourceState.ProviderConfig, true
+		return n.storedProviderConfig, true
 	}
 
 	// No provider configuration found; return a default address
@@ -410,7 +411,12 @@ func (n *NodeAbstractResource) AttachResourceDependencies(deps []addrs.ConfigRes
 
 // GraphNodeAttachResourceState
 func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
-	n.ResourceState = s
+	if s == nil {
+		log.Printf("[WARN] attaching nil state to %s", n.Addr)
+		return
+	}
+	n.instanceState = s.Instance(n.Addr.Resource.Key)
+	n.storedProviderConfig = s.ProviderConfig
 }
 
 // GraphNodeAttachResourceConfig

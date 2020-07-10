@@ -63,11 +63,9 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 	}
 
 	// Otherwise check the state for a stored destroy order
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
-			if s.Current != nil {
-				return s.Current.CreateBeforeDestroy
-			}
+	if s := n.instanceState; s != nil {
+		if s.Current != nil {
+			return s.Current.CreateBeforeDestroy
 		}
 	}
 
@@ -134,11 +132,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
-	rs := n.ResourceState
-	var is *states.ResourceInstance
-	if rs != nil {
-		is = rs.Instance(n.Addr.Resource.Key)
-	}
+	is := n.instanceState
 	if is == nil {
 		log.Printf("[WARN] NodeDestroyResourceInstance for %s with no state", addr)
 	}
