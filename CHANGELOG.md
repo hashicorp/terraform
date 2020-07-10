@@ -3,6 +3,8 @@
 BUG FIXES:
 
 * command/init: Fix confusing error message for locally-installed providers with invalid package structure [GH-25504]
+* core: Prevent outputs from being evaluated during destroy [GH-25500]
+* core: Fix the pruning of temporary values from the root module which will fail to evaluate during destroy [GH-25543]
 
 ## 0.13.0-beta3 (July 01, 2020)
 
