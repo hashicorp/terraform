@@ -217,7 +217,7 @@ func TestStateClient_UnresolvableConflict(t *testing.T) {
 	if err := terraform.WriteState(state, &stateJson); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 	go func() {
 		defer close(errCh)
 		if err := client.Put(stateJson.Bytes()); err == nil {
