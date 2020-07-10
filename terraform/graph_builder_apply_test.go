@@ -184,11 +184,10 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "graph-builder-apply-double-cbd"),
-		Changes:       changes,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "graph-builder-apply-double-cbd"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -279,12 +278,11 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 	)
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "empty"),
-		Changes:       changes,
-		State:         state,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "empty"),
+		Changes:    changes,
+		State:      state,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, diags := b.Build(addrs.RootModuleInstance)
