@@ -79,7 +79,7 @@ func TestRetry_error(t *testing.T) {
 		return NonRetryableError(expected)
 	}
 
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 	go func() {
 		errCh <- Retry(1*time.Second, f)
 	}()
