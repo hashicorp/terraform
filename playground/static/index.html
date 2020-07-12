@@ -1,0 +1,19 @@
+<html>
+  <!-- This is just a temporary HTML file for prototyping the wasm part
+    of this. Eventually this should be replaced with something more suitable
+    to be an end-user web application. -->
+  <head>
+    <meta charset="utf-8" />
+    <script src="wasm_exec.js"></script>
+    <title>Terraform Playground Scratchpad</title>
+    <script>
+      const go = new Go();
+      WebAssembly.instantiateStreaming(
+        fetch("terraform.wasm"),
+        go.importObject
+      ).then((result) => {
+        go.run(result.instance);
+      });
+    </script>
+  </head>
+</html>
