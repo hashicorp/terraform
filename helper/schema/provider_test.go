@@ -3,7 +3,7 @@ package schema
 import (
 	"fmt"
 	"reflect"
-	"strings"
+	"regexp"
 	"testing"
 	"time"
 
@@ -341,9 +341,11 @@ func TestProviderDiff_timeoutInvalidValue(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected provider.Diff to fail with invalid timeout value")
 	}
-	expectedErrMsg := "time: invalid duration invalid"
-	if !strings.Contains(err.Error(), expectedErrMsg) {
-		t.Fatalf("Unexpected error message: %q\nExpected message to contain %q",
+	// Go 1.15 added quotes around the invalid duration value. You can remove
+	// the regex once Go 1.14 and below are no longer supported.
+	expectedErrMsg := regexp.MustCompile(`time: invalid duration "?invalid"?`)
+	if !expectedErrMsg.MatchString(err.Error()) {
+		t.Fatalf("Unexpected error message: %q\nExpected message to match rx %q",
 			err.Error(),
 			expectedErrMsg)
 	}
