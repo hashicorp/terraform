@@ -14,7 +14,23 @@ description: |-
 
 Providers published to the Terraform Registry are written and built in the same way as other Terraform Providers. For guidance on how to write a provider, see [Writing Custom Providers](/docs/extend/writing-custom-providers.html).
 
-The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.
+The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.  All Terraform providers must contain one of the following open source licenses:
+
+* CDDL 1.0, 2.0
+* CPL 1.0
+* Eclipse Public License (EPL) 1.0 
+* MPL 1.0, 1.1, 2.0
+* APSL 2.0
+* Ruby's Licensing
+* AFL 2.1, 3.0
+* Apache License 2.0
+* Artistic License 1.0, 2.0
+* Apache Software License (ASL) 1.1 
+* Boost Software License
+* BSD, BSD 3-clause, "BSD-new"
+* CC-BY
+* Microsoft Public License (MS-PL)
+* MIT
 
 ### Documenting your Provider
 
