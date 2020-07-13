@@ -26,6 +26,8 @@ Publishing a provider requires at least one version be available on GitHub Relea
 
 Terraform CLI and the Terraform Registry follow the Semantic Versioning specification when detecting a valid version, sorting versions, solving version constraints, and choosing the latest version. Prerelease versions are supported (available if explicitly defined but not chosen automatically) with a hyphen (-) delimiter, such as `v1.2.3-pre`.
 
+~> **NOTE:** Avoid modifying or replacing an already-released version of a Provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
+
 #### Using GoReleaser locally
 
 GoReleaser is a tool for building Go projects for multiple platforms, creating a checksums file, and signing the release. It can also upload your release to GitHub Releases.
