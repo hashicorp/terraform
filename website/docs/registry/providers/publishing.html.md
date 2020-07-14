@@ -14,8 +14,10 @@ description: |-
 
 Providers published to the Terraform Registry are written and built in the same way as other Terraform Providers. For guidance on how to write a provider, see [Writing Custom Providers](/docs/extend/writing-custom-providers.html).
 
-The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.  All Terraform providers must contain one of the following open source licenses:
+The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.  
 
+#### Licensing a Provider
+All Terraform Verified providers must contain one of the following open source licenses. This requirement does not apply to Community providers:
 * CDDL 1.0, 2.0
 * CPL 1.0
 * Eclipse Public License (EPL) 1.0 
