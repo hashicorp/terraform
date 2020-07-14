@@ -139,8 +139,7 @@ func marshalProviderConfigs(
 	}
 
 	for k, pc := range c.Module.ProviderConfigs {
-		// FIXME: lookup providerFqn from config
-		providerFqn := addrs.NewLegacyProvider(pc.Name)
+		providerFqn := c.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: pc.Name})
 		schema := schemas.ProviderConfig(providerFqn)
 		p := providerConfig{
 			Name:              pc.Name,
