@@ -58,6 +58,15 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			defer walker.ExitPath(pn.Path())
 		}
 
+		// If the node is exec-able, then execute it.
+		if ev, ok := v.(GraphNodeExecutable); ok {
+			execDiags := ev.Execute(vertexCtx)
+			diags = diags.Append(execDiags)
+			if diags.HasErrors() {
+				return
+			}
+		}
+
 		// If the node is eval-able, then evaluate it.
 		if ev, ok := v.(GraphNodeEvalable); ok {
 			tree := ev.EvalTree()
