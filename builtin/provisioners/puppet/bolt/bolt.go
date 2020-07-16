@@ -39,7 +39,7 @@ func runCommand(command string, timeout time.Duration) ([]byte, error) {
 
 func Task(connInfo map[string]string, timeout time.Duration, sudo bool, task string, args map[string]string) (*Result, error) {
 	cmdargs := []string{
-		"bolt", "task", "run", "--nodes", connInfo["type"] + "://" + connInfo["host"], "-u", connInfo["user"],
+		"bolt", "task", "run", "--targets", connInfo["type"] + "://" + connInfo["host"], "-u", connInfo["user"],
 	}
 
 	if connInfo["type"] == "winrm" {
