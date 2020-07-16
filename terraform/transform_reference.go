@@ -123,7 +123,11 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 			dag.VertexName(v), parentsDbg)
 
 		for _, parent := range parents {
-			g.Connect(dag.BasicEdge(v, parent))
+			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, parent) {
+				g.Connect(dag.BasicEdge(v, parent))
+			} else {
+				log.Printf("[TRACE] ReferenceTransformer: skipping %s => %s inter-module-instance dependency", v, parent)
+			}
 		}
 
 		if len(parents) > 0 {

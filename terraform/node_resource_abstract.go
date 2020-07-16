@@ -445,3 +445,37 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 		},
 	}
 }
+
+// graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
+// annoyingly-task-specific helper function that returns true if and only if
+// the following conditions hold:
+// - Both of the given vertices represent specific resource instances, as
+//   opposed to unexpanded resources or any other non-resource-related object.
+// - The module instance addresses for both of the resource instances belong
+//   to the same static module.
+// - The module instance addresses for both of the resource instances are
+//   not equal, indicating that they belong to different instances of the
+//   same module.
+//
+// This result can be used as a way to compensate for the effects of
+// conservative analyses passes in our graph builders which make their
+// decisions based only on unexpanded addresses, often so that they can behave
+// correctly for interactions between expanded and not-yet-expanded objects.
+//
+// Callers of this helper function will typically skip adding an edge between
+// the two given nodes if this function returns true.
+func graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(a, b dag.Vertex) bool {
+	aRI, aOK := a.(GraphNodeResourceInstance)
+	bRI, bOK := b.(GraphNodeResourceInstance)
+	if !(aOK && bOK) {
+		return false
+	}
+	aModInst := aRI.ResourceInstanceAddr().Module
+	bModInst := bRI.ResourceInstanceAddr().Module
+	aMod := aModInst.Module()
+	bMod := bModInst.Module()
+	if !aMod.Equal(bMod) {
+		return false
+	}
+	return !aModInst.Equal(bModInst)
+}
