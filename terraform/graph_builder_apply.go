@@ -171,6 +171,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// command itself.
 		&destroyRootOutputTransformer{Destroy: b.Destroy},
 
+		// To improve concurrency and reduce the risk of unnecessary cycles,
+		// we'll prune unnecessary dependency edges between objects in
+		// different module instances that result only because the analyses in
+		// our earlier passes are conservative.
+		edgesBetweenModuleInstancesTransformer{},
+
 		// We need to remove configuration nodes that are not used at all, as
 		// they may not be able to evaluate, especially during destroy.
 		// These include variables, locals, and instance expanders.
