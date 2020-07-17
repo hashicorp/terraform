@@ -199,7 +199,7 @@ var (
 	_ GraphNodeResourceInstance     = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableManagedResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodeRefreshableManagedResourceInstance)(nil)
-	_ GraphNodeEvalable             = (*NodeRefreshableManagedResourceInstance)(nil)
+	_ GraphNodeExecutable           = (*NodeRefreshableManagedResourceInstance)(nil)
 )
 
 // GraphNodeDestroyer
@@ -209,23 +209,31 @@ func (n *NodeRefreshableManagedResourceInstance) DestroyAddr() *addrs.AbsResourc
 }
 
 // GraphNodeEvalable
-func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
+func (n *NodeRefreshableManagedResourceInstance) Execute(ctx EvalContext) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
+	var diags tfdiags.Diagnostics
 
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
 		if n.instanceState == nil {
 			log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s has no existing state to refresh", addr)
-			return n.evalTreeManagedResourceNoState()
+			_, err := n.evalTreeManagedResourceNoState().Eval(ctx)
+			if err != nil {
+				diags = diags.Append(err)
+			}
+			return diags
 		}
 		log.Printf("[TRACE] NodeRefreshableManagedResourceInstance: %s will be refreshed", addr)
-		return n.evalTreeManagedResource()
-
+		_, err := n.evalTreeManagedResource().Eval(ctx)
+		if err != nil {
+			diags = diags.Append(err)
+		}
+		return diags
 	case addrs.DataResourceMode:
 		// Get the data source node. If we don't have a configuration
 		// then it is an orphan so we destroy it (remove it from the state).
-		var dn GraphNodeEvalable
+		var dn GraphNodeExecutable
 		if n.Config != nil {
 			dn = &NodeRefreshableDataResourceInstance{
 				NodeAbstractResourceInstance: n.NodeAbstractResourceInstance,
@@ -236,7 +244,7 @@ func (n *NodeRefreshableManagedResourceInstance) EvalTree() EvalNode {
 			}
 		}
 
-		return dn.EvalTree()
+		return dn.Execute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", addr.Resource.Resource.Mode))
 	}

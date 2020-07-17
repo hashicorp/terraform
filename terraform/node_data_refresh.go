@@ -191,8 +191,8 @@ type NodeRefreshableDataResourceInstance struct {
 	*NodeAbstractResourceInstance
 }
 
-// GraphNodeEvalable
-func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
+// GraphNodeExecable
+func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// These variables are the state for the eval sequence below, and are
@@ -202,80 +202,93 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
+	var diags tfdiags.Diagnostics
 
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-			},
+	step1 := &EvalGetProvider{
+		Addr:   n.ResolvedProvider,
+		Output: &provider,
+		Schema: &providerSchema,
+	}
+	_, err := step1.Eval(ctx)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
 
-			// EvalReadDataRefresh will _attempt_ to read the data source, but
-			// may generate an incomplete planned object if the configuration
-			// includes values that won't be known until apply.
-			&evalReadDataRefresh{
-				evalReadData{
-					Addr:           addr.Resource,
-					Config:         n.Config,
-					Provider:       &provider,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderMetas:  n.ProviderMetas,
-					ProviderSchema: &providerSchema,
-					OutputChange:   &change,
-					State:          &state,
-					dependsOn:      n.dependsOn,
-					forceDependsOn: n.forceDependsOn,
-				},
-			},
+	step2 := &EvalReadState{
+		Addr:           addr.Resource,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+		Output:         &state,
+	}
+	_, err = step2.Eval(ctx)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
 
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					return change == nil, nil
-
-				},
-				Then: &EvalSequence{
-					Nodes: []EvalNode{
-						&EvalWriteState{
-							Addr:           addr.Resource,
-							ProviderAddr:   n.ResolvedProvider,
-							State:          &state,
-							ProviderSchema: &providerSchema,
-						},
-						&EvalUpdateStateHook{},
-					},
-				},
-				Else: &EvalSequence{
-					// We can't deal with this yet, so we'll repeat this step
-					// during the plan walk to produce a planned change to read
-					// this during the apply walk. However, we do still need to
-					// save the generated change and partial state so that
-					// results from it can be included in other data resources
-					// or provider configurations during the refresh walk.
-					// (The planned object we save in the state here will be
-					// pruned out at the end of the refresh walk, returning
-					// it back to being unset again for subsequent walks.)
-					Nodes: []EvalNode{
-						&EvalWriteDiff{
-							Addr:           addr.Resource,
-							Change:         &change,
-							ProviderSchema: &providerSchema,
-						},
-						&EvalWriteState{
-							Addr:           addr.Resource,
-							ProviderAddr:   n.ResolvedProvider,
-							State:          &state,
-							ProviderSchema: &providerSchema,
-						},
-					},
-				},
-			},
+	step3 := &evalReadDataRefresh{
+		evalReadData{
+			Addr:           addr.Resource,
+			Config:         n.Config,
+			Provider:       &provider,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			OutputChange:   &change,
+			State:          &state,
+			dependsOn:      n.dependsOn,
+			forceDependsOn: n.forceDependsOn,
 		},
 	}
+	_, err = step3.Eval(ctx)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	if change == nil {
+		step4 := EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			State:          &state,
+			ProviderSchema: &providerSchema,
+		}
+		_, err = step4.Eval(ctx)
+		if err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
+
+		step5 := EvalUpdateStateHook{}
+		_, err = step5.Eval(ctx)
+		if err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
+	} else {
+		step6 := &EvalWriteDiff{
+			Addr:           addr.Resource,
+			Change:         &change,
+			ProviderSchema: &providerSchema,
+		}
+		_, err = step6.Eval(ctx)
+		if err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
+		step7 := &EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			State:          &state,
+			ProviderSchema: &providerSchema,
+		}
+		_, err = step7.Eval(ctx)
+		if err != nil {
+			diags = diags.Append(err)
+			return diags
+		}
+	}
+
+	return diags
 }
