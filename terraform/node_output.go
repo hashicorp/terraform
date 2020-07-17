@@ -96,7 +96,7 @@ func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Mod
 
 // GraphNodeReferencer
 func (n *nodeExpandOutput) References() []*addrs.Reference {
-	return appendResourceDestroyReferences(referencesForOutput(n.Config))
+	return referencesForOutput(n.Config)
 }
 
 // NodeApplyableOutput represents an output that is "applyable":
@@ -190,7 +190,7 @@ func referencesForOutput(c *configs.Output) []*addrs.Reference {
 
 // GraphNodeReferencer
 func (n *NodeApplyableOutput) References() []*addrs.Reference {
-	return appendResourceDestroyReferences(referencesForOutput(n.Config))
+	return referencesForOutput(n.Config)
 }
 
 // GraphNodeEvalable

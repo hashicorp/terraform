@@ -68,7 +68,7 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 		forEachRefs, _ := lang.ReferencesInExpr(n.ModuleCall.ForEach)
 		refs = append(refs, forEachRefs...)
 	}
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
 func (n *nodeExpandModule) DependsOn() []*addrs.Reference {

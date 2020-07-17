@@ -55,7 +55,7 @@ func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *nodeExpandLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
 func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -117,7 +117,7 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
 // GraphNodeEvalable
