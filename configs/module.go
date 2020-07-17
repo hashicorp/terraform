@@ -265,7 +265,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate module call",
-				Detail:   fmt.Sprintf("An module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
 				Subject:  &mc.DeclRange,
 			})
 		}
