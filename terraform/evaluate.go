@@ -666,6 +666,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// to be destroyed, but this needs to happen always since
 				// providers need to evaluate their configuration during a full
 				// destroy, even of they depend on resources being destroyed.
+
+				// Since this requires a special transformer to try and fixup
+				// the order of evaluation when possible, reference it here to
+				// ensure that we remove the transformer when this is fixed.
+				_ = GraphTransformer((*applyDestroyNodeReferenceFixupTransformer)(nil))
 				// continue
 			}
 		}
