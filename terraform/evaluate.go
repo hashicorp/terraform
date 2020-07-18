@@ -662,7 +662,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// instances will be in the state, as they are not destroyed until
 			// after their dependants are updated.
 			if change.Action == plans.Delete {
-				continue
+				// FIXME: we should not be evaluating resources that are going
+				// to be destroyed, but this needs to happen always since
+				// providers need to evaluate their configuration during a full
+				// destroy, even of they depend on resources being destroyed.
+				// continue
 			}
 		}
 
