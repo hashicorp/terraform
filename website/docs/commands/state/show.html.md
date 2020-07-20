@@ -39,13 +39,15 @@ The example below shows a `packet_device` resource named `worker`:
 
 ```
 $ terraform state show 'packet_device.worker'
-id                = 6015bg2b-b8c4-4925-aad2-f0671d5d3b13
-billing_cycle     = hourly
-created           = 2015-12-17T00:06:56Z
-facility          = ewr1
-hostname          = prod-xyz01
-locked            = false
-...
+# packet_device.worker:
+resource "packet_device" "worker" {
+    billing_cycle = "hourly"
+    created       = "2015-12-17T00:06:56Z"
+    facility      = "ewr1"
+    hostname      = "prod-xyz01"
+    id            = "6015bg2b-b8c4-4925-aad2-f0671d5d3b13"
+    locked        = false
+}
 ```
 
 ## Example: Show a Module Resource
