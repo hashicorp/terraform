@@ -4891,7 +4891,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["command"]
-		if !ok || val != "destroy a" {
+		if !ok || val != "destroy a bar" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
 
@@ -4904,7 +4904,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar"}`),
+			AttrsJSON: []byte(`{"id":"bar","foo":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4955,7 +4955,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar"}`),
+			AttrsJSON: []byte(`{"id":"bar","foo":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4985,6 +4985,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 aws_instance.foo["a"]:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = bar
 	`)
 
 	// Verify apply was invoked
