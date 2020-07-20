@@ -321,11 +321,33 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.RootModule()
+	addrA := mustResourceInstanceAddr("test_object.A[1]")
+	root.SetResourceInstanceCurrent(
+		addrA.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"B"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B"}`),
+			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-count"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
