@@ -14,7 +14,7 @@ description: |-
 
 Providers published to the Terraform Registry are written and built in the same way as other Terraform Providers. For guidance on how to write a provider, see [Writing Custom Providers](/docs/extend/writing-custom-providers.html).
 
-The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.  
+The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.
 
 #### Licensing a Verified Provider
 
@@ -22,14 +22,14 @@ All Terraform Verified providers must contain one of the following open source l
 
 * CDDL 1.0, 2.0
 * CPL 1.0
-* Eclipse Public License (EPL) 1.0 
+* Eclipse Public License (EPL) 1.0
 * MPL 1.0, 1.1, 2.0
 * APSL 2.0
 * Ruby's Licensing
 * AFL 2.1, 3.0
 * Apache License 2.0
 * Artistic License 1.0, 2.0
-* Apache Software License (ASL) 1.1 
+* Apache Software License (ASL) 1.1
 * Boost Software License
 * BSD, BSD 3-clause, "BSD-new"
 * CC-BY
@@ -48,7 +48,7 @@ Publishing a provider requires at least one version be available on GitHub Relea
 
 Terraform CLI and the Terraform Registry follow the Semantic Versioning specification when detecting a valid version, sorting versions, solving version constraints, and choosing the latest version. Prerelease versions are supported (available if explicitly defined but not chosen automatically) with a hyphen (-) delimiter, such as `v1.2.3-pre`.
 
-~> **NOTE:** Avoid modifying or replacing an already-released version of a Provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
+~> **Important:** Avoid modifying or replacing an already-released version of a Provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
 
 #### Using GoReleaser locally
 
