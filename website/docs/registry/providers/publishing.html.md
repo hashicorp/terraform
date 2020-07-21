@@ -50,7 +50,7 @@ Terraform CLI and the Terraform Registry follow the Semantic Versioning specific
 
 We have a list of [recommend OS / architecture combinations](/docs/registry/providers/os-arch.html) for which we suggest most providers create binaries.
 
-~> **NOTE:** Avoid modifying or replacing an already-released version of a Provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
+~> **Important:** Avoid modifying or replacing an already-released version of a Provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
 
 #### Using GoReleaser locally
 
