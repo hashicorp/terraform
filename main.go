@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/versionlock"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/version"
@@ -128,6 +129,19 @@ func wrappedMain() int {
 		Version, VersionPrerelease, GitCommit)
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
+
+	if lockedVersion, decidingFile := versionlock.GetLockedCLIVersion("."); lockedVersion != nil {
+		// We're running in a directory that has a specific Terraform version
+		// selected, so we'll refuse to run if we aren't that selected version.
+		if !version.SemVer.Equal(lockedVersion) {
+			Ui.Error(fmt.Sprintf(
+				versionLockError,
+				lockedVersion, version.SemVer,
+				decidingFile,
+			))
+			return 1
+		}
+	}
 
 	config, diags := cliconfig.LoadConfig()
 
@@ -433,3 +447,12 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 	}
 	return unmanagedProviders, nil
 }
+
+const versionLockError = `This directory is locked to require Terraform v%s only,
+but you are using Terraform v%s.
+
+If you are intentionally using a different version, edit or
+remove the following file to indicate that:
+  %s
+
+`
