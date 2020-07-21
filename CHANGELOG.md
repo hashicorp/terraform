@@ -6,6 +6,8 @@ BUG FIXES:
 * core: Prevent outputs from being evaluated during destroy [GH-25500]
 * core: Fix the pruning of temporary values from the root module which will fail to evaluate during destroy [GH-25543]
 * core: Don't create redundant dependency edges between objects in different instances of the same module. [GH-25599]
+* core: Prevent quadratic memory usage with large numbers of instances by not storing the complete resource state in each instance [GH-25544]
+* core: Fix errors and remove cycles when a provider configuration references resources during a full destroy, and fix empty evaluation results when using self references in a destroy provisioner. [GH-25681]
 
 ## 0.13.0-beta3 (July 01, 2020)
 
