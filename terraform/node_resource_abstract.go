@@ -93,11 +93,14 @@ type NodeAbstractResourceInstance struct {
 	NodeAbstractResource
 	InstanceKey addrs.InstanceKey
 
-	// The fields below will be automatically set using the Attach
-	// interfaces if you're running those transforms, but also be explicitly
-	// set if you already have that information.
-	ResourceState *states.Resource
-	Dependencies  []addrs.AbsResource
+	// These are set via the AttachState method.
+	instanceState *states.ResourceInstance
+	// storedProviderConfig is the provider address retrieved from the
+	// state, but since it is only stored in the whole Resource rather than the
+	// ResourceInstance, we extract it out here.
+	storedProviderConfig addrs.AbsProviderConfig
+
+	Dependencies []addrs.AbsResource
 }
 
 var (
@@ -245,40 +248,38 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 	// The state dependencies are now connected in a separate transformation as
 	// absolute addresses, but we need to keep this here until we can be sure
 	// that no state will need to use the old depends_on references.
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
-			// State is still storing dependencies as old-style strings, so we'll
-			// need to do a little work here to massage this to the form we now
-			// want.
-			var result []*addrs.Reference
+	if s := n.instanceState; s != nil {
+		// State is still storing dependencies as old-style strings, so we'll
+		// need to do a little work here to massage this to the form we now
+		// want.
+		var result []*addrs.Reference
 
-			// It is (apparently) possible for s.Current to be nil. This proved
-			// difficult to reproduce, so we will fix the symptom here and hope
-			// to find the root cause another time.
-			//
-			// https://github.com/hashicorp/terraform/issues/21407
-			if s.Current == nil {
-				log.Printf("[WARN] no current state found for %s", n.Name())
-				return nil
-			}
-			for _, addr := range s.Current.DependsOn {
-				if addr == nil {
-					// Should never happen; indicates a bug in the state loader
-					panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
-				}
-
-				// This is a little weird: we need to manufacture an addrs.Reference
-				// with a fake range here because the state isn't something we can
-				// make source references into.
-				result = append(result, &addrs.Reference{
-					Subject: addr,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "(state file)",
-					},
-				})
-			}
-			return result
+		// It is (apparently) possible for s.Current to be nil. This proved
+		// difficult to reproduce, so we will fix the symptom here and hope
+		// to find the root cause another time.
+		//
+		// https://github.com/hashicorp/terraform/issues/21407
+		if s.Current == nil {
+			log.Printf("[WARN] no current state found for %s", n.Name())
+			return nil
 		}
+		for _, addr := range s.Current.DependsOn {
+			if addr == nil {
+				// Should never happen; indicates a bug in the state loader
+				panic(fmt.Sprintf("dependencies for current object on %s contains nil address", n.ResourceInstanceAddr()))
+			}
+
+			// This is a little weird: we need to manufacture an addrs.Reference
+			// with a fake range here because the state isn't something we can
+			// make source references into.
+			result = append(result, &addrs.Reference{
+				Subject: addr,
+				SourceRange: tfdiags.SourceRange{
+					Filename: "(state file)",
+				},
+			})
+		}
+		return result
 	}
 
 	// If we have neither config nor state then we have no references.
@@ -301,11 +302,9 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 
 // StateDependencies returns the dependencies saved in the state.
 func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.AbsResource {
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.InstanceKey); s != nil {
-			if s.Current != nil {
-				return s.Current.Dependencies
-			}
+	if s := n.instanceState; s != nil {
+		if s.Current != nil {
+			return s.Current.Dependencies
 		}
 	}
 
@@ -336,12 +335,12 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.AbsProviderConfig, bo
 		return relAddr.Absolute(n.Path()), false
 	}
 
-	// If we have state, then we will use the provider from there
-	if n.ResourceState != nil {
+	// See if we have a valid provider config from the state.
+	if n.storedProviderConfig.ProviderConfig.Type.Type != "" {
 		// An address from the state must match exactly, since we must ensure
 		// we refresh/destroy a resource with the same provider configuration
 		// that created it.
-		return n.ResourceState.ProviderConfig, true
+		return n.storedProviderConfig, true
 	}
 
 	// Use our type and containing module path to guess a provider configuration address
@@ -395,7 +394,12 @@ func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 
 // GraphNodeAttachResourceState
 func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
-	n.ResourceState = s
+	if s == nil {
+		log.Printf("[WARN] attaching nil state to %s", n.Addr)
+		return
+	}
+	n.instanceState = s.Instance(n.InstanceKey)
+	n.storedProviderConfig = s.ProviderConfig
 }
 
 // GraphNodeAttachResourceConfig
