@@ -1,8 +1,8 @@
-## 0.12.29 (Unreleased)
+## 0.12.29 (July 22, 2020)
 
 BUG FIXES:
 
-* core: core: Prevent quadratic memory usage with large numbers of instances by not storing the complete resource state in each instance [GH-25633]
+* core: core: Prevent quadratic memory usage with large numbers of instances by not storing the complete resource state in each instance ([#25633](https://github.com/hashicorp/terraform/issues/25633))
 
 ## 0.12.28 (June 25, 2020)
 
