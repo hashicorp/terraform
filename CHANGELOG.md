@@ -1,5 +1,9 @@
 ## 0.12.29 (Unreleased)
 
+BUG FIXES:
+
+* core: core: Prevent quadratic memory usage with large numbers of instances by not storing the complete resource state in each instance [GH-25633]
+
 ## 0.12.28 (June 25, 2020)
 
 BUG FIXES:
