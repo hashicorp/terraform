@@ -124,11 +124,7 @@ func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
-	rs := n.ResourceState
-	var is *states.ResourceInstance
-	if rs != nil {
-		is = rs.Instance(n.InstanceKey)
-	}
+	is := n.instanceState
 	if is == nil {
 		log.Printf("[WARN] NodeDestroyResourceInstance for %s with no state", addr)
 	}
