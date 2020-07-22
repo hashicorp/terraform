@@ -1,13 +1,13 @@
-## 0.13.0-rc1 (Unreleased)
+## 0.13.0-rc1 (July 22, 2020)
 
 BUG FIXES:
 
-* command/init: Fix confusing error message for locally-installed providers with invalid package structure [GH-25504]
-* core: Prevent outputs from being evaluated during destroy [GH-25500]
-* core: Fix the pruning of temporary values from the root module which will fail to evaluate during destroy [GH-25543]
-* core: Don't create redundant dependency edges between objects in different instances of the same module. [GH-25599]
-* core: Prevent quadratic memory usage with large numbers of instances by not storing the complete resource state in each instance [GH-25544]
-* core: Fix errors and remove cycles when a provider configuration references resources during a full destroy, and fix empty evaluation results when using self references in a destroy provisioner. [GH-25681]
+* command/init: Fix confusing error message for locally-installed providers with invalid package structure ([#25504](https://github.com/hashicorp/terraform/issues/25504))
+* core: Prevent outputs from being evaluated during destroy ([#25500](https://github.com/hashicorp/terraform/issues/25500))
+* core: Fix the pruning of temporary values from the root module which will fail to evaluate during destroy ([#25543](https://github.com/hashicorp/terraform/issues/25543))
+* core: Don't create redundant dependency edges between objects in different instances of the same module. ([#25599](https://github.com/hashicorp/terraform/issues/25599))
+* core: Prevent quadratic memory usage with large numbers of instances by not storing the complete resource state in each instance ([#25544](https://github.com/hashicorp/terraform/issues/25544))
+* core: Fix errors and remove cycles when a provider configuration references resources during a full destroy, and fix empty evaluation results when using self references in a destroy provisioner. ([#25681](https://github.com/hashicorp/terraform/issues/25681))
 
 ## 0.13.0-beta3 (July 01, 2020)
 
