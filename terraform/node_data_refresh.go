@@ -1,10 +1,13 @@
 package terraform
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -197,36 +200,45 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext) tfdiags.D
 
 	// These variables are the state for the eval sequence below, and are
 	// updated through pointers.
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
+
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
 	var diags tfdiags.Diagnostics
 
-	step1 := &EvalGetProvider{
-		Addr:   n.ResolvedProvider,
-		Output: &provider,
-		Schema: &providerSchema,
-	}
-	_, err := step1.Eval(ctx)
-	if err != nil {
-		diags = diags.Append(err)
+	// Step 1: EvalGetProvider
+	provider := ctx.Provider(n.ResolvedProvider)
+	if provider == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "uninitialized provider",
+			Detail:   fmt.Sprintf("provider %s not initialized", n.ResolvedProvider),
+		})
 		return diags
 	}
+	providerSchema := ctx.ProviderSchema(n.ResolvedProvider)
 
-	step2 := &EvalReadState{
-		Addr:           addr.Resource,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-		Output:         &state,
-	}
-	_, err = step2.Eval(ctx)
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
+	// Step 2: EvalReadState
+	src := ctx.State().ResourceInstanceObject(addr, states.CurrentGen)
+	if src == nil {
+		// Presumably we only have deposed objects, then.
+		log.Printf("[TRACE] NodeRefreshableDataResourceInstance.Execute: no state present for %s", addr)
+	} else {
+		schema, _ := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
+		if schema == nil {
+			// Shouldn't happen since we should've failed long ago if no schema is present
+			return diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
+		}
+		var err error
+		state, err = src.Decode(schema.ImpliedType())
+		if err != nil {
+			return diags.Append(err)
+		}
 	}
 
+	// end EvalReadState
+
+	// step 3!
 	step3 := &evalReadDataRefresh{
 		evalReadData{
 			Addr:           addr.Resource,
@@ -241,7 +253,7 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext) tfdiags.D
 			forceDependsOn: n.forceDependsOn,
 		},
 	}
-	_, err = step3.Eval(ctx)
+	_, err := step3.Eval(ctx)
 	if err != nil {
 		diags = diags.Append(err)
 		return diags
