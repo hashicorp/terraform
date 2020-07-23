@@ -65,7 +65,7 @@ each other in order to build more complex values from simpler ones.
 resource "aws_instance" "example" {
   # ...
 
-  tags = local.common_tags
+  tags = "${local.common_tags}"
 }
 ```
 
