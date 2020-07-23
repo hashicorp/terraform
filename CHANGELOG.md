@@ -1,5 +1,9 @@
 ## 0.13.0 (Unreleased)
 
+BUG FIXES:
+
+* internal/providercache: Fix provider installation bug when symlinking from global cache fails ([#25661](https://github.com/hashicorp/terraform/pull/25661))
+
 ## 0.13.0-rc1 (July 22, 2020)
 
 BUG FIXES:
