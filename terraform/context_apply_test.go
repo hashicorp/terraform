@@ -8754,11 +8754,12 @@ resource "null_instance" "write" {
 }
 
 data "null_data_source" "read" {
+  count = 1
   depends_on = ["null_instance.write"]
 }
 
 resource "null_instance" "depends" {
-  foo = data.null_data_source.read.foo
+  foo = data.null_data_source.read[0].foo
 }
 `})
 
@@ -8804,7 +8805,7 @@ resource "null_instance" "depends" {
 		Mode: addrs.DataResourceMode,
 		Type: "null_data_source",
 		Name: "read",
-	}.Instance(addrs.NoKey))
+	}.Instance(addrs.IntKey(0)))
 	if is == nil {
 		t.Fatal("data resource instance is not present in state; should be")
 	}
