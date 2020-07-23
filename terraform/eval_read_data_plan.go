@@ -88,7 +88,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		*n.State = &states.ResourceInstanceObject{
-			Value:  cty.NullVal(objTy),
+			Value:  proposedNewVal,
 			Status: states.ObjectPlanned,
 		}
 
