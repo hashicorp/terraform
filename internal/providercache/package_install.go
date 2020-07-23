@@ -157,7 +157,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 
 	parentDir := filepath.Dir(absNew)
 	err = os.MkdirAll(parentDir, 0755)
-	if err != nil && os.IsExist(err) {
+	if err != nil {
 		return nil, fmt.Errorf("failed to create parent directories leading to %s: %s", targetDir, err)
 	}
 
@@ -168,7 +168,12 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 	}
 
 	// If we get down here then symlinking failed and we need a deep copy
-	// instead.
+	// instead. To make a copy, we first need to create the target directory,
+	// which would otherwise be a symlink.
+	err = os.Mkdir(absNew, 0755)
+	if err != nil && os.IsExist(err) {
+		return nil, fmt.Errorf("failed to create directory %s: %s", absNew, err)
+	}
 	err = copydir.CopyDir(absNew, absCurrent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to either symlink or copy %s to %s: %s", absCurrent, absNew, err)
