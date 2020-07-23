@@ -1163,6 +1163,59 @@ func TestAssertObjectCompatible(t *testing.T) {
 			}),
 			nil,
 		},
+		// test a set with an unknown dynamic count going to 0 values
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block2": {
+						Nesting: configschema.NestingSet,
+						Block:   schemaWithFoo,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block2": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block2": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				})),
+			}),
+			nil,
+		},
+		// test a set with a patially known dynamic count reducing it's values
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block3": {
+						Nesting: configschema.NestingSet,
+						Block:   schemaWithFoo,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block3": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("a"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block3": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("a"),
+					}),
+				}),
+			}),
+			nil,
+		},
 		{
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
