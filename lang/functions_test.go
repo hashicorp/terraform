@@ -67,6 +67,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"all": {
+			{
+				`all([true])`,
+				cty.True,
+			},
+		},
+
 		"base64decode": {
 			{
 				`base64decode("YWJjMTIzIT8kKiYoKSctPUB+")`,

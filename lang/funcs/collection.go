@@ -56,6 +56,41 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
+// AllFunc constructs a function that returns true if all elements of the
+// collection are true or "true". If the collection is empty, return true.
+var AllFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "collection",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		ty := args[0].Type()
+		if !ty.IsListType() && !ty.IsTupleType() && !ty.IsSetType() {
+			return cty.NilVal, errors.New("argument must be list, tuple, or set")
+		}
+
+		tobool := MakeToFunc(cty.Bool)
+		for it := args[0].ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			got, err := tobool.Call([]cty.Value{v})
+			if err != nil {
+				return cty.False, nil
+			}
+			eq, err := stdlib.Equal(got, cty.True)
+			if err != nil {
+				return cty.NilVal, err
+			}
+			if eq.False() {
+				return cty.False, nil
+			}
+		}
+		return cty.True, nil
+	},
+})
+
 // CoalesceFunc constructs a function that takes any number of arguments and
 // returns the first one that isn't empty. This function was copied from go-cty
 // stdlib and modified so that it returns the first *non-empty* non-null element
@@ -580,6 +615,12 @@ func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) 
 // Unicode characters in the given string.
 func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
+}
+
+// All returns true if all elements of the collection are true or "true".
+// If the collection is empty, return true.
+func All(collection cty.Value) (cty.Value, error) {
+	return AllFunc.Call([]cty.Value{collection})
 }
 
 // Coalesce takes any number of arguments and returns the first one that isn't empty.
