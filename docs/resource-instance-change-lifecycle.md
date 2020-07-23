@@ -134,7 +134,7 @@ operation, it should determine final values for any attributes that were left
 unknown in the planned new state, thus producing a wholly-known _new state_
 object.
 
-`ApplyResourceChange` also recieves the prior state so that it can use it
+`ApplyResourceChange` also receives the prior state so that it can use it
 to potentially implement more "surgical" changes to particular parts of
 the remote objects by detecting portions that are unchanged, in cases where the
 remote API supports partial-update operations.
