@@ -26,7 +26,7 @@ module "uses-role" {
 
 This is a far more coarse declaration of dependency than Terraform previously
 encouraged, so we do still recommend considering this a last resort and using
-data flow to imply dependencies whereever possible. Allowing Terraform to infer
+data flow to imply dependencies wherever possible. Allowing Terraform to infer
 dependencies automatically will tend to make your configuration easier to
 maintain and will allow Terraform to maximize concurrency when making many
 changes in a single operation.

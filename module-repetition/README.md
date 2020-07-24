@@ -6,7 +6,7 @@ resource block based on data from elsewhere in the module:
 
 ```hcl
 variable "vpc_id" {
-    type = string
+  type = string
 }
 
 variable "subnets" {
