@@ -5,10 +5,10 @@ download and install providers packaged and distributed by HashiCorp, but to
 use any other provider required manual installation.
 
 Terraform v0.13 introduces a new hierarchical provider naming scheme, allowing
-the providers developed by HashiCorp to occupy separates namespaces than
+the providers developed by HashiCorp to occupy separate namespaces than
 providers developed or distributed by others in the community, and thus to
 allow third-party providers to be indexed in
-[Terraform Registry](https://registry.terraform.io/) and automatically installed
+[Terraform Registry](https://registry.terraform.io/) and to be automatically installed
 by Terraform.
 
 > **Note:** The features for publishing providers in Terraform Registry are
