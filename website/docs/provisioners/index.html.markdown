@@ -199,7 +199,7 @@ which is covered in detail below.
 
 ## Destroy-Time Provisioners
 
-If `when = "destroy"` is specified, the provisioner will run when the
+If `when = destroy` is specified, the provisioner will run when the
 resource it is defined within is _destroyed_.
 
 ```hcl
@@ -207,7 +207,7 @@ resource "aws_instance" "web" {
   # ...
 
   provisioner "local-exec" {
-    when    = "destroy"
+    when    = destroy
     command = "echo 'Destroy-time provisioner'"
   }
 }
@@ -267,9 +267,9 @@ By default, provisioners that fail will also cause the Terraform apply
 itself to fail. The `on_failure` setting can be used to change this. The
 allowed values are:
 
-- `"continue"` - Ignore the error and continue with creation or destruction.
+- `continue` - Ignore the error and continue with creation or destruction.
 
-- `"fail"` - Raise an error and stop applying (the default behavior). If this is a creation provisioner,
+- `fail` - Raise an error and stop applying (the default behavior). If this is a creation provisioner,
     taint the resource.
 
 Example:
@@ -280,7 +280,7 @@ resource "aws_instance" "web" {
 
   provisioner "local-exec" {
     command    = "echo The server's IP address is ${self.private_ip}"
-    on_failure = "continue"
+    on_failure = continue
   }
 }
 ```
