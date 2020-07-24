@@ -137,7 +137,7 @@ If you wish to work on the Terraform CLI source code, you'll first need to insta
 
 At this time the Terraform development environment is targeting only Linux and Mac OS X systems. While Terraform itself is compatible with Windows, unfortunately the unit test suite currently contains Unix-specific assumptions around maximum path lengths, path separators, etc.
 
-Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/master/.github/.go-version) to see which version of Go Terraform is currently built with. Other versions will often work, but if you run into any build or testing problems please try with the specific Go version indicated. You can optionally simplify the installation of multiple specific versions of Go on your system by installing [`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and automatically selects the correct Go version.
+Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/master/.go-version) to see which version of Go Terraform is currently built with. Other versions will often work, but if you run into any build or testing problems please try with the specific Go version indicated. You can optionally simplify the installation of multiple specific versions of Go on your system by installing [`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and automatically selects the correct Go version.
 
 Use Git to clone this repository into a location of your choice. Terraform is using [Go Modules](https://blog.golang.org/using-go-modules), and so you should *not* clone it inside your `GOPATH`.
 
