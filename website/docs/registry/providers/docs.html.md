@@ -159,6 +159,11 @@ This would change the navigation hierarchy to the following:
 
 Resources and data sources without a subcategory will be rendered before any subcategories.
 
+The following subcategories will be rendered at the bottom of the list:
+
+* Beta
+* Deprecated
+
 ### Guides
 
 Providers can optionally include 1 or more guides. These can assist users in using the provider for certain scenarios.
