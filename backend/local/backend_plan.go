@@ -97,27 +97,6 @@ func (b *Local) opPlan(
 
 	runningOp.State = tfCtx.State()
 
-	// If we're refreshing before plan, perform that
-	baseState := runningOp.State
-	if op.PlanRefresh {
-		log.Printf("[INFO] backend/local: plan calling Refresh")
-
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
-		}
-
-		refreshedState, refreshDiags := tfCtx.Refresh()
-		diags = diags.Append(refreshDiags)
-		if diags.HasErrors() {
-			b.ReportResult(runningOp, diags)
-			return
-		}
-		baseState = refreshedState // plan will be relative to our refreshed state
-		if b.CLI != nil {
-			b.CLI.Output("\n------------------------------------------------------------------------")
-		}
-	}
-
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
@@ -142,6 +121,7 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+
 	// Record whether this plan includes any side-effects that could be applied.
 	runningOp.PlanEmpty = !planHasSideEffects(priorState, plan.Changes)
 
@@ -161,7 +141,7 @@ func (b *Local) opPlan(
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
 		// only write it if this plan is subsequently applied.
-		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, plan.State)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
 		err := planfile.Create(path, configSnap, plannedStateFile, plan)
@@ -187,7 +167,7 @@ func (b *Local) opPlan(
 			return
 		}
 
-		b.renderPlan(plan, baseState, priorState, schemas)
+		b.renderPlan(plan, plan.State, priorState, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
