@@ -60,17 +60,18 @@ ensure that everyone is using a specific Terraform version, or using at least
 a minimum Terraform version that has behavior expected by the configuration.
 
 The `required_version` setting applies only to the version of Terraform CLI.
-Various behaviors of Terraform are actually implemented by Terraform providers,
-which are released on a cycle independent of Terraform CLI and of each other.
-Use [provider version constraints](./providers.html#provider-versions)
-to make similar constraints on which provider versions may be used.
+Terraform's resource types are implemented by provider plugins,
+whose release cycles are independent of Terraform CLI and of each other.
+Use [the `required_providers` block](./provider-requirements.html) to manage
+the expected versions for each provider you use.
 
 ## Specifying Provider Requirements
 
 [inpage-source]: #specifying-provider-requirements
 
 The `required_providers` block specifies all of the providers required by the
-current module.
+current module, mapping each local provider name to a source address and a
+version constraint.
 
 ```hcl
 terraform {
@@ -83,7 +84,7 @@ terraform {
 }
 ```
 
-For more information, see [Provider Requirements](provider-requirements.html).
+For more information, see [Provider Requirements](./provider-requirements.html).
 
 ## Experimental Language Features
 

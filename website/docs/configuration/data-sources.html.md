@@ -188,24 +188,24 @@ support the same [meta-arguments](./resources.html#meta-arguments) of resources
 with the exception of the
 [`lifecycle` configuration block](./resources.html#lifecycle-lifecycle-customizations).
 
-### Multiple Provider Instances
+### Non-Default Provider Configurations
 
-Similarly to [resources](./resources.html), the
-`provider` meta-argument can be used where a configuration has
-multiple aliased instances of the same provider:
+Similarly to [resources](./resources.html), the `provider` meta-argument can be
+used when a module has multiple configurations for the same provider:
 
 ```hcl
 data "aws_ami" "web" {
-  provider = "aws.west"
+  provider = aws.west
 
   # ...
 }
 ```
 
-See [Resources: Multiple Provider Instances](./resources.html#provider-selecting-a-non-default-provider-configuration)
+See
+[Resources: Selecting a Non-Default Provider Configuration](./resources.html#provider-selecting-a-non-default-provider-configuration)
 for more information.
 
-### Data Source Lifecycle
+## Data Source Lifecycle
 
 If the arguments of a data instance contain no references to computed values,
 such as attributes of resources that have not yet been created, then the
