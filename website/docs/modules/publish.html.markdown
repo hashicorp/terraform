@@ -6,7 +6,7 @@ description: |-
   A module is a container for multiple resources that are used together.
 ---
 
-## Publishing Modules
+# Publishing Modules
 
 If you've built a module that you intend to be reused, we recommend
 [publishing the module](/docs/registry/modules/publish.html) on the
@@ -28,7 +28,7 @@ If you do not wish to publish your modules in the public registry, you can
 instead use a [private registry](/docs/registry/private.html) to get
 the same benefits.
 
-### Distribution via other sources
+## Distribution via other sources
 
 Although the registry is the native mechanism for distributing re-usable
 modules, Terraform can also install modules from
