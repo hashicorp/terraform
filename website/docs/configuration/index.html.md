@@ -14,6 +14,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language](../configuration-0-11/index.html).
 
+> For a hands-on tutorial, try the [Get Started](https://learn.hashicorp.com/terraform/getting-started/intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 Terraform uses its own configuration language, designed to allow concise
 descriptions of infrastructure. The Terraform language is declarative,
 describing an intended goal rather than the steps to reach that goal.

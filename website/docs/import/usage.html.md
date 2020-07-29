@@ -8,6 +8,8 @@ description: |-
 
 # Import Usage
 
+> For a hands-on tutorial, try the [Import Terraform Configuration](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+
 The `terraform import` command is used to import existing infrastructure.
 
 The command currently can only import one resource at a time. This means

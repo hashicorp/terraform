@@ -12,6 +12,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Modules](../configuration-0-11/modules.html).
 
+> For a hands-on tutorial, try the [Organize Configuration with Modules](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 A _module_ is a container for multiple resources that are used together.
 
 Every Terraform configuration has at least one module, known as its
@@ -28,9 +30,7 @@ This page describes how to call one module from another. Other pages in this
 section of the documentation describe the different elements that make up
 modules, and there is further information about how modules can be used,
 created, and published in [the dedicated _Modules_
-section](/docs/modules/index.html). You can also learn more about how to use and
-create modules with our hands-on [modules track on
-learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+section](/docs/modules/index.html).
 
 ## Calling a Child Module
 
