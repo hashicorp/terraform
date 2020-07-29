@@ -17,7 +17,7 @@ resources. Most providers configure a specific infrastructure platform (either
 cloud or self-hosted). Providers can also offer local utilities for tasks like
 generating random numbers for unique resource names.
 
-## Providers on the Terraform Registry
+## Providers in the Terraform Registry
 
 The [Terraform Registry](https://registry.terraform.io/browse/providers)
 is the main directory of publicly available Terraform providers, and hosts
@@ -42,7 +42,7 @@ types and their arguments.
 The Terraform Registry is also the main home for provider documentation.
 When viewing a provider's page on the Terraform Registry, you can click the
 "Documentation" link in the header to browse its documentation. Provider
-documentation on the registry is versioned, and you can use the dropdown version
+documentation in the registry is versioned, and you can use the dropdown version
 menu in the header to switch which version's documentation you are viewing.
 
 ## Lists of Terraform Providers
@@ -50,7 +50,9 @@ menu in the header to switch which version's documentation you are viewing.
 Provider documentation used to be hosted directly on terraform.io, as part of
 Terraform's core documentation. Although some provider documentation might still
 be hosted here, the Terraform Registry is now the main home for all public
-provider docs.
+provider docs. (The exception is the built-in
+[`terraform` provider](/docs/providers/terraform/index.html) for reading state
+data, since it is not available on the Terraform Registry.)
 
 As part of the old provider documentation, this section of the site included
 categorized lists of all of the providers that could be automatically installed
