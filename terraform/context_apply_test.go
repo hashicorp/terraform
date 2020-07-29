@@ -118,6 +118,9 @@ func TestContext2Apply_unstable(t *testing.T) {
 	}
 
 	rs, err := rss.Current.Decode(schema.ImpliedType())
+	if err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
 	got := rs.Value.GetAttr("random")
 	if !got.IsKnown() {
 		t.Fatalf("random is still unknown after apply")
