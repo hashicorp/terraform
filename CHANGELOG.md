@@ -13,7 +13,7 @@ NEW FEATURES:
 
 * [**Automatic installation of third-party providers**](https://www.terraform.io/docs/configuration/provider-requirements.html): Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
 
-* [**Custom validation rules for input variables**]((https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules)): A new `validation` block type inside `variable` blocks allows module authors to define validation rules at the public interface into a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. ([#25054](https://github.com/hashicorp/terraform/issues/25054))
+* [**Custom validation rules for input variables**](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules): A new `validation` block type inside `variable` blocks allows module authors to define validation rules at the public interface into a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. ([#25054](https://github.com/hashicorp/terraform/issues/25054))
 
 * [**New Kubernetes remote state storage backend**](https://www.terraform.io/docs/backends/types/kubernetes.html): This backend stores state snapshots as Kubernetes secrets. ([#19525](https://github.com/hashicorp/terraform/issues/19525))
 
