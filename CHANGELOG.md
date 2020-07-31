@@ -4,14 +4,18 @@
 > incremental changelogs for the v0.13.0 prereleases, see
 > [the v0.13.0-rc1 changelog](https://github.com/hashicorp/terraform/blob/v0.13.0-rc1/CHANGELOG.md).
 
-This section contains details about various changes in the v0.13 major release. If you are upgrading from Terraform v0.12, we recommend first referring to [the v0.13 upgrade guide](https://www.terraform.io/upgrade-guides/0-13.html) for information on some common concerns during upgrade and guidance on ways to address them. (The final upgrade guide will be published only when v0.13.0 final is released.)
+This section contains details about various changes in the v0.13 major release. If you are upgrading from Terraform v0.12, we recommend first referring to [the v0.13 upgrade guide](https://www.terraform.io/upgrade-guides/0-13.html) for information on some common concerns during upgrade and guidance on ways to address them. (The final upgrade guide and the documentation for the new features will be published only when v0.13.0 final is released; until then, some links in this section will be non-functional.)
 
 NEW FEATURES:
-* **`count` and `for_each` for modules**: Similar to the arguments of the same name in `resource` and `data` blocks, these create multiple instances of a module from a single `module` block. ([#24461](https://github.com/hashicorp/terraform/issues/24461))
-* **`depends_on` for modules**: Modules can now use the `depends_on` argument to ensure that all module resource changes will be applied after any changes to the `depends_on` targets have been applied. ([#25005](https://github.com/hashicorp/terraform/issues/25005))
-* **Automatic installation of third-party providers**: Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
-* **Custom validation rules for input variables**: A new [`validation` block type](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) inside `variable` blocks allows module authors to define validation rules at the public interface into a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. ([#25054](https://github.com/hashicorp/terraform/issues/25054))
-* **New Kubernetes remote state storage backend**: This backend stores state snapshots as Kubernetes secrets. ([#19525](https://github.com/hashicorp/terraform/issues/19525))
+* [**`count` and `for_each` for modules**](https://www.terraform.io/docs/configuration/modules.html#multiple-instances-of-a-module): Similar to the arguments of the same name in `resource` and `data` blocks, these create multiple instances of a module from a single `module` block. ([#24461](https://github.com/hashicorp/terraform/issues/24461))
+
+* [**`depends_on` for modules**](https://www.terraform.io/docs/configuration/modules.html#other-meta-arguments): Modules can now use the `depends_on` argument to ensure that all module resource changes will be applied after any changes to the `depends_on` targets have been applied. ([#25005](https://github.com/hashicorp/terraform/issues/25005))
+
+* [**Automatic installation of third-party providers**](https://www.terraform.io/docs/configuration/provider-requirements.html): Terraform now supports a decentralized namespace for providers, allowing for automatic installation of community providers from third-party namespaces in the public registry and from private registries. (More details will be added about this prior to release.)
+
+* [**Custom validation rules for input variables**]((https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules)): A new `validation` block type inside `variable` blocks allows module authors to define validation rules at the public interface into a module, so that errors in the calling configuration can be reported in the caller's context rather than inside the implementation details of the module. ([#25054](https://github.com/hashicorp/terraform/issues/25054))
+
+* [**New Kubernetes remote state storage backend**](https://www.terraform.io/docs/backends/types/kubernetes.html): This backend stores state snapshots as Kubernetes secrets. ([#19525](https://github.com/hashicorp/terraform/issues/19525))
 
 
 BREAKING CHANGES:
