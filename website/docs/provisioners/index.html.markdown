@@ -14,6 +14,8 @@ for service.
 
 ## Provisioners are a Last Resort
 
+> For hands-on tutorials about handling provisioning actions declaratively, try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/terraform/provision/packer?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 Terraform includes the concept of provisioners as a measure of pragmatism,
 knowing that there will always be certain behaviors that can't be directly
 represented in Terraform's declarative model.

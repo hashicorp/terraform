@@ -707,6 +707,8 @@ the processing happens too early for arbitrary expression evaluation.
 
 [inpage-provisioner]: #provisioner-and-connection-resource-provisioners
 
+> For hands-on tutorials about handling provisioning actions declaratively, try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/terraform/provision/packer?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 Some infrastructure objects require some special actions to be taken after they
 are created before they can become fully functional. For example, compute
 instances may require configuration to be uploaded or a configuration management
