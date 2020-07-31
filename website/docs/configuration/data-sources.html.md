@@ -190,8 +190,7 @@ with the exception of the
 
 ### Non-Default Provider Configurations
 
-Similarly to [resources](./resources.html), the `provider` meta-argument can be
-used when a module has multiple configurations for the same provider:
+Similarly to [resources](./resources.html), when a module has multiple configurations for the same provider you can specify which configuration to use with the `provider` meta-argument:
 
 ```hcl
 data "aws_ami" "web" {

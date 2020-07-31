@@ -314,7 +314,8 @@ compatible with Terraform v0.11 or later and should never be declared in a
 ## In-house Providers
 
 Anyone can develop and distribute their own Terraform providers. (See
-[Writing Custom Providers](/docs/extend/writing-custom-providers.html) for more
+the [Call APIs with Terraform Providers](https://learn.hashicorp.com/terraform/providers/provider-use?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+track on HashiCorp Learn for more
 about provider development.)
 
 Some organizations develop their own providers to configure

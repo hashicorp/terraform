@@ -61,7 +61,7 @@ and used for its own purposes; we will discuss those throughout the rest of
 this section.
 
 All modules require a `source` argument, which is a meta-argument defined by
-Terraform. Its value is either the path to a local directory of the
+Terraform. Its value is either the path to a local directory containing the
 module's configuration files, or a remote module source that Terraform should
 download and use. This value must be a literal string with no template
 sequences; arbitrary expressions are not allowed. For more information on
@@ -361,7 +361,7 @@ is sufficient for an entire configuration.
 In more complex situations there may be
 [multiple provider configurations](/docs/configuration/providers.html#alias-multiple-provider-configurations),
 or a child module may need to use different provider settings than
-its parent. For such situations, it's necessary to pass providers explicitly.
+its parent. For such situations, you must pass providers explicitly.
 
 ### Passing Providers Explicitly
 

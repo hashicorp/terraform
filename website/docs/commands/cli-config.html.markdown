@@ -93,9 +93,8 @@ credentials "app.terraform.io" {
 }
 ```
 
-If you are running the Terraform CLI interactively on a computer that is capable
-of also running a web browser, you can use [the `terraform login` command](./login.html)
-to obtain credentials and automatically save them in the CLI configuration. If
+If you are running the Terraform CLI interactively on a computer with a web browser, you can use [the `terraform login` command](./login.html)
+to get credentials and automatically save them in the CLI configuration. If
 not, you can manually write `credentials` blocks.
 
 You can have multiple `credentials` blocks if you regularly use services from
@@ -154,7 +153,7 @@ The default way to install provider plugins is from a provider registry. The
 origin registry for a provider is encoded in the provider's source address,
 like `registry.terraform.io/hashicorp/aws`. For convenience in the common case,
 Terraform allows omitting the hostname portion for providers on
-`registry.terraform.io`, so public provider addresses can be written like
+`registry.terraform.io`, so you can write shorter public provider addresses like
 `hashicorp/aws`.
 
 Downloading a plugin directly from its origin registry is not always
