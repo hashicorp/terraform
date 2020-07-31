@@ -40,6 +40,8 @@ is the main directory of publicly available Terraform providers, and hosts
 providers for most major infrastructure platforms. You can also write and
 distribute your own Terraform providers, for public or private use.
 
+> For a hands-on tutorial about creating a custom Terraform provider, try the [Call APIs with Terraform Providers](https://learn.hashicorp.com/terraform/providers/setup-implement-read?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 ### Provider Installation
 
 Terraform finds and installs providers when

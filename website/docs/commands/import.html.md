@@ -8,6 +8,8 @@ description: |-
 
 # Command: import
 
+> For a hands-on tutorial, try the [Import Terraform Configuration](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 The `terraform import` command is used to
 [import existing resources](/docs/import/index.html)
 into Terraform.

@@ -10,6 +10,8 @@ description: |-
 
 # Import
 
+> For a hands-on tutorial, try the [Import Terraform Configuration](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+
 Terraform is able to import existing infrastructure. This allows you take
 resources you've created by some other means and bring it under Terraform
 management.
