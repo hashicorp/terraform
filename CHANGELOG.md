@@ -122,7 +122,7 @@ BUG FIXES:
 EXPERIMENTS:
 * This release concludes the `variable_validation` [experiment](https://www.terraform.io/docs/configuration/terraform.html#experimental-language-features) that was started in Terraform v0.12.20. If you were participating in the experiment, you should remove the experiment opt-in from your configuration as part of upgrading to Terraform 0.13.
 
-    The experiment received only feedback that can be addressed with backward-compatible future enhancements, so we've included it into this release as stable with no changes to its original design so far. We'll consider additional features related to custom validation in future releases after seeing how it'ss used in real-world modules.
+    The experiment received only feedback that can be addressed with backward-compatible future enhancements, so we've included it into this release as stable with no changes to its original design so far. We'll consider additional features related to custom validation in future releases after seeing how it's used in real-world modules.
 
 ## Previous Releases
 
