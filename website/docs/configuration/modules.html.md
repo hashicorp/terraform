@@ -98,6 +98,30 @@ resource "aws_elb" "example" {
 For more information about referring to named values, see
 [Expressions](./expressions.html).
 
+## Transferring Resource State Into Modules
+
+When refactoring an existing configuration to split code into child modules,
+moving resource blocks between modules causes Terraform to see the new location
+as an entirely different resource from the old. Always check the execution plan
+after moving code across modules to ensure that no resources are deleted by
+surprise.
+
+If you want to make sure an existing resource is preserved, use
+[the `terraform state mv` command](/docs/commands/state/mv.html) to inform
+Terraform that it has moved to a different module.
+
+When passing resource addresses to `terraform state mv`, resources within child
+modules must be prefixed with `module.<MODULE NAME>.`. If a module was called
+with `count` or `for_each` ([see below][inpage-multiple]), its resource
+addresses must be prefixed with `module.<MODULE NAME>[<INDEX>].` instead, where
+`<INDEX>` matches the `count.index` or `each.key` value of a particular module
+instance.
+
+Full resource addresses for module contents are used within the UI and on the
+command line, but cannot be used within a Terraform configuration. Only
+[outputs](docs/configuration/outputs.html) from a module can be referenced from
+elsewhere in your configuration.
+
 ## Other Meta-arguments
 
 Along with the `source` meta-argument described above, module blocks have
@@ -228,17 +252,7 @@ name suffices to reference the module.
 
 In our example, the `./publish_bucket` module contains `aws_s3_bucket.example`, and so the two
 instances of this module produce S3 bucket resources with [resource addresses](/docs/internals/resource-addressing.html) of `module.bucket["assets"].aws_s3_bucket.example`
-and `module.bucket["media"].aws_s3_bucket.example` respectively. These full addresses
-are used within the UI and on the command line, but only [outputs](docs/configuration/outputs.html)
-from a module can be referenced from elsewhere in your configuration.
-
-When refactoring an existing configuration to introduce modules, moving
-resource blocks between modules causes Terraform to see the new location
-as an entirely separate resource to the old. Always check the execution plan
-after performing such actions to ensure that no resources are deleted by
-surprise; if necessary, use [the `terraform state mv`
-command](/docs/commands/state/mv.html) to inform Terraform that an existing
-resource has moved into a module.
+and `module.bucket["media"].aws_s3_bucket.example` respectively.
 
 ## Providers Within Modules
 

@@ -25,6 +25,11 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 
 ## Provider Configuration
 
+Provider configurations belong in the root module of a Terraform configuration.
+(Child modules receive their provider configurations from the root module; for
+more information, see
+[Providers Within Modules](./modules.html#providers-within-modules).)
+
 A provider configuration is created using a `provider` block:
 
 ```hcl
@@ -155,7 +160,7 @@ module "aws_vpc" {
 ```
 
 Modules have some special requirements when passing in providers; see
-[Providers within Modules](./modules.html#providers-within-modules)
+[Providers Within Modules](./modules.html#providers-within-modules)
 for more details. In most cases, only _root modules_ should define provider
 configurations, with all child modules obtaining their provider configurations
 from their parents.

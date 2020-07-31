@@ -104,7 +104,7 @@ Requirements](#v012-compatible-provider-requirements) below.
 
 ## Names and Addresses
 
-Each provider has two names:
+Each provider has two identifiers:
 
 - A unique _source address,_ which is only used when requiring a provider.
 - A _local name,_ which is used everywhere else in a Terraform module.

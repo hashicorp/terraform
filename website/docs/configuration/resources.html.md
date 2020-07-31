@@ -66,7 +66,7 @@ a working directory.
 
 In order to manage resources, a Terraform module must specify which providers it
 requires. Additionally, most providers need some configuration in order to
-access the remote API they rely on.
+access their remote APIs, and the root module must provide that configuration.
 
 For more information, see:
 

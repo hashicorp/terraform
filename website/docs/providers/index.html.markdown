@@ -59,9 +59,9 @@ categorized lists of all of the providers that could be automatically installed
 by older versions of Terraform, plus a supplemental list of community providers
 that needed to be manually installed. Many of these providers have already moved
 to the Terraform Registry, but we will continue to host these lists for a while
-as part of the transition. If you have links to provider documentation that was
-hosted on terraform.io, they should still work but will now redirect to the
-equivalent page in the Terraform Registry.
+as part of the transition. Links to provider documentation URLs on terraform.io
+should still work, but will now redirect to the equivalent page in the Terraform
+Registry.
 
 Use the navigation to the left to browse the categorized lists, or see the main
 list of historical providers below.
