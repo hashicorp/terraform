@@ -34,6 +34,17 @@ support tags.
 Therefore, for mapping configuration to resources in the real world,
 Terraform uses its own state structure.
 
+Terraform expects that each remote object is bound to only one resource
+instance, which is normally guaranteed by Terraform being responsible for
+creating the objects and recording their identities in the state. If you
+instead import objects that were created outside of Terraform, you'll need
+to check yourself that each distinct object is imported to only one resource
+instance.
+
+If one remote object is bound to two or more resource instances then Terraform
+may take unexpected actions against those objects, because the mapping from
+configuration to the remote object state has become ambiguous.
+
 ## Metadata
 
 Alongside the mappings between resources and remote objects, Terraform must

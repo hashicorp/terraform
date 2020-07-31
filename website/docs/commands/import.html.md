@@ -31,6 +31,14 @@ it is the zone ID (`Z12ABC4UGMOZ2N`). Please reference the provider documentatio
 on the ID format. If you're unsure, feel free to just try an ID. If the ID
 is invalid, you'll just receive an error message.
 
+~> Warning: Terraform expects that each remote object it is managing will be
+bound to only one resource address, which is normally guaranteed by Terraform
+itself having created all objects. If you import existing objects into Terraform,
+be careful to import each remote object to only one Terraform resource address.
+If you import the same object multiple times, Terraform may exhibit unwanted
+behavior. For more information on this assumption, see
+[the State section](/docs/state/).
+
 The command-line flags are all optional. The list of available flags are:
 
 * `-backup=path` - Path to backup the existing state file. Defaults to
