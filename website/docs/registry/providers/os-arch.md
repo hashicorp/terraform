@@ -1,16 +1,16 @@
 ---
 layout: "registry"
-page_title: "Recommended Provider Binary OS and Architecture - Terraform Registry"
+page_title: "Recommended Provider Binary Operating Systems and Architectures - Terraform Registry"
 sidebar_current: "docs-registry-provider-os-arch"
 description: |-
-  Recommended Provider Binary OS and Architecture
+  Recommended Provider Binary Operating Systems and Architectures
 ---
+
+# Recommended Provider Binary Operating Systems and Architectures
 
 -> __Publishing Beta__<br>Welcome! Thanks for your interest participating in our Providers in the Registry beta! Paired with Terraform 0.13, our vision is to make it easier than ever to discover, distribute, and maintain your provider(s). We welcome any feedback you have throughout the process and encourage you to reach out if you have any questions or issues by emailing terraform-registry-beta@hashicorp.com.
 
-## Recommended Provider Binary OS and Architecture
-
-We recommend the following OS / architecture combinations for compiled binaries available in the registry (this list is already satisfied by our [recommended **.goreleaser.yml** configuration file](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml)):
+We recommend the following operating system / architecture combinations for compiled binaries available in the registry (this list is already satisfied by our [recommended **.goreleaser.yml** configuration file](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml)):
 
 * Darwin / AMD64
 * Linux / AMD64

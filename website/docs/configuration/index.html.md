@@ -125,6 +125,15 @@ practical network configuration will often contain additional elements not
 shown here.
 
 ```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 1.0.4"
+    }
+  }
+}
+
 variable "aws_region" {}
 
 variable "base_cidr_block" {

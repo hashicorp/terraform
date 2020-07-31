@@ -6,6 +6,8 @@ description: |-
   Publishing Providers to the Terraform Registry
 ---
 
+# Publishing Providers
+
 -> __Publishing Beta__<br>Welcome! Thanks for your interest participating in our Providers in the Registry beta! Paired with Terraform 0.13, our vision is to make it easier than ever to discover, distribute, and maintain your provider(s). We welcome any feedback you have throughout the process and encourage you to reach out if you have any questions or issues by emailing terraform-registry-beta@hashicorp.com.
 
 ## Preparing your Provider
@@ -14,7 +16,7 @@ description: |-
 
 Providers published to the Terraform Registry are written and built in the same way as other Terraform Providers. For guidance on how to write a provider, see [Writing Custom Providers](/docs/extend/writing-custom-providers.html).
 
-The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.  
+The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.
 
 #### Licensing a Verified Provider
 
@@ -22,14 +24,14 @@ All Terraform Verified providers must contain one of the following open source l
 
 * CDDL 1.0, 2.0
 * CPL 1.0
-* Eclipse Public License (EPL) 1.0 
+* Eclipse Public License (EPL) 1.0
 * MPL 1.0, 1.1, 2.0
 * APSL 2.0
 * Ruby's Licensing
 * AFL 2.1, 3.0
 * Apache License 2.0
 * Artistic License 1.0, 2.0
-* Apache Software License (ASL) 1.1 
+* Apache Software License (ASL) 1.1
 * Boost Software License
 * BSD, BSD 3-clause, "BSD-new"
 * CC-BY

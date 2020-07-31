@@ -36,7 +36,7 @@ resource "aws_instance" "web" {
 A `resource` block declares a resource of a given type ("aws_instance")
 with a given local name ("web"). The name is used to refer to this resource
 from elsewhere in the same Terraform module, but has no significance outside
-of the scope of a module.
+that module's scope.
 
 The resource type and name together serve as an identifier for a given
 resource and so must be unique within a module.
@@ -49,19 +49,45 @@ arguments defined specifically for [the `aws_instance` resource type](/docs/prov
 -> **Note:** Resource names must start with a letter or underscore, and may
 contain only letters, digits, underscores, and dashes.
 
-## Resource Types and Arguments
+## Resource Types
 
 Each resource is associated with a single _resource type_, which determines
 the kind of infrastructure object it manages and what arguments and other
 attributes the resource supports.
 
-Each resource type in turn belongs to a [provider](./providers.html),
+### Providers
+
+Each resource type is implemented by a [provider](./provider-requirements.html),
 which is a plugin for Terraform that offers a collection of resource types. A
 provider usually provides resources to manage a single cloud or on-premises
-infrastructure platform.
+infrastructure platform. Providers are distributed separately from Terraform
+itself, but Terraform can automatically install most providers when initializing
+a working directory.
 
-Most of the items within the body of a `resource` block are specific to the
-selected resource type. These arguments can make full use of
+In order to manage resources, a Terraform module must specify which providers it
+requires. Additionally, most providers need some configuration in order to
+access their remote APIs, and the root module must provide that configuration.
+
+For more information, see:
+
+- [Provider Requirements](./provider-requirements.html), for declaring which
+  providers a module uses.
+- [Provider Configuration](./providers.html), for configuring provider settings.
+
+Terraform usually automatically determines which provider to use based on a
+resource type's name. (By convention, resource type names start with their
+provider's preferred local name.) When using multiple configurations of a
+provider (or non-preferred local provider names), you must use the `provider`
+meta-argument to manually choose an alternate provider configuration. See
+[the section on `provider` below][inpage-provider] for more details.
+
+### Resource Arguments
+
+Most of the arguments within the body of a `resource` block are specific to the
+selected resource type. The resource type's documentation lists which arguments
+are available and how their values should be formatted.
+
+The values for resource arguments can make full use of
 [expressions](./expressions.html) and other dynamic Terraform
 language features.
 
@@ -70,24 +96,30 @@ and apply across all resource types. (See [Meta-Arguments](#meta-arguments) belo
 
 ### Documentation for Resource Types
 
-[Terraform's provider documentation][providers] is the primary place to
-learn which resource types are available and which arguments to use for each
-resource type. Once you understand Terraform's basic syntax, the provider
-documentation will be where you spend the majority of your time on this website.
+Every Terraform provider has its own documentation, describing its resource
+types and their arguments.
 
-The "[Providers][]" link at the top level of the navigation sidebar will take
-you to an alphabetical list of all of the providers distributed by HashiCorp.
-You can find a specific provider in this master list, or choose a category from
-the navigation sidebar to browse a more focused list of providers.
+Most publicly available providers are distributed on the
+[Terraform Registry](https://registry.terraform.io/browse/providers), which also
+hosts their documentation. When viewing a provider's page on the Terraform
+Registry, you can click the "Documentation" link in the header to browse its
+documentation. Provider documentation on the registry is versioned, and you can
+use the dropdown version menu in the header to switch which version's
+documentation you are viewing.
 
-You can also search GitHub or other sources for third-party providers, which can
-be installed as plugins to enable an even broader selection of resource types.
+To browse the publicly available providers and their documentation, see
+[the providers section of the Terraform Registry](https://registry.terraform.io/browse/providers).
 
-[providers]: /docs/providers/index.html
+-> **Note:** Provider documentation used to be hosted directly on terraform.io,
+as part of Terraform's core documentation. Although some provider documentation
+might still be hosted here, the Terraform Registry is now the main home for all
+public provider docs. (The exception is the built-in
+[`terraform` provider](/docs/providers/terraform/index.html) for reading state
+data, since it is not available on the Terraform Registry.)
 
 ## Resource Behavior
 
-A `resource` block describes your intent for a particular infrastructure object
+A `resource` block declares that you want a particular infrastructure object
 to exist with the given settings. If you are writing a new configuration for
 the first time, the resources it defines will exist _only_ in the configuration,
 and will not yet represent real infrastructure objects in the target platform.
@@ -112,6 +144,28 @@ all.
 The meta-arguments within `resource` blocks, documented in the
 sections below, allow some details of this standard resource behavior to be
 customized on a per-resource basis.
+
+### Accessing Resource Attributes
+
+[Expressions](./expressions.html) within a Terraform module can access
+information about resources in the same module, and you can use that information
+to help configure other resources. Use the `<RESOURCE TYPE>.<NAME>.<ATTRIBUTE>`
+syntax to reference a resource attribute in an expression.
+
+In addition to arguments specified in the configuration, resources often provide
+read-only attributes with information obtained from the remote API; this often
+includes things that can't be known until the resource is created, like the
+resource's unique random ID.
+
+Many providers also include [data sources](./data-sources.html), which are a
+special type of resource used only for looking up information.
+
+For a list of the attributes a resource or data source type provides, consult
+its documentation; these are generally included in a second list below its list
+of configurable arguments.
+
+For more information about referencing resource attributes in expressions, see
+[Expressions: References to Resource Attributes](./expressions.html#references-to-resource-attributes).
 
 ### Resource Dependencies
 
@@ -466,21 +520,24 @@ resource "aws_instance" "server" {
 
 [inpage-provider]: #provider-selecting-a-non-default-provider-configuration
 
-As described in [the Providers page](./providers.html),
-Terraform optionally allows the definition of multiple alternative ("aliased")
-configurations for a single provider, to allow management of resources
-in different regions in multi-region services, etc.
-The `provider` meta-argument overrides Terraform's default behavior of
-selecting a provider configuration based on the resource type name.
+The `provider` meta-argument specifies which provider configuration to use,
+overriding Terraform's default behavior of selecting one based on the resource
+type name. Its value should be an unquoted `<PROVIDER>.<ALIAS>` reference.
 
-By default, Terraform takes the initial word in the resource type name
-(separated by underscores) and selects the default configuration for that
-named provider. For example, the resource type `google_compute_instance`
-is associated automatically with the default configuration for the provider
-named `google`.
+As described in [Provider Configuration](./providers.html), you can optionally
+create multiple configurations for a single provider (usually to manage
+resources in different regions of multi-region services). Each provider can have
+one default configuration, and any number of alternate configurations that
+include an extra name segment (or "alias").
 
-By using the `provider` meta-argument, an aliased provider configuration
-can be selected:
+By default, Terraform interprets the initial word in the resource type name
+(separated by underscores) as the local name of a provider, and uses that
+provider's default configuration. For example, the resource type
+`google_compute_instance` is associated automatically with the default
+configuration for the provider named `google`.
+
+By using the `provider` meta-argument, you can select an alternate provider
+configuration for a resource:
 
 ```hcl
 # default configuration
@@ -488,7 +545,7 @@ provider "google" {
   region = "us-central1"
 }
 
-# alternative, aliased configuration
+# alternate configuration, whose alias is "europe"
 provider "google" {
   alias  = "europe"
   region = "europe-west1"
@@ -508,8 +565,9 @@ A resource always has an implicit dependency on its associated provider, to
 ensure that the provider is fully configured before any resource actions
 are taken.
 
-The `provider` meta-argument expects [a `<PROVIDER>.<ALIAS>` reference](./providers.html#referring-to-alternate-providers), which
-does not need to be quoted. Arbitrary expressions are not permitted for
+The `provider` meta-argument expects
+[a `<PROVIDER>.<ALIAS>` reference](./providers.html#referring-to-alternate-providers),
+which does not need to be quoted. Arbitrary expressions are not permitted for
 `provider` because it must be resolved while Terraform is constructing the
 dependency graph, before it is safe to evaluate expressions.
 
