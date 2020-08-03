@@ -151,6 +151,8 @@ func (l *locker) Unlock(parentErr error) error {
 
 		if parentErr != nil {
 			parentErr = multierror.Append(parentErr, err)
+		} else {
+			return err
 		}
 	}
 
