@@ -5948,6 +5948,61 @@ resource "aws_instance" "foo" {
 	}
 }
 
+func TestContext2Plan_targetResourceInModuleInstance(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	targets := []addrs.Targetable{target.Subject}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: targets,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		// the single targeted mod[1] instance
+		`module.mod[1].aws_instance.foo`: plans.Create,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
 func TestContext2Plan_moduleRefIndex(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
