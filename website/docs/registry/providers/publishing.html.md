@@ -8,41 +8,28 @@ description: |-
 
 # Publishing Providers
 
--> __Publishing Beta__<br>Welcome! Thanks for your interest participating in our Providers in the Registry beta! Paired with Terraform 0.13, our vision is to make it easier than ever to discover, distribute, and maintain your provider(s). We welcome any feedback you have throughout the process and encourage you to reach out if you have any questions or issues by emailing terraform-registry-beta@hashicorp.com.
+Anyone can instantly publish and share a provider by signing into the Registry using their GitHub account and following a few easy steps. First we will walk through how to prepare a [Terraform Provider](https://www.terraform.io/docs/plugins/provider.html) for publishing, and then provide the steps to have it published live on the Registry.
+
 
 ## Preparing your Provider
 
 ### Writing a Provider
 
-Providers published to the Terraform Registry are written and built in the same way as other Terraform Providers. For guidance on how to write a provider, see [Writing Custom Providers](/docs/extend/writing-custom-providers.html).
+Providers published to the Terraform Registry are written and built in the same way as other Terraform Providers. A variety of resources are available to help our contributors build a quality integration:
 
-The provider repository on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.
+* Writing a custom provider – [Full Tutorial](https://learn.hashicorp.com/tutorials/terraform/provider-setup)
+* How-to build a provider – [Live video](https://www.youtube.com/watch?v=2BvpqmFpchI)
+* Sample provider developed by [partner](https://blog.container-solutions.com/write-terraform-provider-part-1)
+* Example providers for reference: [AWS](https://github.com/terraform-providers/terraform-provider-aws), [AzureRM](https://github.com/terraform-providers/terraform-provider-azurerm)
+* [Contributing to Terraform guidelines](https://www.terraform.io/docs/extend/community/contributing.html)
 
-#### Licensing a Verified Provider
-
-All Terraform Verified providers must contain one of the following open source licenses. This requirement does not apply to Community providers:
-
-* CDDL 1.0, 2.0
-* CPL 1.0
-* Eclipse Public License (EPL) 1.0
-* MPL 1.0, 1.1, 2.0
-* APSL 2.0
-* Ruby's Licensing
-* AFL 2.1, 3.0
-* Apache License 2.0
-* Artistic License 1.0, 2.0
-* Apache Software License (ASL) 1.1
-* Boost Software License
-* BSD, BSD 3-clause, "BSD-new"
-* CC-BY
-* Microsoft Public License (MS-PL)
-* MIT
+~> **Important:** In order to be detected by the Terraform Registry, all provider repositories on GitHub must match the pattern `terraform-provider-{NAME}`, and the repository must be public.
 
 ### Documenting your Provider
 
 Your provider should contain an overview document (index.md), as well as a doc for each resource and data-source. See [Documenting Providers](./docs.html) for details about how to ensure your provider documentation renders properly on the Terraform Registry.
 
--> In order to test how documents will render in the Terraform Registry, you can use the [Terraform Registry Doc Preview Tool](https://registry.terraform.io/tools/doc-preview).
+-> **Note:** In order to test how documents will render in the Terraform Registry, you can use the [Terraform Registry Doc Preview Tool](https://registry.terraform.io/tools/doc-preview).
 
 ### Creating a GitHub Release
 
@@ -84,13 +71,13 @@ The release must meet the following criteria:
 
 ## Publishing to the Registry
 
-### Creating a Terraform Registry Account
+### Signing in
 
-Before publishing a provider, you must first authenticate to the Terraform Registry with a GitHub account. The account must have admin permissions on the provider repository to create the required webhooks for publishing future provider versions.
+Before publishing a provider, you must first sign in to the Terraform Registry with a GitHub account (see [Signing into the Registry](/docs/registry/index.html#creating-an-account)). The GitHub account used must have the following permission scopes on the provider repository you’d like to publish. Permissions can be verified by going to your [GitHub Settings](https://github.com/settings/connections/applications/) and selecting the Terraform Registry Application under Authorized OAuth Apps.
 
-Click [Sign-In](https://registry.terraform.io/sign-in) to authenticate to the Terraform Registry with your GitHub user account.
+![screenshot: terraform registry github oauth required permissions](./images/github-oauth-permissions.png) 
 
-### Adding Your GPG Signing Key
+### Prepare and Add a Signing Key
 
 All provider releases are required to be signed, thus you must provide HashiCorp with the public key for the GPG keypair that you will be signing releases with. The Terraform Registry will validate that the release is signed with this key when publishing each version, and Terraform will verify this during `terraform init`.
 
@@ -108,6 +95,10 @@ If you would like to publish a provider under your username (not a GitHub organi
 
 In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. You can email it to terraform-registry@hashicorp.com, or your HashiCorp contact person (if you have one).
 
-### Publishing Your provider
+### Publish Your Provider
 
 In the top-right navigation, select [Publish > Provider](https://registry.terraform.io/publish/provider) to begin the publishing process. Follow the prompts to select the organization and repository you would like to publish.
+
+#### Terms of Use
+
+Anything published to the Terraform Registry is subject to our Terms of use. A copy of the terms are available for viewing at https://registry.terraform.io/terms

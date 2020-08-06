@@ -6,6 +6,10 @@
       <li>
         <a href="#">Providers</a>
         <ul class="nav nav-auto-expand">
+          <li<%= sidebar_current("docs-registry-provider-overview") %>>
+            <a href="/docs/registry/providers/overview.html">Overview</a>
+          </li>
+
           <li<%= sidebar_current("docs-registry-provider-publishing") %>>
             <a href="/docs/registry/providers/publishing.html">Publishing Providers</a>
           </li>
@@ -16,6 +20,10 @@
 
           <li<%= sidebar_current("docs-registry-provider-os-arch") %>>
             <a href="/docs/registry/providers/os-arch.html">Recommended OS and Architecture</a>
+          </li>
+          
+          <li>
+            <a href="/guides/terraform-provider-development-program.html">Provider Development Program</a>
           </li>
         </ul>
       </li>
@@ -45,9 +53,6 @@
         <a href="/docs/registry/api.html">Registry API</a>
       </li>
 
-      <li<%= sidebar_current("docs-registry-support") %>>
-        <a href="/docs/registry/support.html">Registry Support</a>
-      </li>
     </ul>
 
     <%= partial("layouts/otherdocs", :locals => { :skip => "Terraform Registry" }) %>
