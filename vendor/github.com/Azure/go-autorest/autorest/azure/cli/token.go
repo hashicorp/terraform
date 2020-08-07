@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -43,6 +44,8 @@ type Token struct {
 	TokenType        string `json:"tokenType"`
 	UserID           string `json:"userId"`
 }
+
+const accessTokensJSON = "accessTokens.json"
 
 // ToADALToken converts an Azure CLI `Token`` to an `adal.Token``
 func (t Token) ToADALToken() (converted adal.Token, err error) {
@@ -68,17 +71,19 @@ func (t Token) ToADALToken() (converted adal.Token, err error) {
 // AccessTokensPath returns the path where access tokens are stored from the Azure CLI
 // TODO(#199): add unit test.
 func AccessTokensPath() (string, error) {
-	// Azure-CLI allows user to customize the path of access tokens thorugh environment variable.
-	var accessTokenPath = os.Getenv("AZURE_ACCESS_TOKEN_FILE")
-	var err error
+	// Azure-CLI allows user to customize the path of access tokens through environment variable.
+	if accessTokenPath := os.Getenv("AZURE_ACCESS_TOKEN_FILE"); accessTokenPath != "" {
+		return accessTokenPath, nil
+	}
+
+	// Azure-CLI allows user to customize the path to Azure config directory through environment variable.
+	if cfgDir := configDir(); cfgDir != "" {
+		return filepath.Join(cfgDir, accessTokensJSON), nil
+	}
 
 	// Fallback logic to default path on non-cloud-shell environment.
 	// TODO(#200): remove the dependency on hard-coding path.
-	if accessTokenPath == "" {
-		accessTokenPath, err = homedir.Expand("~/.azure/accessTokens.json")
-	}
-
-	return accessTokenPath, err
+	return homedir.Expand("~/.azure/" + accessTokensJSON)
 }
 
 // ParseExpirationDate parses either a Azure CLI or CloudShell date into a time object

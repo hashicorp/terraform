@@ -113,7 +113,6 @@ func (client OAuth2PermissionGrantClient) CreateSender(req *http.Request) (*http
 func (client OAuth2PermissionGrantClient) CreateResponder(resp *http.Response) (result OAuth2PermissionGrant, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -187,7 +186,6 @@ func (client OAuth2PermissionGrantClient) DeleteSender(req *http.Request) (*http
 func (client OAuth2PermissionGrantClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
@@ -231,6 +229,9 @@ func (client OAuth2PermissionGrantClient) List(ctx context.Context, filter strin
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "graphrbac.OAuth2PermissionGrantClient", "List", resp, "Failure responding to request")
 	}
+	if result.oa2pglr.hasNextLink() && result.oa2pglr.IsEmpty() {
+		err = result.NextWithContext(ctx)
+	}
 
 	return
 }
@@ -268,7 +269,6 @@ func (client OAuth2PermissionGrantClient) ListSender(req *http.Request) (*http.R
 func (client OAuth2PermissionGrantClient) ListResponder(resp *http.Response) (result OAuth2PermissionGrantListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -358,7 +358,6 @@ func (client OAuth2PermissionGrantClient) ListNextSender(req *http.Request) (*ht
 func (client OAuth2PermissionGrantClient) ListNextResponder(resp *http.Response) (result OAuth2PermissionGrantListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
