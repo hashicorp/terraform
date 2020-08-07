@@ -71,11 +71,11 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
 
-			"client_secret": {
+			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The Client Secret.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
+				Description: "A custom Endpoint used to access the Azure Resource Manager API's.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENDPOINT", ""),
 			},
 
 			"subscription_id": {
@@ -92,25 +92,40 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
 
+			// Service Principal (Client Certificate) specific
+			"client_certificate_password": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The password associated with the Client Certificate specified in `client_certificate_path`",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_CERTIFICATE_PASSWORD", ""),
+			},
+			"client_certificate_path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to the PFX file used as the Client Certificate when authenticating as a Service Principal",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_CERTIFICATE_PATH", ""),
+			},
+
+			// Service Principal (Client Secret) specific
+			"client_secret": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Client Secret.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
+			},
+
+			// Managed Service Identity specific
 			"use_msi": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Should Managed Service Identity be used?.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSI", false),
 			},
-
 			"msi_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Managed Service Identity Endpoint.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
-			},
-
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom Endpoint used to access the Azure Resource Manager API's.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_ENDPOINT", ""),
 			},
 
 			// Deprecated fields
@@ -167,6 +182,8 @@ type BackendConfig struct {
 	// Optional
 	AccessKey                     string
 	ClientID                      string
+	ClientCertificatePassword     string
+	ClientCertificatePath         string
 	ClientSecret                  string
 	CustomResourceManagerEndpoint string
 	Environment                   string
@@ -199,6 +216,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	config := BackendConfig{
 		AccessKey:                     data.Get("access_key").(string),
 		ClientID:                      clientId,
+		ClientCertificatePassword:     data.Get("client_certificate_password").(string),
+		ClientCertificatePath:         data.Get("client_certificate_path").(string),
 		ClientSecret:                  clientSecret,
 		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
 		Environment:                   data.Get("environment").(string),
