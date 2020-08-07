@@ -63,6 +63,7 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		TenantID:                      config.TenantID,
 		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
 		Environment:                   config.Environment,
+		ClientSecretDocsLink:          "https://www.terraform.io/docs/providers/azurerm/guides/service_principal_client_secret.html",
 
 		// Service Principal (Client Certificate)
 		ClientCertPassword: config.ClientCertificatePassword,
