@@ -341,14 +341,15 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	if err != nil {
 		return nil, err
 	}
-	afterDV, err := NewDynamicValue(c.After, ty)
+	afterDV, err, marks := NewDynamicValueMarks(c.After, ty)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ChangeSrc{
-		Action: c.Action,
-		Before: beforeDV,
-		After:  afterDV,
+		Action:   c.Action,
+		Before:   beforeDV,
+		After:    afterDV,
+		ValMarks: marks,
 	}, nil
 }

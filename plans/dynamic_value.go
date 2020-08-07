@@ -55,6 +55,26 @@ func NewDynamicValue(val cty.Value, ty cty.Type) (DynamicValue, error) {
 	return DynamicValue(buf), nil
 }
 
+// NewDynamicValueMarks returns a new dynamic value along with a
+// associated marking info for the value
+func NewDynamicValueMarks(val cty.Value, ty cty.Type) (DynamicValue, error, *ctymsgpack.MarkInfo) {
+	// If we're given cty.NilVal (the zero value of cty.Value, which is
+	// distinct from a typed null value created by cty.NullVal) then we'll
+	// assume the caller is trying to represent the _absense_ of a value,
+	// and so we'll return a nil DynamicValue.
+	if val == cty.NilVal {
+		return DynamicValue(nil), nil, nil
+	}
+
+	// Currently our internal encoding is msgpack, via ctymsgpack.
+	buf, err, marks := ctymsgpack.MarshalWithMarks(val, ty)
+	if err != nil {
+		return nil, err, marks
+	}
+
+	return DynamicValue(buf), nil, marks
+}
+
 // Decode retrieves the effective value from the receiever by interpreting the
 // serialized form against the given type constraint. For correct results,
 // the type constraint must match (or be consistent with) the one that was

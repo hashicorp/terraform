@@ -10,7 +10,8 @@ import (
 
 func marshal(val cty.Value, t cty.Type, path cty.Path, b *bytes.Buffer) error {
 	if val.IsMarked() {
-		return path.NewErrorf("value has marks, so it cannot be seralized")
+		// For now, dump the marks when serializing JSON for POC purposes
+		val, _ = val.UnmarkDeep()
 	}
 
 	// If we're going to decode as DynamicPseudoType then we need to save

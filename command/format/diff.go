@@ -125,10 +125,21 @@ func ResourceChange(
 	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
 	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
 
-	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
-	if result.bodyWritten {
-		p.buf.WriteString("\n")
-		p.buf.WriteString(strings.Repeat(" ", 4))
+	// Now that the change is decoded, add back the marks at the defined paths
+	// change.Markinfo
+	changeV.Change.After, _ = cty.Transform(changeV.Change.After, func(p cty.Path, v cty.Value) (cty.Value, error) {
+		if p.Equals(change.ValMarks.Path) {
+			// TODO The mark is at change.Markinfo.Marks and it would be proper
+			// to iterate through that set here
+			return v.Mark("sensitive"), nil
+		}
+		return v, nil
+	})
+
+	bodyWritten := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
+	if bodyWritten {
+		buf.WriteString("\n")
+		buf.WriteString(strings.Repeat(" ", 4))
 	}
 	buf.WriteString("}\n")
 
@@ -586,6 +597,12 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 }
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
+	// Could check specifically for the sensitivity marker
+	if val.IsMarked() {
+		p.buf.WriteString("(sensitive)")
+		return
+	}
+
 	if !val.IsKnown() {
 		p.buf.WriteString("(known after apply)")
 		return
@@ -1284,7 +1301,8 @@ func ctyGetAttrMaybeNull(val cty.Value, name string) cty.Value {
 	// This allows us to avoid spurious diffs
 	// until we introduce null to the SDK.
 	attrValue := val.GetAttr(name)
-	if ctyEmptyString(attrValue) {
+	// If the value is marked, the ctyEmptyString function will fail
+	if !val.ContainsMarked() && ctyEmptyString(attrValue) {
 		return cty.NullVal(attrType)
 	}
 

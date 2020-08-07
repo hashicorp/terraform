@@ -292,6 +292,10 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		val = cty.UnknownVal(wantType)
 	}
 
+	if config.Sensitive {
+		val = val.Mark("sensitive")
+	}
+
 	return val, diags
 }
 
