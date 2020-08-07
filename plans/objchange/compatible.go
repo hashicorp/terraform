@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/configs/configschema"
 )
@@ -220,7 +219,7 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		return errs
 	}
 	if problems := planned.Type().TestConformance(actual.Type()); len(problems) > 0 {
-		errs = append(errs, path.NewErrorf("wrong final value type: %s", convert.MismatchMessage(actual.Type(), planned.Type())))
+		errs = append(errs, problems...)
 		// If the types don't match then we can't do any other comparisons,
 		// so we bail early.
 		return errs
