@@ -132,7 +132,7 @@ Once completed, your provider should be visible in the Terraform Registry and us
 
 ### 5. Maintain & Support
 
-Many vendors view the release step to be the end of the journey, while at HashiCorp we view it to be the start. Getting the provider built is just the first step in enabling users to use it against the infrastructure. Once this is done on-going effort is required to maintain the provider and address any issues in a timely manner.
+Getting a new provider built and published to the Terraform Registry is just the first step towards enabling your users with a quality Terraform integration. Once a `verified` provider has been published, on-going effort is required to maintain the provider. It is expected that all verified provider publishers will continue to maintain the provider and address any issues your users report in a timely manner. HashiCorp reserves the right to remove verified status from any provider this is no longer maintained.
 
 The expectation is to resolve all critical issues within 48 hours and all other issues within 5 business days. HashiCorp Terraform has an extremely wide community of users and contributors and we encourage everyone to report issues however small, as well as help resolve them when possible.
 
