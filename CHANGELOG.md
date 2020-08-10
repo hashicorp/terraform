@@ -1,4 +1,4 @@
-## 0.13.0 (Unreleased)
+## 0.13.0 (August 10, 2020)
 
 > This is a list of changes relative to Terraform v0.12.29. To see the
 > incremental changelogs for the v0.13.0 prereleases, see
