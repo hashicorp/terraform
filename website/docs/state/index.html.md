@@ -68,7 +68,7 @@ in new versions.
 Alternatively, there are several integration points which produce JSON output
 that is specifically intended for consumption by external software:
 
-* [The `terraform output` command](/commands/output.html)
+* [The `terraform output` command](/docs/commands/output.html)
 has a `-json` option, for obtaining either the full set of root module output
 values or a specific named output value from the latest state snapshot.
 * [The `terraform show` command](/docs/commands/show.html) has a `-json`
