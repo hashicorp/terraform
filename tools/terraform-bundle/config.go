@@ -56,6 +56,7 @@ func (c *Config) validate() error {
 	if v, err = c.Terraform.Version.Parse(); err != nil {
 		return fmt.Errorf("terraform.version: %s", err)
 	}
+
 	if !zeroThirteen.Allows(v) {
 		return fmt.Errorf("this version of terraform-bundle can only build bundles for Terraform v0.13 and later; build terraform-bundle from a release tag (such as v0.12.*) to construct bundles for earlier versions")
 	}
