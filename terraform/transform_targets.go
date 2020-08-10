@@ -145,6 +145,8 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 				targetAddr = target.ContainingResource().Config()
 			case addrs.AbsResource:
 				targetAddr = target.Config()
+			case addrs.ModuleInstance:
+				targetAddr = target.Module()
 			}
 		}
 
