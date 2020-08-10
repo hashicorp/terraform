@@ -9,11 +9,9 @@ description: This guide is intended for vendors who're interested in having thei
 
 The Terraform Provider Development Program facilitates vendors in creating and publishing Terraform providers that have been officially approved and verified by HashiCorp. Once verified, the provider published under your organization’s namespace will receive a distinct tier and badge that helps to distinguish it from community-sourced providers within the [Registry](https://registry.terraform.io).
 
-![]
-
 The Verified badge helps users easily identify and discover integrations developed and maintained directly by an integration’s vendor, establishing a level of trust for our users. This program is intended to be largely self-serve, with links to information sources, clearly defined steps, and checkpoints detailed below.
 
-![Verified Provider Card](/assets/inages/docs/*provider-verified-card*.png)
+![Verified Provider Card](/assets/images/docs/verified-card.png)
 
 -> **Building your own provider?** If you're building your own provider and aren't interested in having HashiCorp officially verify and regularly monitor your provider, please refer to the [Writing Custom Providers guide](https://www.terraform.io/docs/extend/writing-custom-providers.html) and the [Extending Terraform](https://www.terraform.io/docs/extend/index.html) section.
 
@@ -26,8 +24,37 @@ A Terraform Provider represents an integration that is responsible for understan
 
 All providers integrate into and operate with Terraform exactly the same way. The table below is intended to help users understand who develops, and maintains a particular provider.
 
+<table border="0" style="border-collapse: collapse; width: 100%;">
+<tbody>
+<tr style="height: 21px;">
+<td style="width: 12.4839%; height: 21px;"><strong>Tier</strong></td>
+<td style="width: 55.7271%; height: 21px;"><strong>Description</strong></td>
+<td style="width: 31.7889%; height: 21px;"><strong>Namespace</strong></td>
+</tr>
+<tr style="height: 21px;">
+<td style="width: 12.4839%; height: 21px;"><img src="./images/official-tier.png" alt="" /></td>
+<td style="width: 55.7271%; height: 21px;"><i><span style="font-weight: 400;">Official providers are owned and maintained by HashiCorp </span></i></td>
+<td style="width: 31.7889%; height: 21px;"><code><span style="font-weight: 400;">hashicorp</span></code></td>
+</tr>
+<tr style="height: 21px;">
+<td style="width: 12.4839%; height: 21px;"><img src="./images/verified-tier.png" alt="" /></td>
+<td style="width: 55.7271%; height: 21px;"><i><span style="font-weight: 400;">Verified providers are owned and maintained by third-party technology partners. Providers in this tier indicate HashiCorp has verified the authenticity of the Provider&rsquo;s publisher, and that the partner is a member of the </span></i><a href="https://www.hashicorp.com/ecosystem/become-a-partner/"><i><span style="font-weight: 400;">HashiCorp Technology Partner Program</span></i></a><i><span style="font-weight: 400;">.</span></i></td>
+<td style="width: 31.7889%; height: 21px;"><span style="font-weight: 400;">Third-party organization, e.g. </span><code><span style="font-weight: 400;">mongodb/mongodbatlas</span></code></td>
+</tr>
+<tr style="height: 21px;">
+<td style="width: 12.4839%; height: 21px;"><img src="./images/community-tier.png" alt="" /></td>
+<td style="width: 55.7271%; height: 21px;">Community providers are published to the Terraform Registry by individual maintainers, groups of maintainers, or other members of the Terraform community.</td>
+<td style="width: 31.7889%; height: 21px;"><br />Maintainer&rsquo;s individual or organization account, e.g. <code>DeviaVir/gsuite</code></td>
+</tr>
+<tr style="height: 21px;">
+<td style="width: 12.4839%; height: 21px;"><img src="./images/archived-tier.png" alt="" /></td>
+<td style="width: 55.7271%; height: 21px;">Archived Providers are Official or Verified Providers that are no longer maintained by HashiCorp or the community. This may occur if an API is deprecated or interest was low.</td>
+<td style="width: 31.7889%; height: 21px;"><code>hashicorp</code> or third-party</td>
+</tr>
+</tbody>
+</table>
+<p></p>
 
-![Provider Teir Chart](/assets/images/docs/*provider-teirs*.png)
 
 -> **Note:** This document focuses on the "Verified" Tier in the table above. Community contributors interested in contributing to existing providers or building new providers should refer to the [Publishing a Provider](https://www.terraform.io/docs/registry/providers/publishing.html) section of our documentation.
 
@@ -36,7 +63,7 @@ All providers integrate into and operate with Terraform exactly the same way. Th
 
 The provider development process is divided into five steps below. By following these steps, providers can be developed alongside HashiCorp to ensure new providers are able to be published in Terraform as quickly as possible.
 
-![Provider Development Process](/assets/images/docs/*new-process*.png)
+![Provider Development Process](/assets/images/docs/program-steps.png)
 
 1. **Apply**: Initial contact between vendor and HashiCorp
 2. **Prepare**: Follow documentation while developing the provider 
@@ -65,11 +92,12 @@ We’ve found the provider development process to be fairly straightforward and 
 | OpenCredo          | hashicorp@opencredo.com      | www.opencredo.com    |
 
 -> **Important:** All Terraform providers listed as Verified must contain one of the following open source licenses:
+
 - CDDL 1.0, 2.0
 - CPL 1.0
 - Eclipse Public License (EPL) 1.0
 - MPL 1.0, 1.1, 2.0
-- APSL 2.0
+- PSL 2.0
 - Ruby's Licensing
 - AFL 2.1, 3.0
 - Apache License 2.0
