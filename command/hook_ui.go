@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -94,54 +93,6 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		return terraform.HookActionContinue, nil
 	}
 
-	attrBuf := new(bytes.Buffer)
-
-	// Get all the attributes that are changing, and sort them. Also
-	// determine the longest key so that we can align them all.
-	keyLen := 0
-
-	// FIXME: This is stubbed out in preparation for rewriting it to use
-	// a structural presentation rather than the old-style flatmap one.
-	// We just assume no attributes at all for now, pending new code to
-	// work with the two cty.Values we are given.
-	dAttrs := map[string]terraform.ResourceAttrDiff{}
-	keys := make([]string, 0, len(dAttrs))
-	for key, _ := range dAttrs {
-		keys = append(keys, key)
-		if len(key) > keyLen {
-			keyLen = len(key)
-		}
-	}
-	sort.Strings(keys)
-
-	// Go through and output each attribute
-	for _, attrK := range keys {
-		attrDiff := dAttrs[attrK]
-
-		v := attrDiff.New
-		u := attrDiff.Old
-		if attrDiff.NewComputed {
-			v = "<computed>"
-		}
-
-		if attrDiff.Sensitive {
-			u = "<sensitive>"
-			v = "<sensitive>"
-		}
-
-		attrBuf.WriteString(fmt.Sprintf(
-			"  %s:%s %#v => %#v\n",
-			attrK,
-			strings.Repeat(" ", keyLen-len(attrK)),
-			u,
-			v))
-	}
-
-	attrString := strings.TrimSpace(attrBuf.String())
-	if attrString != "" {
-		attrString = "\n  " + attrString
-	}
-
 	var stateIdSuffix string
 	if idKey != "" && idValue != "" {
 		stateIdSuffix = fmt.Sprintf(" [%s=%s]", idKey, idValue)
@@ -153,11 +104,10 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s%s[reset]%s",
+		"[reset][bold]%s: %s%s[reset]",
 		dispAddr,
 		operation,
 		stateIdSuffix,
-		attrString,
 	)))
 
 	key := addr.String()
