@@ -2,6 +2,7 @@ package funcs
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 
 	"github.com/apparentlymart/go-cidr/cidr"
@@ -25,7 +26,7 @@ var CidrHostFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		var hostNum int
+		var hostNum *big.Int
 		if err := gocty.FromCtyValue(args[1], &hostNum); err != nil {
 			return cty.UnknownVal(cty.String), err
 		}
@@ -34,7 +35,7 @@ var CidrHostFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
 
-		ip, err := cidr.Host(network, hostNum)
+		ip, err := cidr.HostBig(network, hostNum)
 		if err != nil {
 			return cty.UnknownVal(cty.String), err
 		}
@@ -86,7 +87,7 @@ var CidrSubnetFunc = function.New(&function.Spec{
 		if err := gocty.FromCtyValue(args[1], &newbits); err != nil {
 			return cty.UnknownVal(cty.String), err
 		}
-		var netnum int
+		var netnum *big.Int
 		if err := gocty.FromCtyValue(args[2], &netnum); err != nil {
 			return cty.UnknownVal(cty.String), err
 		}
@@ -96,15 +97,7 @@ var CidrSubnetFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
 
-		// For portability with 32-bit systems where the subnet number
-		// will be a 32-bit int, we only allow extension of 32 bits in
-		// one call even if we're running on a 64-bit machine.
-		// (Of course, this is significant only for IPv6.)
-		if newbits > 32 {
-			return cty.UnknownVal(cty.String), fmt.Errorf("may not extend prefix by more than 32 bits")
-		}
-
-		newNetwork, err := cidr.Subnet(network, newbits, netnum)
+		newNetwork, err := cidr.SubnetBig(network, newbits, netnum)
 		if err != nil {
 			return cty.UnknownVal(cty.String), err
 		}
