@@ -1,5 +1,8 @@
 ## 0.13.1 (Unreleased)
 
+BUG FIXES:
+* backend: fix inconsistent locking behavior between local and remote backends, which caused lingering locks in terraform console and import [#25454] 
+
 ## 0.13.0 (August 10, 2020)
 
 > This is a list of changes relative to Terraform v0.12.29. To see the
