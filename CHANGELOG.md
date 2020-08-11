@@ -1,8 +1,9 @@
 ## 0.13.1 (Unreleased)
 
 BUG FIXES:
-* configs: include `providers` when processing module overrides [GH-25496]
 * backend: fix inconsistent locking behavior between local and remote backends, which caused lingering locks in terraform console and import [GH-25454] 
+* configs: include `providers` when processing module overrides [GH-25496]
+* lang/funcs: update cidrsubnet and cidrhost to support 64-bit systems [GH-25517] 
 * states/statefile: consistently sort resources across modules [GH-25498]
 
 ## 0.13.0 (August 10, 2020)
