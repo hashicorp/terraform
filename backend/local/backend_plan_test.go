@@ -41,6 +41,9 @@ func TestLocal_planBasic(t *testing.T) {
 	if !p.PlanResourceChangeCalled {
 		t.Fatal("PlanResourceChange should be called")
 	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
@@ -128,6 +131,33 @@ func TestLocal_planNoConfig(t *testing.T) {
 	if !strings.Contains(output, "configuration") {
 		t.Fatalf("bad: %s", err)
 	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
+}
+
+// This test validates the state lacking behavior when the inner call to
+// Context() fails
+func TestLocal_plan_context_error(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+
+	// we coerce a failure in Context() by omitting the provider schema
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationFailure {
+		t.Fatalf("plan operation succeeded")
+	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_planOutputsChanged(t *testing.T) {
