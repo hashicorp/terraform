@@ -374,6 +374,24 @@ func TestInit_backendConfigFile(t *testing.T) {
 			t.Fatalf("wrong error: %s", ui.ErrorWriter)
 		}
 	})
+
+	// the backend config file must be a set of key-value pairs and not a full backend {} block
+	t.Run("nonexisting-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "nonexisting"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Failed to read file") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
 }
 
 func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {

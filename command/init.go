@@ -856,6 +856,9 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 			// The value is interpreted as a filename.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
+			if fileDiags.HasErrors() {
+				break
+			}
 			// Verify that the file contains only key-values pairs, and not a
 			// full backend config block. JustAttributes() will return an error
 			// if blocks are found
