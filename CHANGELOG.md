@@ -5,6 +5,7 @@ BUG FIXES:
 * configs: include `providers` when processing module overrides [GH-25496]
 * lang/funcs: update cidrsubnet and cidrhost to support 64-bit systems [GH-25517] 
 * states/statefile: consistently sort resources across modules [GH-25498]
+* command: fix panic when using `state mv` to move the last resource in a module [GH-25523]
 
 ## 0.13.0 (August 10, 2020)
 
