@@ -164,6 +164,10 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
 
+	if len(omc.Providers) != 0 {
+		mc.Providers = omc.Providers
+	}
+
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
 	if len(mc.DependsOn) != 0 {
