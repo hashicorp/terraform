@@ -119,7 +119,7 @@ instance.
 
 Full resource addresses for module contents are used within the UI and on the
 command line, but cannot be used within a Terraform configuration. Only
-[outputs](docs/configuration/outputs.html) from a module can be referenced from
+[outputs](./outputs.html) from a module can be referenced from
 elsewhere in your configuration.
 
 ## Other Meta-arguments
