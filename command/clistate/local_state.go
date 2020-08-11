@@ -1,4 +1,4 @@
-package state
+package clistate
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -172,7 +173,7 @@ func (s *LocalState) RefreshState() error {
 }
 
 // Lock implements a local filesystem state.Locker.
-func (s *LocalState) Lock(info *LockInfo) (string, error) {
+func (s *LocalState) Lock(info *statemgr.LockInfo) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -192,7 +193,7 @@ func (s *LocalState) Lock(info *LockInfo) (string, error) {
 			err = multierror.Append(err, infoErr)
 		}
 
-		lockErr := &LockError{
+		lockErr := &statemgr.LockError{
 			Info: info,
 			Err:  err,
 		}
@@ -219,7 +220,7 @@ func (s *LocalState) Unlock(id string) error {
 			idErr = multierror.Append(idErr, err)
 		}
 
-		return &LockError{
+		return &statemgr.LockError{
 			Err:  idErr,
 			Info: info,
 		}
@@ -284,14 +285,14 @@ func (s *LocalState) lockInfoPath() string {
 }
 
 // lockInfo returns the data in a lock info file
-func (s *LocalState) lockInfo() (*LockInfo, error) {
+func (s *LocalState) lockInfo() (*statemgr.LockInfo, error) {
 	path := s.lockInfoPath()
 	infoData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	info := LockInfo{}
+	info := statemgr.LockInfo{}
 	err = json.Unmarshal(infoData, &info)
 	if err != nil {
 		return nil, fmt.Errorf("state file %q locked, but could not unmarshal lock info: %s", s.Path, err)
@@ -300,7 +301,7 @@ func (s *LocalState) lockInfo() (*LockInfo, error) {
 }
 
 // write a new lock info file
-func (s *LocalState) writeLockInfo(info *LockInfo) error {
+func (s *LocalState) writeLockInfo(info *statemgr.LockInfo) error {
 	path := s.lockInfoPath()
 	info.Path = s.Path
 	info.Created = time.Now().UTC()

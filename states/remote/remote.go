@@ -3,7 +3,7 @@ package remote
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // Client is the interface that must be implemented for a remote state
@@ -27,7 +27,7 @@ type ClientForcePusher interface {
 // backend to enable state lock/unlock.
 type ClientLocker interface {
 	Client
-	state.Locker
+	statemgr.Locker
 }
 
 // Payload is the return value from the remote state storage.

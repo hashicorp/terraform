@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -23,8 +22,8 @@ type StateMeta struct {
 // the backend, but changes the way that backups are done. This configures
 // backups to be timestamped rather than just the original state path plus a
 // backup path.
-func (c *StateMeta) State() (state.State, error) {
-	var realState state.State
+func (c *StateMeta) State() (statemgr.Full, error) {
+	var realState statemgr.Full
 	backupPath := c.backupPath
 	stateOutPath := c.statePath
 

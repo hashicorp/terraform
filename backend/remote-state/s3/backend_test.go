@@ -14,8 +14,8 @@ import (
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
 )
 
 const (

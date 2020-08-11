@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
@@ -78,7 +78,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	ctx := context.TODO()
 	blobClient, err := b.armClient.getBlobClient(ctx)
 	if err != nil {
@@ -99,7 +99,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	//it's listed by States.
 	if name != backend.DefaultStateName {
 		// take a lock on this state while we write it
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {

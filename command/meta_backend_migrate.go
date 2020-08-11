@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -336,7 +335,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		two = stateTwo.State()
 	}
 
-	var confirmFunc func(state.State, state.State, *backendMigrateOpts) (bool, error)
+	var confirmFunc func(statemgr.Full, statemgr.Full, *backendMigrateOpts) (bool, error)
 	switch {
 	// No migration necessary
 	case one.Empty() && two.Empty():
@@ -401,7 +400,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	return nil
 }
 
-func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
+func (m *Meta) backendMigrateEmptyConfirm(one, two statemgr.Full, opts *backendMigrateOpts) (bool, error) {
 	inputOpts := &terraform.InputOpts{
 		Id:    "backend-migrate-copy-to-empty",
 		Query: "Do you want to copy existing state to the new backend?",
@@ -414,7 +413,7 @@ func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMig
 }
 
 func (m *Meta) backendMigrateNonEmptyConfirm(
-	stateOne, stateTwo state.State, opts *backendMigrateOpts) (bool, error) {
+	stateOne, stateTwo statemgr.Full, opts *backendMigrateOpts) (bool, error) {
 	// We need to grab both states so we can write them to a file
 	one := stateOne.State()
 	two := stateTwo.State()

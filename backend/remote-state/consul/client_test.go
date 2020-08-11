@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -109,7 +109,7 @@ func TestConsul_destroyLock(t *testing.T) {
 
 	c := s.(*remote.State).Client.(*RemoteClient)
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	id, err := c.Lock(info)
 	if err != nil {
 		t.Fatal(err)
@@ -151,7 +151,7 @@ func TestConsul_lostLock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	info.Operation = "test-lost-lock"
 	id, err := sA.Lock(info)
 	if err != nil {
@@ -200,7 +200,7 @@ func TestConsul_lostLockConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	info.Operation = "test-lost-lock-connection"
 	id, err := s.Lock(info)
 	if err != nil {

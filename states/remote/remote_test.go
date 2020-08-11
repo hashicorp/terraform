@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // testClient is a generic function to test any client.
 func testClient(t *testing.T, c Client) {
 	var buf bytes.Buffer
-	s := state.TestStateInitial()
+	s := statemgr.TestFullInitialState()
 	sf := &statefile.File{State: s}
 	if err := statefile.Write(sf, &buf); err != nil {
 		t.Fatalf("err: %s", err)

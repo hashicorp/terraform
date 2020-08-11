@@ -17,12 +17,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -878,12 +876,7 @@ func TestInit_getProvider(t *testing.T) {
 		// state.
 		s := terraform.NewState()
 		s.TFVersion = "100.1.0"
-		local := &state.LocalState{
-			Path: local.DefaultStateFilename,
-		}
-		if err := local.WriteState(s); err != nil {
-			t.Fatal(err)
-		}
+		testStateFileDefault(t, s)
 
 		ui := new(cli.MockUi)
 		m.Ui = ui

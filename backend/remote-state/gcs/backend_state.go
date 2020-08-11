@@ -10,9 +10,9 @@ import (
 	"google.golang.org/api/iterator"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -86,7 +86,7 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 
 // StateMgr reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	c, err := b.client(name)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// If we have no state, we have to create an empty state
 	if v := st.State(); v == nil {
 
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockID, err := st.Lock(lockInfo)
 		if err != nil {

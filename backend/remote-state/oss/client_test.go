@@ -10,9 +10,9 @@ import (
 	"crypto/md5"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // NOTE: Before running this testcase, please create a OTS instance called 'tf-oss-remote'
@@ -117,7 +117,7 @@ func TestRemoteClientLocks_multipleStates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s1.Lock(state.NewLockInfo()); err != nil {
+	if _, err := s1.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatal("failed to get lock for s1:", err)
 	}
 
@@ -126,7 +126,7 @@ func TestRemoteClientLocks_multipleStates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s2.Lock(state.NewLockInfo()); err != nil {
+	if _, err := s2.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatal("failed to get lock for s2:", err)
 	}
 }
@@ -165,7 +165,7 @@ func TestRemoteForceUnlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Who = "clientA"
 
@@ -191,7 +191,7 @@ func TestRemoteForceUnlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info = state.NewLockInfo()
+	info = statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Who = "clientA"
 
@@ -287,7 +287,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	client1 := s1.(*remote.State).Client
 
 	// create an old and new state version to persist
-	s := state.TestStateInitial()
+	s := statemgr.TestFullInitialState()
 	sf := &statefile.File{State: s}
 	var oldState bytes.Buffer
 	if err := statefile.Write(sf, &oldState); err != nil {
