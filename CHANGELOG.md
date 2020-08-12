@@ -2,10 +2,13 @@
 
 BUG FIXES:
 * backend: fix inconsistent locking behavior between local and remote backends, which caused lingering locks in terraform console and import [GH-25454] 
-* configs: include `providers` when processing module overrides [GH-25496]
 * lang/funcs: update cidrsubnet and cidrhost to support 64-bit systems [GH-25517] 
 * states/statefile: consistently sort resources across modules [GH-25498]
+* cli: allow targeting of resources with module instances [GH-25760]
 * command: fix panic when using `state mv` to move the last resource in a module [GH-25523]
+* configs: include `providers` when processing module overrides [GH-25496]
+* core: fix inconsistent plan error when dynamic set block has 0 elements [GH-25662]
+* core: prevent decoding errors when resource attributes have been removed entirely from the schema [GH-25779]
 
 ## 0.13.0 (August 10, 2020)
 
