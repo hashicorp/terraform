@@ -6055,3 +6055,57 @@ data "test_data_source" "foo" {}
 		}
 	}
 }
+
+// for_each can reference a resource with 0 instances
+func TestContext2Plan_scaleInForEach(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  m = {}
+}
+
+resource "test_instance" "a" {
+  for_each = local.m
+}
+
+resource "test_instance" "b" {
+  for_each = test_instance.a
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a0"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+}
