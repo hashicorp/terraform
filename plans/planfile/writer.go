@@ -3,9 +3,12 @@ package planfile
 import (
 	"archive/zip"
 	"fmt"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/terraform"
 	"os"
 	"time"
 
+	"github.com/hashicorp/terraform/command/jsonplan"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -65,6 +68,36 @@ func Create(filename string, configSnap *configload.Snapshot, stateFile *statefi
 		err := writeConfigSnapshot(configSnap, zw)
 		if err != nil {
 			return fmt.Errorf("failed to write config snapshot: %s", err)
+		}
+	}
+
+	return nil
+}
+
+// CreateJson creates a new plan file as JSON with the given filename, overwriting any
+// file that might already exist there.
+//
+func CreateJson(
+	filename string,
+	config *configs.Config,
+	stateFile *statefile.File,
+	plan *plans.Plan,
+	schemas *terraform.Schemas,
+) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	{
+		b, err := jsonplan.Marshal(config, plan, stateFile, schemas)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tfplan as JSON: %s", err)
+		}
+		_, err = f.Write(b)
+		if err != nil {
+			return fmt.Errorf("failed to write plan as JSON: %s", err)
 		}
 	}
 

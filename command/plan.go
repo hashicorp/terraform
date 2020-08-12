@@ -18,7 +18,7 @@ type PlanCommand struct {
 
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
-	var outPath string
+	var outPath, outJsonPath string
 
 	args, err := c.Meta.process(args, true)
 	if err != nil {
@@ -29,6 +29,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
+	cmdFlags.StringVar(&outJsonPath, "out-json", "", "path")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
@@ -97,6 +98,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
 	opReq.PlanOutPath = outPath
+	opReq.PlanOutJsonPath = outJsonPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
 
@@ -224,6 +226,9 @@ Options:
 
   -out=path           Write a plan file to the given path. This can be used as
                       input to the "apply" command.
+
+  -out-json=path      Write a plan file to the given path as JSON so other
+                      automation tools can use it as an input.
 
   -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
 
