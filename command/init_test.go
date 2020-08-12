@@ -375,7 +375,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		}
 	})
 
-	// the backend config file must be a set of key-value pairs and not a full backend {} block
+	// the backend config file must exist
 	t.Run("nonexisting-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
