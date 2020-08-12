@@ -1,4 +1,5 @@
 WEBSITE_REPO=github.com/hashicorp/terraform-website
+VERSION?="0.3.44"
 
 # generate runs `go generate` to build the dynamically generated
 # source files, except the protobuf stubs which are built instead with
