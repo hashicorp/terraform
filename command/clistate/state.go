@@ -149,11 +149,7 @@ func (l *locker) Unlock(parentErr error) error {
 		l.ui.Output(l.color.Color(fmt.Sprintf(
 			"\n"+strings.TrimSpace(UnlockErrorMessage)+"\n", err)))
 
-		if parentErr != nil {
-			parentErr = multierror.Append(parentErr, err)
-		} else {
-			return err
-		}
+		parentErr = multierror.Append(parentErr, err)
 	}
 
 	return parentErr
