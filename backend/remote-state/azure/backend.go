@@ -30,6 +30,13 @@ func New() backend.Backend {
 				Description: "The blob key.",
 			},
 
+			"metadata_host": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_METADATA_HOST", ""),
+				Description: "The Metadata URL which will be used to obtain the Cloud Environment.",
+			},
+
 			"environment": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -169,6 +176,7 @@ type BackendConfig struct {
 	ClientID                      string
 	ClientSecret                  string
 	CustomResourceManagerEndpoint string
+	MetadataHost                  string
 	Environment                   string
 	MsiEndpoint                   string
 	ResourceGroupName             string
@@ -201,6 +209,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		ClientID:                      clientId,
 		ClientSecret:                  clientSecret,
 		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
+		MetadataHost:                  data.Get("metadata_host").(string),
 		Environment:                   data.Get("environment").(string),
 		MsiEndpoint:                   data.Get("msi_endpoint").(string),
 		ResourceGroupName:             data.Get("resource_group_name").(string),
