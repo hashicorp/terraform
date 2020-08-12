@@ -168,12 +168,6 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				continue
 			}
 
-			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
-				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
-				return len(errs) == 0
-			})
-			errs = append(errs, setErrs...)
-
 			if maybeUnknownBlocks {
 				// When unknown blocks are present the final number of blocks
 				// may be different, either because the unknown set values
@@ -183,6 +177,12 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				// negatives.
 				continue
 			}
+
+			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
+				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
 
 			// There can be fewer elements in a set after its elements are all
 			// known (values that turn out to be equal will coalesce) but the
