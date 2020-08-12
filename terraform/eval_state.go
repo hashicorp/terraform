@@ -68,10 +68,10 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if n.Output != nil {
 		*n.Output = obj
 	}
-
 	return obj, nil
 }
 
