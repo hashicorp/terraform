@@ -92,11 +92,15 @@ $ gpg --armor --export "{Key ID or email address}"
 
 #### Individuals
 
-If you would like to publish a provider under your username (not a GitHub organization), you can add your GPG key to the Terraform Registry by visiting [User Settings > Signing Keys](https://registry.terraform.io/settings/gpg-keys).
+If you would like to publish a provider under your GitHub username (not a GitHub organization), you may add your GPG key directly to the Terraform Registry by going to [User Settings > Signing Keys](https://registry.terraform.io/settings/gpg-keys).
 
 #### Organizations
 
-In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. You can email it to terraform-registry@hashicorp.com, or your HashiCorp contact person (if you have one).
+In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. Please send us an email to terraform-registry@hashicorp.com, including the information below, and one of us will get back to you shortly. For convenience, you may also use this <a href="mailto:terraform-registry@hashicorp.com?subject=Request%20to%20add%20GPG%20Key%20for%20%3CProvider%20Name%3E&body=Hello%2C%0D%0A%0D%0APlease%20add%20the%20following%20GPG%20key%20for%20my%20Terraform%20Provider%3A%0D%0A-%20GitHub%20organization%20(namespace)%3A%0D%0A-%20Link%20to%20provider%20repository%3A%20%0D%0A-%20GPG%20Key%3A%20(paste%20here%20or%20attach)">Email template</a>.
+
+- GitHub organization (namespace):
+- Link to provider repository: 
+- GPG Key: (paste here or attach)
 
 ### Publishing Your Provider
 
