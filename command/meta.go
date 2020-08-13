@@ -435,12 +435,11 @@ func (m *Meta) process(args []string) []string {
 
 	// Set colorization
 	m.color = m.Color
-	for i, v := range args {
-		if v == "-no-color" {
+	for i := len(args) - 1; i >= 0; i-- {
+		if args[i] == "-no-color" {
 			m.color = false
 			m.Color = false
 			args = append(args[:i], args[i+1:]...)
-			break
 		}
 	}
 

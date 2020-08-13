@@ -261,6 +261,28 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	}
 }
 
+func TestFmt_noColorRepeated(t *testing.T) {
+	tempDir := fmtFixtureWriteDir(t)
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-no-color",
+		"-no-color",
+		"-no-color",
+		tempDir,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestFmt_check(t *testing.T) {
 	tempDir := fmtFixtureWriteDir(t)
 
