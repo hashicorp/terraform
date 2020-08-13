@@ -75,6 +75,41 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	return obj, nil
 }
 
+func ReadResourceInstanceState(ctx EvalContext, req *EvalReadState) (*states.ResourceInstanceObject, error) {
+	absAddr := req.Addr.Absolute(ctx.Path())
+	log.Printf("[TRACE] ReadResourceInstanceState: reading state for %s", absAddr)
+
+	src := ctx.State().ResourceInstanceObject(absAddr, states.CurrentGen)
+	if src == nil {
+		// Presumably we only have deposed objects, then.
+		log.Printf("[TRACE] ReadResourceInstanceState: no state present for %s", absAddr)
+		return nil, nil
+	}
+
+	schema, currentVersion := (*req.ProviderSchema).SchemaForResourceAddr(req.Addr.ContainingResource())
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+	}
+
+	var diags tfdiags.Diagnostics
+	src, diags = UpgradeResourceState(absAddr, *req.Provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
+	}
+
+	obj, err := src.Decode(schema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
 // EvalReadStateDeposed is an EvalNode implementation that reads the
 // deposed InstanceState for a specific resource out of the state
 type EvalReadStateDeposed struct {
@@ -272,6 +307,60 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 
 	state.SetResourceInstanceCurrent(absAddr, src, n.ProviderAddr)
 	return nil, nil
+}
+
+func ExecWriteState(ctx EvalContext, req EvalWriteState) (*states.ResourceInstanceObject, error) {
+	if req.State == nil {
+		// Note that a pointer _to_ nil is valid here, indicating the total
+		// absense of an object as we'd see during destroy.
+		panic("EvalWriteState used with no ResourceInstanceObject")
+	}
+
+	absAddr := req.Addr.Absolute(ctx.Path())
+	state := ctx.State()
+
+	if req.ProviderAddr.Provider.Type == "" {
+		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
+	}
+	obj := *req.State
+	if obj == nil || obj.Value.IsNull() {
+		// No need to encode anything: we'll just write it directly.
+		state.SetResourceInstanceCurrent(absAddr, nil, req.ProviderAddr)
+		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
+		return nil, nil
+	}
+
+	// store the new deps in the state
+	if req.Dependencies != nil {
+		log.Printf("[TRACE] EvalWriteState: recording %d dependencies for %s", len(*req.Dependencies), absAddr)
+		obj.Dependencies = *req.Dependencies
+	}
+
+	if req.ProviderSchema == nil || *req.ProviderSchema == nil {
+		// Should never happen, unless our state object is nil
+		panic("EvalWriteState used with pointer to nil ProviderSchema object")
+	}
+
+	if obj != nil {
+		log.Printf("[TRACE] EvalWriteState: writing current state object for %s", absAddr)
+	} else {
+		log.Printf("[TRACE] EvalWriteState: removing current state object for %s", absAddr)
+	}
+
+	schema, currentVersion := (*req.ProviderSchema).SchemaForResourceAddr(req.Addr.ContainingResource())
+	if schema == nil {
+		// It shouldn't be possible to get this far in any real scenario
+		// without a schema, but we might end up here in contrived tests that
+		// fail to set up their world properly.
+		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
+	}
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
+	}
+
+	state.SetResourceInstanceCurrent(absAddr, src, req.ProviderAddr)
+	return obj, nil
 }
 
 // EvalWriteStateDeposed is an EvalNode implementation that writes

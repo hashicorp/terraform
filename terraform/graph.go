@@ -60,6 +60,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
+			log.Printf("[TRACE] vertex %q: executing", dag.VertexName(v))
 			execDiags := ev.Execute(vertexCtx)
 			diags = diags.Append(execDiags)
 			if diags.HasErrors() {

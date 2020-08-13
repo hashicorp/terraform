@@ -1,10 +1,6 @@
 package terraform
 
 import (
-	"fmt"
-	"log"
-
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
@@ -200,43 +196,26 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext) tfdiags.D
 
 	// These variables are the state for the eval sequence below, and are
 	// updated through pointers.
-
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
 	var diags tfdiags.Diagnostics
 
-	// Step 1: EvalGetProvider
-	provider := ctx.Provider(n.ResolvedProvider)
-	if provider == nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "uninitialized provider",
-			Detail:   fmt.Sprintf("provider %s not initialized", n.ResolvedProvider),
-		})
-		return diags
-	}
-	providerSchema := ctx.ProviderSchema(n.ResolvedProvider)
-
-	// Step 2: EvalReadState
-	src := ctx.State().ResourceInstanceObject(addr, states.CurrentGen)
-	if src == nil {
-		// Presumably we only have deposed objects, then.
-		log.Printf("[TRACE] NodeRefreshableDataResourceInstance.Execute: no state present for %s", addr)
-	} else {
-		schema, _ := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
-		if schema == nil {
-			// Shouldn't happen since we should've failed long ago if no schema is present
-			return diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
-		}
-		var err error
-		state, err = src.Decode(schema.ImpliedType())
-		if err != nil {
-			return diags.Append(err)
-		}
+	// EvalGetProvider
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return diags.Append(err)
 	}
 
-	// end EvalReadState
+	// EvalReadState
+	state, err = ReadResourceInstanceState(ctx, &EvalReadState{
+		Addr:           addr.Resource,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+	})
+	if err != nil {
+		return diags.Append(err)
+	}
 
 	// step 3!
 	step3 := &evalReadDataRefresh{
@@ -253,20 +232,20 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext) tfdiags.D
 			forceDependsOn: n.forceDependsOn,
 		},
 	}
-	_, err := step3.Eval(ctx)
+	_, err = step3.Eval(ctx)
 	if err != nil {
 		diags = diags.Append(err)
 		return diags
 	}
 
 	if change == nil {
-		step4 := EvalWriteState{
+		// EvalWriteState
+		state, err = ExecWriteState(ctx, EvalWriteState{
 			Addr:           addr.Resource,
 			ProviderAddr:   n.ResolvedProvider,
 			State:          &state,
 			ProviderSchema: &providerSchema,
-		}
-		_, err = step4.Eval(ctx)
+		})
 		if err != nil {
 			diags = diags.Append(err)
 			return diags
@@ -289,13 +268,13 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext) tfdiags.D
 			diags = diags.Append(err)
 			return diags
 		}
-		step7 := &EvalWriteState{
+		// EvalWriteState
+		state, err = ExecWriteState(ctx, EvalWriteState{
 			Addr:           addr.Resource,
 			ProviderAddr:   n.ResolvedProvider,
 			State:          &state,
 			ProviderSchema: &providerSchema,
-		}
-		_, err = step7.Eval(ctx)
+		})
 		if err != nil {
 			diags = diags.Append(err)
 			return diags

@@ -155,3 +155,19 @@ func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
+
+func GetProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Interface, *ProviderSchema, error) {
+	if addr.Provider.Type == "" {
+		// Should never happen
+		panic("EvalGetProvider used with uninitialized provider configuration address")
+	}
+
+	provider := ctx.Provider(addr)
+	if provider == nil {
+		return nil, &ProviderSchema{}, fmt.Errorf("provider %s not initialized", addr)
+	}
+	schema := ctx.ProviderSchema(addr)
+
+	return provider, schema, nil
+
+}
