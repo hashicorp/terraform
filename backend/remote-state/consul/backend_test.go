@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -38,6 +39,10 @@ func TestMain(m *testing.M) {
 func newConsulTestServer() (*testutil.TestServer, error) {
 	srv, err := testutil.NewTestServerConfig(func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
+
+		if !flag.Parsed() {
+			flag.Parse()
+		}
 
 		if !testing.Verbose() {
 			c.Stdout = ioutil.Discard
