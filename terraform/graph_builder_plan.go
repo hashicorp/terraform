@@ -39,9 +39,6 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
 
@@ -174,12 +171,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close the root module
 		&CloseRootModuleTransformer{},
-	}
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps

@@ -40,9 +40,6 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Destroy, if true, represents a pure destroy operation
 	Destroy bool
 
@@ -194,12 +191,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// close the root module
 		&CloseRootModuleTransformer{},
-	}
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps
