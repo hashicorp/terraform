@@ -54,6 +54,37 @@ func TestProviderString(t *testing.T) {
 	}
 }
 
+func TestProviderLegacyString(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  string
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: LegacyProviderNamespace,
+			},
+			"test",
+		},
+		{
+			Provider{
+				Type:      "terraform",
+				Hostname:  BuiltInProviderHost,
+				Namespace: BuiltInProviderNamespace,
+			},
+			"terraform",
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.LegacyString()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\ngot:  %s\nwant: %s", test.Input.String(), got, test.Want)
+		}
+	}
+}
+
 func TestProviderDisplay(t *testing.T) {
 	tests := []struct {
 		Input Provider
