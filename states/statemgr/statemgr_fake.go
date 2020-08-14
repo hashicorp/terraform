@@ -100,32 +100,15 @@ func (m *fakeFull) Unlock(id string) error {
 // does not return an error because clistate.Locker Lock()s the state at the
 // start of Unlock(), so Lock() must succeeded for Unlock() to get called.
 func NewUnlockErrorFull(t Transient, initial *states.State) Full {
-	if t == nil {
-		t = NewTransientInMemory(nil)
-	}
-
-	// The "persistent" part of our manager is actually just another in-memory
-	// transient used to fake a secondary storage layer.
-	fakeP := NewTransientInMemory(initial.DeepCopy())
-
-	return &fakeErrorFull{
-		t:     t,
-		fakeP: fakeP,
-	}
+	return &fakeErrorFull{}
 }
 
-type fakeErrorFull struct {
-	t     Transient
-	fakeP Transient
-
-	lockLock sync.Mutex
-	locked   bool
-}
+type fakeErrorFull struct{}
 
 var _ Full = (*fakeErrorFull)(nil)
 
 func (m *fakeErrorFull) State() *states.State {
-	return m.t.State()
+	return nil
 }
 
 func (m *fakeErrorFull) WriteState(s *states.State) error {
