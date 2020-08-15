@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "csvdecode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-csvdecode"
 description: |-

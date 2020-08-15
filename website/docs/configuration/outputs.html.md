@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Output Values - Configuration Language"
 sidebar_current: "docs-config-outputs"
 description: |-

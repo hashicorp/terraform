@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform v0.13"
 sidebar_current: "upgrade-guides-0-13"
 description: |-

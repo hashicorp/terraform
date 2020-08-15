@@ -1,5 +1,5 @@
 ---
-layout: "terraform"
+layout: "language"
 page_title: "Terraform: terraform_remote_state"
 sidebar_current: "docs-terraform-datasource-remote-state"
 description: |-

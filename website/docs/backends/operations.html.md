@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Backends: Remote Operations (plan, apply, etc.)"
 sidebar_current: "docs-backends-operations"
 description: |-

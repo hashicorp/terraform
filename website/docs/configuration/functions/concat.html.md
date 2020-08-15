@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "concat - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-concat"
 description: |-

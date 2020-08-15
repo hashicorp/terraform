@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Dependency Lock File (.terraform.lock.hcl) - Configuration Language"
 ---
 

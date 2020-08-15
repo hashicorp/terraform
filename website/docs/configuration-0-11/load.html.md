@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Load Order and Semantics - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-load"
 description: |-

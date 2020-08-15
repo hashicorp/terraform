@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "md5 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-md5"
 description: |-

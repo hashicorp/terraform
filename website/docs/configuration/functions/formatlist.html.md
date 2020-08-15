@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "formatlist - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-formatlist"
 description: |-

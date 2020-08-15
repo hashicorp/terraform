@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "cidrsubnets - Functions - Configuration Language"
 sidebar_current: "docs-funcs-ipnet-cidrsubnets"
 description: |-

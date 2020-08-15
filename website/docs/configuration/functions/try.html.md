@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "try - Functions - Configuration Language"
 sidebar_current: "docs-funcs-conversion-try"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "VCS Providers"
 sidebar_current: "docs-providers-vcs"
 description: |-
