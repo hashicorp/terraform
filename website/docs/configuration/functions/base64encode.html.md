@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "base64encode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-base64encode"
 description: |-

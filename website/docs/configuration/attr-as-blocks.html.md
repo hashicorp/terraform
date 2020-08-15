@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Attributes as Blocks - Configuration Language"
 sidebar_current: "docs-config-attr-as-blocks"
 description: |-

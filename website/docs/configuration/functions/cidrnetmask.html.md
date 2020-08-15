@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "cidrnetmask - Functions - Configuration Language"
 sidebar_current: "docs-funcs-ipnet-cidrnetmask"
 description: |-

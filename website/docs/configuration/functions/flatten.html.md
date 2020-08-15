@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "flatten - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-flatten"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Input Variables - Configuration Language"
 sidebar_current: "docs-config-variables"
 description: |-

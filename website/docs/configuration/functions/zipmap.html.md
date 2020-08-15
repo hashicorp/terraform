@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "zipmap - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-zipmap"
 description: |-

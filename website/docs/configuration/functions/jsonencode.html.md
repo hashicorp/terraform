@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "jsonencode - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-jsonencode"
 description: |-

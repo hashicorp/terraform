@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "sha1 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-sha1"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "abs - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-abs"
 description: |-

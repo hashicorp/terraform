@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "templatefile - Functions - Configuration Language"
 sidebar_current: "docs-funcs-file-templatefile"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Backends: Init"
 sidebar_current: "docs-backends-init"
 description: |-

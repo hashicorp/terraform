@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "State: Sensitive Data"
 sidebar_current: "docs-state-sensitive-data"
 description: |-
