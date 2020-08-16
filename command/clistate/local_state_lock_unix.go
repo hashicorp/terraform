@@ -8,7 +8,7 @@ import (
 )
 
 // use fcntl POSIX locks for the most consistent behavior across platforms, and
-// hopefully some campatibility over NFS and CIFS.
+// hopefully some compatibility over NFS and CIFS.
 func (s *LocalState) lock() error {
 	flock := &syscall.Flock_t{
 		Type:   syscall.F_RDLCK | syscall.F_WRLCK,

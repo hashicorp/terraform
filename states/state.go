@@ -18,7 +18,7 @@ import (
 // so when accessing a State object concurrently it is the caller's
 // responsibility to ensure that only one write is in progress at a time
 // and that reads only occur when no write is in progress. The most common
-// way to acheive this is to wrap the State in a SyncState and use the
+// way to achieve this is to wrap the State in a SyncState and use the
 // higher-level atomic operations supported by that type.
 type State struct {
 	// Modules contains the state for each module. The keys in this map are
