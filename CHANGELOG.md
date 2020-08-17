@@ -9,6 +9,7 @@ BUG FIXES:
 * configs: include `providers` when processing module overrides [GH-25496]
 * core: fix inconsistent plan error when dynamic set block has 0 elements [GH-25662]
 * core: prevent decoding errors when resource attributes have been removed entirely from the schema [GH-25779]
+* addrs: fix panic when upgrading state from Terraform v0.11 which uses the builtin `terraform` provider [GH-25861]
 
 ## 0.13.0 (August 10, 2020)
 
