@@ -156,8 +156,8 @@ func (pt Provider) LegacyString() string {
 	if pt.IsZero() {
 		panic("called LegacyString on zero-value addrs.Provider")
 	}
-	if pt.Namespace != LegacyProviderNamespace {
-		panic(pt.String() + " is not a legacy addrs.Provider")
+	if pt.Namespace != LegacyProviderNamespace && pt.Namespace != BuiltInProviderNamespace {
+		panic(pt.String() + " cannot be represented as a legacy string")
 	}
 	return pt.Type
 }
