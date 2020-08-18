@@ -11,6 +11,11 @@ BUG FIXES:
 * core: prevent decoding errors when resource attributes have been removed entirely from the schema [GH-25779]
 * addrs: fix panic when upgrading state from Terraform v0.11 which uses the builtin `terraform` provider [GH-25861]
 
+ENHANCEMENTS:
+
+* backend/s3: simplified mock handling and assume role testing [GH-25903]
+* backend/s3: support for appending data to the User-Agent request header with the TF_APPEND_USER_AGENT environment variable [GH-25903]
+
 ## 0.13.0 (August 10, 2020)
 
 > This is a list of changes relative to Terraform v0.12.29. To see the
