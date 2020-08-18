@@ -7,12 +7,261 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	awsCredentials "github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+)
+
+const (
+	MockEc2MetadataAccessKey    = `Ec2MetadataAccessKey`
+	MockEc2MetadataSecretKey    = `Ec2MetadataSecretKey`
+	MockEc2MetadataSessionToken = `Ec2MetadataSessionToken`
+
+	MockEcsCredentialsAccessKey    = `EcsCredentialsAccessKey`
+	MockEcsCredentialsSecretKey    = `EcsCredentialsSecretKey`
+	MockEcsCredentialsSessionToken = `EcsCredentialsSessionToken`
+
+	MockEnvAccessKey    = `EnvAccessKey`
+	MockEnvSecretKey    = `EnvSecretKey`
+	MockEnvSessionToken = `EnvSessionToken`
+
+	MockStaticAccessKey = `StaticAccessKey`
+	MockStaticSecretKey = `StaticSecretKey`
+
+	MockStsAssumeRoleAccessKey                               = `AssumeRoleAccessKey`
+	MockStsAssumeRoleArn                                     = `arn:aws:iam::555555555555:role/AssumeRole`
+	MockStsAssumeRoleExternalId                              = `AssumeRoleExternalId`
+	MockStsAssumeRoleInvalidResponseBodyInvalidClientTokenId = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+<Error>
+  <Type>Sender</Type>
+  <Code>InvalidClientTokenId</Code>
+  <Message>The security token included in the request is invalid.</Message>
+</Error>
+<RequestId>4d0cf5ec-892a-4d3f-84e4-30e9987d9bdd</RequestId>
+</ErrorResponse>`
+	MockStsAssumeRolePolicy = `{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*",
+  }
+}`
+	MockStsAssumeRolePolicyArn         = `arn:aws:iam::555555555555:policy/AssumeRolePolicy1`
+	MockStsAssumeRoleSecretKey         = `AssumeRoleSecretKey`
+	MockStsAssumeRoleSessionName       = `AssumeRoleSessionName`
+	MockStsAssumeRoleSessionToken      = `AssumeRoleSessionToken`
+	MockStsAssumeRoleTagKey            = `AssumeRoleTagKey`
+	MockStsAssumeRoleTagValue          = `AssumeRoleTagValue`
+	MockStsAssumeRoleTransitiveTagKey  = `AssumeRoleTagKey`
+	MockStsAssumeRoleValidResponseBody = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+<AssumeRoleResult>
+  <AssumedRoleUser>
+    <Arn>arn:aws:sts::555555555555:assumed-role/role/AssumeRoleSessionName</Arn>
+    <AssumedRoleId>ARO123EXAMPLE123:AssumeRoleSessionName</AssumedRoleId>
+  </AssumedRoleUser>
+  <Credentials>
+    <AccessKeyId>AssumeRoleAccessKey</AccessKeyId>
+    <SecretAccessKey>AssumeRoleSecretKey</SecretAccessKey>
+    <SessionToken>AssumeRoleSessionToken</SessionToken>
+    <Expiration>2099-12-31T23:59:59Z</Expiration>
+  </Credentials>
+</AssumeRoleResult>
+<ResponseMetadata>
+  <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
+</ResponseMetadata>
+</AssumeRoleResponse>`
+
+	MockStsAssumeRoleWithWebIdentityAccessKey         = `AssumeRoleWithWebIdentityAccessKey`
+	MockStsAssumeRoleWithWebIdentityArn               = `arn:aws:iam::666666666666:role/WebIdentityToken`
+	MockStsAssumeRoleWithWebIdentitySecretKey         = `AssumeRoleWithWebIdentitySecretKey`
+	MockStsAssumeRoleWithWebIdentitySessionName       = `AssumeRoleWithWebIdentitySessionName`
+	MockStsAssumeRoleWithWebIdentitySessionToken      = `AssumeRoleWithWebIdentitySessionToken`
+	MockStsAssumeRoleWithWebIdentityValidResponseBody = `<AssumeRoleWithWebIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+<AssumeRoleWithWebIdentityResult>
+  <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
+  <Audience>client.6666666666666666666.6666@apps.example.com</Audience>
+  <AssumedRoleUser>
+    <Arn>arn:aws:sts::666666666666:assumed-role/FederatedWebIdentityRole/AssumeRoleWithWebIdentitySessionName</Arn>
+    <AssumedRoleId>ARO123EXAMPLE123:AssumeRoleWithWebIdentitySessionName</AssumedRoleId>
+  </AssumedRoleUser>
+  <Credentials>
+    <SessionToken>AssumeRoleWithWebIdentitySessionToken</SessionToken>
+    <SecretAccessKey>AssumeRoleWithWebIdentitySecretKey</SecretAccessKey>
+    <Expiration>2099-12-31T23:59:59Z</Expiration>
+    <AccessKeyId>AssumeRoleWithWebIdentityAccessKey</AccessKeyId>
+  </Credentials>
+  <Provider>www.amazon.com</Provider>
+</AssumeRoleWithWebIdentityResult>
+<ResponseMetadata>
+  <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
+</ResponseMetadata>
+</AssumeRoleWithWebIdentityResponse>`
+
+	MockStsGetCallerIdentityAccountID                       = `222222222222`
+	MockStsGetCallerIdentityInvalidResponseBodyAccessDenied = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+<Error>
+  <Type>Sender</Type>
+  <Code>AccessDenied</Code>
+  <Message>User: arn:aws:iam::123456789012:user/Bob is not authorized to perform: sts:GetCallerIdentity</Message>
+</Error>
+<RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
+</ErrorResponse>`
+	MockStsGetCallerIdentityPartition         = `aws`
+	MockStsGetCallerIdentityValidResponseBody = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetCallerIdentityResult>
+   <Arn>arn:aws:iam::222222222222:user/Alice</Arn>
+    <UserId>AKIAI44QH8DHBEXAMPLE</UserId>
+    <Account>222222222222</Account>
+  </GetCallerIdentityResult>
+  <ResponseMetadata>
+    <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
+  </ResponseMetadata>
+</GetCallerIdentityResponse>`
+
+	MockWebIdentityToken = `WebIdentityToken`
+)
+
+var (
+	MockEc2MetadataCredentials = awsCredentials.Value{
+		AccessKeyID:     MockEc2MetadataAccessKey,
+		ProviderName:    ec2rolecreds.ProviderName,
+		SecretAccessKey: MockEc2MetadataSecretKey,
+		SessionToken:    MockEc2MetadataSessionToken,
+	}
+
+	MockEcsCredentialsCredentials = awsCredentials.Value{
+		AccessKeyID:     MockEcsCredentialsAccessKey,
+		ProviderName:    endpointcreds.ProviderName,
+		SecretAccessKey: MockEcsCredentialsSecretKey,
+		SessionToken:    MockEcsCredentialsSessionToken,
+	}
+
+	MockEnvCredentials = awsCredentials.Value{
+		AccessKeyID:     MockEnvAccessKey,
+		ProviderName:    awsCredentials.EnvProviderName,
+		SecretAccessKey: MockEnvSecretKey,
+	}
+
+	MockEnvCredentialsWithSessionToken = awsCredentials.Value{
+		AccessKeyID:     MockEnvAccessKey,
+		ProviderName:    awsCredentials.EnvProviderName,
+		SecretAccessKey: MockEnvSecretKey,
+		SessionToken:    MockEnvSessionToken,
+	}
+
+	MockStaticCredentials = awsCredentials.Value{
+		AccessKeyID:     MockStaticAccessKey,
+		ProviderName:    awsCredentials.StaticProviderName,
+		SecretAccessKey: MockStaticSecretKey,
+	}
+
+	MockStsAssumeRoleCredentials = awsCredentials.Value{
+		AccessKeyID:     MockStsAssumeRoleAccessKey,
+		ProviderName:    stscreds.ProviderName,
+		SecretAccessKey: MockStsAssumeRoleSecretKey,
+		SessionToken:    MockStsAssumeRoleSessionToken,
+	}
+	MockStsAssumeRoleInvalidEndpointInvalidClientTokenId = &MockEndpoint{
+		Request: &MockRequest{
+			Body: url.Values{
+				"Action":          []string{"AssumeRole"},
+				"DurationSeconds": []string{"900"},
+				"RoleArn":         []string{MockStsAssumeRoleArn},
+				"RoleSessionName": []string{MockStsAssumeRoleSessionName},
+				"Version":         []string{"2011-06-15"},
+			}.Encode(),
+			Method: http.MethodPost,
+			Uri:    "/",
+		},
+		Response: &MockResponse{
+			Body:        MockStsAssumeRoleInvalidResponseBodyInvalidClientTokenId,
+			ContentType: "text/xml",
+			StatusCode:  http.StatusForbidden,
+		},
+	}
+	MockStsAssumeRoleValidEndpoint = &MockEndpoint{
+		Request: &MockRequest{
+			Body: url.Values{
+				"Action":          []string{"AssumeRole"},
+				"DurationSeconds": []string{"900"},
+				"RoleArn":         []string{MockStsAssumeRoleArn},
+				"RoleSessionName": []string{MockStsAssumeRoleSessionName},
+				"Version":         []string{"2011-06-15"},
+			}.Encode(),
+			Method: http.MethodPost,
+			Uri:    "/",
+		},
+		Response: &MockResponse{
+			Body:        MockStsAssumeRoleValidResponseBody,
+			ContentType: "text/xml",
+			StatusCode:  http.StatusOK,
+		},
+	}
+
+	MockStsAssumeRoleWithWebIdentityValidEndpoint = &MockEndpoint{
+		Request: &MockRequest{
+			Body: url.Values{
+				"Action":           []string{"AssumeRoleWithWebIdentity"},
+				"RoleArn":          []string{MockStsAssumeRoleWithWebIdentityArn},
+				"RoleSessionName":  []string{MockStsAssumeRoleWithWebIdentitySessionName},
+				"Version":          []string{"2011-06-15"},
+				"WebIdentityToken": []string{MockWebIdentityToken},
+			}.Encode(),
+			Method: http.MethodPost,
+			Uri:    "/",
+		},
+		Response: &MockResponse{
+			Body:        MockStsAssumeRoleWithWebIdentityValidResponseBody,
+			ContentType: "text/xml",
+			StatusCode:  http.StatusOK,
+		},
+	}
+
+	MockStsAssumeRoleWithWebIdentityCredentials = awsCredentials.Value{
+		AccessKeyID:     MockStsAssumeRoleWithWebIdentityAccessKey,
+		ProviderName:    stscreds.WebIdentityProviderName,
+		SecretAccessKey: MockStsAssumeRoleWithWebIdentitySecretKey,
+		SessionToken:    MockStsAssumeRoleWithWebIdentitySessionToken,
+	}
+
+	MockStsGetCallerIdentityInvalidEndpointAccessDenied = &MockEndpoint{
+		Request: &MockRequest{
+			Body: url.Values{
+				"Action":  []string{"GetCallerIdentity"},
+				"Version": []string{"2011-06-15"},
+			}.Encode(),
+			Method: http.MethodPost,
+			Uri:    "/",
+		},
+		Response: &MockResponse{
+			Body:        MockStsGetCallerIdentityInvalidResponseBodyAccessDenied,
+			ContentType: "text/xml",
+			StatusCode:  http.StatusForbidden,
+		},
+	}
+	MockStsGetCallerIdentityValidEndpoint = &MockEndpoint{
+		Request: &MockRequest{
+			Body: url.Values{
+				"Action":  []string{"GetCallerIdentity"},
+				"Version": []string{"2011-06-15"},
+			}.Encode(),
+			Method: http.MethodPost,
+			Uri:    "/",
+		},
+		Response: &MockResponse{
+			Body:        MockStsGetCallerIdentityValidResponseBody,
+			ContentType: "text/xml",
+			StatusCode:  http.StatusOK,
+		},
+	}
 )
 
 // MockAwsApiServer establishes a httptest server to simulate behaviour of a real AWS API server
@@ -96,11 +345,11 @@ func ecsCredentialsApiMock() func() {
 		log.Printf("[DEBUG] Mock ECS credentials server received request: %s", r.RequestURI)
 		if r.RequestURI == "/creds" {
 			_ = json.NewEncoder(w).Encode(map[string]string{
-				"AccessKeyId":     "EcsCredentialsAccessKey",
+				"AccessKeyId":     MockEcsCredentialsAccessKey,
 				"Expiration":      time.Now().UTC().Format(time.RFC3339),
 				"RoleArn":         "arn:aws:iam::000000000000:role/EcsCredentials",
-				"SecretAccessKey": "EcsCredentialsSecretKey",
-				"Token":           "EcsCredentialsSessionToken",
+				"SecretAccessKey": MockEcsCredentialsSecretKey,
+				"Token":           MockEcsCredentialsSessionToken,
 			})
 			return
 		}
@@ -109,6 +358,34 @@ func ecsCredentialsApiMock() func() {
 
 	os.Setenv("AWS_CONTAINER_CREDENTIALS_FULL_URI", ts.URL+"/creds")
 	return ts.Close
+}
+
+// MockStsAssumeRoleValidEndpointWithOptions returns a valid STS AssumeRole response with configurable request options.
+func MockStsAssumeRoleValidEndpointWithOptions(options map[string]string) *MockEndpoint {
+	urlValues := url.Values{
+		"Action":          []string{"AssumeRole"},
+		"DurationSeconds": []string{"900"},
+		"RoleArn":         []string{MockStsAssumeRoleArn},
+		"RoleSessionName": []string{MockStsAssumeRoleSessionName},
+		"Version":         []string{"2011-06-15"},
+	}
+
+	for k, v := range options {
+		urlValues.Set(k, v)
+	}
+
+	return &MockEndpoint{
+		Request: &MockRequest{
+			Body:   urlValues.Encode(),
+			Method: http.MethodPost,
+			Uri:    "/",
+		},
+		Response: &MockResponse{
+			Body:        MockStsAssumeRoleValidResponseBody,
+			ContentType: "text/xml",
+			StatusCode:  http.StatusOK,
+		},
+	}
 }
 
 // MockEndpoint represents a basic request and response that can be used for creating simple httptest server routes.
@@ -193,77 +470,6 @@ const iamResponse_GetUser_unauthorized = `<ErrorResponse xmlns="https://iam.amaz
   <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
 </ErrorResponse>`
 
-var stsResponse_AssumeRole_valid = fmt.Sprintf(`<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-<AssumeRoleResult>
-  <AssumedRoleUser>
-    <Arn>arn:aws:sts::555555555555:assumed-role/role/AssumeRoleSessionName</Arn>
-    <AssumedRoleId>ARO123EXAMPLE123:AssumeRoleSessionName</AssumedRoleId>
-  </AssumedRoleUser>
-  <Credentials>
-    <AccessKeyId>AssumeRoleAccessKey</AccessKeyId>
-    <SecretAccessKey>AssumeRoleSecretKey</SecretAccessKey>
-    <SessionToken>AssumeRoleSessionToken</SessionToken>
-    <Expiration>%s</Expiration>
-  </Credentials>
-</AssumeRoleResult>
-<ResponseMetadata>
-  <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
-</ResponseMetadata>
-</AssumeRoleResponse>`, time.Now().UTC().Format(time.RFC3339))
-
-const stsResponse_AssumeRole_InvalidClientTokenId = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-<Error>
-  <Type>Sender</Type>
-  <Code>InvalidClientTokenId</Code>
-  <Message>The security token included in the request is invalid.</Message>
-</Error>
-<RequestId>4d0cf5ec-892a-4d3f-84e4-30e9987d9bdd</RequestId>
-</ErrorResponse>`
-
-var stsResponse_AssumeRoleWithWebIdentity_valid = fmt.Sprintf(`<AssumeRoleWithWebIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-<AssumeRoleWithWebIdentityResult>
-  <SubjectFromWebIdentityToken>amzn1.account.AF6RHO7KZU5XRVQJGXK6HB56KR2A</SubjectFromWebIdentityToken>
-  <Audience>client.6666666666666666666.6666@apps.example.com</Audience>
-  <AssumedRoleUser>
-    <Arn>arn:aws:sts::666666666666:assumed-role/FederatedWebIdentityRole/AssumeRoleWithWebIdentitySessionName</Arn>
-    <AssumedRoleId>ARO123EXAMPLE123:AssumeRoleWithWebIdentitySessionName</AssumedRoleId>
-  </AssumedRoleUser>
-  <Credentials>
-    <SessionToken>AssumeRoleWithWebIdentitySessionToken</SessionToken>
-    <SecretAccessKey>AssumeRoleWithWebIdentitySecretKey</SecretAccessKey>
-    <Expiration>%s</Expiration>
-    <AccessKeyId>AssumeRoleWithWebIdentityAccessKey</AccessKeyId>
-  </Credentials>
-  <Provider>www.amazon.com</Provider>
-</AssumeRoleWithWebIdentityResult>
-<ResponseMetadata>
-  <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
-</ResponseMetadata>
-</AssumeRoleWithWebIdentityResponse>`, time.Now().UTC().Format(time.RFC3339))
-
-const stsResponse_GetCallerIdentity_valid = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-  <GetCallerIdentityResult>
-   <Arn>arn:aws:iam::222222222222:user/Alice</Arn>
-    <UserId>AKIAI44QH8DHBEXAMPLE</UserId>
-    <Account>222222222222</Account>
-  </GetCallerIdentityResult>
-  <ResponseMetadata>
-    <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
-  </ResponseMetadata>
-</GetCallerIdentityResponse>`
-
-const stsResponse_GetCallerIdentity_valid_expectedAccountID = `222222222222`
-const stsResponse_GetCallerIdentity_valid_expectedPartition = `aws`
-
-const stsResponse_GetCallerIdentity_unauthorized = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-  <Error>
-    <Type>Sender</Type>
-    <Code>AccessDenied</Code>
-    <Message>User: arn:aws:iam::123456789012:user/Bob is not authorized to perform: sts:GetCallerIdentity</Message>
-  </Error>
-  <RequestId>01234567-89ab-cdef-0123-456789abcdef</RequestId>
-</ErrorResponse>`
-
 const iamResponse_GetUser_federatedFailure = `<ErrorResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
   <Error>
     <Type>Sender</Type>
@@ -304,5 +510,3 @@ const iamResponse_ListRoles_unauthorized = `<ErrorResponse xmlns="https://iam.am
   </Error>
   <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
 </ErrorResponse>`
-
-const webIdentityToken = `WebIdentityToken`
