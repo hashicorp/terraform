@@ -132,7 +132,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 			// compatible with the config+schema. Since we can't detect the legacy
 			// type system, we can only warn about this for now.
 			var buf strings.Builder
-			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s."+
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s.",
 				n.ProviderAddr.Provider.String(), absAddr)
 			for _, err := range errs {
 				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
