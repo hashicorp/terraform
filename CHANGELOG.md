@@ -2,7 +2,8 @@
 
 ENHANCEMENTS:
 
-* config: `cidrsubnet` and `cidrhost` now support address extensions of more than 32 bits [GH-25517] 
+* config: `cidrsubnet` and `cidrhost` now support address extensions of more than 32 bits [GH-25517]
+* cli: The directories that Terraform searches by default for provider plugins can now be symlinks to directories elsewhere. (This applies only to the top-level directory, not to nested directories inside it.) [GH-25692]
 * backend/s3: simplified mock handling and assume role testing [GH-25903]
 * backend/s3: support for appending data to the User-Agent request header with the TF_APPEND_USER_AGENT environment variable [GH-25903]
 
