@@ -1,3 +1,13 @@
+# v0.6.0 (unreleased)
+
+BREAKING CHANGES
+
+* AWS error checking function have been moved to `tfawserr` package. `IsAWSErr` has been renamed to `ErrMessageContains` and `IsAWSErrExtended` has been renamed to `ErrMessageAndOrigErrContain`. #37
+
+ENHANCEMENTS
+
+* Additional AWS error checking function have been added to the `tfawserr` package - `ErrCodeEquals`, `ErrCodeContains` and `ErrStatusCodeEquals`.
+
 # v0.5.0 (June 4, 2020)
 
 BREAKING CHANGES
