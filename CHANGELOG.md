@@ -1,20 +1,20 @@
 ## 0.13.1 (Unreleased)
 
-BUG FIXES:
-* backend: fix inconsistent locking behavior between local and remote backends, which caused lingering locks in terraform console and import [GH-25454] 
-* lang/funcs: update cidrsubnet and cidrhost to support 64-bit systems [GH-25517] 
-* states/statefile: consistently sort resources across modules [GH-25498]
-* cli: allow targeting of resources with module instances [GH-25760]
-* command: fix panic when using `state mv` to move the last resource in a module [GH-25523]
-* configs: include `providers` when processing module overrides [GH-25496]
-* core: fix inconsistent plan error when dynamic set block has 0 elements [GH-25662]
-* core: prevent decoding errors when resource attributes have been removed entirely from the schema [GH-25779]
-* addrs: fix panic when upgrading state from Terraform v0.11 which uses the builtin `terraform` provider [GH-25861]
-
 ENHANCEMENTS:
 
+* config: `cidrsubnet` and `cidrhost` now support address extensions of more than 32 bits [GH-25517] 
 * backend/s3: simplified mock handling and assume role testing [GH-25903]
 * backend/s3: support for appending data to the User-Agent request header with the TF_APPEND_USER_AGENT environment variable [GH-25903]
+
+BUG FIXES:
+* config: Override files containing `module` blocks can now override the special `providers` argument. [GH-25496]
+* cli: The state lock will now be unlocked consistently across both the local and remote backends in the `terraform console` and `terraform import` commands. [GH-25454] 
+* cli: The `-target` option to `terraform plan` and `terraform apply` now correctly handles addresses containing module instance indexes. [GH-25760]
+* cli: `terraform state mv` can now move the last resource from a module without panicking. [GH-25523]
+* core: State snapshots now use a consistent ordering for resources that have the same name across different modules. Previously the ordering was undefined. [GH-25498]
+* core: A `dynamic` block producing an unknown number of blocks will no longer incorrectly produce the error "Provider produced inconsistent final plan" when the block type is backed by a set of objects. [GH-25662]
+* core: Terraform will now silently drop attributes that appear in the state but are not present in the corresponding resource type schema, on the assumption that those attributes existed in a previous version of the provider and have now been removed. [GH-25779]
+* core: The state upgrade logic for handling unqualified provider addresses from Terraform v0.11 and earlier will no longer panic when it encounters references to the built-in `terraform` provider. [GH-25861]
 
 ## 0.13.0 (August 10, 2020)
 
