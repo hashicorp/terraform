@@ -3,14 +3,13 @@ package authentication
 import (
 	"context"
 	"fmt"
-
 	"github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
 	"github.com/hashicorp/go-azure-helpers/sender"
 )
 
 func buildServicePrincipalObjectIDFunc(c *Config) func(ctx context.Context) (string, error) {
 	return func(ctx context.Context) (string, error) {
-		env, err := DetermineEnvironment(c.Environment)
+		env, err := AzureEnvironmentByNameFromEndpoint(ctx, c.MetadataURL, c.Environment)
 		if err != nil {
 			return "", err
 		}

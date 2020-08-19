@@ -30,74 +30,6 @@ import (
 // The package's fully qualified name.
 const fqdn = "github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
 
-// ConsentType enumerates the values for consent type.
-type ConsentType string
-
-const (
-	// AllPrincipals ...
-	AllPrincipals ConsentType = "AllPrincipals"
-	// Principal ...
-	Principal ConsentType = "Principal"
-)
-
-// PossibleConsentTypeValues returns an array of possible values for the ConsentType const type.
-func PossibleConsentTypeValues() []ConsentType {
-	return []ConsentType{AllPrincipals, Principal}
-}
-
-// GroupMembershipClaimTypes enumerates the values for group membership claim types.
-type GroupMembershipClaimTypes string
-
-const (
-	// All ...
-	All GroupMembershipClaimTypes = "All"
-	// None ...
-	None GroupMembershipClaimTypes = "None"
-	// SecurityGroup ...
-	SecurityGroup GroupMembershipClaimTypes = "SecurityGroup"
-)
-
-// PossibleGroupMembershipClaimTypesValues returns an array of possible values for the GroupMembershipClaimTypes const type.
-func PossibleGroupMembershipClaimTypesValues() []GroupMembershipClaimTypes {
-	return []GroupMembershipClaimTypes{All, None, SecurityGroup}
-}
-
-// ObjectType enumerates the values for object type.
-type ObjectType string
-
-const (
-	// ObjectTypeApplication ...
-	ObjectTypeApplication ObjectType = "Application"
-	// ObjectTypeDirectoryObject ...
-	ObjectTypeDirectoryObject ObjectType = "DirectoryObject"
-	// ObjectTypeGroup ...
-	ObjectTypeGroup ObjectType = "Group"
-	// ObjectTypeServicePrincipal ...
-	ObjectTypeServicePrincipal ObjectType = "ServicePrincipal"
-	// ObjectTypeUser ...
-	ObjectTypeUser ObjectType = "User"
-)
-
-// PossibleObjectTypeValues returns an array of possible values for the ObjectType const type.
-func PossibleObjectTypeValues() []ObjectType {
-	return []ObjectType{ObjectTypeApplication, ObjectTypeDirectoryObject, ObjectTypeGroup, ObjectTypeServicePrincipal, ObjectTypeUser}
-}
-
-// UserType enumerates the values for user type.
-type UserType string
-
-const (
-	// Guest ...
-	Guest UserType = "Guest"
-	// Member ...
-	Member UserType = "Member"
-)
-
-// PossibleUserTypeValues returns an array of possible values for the UserType const type.
-func PossibleUserTypeValues() []UserType {
-	return []UserType{Guest, Member}
-}
-
 // AddOwnerParameters request parameters for adding a owner to an application.
 type AddOwnerParameters struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
@@ -1094,6 +1026,11 @@ func (alr ApplicationListResult) IsEmpty() bool {
 	return alr.Value == nil || len(*alr.Value) == 0
 }
 
+// hasNextLink returns true if the NextLink is not empty.
+func (alr ApplicationListResult) hasNextLink() bool {
+	return alr.OdataNextLink != nil && len(*alr.OdataNextLink) != 0
+}
+
 // ApplicationListResultPage contains a page of Application values.
 type ApplicationListResultPage struct {
 	fn  func(context.Context, ApplicationListResult) (ApplicationListResult, error)
@@ -1113,11 +1050,16 @@ func (page *ApplicationListResultPage) NextWithContext(ctx context.Context) (err
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	next, err := page.fn(ctx, page.alr)
-	if err != nil {
-		return err
+	for {
+		next, err := page.fn(ctx, page.alr)
+		if err != nil {
+			return err
+		}
+		page.alr = next
+		if !next.hasNextLink() || !next.IsEmpty() {
+			break
+		}
 	}
-	page.alr = next
 	return nil
 }
 
@@ -1635,10 +1577,15 @@ func (dolr DirectoryObjectListResult) IsEmpty() bool {
 	return dolr.Value == nil || len(*dolr.Value) == 0
 }
 
+// hasNextLink returns true if the NextLink is not empty.
+func (dolr DirectoryObjectListResult) hasNextLink() bool {
+	return dolr.OdataNextLink != nil && len(*dolr.OdataNextLink) != 0
+}
+
 // directoryObjectListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
 func (dolr DirectoryObjectListResult) directoryObjectListResultPreparer(ctx context.Context) (*http.Request, error) {
-	if dolr.OdataNextLink == nil || len(to.String(dolr.OdataNextLink)) < 1 {
+	if !dolr.hasNextLink() {
 		return nil, nil
 	}
 	return autorest.Prepare((&http.Request{}).WithContext(ctx),
@@ -1666,11 +1613,16 @@ func (page *DirectoryObjectListResultPage) NextWithContext(ctx context.Context) 
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	next, err := page.fn(ctx, page.dolr)
-	if err != nil {
-		return err
+	for {
+		next, err := page.fn(ctx, page.dolr)
+		if err != nil {
+			return err
+		}
+		page.dolr = next
+		if !next.hasNextLink() || !next.IsEmpty() {
+			break
+		}
 	}
-	page.dolr = next
 	return nil
 }
 
@@ -2224,6 +2176,11 @@ func (glr GroupListResult) IsEmpty() bool {
 	return glr.Value == nil || len(*glr.Value) == 0
 }
 
+// hasNextLink returns true if the NextLink is not empty.
+func (glr GroupListResult) hasNextLink() bool {
+	return glr.OdataNextLink != nil && len(*glr.OdataNextLink) != 0
+}
+
 // GroupListResultPage contains a page of ADGroup values.
 type GroupListResultPage struct {
 	fn  func(context.Context, GroupListResult) (GroupListResult, error)
@@ -2243,11 +2200,16 @@ func (page *GroupListResultPage) NextWithContext(ctx context.Context) (err error
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	next, err := page.fn(ctx, page.glr)
-	if err != nil {
-		return err
+	for {
+		next, err := page.fn(ctx, page.glr)
+		if err != nil {
+			return err
+		}
+		page.glr = next
+		if !next.hasNextLink() || !next.IsEmpty() {
+			break
+		}
 	}
-	page.glr = next
 	return nil
 }
 
@@ -2281,8 +2243,8 @@ func NewGroupListResultPage(getNextPage func(context.Context, GroupListResult) (
 	return GroupListResultPage{fn: getNextPage}
 }
 
-// InformationalURL represents a group of URIs that provide terms of service, marketing, support and
-// privacy policy information about an application. The default value for each string is null.
+// InformationalURL represents a group of URIs that provide terms of service, marketing, support and privacy
+// policy information about an application. The default value for each string is null.
 type InformationalURL struct {
 	// TermsOfService - The terms of service URI
 	TermsOfService *string `json:"termsOfService,omitempty"`
@@ -2448,8 +2410,8 @@ type KeyCredentialsUpdateParameters struct {
 }
 
 // OAuth2Permission represents an OAuth 2.0 delegated permission scope. The specified OAuth 2.0 delegated
-// permission scopes may be requested by client applications (through the requiredResourceAccess collection
-// on the Application object) when calling a resource application. The oauth2Permissions property of the
+// permission scopes may be requested by client applications (through the requiredResourceAccess collection on
+// the Application object) when calling a resource application. The oauth2Permissions property of the
 // ServicePrincipal entity and of the Application entity is a collection of OAuth2Permission.
 type OAuth2Permission struct {
 	// AdminConsentDescription - Permission help text that appears in the admin consent and app assignment experiences.
@@ -2571,6 +2533,11 @@ func (oa2pglr OAuth2PermissionGrantListResult) IsEmpty() bool {
 	return oa2pglr.Value == nil || len(*oa2pglr.Value) == 0
 }
 
+// hasNextLink returns true if the NextLink is not empty.
+func (oa2pglr OAuth2PermissionGrantListResult) hasNextLink() bool {
+	return oa2pglr.OdataNextLink != nil && len(*oa2pglr.OdataNextLink) != 0
+}
+
 // OAuth2PermissionGrantListResultPage contains a page of OAuth2PermissionGrant values.
 type OAuth2PermissionGrantListResultPage struct {
 	fn      func(context.Context, OAuth2PermissionGrantListResult) (OAuth2PermissionGrantListResult, error)
@@ -2590,11 +2557,16 @@ func (page *OAuth2PermissionGrantListResultPage) NextWithContext(ctx context.Con
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	next, err := page.fn(ctx, page.oa2pglr)
-	if err != nil {
-		return err
+	for {
+		next, err := page.fn(ctx, page.oa2pglr)
+		if err != nil {
+			return err
+		}
+		page.oa2pglr = next
+		if !next.hasNextLink() || !next.IsEmpty() {
+			break
+		}
 	}
-	page.oa2pglr = next
 	return nil
 }
 
@@ -2907,8 +2879,8 @@ type PreAuthorizedApplication struct {
 	Extensions *[]PreAuthorizedApplicationExtension `json:"extensions,omitempty"`
 }
 
-// PreAuthorizedApplicationExtension representation of an app PreAuthorizedApplicationExtension required by
-// a pre authorized client app.
+// PreAuthorizedApplicationExtension representation of an app PreAuthorizedApplicationExtension required by a
+// pre authorized client app.
 type PreAuthorizedApplicationExtension struct {
 	// Conditions - The extension's conditions.
 	Conditions *[]string `json:"conditions,omitempty"`
@@ -2922,11 +2894,10 @@ type PreAuthorizedApplicationPermission struct {
 	AccessGrants *[]string `json:"accessGrants,omitempty"`
 }
 
-// RequiredResourceAccess specifies the set of OAuth 2.0 permission scopes and app roles under the
-// specified resource that an application requires access to. The specified OAuth 2.0 permission scopes may
-// be requested by client applications (through the requiredResourceAccess collection) when calling a
-// resource application. The requiredResourceAccess property of the Application entity is a collection of
-// RequiredResourceAccess.
+// RequiredResourceAccess specifies the set of OAuth 2.0 permission scopes and app roles under the specified
+// resource that an application requires access to. The specified OAuth 2.0 permission scopes may be requested
+// by client applications (through the requiredResourceAccess collection) when calling a resource application.
+// The requiredResourceAccess property of the Application entity is a collection of RequiredResourceAccess.
 type RequiredResourceAccess struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -3462,8 +3433,7 @@ func (sp *ServicePrincipal) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
-// ServicePrincipalBase active Directory service principal common properties shared among GET, POST and
-// PATCH
+// ServicePrincipalBase active Directory service principal common properties shared among GET, POST and PATCH
 type ServicePrincipalBase struct {
 	// AccountEnabled - whether or not the service principal account is enabled
 	AccountEnabled *bool `json:"accountEnabled,omitempty"`
@@ -3574,6 +3544,11 @@ func (splr ServicePrincipalListResult) IsEmpty() bool {
 	return splr.Value == nil || len(*splr.Value) == 0
 }
 
+// hasNextLink returns true if the NextLink is not empty.
+func (splr ServicePrincipalListResult) hasNextLink() bool {
+	return splr.OdataNextLink != nil && len(*splr.OdataNextLink) != 0
+}
+
 // ServicePrincipalListResultPage contains a page of ServicePrincipal values.
 type ServicePrincipalListResultPage struct {
 	fn   func(context.Context, ServicePrincipalListResult) (ServicePrincipalListResult, error)
@@ -3593,11 +3568,16 @@ func (page *ServicePrincipalListResultPage) NextWithContext(ctx context.Context)
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	next, err := page.fn(ctx, page.splr)
-	if err != nil {
-		return err
+	for {
+		next, err := page.fn(ctx, page.splr)
+		if err != nil {
+			return err
+		}
+		page.splr = next
+		if !next.hasNextLink() || !next.IsEmpty() {
+			break
+		}
 	}
-	page.splr = next
 	return nil
 }
 
@@ -3656,8 +3636,8 @@ type ServicePrincipalUpdateParameters struct {
 	Tags *[]string `json:"tags,omitempty"`
 }
 
-// SignInName contains information about a sign-in name of a local account user in an Azure Active
-// Directory B2C tenant.
+// SignInName contains information about a sign-in name of a local account user in an Azure Active Directory
+// B2C tenant.
 type SignInName struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
 	AdditionalProperties map[string]interface{} `json:""`
@@ -4439,6 +4419,11 @@ func (ulr UserListResult) IsEmpty() bool {
 	return ulr.Value == nil || len(*ulr.Value) == 0
 }
 
+// hasNextLink returns true if the NextLink is not empty.
+func (ulr UserListResult) hasNextLink() bool {
+	return ulr.OdataNextLink != nil && len(*ulr.OdataNextLink) != 0
+}
+
 // UserListResultPage contains a page of User values.
 type UserListResultPage struct {
 	fn  func(context.Context, UserListResult) (UserListResult, error)
@@ -4458,11 +4443,16 @@ func (page *UserListResultPage) NextWithContext(ctx context.Context) (err error)
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	next, err := page.fn(ctx, page.ulr)
-	if err != nil {
-		return err
+	for {
+		next, err := page.fn(ctx, page.ulr)
+		if err != nil {
+			return err
+		}
+		page.ulr = next
+		if !next.hasNextLink() || !next.IsEmpty() {
+			break
+		}
 	}
-	page.ulr = next
 	return nil
 }
 

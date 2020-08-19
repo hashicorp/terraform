@@ -10,7 +10,7 @@ import (
 	"github.com/tombuildsstuff/giovanni/storage/internal/endpoints"
 )
 
-// RenewLease renewes the lock based on the Lease ID
+// RenewLease renews the lock based on the Lease ID
 func (client Client) RenewLease(ctx context.Context, accountName, containerName, leaseID string) (result autorest.Response, err error) {
 	if accountName == "" {
 		return result, validation.NewError("containers.Client", "RenewLease", "`accountName` cannot be an empty string.")

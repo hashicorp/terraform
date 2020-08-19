@@ -2,8 +2,8 @@ module github.com/hashicorp/terraform
 
 require (
 	cloud.google.com/go v0.45.1
-	github.com/Azure/azure-sdk-for-go v40.3.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.10.0
+	github.com/Azure/azure-sdk-for-go v45.0.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.11.3
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/hashicorp/aws-sdk-go-base v0.6.0
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/go-azure-helpers v0.10.0
+	github.com/hashicorp/go-azure-helpers v0.12.0
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-getter v1.4.2-0.20200106182914-9813cbd4eb02
@@ -121,7 +121,7 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
-	github.com/tombuildsstuff/giovanni v0.10.1
+	github.com/tombuildsstuff/giovanni v0.12.0
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
 	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.2.1
@@ -132,7 +132,7 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/mod v0.2.0
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
@@ -148,15 +148,6 @@ require (
 	k8s.io/utils v0.0.0-20200411171748-3d5a2fe318e4
 )
 
-replace (
-	github.com/Azure/go-autorest v11.1.2+incompatible => github.com/Azure/go-autorest v12.1.0+incompatible
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
-)
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
 go 1.14
-
-replace github.com/Azure/go-autorest => github.com/tombuildsstuff/go-autorest v14.0.1-0.20200416184303-d4e299a3c04a+incompatible
-
-replace github.com/Azure/go-autorest/autorest => github.com/tombuildsstuff/go-autorest/autorest v0.10.1-0.20200416184303-d4e299a3c04a
-
-replace github.com/Azure/go-autorest/autorest/azure/auth => github.com/tombuildsstuff/go-autorest/autorest/azure/auth v0.4.3-0.20200416184303-d4e299a3c04a

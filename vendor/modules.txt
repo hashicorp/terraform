@@ -7,7 +7,7 @@ cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
 cloud.google.com/go/storage
-# github.com/Azure/azure-sdk-for-go v40.3.0+incompatible
+# github.com/Azure/azure-sdk-for-go v45.0.0+incompatible
 ## explicit
 github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources
 github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage
@@ -15,23 +15,25 @@ github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac
 github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2016-02-01/resources
 github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2016-01-01/storage
 github.com/Azure/azure-sdk-for-go/version
-# github.com/Azure/go-autorest/autorest v0.10.0 => github.com/tombuildsstuff/go-autorest/autorest v0.10.1-0.20200416184303-d4e299a3c04a
+# github.com/Azure/go-autorest v14.2.0+incompatible
+github.com/Azure/go-autorest
+# github.com/Azure/go-autorest/autorest v0.11.3
 ## explicit
 github.com/Azure/go-autorest/autorest
 github.com/Azure/go-autorest/autorest/azure
-# github.com/Azure/go-autorest/autorest/adal v0.8.2
+# github.com/Azure/go-autorest/autorest/adal v0.9.0
 github.com/Azure/go-autorest/autorest/adal
-# github.com/Azure/go-autorest/autorest/azure/cli v0.3.0
+# github.com/Azure/go-autorest/autorest/azure/cli v0.4.0
 github.com/Azure/go-autorest/autorest/azure/cli
-# github.com/Azure/go-autorest/autorest/date v0.2.0
+# github.com/Azure/go-autorest/autorest/date v0.3.0
 github.com/Azure/go-autorest/autorest/date
-# github.com/Azure/go-autorest/autorest/to v0.3.0
+# github.com/Azure/go-autorest/autorest/to v0.4.0
 github.com/Azure/go-autorest/autorest/to
-# github.com/Azure/go-autorest/autorest/validation v0.2.0
+# github.com/Azure/go-autorest/autorest/validation v0.3.0
 github.com/Azure/go-autorest/autorest/validation
-# github.com/Azure/go-autorest/logger v0.1.0
+# github.com/Azure/go-autorest/logger v0.2.0
 github.com/Azure/go-autorest/logger
-# github.com/Azure/go-autorest/tracing v0.5.0
+# github.com/Azure/go-autorest/tracing v0.6.0
 github.com/Azure/go-autorest/tracing
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 ## explicit
@@ -319,7 +321,7 @@ github.com/hashicorp/consul/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 ## explicit
 github.com/hashicorp/errwrap
-# github.com/hashicorp/go-azure-helpers v0.10.0
+# github.com/hashicorp/go-azure-helpers v0.12.0
 ## explicit
 github.com/hashicorp/go-azure-helpers/authentication
 github.com/hashicorp/go-azure-helpers/sender
@@ -585,7 +587,7 @@ github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813
 github.com/tencentyun/cos-go-sdk-v5
 # github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6
 ## explicit
-# github.com/tombuildsstuff/giovanni v0.10.1
+# github.com/tombuildsstuff/giovanni v0.12.0
 ## explicit
 github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs
 github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers
@@ -648,7 +650,7 @@ go.opencensus.io/trace/tracestate
 ## explicit
 # go.uber.org/zap v1.9.1
 ## explicit
-# golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 ## explicit
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
@@ -964,8 +966,4 @@ k8s.io/utils/integer
 k8s.io/utils/pointer
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml
-# github.com/Azure/go-autorest v11.1.2+incompatible => github.com/Azure/go-autorest v12.1.0+incompatible
 # k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
-# github.com/Azure/go-autorest => github.com/tombuildsstuff/go-autorest v14.0.1-0.20200416184303-d4e299a3c04a+incompatible
-# github.com/Azure/go-autorest/autorest => github.com/tombuildsstuff/go-autorest/autorest v0.10.1-0.20200416184303-d4e299a3c04a
-# github.com/Azure/go-autorest/autorest/azure/auth => github.com/tombuildsstuff/go-autorest/autorest/azure/auth v0.4.3-0.20200416184303-d4e299a3c04a

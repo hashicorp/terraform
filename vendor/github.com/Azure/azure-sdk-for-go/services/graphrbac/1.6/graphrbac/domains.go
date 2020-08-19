@@ -107,7 +107,6 @@ func (client DomainsClient) GetSender(req *http.Request) (*http.Response, error)
 func (client DomainsClient) GetResponder(resp *http.Response) (result Domain, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -183,7 +182,6 @@ func (client DomainsClient) ListSender(req *http.Request) (*http.Response, error
 func (client DomainsClient) ListResponder(resp *http.Response) (result DomainListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
