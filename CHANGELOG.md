@@ -17,6 +17,8 @@ BUG FIXES:
 * core: A `dynamic` block producing an unknown number of blocks will no longer incorrectly produce the error "Provider produced inconsistent final plan" when the block type is backed by a set of objects. [GH-25662]
 * core: Terraform will now silently drop attributes that appear in the state but are not present in the corresponding resource type schema, on the assumption that those attributes existed in a previous version of the provider and have now been removed. [GH-25779]
 * core: The state upgrade logic for handling unqualified provider addresses from Terraform v0.11 and earlier will no longer panic when it encounters references to the built-in `terraform` provider. [GH-25861]
+* terraform: Evaluate module call arguments for `terraform import` even if defaults are given for input variables [GH-25890]
+* terraform: Fix misleading Terraform `required_version` constraint diagnostics when multiple `required_version` settings exist in a single module [GH-25898]
 
 ## 0.13.0 (August 10, 2020)
 
