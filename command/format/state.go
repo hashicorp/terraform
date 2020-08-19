@@ -198,8 +198,8 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				}
 
 				path := make(cty.Path, 0, 3)
-				bodyWritten := p.writeBlockBodyDiff(schema, val.Value, val.Value, 2, path)
-				if bodyWritten {
+				result := p.writeBlockBodyDiff(schema, val.Value, val.Value, 2, path)
+				if result.bodyWritten {
 					p.buf.WriteString("\n")
 				}
 
