@@ -13,11 +13,39 @@ func ambiguousNames(schema *configschema.Block) map[string]struct{} {
 	ambiguousNames := make(map[string]struct{})
 	for name, attrS := range schema.Attributes {
 		aty := attrS.Type
-		if (aty.IsListType() || aty.IsSetType()) && aty.ElementType().IsObjectType() {
+		if isAmbiguousAttrType(aty) {
 			ambiguousNames[name] = struct{}{}
 		}
 	}
 	return ambiguousNames
+}
+
+// hasAnyAmbiguousAttrs returns true if the given schema or any of its descendent
+// block schemas would cause the ambiguousNames function to return a non-empty
+// set.
+//
+// This function minimizes memory allocations so that it can be used to
+// optimize away other work that is potentially more expensive.
+func hasAnyAmbiguousAttrs(schema *configschema.Block) bool {
+	if schema == nil {
+		return false
+	}
+	for _, attrS := range schema.Attributes {
+		aty := attrS.Type
+		if isAmbiguousAttrType(aty) {
+			return true
+		}
+	}
+	for _, blockS := range schema.BlockTypes {
+		if hasAnyAmbiguousAttrs(&blockS.Block) {
+			return true
+		}
+	}
+	return false
+}
+
+func isAmbiguousAttrType(aty cty.Type) bool {
+	return (aty.IsListType() || aty.IsSetType()) && aty.ElementType().IsObjectType()
 }
 
 func effectiveSchema(given *hcl.BodySchema, body hcl.Body, ambiguousNames map[string]struct{}, dynamicExpanded bool) *hcl.BodySchema {

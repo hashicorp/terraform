@@ -20,6 +20,10 @@ import (
 // subsequently decoded, so while FixUpBlockAttrs always succeeds, the eventual
 // decode of the body might not, if the content of the body is so ambiguous
 // that there's no safe way to map it to the schema.
+//
+// If FixUpBlockAttrs can prove that the given schema contains no ambiguous
+// attribute types then it will just return the given body verbatim, bypassing
+// the fixup behaviors.
 func FixUpBlockAttrs(body hcl.Body, schema *configschema.Block) hcl.Body {
 	// The schema should never be nil, but in practice it seems to be sometimes
 	// in the presence of poorly-configured test mocks, so we'll be robust
@@ -28,11 +32,27 @@ func FixUpBlockAttrs(body hcl.Body, schema *configschema.Block) hcl.Body {
 		schema = &configschema.Block{}
 	}
 
+	if !MightNeedFixup(schema) {
+		return body
+	}
+
 	return &fixupBody{
 		original: body,
 		schema:   schema,
 		names:    ambiguousNames(schema),
 	}
+}
+
+// MightNeedFixup returns true unless it can prove that the given schema
+// contains no constructs that FixUpBlockAttrs might need to transform.
+//
+// FixUpBlockAttrs calls this itself and returns the given body verbatim if it
+// returns false, so callers don't need to call this function directly unless
+// they want to make the determination once for a particular schema and skip
+// calling FixUpBlockAttrs altogether for all bodies using that schema, as
+// a further optimization.
+func MightNeedFixup(schema *configschema.Block) bool {
+	return hasAnyAmbiguousAttrs(schema)
 }
 
 type fixupBody struct {
