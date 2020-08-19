@@ -289,12 +289,9 @@ Terraform will perform the following actions:
 
   # test_instance.foo is tainted, so must be replaced
 -/+ resource "test_instance" "foo" {
-        ami = "bar"
+        # (1 unchanged attribute hidden)
 
-        network_interface {
-            description  = "Main network interface"
-            device_index = 0
-        }
+        # (1 unchanged block hidden)
     }
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
@@ -468,12 +465,9 @@ Terraform will perform the following actions:
 
   # test_instance.foo is tainted, so must be replaced
 +/- resource "test_instance" "foo" {
-        ami = "bar"
+        # (1 unchanged attribute hidden)
 
-        network_interface {
-            description  = "Main network interface"
-            device_index = 0
-        }
+        # (1 unchanged block hidden)
     }
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
