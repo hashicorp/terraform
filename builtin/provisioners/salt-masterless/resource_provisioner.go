@@ -13,7 +13,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -38,6 +41,7 @@ type provisioner struct {
 	LogLevel          string
 	SaltCallArgs      string
 	CmdArgs           string
+	Formulas          []string
 }
 
 const DefaultStateTreeDir = "/srv/salt"
@@ -104,6 +108,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			},
 			"log_level": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"formulas": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
 		},
@@ -214,6 +223,33 @@ func applyFn(ctx context.Context) error {
 		}
 	}
 
+	var formulas []string
+	if p.Formulas != nil && len(p.Formulas) > 0 {
+		o.Output("Downloading Salt formulas...")
+		client := new(getter.Client)
+		for _, i := range p.Formulas {
+			client.Src = i
+			// Use //subdirectory name when creating in local_state_tree directory
+			state := strings.Split(i, "//")
+			last := state[len(state)-1]
+			path := filepath.Join(p.LocalStateTree, last)
+			formulas = append(formulas, path)
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				o.Output(fmt.Sprintf("%s => %s", i, path))
+				if err = os.Mkdir(path, 0755); err != nil {
+					return fmt.Errorf("Unable to create Salt state directory: %s", err)
+				}
+				client.Dst = path
+				client.Mode = getter.ClientModeAny
+				if err := client.Get(); err != nil {
+					return fmt.Errorf("Unable to download Salt formula from %s: %s", i, err)
+				}
+			} else {
+				o.Output(fmt.Sprintf("Found existing formula at: %s", path))
+			}
+		}
+	}
+
 	o.Output(fmt.Sprintf("Uploading local state tree: %s", p.LocalStateTree))
 	src = p.LocalStateTree
 	dst = filepath.ToSlash(filepath.Join(p.TempConfigDir, "states"))
@@ -229,6 +265,16 @@ func applyFn(ctx context.Context) error {
 	}
 	if err = p.moveFile(o, comm, dst, src); err != nil {
 		return fmt.Errorf("Unable to move %s/states to %s: %s", p.TempConfigDir, dst, err)
+	}
+
+	// Remove the local Salt formulas if present
+	if p.Formulas != nil {
+		for _, f := range formulas {
+			if _, err := os.Stat(f); !os.IsNotExist(err) && f != p.LocalStateTree {
+				o.Output(fmt.Sprintf("Removing Salt formula: %s", f))
+				defer os.RemoveAll(f)
+			}
+		}
 	}
 
 	if p.LocalPillarRoots != "" {
@@ -396,6 +442,22 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 		es = append(es, err)
 	}
 
+	// Validate formula URL format if present
+	var formulas []string
+	f, ok := c.Get("formulas")
+	if !ok {
+		formulas = nil
+	} else {
+		formulas = getStringList(f)
+	}
+	if formulas != nil && len(formulas) > 0 {
+
+		validURLs := hasValidFormulaURLs(formulas)
+		if !validURLs {
+			es = append(es, fmt.Errorf("Invalid formula URL. Please verify the git URLs also contains a '//' subdir"))
+		}
+	}
+
 	var localPillarRoots string
 	localPillarRootsTmp, ok := c.Get("local_pillar_roots")
 	if !ok {
@@ -465,6 +527,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		RemotePillarRoots: d.Get("remote_pillar_roots").(string),
 		RemoteStateTree:   d.Get("remote_state_tree").(string),
 		LocalPillarRoots:  d.Get("local_pillar_roots").(string),
+		Formulas:          getStringList(d.Get("formulas")),
 	}
 
 	// build the command line args to pass onto salt
@@ -521,5 +584,35 @@ func copyOutput(
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
+	}
+}
+
+func hasValidFormulaURLs(s []string) bool {
+	re := regexp.MustCompile(`^(.*).git\/\/[a-zA-Z0-9-_]+(\?.*)?$`)
+
+	for _, u := range s {
+		if !re.MatchString(u) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func getStringList(v interface{}) []string {
+	var result []string
+
+	switch v := v.(type) {
+	case nil:
+		return result
+	case []interface{}:
+		for _, vv := range v {
+			if vv, ok := vv.(string); ok {
+				result = append(result, vv)
+			}
+		}
+		return result
+	default:
+		panic(fmt.Sprintf("Unsupported type: %T", v))
 	}
 }
