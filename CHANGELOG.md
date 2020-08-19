@@ -12,6 +12,7 @@ BUG FIXES:
 * cli: The state lock will now be unlocked consistently across both the local and remote backends in the `terraform console` and `terraform import` commands. [GH-25454] 
 * cli: The `-target` option to `terraform plan` and `terraform apply` now correctly handles addresses containing module instance indexes. [GH-25760]
 * cli: `terraform state mv` can now move the last resource from a module without panicking. [GH-25523]
+* cli: If the output of `terraform version` contains an outdated version notice, this is now printed after the version number and not before. [GH-25811]
 * core: State snapshots now use a consistent ordering for resources that have the same name across different modules. Previously the ordering was undefined. [GH-25498]
 * core: A `dynamic` block producing an unknown number of blocks will no longer incorrectly produce the error "Provider produced inconsistent final plan" when the block type is backed by a set of objects. [GH-25662]
 * core: Terraform will now silently drop attributes that appear in the state but are not present in the corresponding resource type schema, on the assumption that those attributes existed in a previous version of the provider and have now been removed. [GH-25779]
