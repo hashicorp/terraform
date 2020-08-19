@@ -62,9 +62,10 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		if ev, ok := v.(GraphNodeExecutable); ok {
 			log.Printf("[TRACE] vertex %q: executing", dag.VertexName(v))
 			execDiags := ev.Execute(vertexCtx)
+			// This is loosely equivalent to where Eval would capture and ignore an EarlyExitError{} (eval.go)
 			diags = diags.Append(execDiags)
 			if diags.HasErrors() {
-				return
+
 			}
 		}
 

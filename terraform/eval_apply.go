@@ -416,6 +416,7 @@ type EvalMaybeTainted struct {
 }
 
 func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
+
 	if n.State == nil || n.Change == nil || n.Error == nil {
 		return nil, nil
 	}
