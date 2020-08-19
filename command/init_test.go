@@ -1343,6 +1343,13 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
 	}
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
+	}
 }
 
 func TestInit_providerLockFile(t *testing.T) {
