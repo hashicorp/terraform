@@ -35,10 +35,10 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 2 {
+	if len(args) > 1 {
 		c.Ui.Error(
-			"The show command expects at most two arguments.\n The path to a " +
-				"Terraform state or plan file, and optionally -json for json output.\n")
+			"The show command expects at most one arguments.\n The path to a " +
+				"Terraform state or plan file.\n")
 		cmdFlags.Usage()
 		return 1
 	}
