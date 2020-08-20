@@ -92,3 +92,8 @@ Optional:
 
 -   `salt_bin_dir` (string) - Path to the `salt-call` executable. Useful if it is not
     on the PATH.
+
+-   `formulas` (array) - An array of git source formulas to be downloaded to the local
+    state tree prior to moving to the remote state tree. Note: `//directory` must be included in
+    the URL to download the appropriate formula directory. Example:
+    `git::https://github.com/saltstack-formulas/vault-formula.git//vault?ref=v1.2.3`

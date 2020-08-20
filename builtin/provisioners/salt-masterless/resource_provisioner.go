@@ -267,16 +267,6 @@ func applyFn(ctx context.Context) error {
 		return fmt.Errorf("Unable to move %s/states to %s: %s", p.TempConfigDir, dst, err)
 	}
 
-	// Remove the local Salt formulas if present
-	if p.Formulas != nil {
-		for _, f := range formulas {
-			if _, err := os.Stat(f); !os.IsNotExist(err) && f != p.LocalStateTree {
-				o.Output(fmt.Sprintf("Removing Salt formula: %s", f))
-				defer os.RemoveAll(f)
-			}
-		}
-	}
-
 	if p.LocalPillarRoots != "" {
 		o.Output(fmt.Sprintf("Uploading local pillar roots: %s", p.LocalPillarRoots))
 		src = p.LocalPillarRoots
@@ -317,6 +307,16 @@ func applyFn(ctx context.Context) error {
 	if err := cmd.Wait(); err != nil {
 		return err
 	}
+
+	// Notify re: the local Salt formulas if present
+	if p.Formulas != nil {
+		for _, f := range formulas {
+			if _, err := os.Stat(f); !os.IsNotExist(err) && f != p.LocalStateTree {
+				o.Output(fmt.Sprintf("Salt formula remaining: %s", f))
+			}
+		}
+	}
+
 	return nil
 }
 
