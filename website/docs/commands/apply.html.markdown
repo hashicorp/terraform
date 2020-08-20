@@ -57,7 +57,10 @@ The command-line flags are all optional. The list of available flags are:
   apply.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](/docs/state/remote.html) is used. This setting
+  does not persist and other commands, such as init, may not be aware of the
+  alternate statefile. To configure an alternate statefile path which is
+  available to all terraform commands, use the [local backend](/docs/state/local.html).
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
