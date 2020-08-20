@@ -14,3 +14,6 @@ coverage:
       default:
         target: auto
         threshold: "0.5%"
+
+github_checks:
+    annotations: false
