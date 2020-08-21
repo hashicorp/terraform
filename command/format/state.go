@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -26,6 +27,9 @@ type StateOpts struct {
 
 	// Color is the colorizer. This is optional.
 	Color *colorstring.Colorize
+
+	// The formatted output only contains input information. This is optional.
+	InputOnly bool
 }
 
 // State takes a state and returns a string
@@ -52,30 +56,32 @@ func State(opts *StateOpts) string {
 
 	// Format all the modules
 	for _, m := range s.Modules {
-		formatStateModule(p, m, opts.Schemas)
+		formatStateModule(p, m, opts.Schemas, opts.InputOnly)
 	}
 
 	// Write the outputs for the root module
 	m := s.RootModule()
 
-	if m.OutputValues != nil {
-		if len(m.OutputValues) > 0 {
-			p.buf.WriteString("Outputs:\n\n")
-		}
+	if !opts.InputOnly {
+		if m.OutputValues != nil {
+			if len(m.OutputValues) > 0 {
+				p.buf.WriteString("Outputs:\n\n")
+			}
 
-		// Sort the outputs
-		ks := make([]string, 0, len(m.OutputValues))
-		for k := range m.OutputValues {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
+			// Sort the outputs
+			ks := make([]string, 0, len(m.OutputValues))
+			for k := range m.OutputValues {
+				ks = append(ks, k)
+			}
+			sort.Strings(ks)
 
-		// Output each output k/v pair
-		for _, k := range ks {
-			v := m.OutputValues[k]
-			p.buf.WriteString(fmt.Sprintf("%s = ", k))
-			p.writeValue(v.Value, plans.NoOp, 0)
-			p.buf.WriteString("\n")
+			// Output each output k/v pair
+			for _, k := range ks {
+				v := m.OutputValues[k]
+				p.buf.WriteString(fmt.Sprintf("%s = ", k))
+				p.writeValue(v.Value, plans.NoOp, 0)
+				p.buf.WriteString("\n")
+			}
 		}
 	}
 
@@ -86,7 +92,7 @@ func State(opts *StateOpts) string {
 
 }
 
-func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraform.Schemas) {
+func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraform.Schemas, inputOnly bool) {
 	// First get the names of all the resources so we can show them
 	// in alphabetical order.
 	names := make([]string, 0, len(m.Resources))
@@ -195,6 +201,17 @@ func formatStateModule(p blockBodyDiffPrinter, m *states.Module, schemas *terraf
 				if err != nil {
 					fmt.Println(err.Error())
 					break
+				}
+				if inputOnly {
+					schema = schema.NoneComputed()
+					if schema == nil {
+						continue
+					}
+					val.Value, err = convert.Convert(val.Value, schema.ImpliedType())
+					if err != nil {
+						fmt.Println(err.Error())
+						break
+					}
 				}
 
 				path := make(cty.Path, 0, 3)

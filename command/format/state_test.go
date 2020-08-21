@@ -41,11 +41,29 @@ func TestState(t *testing.T) {
 		},
 		{
 			&StateOpts{
+				State:     basicState(t),
+				Color:     disabledColorize,
+				Schemas:   testSchemas(),
+				InputOnly: true,
+			},
+			basicStateInputOnlyOutput,
+		},
+		{
+			&StateOpts{
 				State:   nestedState(t),
 				Color:   disabledColorize,
 				Schemas: testSchemas(),
 			},
 			nestedStateOutput,
+		},
+		{
+			&StateOpts{
+				State:     nestedState(t),
+				Color:     disabledColorize,
+				Schemas:   testSchemas(),
+				InputOnly: true,
+			},
+			nestedStateInputOnlyOutput,
 		},
 		{
 			&StateOpts{
@@ -57,6 +75,15 @@ func TestState(t *testing.T) {
 		},
 		{
 			&StateOpts{
+				State:     deposedState(t),
+				Color:     disabledColorize,
+				Schemas:   testSchemas(),
+				InputOnly: true,
+			},
+			deposedNestedStateInputOnlyOutput,
+		},
+		{
+			&StateOpts{
 				State:   onlyDeposedState(t),
 				Color:   disabledColorize,
 				Schemas: testSchemas(),
@@ -65,11 +92,29 @@ func TestState(t *testing.T) {
 		},
 		{
 			&StateOpts{
+				State:     onlyDeposedState(t),
+				Color:     disabledColorize,
+				Schemas:   testSchemas(),
+				InputOnly: true,
+			},
+			onlyDeposedInputOnlyOutput,
+		},
+		{
+			&StateOpts{
 				State:   stateWithMoreOutputs(t),
 				Color:   disabledColorize,
 				Schemas: testSchemas(),
 			},
 			stateWithMoreOutputsOutput,
+		},
+		{
+			&StateOpts{
+				State:     stateWithMoreOutputs(t),
+				Color:     disabledColorize,
+				Schemas:   testSchemas(),
+				InputOnly: true,
+			},
+			stateWithMoreOutputsInputOnlyOutput,
 		},
 	}
 
@@ -110,14 +155,23 @@ func testProviderSchema() *terraform.ProviderSchema {
 					"id":      {Type: cty.String, Computed: true},
 					"foo":     {Type: cty.String, Optional: true},
 					"woozles": {Type: cty.String, Optional: true},
+					"output_block": {
+						Type: cty.List(
+							cty.Object(map[string]cty.Type{
+								"a": cty.String},
+							),
+						),
+						Computed: true,
+					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"nested": {
 						Nesting: configschema.NestingList,
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
-								"compute": {Type: cty.String, Optional: true},
-								"value":   {Type: cty.String, Optional: true},
+								"compute":  {Type: cty.String, Optional: true},
+								"value":    {Type: cty.String, Optional: true},
+								"computed": {Type: cty.String, Computed: true},
 							},
 						},
 					},
@@ -127,8 +181,9 @@ func testProviderSchema() *terraform.ProviderSchema {
 		DataSources: map[string]*configschema.Block{
 			"test_data_source": {
 				Attributes: map[string]*configschema.Attribute{
-					"compute": {Type: cty.String, Optional: true},
-					"value":   {Type: cty.String, Computed: true},
+					"compute":  {Type: cty.String, Optional: true},
+					"value":    {Type: cty.String, Computed: true},
+					"computed": {Type: cty.String, Computed: true},
 				},
 			},
 		},
@@ -159,7 +214,32 @@ Outputs:
 
 bar = "bar value"`
 
+const basicStateInputOnlyOutput = `# data.test_data_source.data:
+data "test_data_source" "data" {
+    compute = "sure"
+}
+
+# test_resource.baz[0]:
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+}`
+
 const nestedStateOutput = `# test_resource.baz[0]:
+resource "test_resource" "baz" {
+    output_block = [
+        {
+            a = "44"
+        },
+    ]
+    woozles      = "confuzles"
+
+    nested {
+        computed = "43"
+        value    = "42"
+    }
+}`
+
+const nestedStateInputOnlyOutput = `# test_resource.baz[0]:
 resource "test_resource" "baz" {
     woozles = "confuzles"
 
@@ -169,6 +249,36 @@ resource "test_resource" "baz" {
 }`
 
 const deposedNestedStateOutput = `# test_resource.baz[0]:
+resource "test_resource" "baz" {
+    output_block = [
+        {
+            a = "44"
+        },
+    ]
+    woozles      = "confuzles"
+
+    nested {
+        computed = "43"
+        value    = "42"
+    }
+}
+
+# test_resource.baz[0]: (deposed object 1234)
+resource "test_resource" "baz" {
+    output_block = [
+        {
+            a = "44"
+        },
+    ]
+    woozles      = "confuzles"
+
+    nested {
+        computed = "43"
+        value    = "42"
+    }
+}`
+
+const deposedNestedStateInputOnlyOutput = `# test_resource.baz[0]:
 resource "test_resource" "baz" {
     woozles = "confuzles"
 
@@ -187,6 +297,37 @@ resource "test_resource" "baz" {
 }`
 
 const onlyDeposedOutput = `# test_resource.baz[0]:
+# test_resource.baz[0]: (deposed object 1234)
+resource "test_resource" "baz" {
+    output_block = [
+        {
+            a = "44"
+        },
+    ]
+    woozles      = "confuzles"
+
+    nested {
+        computed = "43"
+        value    = "42"
+    }
+}
+
+# test_resource.baz[0]: (deposed object 5678)
+resource "test_resource" "baz" {
+    output_block = [
+        {
+            a = "44"
+        },
+    ]
+    woozles      = "confuzles"
+
+    nested {
+        computed = "43"
+        value    = "42"
+    }
+}`
+
+const onlyDeposedInputOnlyOutput = `# test_resource.baz[0]:
 # test_resource.baz[0]: (deposed object 1234)
 resource "test_resource" "baz" {
     woozles = "confuzles"
@@ -221,6 +362,11 @@ map_var = {
 }
 sensitive_var = "secret!!!"
 string_var = "string value"`
+
+const stateWithMoreOutputsInputOnlyOutput = `# test_resource.baz[0]:
+resource "test_resource" "baz" {
+    woozles = "confuzles"
+}`
 
 func basicState(t *testing.T) *states.State {
 	state := states.NewState()
@@ -320,7 +466,7 @@ func nestedState(t *testing.T) *states.State {
 		&states.ResourceInstanceObjectSrc{
 			Status:        states.ObjectReady,
 			SchemaVersion: 1,
-			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42", "computed": "43"}], "output_block": [{"a": "44"}]}`),
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
@@ -343,7 +489,7 @@ func deposedState(t *testing.T) *states.State {
 		&states.ResourceInstanceObjectSrc{
 			Status:        states.ObjectReady,
 			SchemaVersion: 1,
-			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42", "computed": "43"}], "output_block": [{"a": "44"}]}`),
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
@@ -372,7 +518,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 		&states.ResourceInstanceObjectSrc{
 			Status:        states.ObjectReady,
 			SchemaVersion: 1,
-			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42", "computed": "43"}], "output_block": [{"a": "44"}]}`),
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),
@@ -389,7 +535,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 		&states.ResourceInstanceObjectSrc{
 			Status:        states.ObjectReady,
 			SchemaVersion: 1,
-			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
+			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42", "computed": "43"}], "output_block": [{"a": "44"}]}`),
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewLegacyProvider("test"),

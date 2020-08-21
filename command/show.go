@@ -27,7 +27,9 @@ func (c *ShowCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("show")
 	var jsonOutput bool
+	var inputOnly bool
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+	cmdFlags.BoolVar(&inputOnly, "input", false, "don't show the output attributes")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -181,9 +183,10 @@ func (c *ShowCommand) Run(args []string) int {
 			return 0
 		}
 		c.Ui.Output(format.State(&format.StateOpts{
-			State:   stateFile.State,
-			Color:   c.Colorize(),
-			Schemas: schemas,
+			State:     stateFile.State,
+			Color:     c.Colorize(),
+			Schemas:   schemas,
+			InputOnly: inputOnly,
 		}))
 	}
 
