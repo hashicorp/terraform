@@ -226,6 +226,11 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			resp.WriteHeader(200)
 			// This response is used for testing LookupLegacyProvider
 			resp.Write([]byte(`{"id":"legacycorp/legacy"}`))
+		case "-/moved":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This response is used for testing LookupLegacyProvider
+			resp.Write([]byte(`{"id":"hashicorp/moved","moved_to":"acme/moved"}`))
 		case "-/changetype":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
