@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +17,11 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
+	backendInit "github.com/hashicorp/terraform/backend/init"
+	tfeserver "github.com/hashicorp/terraform/command/testdata/login-tfe-server"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -427,6 +432,66 @@ func TestInit_backendConfigFile(t *testing.T) {
 		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":null,"workspace_dir":null}`; got != want {
 			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
+func TestInit_backendConfigFileRemote(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-file-remote"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// tfeserver.Handler is a stub TFE API implementation which is just enough
+	// to initialize the remote backend
+	ts := httptest.NewServer(tfeserver.Handler)
+	defer ts.Close()
+	svcs := disco.New()
+	svcs.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
+		"tfe.v2":   ts.URL + "/api/v2",
+		"tfe.v2.1": ts.URL + "/api/v2",
+		"tfe.v2.2": ts.URL + "/api/v2",
+	})
+	backendInit.Init(svcs)
+
+	t.Run("good-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				Services:         svcs,
+			},
+		}
+		args := []string{"-backend-config", "backend.hcl"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		// Read our saved backend config and verify we have our settings
+		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"hostname":"example.com","organization":"hashicorp","token":"good-token","workspaces":{"name":"foo","prefix":null}}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	// the backend config file must match the schema for the backend
+	t.Run("invalid-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				Services:         svcs,
+			},
+		}
+		args := []string{"-backend-config", "invalid.hcl"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported block type") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
 		}
 	})
 }
