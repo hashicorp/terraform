@@ -11648,3 +11648,112 @@ output "output" {
 		t.Fatalf("destroy apply errors: %s", diags.Err())
 	}
 }
+
+// Destroying properly requires pruning out all unneeded config nodes to
+// prevent incorrect expansion evaluation.
+func TestContext2Apply_destroyInterModuleExpansion(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "a" {
+  for_each = {
+    one = "thing"
+  }
+}
+
+locals {
+  module_input = {
+    for k, v in data.test_data_source.a : k => v.id
+  }
+}
+
+module "mod1" {
+  source = "./mod"
+  input = local.module_input
+}
+
+module "mod2" {
+  source = "./mod"
+  input = module.mod1.outputs
+}
+
+resource "test_instance" "bar" {
+  for_each = module.mod2.outputs
+}
+
+output "module_output" {
+  value = module.mod2.outputs
+}
+output "test_instances" {
+  value = test_instance.bar
+}
+`,
+		"mod/main.tf": `
+variable "input" {
+}
+
+data "test_data_source" "foo" {
+  for_each = var.input
+}
+
+output "outputs" {
+  value = data.test_data_source.foo
+}
+`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("data_source"),
+				"foo": cty.StringVal("output"),
+			}),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+
+	destroy := func() {
+		ctx = testContext2(t, &ContextOpts{
+			Config: m,
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+
+			State:   state,
+			Destroy: true,
+		})
+
+		if _, diags := ctx.Refresh(); diags.HasErrors() {
+			t.Fatalf("destroy plan errors: %s", diags.Err())
+		}
+
+		if _, diags := ctx.Plan(); diags.HasErrors() {
+			t.Fatalf("destroy plan errors: %s", diags.Err())
+		}
+
+		state, diags = ctx.Apply()
+		if diags.HasErrors() {
+			t.Fatalf("destroy apply errors: %s", diags.Err())
+		}
+	}
+
+	destroy()
+	// Destroying again from the empty state should not cause any errors either
+	destroy()
+}
