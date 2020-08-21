@@ -6,14 +6,21 @@ linters:
   disable-all: true
   enable:
     - deadcode
+    - dogsled
     - errcheck
+    - goconst
     - gofmt
+    - gomnd
     - gosimple
     - ineffassign
+    - interfacer
     - misspell
+    - scopelint
     - staticcheck
     - structcheck
     - unconvert
+    - unparam
     - unused
+    - typecheck
     - varcheck
     - vet

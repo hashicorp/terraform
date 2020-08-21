@@ -5882,3 +5882,332 @@ output"out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Plan_targetExpandedAddress(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  count = 2
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	targets := []addrs.Targetable{}
+	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo[0]")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	targets = append(targets, target.Subject)
+
+	target, diags = addrs.ParseTargetStr("module.mod[2]")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	targets = append(targets, target.Subject)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: targets,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		// the single targeted mod[1] instances
+		`module.mod[1].aws_instance.foo[0]`: plans.Create,
+		// the whole mode[2]
+		`module.mod[2].aws_instance.foo[0]`: plans.Create,
+		`module.mod[2].aws_instance.foo[1]`: plans.Create,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
+func TestContext2Plan_targetResourceInModuleInstance(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	targets := []addrs.Targetable{target.Subject}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: targets,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		// the single targeted mod[1] instance
+		`module.mod[1].aws_instance.foo`: plans.Create,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
+func TestContext2Plan_moduleRefIndex(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  for_each = {
+    a = "thing"
+  }
+  in = null
+  source = "./mod"
+}
+
+module "single" {
+  source = "./mod"
+  in = module.mod["a"]
+}
+`,
+		"mod/main.tf": `
+variable "in" {
+}
+
+output "out" {
+  value = "foo"
+}
+
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Plan_noChangeDataPlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "foo" {}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetSchemaReturn = &ProviderSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("data.test_data_source.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"data_id", "foo":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.NoOp {
+			t.Fatalf("expected NoOp, got: %q %s", res.Addr, res.Action)
+		}
+	}
+}
+
+// for_each can reference a resource with 0 instances
+func TestContext2Plan_scaleInForEach(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  m = {}
+}
+
+resource "test_instance" "a" {
+  for_each = local.m
+}
+
+resource "test_instance" "b" {
+  for_each = test_instance.a
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a0"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Plan_targetedModuleInstance(t *testing.T) {
+	m := testModule(t, "plan-targeted")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Child("mod", addrs.IntKey(0)),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.mod[0].aws_instance.foo":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"num":  cty.NumberIntVal(2),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+}

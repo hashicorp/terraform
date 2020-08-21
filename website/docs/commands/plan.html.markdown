@@ -8,6 +8,8 @@ description: |-
 
 # Command: plan
 
+> For a hands-on tutorial, try the [Get Started](https://learn.hashicorp.com/terraform/getting-started/intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 The `terraform plan` command is used to create an execution plan. Terraform
 performs a refresh, unless explicitly disabled, and then determines what
 actions are necessary to achieve the desired state specified in the

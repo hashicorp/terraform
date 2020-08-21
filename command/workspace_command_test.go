@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -265,7 +264,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 	}
 
 	newPath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
-	envState := state.LocalState{Path: newPath}
+	envState := statemgr.NewFilesystem(newPath)
 	err = envState.RefreshState()
 	if err != nil {
 		t.Fatal(err)
@@ -364,9 +363,12 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		},
 	}
 
-	envStatePath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
-	err := (&state.LocalState{Path: envStatePath}).WriteState(originalState)
+	f, err := os.Create(filepath.Join(local.DefaultWorkspaceDir, "test", "terraform.tfstate"))
 	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := terraform.WriteState(originalState, f); err != nil {
 		t.Fatal(err)
 	}
 

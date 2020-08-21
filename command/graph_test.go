@@ -20,7 +20,7 @@ func TestGraph(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -33,7 +33,7 @@ func TestGraph(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider["registry.terraform.io/hashicorp/test"]`) {
+	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }
@@ -42,7 +42,7 @@ func TestGraph_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -69,7 +69,7 @@ func TestGraph_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -80,7 +80,7 @@ func TestGraph_noArgs(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider["registry.terraform.io/hashicorp/test"]`) {
+	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }
@@ -94,7 +94,7 @@ func TestGraph_noConfig(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -148,7 +148,7 @@ func TestGraph_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -161,7 +161,7 @@ func TestGraph_plan(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider["registry.terraform.io/hashicorp/test"]`) {
+	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }

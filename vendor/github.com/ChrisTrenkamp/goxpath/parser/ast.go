@@ -27,12 +27,12 @@ var beginPathType = map[lexer.XItemType]bool{
 func (n *Node) add(i lexer.XItem) {
 	if n.Val.Typ == Empty {
 		n.Val = i
-	} else if n.Left == nil {
+	} else if n.Left == nil && n.Right == nil {
 		n.Left = &Node{Val: n.Val, Parent: n}
 		n.Val = i
 	} else if beginPathType[n.Val.Typ] {
-		next := &Node{Val: n.Val, Left: n.Left, Parent: n}
-		n.Left = next
+		next := &Node{Val: n.Val, Left: n.Left, Right: n.Right, Parent: n}
+		n.Left, n.Right = next, nil
 		n.Val = i
 	} else if n.Right == nil {
 		n.Right = &Node{Val: i, Parent: n}

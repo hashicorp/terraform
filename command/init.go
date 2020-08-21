@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 
@@ -137,6 +138,7 @@ func (c *InitCommand) Run(args []string) int {
 	empty, err := configs.IsEmptyDir(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if empty {
@@ -144,39 +146,41 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	// Before we do anything else, we'll try loading configuration with both
-	// our "normal" and "early" configuration codepaths. If early succeeds
-	// while normal fails, that strongly suggests that the configuration is
-	// using syntax that worked in 0.11 but no longer in v0.12.
+	// For Terraform v0.12 we introduced a special loading mode where we would
+	// use the 0.11-syntax-compatible "earlyconfig" package as a heuristic to
+	// identify situations where it was likely that the user was trying to use
+	// 0.11-only syntax that the upgrade tool might help with.
+	//
+	// However, as the language has moved on that is no longer a suitable
+	// heuristic in Terraform 0.13 and later: other new additions to the
+	// language can cause the main loader to disagree with earlyconfig, which
+	// would lead us to give poor advice about how to respond.
+	//
+	// For that reason, we no longer use a different error message in that
+	// situation, but for now we still use both codepaths because some of our
+	// initialization functionality remains built around "earlyconfig" and
+	// so we need to still load the module via that mechanism anyway until we
+	// can do some more invasive refactoring here.
 	rootMod, confDiags := c.loadSingleModule(path)
 	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
 	if confDiags.HasErrors() {
-		if earlyConfDiags.HasErrors() {
-			// If both parsers produced errors then we'll assume the config
-			// is _truly_ invalid and produce error messages as normal.
-			// Since this may be the user's first ever interaction with Terraform,
-			// we'll provide some additional context in this case.
-			c.Ui.Error(strings.TrimSpace(errInitConfigError))
-			diags = diags.Append(confDiags)
-			c.showDiagnostics(diags)
-			return 1
-		}
-		// If _only_ the main loader produced errors then that suggests the
-		// configuration is written in 0.11-style syntax. We will return an
-		// error suggesting the user upgrade their config manually or with
-		// Terraform v0.12
-		c.Ui.Error(strings.TrimSpace(errInitConfigErrorMaybeLegacySyntax))
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
+		// TODO: It would be nice to check the version constraints in
+		// rootModEarly.RequiredCore and print out a hint if the module is
+		// declaring that it's not compatible with this version of Terraform,
+		// though we're deferring that for now because we're intending to
+		// refactor our use of "earlyconfig" here anyway and so whatever we
+		// might do here right now would likely be invalidated by that.
 		c.showDiagnostics(confDiags)
 		return 1
 	}
-
 	// If _only_ the early loader encountered errors then that's unusual
 	// (it should generally be a superset of the normal loader) but we'll
 	// return those errors anyway since otherwise we'll probably get
 	// some weird behavior downstream. Errors from the early loader are
 	// generally not as high-quality since it has less context to work with.
 	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		// Errors from the early loader are generally not as high-quality since
 		// it has less context to work with.
 		diags = diags.Append(confDiags)
@@ -515,6 +519,44 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 						),
 					))
 				}
+			case getproviders.ErrHostNoProviders:
+				switch {
+				case errorTy.Hostname == svchost.Hostname("github.com") && !errorTy.HasOtherVersion:
+					// If a user copies the URL of a GitHub repository into
+					// the source argument and removes the schema to make it
+					// provider-address-shaped then that's one way we can end up
+					// here. We'll use a specialized error message in anticipation
+					// of that mistake. We only do this if github.com isn't a
+					// provider registry, to allow for the (admittedly currently
+					// rather unlikely) possibility that github.com starts being
+					// a real Terraform provider registry in the future.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a Terraform provider. Refer to the documentation of the provider to find the correct source address to use.",
+							provider.String(),
+						),
+					))
+
+				case errorTy.HasOtherVersion:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider registry host",
+						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry.",
+							errorTy.Hostname, provider.String(),
+						),
+					))
+				}
+
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -525,6 +567,21 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				))
 			}
 
+		},
+		QueryPackagesWarning: func(provider addrs.Provider, warnings []string) {
+			displayWarnings := make([]string, len(warnings))
+			for i, warning := range warnings {
+				displayWarnings[i] = fmt.Sprintf("- %s", warning)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Additional provider information from registry",
+				fmt.Sprintf("The remote registry returned warnings for %s:\n%s",
+					provider.String(),
+					strings.Join(displayWarnings, "\n"),
+				),
+			))
 		},
 		LinkFromCacheFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -596,6 +653,18 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					"https://www.terraform.io/docs/plugins/signing.html"))
 			}
 		},
+		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to validate installed provider",
+				fmt.Sprintf(
+					"Validating provider %s v%s failed: %s",
+					provider.ForDisplay(),
+					version,
+					err,
+				),
+			))
+		},
 	}
 
 	mode := providercache.InstallNewProvidersOnly
@@ -607,6 +676,12 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	ctx := evts.OnContext(context.TODO())
 	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
 	if err != nil {
+		// Build a map of provider address to modules using the provider,
+		// so that we can later show diagnostics about affected modules
+		reqs, _ := config.ProviderRequirementsByModule()
+		providerToReqs := make(map[addrs.Provider][]*configs.ModuleRequirements)
+		c.populateProviderToReqs(providerToReqs, reqs)
+
 		// Try to look up any missing providers which may be redirected legacy
 		// providers. If we're successful, construct a "did you mean?" diag to
 		// suggest how to fix this. Otherwise, add a simple error diag
@@ -627,14 +702,63 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			}
 		}
 		if len(foundProviders) > 0 {
+			// Build list of provider suggestions, and track a list of local
+			// and remote modules which need to be upgraded
 			var providerSuggestions string
+			localModules := make(map[string]struct{})
+			remoteModules := make(map[*configs.ModuleRequirements]struct{})
 			for missingProvider, foundProvider := range foundProviders {
 				providerSuggestions += fmt.Sprintf("  %s -> %s\n", missingProvider.ForDisplay(), foundProvider.ForDisplay())
+				exists := struct{}{}
+				for _, reqs := range providerToReqs[missingProvider] {
+					src := reqs.SourceAddr
+					// Treat the root module and any others with local source
+					// addresses as fixable with 0.13upgrade. Remote modules
+					// must be upgraded elsewhere and therefore are listed
+					// separately
+					if src == "" || isLocalSourceAddr(src) {
+						localModules[reqs.SourceDir] = exists
+					} else {
+						remoteModules[reqs] = exists
+					}
+				}
 			}
+
+			// Create sorted list of 0.13upgrade commands with the affected
+			// source dirs
+			var upgradeCommands []string
+			for dir := range localModules {
+				upgradeCommands = append(upgradeCommands, fmt.Sprintf("terraform 0.13upgrade %s", dir))
+			}
+			sort.Strings(upgradeCommands)
+			command := "command"
+			if len(upgradeCommands) > 1 {
+				command = "commands"
+			}
+
+			// Display detailed diagnostic results, including the missing and
+			// found provider FQNs, and the suggested series of upgrade
+			// commands to fix this
+			var detail strings.Builder
+
+			fmt.Fprintf(&detail, "Could not find required providers, but found possible alternatives:\n\n%s\n", providerSuggestions)
+
+			fmt.Fprintf(&detail, "If these suggestions look correct, upgrade your configuration with the following %s:", command)
+			for _, upgradeCommand := range upgradeCommands {
+				fmt.Fprintf(&detail, "\n    %s", upgradeCommand)
+			}
+
+			if len(remoteModules) > 0 {
+				fmt.Fprintf(&detail, "\n\nThe following remote modules must also be upgraded for Terraform 0.13 compatibility:")
+				for remoteModule := range remoteModules {
+					fmt.Fprintf(&detail, "\n- module.%s at %s", remoteModule.Name, remoteModule.SourceAddr)
+				}
+			}
+
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install providers",
-				fmt.Sprintf("Could not find required providers, but found possible alternatives:\n\n%s\nIf these suggestions look correct, upgrade your configuration with the following command:\n    terraform 0.13upgrade", providerSuggestions),
+				detail.String(),
 			))
 		}
 
@@ -673,6 +797,16 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	}
 
 	return true, diags
+}
+
+func (c *InitCommand) populateProviderToReqs(reqs map[addrs.Provider][]*configs.ModuleRequirements, node *configs.ModuleRequirements) {
+	for fqn := range node.Requirements {
+		reqs[fqn] = append(reqs[fqn], node)
+	}
+
+	for _, child := range node.Children {
+		c.populateProviderToReqs(reqs, child)
+	}
 }
 
 // backendConfigOverrideBody interprets the raw values of -backend-config
@@ -722,6 +856,18 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 			// The value is interpreted as a filename.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
+			// Verify that the file contains only key-values pairs, and not a
+			// full backend config block. JustAttributes() will return an error
+			// if blocks are found
+			_, attrDiags := newBody.JustAttributes()
+			if attrDiags.HasErrors() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid backend configuration file",
+					fmt.Sprintf("The backend configuration file %q given on the command line must contain key-value pairs only, and not configuration blocks.", item.Value),
+				))
+				continue
+			}
 			flushVals() // deal with any accumulated individual values first
 			mergeBody(newBody)
 		} else {
@@ -847,23 +993,10 @@ func (c *InitCommand) Synopsis() string {
 }
 
 const errInitConfigError = `
-There are some problems with the configuration, described below.
+[reset]There are some problems with the configuration, described below.
 
 The Terraform configuration must be valid before initialization so that
 Terraform can determine which modules and providers need to be installed.
-`
-
-const errInitConfigErrorMaybeLegacySyntax = `
-There are some problems with the configuration, described below.
-
-Terraform found syntax errors in the configuration that prevented full
-initialization. If you've recently upgraded to Terraform v0.13 from Terraform
-v0.11, this may be because your configuration uses syntax constructs that are no
-longer valid, and so must be updated before full initialization is possible.
-
-Manually update your configuration syntax, or install Terraform v0.12 and run
-terraform init for this configuration at a shell prompt for more information
-on how to update it for Terraform v0.12+ compatibility.
 `
 
 const errInitCopyNotEmpty = `
@@ -1045,3 +1178,20 @@ Alternatively, upgrade to the latest version of Terraform for compatibility with
 
 // No version of the provider is compatible.
 const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`
+
+// Logic from internal/initwd/getter.go
+var localSourcePrefixes = []string{
+	"./",
+	"../",
+	".\\",
+	"..\\",
+}
+
+func isLocalSourceAddr(addr string) bool {
+	for _, prefix := range localSourcePrefixes {
+		if strings.HasPrefix(addr, prefix) {
+			return true
+		}
+	}
+	return false
+}

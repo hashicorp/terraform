@@ -49,40 +49,6 @@ func TestContextImport_basic(t *testing.T) {
 	}
 }
 
-// Importing a resource which does not exist in the configuration results in an error
-func TestContextImport_basic_errpr(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "import-provider")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-	})
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-	}
-
-	_, diags := ctx.Import(&ImportOpts{
-		Targets: []*ImportTarget{
-			&ImportTarget{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
-					addrs.ManagedResourceMode, "aws_instance", "test", addrs.NoKey,
-				),
-				ID: "bar",
-			},
-		},
-	})
-
-	if !diags.HasErrors() {
-		t.Fatal("should error")
-	}
-}
-
 func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
@@ -324,73 +290,85 @@ func TestContextImport_providerModule(t *testing.T) {
 
 // Test that import will interpolate provider configuration and use
 // that configuration for import.
-func TestContextImport_providerVarConfig(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "import-provider-vars")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+func TestContextImport_providerConfig(t *testing.T) {
+	testCases := map[string]struct {
+		module string
+		value  string
+	}{
+		"variables": {
+			module: "import-provider-vars",
+			value:  "bar",
 		},
-		Variables: InputValues{
-			"foo": &InputValue{
-				Value:      cty.StringVal("bar"),
-				SourceType: ValueFromCaller,
-			},
-		},
-	})
-
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad value %#v; want %#v", v, "bar")
-		}
-
-		return nil
-	}
-
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+		"locals": {
+			module: "import-provider-locals",
+			value:  "baz-bar",
 		},
 	}
+	for name, test := range testCases {
+		t.Run(name, func(t *testing.T) {
+			p := testProvider("aws")
+			m := testModule(t, test.module)
+			ctx := testContext2(t, &ContextOpts{
+				Config: m,
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				},
+				Variables: InputValues{
+					"foo": &InputValue{
+						Value:      cty.StringVal("bar"),
+						SourceType: ValueFromCaller,
+					},
+				},
+			})
 
-	state, diags := ctx.Import(&ImportOpts{
-		Targets: []*ImportTarget{
-			&ImportTarget{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
-					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
-				),
-				ID: "bar",
-			},
-		},
-	})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
+			p.ImportStateReturn = []*InstanceState{
+				&InstanceState{
+					ID:        "foo",
+					Ephemeral: EphemeralState{Type: "aws_instance"},
+				},
+			}
 
-	if !configured {
-		t.Fatal("didn't configure provider")
-	}
+			state, diags := ctx.Import(&ImportOpts{
+				Targets: []*ImportTarget{
+					&ImportTarget{
+						Addr: addrs.RootModuleInstance.ResourceInstance(
+							addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+						),
+						ID: "bar",
+					},
+				},
+			})
+			if diags.HasErrors() {
+				t.Fatalf("unexpected errors: %s", diags.Err())
+			}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testImportStr)
-	if actual != expected {
-		t.Fatalf("bad: \n%s", actual)
+			if !p.ConfigureCalled {
+				t.Fatal("didn't configure provider")
+			}
+
+			if foo := p.ConfigureRequest.Config.GetAttr("foo").AsString(); foo != test.value {
+				t.Fatalf("bad value %#v; want %#v", foo, test.value)
+			}
+
+			actual := strings.TrimSpace(state.String())
+			expected := strings.TrimSpace(testImportStr)
+			if actual != expected {
+				t.Fatalf("bad: \n%s", actual)
+			}
+		})
 	}
 }
 
 // Test that provider configs can't reference resources.
-func TestContextImport_providerNonVarConfig(t *testing.T) {
+func TestContextImport_providerConfigResources(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider-non-vars")
+	pTest := testProvider("test")
+	m := testModule(t, "import-provider-resources")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("aws"):  testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(pTest),
 		},
 	})
 
@@ -413,6 +391,9 @@ func TestContextImport_providerNonVarConfig(t *testing.T) {
 	})
 	if !diags.HasErrors() {
 		t.Fatal("should error")
+	}
+	if got, want := diags.Err().Error(), `The configuration for provider["registry.terraform.io/hashicorp/aws"] depends on values that cannot be determined until apply.`; !strings.Contains(got, want) {
+		t.Errorf("wrong error\n got: %s\nwant: %s", got, want)
 	}
 }
 
@@ -527,7 +508,7 @@ func TestContextImport_module(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
 				ID: "bar",
@@ -565,7 +546,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).Child("nested", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
 				ID: "baz",
@@ -603,7 +584,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	state, diags := ctx.Import(&ImportOpts{
 		Targets: []*ImportTarget{
 			&ImportTarget{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
 				ID: "baz",
@@ -765,7 +746,7 @@ aws_instance.foo.0:
 
 const testImportModuleStr = `
 <no state>
-module.child:
+module.child[0]:
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
@@ -773,7 +754,7 @@ module.child:
 
 const testImportModuleDepth2Str = `
 <no state>
-module.child.nested:
+module.child[0].nested:
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]

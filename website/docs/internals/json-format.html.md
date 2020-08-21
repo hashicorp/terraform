@@ -66,9 +66,9 @@ For ease of consumption by callers, the plan representation includes a partial r
   // being applied to, using the state representation described above.
   "prior_state": <state-representation>,
 
-  // "config" is a representation of the configuration being applied to the
+  // "configuration" is a representation of the configuration being applied to the
   // prior state, using the configuration representation described above.
-  "config": <config-representation>,
+  "configuration": <configuration-representation>,
 
   // "planned_values" is a description of what is known so far of the outcome in
   // the standard value representation, with any as-yet-unknown values omitted.
@@ -206,7 +206,7 @@ The following example illustrates the structure of a `<values-representation>`:
         // resource, whose structure depends on the resource type schema. Any
         // unknown values are omitted or set to null, making them
         // indistinguishable from absent values; callers which need to distinguish
-        // unknown from unset must use the plan-specific or config-specific
+        // unknown from unset must use the plan-specific or configuration-specific
         // structures described in later sections.
         "values": {
           "id": "i-abc123",
@@ -379,7 +379,7 @@ Because the configuration models are produced at a stage prior to expression eva
         // "module" is a representation of the configuration of the child module
         // itself, using the same structure as the "root_module" object,
         // recursively describing the full module tree.
-        "module": <module-config-representation>,
+        "module": <module-configuration-representation>,
       }
     }
   }

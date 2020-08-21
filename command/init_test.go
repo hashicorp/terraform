@@ -17,12 +17,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -337,6 +335,52 @@ func TestInit_backendConfigFile(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	t.Run("good-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "input.config"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		// Read our saved backend config and verify we have our settings
+		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"hello","workspace_dir":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	// the backend config file must be a set of key-value pairs and not a full backend {} block
+	t.Run("invalid-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "backend.config"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Invalid backend configuration file") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+}
+
+func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
@@ -345,15 +389,22 @@ func TestInit_backendConfigFile(t *testing.T) {
 		},
 	}
 
-	args := []string{"-backend-config", "input.config"}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	// SUBTLE: when using -flag=value with Powershell, unquoted values are
+	// broken into separate arguments. This results in the init command
+	// interpreting the flags as an empty backend-config setting (which is
+	// semantically valid!) followed by a custom configuration path.
+	//
+	// Adding the "=" here forces this codepath to be checked, and it should
+	// result in an early exit with a diagnostic that the provided
+	// configuration file is not a diretory.
+	args := []string{"-backend-config=", "./input.config"}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
 	}
 
-	// Read our saved backend config and verify we have our settings
-	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"hello","workspace_dir":null}`; got != want {
-		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+	output := ui.ErrorWriter.String()
+	if got, want := output, `Module directory ./input.config does not exist`; !strings.Contains(got, want) {
+		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
 
@@ -825,12 +876,7 @@ func TestInit_getProvider(t *testing.T) {
 		// state.
 		s := terraform.NewState()
 		s.TFVersion = "100.1.0"
-		local := &state.LocalState{
-			Path: local.DefaultStateFilename,
-		}
-		if err := local.WriteState(s); err != nil {
-			t.Fatal(err)
-		}
+		testStateFileDefault(t, s)
 
 		ui := new(cli.MockUi)
 		m.Ui = ui
@@ -898,6 +944,67 @@ func TestInit_getProviderSource(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderInvalidPackage(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-provider-invalid-package"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	overrides := metaOverridesForProvider(testProvider())
+	ui := new(cli.MockUi)
+
+	// create a provider source which allows installing an invalid package
+	addr := addrs.MustParseProviderSourceString("invalid/package")
+	version := getproviders.MustParseVersion("1.0.0")
+	meta, close, err := getproviders.FakeInstallablePackageMeta(
+		addr,
+		version,
+		getproviders.VersionList{getproviders.MustParseVersion("5.0")},
+		getproviders.CurrentPlatform,
+		"terraform-package", // should be "terraform-provider-package"
+	)
+	defer close()
+	if err != nil {
+		t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), version, err)
+	}
+	providerSource := getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil)
+
+	m := Meta{
+		testingOverrides: overrides,
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{
+		"-backend=false", // should be possible to install plugins without backend init
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// invalid provider should be installed
+	packagePath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/invalid/package/1.0.0/%s/terraform-package", getproviders.CurrentPlatform)
+	if _, err := os.Stat(packagePath); os.IsNotExist(err) {
+		t.Fatal("provider 'invalid/package' not downloaded")
+	}
+
+	wantErrors := []string{
+		"Failed to validate installed provider",
+		"could not find executable file starting with terraform-provider-package",
+	}
+	got := ui.ErrorWriter.String()
+	for _, wantError := range wantErrors {
+		if !strings.Contains(got, wantError) {
+			t.Fatalf("missing error:\nwant: %q\n got: %q", wantError, got)
+		}
+	}
+}
+
 func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -951,14 +1058,19 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 
 	// error output is the main focus of this test
 	errOutput := ui.ErrorWriter.String()
-	if !strings.Contains(errOutput, "Error while installing hashicorp/frob:") {
-		t.Fatalf("expected error for installing hashicorp/frob: %s", errOutput)
+	errors := []string{
+		"Error while installing hashicorp/frob:",
+		"Could not find required providers, but found possible alternatives",
+		"hashicorp/baz -> terraform-providers/baz",
+		"terraform 0.13upgrade .",
+		"terraform 0.13upgrade child",
+		"The following remote modules must also be upgraded",
+		"- module.dicerolls at acme/bar/random",
 	}
-	if !strings.Contains(errOutput, "Could not find required providers, but found possible alternatives") {
-		t.Fatalf("expected required provider suggestions: %s", errOutput)
-	}
-	if !strings.Contains(errOutput, "hashicorp/baz -> terraform-providers/baz") {
-		t.Fatalf("expected suggestion for hashicorp/baz: %s", errOutput)
+	for _, want := range errors {
+		if !strings.Contains(errOutput, want) {
+			t.Fatalf("expected error %q: %s", want, errOutput)
+		}
 	}
 }
 
@@ -1002,26 +1114,23 @@ func TestInit_providerSource(t *testing.T) {
 	wantPackages := map[addrs.Provider][]providercache.CachedProvider{
 		addrs.NewDefaultProvider("test"): {
 			{
-				Provider:       addrs.NewDefaultProvider("test"),
-				Version:        getproviders.MustParseVersion("1.2.3"),
-				PackageDir:     expectedPackageInstallPath("test", "1.2.3", false),
-				ExecutableFile: expectedPackageInstallPath("test", "1.2.3", true),
+				Provider:   addrs.NewDefaultProvider("test"),
+				Version:    getproviders.MustParseVersion("1.2.3"),
+				PackageDir: expectedPackageInstallPath("test", "1.2.3", false),
 			},
 		},
 		addrs.NewDefaultProvider("test-beta"): {
 			{
-				Provider:       addrs.NewDefaultProvider("test-beta"),
-				Version:        getproviders.MustParseVersion("1.2.4"),
-				PackageDir:     expectedPackageInstallPath("test-beta", "1.2.4", false),
-				ExecutableFile: expectedPackageInstallPath("test-beta", "1.2.4", true),
+				Provider:   addrs.NewDefaultProvider("test-beta"),
+				Version:    getproviders.MustParseVersion("1.2.4"),
+				PackageDir: expectedPackageInstallPath("test-beta", "1.2.4", false),
 			},
 		},
 		addrs.NewDefaultProvider("source"): {
 			{
-				Provider:       addrs.NewDefaultProvider("source"),
-				Version:        getproviders.MustParseVersion("1.2.3"),
-				PackageDir:     expectedPackageInstallPath("source", "1.2.3", false),
-				ExecutableFile: expectedPackageInstallPath("source", "1.2.3", true),
+				Provider:   addrs.NewDefaultProvider("source"),
+				Version:    getproviders.MustParseVersion("1.2.3"),
+				PackageDir: expectedPackageInstallPath("source", "1.2.3", false),
 			},
 		},
 	}
@@ -1036,22 +1145,19 @@ func TestInit_providerSource(t *testing.T) {
 	}
 	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
 		addrs.NewDefaultProvider("test-beta"): {
-			Provider:       addrs.NewDefaultProvider("test-beta"),
-			Version:        getproviders.MustParseVersion("1.2.4"),
-			PackageDir:     expectedPackageInstallPath("test-beta", "1.2.4", false),
-			ExecutableFile: expectedPackageInstallPath("test-beta", "1.2.4", true),
+			Provider:   addrs.NewDefaultProvider("test-beta"),
+			Version:    getproviders.MustParseVersion("1.2.4"),
+			PackageDir: expectedPackageInstallPath("test-beta", "1.2.4", false),
 		},
 		addrs.NewDefaultProvider("test"): {
-			Provider:       addrs.NewDefaultProvider("test"),
-			Version:        getproviders.MustParseVersion("1.2.3"),
-			PackageDir:     expectedPackageInstallPath("test", "1.2.3", false),
-			ExecutableFile: expectedPackageInstallPath("test", "1.2.3", true),
+			Provider:   addrs.NewDefaultProvider("test"),
+			Version:    getproviders.MustParseVersion("1.2.3"),
+			PackageDir: expectedPackageInstallPath("test", "1.2.3", false),
 		},
 		addrs.NewDefaultProvider("source"): {
-			Provider:       addrs.NewDefaultProvider("source"),
-			Version:        getproviders.MustParseVersion("1.2.3"),
-			PackageDir:     expectedPackageInstallPath("source", "1.2.3", false),
-			ExecutableFile: expectedPackageInstallPath("source", "1.2.3", true),
+			Provider:   addrs.NewDefaultProvider("source"),
+			Version:    getproviders.MustParseVersion("1.2.3"),
+			PackageDir: expectedPackageInstallPath("source", "1.2.3", false),
 		},
 	}
 	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
@@ -1111,27 +1217,24 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		// the newest available version that matched the version constraints.
 		addrs.NewDefaultProvider("between"): {
 			{
-				Provider:       addrs.NewDefaultProvider("between"),
-				Version:        getproviders.MustParseVersion("2.3.4"),
-				PackageDir:     expectedPackageInstallPath("between", "2.3.4", false),
-				ExecutableFile: expectedPackageInstallPath("between", "2.3.4", true),
+				Provider:   addrs.NewDefaultProvider("between"),
+				Version:    getproviders.MustParseVersion("2.3.4"),
+				PackageDir: expectedPackageInstallPath("between", "2.3.4", false),
 			},
 		},
 		// The existing version of "exact" did not match the version constraints,
 		// so we installed what the configuration selected as well.
 		addrs.NewDefaultProvider("exact"): {
 			{
-				Provider:       addrs.NewDefaultProvider("exact"),
-				Version:        getproviders.MustParseVersion("1.2.3"),
-				PackageDir:     expectedPackageInstallPath("exact", "1.2.3", false),
-				ExecutableFile: expectedPackageInstallPath("exact", "1.2.3", true),
+				Provider:   addrs.NewDefaultProvider("exact"),
+				Version:    getproviders.MustParseVersion("1.2.3"),
+				PackageDir: expectedPackageInstallPath("exact", "1.2.3", false),
 			},
 			// Previous version is still there, but not selected
 			{
-				Provider:       addrs.NewDefaultProvider("exact"),
-				Version:        getproviders.MustParseVersion("0.0.1"),
-				PackageDir:     expectedPackageInstallPath("exact", "0.0.1", false),
-				ExecutableFile: expectedPackageInstallPath("exact", "0.0.1", true),
+				Provider:   addrs.NewDefaultProvider("exact"),
+				Version:    getproviders.MustParseVersion("0.0.1"),
+				PackageDir: expectedPackageInstallPath("exact", "0.0.1", false),
 			},
 		},
 		// The existing version of "greater-than" _did_ match the constraints,
@@ -1139,17 +1242,15 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		// -upgrade and so we upgraded it anyway.
 		addrs.NewDefaultProvider("greater-than"): {
 			{
-				Provider:       addrs.NewDefaultProvider("greater-than"),
-				Version:        getproviders.MustParseVersion("2.3.4"),
-				PackageDir:     expectedPackageInstallPath("greater-than", "2.3.4", false),
-				ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.4", true),
+				Provider:   addrs.NewDefaultProvider("greater-than"),
+				Version:    getproviders.MustParseVersion("2.3.4"),
+				PackageDir: expectedPackageInstallPath("greater-than", "2.3.4", false),
 			},
 			// Previous version is still there, but not selected
 			{
-				Provider:       addrs.NewDefaultProvider("greater-than"),
-				Version:        getproviders.MustParseVersion("2.3.3"),
-				PackageDir:     expectedPackageInstallPath("greater-than", "2.3.3", false),
-				ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.3", true),
+				Provider:   addrs.NewDefaultProvider("greater-than"),
+				Version:    getproviders.MustParseVersion("2.3.3"),
+				PackageDir: expectedPackageInstallPath("greater-than", "2.3.3", false),
 			},
 		},
 	}
@@ -1164,22 +1265,19 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 	}
 	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
 		addrs.NewDefaultProvider("between"): {
-			Provider:       addrs.NewDefaultProvider("between"),
-			Version:        getproviders.MustParseVersion("2.3.4"),
-			PackageDir:     expectedPackageInstallPath("between", "2.3.4", false),
-			ExecutableFile: expectedPackageInstallPath("between", "2.3.4", true),
+			Provider:   addrs.NewDefaultProvider("between"),
+			Version:    getproviders.MustParseVersion("2.3.4"),
+			PackageDir: expectedPackageInstallPath("between", "2.3.4", false),
 		},
 		addrs.NewDefaultProvider("exact"): {
-			Provider:       addrs.NewDefaultProvider("exact"),
-			Version:        getproviders.MustParseVersion("1.2.3"),
-			PackageDir:     expectedPackageInstallPath("exact", "1.2.3", false),
-			ExecutableFile: expectedPackageInstallPath("exact", "1.2.3", true),
+			Provider:   addrs.NewDefaultProvider("exact"),
+			Version:    getproviders.MustParseVersion("1.2.3"),
+			PackageDir: expectedPackageInstallPath("exact", "1.2.3", false),
 		},
 		addrs.NewDefaultProvider("greater-than"): {
-			Provider:       addrs.NewDefaultProvider("greater-than"),
-			Version:        getproviders.MustParseVersion("2.3.4"),
-			PackageDir:     expectedPackageInstallPath("greater-than", "2.3.4", false),
-			ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.4", true),
+			Provider:   addrs.NewDefaultProvider("greater-than"),
+			Version:    getproviders.MustParseVersion("2.3.4"),
+			PackageDir: expectedPackageInstallPath("greater-than", "2.3.4", false),
 		},
 	}
 	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
@@ -1244,6 +1342,13 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	args := []string{}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
 	}
 }
 
@@ -1422,22 +1527,19 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	}
 	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
 		addrs.NewDefaultProvider("between"): {
-			Provider:       addrs.NewDefaultProvider("between"),
-			Version:        getproviders.MustParseVersion("2.3.4"),
-			PackageDir:     expectedPackageInstallPath("between", "2.3.4", false),
-			ExecutableFile: expectedPackageInstallPath("between", "2.3.4", true),
+			Provider:   addrs.NewDefaultProvider("between"),
+			Version:    getproviders.MustParseVersion("2.3.4"),
+			PackageDir: expectedPackageInstallPath("between", "2.3.4", false),
 		},
 		addrs.NewDefaultProvider("exact"): {
-			Provider:       addrs.NewDefaultProvider("exact"),
-			Version:        getproviders.MustParseVersion("1.2.3"),
-			PackageDir:     expectedPackageInstallPath("exact", "1.2.3", false),
-			ExecutableFile: expectedPackageInstallPath("exact", "1.2.3", true),
+			Provider:   addrs.NewDefaultProvider("exact"),
+			Version:    getproviders.MustParseVersion("1.2.3"),
+			PackageDir: expectedPackageInstallPath("exact", "1.2.3", false),
 		},
 		addrs.NewDefaultProvider("greater-than"): {
-			Provider:       addrs.NewDefaultProvider("greater-than"),
-			Version:        getproviders.MustParseVersion("2.3.4"),
-			PackageDir:     expectedPackageInstallPath("greater-than", "2.3.4", false),
-			ExecutableFile: expectedPackageInstallPath("greater-than", "2.3.4", true),
+			Provider:   addrs.NewDefaultProvider("greater-than"),
+			Version:    getproviders.MustParseVersion("2.3.4"),
+			PackageDir: expectedPackageInstallPath("greater-than", "2.3.4", false),
 		},
 	}
 	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
@@ -1599,38 +1701,6 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	}
 }
 
-// The module in this test uses terraform 0.11-style syntax. We expect that the
-// earlyconfig will succeed but the main loader fail, and return an error that
-// indicates that syntax upgrades may be required.
-func TestInit_syntaxErrorUpgradeHint(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-
-	// This module
-	copy.CopyDir(testFixturePath("init-sniff-version-error"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	// Check output.
-	output := ui.ErrorWriter.String()
-	if got, want := output, "If you've recently upgraded to Terraform v0.13 from Terraform\nv0.11, this may be because your configuration uses syntax constructs that are no\nlonger valid"; !strings.Contains(got, want) {
-		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
-	}
-}
-
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).
@@ -1669,7 +1739,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 				close()
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, addr.ForDisplay(), err)
 			}
-			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform)
+			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, "")
 			if err != nil {
 				close()
 				t.Fatalf("failed to prepare fake package for %s %s: %s", addr.ForDisplay(), versionStr, err)
@@ -1679,7 +1749,7 @@ func newMockProviderSource(t *testing.T, availableProviderVersions map[string][]
 		}
 	}
 
-	return getproviders.NewMockSource(packages), close
+	return getproviders.NewMockSource(packages, nil), close
 }
 
 // installFakeProviderPackages installs a fake package for the given provider
@@ -1729,7 +1799,7 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 			if err != nil {
 				t.Fatalf("failed to parse %q as a version number for %q: %s", versionStr, name, err)
 			}
-			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform)
+			meta, close, err := getproviders.FakeInstallablePackageMeta(addr, version, getproviders.VersionList{getproviders.MustParseVersion("5.0")}, getproviders.CurrentPlatform, "")
 			// We're going to install all these fake packages before we return,
 			// so we don't need to preserve them afterwards.
 			defer close()

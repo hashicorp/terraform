@@ -1565,6 +1565,52 @@ func (s *TransformFuncSpec) sourceRange(content *hcl.BodyContent, blockLabels []
 	return s.Wrapped.sourceRange(content, blockLabels)
 }
 
+// ValidateFuncSpec is a spec that allows for extended
+// developer-defined validation. The validation function receives the
+// result of the wrapped spec.
+//
+// The Subject field of the returned Diagnostic is optional. If not
+// specified, it is automatically populated with the range covered by
+// the wrapped spec.
+//
+type ValidateSpec struct {
+	Wrapped Spec
+	Func    func(value cty.Value) hcl.Diagnostics
+}
+
+func (s *ValidateSpec) visitSameBodyChildren(cb visitFunc) {
+	cb(s.Wrapped)
+}
+
+func (s *ValidateSpec) decode(content *hcl.BodyContent, blockLabels []blockLabel, ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+	wrappedVal, diags := s.Wrapped.decode(content, blockLabels, ctx)
+	if diags.HasErrors() {
+		// We won't try to run our function in this case, because it'll probably
+		// generate confusing additional errors that will distract from the
+		// root cause.
+		return cty.UnknownVal(s.impliedType()), diags
+	}
+
+	validateDiags := s.Func(wrappedVal)
+	// Auto-populate the Subject fields if they weren't set.
+	for i := range validateDiags {
+		if validateDiags[i].Subject == nil {
+			validateDiags[i].Subject = s.sourceRange(content, blockLabels).Ptr()
+		}
+	}
+
+	diags = append(diags, validateDiags...)
+	return wrappedVal, diags
+}
+
+func (s *ValidateSpec) impliedType() cty.Type {
+	return s.Wrapped.impliedType()
+}
+
+func (s *ValidateSpec) sourceRange(content *hcl.BodyContent, blockLabels []blockLabel) hcl.Range {
+	return s.Wrapped.sourceRange(content, blockLabels)
+}
+
 // noopSpec is a placeholder spec that does nothing, used in situations where
 // a non-nil placeholder spec is required. It is not exported because there is
 // no reason to use it directly; it is always an implementation detail only.

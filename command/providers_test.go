@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -75,14 +76,10 @@ func TestProviders_noConfigs(t *testing.T) {
 }
 
 func TestProviders_modules(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("providers/modules")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("providers/modules"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	// first run init with mock provider sources to install the module
 	initUi := new(cli.MockUi)
@@ -120,7 +117,8 @@ func TestProviders_modules(t *testing.T) {
 	wantOutput := []string{
 		"provider[registry.terraform.io/hashicorp/foo] 1.0.*", // from required_providers
 		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from provider config
-		"provider[registry.terraform.io/hashicorp/baz]",       // implied by a resource in the child module
+		"── module.kiddo",                               // tree node for child module
+		"provider[registry.terraform.io/hashicorp/baz]", // implied by a resource in the child module
 	}
 
 	output := ui.OutputWriter.String()
@@ -156,6 +154,7 @@ func TestProviders_state(t *testing.T) {
 	wantOutput := []string{
 		"provider[registry.terraform.io/hashicorp/foo] 1.0.*", // from required_providers
 		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from a provider config block
+		"Providers required by state",                         // header for state providers
 		"provider[registry.terraform.io/hashicorp/baz]",       // from a resouce in state (only)
 	}
 

@@ -16,7 +16,7 @@ terraform {
 resource "implied_foo" "bar" {
 }
 
-module "child" {
+module "kinder" {
   source = "./child"
 }
 

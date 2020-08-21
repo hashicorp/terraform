@@ -32,6 +32,9 @@ type VersionSet = versions.Set
 // define the membership of a VersionSet by exclusion.
 type VersionConstraints = constraints.IntersectionSpec
 
+// Warnings represents a list of warnings returned by a Registry source.
+type Warnings = []string
+
 // Requirements gathers together requirements for many different providers
 // into a single data structure, as a convenient way to represent the full
 // set of requirements for a particular configuration or state or both.
@@ -228,6 +231,17 @@ func (m PackageMeta) LessThan(other PackageMeta) bool {
 // direction of slash as long as each individual path string is self-consistent.
 func (m PackageMeta) UnpackedDirectoryPath(baseDir string) string {
 	return UnpackedDirectoryPathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
+}
+
+// PackedFilePath determines the path under the given base
+// directory where SearchLocalDirectory or the FilesystemMirrorSource would
+// expect to find packed copy (a .zip archive) of the receiving PackageMeta.
+//
+// The result always uses forward slashes as path separator, even on Windows,
+// to produce a consistent result on all platforms. Windows accepts both
+// direction of slash as long as each individual path string is self-consistent.
+func (m PackageMeta) PackedFilePath(baseDir string) string {
+	return PackedFilePathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
 }
 
 // PackageLocation represents a location where a provider distribution package

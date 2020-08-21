@@ -401,29 +401,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(forEachDiags)
 	}
 
-	for _, traversal := range n.Config.DependsOn {
-		ref, refDiags := addrs.ParseRef(traversal)
-		diags = diags.Append(refDiags)
-		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid depends_on reference",
-				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
-				Subject:  ref.Remaining.SourceRange().Ptr(),
-			})
-		}
-
-		// The ref must also refer to something that exists. To test that,
-		// we'll just eval it and count on the fact that our evaluator will
-		// detect references to non-existent objects.
-		if !diags.HasErrors() {
-			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
-			if scope != nil { // sometimes nil in tests, due to incomplete mocks
-				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
-				diags = diags.Append(refDiags)
-			}
-		}
-	}
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
 	// Validate the provider_meta block for the provider this resource
 	// belongs to, if there is one.
@@ -620,5 +598,32 @@ func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Express
 		diags = diags.Append(forEachDiags)
 	}
 
+	return diags
+}
+
+func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiags.Diagnostics) {
+	for _, traversal := range dependsOn {
+		ref, refDiags := addrs.ParseRef(traversal)
+		diags = diags.Append(refDiags)
+		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid depends_on reference",
+				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
+				Subject:  ref.Remaining.SourceRange().Ptr(),
+			})
+		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
+		}
+	}
 	return diags
 }

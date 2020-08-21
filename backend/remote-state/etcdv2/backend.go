@@ -9,8 +9,8 @@ import (
 	etcdapi "github.com/coreos/etcd/client"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func New() backend.Backend {
@@ -83,7 +83,7 @@ func (b *Backend) DeleteWorkspace(string) error {
 	return backend.ErrWorkspacesNotSupported
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	if name != backend.DefaultStateName {
 		return nil, backend.ErrWorkspacesNotSupported
 	}

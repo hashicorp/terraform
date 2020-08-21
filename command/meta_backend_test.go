@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -1795,10 +1794,7 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 		},
 	}
 
-	err := (&state.LocalState{Path: DefaultStateFilename}).WriteState(orig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testStateFileDefault(t, orig)
 
 	m := testMetaBackend(t, nil)
 	m.forceInitCopy = true

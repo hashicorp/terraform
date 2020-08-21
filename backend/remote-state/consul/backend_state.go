@@ -5,9 +5,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -93,7 +92,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Grab a lock, we use this to write an empty state if one doesn't
 	// exist already. We have to write an empty state as a sentinel value
 	// so States() knows it exists.
-	lockInfo := state.NewLockInfo()
+	lockInfo := statemgr.NewLockInfo()
 	lockInfo.Operation = "init"
 	lockId, err := stateMgr.Lock(lockInfo)
 	if err != nil {

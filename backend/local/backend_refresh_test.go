@@ -46,6 +46,9 @@ test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_refreshNoConfig(t *testing.T) {
@@ -202,6 +205,28 @@ test_instance.foo:
 	`)
 }
 
+// This test validates the state lacking behavior when the inner call to
+// Context() fails
+func TestLocal_refresh_context_error(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	testStateFile(t, b.StatePath, testRefreshState())
+	op, configCleanup := testOperationRefresh(t, "./testdata/apply")
+	defer configCleanup()
+
+	// we coerce a failure in Context() by omitting the provider schema
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("operation succeeded; want failure")
+	}
+	assertBackendStateUnlocked(t, b)
+}
+
 func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func()) {
 	t.Helper()
 
@@ -211,6 +236,7 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 		Type:         backend.OperationTypeRefresh,
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
+		LockState:    true,
 	}, configCleanup
 }
 

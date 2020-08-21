@@ -117,7 +117,6 @@ func (client ServicePrincipalsClient) CreateSender(req *http.Request) (*http.Res
 func (client ServicePrincipalsClient) CreateResponder(resp *http.Response) (result ServicePrincipal, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -191,7 +190,6 @@ func (client ServicePrincipalsClient) DeleteSender(req *http.Request) (*http.Res
 func (client ServicePrincipalsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
@@ -264,7 +262,6 @@ func (client ServicePrincipalsClient) GetSender(req *http.Request) (*http.Respon
 func (client ServicePrincipalsClient) GetResponder(resp *http.Response) (result ServicePrincipal, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -309,6 +306,9 @@ func (client ServicePrincipalsClient) List(ctx context.Context, filter string) (
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "graphrbac.ServicePrincipalsClient", "List", resp, "Failure responding to request")
 	}
+	if result.splr.hasNextLink() && result.splr.IsEmpty() {
+		err = result.NextWithContext(ctx)
+	}
 
 	return
 }
@@ -346,7 +346,6 @@ func (client ServicePrincipalsClient) ListSender(req *http.Request) (*http.Respo
 func (client ServicePrincipalsClient) ListResponder(resp *http.Response) (result ServicePrincipalListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -436,7 +435,6 @@ func (client ServicePrincipalsClient) ListKeyCredentialsSender(req *http.Request
 func (client ServicePrincipalsClient) ListKeyCredentialsResponder(resp *http.Response) (result KeyCredentialListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -510,7 +508,6 @@ func (client ServicePrincipalsClient) ListNextSender(req *http.Request) (*http.R
 func (client ServicePrincipalsClient) ListNextResponder(resp *http.Response) (result ServicePrincipalListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -550,6 +547,9 @@ func (client ServicePrincipalsClient) ListOwners(ctx context.Context, objectID s
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "graphrbac.ServicePrincipalsClient", "ListOwners", resp, "Failure responding to request")
 	}
+	if result.dolr.hasNextLink() && result.dolr.IsEmpty() {
+		err = result.NextWithContext(ctx)
+	}
 
 	return
 }
@@ -585,7 +585,6 @@ func (client ServicePrincipalsClient) ListOwnersSender(req *http.Request) (*http
 func (client ServicePrincipalsClient) ListOwnersResponder(resp *http.Response) (result DirectoryObjectListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -696,7 +695,6 @@ func (client ServicePrincipalsClient) ListPasswordCredentialsSender(req *http.Re
 func (client ServicePrincipalsClient) ListPasswordCredentialsResponder(resp *http.Response) (result PasswordCredentialListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -773,7 +771,6 @@ func (client ServicePrincipalsClient) UpdateSender(req *http.Request) (*http.Res
 func (client ServicePrincipalsClient) UpdateResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
@@ -849,7 +846,6 @@ func (client ServicePrincipalsClient) UpdateKeyCredentialsSender(req *http.Reque
 func (client ServicePrincipalsClient) UpdateKeyCredentialsResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
@@ -925,7 +921,6 @@ func (client ServicePrincipalsClient) UpdatePasswordCredentialsSender(req *http.
 func (client ServicePrincipalsClient) UpdatePasswordCredentialsResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp

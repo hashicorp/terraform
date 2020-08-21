@@ -62,9 +62,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// are only being updated.
 	creators := make(map[string]GraphNodeCreator)
 
-	// destroyersByResource records each destroyer by the AbsResourceAddress.
-	// We use this because dependencies are only referenced as resources, but we
-	// will want to connect all the individual instances for correct ordering.
+	// destroyersByResource records each destroyer by the ConfigResource
+	// address.  We use this because dependencies are only referenced as
+	// resources and have no index or module instance information, but we will
+	// want to connect all the individual instances for correct ordering.
 	destroyersByResource := make(map[string][]GraphNodeDestroyer)
 	for _, v := range g.Vertices() {
 		switch n := v.(type) {
@@ -80,7 +81,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
 			destroyers[key] = append(destroyers[key], n)
 
-			resAddr := addr.Resource.Resource.Absolute(addr.Module).String()
+			resAddr := addr.ContainingResource().Config().String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
@@ -104,9 +105,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 			for _, resAddr := range ri.StateDependencies() {
 				for _, desDep := range destroyersByResource[resAddr.String()] {
-					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
-					g.Connect(dag.BasicEdge(desDep, des))
-
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+						g.Connect(dag.BasicEdge(desDep, des))
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
+					}
 				}
 			}
 		}
@@ -121,9 +125,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		for _, resAddr := range ri.StateDependencies() {
 			for _, desDep := range destroyersByResource[resAddr.String()] {
-				log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-				g.Connect(dag.BasicEdge(c, desDep))
-
+				if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
+					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
+					g.Connect(dag.BasicEdge(c, desDep))
+				} else {
+					log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
+				}
 			}
 		}
 	}
@@ -206,10 +213,10 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 		modules = append(modules, mod)
 	}
 
-	// Sort them by path length, longest first, so that start with the deepest
-	// modules.  The order of modules at the same tree level doesn't matter, we
-	// just need to ensure that child modules are processed before parent
-	// modules.
+	// Sort them by path length, longest first, so that we start with the
+	// deepest modules. The order of modules at the same tree level doesn't
+	// matter, we just need to ensure that child modules are processed before
+	// parent modules.
 	sort.Slice(modules, func(i, j int) bool {
 		return len(modules[i].addr) > len(modules[j].addr)
 	})
@@ -251,17 +258,16 @@ func (m *pruneUnusedNodesMod) removeUnused(g *Graph) {
 			// dealing with complex looping and labels
 			func() {
 				n := nodes[i]
-				switch n.(type) {
+				switch n := n.(type) {
 				case graphNodeTemporaryValue:
-					// temporary value, which consist of variables, locals, and
-					// outputs, must be kept if anything refers to them.
-					if n, ok := n.(GraphNodeModulePath); ok {
-						// root outputs always have an implicit dependency on
-						// remote state.
-						if n.ModulePath().IsRoot() {
-							return
-						}
+					// root module outputs indicate they are not temporary by
+					// returning false here.
+					if !n.temporaryValue() {
+						return
 					}
+
+					// temporary values, which consist of variables, locals,
+					// and outputs, must be kept if anything refers to them.
 					for _, v := range g.UpEdges(n) {
 						// keep any value which is connected through a
 						// reference

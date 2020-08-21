@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -71,7 +72,7 @@ func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable) *lang.Scope 
 	return &lang.Scope{
 		Data:     data,
 		SelfAddr: self,
-		PureOnly: e.Operation != walkApply && e.Operation != walkDestroy,
+		PureOnly: e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
 		BaseDir:  ".", // Always current working directory for now.
 	}
 }
@@ -619,13 +620,39 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
 	if rs == nil {
-		// we must return DynamicVal so that both interpretations
-		// can proceed without generating errors, and we'll deal with this
-		// in a later step where more information is gathered.
-		// (In practice we should only end up here during the validate walk,
-		// since later walks should have at least partial states populated
-		// for all resources in the configuration.)
-		return cty.DynamicVal, diags
+		switch d.Operation {
+		case walkPlan:
+			// During plan as we evaluate each removed instance they are removed
+			// from the temporary working state. Since we know there there are
+			// no instances, and resources might be referenced in a context
+			// that needs to be known during plan, return an empty container of
+			// the expected type.
+			switch {
+			case config.Count != nil:
+				return cty.EmptyTupleVal, diags
+			case config.ForEach != nil:
+				return cty.EmptyObjectVal, diags
+			default:
+				// FIXME: try to prove this path should not be reached during plan.
+				//
+				// while we can reference an expanded resource with 0
+				// instances, we cannot reference instances that do not exist.
+				// Since we haven't ensured that all instances exist in all
+				// cases (this path only ever returned unknown), only log this as
+				// an error for now, and continue to return a DynamicVal
+				log.Printf("[ERROR] unknown instance %q referenced during plan", addr.Absolute(d.ModulePath))
+				return cty.DynamicVal, diags
+			}
+
+		default:
+			// we must return DynamicVal so that both interpretations
+			// can proceed without generating errors, and we'll deal with this
+			// in a later step where more information is gathered.
+			// (In practice we should only end up here during the validate walk,
+			// since later walks should have at least partial states populated
+			// for all resources in the configuration.)
+			return cty.DynamicVal, diags
+		}
 	}
 
 	providerAddr := rs.ProviderConfig
@@ -655,10 +682,31 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
 
+		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
+		if change != nil {
+			// Don't take any resources that are yet to be deleted into account.
+			// If the referenced resource is CreateBeforeDestroy, then orphaned
+			// instances will be in the state, as they are not destroyed until
+			// after their dependants are updated.
+			if change.Action == plans.Delete {
+				// FIXME: we should not be evaluating resources that are going
+				// to be destroyed, but this needs to happen always since
+				// destroy-time provisioners need to reference their self
+				// value, and providers need to evaluate their configuration
+				// during a full destroy, even of they depend on resources
+				// being destroyed.
+				//
+				// Since this requires a special transformer to try and fixup
+				// the order of evaluation when possible, reference it here to
+				// ensure that we remove the transformer when this is fixed.
+				_ = GraphTransformer((*applyDestroyNodeReferenceFixupTransformer)(nil))
+				// continue
+			}
+		}
+
 		// Planned resources are temporarily stored in state with empty values,
 		// and need to be replaced bu the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
-			change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
 			if change == nil {
 				// If the object is in planned status then we should not get
 				// here, since we should have found a pending value in the plan

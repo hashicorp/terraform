@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex
@@ -21,7 +22,6 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ RemovableIfNotTargeted    = (*nodeExpandModule)(nil)
 	_ GraphNodeEvalable         = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
@@ -47,18 +47,7 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 		return nil
 	}
 
-	for _, traversal := range n.ModuleCall.DependsOn {
-		ref, diags := addrs.ParseRef(traversal)
-		if diags.HasErrors() {
-			// We ignore this here, because this isn't a suitable place to return
-			// errors. This situation should be caught and rejected during
-			// validation.
-			log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
-			continue
-		}
-
-		refs = append(refs, ref)
-	}
+	refs = append(refs, n.DependsOn()...)
 
 	// Expansion only uses the count and for_each expressions, so this
 	// particular graph node only refers to those.
@@ -79,19 +68,34 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 		forEachRefs, _ := lang.ReferencesInExpr(n.ModuleCall.ForEach)
 		refs = append(refs, forEachRefs...)
 	}
-	return appendResourceDestroyReferences(refs)
+	return refs
+}
+
+func (n *nodeExpandModule) DependsOn() []*addrs.Reference {
+	if n.ModuleCall == nil {
+		return nil
+	}
+
+	var refs []*addrs.Reference
+	for _, traversal := range n.ModuleCall.DependsOn {
+		ref, diags := addrs.ParseRef(traversal)
+		if diags.HasErrors() {
+			// We ignore this here, because this isn't a suitable place to return
+			// errors. This situation should be caught and rejected during
+			// validation.
+			log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
+			continue
+		}
+
+		refs = append(refs, ref)
+	}
+
+	return refs
 }
 
 // GraphNodeReferenceOutside
 func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	return n.Addr, n.Addr.Parent()
-}
-
-// RemovableIfNotTargeted implementation
-func (n *nodeExpandModule) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 // GraphNodeEvalable
@@ -139,13 +143,6 @@ func (n *nodeCloseModule) Name() string {
 		return "root"
 	}
 	return n.Addr.String() + " (close)"
-}
-
-// RemovableIfNotTargeted implementation
-func (n *nodeCloseModule) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 func (n *nodeCloseModule) EvalTree() EvalNode {
@@ -256,6 +253,7 @@ type evalValidateModule struct {
 
 func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 	_, call := n.Addr.Call()
+	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
 
 	// Modules all evaluate to single instances during validation, only to
@@ -270,20 +268,23 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 		// a full expansion, presuming these errors will be caught in later steps
 		switch {
 		case n.ModuleCall.Count != nil:
-			_, diags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
+			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
+			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			_, diags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
+			_, forEachDiags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx)
+			diags = diags.Append(forEachDiags)
 		}
+
+		diags = diags.Append(validateDependsOn(ctx, n.ModuleCall.DependsOn))
 
 		// now set our own mode to single
 		expander.SetModuleSingle(module, call)
 	}
+
+	if diags.HasErrors() {
+		return nil, diags.ErrWithWarnings()
+	}
+
 	return nil, nil
 }

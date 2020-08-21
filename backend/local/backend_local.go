@@ -49,6 +49,18 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		diags = diags.Append(errwrap.Wrapf("Error locking state: {{err}}", err))
 		return nil, nil, nil, diags
 	}
+
+	defer func() {
+		// If we're returning with errors, and thus not producing a valid
+		// context, we'll want to avoid leaving the workspace locked.
+		if diags.HasErrors() {
+			err := op.StateLocker.Unlock(nil)
+			if err != nil {
+				diags = diags.Append(errwrap.Wrapf("Error unlocking state: {{err}}", err))
+			}
+		}
+	}()
+
 	log.Printf("[TRACE] backend/local: reading remote state for workspace %q", op.Workspace)
 	if err := s.RefreshState(); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
@@ -72,6 +84,13 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	log.Printf("[TRACE] backend/local: retrieving local state snapshot for workspace %q", op.Workspace)
 	opts.State = s.State()
 
+	// Prepare a separate opts and context for validation, which doesn't use
+	// any state ensuring that we only validate the config, since evaluation
+	// will automatically reference the state when available.
+	validateOpts := opts
+	validateOpts.State = nil
+	var validateCtx *terraform.Context
+
 	var tfCtx *terraform.Context
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
@@ -89,9 +108,18 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// Write sources into the cache of the main loader so that they are
 		// available if we need to generate diagnostic message snippets.
 		op.ConfigLoader.ImportSourcesFromSnapshot(configSnap)
+
+		// create a validation context with no state
+		validateCtx, _, _ = b.contextFromPlanFile(op.PlanFile, validateOpts, stateMeta)
+		// diags from here will be caught above
+
 	} else {
 		log.Printf("[TRACE] backend/local: building context for current working directory")
 		tfCtx, configSnap, ctxDiags = b.contextDirect(op, opts)
+
+		// create a validation context with no state
+		validateCtx, _, _ = b.contextDirect(op, validateOpts)
+		// diags from here will be caught above
 	}
 	diags = diags.Append(ctxDiags)
 	if diags.HasErrors() {
@@ -117,7 +145,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// If validation is enabled, validate
 		if b.OpValidation {
 			log.Printf("[TRACE] backend/local: running validation operation")
-			validateDiags := tfCtx.Validate()
+			validateDiags := validateCtx.Validate()
 			diags = diags.Append(validateDiags)
 		}
 	}

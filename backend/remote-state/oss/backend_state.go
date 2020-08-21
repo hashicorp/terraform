@@ -8,9 +8,9 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 
 	"log"
 	"path"
@@ -57,28 +57,39 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	var options []oss.Option
-	options = append(options, oss.Prefix(b.statePrefix+"/"))
+	options = append(options, oss.Prefix(b.statePrefix+"/"), oss.MaxKeys(1000))
 	resp, err := bucket.ListObjects(options...)
-
 	if err != nil {
 		return nil, err
 	}
 
 	result := []string{backend.DefaultStateName}
 	prefix := b.statePrefix
-	for _, obj := range resp.Objects {
-		// we have 3 parts, the state prefix, the workspace name, and the state file: <prefix>/<worksapce-name>/<key>
-		if path.Join(b.statePrefix, b.stateKey) == obj.Key {
-			// filter the default workspace
-			continue
+	lastObj := ""
+	for {
+		for _, obj := range resp.Objects {
+			// we have 3 parts, the state prefix, the workspace name, and the state file: <prefix>/<worksapce-name>/<key>
+			if path.Join(b.statePrefix, b.stateKey) == obj.Key {
+				// filter the default workspace
+				continue
+			}
+			lastObj = obj.Key
+			parts := strings.Split(strings.TrimPrefix(obj.Key, prefix+"/"), "/")
+			if len(parts) > 0 && parts[0] != "" {
+				result = append(result, parts[0])
+			}
 		}
-
-		parts := strings.Split(strings.TrimPrefix(obj.Key, prefix+"/"), "/")
-		if len(parts) > 0 && parts[0] != "" {
-			result = append(result, parts[0])
+		if resp.IsTruncated {
+			if len(options) == 3 {
+				options[2] = oss.Marker(lastObj)
+			} else {
+				options = append(options, oss.Marker(lastObj))
+			}
+			resp, err = bucket.ListObjects(options...)
+		} else {
+			break
 		}
 	}
-
 	sort.Strings(result[1:])
 	return result, nil
 }
@@ -95,7 +106,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return client.Delete()
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -120,7 +131,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// We need to create the object so it's listed by States.
 	if !exists {
 		// take a lock on this state while we write it
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {

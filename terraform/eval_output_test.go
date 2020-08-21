@@ -3,6 +3,7 @@ package terraform
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -44,7 +45,8 @@ func TestEvalWriteMapOutput(t *testing.T) {
 
 	for _, tc := range cases {
 		evalNode := &EvalWriteOutput{
-			Addr: addrs.OutputValue{Name: tc.name},
+			Config: &configs.Output{},
+			Addr:   addrs.OutputValue{Name: tc.name},
 		}
 		ctx.EvaluateExprResult = tc.val
 		t.Run(tc.name, func(t *testing.T) {

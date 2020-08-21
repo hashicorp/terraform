@@ -15,7 +15,9 @@ import (
 	"sync/atomic"
 	"unicode"
 
+	"github.com/bgentry/speakeasy"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/colorstring"
 )
 
@@ -128,8 +130,14 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		}
 		defer atomic.CompareAndSwapInt32(&i.listening, 1, 0)
 
-		buf := bufio.NewReader(r)
-		line, err := buf.ReadString('\n')
+		var line string
+		var err error
+		if opts.Secret && isatty.IsTerminal(os.Stdin.Fd()) {
+			line, err = speakeasy.Ask("")
+		} else {
+			buf := bufio.NewReader(r)
+			line, err = buf.ReadString('\n')
+		}
 		if err != nil {
 			log.Printf("[ERR] UIInput scan err: %s", err)
 		}

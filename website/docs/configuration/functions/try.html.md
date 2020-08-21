@@ -29,7 +29,7 @@ the configuration:
 
 ```hcl
 locals {
-  raw_value = yamldecode("${path.module}/example.yaml")
+  raw_value = yamldecode(file("${path.module}/example.yaml"))
   normalized_value = {
     name   = tostring(try(local.raw_value.name, null))
     groups = try(local.raw_value.groups, [])

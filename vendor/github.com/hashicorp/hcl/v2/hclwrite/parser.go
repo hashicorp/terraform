@@ -521,8 +521,8 @@ func writerTokens(nativeTokens hclsyntax.Tokens) Tokens {
 // The tokens are assumed to be in source order and non-overlapping, which
 // will be true if the token sequence from the scanner is used directly.
 func partitionTokens(toks hclsyntax.Tokens, rng hcl.Range) (start, end int) {
-	// We us a linear search here because we assume tha in most cases our
-	// target range is close to the beginning of the sequence, and the seqences
+	// We use a linear search here because we assume that in most cases our
+	// target range is close to the beginning of the sequence, and the sequences
 	// are generally small for most reasonable files anyway.
 	for i := 0; ; i++ {
 		if i >= len(toks) {

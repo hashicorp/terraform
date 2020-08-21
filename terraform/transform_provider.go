@@ -488,13 +488,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dag.Do
 	}
 }
 
-// RemovableIfNotTargeted
-func (n *graphNodeCloseProvider) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
-}
-
 // graphNodeProxyProvider is a GraphNodeProvider implementation that is used to
 // store the name and value of a provider node for inheritance between modules.
 // These nodes are only used to store the data while loading the provider

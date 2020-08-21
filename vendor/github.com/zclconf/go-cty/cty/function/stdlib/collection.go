@@ -762,6 +762,9 @@ var MergeFunc = function.New(&function.Spec{
 		case allNull:
 			return cty.NullVal(retType), nil
 		case retType.IsMapType():
+			if len(outputMap) == 0 {
+				return cty.MapValEmpty(retType.ElementType()), nil
+			}
 			return cty.MapVal(outputMap), nil
 		case retType.IsObjectType(), retType.Equals(cty.DynamicPseudoType):
 			return cty.ObjectVal(outputMap), nil

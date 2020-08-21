@@ -48,6 +48,7 @@ type moduleCall struct {
 	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
 	VersionConstraint string                 `json:"version_constraint,omitempty"`
+	DependsOn         []string               `json:"depends_on,omitempty"`
 }
 
 // variables is the JSON representation of the variables provided to the current
@@ -139,8 +140,7 @@ func marshalProviderConfigs(
 	}
 
 	for k, pc := range c.Module.ProviderConfigs {
-		// FIXME: lookup providerFqn from config
-		providerFqn := addrs.NewLegacyProvider(pc.Name)
+		providerFqn := c.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: pc.Name})
 		schema := schemas.ProviderConfig(providerFqn)
 		p := providerConfig{
 			Name:              pc.Name,
@@ -270,6 +270,20 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	ret.Expressions = marshalExpressions(mc.Config, schema)
 	module, _ := marshalModule(c, schemas, mc.Name)
 	ret.Module = module
+
+	if len(mc.DependsOn) > 0 {
+		dependencies := make([]string, len(mc.DependsOn))
+		for i, d := range mc.DependsOn {
+			ref, diags := addrs.ParseRef(d)
+			// we should not get an error here, because `terraform validate`
+			// would have complained well before this point, but if we do we'll
+			// silenty skip it.
+			if !diags.HasErrors() {
+				dependencies[i] = ref.Subject.String()
+			}
+		}
+		ret.DependsOn = dependencies
+	}
 
 	return ret
 }

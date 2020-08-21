@@ -1,6 +1,7 @@
 ---
 name: Bug report
 about: Let us know about an unexpected error, a crash, or an incorrect behavior.
+labels: bug, new
 
 ---
 
@@ -14,7 +15,7 @@ If your issue relates to a specific Terraform provider, please open it in the pr
 
 ### Terraform Version
 <!---
-Run `terraform -v` to show the version, and paste the result between the ``` marks below.
+Run `terraform version` to show the version, and paste the result between the ``` marks below.
 
 If you are not running the latest version of Terraform, please try upgrading because your issue may have already been fixed.
 -->
@@ -30,7 +31,7 @@ Paste the relevant parts of your Terraform configuration between the ``` marks b
 For large Terraform configs, please use a service like Dropbox and share a link to the ZIP file. For security, you can also encrypt the files using our GPG public key.
 -->
 
-```hcl
+```terraform
 ...
 ```
 

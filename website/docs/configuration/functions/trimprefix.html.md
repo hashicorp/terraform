@@ -13,13 +13,18 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-`trimprefix` removes the specified prefix from the start of the given string.
+`trimprefix` removes the specified prefix from the start of the given string. If the string does not start with the prefix, the string is returned unchanged.
 
 ## Examples
 
 ```
 > trimprefix("helloworld", "hello")
 world
+```
+
+```
+> trimprefix("helloworld", "cat")
+helloworld
 ```
 
 ## Related Functions

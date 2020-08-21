@@ -22,14 +22,14 @@ const (
 )
 
 // Diagnostic represents information to be presented to a user about an
-// error or anomoly in parsing or evaluating configuration.
+// error or anomaly in parsing or evaluating configuration.
 type Diagnostic struct {
 	Severity DiagnosticSeverity
 
 	// Summary and Detail contain the English-language description of the
 	// problem. Summary is a terse description of the general problem and
 	// detail is a more elaborate, often-multi-sentence description of
-	// the probem and what might be done to solve it.
+	// the problem and what might be done to solve it.
 	Summary string
 	Detail  string
 

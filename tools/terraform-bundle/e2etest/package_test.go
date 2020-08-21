@@ -14,10 +14,6 @@ import (
 
 func TestPackage_empty(t *testing.T) {
 	t.Parallel()
-	// The e2etests can be reenabled when there is a terraform v0.13* release
-	// available on releases.hashicorp.com.
-	t.Skip("terraform-bundle e2e tests are temporarily paused")
-
 	// This test reaches out to releases.hashicorp.com to download the
 	// template provider, so it can only run if network access is allowed.
 	// We intentionally don't try to stub this here, because there's already
@@ -38,10 +34,10 @@ func TestPackage_empty(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
+	if !strings.Contains(stdout, "Fetching Terraform 0.13.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Creating terraform_0.12.0-bundle") {
+	if !strings.Contains(stdout, "Creating terraform_0.13.0-bundle") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "All done!") {
@@ -51,10 +47,6 @@ func TestPackage_empty(t *testing.T) {
 
 func TestPackage_manyProviders(t *testing.T) {
 	t.Parallel()
-
-	// The e2etests can be reenabled when there is a terraform v0.13* release
-	// available on releases.hashicorp.com.
-	t.Skip("terraform-bundle e2e tests are temporarily paused")
 
 	// This test reaches out to releases.hashicorp.com to download providers, so
 	// it can only run if network access is allowed. We intentionally don't try
@@ -98,10 +90,10 @@ func TestPackage_manyProviders(t *testing.T) {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
+	if !strings.Contains(stdout, "Fetching Terraform 0.13.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Creating terraform_0.12.0-bundle") {
+	if !strings.Contains(stdout, "Creating terraform_0.13.0-bundle") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "All done!") {
@@ -114,7 +106,7 @@ func TestPackage_manyProviders(t *testing.T) {
 		t.Fatalf("error reading workdir: %s", err)
 	}
 	for _, file := range files {
-		if strings.Contains(file.Name(), "terraform_0.12.0-bundle") {
+		if strings.Contains(file.Name(), "terraform_0.13.0-bundle") {
 			read, err := zip.OpenReader(filepath.Join(tfBundle.WorkDir(), file.Name()))
 			if err != nil {
 				t.Fatalf("Failed to open archive: %s", err)
@@ -151,10 +143,6 @@ func TestPackage_manyProviders(t *testing.T) {
 func TestPackage_localProviders(t *testing.T) {
 	t.Parallel()
 
-	// The e2etests can be reenabled when there is a terraform v0.13* release
-	// available on releases.hashicorp.com.
-	t.Skip("terraform-bundle e2e tests are temporarily paused")
-
 	// This test reaches out to releases.hashicorp.com to download terrafrom, so
 	// it can only run if network access is allowed. The providers are installed
 	// from the local cache.
@@ -176,10 +164,10 @@ func TestPackage_localProviders(t *testing.T) {
 
 	// Here we have to check each provider separately
 	// because it's internally held in a map (i.e. not guaranteed order)
-	if !strings.Contains(stdout, "Fetching Terraform 0.12.0 core package...") {
+	if !strings.Contains(stdout, "Fetching Terraform 0.13.0 core package...") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Creating terraform_0.12.0-bundle") {
+	if !strings.Contains(stdout, "Creating terraform_0.13.0-bundle") {
 		t.Errorf("success message is missing from output:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "All done!") {
@@ -192,7 +180,7 @@ func TestPackage_localProviders(t *testing.T) {
 		t.Fatalf("error reading workdir: %s", err)
 	}
 	for _, file := range files {
-		if strings.Contains(file.Name(), "terraform_0.12.0-bundle") {
+		if strings.Contains(file.Name(), "terraform_0.13.0-bundle") {
 			read, err := zip.OpenReader(filepath.Join(tfBundle.WorkDir(), file.Name()))
 			if err != nil {
 				t.Fatalf("Failed to open archive: %s", err)

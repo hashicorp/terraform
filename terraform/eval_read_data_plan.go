@@ -3,10 +3,11 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
@@ -18,12 +19,6 @@ import (
 // or generating a plan to do so.
 type evalReadDataPlan struct {
 	evalReadData
-
-	// dependsOn stores the list of transitive resource addresses that any
-	// configuration depends_on references may resolve to. This is used to
-	// determine if there are any changes that will force this data sources to
-	// be deferred to apply.
-	dependsOn []addrs.ConfigResource
 }
 
 func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
@@ -94,7 +89,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		*n.State = &states.ResourceInstanceObject{
-			Value:  cty.NullVal(objTy),
+			Value:  proposedNewVal,
 			Status: states.ObjectPlanned,
 		}
 
@@ -109,21 +104,43 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 
 	// If we have a stored state we may not need to re-read the data source.
 	// Check the config against the state to see if there are any difference.
-	if !priorVal.IsNull() {
-		// Applying the configuration to the prior state lets us see if there
-		// are any differences.
-		proposed := objchange.ProposedNewObject(schema, priorVal, configVal)
-		if proposed.Equals(priorVal).True() {
-			log.Printf("[TRACE] evalReadDataPlan: %s no change detected, using existing state", absAddr)
-			// state looks up to date, and must have been read during refresh
-			return nil, diags.ErrWithWarnings()
-		}
+	proposedVal, hasChanges := dataObjectHasChanges(schema, priorVal, configVal)
+
+	if !hasChanges {
+		log.Printf("[TRACE] evalReadDataPlan: %s no change detected, using existing state", absAddr)
+		// state looks up to date, and must have been read during refresh
+		return nil, diags.ErrWithWarnings()
 	}
+
+	log.Printf("[TRACE] evalReadDataPlan: %s configuration changed, planning data source", absAddr)
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return nil, diags.ErrWithWarnings()
+	}
+
+	// if we have a prior value, we can check for any irregularities in the response
+	if !priorVal.IsNull() {
+		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
+			// Resources have the LegacyTypeSystem field to signal when they are
+			// using an SDK which may not produce precise values. While data
+			// sources are read-only, they can still return a value which is not
+			// compatible with the config+schema. Since we can't detect the legacy
+			// type system, we can only warn about this for now.
+			var buf strings.Builder
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s.",
+				n.ProviderAddr.Provider.String(), absAddr)
+			for _, err := range errs {
+				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+			}
+			log.Print(buf.String())
+		}
+	}
+
+	action := plans.Read
+	if priorVal.Equals(newVal).True() {
+		action = plans.NoOp
 	}
 
 	// The returned value from ReadDataSource must be non-nil and known,
@@ -134,7 +151,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		Addr:         absAddr,
 		ProviderAddr: n.ProviderAddr,
 		Change: plans.Change{
-			Action: plans.Read,
+			Action: action,
 			Before: priorVal,
 			After:  newVal,
 		},
@@ -170,4 +187,98 @@ func (n *evalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
 		}
 	}
 	return false
+}
+
+// dataObjectHasChanges determines if the newly evaluated config would cause
+// any changes in the stored value, indicating that we need to re-read this
+// data source. The proposed value is returned for validation against the
+// ReadDataSource response.
+func dataObjectHasChanges(schema *configschema.Block, priorVal, configVal cty.Value) (proposedVal cty.Value, hasChanges bool) {
+	if priorVal.IsNull() {
+		return priorVal, true
+	}
+
+	// Applying the configuration to the stored state will allow us to detect any changes.
+	proposedVal = objchange.ProposedNewObject(schema, priorVal, configVal)
+
+	if !configVal.IsWhollyKnown() {
+		// Config should have been known here, but handle it the same as ProposedNewObject
+		return proposedVal, true
+	}
+
+	// Normalize the prior value so we can correctly compare the two even if
+	// the prior value came through the legacy SDK.
+	priorVal = createEmptyBlocks(schema, priorVal)
+
+	return proposedVal, proposedVal.Equals(priorVal).False()
+}
+
+// createEmptyBlocks will fill in null TypeList or TypeSet blocks with Empty
+// values.  Our decoder will always decode blocks as empty containers, but the
+// legacy SDK may replace those will null values. Normalizing these values
+// allows us to correctly compare the ProposedNewObject value in
+// dataObjectyHasChanges.
+func createEmptyBlocks(schema *configschema.Block, val cty.Value) cty.Value {
+	if val.IsNull() || !val.IsKnown() {
+		return val
+	}
+	if !val.Type().IsObjectType() {
+		panic(fmt.Sprintf("unexpected type %#v\n", val.Type()))
+	}
+
+	// if there are no blocks, don't bother recreating the cty.Value
+	if len(schema.BlockTypes) == 0 {
+		return val
+	}
+
+	objMap := val.AsValueMap()
+
+	for name, blockType := range schema.BlockTypes {
+		block, ok := objMap[name]
+		if !ok {
+			continue
+		}
+
+		ety := block.Type().ElementType()
+
+		// helper to build the recursive block values
+		nextBlocks := func() []cty.Value {
+			// this is only called once we know this is a non-null List or Set
+			// with a length > 0
+			newVals := make([]cty.Value, 0, block.LengthInt())
+			for it := block.ElementIterator(); it.Next(); {
+				_, val := it.Element()
+				newVals = append(newVals, createEmptyBlocks(&blockType.Block, val))
+			}
+			return newVals
+		}
+
+		// Blocks are always decoded as empty containers, but the legacy
+		// SDK may return null when they are empty.
+		switch blockType.Nesting {
+		// We are only concerned with block types that can come from the legacy
+		// sdk, which means TypeList or TypeSet.
+		case configschema.NestingList:
+			switch {
+			case block.IsNull():
+				objMap[name] = cty.ListValEmpty(ety)
+			case block.LengthInt() == 0:
+				continue
+			default:
+				objMap[name] = cty.ListVal(nextBlocks())
+			}
+
+		case configschema.NestingSet:
+			switch {
+			case block.IsNull():
+				objMap[name] = cty.SetValEmpty(ety)
+			case block.LengthInt() == 0:
+				continue
+			default:
+				objMap[name] = cty.SetVal(nextBlocks())
+			}
+		}
+	}
+
+	return cty.ObjectVal(objMap)
 }

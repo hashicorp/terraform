@@ -25,14 +25,10 @@ import (
 )
 
 func TestPlan(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("plan")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
@@ -50,22 +46,16 @@ func TestPlan(t *testing.T) {
 }
 
 func TestPlan_lockedState(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
-	testPath := testFixturePath("plan")
-	unlock, err := testLockState(testDataDir, filepath.Join(testPath, DefaultStateFilename))
+	unlock, err := testLockState(testDataDir, filepath.Join(td, DefaultStateFilename))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer unlock()
-
-	if err := os.Chdir(testPath); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
@@ -489,14 +479,10 @@ func TestPlan_validate(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("plan-invalid")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan-invalid"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	p.GetSchemaReturn = &terraform.ProviderSchema{
@@ -726,14 +712,10 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 }
 
 func TestPlan_detailedExitcode(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("plan")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
@@ -751,14 +733,10 @@ func TestPlan_detailedExitcode(t *testing.T) {
 }
 
 func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("plan-emptydiff")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan-emptydiff"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -855,14 +833,10 @@ func TestPlan_shutdown(t *testing.T) {
 }
 
 func TestPlan_init_required(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("plan")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
 	c := &PlanCommand{

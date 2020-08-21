@@ -59,18 +59,28 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 
 	builder := authentication.Builder{
 		ClientID:                      config.ClientID,
-		ClientSecret:                  config.ClientSecret,
 		SubscriptionID:                config.SubscriptionID,
 		TenantID:                      config.TenantID,
 		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
+		MetadataURL:                   config.MetadataHost,
 		Environment:                   config.Environment,
-		MsiEndpoint:                   config.MsiEndpoint,
+		ClientSecretDocsLink:          "https://www.terraform.io/docs/providers/azurerm/guides/service_principal_client_secret.html",
+
+		// Service Principal (Client Certificate)
+		ClientCertPassword: config.ClientCertificatePassword,
+		ClientCertPath:     config.ClientCertificatePath,
+
+		// Service Principal (Client Secret)
+		ClientSecret: config.ClientSecret,
+
+		// Managed Service Identity
+		MsiEndpoint: config.MsiEndpoint,
 
 		// Feature Toggles
 		SupportsAzureCliToken:          true,
+		SupportsClientCertAuth:         true,
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
-		// TODO: support for Client Certificate auth
 	}
 	armConfig, err := builder.Build()
 	if err != nil {

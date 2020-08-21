@@ -138,6 +138,16 @@
         }
     },
     "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "expressions": {
+                    "region": {
+                        "constant_value": "somewhere"
+                    }
+                }
+            }
+        },
         "root_module": {
             "outputs": {
                 "test": {

@@ -8,8 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConsoleCommand is tested primarily with tests in the "repl" package.
@@ -60,6 +63,16 @@ func TestConsole_tfvars(t *testing.T) {
 	}
 
 	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
 	ui := new(cli.MockUi)
 	c := &ConsoleCommand{
 		Meta: Meta{
@@ -98,6 +111,15 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	defer testFixCwd(t, tmp, cwd)
 
 	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
 	ui := new(cli.MockUi)
 	c := &ConsoleCommand{
 		Meta: Meta{
@@ -142,7 +164,7 @@ func TestConsole_modules(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	p := testProvider()
+	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 
 	c := &ConsoleCommand{

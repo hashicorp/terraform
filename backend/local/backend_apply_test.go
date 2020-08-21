@@ -62,6 +62,7 @@ test_instance.foo:
   provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 `)
+
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
@@ -90,6 +91,9 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	if _, err := os.Stat(b.StateOutPath); err == nil {
 		t.Fatal("should not exist")
 	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
@@ -179,6 +183,9 @@ test_instance.foo:
   provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 	`)
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
@@ -229,6 +236,9 @@ test_instance.foo:
   provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 	`)
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 type backendWithFailingState struct {

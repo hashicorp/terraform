@@ -184,11 +184,10 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "graph-builder-apply-double-cbd"),
-		Changes:       changes,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "graph-builder-apply-double-cbd"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -279,12 +278,11 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 	)
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "empty"),
-		Changes:       changes,
-		State:         state,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "empty"),
+		Changes:    changes,
+		State:      state,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, diags := b.Build(addrs.RootModuleInstance)
@@ -321,11 +319,33 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.RootModule()
+	addrA := mustResourceInstanceAddr("test_object.A[1]")
+	root.SetResourceInstanceCurrent(
+		addrA.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"B"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B"}`),
+			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-count"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)

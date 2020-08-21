@@ -123,6 +123,9 @@ func TestRemote_config(t *testing.T) {
 			}),
 			valErr: `Only one of workspace "name" or "prefix" is allowed`,
 		},
+		"null config": {
+			config: cty.NullVal(cty.EmptyObject),
+		},
 	}
 
 	for name, tc := range cases {

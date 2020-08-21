@@ -18,7 +18,6 @@ type nodeExpandLocal struct {
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*nodeExpandLocal)(nil)
 	_ GraphNodeReferenceable     = (*nodeExpandLocal)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
@@ -48,11 +47,6 @@ func (n *nodeExpandLocal) ModulePath() addrs.Module {
 	return n.Module
 }
 
-// RemovableIfNotTargeted
-func (n *nodeExpandLocal) RemoveIfNotTargeted() bool {
-	return true
-}
-
 // GraphNodeReferenceable
 func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
@@ -61,7 +55,7 @@ func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *nodeExpandLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
 func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -89,7 +83,6 @@ type NodeLocal struct {
 
 var (
 	_ GraphNodeModuleInstance = (*NodeLocal)(nil)
-	_ RemovableIfNotTargeted  = (*NodeLocal)(nil)
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
 	_ GraphNodeEvalable       = (*NodeLocal)(nil)
@@ -116,11 +109,6 @@ func (n *NodeLocal) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }
 
-// RemovableIfNotTargeted
-func (n *NodeLocal) RemoveIfNotTargeted() bool {
-	return true
-}
-
 // GraphNodeReferenceable
 func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.LocalValue}
@@ -129,7 +117,7 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
 // GraphNodeEvalable

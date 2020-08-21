@@ -16,6 +16,7 @@ func TestCommunicator_new(t *testing.T) {
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: map[string]string{
 				"type": "telnet",
+				"host": "127.0.0.1",
 			},
 		},
 	}

@@ -26,7 +26,6 @@ var (
 	_ GraphNodeReferenceable     = (*nodeExpandModuleVariable)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandModuleVariable)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandModuleVariable)(nil)
-	_ RemovableIfNotTargeted     = (*nodeExpandModuleVariable)(nil)
 	_ graphNodeExpandsInstances  = (*nodeExpandModuleVariable)(nil)
 )
 
@@ -95,21 +94,7 @@ func (n *nodeExpandModuleVariable) ReferenceOutside() (selfPath, referencePath a
 
 // GraphNodeReferenceable
 func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
-	// FIXME: References for module variables probably need to be thought out a bit more
-	// Otherwise, we can reference the output via the address itself, or the
-	// module call
-	_, call := n.Module.Call()
-	return []addrs.Referenceable{n.Addr, call}
-}
-
-// RemovableIfNotTargeted
-func (n *nodeExpandModuleVariable) RemoveIfNotTargeted() bool {
-	return true
-}
-
-// GraphNodeTargetDownstream
-func (n *nodeExpandModuleVariable) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	return true
+	return []addrs.Referenceable{n.Addr}
 }
 
 // nodeModuleVariable represents a module variable input during
@@ -127,7 +112,6 @@ type nodeModuleVariable struct {
 // implementing.
 var (
 	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
-	_ RemovableIfNotTargeted  = (*nodeModuleVariable)(nil)
 	_ GraphNodeEvalable       = (*nodeModuleVariable)(nil)
 	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
 	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
@@ -150,14 +134,7 @@ func (n *nodeModuleVariable) Path() addrs.ModuleInstance {
 
 // GraphNodeModulePath
 func (n *nodeModuleVariable) ModulePath() addrs.Module {
-	return n.Addr.Module.Parent().Module()
-}
-
-// RemovableIfNotTargeted
-func (n *nodeModuleVariable) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
+	return n.Addr.Module.Module()
 }
 
 // GraphNodeEvalable
@@ -177,7 +154,7 @@ func (n *nodeModuleVariable) EvalTree() EvalNode {
 		Nodes: []EvalNode{
 			&EvalOpFilter{
 				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
-					walkDestroy},
+					walkDestroy, walkImport},
 				Node: &EvalModuleCallArgument{
 					Addr:           n.Addr.Variable,
 					Config:         n.Config,

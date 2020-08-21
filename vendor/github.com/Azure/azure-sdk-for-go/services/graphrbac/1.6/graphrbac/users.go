@@ -121,7 +121,6 @@ func (client UsersClient) CreateSender(req *http.Request) (*http.Response, error
 func (client UsersClient) CreateResponder(resp *http.Response) (result User, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -195,7 +194,6 @@ func (client UsersClient) DeleteSender(req *http.Request) (*http.Response, error
 func (client UsersClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
@@ -268,7 +266,6 @@ func (client UsersClient) GetSender(req *http.Request) (*http.Response, error) {
 func (client UsersClient) GetResponder(resp *http.Response) (result User, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -351,7 +348,6 @@ func (client UsersClient) GetMemberGroupsSender(req *http.Request) (*http.Respon
 func (client UsersClient) GetMemberGroupsResponder(resp *http.Response) (result UserGetMemberGroupsResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -362,7 +358,8 @@ func (client UsersClient) GetMemberGroupsResponder(resp *http.Response) (result 
 // List gets list of users for the current tenant.
 // Parameters:
 // filter - the filter to apply to the operation.
-func (client UsersClient) List(ctx context.Context, filter string) (result UserListResultPage, err error) {
+// expand - the expand value for the operation result.
+func (client UsersClient) List(ctx context.Context, filter string, expand string) (result UserListResultPage, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/UsersClient.List")
 		defer func() {
@@ -379,7 +376,7 @@ func (client UsersClient) List(ctx context.Context, filter string) (result UserL
 		}
 		return client.ListNext(ctx, *lastResult.OdataNextLink)
 	}
-	req, err := client.ListPreparer(ctx, filter)
+	req, err := client.ListPreparer(ctx, filter, expand)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "graphrbac.UsersClient", "List", nil, "Failure preparing request")
 		return
@@ -396,12 +393,15 @@ func (client UsersClient) List(ctx context.Context, filter string) (result UserL
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "graphrbac.UsersClient", "List", resp, "Failure responding to request")
 	}
+	if result.ulr.hasNextLink() && result.ulr.IsEmpty() {
+		err = result.NextWithContext(ctx)
+	}
 
 	return
 }
 
 // ListPreparer prepares the List request.
-func (client UsersClient) ListPreparer(ctx context.Context, filter string) (*http.Request, error) {
+func (client UsersClient) ListPreparer(ctx context.Context, filter string, expand string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"tenantID": autorest.Encode("path", client.TenantID),
 	}
@@ -412,6 +412,9 @@ func (client UsersClient) ListPreparer(ctx context.Context, filter string) (*htt
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -433,7 +436,6 @@ func (client UsersClient) ListSender(req *http.Request) (*http.Response, error) 
 func (client UsersClient) ListResponder(resp *http.Response) (result UserListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -442,7 +444,7 @@ func (client UsersClient) ListResponder(resp *http.Response) (result UserListRes
 }
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
-func (client UsersClient) ListComplete(ctx context.Context, filter string) (result UserListResultIterator, err error) {
+func (client UsersClient) ListComplete(ctx context.Context, filter string, expand string) (result UserListResultIterator, err error) {
 	if tracing.IsEnabled() {
 		ctx = tracing.StartSpan(ctx, fqdn+"/UsersClient.List")
 		defer func() {
@@ -453,7 +455,7 @@ func (client UsersClient) ListComplete(ctx context.Context, filter string) (resu
 			tracing.EndSpan(ctx, sc, err)
 		}()
 	}
-	result.page, err = client.List(ctx, filter)
+	result.page, err = client.List(ctx, filter, expand)
 	return
 }
 
@@ -523,7 +525,6 @@ func (client UsersClient) ListNextSender(req *http.Request) (*http.Response, err
 func (client UsersClient) ListNextResponder(resp *http.Response) (result UserListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -600,7 +601,6 @@ func (client UsersClient) UpdateSender(req *http.Request) (*http.Response, error
 func (client UsersClient) UpdateResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp

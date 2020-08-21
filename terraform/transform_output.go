@@ -86,18 +86,16 @@ func (t *destroyRootOutputTransformer) Transform(g *Graph) error {
 		log.Printf("[TRACE] creating %s", node.Name())
 		g.Add(node)
 
-		deps, err := g.Descendents(v)
-		if err != nil {
-			return err
-		}
-
-		// the destroy node must depend on the eval node
-		deps.Add(v)
+		deps := g.UpEdges(v)
 
 		for _, d := range deps {
 			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
 			g.Connect(dag.BasicEdge(node, d))
 		}
+
+		// We no longer need the expand node, since we intend to remove this
+		// output from the state.
+		g.Remove(v)
 	}
 	return nil
 }

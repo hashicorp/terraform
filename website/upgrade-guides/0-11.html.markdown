@@ -68,7 +68,7 @@ explicitly by beginning the string with either `./` (for a module in a child
 directory) or `../` (for a module in the parent directory).
 
 **Action:** Update existing module `source` values containing relative paths
-to start eith either `./` or `../` to prevent misinterpretation of the source
+to start with either `./` or `../` to prevent misinterpretation of the source
 as a Terraform Registry module.
 
 ## Interactions Between Providers and Modules
