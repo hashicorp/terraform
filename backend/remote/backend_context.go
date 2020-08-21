@@ -125,8 +125,39 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		}
 
 		if op.Variables != nil {
-			variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+			variables, varDiags := backend.ParseVariableValuesWithoutDefaults(op.Variables, config.Module.Variables)
 			diags = diags.Append(varDiags)
+			for name, vc := range config.Module.Variables {
+				if _, defined := variables[name]; defined {
+					continue
+				}
+
+				if vc.Required() {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "No value for required variable",
+						Detail:   fmt.Sprintf("The root module input variable %q is not set, and has no default value. Set it in your remote workspace:\nhttps://%s/app/%s/%s/variables", name, b.hostname, b.organization, op.Workspace),
+						Subject:  vc.DeclRange.Ptr(),
+					})
+
+					// We'll include a placeholder value anyway, just so that our
+					// result is complete for any calling code that wants to cautiously
+					// analyze it for diagnostic purposes. Since our diagnostics now
+					// includes an error, normal processing will ignore this result.
+					variables[name] = &terraform.InputValue{
+						Value:       cty.DynamicVal,
+						SourceType:  terraform.ValueFromConfig,
+						SourceRange: tfdiags.SourceRangeFromHCL(vc.DeclRange),
+					}
+				} else {
+					variables[name] = &terraform.InputValue{
+						Value:       vc.Default,
+						SourceType:  terraform.ValueFromConfig,
+						SourceRange: tfdiags.SourceRangeFromHCL(vc.DeclRange),
+					}
+				}
+			}
+
 			if diags.HasErrors() {
 				return nil, nil, diags
 			}
