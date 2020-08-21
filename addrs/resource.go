@@ -50,6 +50,15 @@ func (r Resource) Absolute(module ModuleInstance) AbsResource {
 	}
 }
 
+// InModule returns a ConfigResource from the receiver and the given module
+// address.
+func (r Resource) InModule(module Module) ConfigResource {
+	return ConfigResource{
+		Module:   module,
+		Resource: r,
+	}
+}
+
 // ImpliedProvider returns the implied provider type name, for e.g. the "aws" in
 // "aws_instance"
 func (r Resource) ImpliedProvider() string {
