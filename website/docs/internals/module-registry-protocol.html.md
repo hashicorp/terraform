@@ -32,7 +32,7 @@ Terraform CLI itself does not use them.
 ## Module Addresses
 
 Each Terraform module has an associated address. A module address has the
-syntax `hostname/namespace/name/system`, where:
+syntax `hostname/namespace/name/provider`, where:
 
 * `hostname` is the hostname of the provider registry that serves this module.
 * `namespace` is the name of a namespace, unique on a particular hostname, that
@@ -41,12 +41,12 @@ syntax `hostname/namespace/name/system`, where:
   packaging and distributing the module.
 * `name` is the module name, which generally names the abstraction that the
   module is intending to create.
-* `system` is the name of a system that the module is primarily written to
+* `provider` is the name of a provider that the module is primarily written to
   target. For multi-cloud abstractions, there can be multiple modules with
-  addresses that differ only in "system" to reflect system-specific
+  addresses that differ only in "provider" to reflect provider-specific
   implementations of the abstraction, like
   `registry.terraform.io/hashicorp/consul/aws` vs.
-  `registry.terraform.io/hashicorp/consul/azurerm`. The system name commonly
+  `registry.terraform.io/hashicorp/consul/azurerm`. The provider name commonly
   matches the type portion of the address of an official provider, but that
   is not required.
 
@@ -123,7 +123,7 @@ available versions for a given fully-qualified module.
 
 | Method | Path                                  | Produces                   |
 | ------ | ------------------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/versions` | `application/json`         |
+| `GET`  | `:namespace/:name/:provider/versions`   | `application/json`         |
 
 ### Parameters
 
@@ -134,6 +134,9 @@ available versions for a given fully-qualified module.
   This is required and is specified as part of the URL path.
 
 - `system` `(string: <required>)` - The name of the target system.
+=======
+- `provider` `(string: <required>)` - The name of the provider.
+>>>>>>> Remove 'system' references from module registry protocol docs.
   This is required and is specified as part of the URL path.
 
 ### Sample Request
@@ -177,7 +180,7 @@ This endpoint downloads the specified version of a module for a single provider.
 
 | Method | Path                                                   | Produces                   |
 | ------ | ------------------------------------------------------ | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/:system/:version/download` | `application/json`         |
+| `GET`  | `:namespace/:name/:provider/:version/download`         | `application/json`         |
 
 ### Parameters
 
@@ -188,9 +191,6 @@ This endpoint downloads the specified version of a module for a single provider.
   This is required and is specified as part of the URL path.
 
 - `provider` `(string: <required>)` - The name of the provider.
-  This is required and is specified as part of the URL path.
-
-- `system` `(string: <required>)` - The name of the target system.
   This is required and is specified as part of the URL path.
 
 - `version` `(string: <required>)` - The version of the module.
