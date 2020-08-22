@@ -61,7 +61,8 @@ type connectionInfo struct {
 	BastionHostKey     string `mapstructure:"bastion_host_key"`
 	BastionPort        int    `mapstructure:"bastion_port"`
 
-	AgentIdentity string `mapstructure:"agent_identity"`
+	AgentIdentity   string `mapstructure:"agent_identity"`
+	BastionConfConn *sshConfConn
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -177,7 +178,16 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 	connectFunc := ConnectFunc("tcp", host)
 
 	var bastionConf *ssh.ClientConfig
-	if connInfo.BastionHost != "" {
+
+	if os.Getenv(SSH_CONFIG_ENABLER) == "yes" {
+		if bastionConfConn, err := parseBastions(sshAgent, connInfo); err != nil {
+			return nil, err
+		} else if len(bastionConfConn.Bastions) > 0 {
+			// if no bastion was found in ssh_config we don't override connectFunc
+			connectFunc = SshConfigConnectFunc("tcp", host, sshAgent, bastionConfConn)
+			connInfo.BastionConfConn = bastionConfConn
+		}
+	} else if connInfo.BastionHost != "" {
 		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
 
 		bastionConf, err = buildSSHClientConfig(sshClientConfigOpts{
