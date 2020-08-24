@@ -56,6 +56,21 @@ func TestMetaColorize(t *testing.T) {
 	if !m.Colorize().Disable {
 		t.Fatal("should be disabled")
 	}
+
+	// Test disable #2
+	// Verify multiple -no-color options are removed from args slice.
+	// E.g. an additional -no-color arg could be added by TF_CLI_ARGS.
+	m = new(Meta)
+	m.Color = true
+	args = []string{"foo", "-no-color", "bar", "-no-color"}
+	args2 = []string{"foo", "bar"}
+	args = m.process(args)
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if !m.Colorize().Disable {
+		t.Fatal("should be disabled")
+	}
 }
 
 func TestMetaInputMode(t *testing.T) {

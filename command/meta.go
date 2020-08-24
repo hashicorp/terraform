@@ -440,14 +440,18 @@ func (m *Meta) process(args []string) []string {
 
 	// Set colorization
 	m.color = m.Color
-	for i, v := range args {
+	i := 0 // output index
+	for _, v := range args {
 		if v == "-no-color" {
 			m.color = false
 			m.Color = false
-			args = append(args[:i], args[i+1:]...)
-			break
+		} else {
+			// copy and increment index
+			args[i] = v
+			i++
 		}
 	}
+	args = args[:i]
 
 	// Set the UI
 	m.oldUi = m.Ui
