@@ -226,3 +226,50 @@ func TestRemoteContextWithVars(t *testing.T) {
 		})
 	}
 }
+
+func TestRemoteContextWithMissingVars(t *testing.T) {
+	t.Run("Errors properly with missing variables", func(t *testing.T) {
+		configDir := "./testdata/plan-variables"
+
+		b, bCleanup := testBackendDefault(t)
+		defer bCleanup()
+
+		_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+		defer configCleanup()
+
+		workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Set one of two necessary variabls in testdata/plan-variables
+		catTerraform := tfe.CategoryTerraform
+		variableKey := "foo" // see ./testdata/plan-variables/main.tf
+		variableValue := "unimportant value"
+
+		b.client.Variables.Create(nil, workspaceID, tfe.VariableCreateOptions{
+			Category: &catTerraform,
+			Key:      &variableKey,
+			Value:    &variableValue,
+		})
+
+		op := &backend.Operation{
+			ConfigDir:    configDir,
+			ConfigLoader: configLoader,
+			Workspace:    backend.DefaultStateName,
+			LockState:    true,
+		}
+
+		expectedError := "No value for required variable: The root module input variable \"bar\" is not set, and has no default value. Set it in your remote workspace:\nhttps://app.terraform.io/app/hashicorp/default/variables"
+
+		_, _, diags := b.Context(op)
+
+		if !diags.HasErrors() {
+			t.Fatalf("missing expected error\ngot:  <no error>\nwant: %s", expectedError)
+		}
+		errStr := diags.Err().Error()
+		if errStr != expectedError {
+			t.Fatalf("wrong error\ngot:  %s\nwant: %s", errStr, expectedError)
+		}
+	})
+}
