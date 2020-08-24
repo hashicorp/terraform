@@ -83,7 +83,11 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	s, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

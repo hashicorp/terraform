@@ -130,7 +130,11 @@ func (c *ShowCommand) Run(args []string) int {
 			}
 		}
 	} else {
-		env := c.Workspace()
+		env, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
 		stateFile, stateErr = getStateFromEnv(b, env)
 		if stateErr != nil {
 			c.Ui.Error(stateErr.Error())

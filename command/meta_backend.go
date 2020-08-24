@@ -101,7 +101,11 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	}
 
 	// Setup the CLI opts we pass into backends that support it.
-	cliOpts := m.backendCLIOpts()
+	cliOpts, err := m.backendCLIOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
 	cliOpts.Validation = true
 
 	// If the backend supports CLI initialization, do it.
@@ -180,7 +184,10 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	}
 
 	// Get the currently selected workspace.
-	workspace := m.Workspace()
+	workspace, err := m.Workspace()
+	if err != nil {
+		return err
+	}
 
 	// Check if any of the existing workspaces matches the selected
 	// workspace and create a numbered list of existing workspaces.
@@ -249,7 +256,11 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backend.CLI); ok {
-		cliOpts := m.backendCLIOpts()
+		cliOpts, err := m.backendCLIOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
 		if err := cli.CLIInit(cliOpts); err != nil {
 			diags = diags.Append(fmt.Errorf(
 				"Error initializing backend %T: %s\n\n"+
@@ -270,7 +281,11 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
 	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
-	cliOpts := m.backendCLIOpts()
+	cliOpts, err := m.backendCLIOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
 	cliOpts.Validation = false // don't validate here in case config contains file(...) calls where the file doesn't exist
 	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
@@ -283,7 +298,11 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 // backendCLIOpts returns a backend.CLIOpts object that should be passed to
 // a backend that supports local CLI operations.
-func (m *Meta) backendCLIOpts() *backend.CLIOpts {
+func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
+	contextOpts, err := m.contextOpts()
+	if err != nil {
+		return nil, err
+	}
 	return &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
@@ -291,10 +310,10 @@ func (m *Meta) backendCLIOpts() *backend.CLIOpts {
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,
-		ContextOpts:         m.contextOpts(),
+		ContextOpts:         contextOpts,
 		Input:               m.Input(),
 		RunningInAutomation: m.RunningInAutomation,
-	}
+	}, nil
 }
 
 // IsLocalBackend returns true if the backend is a local backend. We use this
@@ -318,7 +337,13 @@ func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 // be called.
 func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 	schema := b.ConfigSchema()
-	workspace := m.Workspace()
+	workspace, err := m.Workspace()
+	if err != nil {
+		// An invalid workspace error would have been raised when creating the
+		// backend, and the caller should have already exited. Seeing the error
+		// here first is a bug, so panic.
+		panic(fmt.Sprintf("invalid workspace: %s", err))
+	}
 	planOutBackend, err := m.backendState.ForPlan(schema, workspace)
 	if err != nil {
 		// Always indicates an implementation error in practice, because
