@@ -207,11 +207,13 @@ command and dealing with them before running this command again.
 	// Build up a list of required providers, uniquely by local name
 	requiredProviders := make(map[string]*configs.RequiredProvider)
 	rewritePaths := make(map[string]bool)
+	requiredProvidersPaths := make(map[string]bool)
 
 	// Step 1: copy all explicit provider requirements across
 	for path, file := range files {
 		for _, rps := range file.RequiredProviders {
 			rewritePaths[path] = true
+			requiredProvidersPaths[path] = true
 			for _, rp := range rps.RequiredProviders {
 				if previous, exist := requiredProviders[rp.Name]; exist {
 					diags = diags.Append(&hcl.Diagnostic{
@@ -237,7 +239,7 @@ command and dealing with them before running this command again.
 		}
 	}
 
-	for _, file := range files {
+	for path, file := range files {
 		// Step 2: add missing provider requirements from provider blocks
 		for _, p := range file.ProviderConfigs {
 			// Skip internal providers
@@ -249,9 +251,19 @@ command and dealing with them before running this command again.
 			// provider configuration's local name, add one with a legacy
 			// provider address.
 			if _, exist := requiredProviders[p.Name]; !exist {
+				rewritePaths[path] = true
 				requiredProviders[p.Name] = &configs.RequiredProvider{
 					Name: p.Name,
 				}
+			}
+
+			// Merge any version constraints from the provider config into the
+			// required providers, as we will later remove them from the
+			// provider configs.
+			if len(p.Version.Required) > 0 {
+				rewritePaths[path] = true
+				rp := requiredProviders[p.Name]
+				rp.Requirement.Required = append(rp.Requirement.Required, p.Version.Required...)
 			}
 		}
 
@@ -305,8 +317,8 @@ command and dealing with them before running this command again.
 
 		// Special case: if we only have one file with a required providers
 		// block, output to that file instead.
-		if len(rewritePaths) == 1 {
-			for path := range rewritePaths {
+		if len(requiredProvidersPaths) == 1 {
+			for path := range requiredProvidersPaths {
 				filename = path
 				break
 			}
@@ -327,19 +339,23 @@ command and dealing with them before running this command again.
 		}
 
 		// Find all required_providers blocks, and store them alongside a map
-		// back to the parent terraform block.
+		// back to the parent terraform block. While we're iterating over the
+		// root blocks, remove any version attributes from provider configs.
 		var requiredProviderBlocks []*hclwrite.Block
 		parentBlocks := make(map[*hclwrite.Block]*hclwrite.Block)
 		root := out.Body()
 		for _, rootBlock := range root.Blocks() {
-			if rootBlock.Type() != "terraform" {
-				continue
-			}
-			for _, childBlock := range rootBlock.Body().Blocks() {
-				if childBlock.Type() == "required_providers" {
-					requiredProviderBlocks = append(requiredProviderBlocks, childBlock)
-					parentBlocks[childBlock] = rootBlock
+			switch rootBlock.Type() {
+			case "terraform":
+				for _, childBlock := range rootBlock.Body().Blocks() {
+					if childBlock.Type() == "required_providers" {
+						requiredProviderBlocks = append(requiredProviderBlocks, childBlock)
+						parentBlocks[childBlock] = rootBlock
+					}
 				}
+			case "provider":
+				providerBody := rootBlock.Body()
+				providerBody.RemoveAttribute("version")
 			}
 		}
 
@@ -536,22 +552,26 @@ command and dealing with them before running this command again.
 				return 1
 			}
 
-			// Find and remove all terraform.required_providers blocks
+			// Find and remove all terraform.required_providers blocks and
+			// remove version attributes from provider configs
 			root := file.Body()
 			for _, rootBlock := range root.Blocks() {
-				if rootBlock.Type() != "terraform" {
-					continue
-				}
-				tfBody := rootBlock.Body()
-				for _, childBlock := range tfBody.Blocks() {
-					if childBlock.Type() == "required_providers" {
-						rootBlock.Body().RemoveBlock(childBlock)
+				switch rootBlock.Type() {
+				case "terraform":
+					tfBody := rootBlock.Body()
+					for _, childBlock := range tfBody.Blocks() {
+						if childBlock.Type() == "required_providers" {
+							rootBlock.Body().RemoveBlock(childBlock)
 
-						// If the terraform block is now empty, remove it
-						if len(tfBody.Blocks()) == 0 && len(tfBody.Attributes()) == 0 {
-							root.RemoveBlock(rootBlock)
+							// If the terraform block is now empty, remove it
+							if len(tfBody.Blocks()) == 0 && len(tfBody.Attributes()) == 0 {
+								root.RemoveBlock(rootBlock)
+							}
 						}
 					}
+				case "provider":
+					providerBody := rootBlock.Body()
+					providerBody.RemoveAttribute("version")
 				}
 			}
 

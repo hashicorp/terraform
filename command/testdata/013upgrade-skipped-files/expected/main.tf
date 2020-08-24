@@ -1,5 +1,4 @@
 provider foo {
-  version = "1.2.3"
 }
 
 terraform {
@@ -13,7 +12,8 @@ terraform {
       version = "~> 2.0.0"
     }
     foo = {
-      source = "hashicorp/foo"
+      source  = "hashicorp/foo"
+      version = "1.2.3"
     }
   }
 }

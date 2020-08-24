@@ -57,7 +57,7 @@ func verifyExpectedFiles(t *testing.T, expectedPath string) {
 			t.Fatalf("failed to read expected %s: %s", filePath, err)
 		}
 
-		if diff := cmp.Diff(expected, output); diff != "" {
+		if diff := cmp.Diff(string(expected), string(output)); diff != "" {
 			t.Fatalf("expected and output file for %s do not match\n%s", filePath, diff)
 		}
 	}
@@ -79,6 +79,7 @@ func TestZeroThirteenUpgrade_success(t *testing.T) {
 		"preserves comments":    "013upgrade-preserves-comments",
 		"multiple blocks":       "013upgrade-multiple-blocks",
 		"multiple files":        "013upgrade-multiple-files",
+		"multiple versions":     "013upgrade-multiple-versions",
 		"existing versions.tf":  "013upgrade-existing-versions-tf",
 		"skipped files":         "013upgrade-skipped-files",
 	}
