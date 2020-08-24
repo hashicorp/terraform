@@ -355,8 +355,8 @@ func TestInit_backendConfigFile(t *testing.T) {
 		}
 	})
 
-	// the backend config file must be a set of key-value pairs and not a full backend {} block
-	t.Run("invalid-config-file", func(t *testing.T) {
+	// the backend config file must not be a full terraform block
+	t.Run("full-backend-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
@@ -368,8 +368,65 @@ func TestInit_backendConfigFile(t *testing.T) {
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("expected error, got success\n")
 		}
-		if !strings.Contains(ui.ErrorWriter.String(), "Invalid backend configuration file") {
+		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported block type") {
 			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+
+	// the backend config file must match the schema for the backend
+	t.Run("invalid-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "invalid.config"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported argument") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+
+	// missing file is an error
+	t.Run("missing-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "missing.config"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Failed to read file") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+
+	// blank filename clears the backend config
+	t.Run("blank-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config="}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		// Read our saved backend config and verify the backend config is empty
+		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":null,"workspace_dir":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 		}
 	})
 }

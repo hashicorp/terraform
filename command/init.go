@@ -861,16 +861,31 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 			// The value is interpreted as a filename.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
-			// Verify that the file contains only key-values pairs, and not a
-			// full backend config block. JustAttributes() will return an error
-			// if blocks are found
-			_, attrDiags := newBody.JustAttributes()
-			if attrDiags.HasErrors() {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid backend configuration file",
-					fmt.Sprintf("The backend configuration file %q given on the command line must contain key-value pairs only, and not configuration blocks.", item.Value),
-				))
+			if fileDiags.HasErrors() {
+				continue
+			}
+			// Generate an HCL body schema for the backend block.
+			var bodySchema hcl.BodySchema
+			for name, attr := range schema.Attributes {
+				bodySchema.Attributes = append(bodySchema.Attributes, hcl.AttributeSchema{
+					Name:     name,
+					Required: attr.Required,
+				})
+			}
+			for name, block := range schema.BlockTypes {
+				var labelNames []string
+				if block.Nesting == configschema.NestingMap {
+					labelNames = append(labelNames, "key")
+				}
+				bodySchema.Blocks = append(bodySchema.Blocks, hcl.BlockHeaderSchema{
+					Type:       name,
+					LabelNames: labelNames,
+				})
+			}
+			// Verify that the file body matches the expected backend schema.
+			_, schemaDiags := newBody.Content(&bodySchema)
+			diags = diags.Append(schemaDiags)
+			if schemaDiags.HasErrors() {
 				continue
 			}
 			flushVals() // deal with any accumulated individual values first
