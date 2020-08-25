@@ -216,7 +216,7 @@ func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocati
 			))
 			return nil, diags
 		}
-		return getproviders.NewHTTPMirrorSource(url), nil
+		return getproviders.NewHTTPMirrorSource(url, services.CredentialsSource()), nil
 
 	default:
 		// We should not get here because the set of cases above should

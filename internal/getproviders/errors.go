@@ -2,6 +2,7 @@ package getproviders
 
 import (
 	"fmt"
+	"net/url"
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/addrs"
@@ -123,9 +124,23 @@ type ErrPlatformNotSupported struct {
 	Provider addrs.Provider
 	Version  Version
 	Platform Platform
+
+	// MirrorURL, if non-nil, is the base URL of the mirror that serviced
+	// the request in place of the provider's origin registry. MirrorURL
+	// is nil for a direct query.
+	MirrorURL *url.URL
 }
 
 func (err ErrPlatformNotSupported) Error() string {
+	if err.MirrorURL != nil {
+		return fmt.Sprintf(
+			"provider mirror %s does not have a package of %s %s for %s",
+			err.MirrorURL.String(),
+			err.Provider,
+			err.Version,
+			err.Platform,
+		)
+	}
 	return fmt.Sprintf(
 		"provider %s %s is not available for %s",
 		err.Provider,
@@ -166,9 +181,22 @@ func (err ErrProtocolNotSupported) Error() string {
 type ErrQueryFailed struct {
 	Provider addrs.Provider
 	Wrapped  error
+
+	// MirrorURL, if non-nil, is the base URL of the mirror that serviced
+	// the request in place of the provider's origin registry. MirrorURL
+	// is nil for a direct query.
+	MirrorURL *url.URL
 }
 
 func (err ErrQueryFailed) Error() string {
+	if err.MirrorURL != nil {
+		return fmt.Sprintf(
+			"failed to query provider mirror %s for %s: %s",
+			err.MirrorURL.String(),
+			err.Provider.String(),
+			err.Wrapped.Error(),
+		)
+	}
 	return fmt.Sprintf(
 		"could not query provider registry for %s: %s",
 		err.Provider.String(),
