@@ -242,11 +242,11 @@ avoiding typing.
 
 ## Version Constraints
 
-A [source address](#source-addresses) uniquely identifies a particular
-provider, but each provider can have one or more distinct _versions_, allowing
-the functionality of the provider to evolve over time. Each provider dependency
-you declare should have a [version constraint](./version-constraints.html)
-given in the `version` argument.
+Each provider plugin has its own set of available versions, allowing the
+functionality of the provider to evolve over time. Each provider dependency you
+declare should have a [version constraint](./version-constraints.html) given in
+the `version` argument so Terraform can select a single version per provider
+that all modules are compatible with.
 
 The `version` argument is optional; if omitted, Terraform will accept any
 version of the provider as compatible. However, we strongly recommend specifying
