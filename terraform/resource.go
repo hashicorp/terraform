@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
@@ -186,11 +186,11 @@ type ResourceConfig struct {
 	Raw          map[string]interface{}
 	Config       map[string]interface{}
 
-	raw *config.RawConfig
+	raw *configs.RawConfig
 }
 
-// NewResourceConfig creates a new ResourceConfig from a config.RawConfig.
-func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
+// NewResourceConfig creates a new ResourceConfig from a configs.RawConfig.
+func NewResourceConfig(c *configs.RawConfig) *ResourceConfig {
 	result := &ResourceConfig{raw: c}
 	result.interpolateForce()
 	return result
@@ -526,7 +526,7 @@ func (c *ResourceConfig) interpolateForce() {
 		}
 
 		var err error
-		c.raw, err = config.NewRawConfig(make(map[string]interface{}))
+		c.raw, err = configs.NewRawConfig(make(map[string]interface{}))
 		if err != nil {
 			panic(err)
 		}

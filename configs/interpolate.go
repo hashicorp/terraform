@@ -1,0 +1,436 @@
+package configs
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
+
+	"github.com/hashicorp/hil/ast"
+)
+
+// An InterpolatedVariable is a variable reference within an interpolation.
+//
+// Implementations of this interface represents various sources where
+// variables can come from: user variables, resources, etc.
+type InterpolatedVariable interface {
+	FullKey() string
+	SourceRange() tfdiags.SourceRange
+}
+
+// varRange can be embedded into an InterpolatedVariable implementation to
+// implement the SourceRange method.
+type varRange struct {
+	rng tfdiags.SourceRange
+}
+
+func (r varRange) SourceRange() tfdiags.SourceRange {
+	return r.rng
+}
+
+// CountVariable is a variable for referencing information about
+// the count.
+type CountVariable struct {
+	Type CountValueType
+	key  string
+	varRange
+}
+
+// CountValueType is the type of the count variable that is referenced.
+type CountValueType byte
+
+const (
+	CountValueInvalid CountValueType = iota
+	CountValueIndex
+)
+
+// A ModuleVariable is a variable that is referencing the output
+// of a module, such as "${module.foo.bar}"
+type ModuleVariable struct {
+	Name  string
+	Field string
+	key   string
+	varRange
+}
+
+// A PathVariable is a variable that references path information about the
+// module.
+type PathVariable struct {
+	Type PathValueType
+	key  string
+	varRange
+}
+
+type PathValueType byte
+
+const (
+	PathValueInvalid PathValueType = iota
+	PathValueCwd
+	PathValueModule
+	PathValueRoot
+)
+
+// A ResourceVariable is a variable that is referencing the field
+// of a resource, such as "${aws_instance.foo.ami}"
+type ResourceVariable struct {
+	Mode  addrs.ResourceMode
+	Type  string // Resource type, i.e. "aws_instance"
+	Name  string // Resource name
+	Field string // Resource field
+
+	Multi bool // True if multi-variable: aws_instance.foo.*.id
+	Index int  // Index for multi-variable: aws_instance.foo.1.id == 1
+
+	key string
+	varRange
+}
+
+// SelfVariable is a variable that is referencing the same resource
+// it is running on: "${self.address}"
+type SelfVariable struct {
+	Field string
+
+	key string
+	varRange
+}
+
+// SimpleVariable is an unprefixed variable, which can show up when users have
+// strings they are passing down to resources that use interpolation
+// internally. The template_file resource is an example of this.
+type SimpleVariable struct {
+	Key string
+	varRange
+}
+
+// TerraformVariable is a "terraform."-prefixed variable used to access
+// metadata about the Terraform run.
+type TerraformVariable struct {
+	Field string
+	key   string
+	varRange
+}
+
+// A UserVariable is a variable that is referencing a user variable
+// that is inputted from outside the configuration. This looks like
+// "${var.foo}"
+type UserVariable struct {
+	Name string
+	Elem string
+
+	key string
+	varRange
+}
+
+// A LocalVariable is a variable that references a local value defined within
+// the current module, via a "locals" block. This looks like "${local.foo}".
+type LocalVariable struct {
+	Name string
+	varRange
+}
+
+func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
+	if strings.HasPrefix(v, "count.") {
+		return NewCountVariable(v)
+	} else if strings.HasPrefix(v, "path.") {
+		return NewPathVariable(v)
+	} else if strings.HasPrefix(v, "self.") {
+		return NewSelfVariable(v)
+	} else if strings.HasPrefix(v, "terraform.") {
+		return NewTerraformVariable(v)
+	} else if strings.HasPrefix(v, "var.") {
+		return NewUserVariable(v)
+	} else if strings.HasPrefix(v, "local.") {
+		return NewLocalVariable(v)
+	} else if strings.HasPrefix(v, "module.") {
+		return NewModuleVariable(v)
+	} else if !strings.ContainsRune(v, '.') {
+		return NewSimpleVariable(v)
+	} else {
+		return NewResourceVariable(v)
+	}
+}
+
+func NewCountVariable(key string) (*CountVariable, error) {
+	var fieldType CountValueType
+	parts := strings.SplitN(key, ".", 2)
+	switch parts[1] {
+	case "index":
+		fieldType = CountValueIndex
+	}
+
+	return &CountVariable{
+		Type: fieldType,
+		key:  key,
+	}, nil
+}
+
+func (c *CountVariable) FullKey() string {
+	return c.key
+}
+
+func NewModuleVariable(key string) (*ModuleVariable, error) {
+	parts := strings.SplitN(key, ".", 3)
+	if len(parts) < 3 {
+		return nil, fmt.Errorf(
+			"%s: module variables must be three parts: module.name.attr",
+			key)
+	}
+
+	return &ModuleVariable{
+		Name:  parts[1],
+		Field: parts[2],
+		key:   key,
+	}, nil
+}
+
+func (v *ModuleVariable) FullKey() string {
+	return v.key
+}
+
+func (v *ModuleVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewPathVariable(key string) (*PathVariable, error) {
+	var fieldType PathValueType
+	parts := strings.SplitN(key, ".", 2)
+	switch parts[1] {
+	case "cwd":
+		fieldType = PathValueCwd
+	case "module":
+		fieldType = PathValueModule
+	case "root":
+		fieldType = PathValueRoot
+	}
+
+	return &PathVariable{
+		Type: fieldType,
+		key:  key,
+	}, nil
+}
+
+func (v *PathVariable) FullKey() string {
+	return v.key
+}
+
+func NewResourceVariable(key string) (*ResourceVariable, error) {
+	var mode addrs.ResourceMode
+	var parts []string
+	if strings.HasPrefix(key, "data.") {
+		mode = addrs.DataResourceMode
+		parts = strings.SplitN(key, ".", 4)
+		if len(parts) < 4 {
+			return nil, fmt.Errorf(
+				"%s: data variables must be four parts: data.TYPE.NAME.ATTR",
+				key)
+		}
+
+		// Don't actually need the "data." prefix for parsing, since it's
+		// always constant.
+		parts = parts[1:]
+	} else {
+		mode = addrs.ManagedResourceMode
+		parts = strings.SplitN(key, ".", 3)
+		if len(parts) < 3 {
+			return nil, fmt.Errorf(
+				"%s: resource variables must be three parts: TYPE.NAME.ATTR",
+				key)
+		}
+	}
+
+	field := parts[2]
+	multi := false
+	var index int
+
+	if idx := strings.Index(field, "."); idx != -1 {
+		indexStr := field[:idx]
+		multi = indexStr == "*"
+		index = -1
+
+		if !multi {
+			indexInt, err := strconv.ParseInt(indexStr, 0, 0)
+			if err == nil {
+				multi = true
+				index = int(indexInt)
+			}
+		}
+
+		if multi {
+			field = field[idx+1:]
+		}
+	}
+
+	return &ResourceVariable{
+		Mode:  mode,
+		Type:  parts[0],
+		Name:  parts[1],
+		Field: field,
+		Multi: multi,
+		Index: index,
+		key:   key,
+	}, nil
+}
+
+func (v *ResourceVariable) ResourceId() string {
+	switch v.Mode {
+	case addrs.ManagedResourceMode:
+		return fmt.Sprintf("%s.%s", v.Type, v.Name)
+	case addrs.DataResourceMode:
+		return fmt.Sprintf("data.%s.%s", v.Type, v.Name)
+	default:
+		panic(fmt.Errorf("unknown resource mode %s", v.Mode))
+	}
+}
+
+func (v *ResourceVariable) FullKey() string {
+	return v.key
+}
+
+func NewSelfVariable(key string) (*SelfVariable, error) {
+	field := key[len("self."):]
+
+	return &SelfVariable{
+		Field: field,
+
+		key: key,
+	}, nil
+}
+
+func (v *SelfVariable) FullKey() string {
+	return v.key
+}
+
+func (v *SelfVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewSimpleVariable(key string) (*SimpleVariable, error) {
+	return &SimpleVariable{Key: key}, nil
+}
+
+func (v *SimpleVariable) FullKey() string {
+	return v.Key
+}
+
+func (v *SimpleVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewTerraformVariable(key string) (*TerraformVariable, error) {
+	field := key[len("terraform."):]
+	return &TerraformVariable{
+		Field: field,
+		key:   key,
+	}, nil
+}
+
+func (v *TerraformVariable) FullKey() string {
+	return v.key
+}
+
+func (v *TerraformVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewUserVariable(key string) (*UserVariable, error) {
+	name := key[len("var."):]
+	elem := ""
+	if idx := strings.Index(name, "."); idx > -1 {
+		elem = name[idx+1:]
+		name = name[:idx]
+	}
+
+	if len(elem) > 0 {
+		return nil, fmt.Errorf("Invalid dot index found: 'var.%s.%s'. Values in maps and lists can be referenced using square bracket indexing, like: 'var.mymap[\"key\"]' or 'var.mylist[1]'.", name, elem)
+	}
+
+	return &UserVariable{
+		key: key,
+
+		Name: name,
+		Elem: elem,
+	}, nil
+}
+
+func (v *UserVariable) FullKey() string {
+	return v.key
+}
+
+func (v *UserVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+func NewLocalVariable(key string) (*LocalVariable, error) {
+	name := key[len("local."):]
+	if idx := strings.Index(name, "."); idx > -1 {
+		return nil, fmt.Errorf("Can't use dot (.) attribute access in local.%s; use square bracket indexing", name)
+	}
+
+	return &LocalVariable{
+		Name: name,
+	}, nil
+}
+
+func (v *LocalVariable) FullKey() string {
+	return fmt.Sprintf("local.%s", v.Name)
+}
+
+func (v *LocalVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
+// DetectVariables takes an AST root and returns all the interpolated
+// variables that are detected in the AST tree.
+func DetectVariables(root ast.Node) ([]InterpolatedVariable, error) {
+	var result []InterpolatedVariable
+	var resultErr error
+
+	// Visitor callback
+	fn := func(n ast.Node) ast.Node {
+		if resultErr != nil {
+			return n
+		}
+
+		switch vn := n.(type) {
+		case *ast.VariableAccess:
+			v, err := NewInterpolatedVariable(vn.Name)
+			if err != nil {
+				resultErr = err
+				return n
+			}
+			result = append(result, v)
+		case *ast.Index:
+			if va, ok := vn.Target.(*ast.VariableAccess); ok {
+				v, err := NewInterpolatedVariable(va.Name)
+				if err != nil {
+					resultErr = err
+					return n
+				}
+				result = append(result, v)
+			}
+			if va, ok := vn.Key.(*ast.VariableAccess); ok {
+				v, err := NewInterpolatedVariable(va.Name)
+				if err != nil {
+					resultErr = err
+					return n
+				}
+				result = append(result, v)
+			}
+		default:
+			return n
+		}
+
+		return n
+	}
+
+	// Visitor pattern
+	root.Accept(fn)
+
+	if resultErr != nil {
+		return nil, resultErr
+	}
+
+	return result, nil
+}
