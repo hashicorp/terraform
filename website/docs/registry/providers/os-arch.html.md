@@ -11,7 +11,7 @@ description: |-
 We recommend the following operating system / architecture combinations for compiled binaries available in the registry (this list is already satisfied by our [recommended **.goreleaser.yml** configuration file](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml)):
 
 * Darwin / AMD64
-* Linux / AMD64
+* Linux / AMD64 (this is **required** for usage in Terraform Cloud)
 * Linux / ARMv8 (sometimes referred to as AArch64 or ARM64)
 * Linux / ARMv6
 * Windows / AMD64
