@@ -102,7 +102,7 @@ was added in Terraform v0.13. Previous versions of Terraform used a version
 constraint string instead of an object (like `mycloud = "~> 1.0"`), and had no
 way to specify provider source addresses. If you want to write a module that
 works with both Terraform v0.12 and v0.13, see [v0.12-Compatible Provider
-Requirements](#v012-compatible-provider-requirements) below.
+Requirements](#v0-12-compatible-provider-requirements) below.
 
 ## Names and Addresses
 
