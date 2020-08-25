@@ -314,7 +314,7 @@ func TestResourceProvisioner_linuxRunPuppetAgent(t *testing.T) {
 				"use_sudo": false,
 			},
 			Commands: map[string]bool{
-				"/opt/puppetlabs/puppet/bin/puppet agent --test --server puppet.test.com --environment production": true,
+				"/opt/puppetlabs/puppet/bin/puppet agent --test --server puppet.test.com --masterport 8140 --environment production": true,
 			},
 		},
 		"When puppet returns 2 (changes applied without error)": {

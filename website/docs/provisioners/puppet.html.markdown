@@ -56,6 +56,8 @@ The following arguments are supported:
 * `server (string)` - (Required) The FQDN of the Puppet master that the agent
   is to connect to.
 
+* `masterport (string)` - (Optional) Port that the puppetmaster is listening to (defaults to `8140`).
+
 * `server_user (string)` - (Optional) The user that Bolt should connect to the
   server as (defaults to `root`).
 

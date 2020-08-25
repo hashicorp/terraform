@@ -20,6 +20,7 @@ import (
 
 type provisioner struct {
 	Server            string
+	MasterPort        int
 	ServerUser        string
 	OSType            string
 	Certname          string
@@ -53,6 +54,11 @@ func Provisioner() terraform.ResourceProvisioner {
 			"server": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"masterport": &schema.Schema{
+				Type:     schema.TypeInt,
+				Default:  8140,
+				Optional: true,
 			},
 			"server_user": &schema.Schema{
 				Type:     schema.TypeString,
@@ -331,6 +337,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 	p := &provisioner{
 		UseSudo:           d.Get("use_sudo").(bool),
 		Server:            d.Get("server").(string),
+		MasterPort:        d.Get("masterport").(int),
 		ServerUser:        d.Get("server_user").(string),
 		OSType:            strings.ToLower(d.Get("os_type").(string)),
 		Autosign:          d.Get("autosign").(bool),

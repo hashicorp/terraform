@@ -59,7 +59,7 @@ func (p *provisioner) windowsInstallPuppetAgent() error {
 }
 
 func (p *provisioner) windowsRunPuppetAgent() error {
-	_, err := p.runCommand(fmt.Sprintf("puppet agent --test --server %s --environment %s", p.Server, p.Environment))
+	_, err := p.runCommand(fmt.Sprintf("puppet agent --test --server %s --masterport %d --environment %s", p.Server, p.MasterPort, p.Environment))
 	if err != nil {
 		errStruct, _ := err.(*remote.ExitError)
 		if errStruct.ExitStatus == 2 {

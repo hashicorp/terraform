@@ -48,8 +48,9 @@ func (p *provisioner) linuxInstallPuppetAgent() error {
 
 func (p *provisioner) linuxRunPuppetAgent() error {
 	_, err := p.runCommand(fmt.Sprintf(
-		"/opt/puppetlabs/puppet/bin/puppet agent --test --server %s --environment %s",
+		"/opt/puppetlabs/puppet/bin/puppet agent --test --server %s --masterport %d --environment %s",
 		p.Server,
+		p.MasterPort,
 		p.Environment,
 	))
 
