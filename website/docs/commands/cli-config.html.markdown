@@ -238,6 +238,21 @@ The following are the two supported installation method types:
     You can include multiple `filesystem_mirror` blocks in order to specify
     several different directories to search.
 
+* `network_mirror`: consult a particular HTTPS server for copies of providers,
+  regardless of which registry host they belong to. This method requires the
+  additional argument `url` to indicate the mirror base URL, which should
+  use the `https:` scheme and end with a trailing slash.
+
+    Terraform expects the given URL to be a base URL for an implementation of
+    [the provider network mirror protocol](/docs/internals/providor-network-mirror-protocol.html),
+    which is designed to be relatively easy to implement using typical static
+    website hosting mechanisms.
+
+~> **Warning:** Don't configure `network_mirror` URLs that you do not trust.
+Provider mirror servers are subject to TLS certificate checks to verify
+identity, but a network mirror with a TLS certificate can potentially serve
+modified copies of upstream providers with malicious content.
+
 Terraform will try all of the specified methods whose include and exclude
 patterns match a given provider, and select the newest version available across
 all of those methods that matches the version constraint given in each

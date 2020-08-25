@@ -51,6 +51,23 @@ func PackageMatchesHash(loc PackageLocation, want string) (bool, error) {
 	}
 }
 
+// PreferredHash examines all of the given hash strings and returns the one
+// that the current version of Terraform considers to provide the strongest
+// verification.
+//
+// Returns an empty string if none of the given hashes are of a supported
+// format. If PreferredHash returns a non-empty string then it will be one
+// of the hash strings in "given", and that hash is the one that must pass
+// verification in order for a package to be considered valid.
+func PreferredHash(given []string) string {
+	for _, s := range given {
+		if strings.HasPrefix(s, "h1:") {
+			return s
+		}
+	}
+	return ""
+}
+
 // PackageHashV1 computes a hash of the contents of the package at the given
 // location using hash algorithm 1.
 //

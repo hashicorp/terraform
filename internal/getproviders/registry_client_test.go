@@ -89,7 +89,7 @@ func TestConfigureRegistryClientTimeout(t *testing.T) {
 	})
 }
 
-// testServices starts up a local HTTP server running a fake provider registry
+// testRegistryServices starts up a local HTTP server running a fake provider registry
 // service and returns a service discovery object pre-configured to consider
 // the host "example.com" to be served by the fake registry service.
 //
@@ -103,7 +103,7 @@ func TestConfigureRegistryClientTimeout(t *testing.T) {
 // The second return value is a function to call at the end of a test function
 // to shut down the test server. After you call that function, the discovery
 // object becomes useless.
-func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup func()) {
+func testRegistryServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup func()) {
 	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
 
 	services = disco.New()
@@ -141,7 +141,7 @@ func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup 
 // As with testServices, the second return value is a function to call at the end
 // of your test in order to shut down the test server.
 func testRegistrySource(t *testing.T) (source *RegistrySource, baseURL string, cleanup func()) {
-	services, baseURL, close := testServices(t)
+	services, baseURL, close := testRegistryServices(t)
 	source = NewRegistrySource(services)
 	return source, baseURL, close
 }
