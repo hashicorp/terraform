@@ -372,6 +372,8 @@ resource "aws_s3_bucket" "example" {
 We recommend using this approach when a single configuration for each provider
 is sufficient for an entire configuration.
 
+~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](provider-requirements.html). This is especially important for non-HashiCorp providers.
+
 In more complex situations there may be
 [multiple provider configurations](/docs/configuration/providers.html#alias-multiple-provider-configurations),
 or a child module may need to use different provider settings than
