@@ -97,6 +97,67 @@ func TestPackageAuthenticationAll_failure(t *testing.T) {
 	}
 }
 
+// Package hash authentication requires a zip file or directory fixture and a
+// known-good set of hashes, of which the authenticator will pick one. The
+// result should be "verified checksum".
+func TestPackageHashAuthentication_success(t *testing.T) {
+	// Location must be a PackageLocalArchive path
+	location := PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64")
+
+	wantHashes := []string{
+		// Known-good HashV1 result for this directory
+		"h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g=",
+	}
+
+	auth := NewPackageHashAuthentication(wantHashes)
+	result, err := auth.AuthenticatePackage(location)
+
+	wantResult := PackageAuthenticationResult{result: verifiedChecksum}
+	if result == nil || *result != wantResult {
+		t.Errorf("wrong result: got %#v, want %#v", result, wantResult)
+	}
+	if err != nil {
+		t.Errorf("wrong err: got %s, want nil", err)
+	}
+}
+
+// Package has authentication can fail for various reasons.
+func TestPackageHashAuthentication_failure(t *testing.T) {
+	tests := map[string]struct {
+		location PackageLocation
+		err      string
+	}{
+		"missing file": {
+			PackageLocalArchive("testdata/no-package-here.zip"),
+			"failed to verify provider package checksums: lstat testdata/no-package-here.zip: no such file or directory",
+		},
+		"checksum mismatch": {
+			PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64"),
+			"provider package doesn't match the expected checksum \"h1:invalid\"",
+		},
+		"invalid zip file": {
+			PackageLocalArchive("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/terraform-provider-null_2.1.0_linux_amd64.zip"),
+			"failed to verify provider package checksums: zip: not a valid zip file",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Empty expected hash, either because we'll error before we
+			// reach it, or we want to force a checksum mismatch.
+			auth := NewPackageHashAuthentication([]string{"h1:invalid"})
+			result, err := auth.AuthenticatePackage(test.location)
+
+			if result != nil {
+				t.Errorf("wrong result: got %#v, want nil", result)
+			}
+			if gotErr := err.Error(); gotErr != test.err {
+				t.Errorf("wrong err: got %q, want %q", gotErr, test.err)
+			}
+		})
+	}
+}
+
 // Archive checksum authentication requires a file fixture and a known-good
 // SHA256 hash. The result should be "verified checksum".
 func TestArchiveChecksumAuthentication_success(t *testing.T) {

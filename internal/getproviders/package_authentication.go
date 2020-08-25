@@ -114,6 +114,44 @@ func (checks packageAuthenticationAll) AuthenticatePackage(localLocation Package
 	return authResult, nil
 }
 
+type packageHashAuthentication struct {
+	RequiredHash string
+}
+
+// NewPackageHashAuthentication returns a PackageAuthentication implementation
+// that checks whether the contents of the package match whichever of the
+// given hashes is most preferred by the current version of Terraform.
+//
+// This uses the hash algorithms implemented by functions Hash and MatchesHash.
+// The PreferredHash function will select which of the given hashes is
+// considered by Terraform to be the strongest verification, and authentication
+// succeeds as long as that chosen hash matches.
+func NewPackageHashAuthentication(validHashes []string) PackageAuthentication {
+	requiredHash := PreferredHash(validHashes)
+	return packageHashAuthentication{
+		RequiredHash: requiredHash,
+	}
+}
+
+func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLocation) (*PackageAuthenticationResult, error) {
+	if a.RequiredHash == "" {
+		// Indicates that none of the hashes given to
+		// NewPackageHashAuthentication were considered to be usable by this
+		// version of Terraform.
+		return nil, fmt.Errorf("this version of Terraform does not support any of the checksum formats given for this provider")
+	}
+
+	matches, err := PackageMatchesHash(localLocation, a.RequiredHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify provider package checksums: %s", err)
+	}
+
+	if matches {
+		return &PackageAuthenticationResult{result: verifiedChecksum}, nil
+	}
+	return nil, fmt.Errorf("provider package doesn't match the expected checksum %q", a.RequiredHash)
+}
+
 type archiveHashAuthentication struct {
 	WantSHA256Sum [sha256.Size]byte
 }
@@ -127,6 +165,10 @@ type archiveHashAuthentication struct {
 // (represented by PackageLocalDir) does not retain access to the original
 // source archive. Therefore this authenticator will return an error if its
 // given localLocation is not PackageLocalArchive.
+//
+// NewPackageHashAuthentication is preferable to use when possible because
+// it uses the newer hashing scheme (implemented by function Hash) that
+// can work with both packed and unpacked provider packages.
 func NewArchiveChecksumAuthentication(wantSHA256Sum [sha256.Size]byte) PackageAuthentication {
 	return archiveHashAuthentication{wantSHA256Sum}
 }
