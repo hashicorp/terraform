@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -427,6 +428,30 @@ func TestInit_backendConfigFile(t *testing.T) {
 		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":null,"workspace_dir":null}`; got != want {
 			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	// simulate the local backend having a required field which is not
+	// specified in the override file
+	t.Run("required-argument", func(t *testing.T) {
+		c := &InitCommand{}
+		schema := &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"path": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"workspace_dir": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		}
+		flagConfigExtra := newRawFlags("-backend-config")
+		flagConfigExtra.Set("input.config")
+		_, diags := c.backendConfigOverrideBody(flagConfigExtra, schema)
+		if len(diags) != 0 {
+			t.Errorf("expected no diags, got: %s", diags.Err())
 		}
 	})
 }
