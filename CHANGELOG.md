@@ -1,28 +1,28 @@
-## 0.13.1 (Unreleased)
+## 0.13.1 (August 26, 2020)
 
 ENHANCEMENTS:
 
-* config: `cidrsubnet` and `cidrhost` now support address extensions of more than 32 bits [GH-25517]
-* cli: The directories that Terraform searches by default for provider plugins can now be symlinks to directories elsewhere. (This applies only to the top-level directory, not to nested directories inside it.) [GH-25692]
-* backend/s3: simplified mock handling and assume role testing [GH-25903]
-* backend/s3: support for appending data to the User-Agent request header with the TF_APPEND_USER_AGENT environment variable [GH-25903]
+* config: `cidrsubnet` and `cidrhost` now support address extensions of more than 32 bits ([#25517](https://github.com/hashicorp/terraform/issues/25517))
+* cli: The directories that Terraform searches by default for provider plugins can now be symlinks to directories elsewhere. (This applies only to the top-level directory, not to nested directories inside it.) ([#25692](https://github.com/hashicorp/terraform/issues/25692))
+* backend/s3: simplified mock handling and assume role testing ([#25903](https://github.com/hashicorp/terraform/issues/25903))
+* backend/s3: support for appending data to the User-Agent request header with the TF_APPEND_USER_AGENT environment variable ([#25903](https://github.com/hashicorp/terraform/issues/25903))
 
 BUG FIXES:
-* config: Override files containing `module` blocks can now override the special `providers` argument. [GH-25496]
-* cli: The state lock will now be unlocked consistently across both the local and remote backends in the `terraform console` and `terraform import` commands. [GH-25454] 
-* cli: The `-target` option to `terraform plan` and `terraform apply` now correctly handles addresses containing module instance indexes. [GH-25760]
-* cli: `terraform state mv` can now move the last resource from a module without panicking. [GH-25523]
-* cli: If the output of `terraform version` contains an outdated version notice, this is now printed after the version number and not before. [GH-25811]
-* command: Prevent creation of workspaces with invalid names via the `TF_WORKSPACE` environment variable, and allow any existing invalid workspaces to be deleted. [GH-25262]
-* command: Fix error when multiple `-no-color` flags are set on the command line. [GH-25847]
-* command: Fix backend config override validation, allowing the use of `-backend-config` override files with the enhanced remote backend. [GH-25960]
-* core: State snapshots now use a consistent ordering for resources that have the same name across different modules. Previously the ordering was undefined. [GH-25498]
-* core: A `dynamic` block producing an unknown number of blocks will no longer incorrectly produce the error "Provider produced inconsistent final plan" when the block type is backed by a set of objects. [GH-25662]
-* core: Terraform will now silently drop attributes that appear in the state but are not present in the corresponding resource type schema, on the assumption that those attributes existed in a previous version of the provider and have now been removed. [GH-25779]
-* core: The state upgrade logic for handling unqualified provider addresses from Terraform v0.11 and earlier will no longer panic when it encounters references to the built-in `terraform` provider. [GH-25861]
-* internal: Clean up provider package download temporary files after installing. [GH-25990]
-* terraform: Evaluate module call arguments for `terraform import` even if defaults are given for input variables [GH-25890]
-* terraform: Fix misleading Terraform `required_version` constraint diagnostics when multiple `required_version` settings exist in a single module [GH-25898]
+* config: Override files containing `module` blocks can now override the special `providers` argument. ([#25496](https://github.com/hashicorp/terraform/issues/25496))
+* cli: The state lock will now be unlocked consistently across both the local and remote backends in the `terraform console` and `terraform import` commands. [[#25454](https://github.com/hashicorp/terraform/issues/25454)] 
+* cli: The `-target` option to `terraform plan` and `terraform apply` now correctly handles addresses containing module instance indexes. ([#25760](https://github.com/hashicorp/terraform/issues/25760))
+* cli: `terraform state mv` can now move the last resource from a module without panicking. ([#25523](https://github.com/hashicorp/terraform/issues/25523))
+* cli: If the output of `terraform version` contains an outdated version notice, this is now printed after the version number and not before. ([#25811](https://github.com/hashicorp/terraform/issues/25811))
+* command: Prevent creation of workspaces with invalid names via the `TF_WORKSPACE` environment variable, and allow any existing invalid workspaces to be deleted. ([#25262](https://github.com/hashicorp/terraform/issues/25262))
+* command: Fix error when multiple `-no-color` flags are set on the command line. ([#25847](https://github.com/hashicorp/terraform/issues/25847))
+* command: Fix backend config override validation, allowing the use of `-backend-config` override files with the enhanced remote backend. ([#25960](https://github.com/hashicorp/terraform/issues/25960))
+* core: State snapshots now use a consistent ordering for resources that have the same name across different modules. Previously the ordering was undefined. ([#25498](https://github.com/hashicorp/terraform/issues/25498))
+* core: A `dynamic` block producing an unknown number of blocks will no longer incorrectly produce the error "Provider produced inconsistent final plan" when the block type is backed by a set of objects. ([#25662](https://github.com/hashicorp/terraform/issues/25662))
+* core: Terraform will now silently drop attributes that appear in the state but are not present in the corresponding resource type schema, on the assumption that those attributes existed in a previous version of the provider and have now been removed. ([#25779](https://github.com/hashicorp/terraform/issues/25779))
+* core: The state upgrade logic for handling unqualified provider addresses from Terraform v0.11 and earlier will no longer panic when it encounters references to the built-in `terraform` provider. ([#25861](https://github.com/hashicorp/terraform/issues/25861))
+* internal: Clean up provider package download temporary files after installing. ([#25990](https://github.com/hashicorp/terraform/issues/25990))
+* terraform: Evaluate module call arguments for `terraform import` even if defaults are given for input variables ([#25890](https://github.com/hashicorp/terraform/issues/25890))
+* terraform: Fix misleading Terraform `required_version` constraint diagnostics when multiple `required_version` settings exist in a single module ([#25898](https://github.com/hashicorp/terraform/issues/25898))
 
 ## 0.13.0 (August 10, 2020)
 
