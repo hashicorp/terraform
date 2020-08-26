@@ -163,7 +163,7 @@ once (and accept any changes it proposes) before removing any `resource` blocks
 from your configuration after upgrading.
 
 If you are using Terraform Cloud or Terraform Enterprise with the VCS-driven
-workflow (as oposed to CLI-driven runs), refer to
+workflow (as opposed to CLI-driven runs), refer to
 [The UI- and VCS-driven Run Workflow](/docs/cloud/run/ui.html) to learn how
 to manually start a run after you select a Terraform v0.13 release for your
 workspace.
