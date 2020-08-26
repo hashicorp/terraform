@@ -183,7 +183,10 @@ For example,
 [the official HTTP provider](https://registry.terraform.io/providers/hashicorp/http)
 belongs to the `hashicorp` namespace on `registry.terraform.io`, so its
 source address is `registry.terraform.io/hashicorp/http` or, more commonly, just
-`hashicorp/http`.
+`hashicorp/http`. The source address with all three components given explicitly
+is called the provider's _fully-qualified name_. Terraform will often use the
+fully-qualified name in error messages, to be explicit about what provider the
+error relates to.
 
 -> **Note:** If you omit the `source` argument when requiring a provider,
 Terraform uses an implied source address of
