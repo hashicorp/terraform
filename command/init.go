@@ -866,10 +866,13 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 			}
 			// Generate an HCL body schema for the backend block.
 			var bodySchema hcl.BodySchema
-			for name, attr := range schema.Attributes {
+			for name := range schema.Attributes {
+				// We intentionally ignore the `Required` attribute here
+				// because backend config override files can be partial. The
+				// goal is to make sure we're not loading a file with
+				// extraneous attributes or blocks.
 				bodySchema.Attributes = append(bodySchema.Attributes, hcl.AttributeSchema{
-					Name:     name,
-					Required: attr.Required,
+					Name: name,
 				})
 			}
 			for name, block := range schema.BlockTypes {
