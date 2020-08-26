@@ -187,7 +187,7 @@ source address is `registry.terraform.io/hashicorp/http` or, more commonly, just
 
 The source address with all three components given explicitly is called the
 provider's _fully-qualified address_. You will see fully-qualified address in
-various outputs, like error messages, but in some cases a simplified display
+various outputs, like error messages, but in most cases a simplified display
 version is used. This display version omits the source host when it is the
 public registry, so you may see the shortened version `"hashicorp/random"` instead
 of `"registry.terraform.io/hashicorp/random"`.
