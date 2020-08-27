@@ -122,6 +122,17 @@ func TestDirFromModule_submodules(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// DirFromModule will expand ("canonicalize") the pathnames, so we must do
+	// the same for our "wantCalls" comparison values. Otherwise this test
+	// will fail when building in a source tree with symlinks in $PWD.
+	//
+	// See also: https://github.com/hashicorp/terraform/issues/26014
+	//
+	fromModuleDirRealpath, err := filepath.EvalSymlinks(fromModuleDir)
+	if err != nil {
+		t.Error(err)
+	}
+
 	tmpDir, done := tempChdir(t, fixtureDir)
 	defer done()
 
@@ -138,12 +149,12 @@ func TestDirFromModule_submodules(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "child_a",
-			LocalPath:  filepath.Join(fromModuleDir, "child_a"),
+			LocalPath:  filepath.Join(fromModuleDirRealpath, "child_a"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "child_a.child_b",
-			LocalPath:  filepath.Join(fromModuleDir, "child_a/child_b"),
+			LocalPath:  filepath.Join(fromModuleDirRealpath, "child_a/child_b"),
 		},
 	}
 
