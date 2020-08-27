@@ -68,3 +68,15 @@ The following configuration options / environment variables are supported:
    seconds to wait between HTTP request attempts. Defaults to `1`.
  * `retry_wait_max` / `TF_HTTP_RETRY_WAIT_MAX` – (Optional) The maximum time in
    seconds to wait between HTTP request attempts. Defaults to `30`.
+ * `workspace_enabled` - (Optional) Boolean, enable workspace support.
+   Defaults to false.
+ * `workspace_path_element` - (Required when workspace_enabled is true) String to replace with workspace name in address URLs.
+   Defaults to `<workspace>`.
+ * `workspace_list_address` - (Required when workspace_enabled is true) The address of the REST endpoint returning a JSON array of workspace names.
+ * `workspace_list_method` - (Optional) The HTTP method for the REST endpoint for workspace list.
+   Defaults to `GET`.
+ * `workspace_delete_address` - (Optional) The address of the REST endpoint to delete a workspace.
+   Defaults to the value of `address`.
+ * `workspace_delete_method` - (Optional) The HTTP method for the REST endpoint for workspace delete.
+   Defaults to `DELETE`.
+ * `headers` - (Optional) Map of HTTP headers to include with every request.

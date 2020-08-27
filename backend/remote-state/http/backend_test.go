@@ -1,6 +1,7 @@
 package http
 
 import (
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -9,10 +10,62 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/states/remote"
 )
 
 func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
+}
+
+func TestHTTPWorkspaceUrlFunction(t *testing.T) {
+	conf := map[string]cty.Value{
+		"address": cty.StringVal("http://127.0.0.1:8888/foo"),
+	}
+	b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
+
+	// no path
+	orig := "http://127.0.0.1"
+	u, _ := url.Parse(orig)
+	u2, err := b.workspaceUrlSubstitute(u, "test", "tset")
+	if err != nil {
+		t.Fatal("unexpected error from url substitute function")
+	}
+	if u2.String() != orig {
+		t.Fatal("string returned has been changed")
+	}
+
+	// simple path
+	orig = "http://127.0.0.1/element/teststring/else"
+	u, _ = url.Parse(orig)
+	u2, err = b.workspaceUrlSubstitute(u, "test", "tset")
+	if err != nil {
+		t.Fatal("unexpected error from url substitute function 2")
+	}
+	if u2.String() != "http://127.0.0.1/element/tsetstring/else" {
+		t.Fatal("string returned not mutated correctly")
+	}
+
+	// escaped path
+	orig = "http://127.0.0.1/element/<teststring>/else"
+	u, _ = url.Parse(orig)
+	u2, err = b.workspaceUrlSubstitute(u, "<teststring>", ">tset<")
+	if err != nil {
+		t.Fatal("unexpected error from url substitute function 3")
+	}
+	if u2.String() != "http://127.0.0.1/element/%3Etset%3C/else" {
+		t.Fatal("string returned not mutated correctly with escaped path")
+	}
+
+	// multi replace
+	orig = "http://127.0.0.1/element/teststringtest/else"
+	u, _ = url.Parse(orig)
+	u2, err = b.workspaceUrlSubstitute(u, "test", "tset")
+	if err != nil {
+		t.Fatal("unexpected error from url substitute function 4")
+	}
+	if u2.String() != "http://127.0.0.1/element/tsetstringtset/else" {
+		t.Fatal("string returned not mutated correctly in multi replace")
+	}
 }
 
 func TestHTTPClientFactory(t *testing.T) {
@@ -43,19 +96,77 @@ func TestHTTPClientFactory(t *testing.T) {
 		t.Fatal("Unexpected username or password")
 	}
 
+	// workspace disabled
+	conf = map[string]cty.Value{
+		"address":                  cty.StringVal("http://127.0.0.1:8888/foo"),
+		"workspace_path_element":   cty.StringVal("cheese"),
+		"workspace_list_address":   cty.StringVal("http://127.0.0.1:8888/workspace/list"),
+		"workspace_delete_address": cty.StringVal("http://127.0.0.1:8888/workspace/cheese/delete"),
+	}
+	b = backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
+	client = b.client
+
+	// ensure with workspaces disabled, all of this is unset
+	if client.WorkspaceListURL != nil {
+		t.Fatal("unexpected value set in WorkspaceListURL")
+	}
+	if client.WorkspaceListMethod != "" {
+		t.Fatal("unexpected value set in WorkspaceListMethod")
+	}
+	if client.WorkspaceDeleteURL != nil {
+		t.Fatal("unexpected value set in WorkspaceDeleteURL")
+	}
+	if client.WorkspaceDeleteMethod != "" {
+		t.Fatal("unexpected value set in WorkspaceDeleteMethod")
+	}
+	if b.workspacePathElement != "" {
+		t.Fatal("unexpected value set in workspacePathElement")
+	}
+
+	// check state manager works for default
+	_, err := b.StateMgr("default")
+	if err != nil {
+		t.Fatal("unexpected error getting default state manager")
+	}
+
+	// check workspace functions return expected errors
+	_, err = b.StateMgr("test")
+	if err != ErrWorkspaceDisabled {
+		t.Fatal("incorrect error response for a workspace state when workspaces disabled")
+	}
+
+	// workspace list should fail
+	_, err = b.Workspaces()
+	if err != ErrWorkspaceDisabled {
+		t.Fatal("incorrect error response for workspace list when workspaces disabled")
+	}
+
+	// workspace delete should fail
+	err = b.DeleteWorkspace("test")
+	if err != ErrWorkspaceDisabled {
+		t.Fatal("incorrect error response for workspace delete when workspaces disabled")
+	}
+
 	// custom
 	conf = map[string]cty.Value{
-		"address":        cty.StringVal("http://127.0.0.1:8888/foo"),
-		"update_method":  cty.StringVal("BLAH"),
-		"lock_address":   cty.StringVal("http://127.0.0.1:8888/bar"),
-		"lock_method":    cty.StringVal("BLIP"),
-		"unlock_address": cty.StringVal("http://127.0.0.1:8888/baz"),
-		"unlock_method":  cty.StringVal("BLOOP"),
-		"username":       cty.StringVal("user"),
-		"password":       cty.StringVal("pass"),
-		"retry_max":      cty.StringVal("999"),
-		"retry_wait_min": cty.StringVal("15"),
-		"retry_wait_max": cty.StringVal("150"),
+		"address":                  cty.StringVal("http://127.0.0.1:8888/foo"),
+		"update_method":            cty.StringVal("BLAH"),
+		"lock_address":             cty.StringVal("http://127.0.0.1:8888/bar"),
+		"lock_method":              cty.StringVal("BLIP"),
+		"unlock_address":           cty.StringVal("http://127.0.0.1:8888/baz"),
+		"unlock_method":            cty.StringVal("BLOOP"),
+		"username":                 cty.StringVal("user"),
+		"password":                 cty.StringVal("pass"),
+		"retry_max":                cty.StringVal("999"),
+		"retry_wait_min":           cty.StringVal("15"),
+		"retry_wait_max":           cty.StringVal("150"),
+		"workspace_enabled":        cty.BoolVal(true),
+		"workspace_path_element":   cty.StringVal("cheese"),
+		"workspace_list_address":   cty.StringVal("http://127.0.0.1:8888/workspace/list"),
+		"workspace_delete_address": cty.StringVal("http://127.0.0.1:8888/workspace/cheese/delete"),
+		"headers": cty.ObjectVal(map[string]cty.Value{
+			"X-TOKEN": cty.StringVal("secret"),
+		}),
 	}
 
 	b = backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
@@ -88,6 +199,113 @@ func TestHTTPClientFactory(t *testing.T) {
 	if client.Client.RetryWaitMax != 150*time.Second {
 		t.Fatalf("Expected retry_wait_max \"%s\", got \"%s\"", 150*time.Second, client.Client.RetryWaitMax)
 	}
+	if b.workspaceEnabled != true {
+		t.Fatalf("Expected workspace_enabled to be \"%s\" got \"%t\"", conf["workspace_enabled"].AsString(),
+			b.workspaceEnabled)
+	}
+	if b.workspacePathElement != "cheese" {
+		t.Fatalf("Expected workspace_path_element \"%s\", got \"%s\"", conf["workspace_path_element"].AsString(),
+			b.workspacePathElement)
+	}
+	if client.WorkspaceListURL.String() != conf["workspace_list_address"].AsString() {
+		t.Fatalf("Unexpected workspace_list_url \"%s\", got \"%s\"", conf["workspace_list_address"].AsString(),
+			client.WorkspaceListURL.String())
+	}
+	if client.WorkspaceDeleteURL.String() != conf["workspace_delete_address"].AsString() {
+		t.Fatalf("Unexpected workspace_delete_url \"%s\", got \"%s\"", conf["workspace_delete_address"].AsString(),
+			client.WorkspaceDeleteURL.String())
+	}
+	if client.Headers == nil {
+		t.Fatalf("Unexpected nil map for client headers")
+	}
+	if client.Headers["X-TOKEN"] != "secret" {
+		t.Fatalf("Unexpected headers entry \"%s\", got \"%s\"", "secret",
+			client.Headers["X-TOKEN"])
+	}
+}
+
+func TestWithClient(t *testing.T) {
+	handler, ts, u1, err := createTestServer()
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+	defer ts.Close()
+
+	handler.Data["/list"] = "[\"workspace1\",\"workspace2\"]"
+
+	u2, err := u1.Parse("/state/REPLACE")
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+	u3, err := u1.Parse("/list")
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+
+	conf := map[string]cty.Value{
+		"address":                cty.StringVal(u2.String()),
+		"lock_address":           cty.StringVal(u2.String() + "/lock"),
+		"unlock_address":         cty.StringVal(u2.String() + "/unlock"),
+		"workspace_enabled":      cty.BoolVal(true),
+		"workspace_path_element": cty.StringVal("REPLACE"),
+		"workspace_list_address": cty.StringVal(u3.String()),
+	}
+	b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
+
+	str, err := b.Workspaces()
+	if err != nil {
+		t.Fatal("unexpected error from Workspaces()")
+	}
+	if len(str) != 2 && str[0] != "workspace1" && str[1] != "workspace2" {
+		t.Fatalf("unexpected workspace list contents, got %+v", str)
+	}
+
+	testState := func(wsname string) {
+		stateMgr, err := b.StateMgr(wsname)
+		if err != nil {
+			t.Fatal("unexpected error when getting state manager")
+		}
+
+		ut, err := u1.Parse("/state/" + wsname)
+		if err != nil {
+			t.Fatalf("Parse: %s", err)
+		}
+		rs, ok := stateMgr.(*remote.State)
+		if !ok {
+			t.Fatal("failed to assert statemgr type")
+		}
+		rc, ok := rs.Client.(*httpClient)
+		if !ok {
+			t.Fatal("failed to assert httpclient type")
+		}
+
+		if rc.URL.String() != ut.String() {
+			t.Fatalf("state url incorrect, got %s, expected %s", rc.URL.String(), ut.String())
+		}
+
+		lock := ut.String() + "/lock"
+		unlock := ut.String() + "/unlock"
+		if rc.LockURL.String() != lock {
+			t.Fatalf("lock url incorrect, got %s, expected %s", rc.LockURL.String(), lock)
+		}
+		if rc.UnlockURL.String() != unlock {
+			t.Fatalf("unlock url incorrect, got %s, expected %s", rc.UnlockURL.String(), unlock)
+		}
+
+		handler.Data["/state/"+wsname] = "{}"
+		err = b.DeleteWorkspace("notthis")
+		if _, ok := handler.Data["/state/"+wsname]; !ok {
+			t.Fatal("unexpected unrelated workspace deleted")
+		}
+		err = b.DeleteWorkspace(wsname)
+		if _, ok := handler.Data["/state/"+wsname]; ok {
+			t.Fatal("workspace not deleted")
+		}
+	}
+
+	testState("workspace1")
+	// check we can safely create multiple statemgrs
+	testState("workspace2")
 }
 
 func TestHTTPClientFactoryWithEnv(t *testing.T) {

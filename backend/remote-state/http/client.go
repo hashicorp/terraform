@@ -21,12 +21,19 @@ type httpClient struct {
 	// Update & Retrieve
 	URL          *url.URL
 	UpdateMethod string
+	Headers      map[string]string
 
 	// Locking
 	LockURL      *url.URL
 	LockMethod   string
 	UnlockURL    *url.URL
 	UnlockMethod string
+
+	// Workspace
+	WorkspaceListURL      *url.URL
+	WorkspaceListMethod   string
+	WorkspaceDeleteURL    *url.URL
+	WorkspaceDeleteMethod string
 
 	// HTTP
 	Client   *retryablehttp.Client
@@ -63,6 +70,11 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 		hash := md5.Sum(*data)
 		b64 := base64.StdEncoding.EncodeToString(hash[:])
 		req.Header.Set("Content-MD5", b64)
+	}
+
+	// Set user provided override headers
+	for k, v := range c.Headers {
+		req.Header.Set(k, v)
 	}
 
 	// Make the request
@@ -232,6 +244,51 @@ func (c *httpClient) Put(data []byte) error {
 func (c *httpClient) Delete() error {
 	// Make the request
 	resp, err := c.httpRequest("DELETE", c.URL, nil, "delete state")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Handle the error codes
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+	}
+}
+
+func (c *httpClient) WorkspaceList() ([]string, error) {
+	resp, err := c.httpRequest(c.WorkspaceListMethod, c.WorkspaceListURL, nil, "workspace list")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read response body")
+		}
+		arr := []string{}
+		err = json.Unmarshal(body, &arr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal response body")
+		}
+
+		return arr, nil
+	case http.StatusUnauthorized:
+		return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
+	case http.StatusForbidden:
+		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
+	default:
+		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+	}
+}
+
+func (c *httpClient) WorkspaceDelete(u *url.URL) error {
+	resp, err := c.httpRequest(c.WorkspaceDeleteMethod, u, nil, "workspace delete")
 	if err != nil {
 		return err
 	}

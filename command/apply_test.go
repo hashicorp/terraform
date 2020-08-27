@@ -672,18 +672,25 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	_, snap := testModuleWithSnapshot(t, "apply")
 	backendConfig := cty.ObjectVal(map[string]cty.Value{
-		"address":                cty.StringVal(srv.URL),
-		"update_method":          cty.NullVal(cty.String),
-		"lock_address":           cty.NullVal(cty.String),
-		"unlock_address":         cty.NullVal(cty.String),
-		"lock_method":            cty.NullVal(cty.String),
-		"unlock_method":          cty.NullVal(cty.String),
-		"username":               cty.NullVal(cty.String),
-		"password":               cty.NullVal(cty.String),
-		"skip_cert_verification": cty.NullVal(cty.Bool),
-		"retry_max":              cty.NullVal(cty.String),
-		"retry_wait_min":         cty.NullVal(cty.String),
-		"retry_wait_max":         cty.NullVal(cty.String),
+		"address":                  cty.StringVal(srv.URL),
+		"update_method":            cty.NullVal(cty.String),
+		"lock_address":             cty.NullVal(cty.String),
+		"unlock_address":           cty.NullVal(cty.String),
+		"lock_method":              cty.NullVal(cty.String),
+		"unlock_method":            cty.NullVal(cty.String),
+		"username":                 cty.NullVal(cty.String),
+		"password":                 cty.NullVal(cty.String),
+		"skip_cert_verification":   cty.NullVal(cty.Bool),
+		"retry_max":                cty.NullVal(cty.String),
+		"retry_wait_min":           cty.NullVal(cty.String),
+		"retry_wait_max":           cty.NullVal(cty.String),
+		"workspace_enabled":        cty.NullVal(cty.Bool),
+		"workspace_path_element":   cty.NullVal(cty.String),
+		"workspace_list_address":   cty.NullVal(cty.String),
+		"workspace_list_method":    cty.NullVal(cty.String),
+		"workspace_delete_address": cty.NullVal(cty.String),
+		"workspace_delete_method":  cty.NullVal(cty.String),
+		"headers":                  cty.ObjectVal(map[string]cty.Value{}),
 	})
 	backendConfigRaw, err := plans.NewDynamicValue(backendConfig, backendConfig.Type())
 	if err != nil {
