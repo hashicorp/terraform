@@ -132,7 +132,7 @@ described in more detail below:
   that specifies acceptable versions of the module. Described in detail under
   [Module Versions][inpage-versions] below.
 
-- `count` and `foreach` - Both of these arguments create multiple instances of a
+- `count` and `for_each` - Both of these arguments create multiple instances of a
   module from a single `module` block. Described in detail under
   [Multiple Instances of a Module][inpage-multiple] below.
 
