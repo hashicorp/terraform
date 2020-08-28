@@ -105,11 +105,6 @@ func (c *mockClient) Delete() error {
 	return nil
 }
 
-// Implements remote.ClientForcePusher
-func (c *mockClient) EnableForcePush() {
-	c.force = true
-}
-
 func (c *mockClient) appendLog(method string, content []byte) {
 	// For easier test assertions, we actually log the result of decoding
 	// the content JSON rather than the raw bytes. Callers are in principle
@@ -125,4 +120,15 @@ func (c *mockClient) appendLog(method string, content []byte) {
 		}
 	}
 	c.log = append(c.log, mockClientRequest{method, contentVal})
+}
+
+// mockForceClient is a client which simply extends the mockClient
+// to work as a remote.ClientForcePusher.
+type mockForceClient struct {
+	mockClient
+}
+
+// Implements remote.ClientForcePusher
+func (c *mockForceClient) EnableForcePush() {
+	c.force = true
 }

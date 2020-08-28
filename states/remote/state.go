@@ -77,7 +77,10 @@ func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
 	// in the backend. If force is specified we skip verifications and hand the
 	// context off to the client to use when persitence operations actually take place.
 	c, isForcePusher := s.Client.(ClientForcePusher)
-	if force && isForcePusher {
+	if force && !isForcePusher {
+		return fmt.Errorf("The configured backend does not support forced state push.")
+	}
+	if force {
 		c.EnableForcePush()
 	} else {
 		checkFile := statefile.New(s.state, s.lineage, s.serial)

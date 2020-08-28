@@ -336,6 +336,168 @@ func TestWriteStateForMigration(t *testing.T) {
 			expectedError: `cannot import state with lineage "different-lineage" over unrelated state with lineage "mock-lineage"`,
 		},
 		{
+			name: "cannot import lesser serial with force",
+			stateFile: func(mgr *State) *statefile.File {
+				return statefile.New(mgr.state, mgr.lineage, 1)
+			},
+			expectedRequest: mockClientRequest{
+				Method: "Force Put",
+				Content: map[string]interface{}{
+					"version":           4.0,
+					"lineage":           "mock-lineage",
+					"serial":            2.0,
+					"terraform_version": version.Version,
+					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
+					"resources":         []interface{}{},
+				},
+			},
+			force:         true,
+			expectedError: "The configured backend does not support forced state push.",
+		},
+		{
+			name: "cannot import differing lineage with force",
+			stateFile: func(mgr *State) *statefile.File {
+				return statefile.New(mgr.state, "different-lineage", mgr.serial)
+			},
+			expectedRequest: mockClientRequest{
+				Method: "Force Put",
+				Content: map[string]interface{}{
+					"version":           4.0,
+					"lineage":           "different-lineage",
+					"serial":            3.0,
+					"terraform_version": version.Version,
+					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
+					"resources":         []interface{}{},
+				},
+			},
+			force:         true,
+			expectedError: "The configured backend does not support forced state push.",
+		},
+	}
+
+	// In normal use (during a Terraform operation) we always refresh and read
+	// before any writes would happen, so we'll mimic that here for realism.
+	// NB This causes a GET to be logged so the first item in the test cases
+	// must account for this
+	if err := mgr.RefreshState(); err != nil {
+		t.Fatalf("failed to RefreshState: %s", err)
+	}
+
+	if err := mgr.WriteState(mgr.State()); err != nil {
+		t.Fatalf("failed to write initial state: %s", err)
+	}
+
+	// Our client is a mockClient which has a log we
+	// use to check that operations generate expected requests
+	mockClient := mgr.Client.(*mockClient)
+
+	if mockClient.force {
+		t.Fatalf("client should not default to force")
+	}
+
+	// logIdx tracks the current index of the log separate from
+	// the loop iteration so we can check operations that don't
+	// cause any requests to be generated
+	logIdx := 0
+
+	for _, tc := range testCases {
+		// Always reset client to not be force pushing
+		mockClient.force = false
+		sf := tc.stateFile(mgr)
+		err := mgr.WriteStateForMigration(sf, tc.force)
+		shouldError := tc.expectedError != ""
+
+		// If we are expecting and error check it and move on
+		if shouldError {
+			if err == nil {
+				t.Fatalf("test case %q should have failed with error %q", tc.name, tc.expectedError)
+			} else if err.Error() != tc.expectedError {
+				t.Fatalf("test case %q expected error %q but got %q", tc.name, tc.expectedError, err)
+			}
+			continue
+		}
+
+		if err != nil {
+			t.Fatalf("test case %q failed: %v", tc.name, err)
+		}
+
+		if tc.force && !mockClient.force {
+			t.Fatalf("test case %q should have enabled force push", tc.name)
+		}
+
+		// At this point we should just do a normal write and persist
+		// as would happen from the CLI
+		mgr.WriteState(mgr.State())
+		mgr.PersistState()
+
+		if logIdx >= len(mockClient.log) {
+			t.Fatalf("request lock and index are out of sync on %q: idx=%d len=%d", tc.name, logIdx, len(mockClient.log))
+		}
+		loggedRequest := mockClient.log[logIdx]
+		logIdx++
+		if diff := cmp.Diff(tc.expectedRequest, loggedRequest); len(diff) > 0 {
+			t.Fatalf("incorrect client requests for %q:\n%s", tc.name, diff)
+		}
+	}
+
+	logCnt := len(mockClient.log)
+	if logIdx != logCnt {
+		log.Fatalf("not all requests were read. Expected logIdx to be %d but got %d", logCnt, logIdx)
+	}
+}
+
+func TestWriteStateForForcedMigration(t *testing.T) {
+	mgr := &State{
+		Client: &mockForceClient{
+			mockClient: mockClient{
+				current: []byte(`
+				{
+					"version": 4,
+					"lineage": "mock-lineage",
+					"serial": 3,
+					"terraform_version":"0.0.0",
+					"outputs": {"foo": {"value":"bar", "type": "string"}},
+					"resources": []
+				}
+			`),
+			},
+		},
+	}
+
+	testCases := []migrationTestCase{
+		// Refreshing state before we run the test loop causes a GET
+		{
+			name: "refresh state",
+			stateFile: func(mgr *State) *statefile.File {
+				return mgr.StateForMigration()
+			},
+			expectedRequest: mockClientRequest{
+				Method: "Get",
+				Content: map[string]interface{}{
+					"version":           4.0,
+					"lineage":           "mock-lineage",
+					"serial":            3.0,
+					"terraform_version": "0.0.0",
+					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
+					"resources":         []interface{}{},
+				},
+			},
+		},
+		{
+			name: "cannot import lesser serial without force",
+			stateFile: func(mgr *State) *statefile.File {
+				return statefile.New(mgr.state, mgr.lineage, 1)
+			},
+			expectedError: "cannot import state with serial 1 over newer state with serial 3",
+		},
+		{
+			name: "cannot import differing lineage without force",
+			stateFile: func(mgr *State) *statefile.File {
+				return statefile.New(mgr.state, "different-lineage", mgr.serial)
+			},
+			expectedError: `cannot import state with lineage "different-lineage" over unrelated state with lineage "mock-lineage"`,
+		},
+		{
 			name: "can import lesser serial with force",
 			stateFile: func(mgr *State) *statefile.File {
 				return statefile.New(mgr.state, mgr.lineage, 1)
@@ -387,7 +549,7 @@ func TestWriteStateForMigration(t *testing.T) {
 
 	// Our client is a mockClient which has a log we
 	// use to check that operations generate expected requests
-	mockClient := mgr.Client.(*mockClient)
+	mockClient := mgr.Client.(*mockForceClient)
 
 	if mockClient.force {
 		t.Fatalf("client should not default to force")
