@@ -28,8 +28,8 @@ type ResourceProvisioner interface {
 	// are set and that the general structure is correct.
 	Validate(*ResourceConfig) ([]string, []error)
 
-	// Apply runs the provisioner on a specific resource and returns an error. 
-	// Instead of a diff, the ResourceConfig is provided since provisioners 
+	// Apply runs the provisioner on a specific resource and returns an error.
+	// Instead of a diff, the ResourceConfig is provided since provisioners
 	// only run after a resource has been newly created.
 	Apply(UIOutput, *InstanceState, *ResourceConfig) error
 
