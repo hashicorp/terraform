@@ -264,27 +264,27 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeValidate:
-		// The validate graph is just a slightly modified plan graph: an empty
-		// state is substituted in for Validate.
-		return ValidateGraphBuilder(&PlanGraphBuilder{
-			Config:     c.config,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
-			State:      states.NewState(),
-		}).Build(addrs.RootModuleInstance)
-
+		// The validate graph is just a slightly modified plan graph
+		fallthrough
 	case GraphTypePlan:
 		// Create the plan graph builder
-		return (&PlanGraphBuilder{
+		p := &PlanGraphBuilder{
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
-		}).Build(addrs.RootModuleInstance)
+		}
+
+		// Some special cases for other graph types shared with plan currently
+		var b GraphBuilder = p
+		switch typ {
+		case GraphTypeValidate:
+			b = ValidateGraphBuilder(p)
+		}
+
+		return b.Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
