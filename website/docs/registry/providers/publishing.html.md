@@ -84,7 +84,8 @@ Before publishing a provider, you must first sign in to the Terraform Registry w
 
 All provider releases are required to be signed, thus you must provide HashiCorp with the public key for the GPG keypair that you will be signing releases with. The Terraform Registry will validate that the release is signed with this key when publishing each version, and Terraform will verify this during `terraform init`.
 
-To export your public key in ASCII-armor format, use the following command:
+- Generate a GPG key to be used when signing releases (See [GitHub's detailed instructions](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-gpg-key) for help with this step)
+- Export your public key in ASCII-armor format using the following command, substituting the GPG key ID created in the step above:
 
 ```console
 $ gpg --armor --export "{Key ID or email address}"
@@ -96,7 +97,7 @@ If you would like to publish a provider under your GitHub username (not a GitHub
 
 #### Organizations
 
-In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. Please send us an email to terraform-registry@hashicorp.com, including the information below, and one of us will get back to you shortly. For convenience, you may also use this <a href="mailto:terraform-registry@hashicorp.com?subject=Request%20to%20add%20GPG%20Key%20for%20%3CProvider%20Name%3E&body=Hello%2C%0D%0A%0D%0APlease%20add%20the%20following%20GPG%20key%20for%20my%20Terraform%20Provider%3A%0D%0A-%20GitHub%20organization%20(namespace)%3A%0D%0A-%20Link%20to%20provider%20repository%3A%20%0D%0A-%20GPG%20Key%3A%20(paste%20here%20or%20attach)">Email template</a>.
+In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. Please send us an email to terraform-registry@hashicorp.com, including the information below, and one of us will get back to you shortly. For convenience, you may also use this <a href="mailto:terraform-registry@hashicorp.com?subject=Request%20to%20add%20GPG%20Key%20for%20%3CProvider%20Name%3E&body=Hello%2C%0D%0A%0D%0APlease%20add%20the%20following%20GPG%20key%20for%20my%20Terraform%20Provider%3A%0D%0A-%20GitHub%20organization%20(namespace)%3A%0D%0A-%20Link%20to%20provider%20repository%3A%20%0D%0A-%20GPG%20Key%3A%20(paste%20here%20or%20attach)">email template</a>.
 
 - GitHub organization (namespace):
 - Link to provider repository: 
