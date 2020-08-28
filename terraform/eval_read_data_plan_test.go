@@ -86,6 +86,22 @@ func TestReadDataCreateEmptyBlocks(t *testing.T) {
 		},
 	}
 
+	singleSchema := &configschema.Block{
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"single": {
+				Nesting: configschema.NestingSingle,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"attr": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
 	for _, tc := range []struct {
 		name   string
 		schema *configschema.Block
@@ -328,6 +344,20 @@ func TestReadDataCreateEmptyBlocks(t *testing.T) {
 						),
 					}),
 				}),
+			}),
+		},
+		{
+			"single-block-null",
+			singleSchema,
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"attr": cty.String,
+				})),
 			}),
 		},
 	} {

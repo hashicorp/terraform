@@ -239,8 +239,6 @@ func createEmptyBlocks(schema *configschema.Block, val cty.Value) cty.Value {
 			continue
 		}
 
-		ety := block.Type().ElementType()
-
 		// helper to build the recursive block values
 		nextBlocks := func() []cty.Value {
 			// this is only called once we know this is a non-null List or Set
@@ -259,6 +257,7 @@ func createEmptyBlocks(schema *configschema.Block, val cty.Value) cty.Value {
 		// We are only concerned with block types that can come from the legacy
 		// sdk, which means TypeList or TypeSet.
 		case configschema.NestingList:
+			ety := block.Type().ElementType()
 			switch {
 			case block.IsNull():
 				objMap[name] = cty.ListValEmpty(ety)
@@ -269,6 +268,7 @@ func createEmptyBlocks(schema *configschema.Block, val cty.Value) cty.Value {
 			}
 
 		case configschema.NestingSet:
+			ety := block.Type().ElementType()
 			switch {
 			case block.IsNull():
 				objMap[name] = cty.SetValEmpty(ety)
