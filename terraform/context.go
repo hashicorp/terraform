@@ -107,6 +107,15 @@ type Context struct {
 
 // (additional methods on Context can be found in context_*.go files.)
 
+// StatelessCopy() returns a copy of the Context with the state set to an empty
+// state. This is intended for use in calls to Validate.
+// TODO: Refactor Validate so this isn't necessary.
+func (c *Context) StatelessCopy() *Context {
+	ret := c
+	ret.state = states.NewState()
+	return ret
+}
+
 // NewContext creates a new Context structure.
 //
 // Once a Context is created, the caller must not access or mutate any of
