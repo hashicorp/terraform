@@ -4,6 +4,10 @@ NEW FEATURES:
 
 * **Network-based Mirrors for [Provider Installation](https://www.terraform.io/docs/commands/cli-config.html#provider-installation)**: As an addition to the existing capability of "mirroring" providers into the local filesystem, a network mirror allows publishing copies of providers on an HTTP server and using that as an alternative source for provider packages, for situations where directly accessing the origin registries is impossible or undesirable. [GH-25999]
 
+BUG FIXES:
+
+* terraform: Fix crashing bug when reading data sources during plan with blocks backed by objects, not collections [GH-26028]
+
 ## 0.13.1 (August 26, 2020)
 
 ENHANCEMENTS:
