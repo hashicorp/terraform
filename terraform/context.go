@@ -264,14 +264,15 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeValidate:
-		// The validate graph is just a slightly modified plan graph: state is
-		// omitted for validate.
+		// The validate graph is just a slightly modified plan graph: an empty
+		// state is substituted in for Validate.
 		return ValidateGraphBuilder(&PlanGraphBuilder{
 			Config:     c.config,
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
+			State:      states.NewState(),
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlan:
@@ -768,6 +769,17 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 }
 
 func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
+	if operation == walkValidate {
+		return &ContextGraphWalker{
+			Context:            c,
+			State:              states.NewState().SyncWrapper(),
+			Changes:            c.changes.SyncWrapper(),
+			InstanceExpander:   instances.NewExpander(),
+			Operation:          operation,
+			StopContext:        c.runContext,
+			RootVariableValues: c.variables,
+		}
+	}
 	return &ContextGraphWalker{
 		Context:            c,
 		State:              c.state.SyncWrapper(),
