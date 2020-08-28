@@ -53,7 +53,7 @@ This command supports the following additional option:
   where you run this command. Use this flag multiple times to include packages
   for multiple target systems.
 
-  Target platform names names consist of an operating system and a CPU
+  Target platform names consist of an operating system and a CPU
   architecture. For example, `linux_amd64` selects the Linux operating system
   running on an AMD64 or x86_64 CPU.
 
