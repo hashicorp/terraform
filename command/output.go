@@ -113,13 +113,17 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
-		c.Ui.Error(
-			"The state file either has no outputs defined, or all the defined\n" +
-				"outputs are empty. Please define an output in your configuration\n" +
-				"with the `output` keyword and run `terraform refresh` for it to\n" +
-				"become available. If you are using interpolation, please verify\n" +
-				"the interpolated value is not empty. You can use the \n" +
-				"`terraform console` command to assist.")
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"No outputs found",
+			"The state file either has no outputs defined, or all the defined "+
+				"outputs are empty. Please define an output in your configuration "+
+				"with the `output` keyword and run `terraform refresh` for it to "+
+				"become available. If you are using interpolation, please verify "+
+				"the interpolated value is not empty. You can use the "+
+				"`terraform console` command to assist.",
+		))
+		c.showDiagnostics(diags)
 		return 0
 	}
 
