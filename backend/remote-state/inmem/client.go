@@ -45,3 +45,5 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 func (c *RemoteClient) Unlock(id string) error {
 	return locks.unlock(c.Name, id)
 }
+
+func (c *RemoteClient) EnableForcePush() {}
