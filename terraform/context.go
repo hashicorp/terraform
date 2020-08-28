@@ -111,9 +111,10 @@ type Context struct {
 // state. This is intended for use in calls to Validate.
 // TODO: Refactor Validate so this isn't necessary.
 func (c *Context) StatelessCopy() *Context {
-	ret := c
-	ret.state = states.NewState()
-	return ret
+	copy := c
+	copy.state = states.NewState()
+
+	return copy
 }
 
 // NewContext creates a new Context structure.
@@ -273,27 +274,26 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeValidate:
-		// The validate graph is just a slightly modified plan graph
-		fallthrough
+		// The validate graph is just a slightly modified plan graph: state is
+		// omitted for validate.
+		return ValidateGraphBuilder(&PlanGraphBuilder{
+			Config:     c.config,
+			Components: c.components,
+			Schemas:    c.schemas,
+			Targets:    c.targets,
+			Validate:   opts.Validate,
+		}).Build(addrs.RootModuleInstance)
+
 	case GraphTypePlan:
 		// Create the plan graph builder
-		p := &PlanGraphBuilder{
+		return (&PlanGraphBuilder{
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
-		}
-
-		// Some special cases for other graph types shared with plan currently
-		var b GraphBuilder = p
-		switch typ {
-		case GraphTypeValidate:
-			b = ValidateGraphBuilder(p)
-		}
-
-		return b.Build(addrs.RootModuleInstance)
+		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
