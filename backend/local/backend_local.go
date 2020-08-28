@@ -129,9 +129,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// If validation is enabled, validate
 		if b.OpValidation {
 			log.Printf("[TRACE] backend/local: running validation operation")
-			// we only validate config, so grab a stateless copy of the tfCtx
-			validateCtx := tfCtx.StatelessCopy()
-			validateDiags := validateCtx.Validate()
+			validateDiags := tfCtx.Validate()
 			diags = diags.Append(validateDiags)
 		}
 	}

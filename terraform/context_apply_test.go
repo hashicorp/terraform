@@ -7461,10 +7461,9 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 		t.Fatalf("expected 0 resources, got: %#v", mod.Resources)
 	}
 
-	// the root output should have been removed too, since it is derived solely
-	// from the targeted resource
-	if len(mod.OutputValues) != 0 {
-		t.Fatalf("expected 0 outputs, got: %#v", mod.OutputValues)
+	// the root output should not get removed
+	if len(mod.OutputValues) != 1 {
+		t.Fatalf("expected 1 outputs, got: %#v", mod.OutputValues)
 	}
 
 	// the module instance should remain
