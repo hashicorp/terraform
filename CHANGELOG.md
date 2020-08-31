@@ -7,6 +7,7 @@ NEW FEATURES:
 BUG FIXES:
 
 * terraform: Fix crashing bug when reading data sources during plan with blocks backed by objects, not collections [GH-26028]
+* terraform: Fix bug where variables values were asked for twice on the command line and provider input values were asked for but not saved [GH-26063]
 
 ## 0.13.1 (August 26, 2020)
 
