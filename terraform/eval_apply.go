@@ -78,6 +78,26 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		)
 	}
 
+	// Copy paste from eval_diff
+	var markedPath cty.Path
+	// var marks cty.ValueMarks
+	if configVal.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire. Right now this stores
+		// one path for proof of concept, but we should store multiple
+		cty.Walk(configVal, func(p cty.Path, v cty.Value) (bool, error) {
+			if v.IsMarked() {
+				markedPath = p
+				return false, nil
+				// marks = v.Marks()
+			}
+			return true, nil
+		})
+		// Unmark the value for sending over the wire
+		// to providers as marks cannot be serialized
+		configVal, _ = configVal.UnmarkDeep()
+	}
+
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.ProviderMetas != nil {
 		log.Printf("[DEBUG] EvalApply: ProviderMeta config value set")
@@ -104,11 +124,15 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
+
+	// HACK The after val is also marked so let's fix that
+	unmarked, _ := change.After.UnmarkDeep()
+
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
 		PriorState:     change.Before,
 		Config:         configVal,
-		PlannedState:   change.After,
+		PlannedState:   unmarked,
 		PlannedPrivate: change.Private,
 		ProviderMeta:   metaConfigVal,
 	})
@@ -124,6 +148,16 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// to completion but must be defensive against the new value being
 	// incomplete.
 	newVal := resp.NewState
+
+	// Add the mark back to the planned new value
+	if len(markedPath) != 0 {
+		newVal, _ = cty.Transform(newVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
+			if p.Equals(markedPath) {
+				return v.Mark("sensitive"), nil
+			}
+			return v, nil
+		})
+	}
 
 	if newVal == cty.NilVal {
 		// Providers are supposed to return a partial new value even when errors

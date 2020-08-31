@@ -51,7 +51,11 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
-		moreErrs := assertValueCompatible(plannedV, actualV, path)
+
+		// HACK Unmark the values here so we can get past this testing in Apply
+		unmarked, _ := plannedV.UnmarkDeep()
+		unmarkedActual, _ := actualV.UnmarkDeep()
+		moreErrs := assertValueCompatible(unmarked, unmarkedActual, path)
 		if attrS.Sensitive {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
