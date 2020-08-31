@@ -7461,10 +7461,19 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 		t.Fatalf("expected 0 resources, got: %#v", mod.Resources)
 	}
 
-	// the root output should have been removed too, since it is derived solely
-	// from the targeted resource
-	if len(mod.OutputValues) != 0 {
-		t.Fatalf("expected 0 outputs, got: %#v", mod.OutputValues)
+	// the root output should not get removed; only the targeted resource.
+	//
+	// Note: earlier versions of this test expected 0 outputs, but it turns out
+	// that was because Validate - not apply or destroy - removed the output
+	// (which depends on the targeted resource) from state. That version of this
+	// test did not match actual terraform behavior: the output remains in
+	// state.
+	//
+	// TODO: Future refactoring may enable us to remove the output from state in
+	// this case, and that would be Just Fine - this test can be modified to
+	// expect 0 outputs.
+	if len(mod.OutputValues) != 1 {
+		t.Fatalf("expected 1 outputs, got: %#v", mod.OutputValues)
 	}
 
 	// the module instance should remain
