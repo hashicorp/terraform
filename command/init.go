@@ -427,8 +427,9 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	if moreDiags.HasErrors() {
 		return false, diags
 	}
+	stateReqs := make(getproviders.Requirements, 0)
 	if state != nil {
-		stateReqs := state.ProviderRequirements()
+		stateReqs = state.ProviderRequirements()
 		reqs = reqs.Merge(stateReqs)
 	}
 
@@ -455,6 +456,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// later analysis, to provide more useful diagnostics if the providers
 	// appear to have been re-namespaced.
 	missingProviderErrors := make(map[addrs.Provider]error)
+
+	// Legacy provider addresses required by source probably refer to in-house
+	// providers. Capture these for later analysis also, to suggest how to use
+	// the state replace-provider command to fix this problem.
+	stateLegacyProviderErrors := make(map[addrs.Provider]error)
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -509,13 +515,19 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					),
 				))
 			case getproviders.ErrRegistryProviderNotKnown:
-				// Default providers may have no explicit source, and the 404
-				// error could be caused by re-namespacing. Add the provider
-				// and error to a map to later check for this case. We don't
-				// run the check here to keep this event callback simple.
 				if provider.IsDefault() {
+					// Default providers may have no explicit source, and the 404
+					// error could be caused by re-namespacing. Add the provider
+					// and error to a map to later check for this case. We don't
+					// run the check here to keep this event callback simple.
 					missingProviderErrors[provider] = err
+				} else if _, ok := stateReqs[provider]; ok && provider.IsLegacy() {
+					// Legacy provider, from state, not found from any source:
+					// probably an in-house provider. Record this here to
+					// faciliate a useful suggestion later.
+					stateLegacyProviderErrors[provider] = err
 				} else {
+					// Otherwise maybe this provider really doesn't exist? Shrug!
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to query available provider packages",
@@ -767,6 +779,53 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install providers",
+				detail.String(),
+			))
+		}
+
+		// Legacy providers required by state which could not be installed are
+		// probably in-house providers. If the user has completed the necessary
+		// steps to make their custom provider available for installation, then
+		// there should be a provider with the same type selected after the
+		// installation process completed.
+		//
+		// If we detect this specific situation, we can confidently suggest
+		// that the next step is to run the state replace-provider command to
+		// update state. We build a map of provider replacements here to ensure
+		// that we're as concise as possible with the diagnostic.
+		stateReplaceProviders := make(map[addrs.Provider]addrs.Provider)
+		for provider, fetchErr := range stateLegacyProviderErrors {
+			var sameType []addrs.Provider
+			for p := range selected {
+				if p.Type == provider.Type {
+					sameType = append(sameType, p)
+				}
+			}
+			if len(sameType) == 1 {
+				stateReplaceProviders[provider] = sameType[0]
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s: %s", provider.ForDisplay(), fetchErr),
+				))
+			}
+		}
+		if len(stateReplaceProviders) > 0 {
+			var detail strings.Builder
+			command := "command"
+			if len(stateReplaceProviders) > 1 {
+				command = "commands"
+			}
+
+			fmt.Fprintf(&detail, "Found unresolvable legacy provider references in state. It looks like these refer to in-house providers. You can update the resources in state with the following %s:\n", command)
+			for legacy, replacement := range stateReplaceProviders {
+				fmt.Fprintf(&detail, "\n    terraform state replace-provider %s %s", legacy, replacement)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install legacy providers required by state",
 				detail.String(),
 			))
 		}
