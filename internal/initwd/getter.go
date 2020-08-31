@@ -20,13 +20,13 @@ import (
 // any meddling that might be done by other go-getter callers linked into our
 // executable.
 
-var goGetterDetectors = []getter.Detector{
-	new(getter.GitHubDetector),
-	new(getter.GitDetector),
-	new(getter.BitBucketDetector),
-	new(getter.GCSDetector),
-	new(getter.S3Detector),
-	new(getter.FileDetector),
+var goGetterCtxDetectors = []getter.CtxDetector{
+	new(getter.GitHubCtxDetector),
+	new(getter.GitCtxDetector),
+	new(getter.BitBucketCtxDetector),
+	new(getter.GCSCtxDetector),
+	new(getter.S3CtxDetector),
+	new(getter.FileCtxDetector),
 }
 
 var goGetterNoDetectors = []getter.Detector{}
@@ -83,12 +83,12 @@ type reusingGetter map[string]string
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
 // the underlying errors are not separately recognizable.
-func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
+func (g reusingGetter) getWithGoGetter(instPath, addr, srcAbs string) (string, error) {
 	packageAddr, subDir := splitAddrSubdir(addr)
 
 	log.Printf("[DEBUG] will download %q to %s", packageAddr, instPath)
 
-	realAddr, err := getter.Detect(packageAddr, instPath, goGetterDetectors)
+	realAddr, err := getter.CtxDetect(packageAddr, instPath, srcAbs, goGetterCtxDetectors)
 	if err != nil {
 		return "", err
 	}

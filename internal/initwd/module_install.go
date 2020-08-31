@@ -450,7 +450,13 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 
 	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
 
-	modDir, err := getter.getWithGoGetter(instPath, dlAddr)
+	srcDirAbs, sdDiags := i.calledFromSourceDirAbs(req)
+	if srcDirAbs == "" {
+		diags = append(diags, sdDiags...)
+		return nil, nil, diags
+	}
+
+	modDir, err := getter.getWithGoGetter(instPath, dlAddr, srcDirAbs)
 	if err != nil {
 		// Errors returned by go-getter have very inconsistent quality as
 		// end-user error messages, but for now we're accepting that because
@@ -521,7 +527,13 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 		return nil, diags
 	}
 
-	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
+	srcDirAbs, sdDiags := i.calledFromSourceDirAbs(req)
+	if srcDirAbs == "" {
+		diags = append(diags, sdDiags...)
+		return nil, diags
+	}
+
+	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr, srcDirAbs)
 	if err != nil {
 		if _, ok := err.(*MaybeRelativePathErr); ok {
 			log.Printf(
@@ -587,4 +599,47 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 
 func (i *ModuleInstaller) packageInstallPath(modulePath addrs.Module) string {
 	return filepath.Join(i.modsDir, strings.Join(modulePath, "."))
+}
+
+// A called module can exist in a (possibly remote) source code repository,
+// and go-getter will attempt to retrieve the modules from the repo if that is
+// the case.
+//
+// There is special case notion of "remote" for Terraform modules that live in
+// source code repositories that are "outside of the user's current Terraform
+// project", but which are expected to be present on the local file system. In
+// particular, Git submodules (see git-submodule(1)) can be used to keep such
+// repos nearby, in a location from which they can be cloned relative to
+// top-level directory of the current project.
+//
+// The location to such local repos can only be known in advance by the
+// relative path **from the Terraform module** that is "calling" a module
+// whose source comes from such a repo:
+//
+//     module "my_module" {
+//         source = "git::../../../git-submodules/tf-modules/my-tf-module//some/subdir?rev=v1.2.3"
+//         // ...
+//     }
+//
+// To locate such repos, we must provide go-getter with the absolute path to
+// the directory for the Terraform module that contains such references.
+//
+func (i *ModuleInstaller) calledFromSourceDirAbs(req *earlyconfig.ModuleRequest) (string, tfdiags.Diagnostics) {
+	callingModSourceDir := filepath.Dir(req.CallPos.Filename) // dirname
+
+	var diags tfdiags.Diagnostics
+
+	abs, err := filepath.Abs(callingModSourceDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unable to resolve absolute filepath of Terraform module",
+			fmt.Sprintf(
+				"Terraform tried resolve the absolute filepath of source file \"%s\", but encountered an error: %s",
+				callingModSourceDir, err,
+			),
+		))
+	}
+
+	return abs, diags
 }
