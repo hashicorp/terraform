@@ -256,12 +256,14 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	plannedNewVal := resp.PlannedState
 
 	// Add the mark back to the planned new value
-	plannedNewVal, _ = cty.Transform(plannedNewVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
-		if p.Equals(markedPath) {
-			return v.Mark("sensitive"), nil
-		}
-		return v, nil
-	})
+	if len(markedPath) != 0 {
+		plannedNewVal, _ = cty.Transform(plannedNewVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
+			if p.Equals(markedPath) {
+				return v.Mark("sensitive"), nil
+			}
+			return v, nil
+		})
+	}
 
 	plannedPrivate := resp.PlannedPrivate
 

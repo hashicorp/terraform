@@ -127,14 +127,16 @@ func ResourceChange(
 
 	// Now that the change is decoded, add back the marks at the defined paths
 	// change.Markinfo
-	changeV.Change.After, _ = cty.Transform(changeV.Change.After, func(p cty.Path, v cty.Value) (cty.Value, error) {
-		if p.Equals(change.ValMarks.Path) {
-			// TODO The mark is at change.Markinfo.Marks and it would be proper
-			// to iterate through that set here
-			return v.Mark("sensitive"), nil
-		}
-		return v, nil
-	})
+	if len(change.ValMarks.Path) != 0 {
+		changeV.Change.After, _ = cty.Transform(changeV.Change.After, func(p cty.Path, v cty.Value) (cty.Value, error) {
+			if p.Equals(change.ValMarks.Path) {
+				// TODO The mark is at change.Markinfo.Marks and it would be proper
+				// to iterate through that set here
+				return v.Mark("sensitive"), nil
+			}
+			return v, nil
+		})
+	}
 
 	bodyWritten := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
 	if bodyWritten {
