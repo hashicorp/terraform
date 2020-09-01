@@ -1026,6 +1026,52 @@ func TestInit_getProviderSource(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderLegacyFromState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-provider-legacy-from-state"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	overrides := metaOverridesForProvider(testProvider())
+	ui := new(cli.MockUi)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"acme/alpha": {"1.2.3"},
+	})
+	defer close()
+	m := Meta{
+		testingOverrides: overrides,
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// Expect this diagnostic output
+	wants := []string{
+		"Found unresolvable legacy provider references in state",
+		"terraform state replace-provider registry.terraform.io/-/alpha registry.terraform.io/acme/alpha",
+	}
+	got := ui.ErrorWriter.String()
+	for _, want := range wants {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected output to contain %q, got:\n\n%s", want, got)
+		}
+	}
+
+	// Should still install the alpha provider
+	exactPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/acme/alpha/1.2.3/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
+		t.Fatal("provider 'alpha' not downloaded")
+	}
+}
+
 func TestInit_getProviderInvalidPackage(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

@@ -167,3 +167,35 @@ Error: Some error
 		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
 	}
 }
+
+func TestDiagnostic_wrapDetailIncludingCommand(t *testing.T) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Everything went wrong",
+		Detail:   "This is a very long sentence about whatever went wrong which is supposed to wrap onto multiple lines. Thank-you very much for listening.\n\nTo fix this, run this very long command:\n  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces\n\nHere is a coda which is also long enough to wrap and so it should eventually make it onto multiple lines. THE END",
+	})
+	color := &colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: true,
+	}
+	expected := `
+Error: Everything went wrong
+
+This is a very long sentence about whatever went wrong which is supposed to
+wrap onto multiple lines. Thank-you very much for listening.
+
+To fix this, run this very long command:
+  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
+
+Here is a coda which is also long enough to wrap and so it should eventually
+make it onto multiple lines. THE END
+`
+	output := Diagnostic(diags[0], nil, color, 76)
+
+	if output != expected {
+		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}

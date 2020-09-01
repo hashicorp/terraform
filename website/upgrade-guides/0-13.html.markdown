@@ -302,11 +302,13 @@ situation, `terraform init` will produce the following error message after
 you complete the configuration changes described above:
 
 ```
-Error: Failed to query available provider packages
+Error: Failed to install legacy providers required by state
 
-Could not retrieve the list of available versions for provider -/happycloud:
-provider registry registry.terraform.io does not have a provider named
-registry.terraform.io/-/happycloud
+Found unresolvable legacy provider references in state. It looks like these
+refer to in-house providers. You can update the resources in state with the
+following command:
+
+    terraform state replace-provider registry.terraform.io/-/happycloud terraform.example.com/awesomecorp/happycloud
 ```
 
 Provider source addresses starting with `registry.terraform.io/-/` are a special
