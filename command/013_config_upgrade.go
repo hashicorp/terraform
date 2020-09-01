@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -207,6 +208,7 @@ command and dealing with them before running this command again.
 	// Build up a list of required providers, uniquely by local name
 	requiredProviders := make(map[string]*configs.RequiredProvider)
 	rewritePaths := make(map[string]bool)
+	allProviderConstraints := make(map[string]getproviders.VersionConstraints)
 
 	// Step 1: copy all explicit provider requirements across
 	for path, file := range files {
@@ -232,6 +234,24 @@ command and dealing with them before running this command again.
 						Requirement: rp.Requirement,
 						DeclRange:   rp.DeclRange,
 					}
+
+					// Parse and store version constraints for later use when
+					// processing the provider redirect
+					constraints, err := getproviders.ParseVersionConstraints(rp.Requirement.Required.String())
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid version constraint",
+							// The errors returned by ParseVersionConstraint
+							// already include the section of input that was
+							// incorrect, so we don't need to
+							// include that here.
+							Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+							Subject: rp.Requirement.DeclRange.Ptr(),
+						})
+					} else {
+						allProviderConstraints[rp.Name] = append(allProviderConstraints[rp.Name], constraints...)
+					}
 				}
 			}
 		}
@@ -252,6 +272,23 @@ command and dealing with them before running this command again.
 				requiredProviders[p.Name] = &configs.RequiredProvider{
 					Name: p.Name,
 				}
+			}
+			// Parse and store version constraints for later use when
+			// processing the provider redirect
+			constraints, err := getproviders.ParseVersionConstraints(p.Version.Required.String())
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					// The errors returned by ParseVersionConstraint
+					// already include the section of input that was
+					// incorrect, so we don't need to
+					// include that here.
+					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+					Subject: p.Version.DeclRange.Ptr(),
+				})
+			} else {
+				allProviderConstraints[p.Name] = append(allProviderConstraints[p.Name], constraints...)
 			}
 		}
 
@@ -291,7 +328,7 @@ command and dealing with them before running this command again.
 	// stated in the config.  If there are any providers, attempt to detect
 	// their sources, and rewrite the config.
 	if len(requiredProviders) > 0 {
-		detectDiags := c.detectProviderSources(requiredProviders)
+		detectDiags := c.detectProviderSources(requiredProviders, allProviderConstraints)
 		diags = diags.Append(detectDiags)
 		if diags.HasErrors() {
 			c.Ui.Error("Unable to detect sources for providers")
@@ -584,10 +621,11 @@ necessary adjustments, and then commit.
 }
 
 // For providers which need a source attribute, detect the source
-func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map[string]*configs.RequiredProvider) tfdiags.Diagnostics {
+func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map[string]*configs.RequiredProvider, allProviderConstraints map[string]getproviders.VersionConstraints) tfdiags.Diagnostics {
 	source := c.providerInstallSource()
 	var diags tfdiags.Diagnostics
 
+providers:
 	for name, rp := range requiredProviders {
 		// If there's already an explicit source, skip it
 		if rp.Source != "" {
@@ -599,9 +637,70 @@ func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map
 		// parse process, because we know that without an explicit source it is
 		// not explicitly specified.
 		addr := addrs.NewLegacyProvider(name)
-		p, err := getproviders.LookupLegacyProvider(addr, source)
+		p, moved, err := getproviders.LookupLegacyProvider(addr, source)
 		if err == nil {
 			rp.Type = p
+
+			if !moved.IsZero() {
+				constraints, ok := allProviderConstraints[name]
+				// If there's no version constraint, always use the redirect
+				// target as there should be at least one version we can
+				// install
+				if !ok {
+					rp.Type = moved
+					continue providers
+				}
+
+				// Check that the redirect target has a version meeting our
+				// constraints
+				acceptable := versions.MeetingConstraints(constraints)
+				available, _, err := source.AvailableVersions(moved)
+				// If something goes wrong with the registry lookup here, fall
+				// back to the non-redirect provider
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
+						"Failed to query available provider packages",
+						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+							moved.ForDisplay(), err),
+					))
+					continue providers
+				}
+
+				// Walk backwards to consider newer versions first
+				for i := len(available) - 1; i >= 0; i-- {
+					if acceptable.Has(available[i]) {
+						// Success! Provider redirect target has a version
+						// meeting our constraints, so we can use it
+						rp.Type = moved
+						continue providers
+					}
+				}
+
+				// Find the last version available at the old location
+				oldAvailable, _, err := source.AvailableVersions(p)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
+						"Failed to query available provider packages",
+						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+							p.ForDisplay(), err),
+					))
+					continue providers
+				}
+				lastAvailable := oldAvailable[len(oldAvailable)-1]
+
+				// If we fall through here, no versions at the target meet our
+				// version constraints, so warn the user
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Provider has moved",
+					fmt.Sprintf(
+						"Provider %q has moved to %q. No action is required to continue using %q (%s), but if you want to upgrade beyond version %s, you must also update the source.",
+						moved.Type, moved.ForDisplay(), p.ForDisplay(),
+						getproviders.VersionConstraintsString(constraints), lastAvailable),
+				))
+			}
 		} else {
 			// Setting the provider address to a zero value struct
 			// indicates that there is no known FQN for this provider,

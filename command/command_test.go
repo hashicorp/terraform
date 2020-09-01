@@ -894,6 +894,12 @@ var legacyProviderNamespaces = map[string]string{
 	"foo": "hashicorp",
 	"bar": "hashicorp",
 	"baz": "terraform-providers",
+	"qux": "hashicorp",
+}
+
+// This map is used to mock the provider redirect feature.
+var movedProviderNamespaces = map[string]string{
+	"qux": "acme",
 }
 
 // testServices starts up a local HTTP server running a fake provider registry
@@ -945,16 +951,36 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if pathParts[0] != "-" || pathParts[2] != "versions" {
+	if pathParts[2] != "versions" {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`this registry only supports legacy namespace lookup requests`))
+		return
 	}
 
 	name := pathParts[1]
-	if namespace, ok := legacyProviderNamespaces[name]; ok {
+
+	// Legacy lookup
+	if pathParts[0] == "-" {
+		if namespace, ok := legacyProviderNamespaces[name]; ok {
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			if movedNamespace, ok := movedProviderNamespaces[name]; ok {
+				resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","moved_to":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name, movedNamespace, name)))
+			} else {
+				resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name)))
+			}
+		} else {
+			resp.WriteHeader(404)
+			resp.Write([]byte(`provider not found`))
+		}
+		return
+	}
+
+	// Also return versions for redirect target
+	if namespace, ok := movedProviderNamespaces[name]; ok && pathParts[0] == namespace {
 		resp.Header().Set("Content-Type", "application/json")
 		resp.WriteHeader(200)
-		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s"}`, namespace, name)))
+		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name)))
 	} else {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`provider not found`))

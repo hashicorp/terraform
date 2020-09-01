@@ -695,9 +695,13 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		source := c.providerInstallSource()
 		for provider, fetchErr := range missingProviderErrors {
 			addr := addrs.NewLegacyProvider(provider.Type)
-			p, err := getproviders.LookupLegacyProvider(addr, source)
+			p, redirect, err := getproviders.LookupLegacyProvider(addr, source)
 			if err == nil {
-				foundProviders[provider] = p
+				if redirect.IsZero() {
+					foundProviders[provider] = p
+				} else {
+					foundProviders[provider] = redirect
+				}
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
