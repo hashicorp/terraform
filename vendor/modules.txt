@@ -172,8 +172,6 @@ github.com/bgentry/go-netrc/netrc
 # github.com/bgentry/speakeasy v0.1.0
 ## explicit
 github.com/bgentry/speakeasy
-# github.com/blang/semver v3.5.1+incompatible
-## explicit
 # github.com/bmatcuk/doublestar v1.1.5
 ## explicit
 github.com/bmatcuk/doublestar
@@ -509,8 +507,6 @@ github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/gox v1.0.1
 ## explicit
 github.com/mitchellh/gox
-# github.com/mitchellh/hashstructure v1.0.0
-## explicit
 # github.com/mitchellh/iochan v1.0.0
 github.com/mitchellh/iochan
 # github.com/mitchellh/mapstructure v1.1.2
@@ -600,8 +596,6 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/vmihailenco/msgpack v4.0.1+incompatible
-## explicit
 # github.com/vmihailenco/msgpack/v4 v4.3.12
 github.com/vmihailenco/msgpack/v4
 github.com/vmihailenco/msgpack/v4/codes
