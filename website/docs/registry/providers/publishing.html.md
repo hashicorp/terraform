@@ -44,6 +44,23 @@ We have a list of [recommend OS / architecture combinations](/docs/registry/prov
 
 ~> **Important:** Avoid modifying or replacing an already-released version of a provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
 
+#### GitHub Actions (Preferred)
+
+[GitHub Actions](https://docs.github.com/en/actions) allow you to execute workflows when events on your repository occur. You can use this to publish provider releases to the Terraform Registry whenever a new version tag is created on your repository.
+
+To use GitHub Actions to publish new provider releases to the Terraform Registry:
+
+1. Create and export a signing key that you plan on using to sign your provider releases. See [Preparing and Adding a Signing Key](#preparing-and-adding-a-signing-key) for more information.
+1. Copy the [GoReleaser configuration from the terraform-provider-scaffolding repository](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml) to the root of your repository.
+1. Copy the [GitHub Actions workflow from the terraform-provider-scaffolding repository](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.github/workflows/release.yml) to `.github/workflows/release.yml` in your repository.
+1. Go to *Settings > Secrets* in your repository, and add the following secrets:
+  * `GPG_FINGERPRINT` - The key fingerprint or ID of your GPG signing key. The fingerprint is outputted when listing keys with `gpg --list-keys`.
+  * `GPG_PRIVATE_KEY` - Your ASCII-armored GPG private key. You can export this with `gpg --armor --export-secret-keys [key ID or email]`.
+  * `PASSPHRASE` - The passphrase for your GPG private key.
+1. Push a new valid version tag (e.g. `v1.2.3`) to test that the GitHub Actions releaser is working.
+
+Once a release is created, you can move on to [Publishing to the Registry](#publishing-to-the-registry).
+
 #### Using GoReleaser locally
 
 GoReleaser is a tool for building Go projects for multiple platforms, creating a checksums file, and signing the release. It can also upload your release to GitHub Releases.
