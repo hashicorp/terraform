@@ -3,8 +3,8 @@ package msgpack
 import (
 	"bytes"
 
-	"github.com/vmihailenco/msgpack"
-	msgpackCodes "github.com/vmihailenco/msgpack/codes"
+	"github.com/vmihailenco/msgpack/v4"
+	msgpackCodes "github.com/vmihailenco/msgpack/v4/codes"
 	"github.com/zclconf/go-cty/cty"
 )
 

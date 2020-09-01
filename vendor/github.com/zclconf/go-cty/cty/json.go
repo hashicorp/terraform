@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
 )
 
 // MarshalJSON is an implementation of json.Marshaler that allows Type
@@ -52,6 +53,19 @@ func (t Type) MarshalJSON() ([]byte, error) {
 		}
 		buf.WriteString(`["object",`)
 		buf.Write(atysJSON)
+		if optionals := t.OptionalAttributes(); len(optionals) > 0 {
+			buf.WriteByte(',')
+			optionalNames := make([]string, 0, len(optionals))
+			for k := range optionals {
+				optionalNames = append(optionalNames, k)
+			}
+			sort.Strings(optionalNames)
+			optionalsJSON, err := json.Marshal(optionalNames)
+			if err != nil {
+				return nil, err
+			}
+			buf.Write(optionalsJSON)
+		}
 		buf.WriteRune(']')
 		return buf.Bytes(), nil
 	case typeTuple:
@@ -148,7 +162,16 @@ func (t *Type) UnmarshalJSON(buf []byte) error {
 			if err != nil {
 				return err
 			}
-			*t = Object(atys)
+			if dec.More() {
+				var optionals []string
+				err = dec.Decode(&optionals)
+				if err != nil {
+					return err
+				}
+				*t = ObjectWithOptionalAttrs(atys, optionals)
+			} else {
+				*t = Object(atys)
+			}
 		case "tuple":
 			var etys []Type
 			err = dec.Decode(&etys)
