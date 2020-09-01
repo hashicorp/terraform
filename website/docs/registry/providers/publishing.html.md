@@ -55,6 +55,8 @@ GoReleaser is a tool for building Go projects for multiple platforms, creating a
 1. Tag your version with `git tag v1.2.3`.
 1. Build, sign, and upload your release with `goreleaser release --rm-dist`.
 
+To simplify usage of GoReleaser with GitHub release tags, we also have an example [GitHub action](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.github/workflows/release.yml) in our scaffolding repository that automates the publishing process.
+
 -> GoReleaser does not support signing binaries with a GPG key that requires a passphrase. Some systems may cache your GPG passphrase for a few minutes. If you are unable to cache the passphrase for GoReleaser, please use the manual release preparation process below, or remove the signature step from GoReleaser and sign it prior to moving the GitHub release from draft to published.
 
 #### Manually Preparing a Release
