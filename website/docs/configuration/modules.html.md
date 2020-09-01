@@ -406,7 +406,7 @@ provider "aws" {
 module "example" {
   source    = "./example"
   providers = {
-    aws = "aws.usw2"
+    aws = aws.usw2
   }
 }
 ```
@@ -605,16 +605,16 @@ provider "google" {
 module "bucket_w1" {
   source    = "./publish_bucket"
   providers = {
-    aws.src    = "aws.usw1"
-    google.src = "google.usw2"
+    aws.src    = aws.usw1
+    google.src = google.usw2
   }
 }
 
 module "bucket_w2" {
   source    = "./publish_bucket"
   providers = {
-    aws.src    = "aws.usw2"
-    google.src = "google.usw2"
+    aws.src    = aws.usw2
+    google.src = google.usw2
   }
 }
 ```
