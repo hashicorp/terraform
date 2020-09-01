@@ -120,7 +120,7 @@ func TestOutput_json(t *testing.T) {
 	}
 }
 
-func TestOutput_emptyOutputsErr(t *testing.T) {
+func TestOutput_emptyOutputs(t *testing.T) {
 	originalState := states.NewState()
 	statePath := testStateFile(t, originalState)
 
@@ -138,6 +138,9 @@ func TestOutput_emptyOutputsErr(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+	if got, want := ui.ErrorWriter.String(), "Warning: No outputs found"; !strings.Contains(got, want) {
+		t.Fatalf("bad output: expected to contain %q, got:\n%s", want, got)
 	}
 }
 
