@@ -10,6 +10,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* command: Warn instead of error when the `output` subcommand with no arguments results in no outputs. This aligns the UI to match the 0 exit code in this situation, which is notable but not necessarily an error. [GH-26036]
 * terraform: Fix crashing bug when reading data sources during plan with blocks backed by objects, not collections [GH-26028]
 * terraform: Fix bug where variables values were asked for twice on the command line and provider input values were asked for but not saved [GH-26063]
 
