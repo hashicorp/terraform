@@ -16,10 +16,10 @@ The output is in the DOT format, which can be used by
 
 ## Usage
 
-Usage: `terraform graph [options] [DIR]`
+Usage: `terraform graph [options]`
 
-Outputs the visual dependency graph of Terraform resources according to
-configuration files in DIR (or the current directory if omitted).
+Outputs the visual dependency graph of Terraform resources represented by the
+configuration in the current working directory.
 
 The graph is outputted in DOT format. The typical program that can
 read this format is GraphViz, but many web services are also available

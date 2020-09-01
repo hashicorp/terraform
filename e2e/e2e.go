@@ -180,7 +180,13 @@ func (b *binary) FileExists(path ...string) bool {
 // LocalState is a helper for easily reading the local backend's state file
 // terraform.tfstate from the working directory.
 func (b *binary) LocalState() (*states.State, error) {
-	f, err := b.OpenFile("terraform.tfstate")
+	return b.StateFromFile("terraform.tfstate")
+}
+
+// StateFromFile is a helper for easily reading a state snapshot from a file
+// on disk relative to the working directory.
+func (b *binary) StateFromFile(filename string) (*states.State, error) {
+	f, err := b.OpenFile(filename)
 	if err != nil {
 		return nil, err
 	}

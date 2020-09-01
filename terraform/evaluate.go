@@ -553,7 +553,29 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 	switch addr.Name {
 
 	case "cwd":
-		wd, err := os.Getwd()
+		var err error
+		var wd string
+		if d.Evaluator.Meta != nil {
+			// Meta is always non-nil in the normal case, but some test cases
+			// are not so realistic.
+			wd = d.Evaluator.Meta.OriginalWorkingDir
+		}
+		if wd == "" {
+			wd, err = os.Getwd()
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Failed to get working directory`,
+					Detail:   fmt.Sprintf(`The value for path.cwd cannot be determined due to a system error: %s`, err),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return cty.DynamicVal, diags
+			}
+		}
+		// The current working directory should always be absolute, whether we
+		// just looked it up or whether we were relying on ContextMeta's
+		// (possibly non-normalized) path.
+		wd, err = filepath.Abs(wd)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -563,6 +585,7 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 			})
 			return cty.DynamicVal, diags
 		}
+
 		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
