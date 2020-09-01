@@ -40,7 +40,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source, unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig) {
+func initCommands(originalWorkingDir string, config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source, unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -64,6 +64,8 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
+		OriginalWorkingDir: originalWorkingDir,
+
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
 		PluginOverrides:  &PluginOverrides,

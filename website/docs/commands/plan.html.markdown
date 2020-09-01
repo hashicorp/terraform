@@ -30,12 +30,12 @@ If Terraform detects no changes to resource or to root module output values,
 
 ## Usage
 
-Usage: `terraform plan [options] [dir]`
+Usage: `terraform plan [options]`
 
-By default, `plan` requires no flags and looks in the current directory
-for the configuration and state file to refresh.
+The `plan` subcommand looks in the current working directory for the root module
+configuration.
 
-The command-line flags are all optional. The list of available flags are:
+The available options are:
 
 * `-compact-warnings` - If Terraform produces any warnings that are not
   accompanied by errors, show them in a more compact form that includes only
@@ -132,3 +132,24 @@ or keep it at rest for an extended period of time.
 
 Future versions of Terraform will make plan files more
 secure.
+
+## Passing a Different Configuration Directory
+
+Terraform v0.13 and earlier accepted an additional positional argument giving
+a directory path, in which case Terraform would use that directory as the root
+module instead of the current working directory.
+
+That usage is still supported in Terraform v0.14, but is now deprecated and we
+plan to remove it in Terraform v0.15. If your workflow relies on overriding
+the root module directory, use
+[the `-chdir` global option](./#switching-working-directory-with--chdir)
+instead, which works across all commands and makes Terraform consistently look
+in the given directory for all files it would normaly read or write in the
+current working directory.
+
+If your previous use of this legacy pattern was also relying on Terraform
+writing the `.terraform` subdirectory into the current working directory even
+though the root module directory was overridden, use
+[the `TF_DATA_DIR` environment variable](environment-variables.html#TF_DATA_DIR)
+to direct Terraform to write the `.terraform` directory to a location other
+than the current working directory.

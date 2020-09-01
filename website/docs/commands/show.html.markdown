@@ -32,12 +32,13 @@ The output format is covered in detail in [JSON Output Format](/docs/internals/j
 
 ## Usage
 
-Usage: `terraform show [options] [path]`
+Usage: `terraform show [options] [file]`
 
 You may use `show` with a path to either a Terraform state file or plan
-file. If no path is specified, the current state will be shown.
+file. If you don't specify a file path, Terraform will show the latest state
+snapshot.
 
-The command-line flags are all optional. The list of available flags are:
+This command accepts the following options:
 
 * `-no-color` - Disables output with coloring
 

@@ -29,20 +29,15 @@ validation without accessing any configured remote backend, use:
 $ terraform init -backend=false
 ```
 
-If dir is not specified, then the current directory will be used.
-
 To verify configuration in the context of a particular run (a particular
 target workspace, input variable values, etc), use the `terraform plan`
 command instead, which includes an implied validation check.
 
 ## Usage
 
-Usage: `terraform validate [options] [dir]`
+Usage: `terraform validate [options]`
 
-By default, `validate` requires no flags and looks in the current directory
-for the configurations.
-
-The command-line flags are all optional. The available flags are:
+This command accepts the following options:
 
 - `-json` - Produce output in a machine-readable JSON format, suitable for
   use in text editor integrations and other automated systems. Always disables

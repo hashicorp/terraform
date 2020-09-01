@@ -39,6 +39,17 @@ type Meta struct {
 	// command with a Meta field. These are expected to be set externally
 	// (not from within the command itself).
 
+	// OriginalWorkingDir, if set, is the actual working directory where
+	// Terraform was run from. This might not be the _actual_ current working
+	// directory, because users can add the -chdir=... option to the beginning
+	// of their command line to ask Terraform to switch.
+	//
+	// Most things should just use the current working directory in order to
+	// respect the user's override, but we retain this for exceptional
+	// situations where we need to refer back to the original working directory
+	// for some reason.
+	OriginalWorkingDir string
+
 	Color            bool             // True if output should be colored
 	GlobalPluginDirs []string         // Additional paths to search for plugins
 	PluginOverrides  *PluginOverrides // legacy overrides from .terraformrc file
@@ -384,7 +395,8 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	}
 
 	opts.Meta = &terraform.ContextMeta{
-		Env: workspace,
+		Env:                workspace,
+		OriginalWorkingDir: m.OriginalWorkingDir,
 	}
 
 	return &opts, nil
