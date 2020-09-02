@@ -1,20 +1,20 @@
-## 0.13.2 (Unreleased)
+## 0.13.2 (September 02, 2020)
 
 NEW FEATURES:
 
-* **Network-based Mirrors for [Provider Installation](https://www.terraform.io/docs/commands/cli-config.html#provider-installation)**: As an addition to the existing capability of "mirroring" providers into the local filesystem, a network mirror allows publishing copies of providers on an HTTP server and using that as an alternative source for provider packages, for situations where directly accessing the origin registries is impossible or undesirable. [GH-25999]
+* **Network-based Mirrors for [Provider Installation](https://www.terraform.io/docs/commands/cli-config.html#provider-installation)**: As an addition to the existing capability of "mirroring" providers into the local filesystem, a network mirror allows publishing copies of providers on an HTTP server and using that as an alternative source for provider packages, for situations where directly accessing the origin registries is impossible or undesirable. ([#25999](https://github.com/hashicorp/terraform/issues/25999))
 
 ENHANCEMENTS:
 
-* backend/http: add support for configuration by environment variable. [GH-25439]
-* command: Add support for provider redirects to `0.13upgrade`. If a provider in the Terraform Registry has moved to a new namespace, the `0.13upgrade` subcommand now detects this and follows the redirect where possible. [GH-26061]
-* command: Improve `init` error diagnostics when encountering what appears to be an in-house provider required by a pre-0.13 state file. Terraform will now display suggested `terraform state replace-provider` commands which will fix this specific problem. [GH-26066]
+* backend/http: add support for configuration by environment variable. ([#25439](https://github.com/hashicorp/terraform/issues/25439))
+* command: Add support for provider redirects to `0.13upgrade`. If a provider in the Terraform Registry has moved to a new namespace, the `0.13upgrade` subcommand now detects this and follows the redirect where possible. ([#26061](https://github.com/hashicorp/terraform/issues/26061))
+* command: Improve `init` error diagnostics when encountering what appears to be an in-house provider required by a pre-0.13 state file. Terraform will now display suggested `terraform state replace-provider` commands which will fix this specific problem. ([#26066](https://github.com/hashicorp/terraform/issues/26066))
 
 BUG FIXES:
 
-* command: Warn instead of error when the `output` subcommand with no arguments results in no outputs. This aligns the UI to match the 0 exit code in this situation, which is notable but not necessarily an error. [GH-26036]
-* terraform: Fix crashing bug when reading data sources during plan with blocks backed by objects, not collections [GH-26028]
-* terraform: Fix bug where variables values were asked for twice on the command line and provider input values were asked for but not saved [GH-26063]
+* command: Warn instead of error when the `output` subcommand with no arguments results in no outputs. This aligns the UI to match the 0 exit code in this situation, which is notable but not necessarily an error. ([#26036](https://github.com/hashicorp/terraform/issues/26036))
+* terraform: Fix crashing bug when reading data sources during plan with blocks backed by objects, not collections ([#26028](https://github.com/hashicorp/terraform/issues/26028))
+* terraform: Fix bug where variables values were asked for twice on the command line and provider input values were asked for but not saved ([#26063](https://github.com/hashicorp/terraform/issues/26063))
 
 ## 0.13.1 (August 26, 2020)
 
