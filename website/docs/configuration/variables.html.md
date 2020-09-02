@@ -107,7 +107,7 @@ Within the module that declared a variable, its value can be accessed from
 within [expressions](./expressions.html) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
--> **Note:** Local values are _created_ by a `variable` block, but you
+-> **Note:** Input variables are _created_ by a `variable` block, but you
 _reference_ them as attributes on an object named `var`.
 
 ```hcl
