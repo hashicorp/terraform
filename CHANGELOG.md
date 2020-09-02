@@ -6,6 +6,7 @@ NEW FEATURES:
 
 ENHANCEMENTS:
 
+* backend/http: add support for configuration by environment variable. [GH-25439]
 * command: Add support for provider redirects to `0.13upgrade`. If a provider in the Terraform Registry has moved to a new namespace, the `0.13upgrade` subcommand now detects this and follows the redirect where possible. [GH-26061]
 * command: Improve `init` error diagnostics when encountering what appears to be an in-house provider required by a pre-0.13 state file. Terraform will now display suggested `terraform state replace-provider` commands which will fix this specific problem. [GH-26066]
 
