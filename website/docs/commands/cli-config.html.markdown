@@ -244,7 +244,7 @@ The following are the two supported installation method types:
   use the `https:` scheme and end with a trailing slash.
 
     Terraform expects the given URL to be a base URL for an implementation of
-    [the provider network mirror protocol](/docs/internals/providor-network-mirror-protocol.html),
+    [the provider network mirror protocol](/docs/internals/provider-network-mirror-protocol.html),
     which is designed to be relatively easy to implement using typical static
     website hosting mechanisms.
 
