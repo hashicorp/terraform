@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -76,7 +77,7 @@ func New() backend.Backend {
 			"skip_cert_verification": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_SKIP_CERT", false),
 				Description: "Whether to skip TLS verification.",
 			},
 			"retry_max": &schema.Schema{
@@ -100,40 +101,54 @@ func New() backend.Backend {
 			"workspace_enabled": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_ENABLED", false),
 				Description: "Enable workspace support.",
 			},
 			"workspace_path_element": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "<workspace>",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_PATH_ELEMENT", "<workspace>"),
 				Description: "The URL path string to replace with the active workspace name.",
 			},
 			"workspace_list_address": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_LIST_ADDRESS", nil),
 				Description: "The address of the workspace list REST endpoint.",
 			},
 			"workspace_list_method": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "GET",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_LIST_METHOD", "GET"),
 				Description: "The HTTP method to use when fetching workspace list",
 			},
 			"workspace_delete_address": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_DELETE_ADDRESS", nil),
 				Description: "The address of the workspace delete REST endpoint.",
 			},
 			"workspace_delete_method": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "DELETE",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_DELETE_METHOD", "DELETE"),
 				Description: "The HTTP method to use when deleting a workspace.",
 			},
 			"headers": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					v, err := schema.EnvDefaultFunc("TF_HTTP_HEADERS", nil)()
+					if err != nil || v == nil {
+						return nil, err
+					}
+					decode := map[string]interface{}{}
+					err = json.Unmarshal([]byte(v.(string)), &decode)
+					if err != nil {
+						return nil, err
+					}
+					return decode, nil
+				},
 				Elem: &schema.Schema{
 					Type:        schema.TypeString,
 					Description: "Header Value",

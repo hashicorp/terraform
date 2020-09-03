@@ -1,6 +1,7 @@
 package http
 
 import (
+	"net/http"
 	"net/url"
 	"os"
 	"testing"
@@ -311,17 +312,23 @@ func TestWithClient(t *testing.T) {
 func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	// env
 	conf := map[string]string{
-		"address":        "http://127.0.0.1:8888/foo",
-		"update_method":  "BLAH",
-		"lock_address":   "http://127.0.0.1:8888/bar",
-		"lock_method":    "BLIP",
-		"unlock_address": "http://127.0.0.1:8888/baz",
-		"unlock_method":  "BLOOP",
-		"username":       "user",
-		"password":       "pass",
-		"retry_max":      "999",
-		"retry_wait_min": "15",
-		"retry_wait_max": "150",
+		"address":                  "http://127.0.0.1:8888/foo",
+		"update_method":            "BLAH",
+		"lock_address":             "http://127.0.0.1:8888/bar",
+		"lock_method":              "BLIP",
+		"unlock_address":           "http://127.0.0.1:8888/baz",
+		"unlock_method":            "BLOOP",
+		"username":                 "user",
+		"password":                 "pass",
+		"retry_max":                "999",
+		"retry_wait_min":           "15",
+		"retry_wait_max":           "150",
+		"skip_cert":                "true",
+		"workspace_path_element":   "cheese",
+		"workspace_list_address":   "http://127.0.0.1:8888/ws/list",
+		"workspace_list_method":    "PUT",
+		"workspace_delete_address": "http://127.0.0.1:8888/ws/del/cheese",
+		"workspace_delete_method":  "GET",
 	}
 
 	defer testWithEnv(t, "TF_HTTP_ADDRESS", conf["address"])()
@@ -335,6 +342,14 @@ func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	defer testWithEnv(t, "TF_HTTP_RETRY_MAX", conf["retry_max"])()
 	defer testWithEnv(t, "TF_HTTP_RETRY_WAIT_MIN", conf["retry_wait_min"])()
 	defer testWithEnv(t, "TF_HTTP_RETRY_WAIT_MAX", conf["retry_wait_max"])()
+	defer testWithEnv(t, "TF_HTTP_SKIP_CERT", conf["skip_cert"])()
+	defer testWithEnv(t, "TF_HTTP_HEADERS", "{\"X-TEST\":\"bob\"}")()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACE_ENABLED", "true")()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACE_PATH_ELEMENT", conf["workspace_path_element"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACE_LIST_ADDRESS", conf["workspace_list_address"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACE_LIST_METHOD", conf["workspace_list_method"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACE_DELETE_ADDRESS", conf["workspace_delete_address"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACE_DELETE_METHOD", conf["workspace_delete_method"])()
 
 	b := backend.TestBackendConfig(t, New(), nil).(*Backend)
 	client := b.client
@@ -365,6 +380,30 @@ func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	}
 	if client.Client.RetryWaitMax != 150*time.Second {
 		t.Fatalf("Expected retry_wait_max \"%s\", got \"%s\"", 150*time.Second, client.Client.RetryWaitMax)
+	}
+	if !client.Client.HTTPClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		t.Fatal("Expected skip_cert \"true\", got \"false\"")
+	}
+	if v, ok := client.Headers["X-TEST"]; !ok || v != "bob" {
+		t.Fatalf("Expected http header X-TEST, got %+v", client.Headers)
+	}
+	if !b.workspaceEnabled {
+		t.Fatal("expected workspace to be enabled, it is not")
+	}
+	if b.workspacePathElement != conf["workspace_path_element"] {
+		t.Fatalf("expected workspace path element to equal \"%s\" got \"%s\"", conf["workspace_path_element"], b.workspacePathElement)
+	}
+	if client.WorkspaceListURL.String() != conf["workspace_list_address"] {
+		t.Fatalf("expected workspace_list_url to equal \"%s\" got \"%s\"", conf["workspace_list_address"], client.WorkspaceListURL.String())
+	}
+	if client.WorkspaceListMethod != conf["workspace_list_method"] {
+		t.Fatalf("expected workspace_list_method to equal \"%s\" got \"%s\"", conf["workspace_list_method"], client.WorkspaceListMethod)
+	}
+	if client.WorkspaceDeleteURL.String() != conf["workspace_delete_address"] {
+		t.Fatalf("expected workspace_delete_url to equal \"%s\" got \"%s\"", conf["workspace_delete_address"], client.WorkspaceDeleteURL.String())
+	}
+	if client.WorkspaceDeleteMethod != conf["workspace_delete_method"] {
+		t.Fatalf("expected workspace_delete_method to equal \"%s\" got \"%s\"", conf["workspace_delete_method"], client.WorkspaceDeleteMethod)
 	}
 }
 
