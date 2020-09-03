@@ -215,7 +215,7 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing
 		// has changed since the plan was created. (All of the "real-world"
-		// state manager implementstions support this, but simpler test backends
+		// state manager implementations support this, but simpler test backends
 		// may not.)
 		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
 			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {
