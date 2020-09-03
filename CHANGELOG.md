@@ -2,7 +2,8 @@
 
 BUG FIXES:
 
-* element(): fix panic when called with a negative offset [GH-26079]
+* command/clistate: return an error on a state unlock failure [GH-25729] 
+* lang/funcs: fix panic when element() is called with a negative offset [GH-26079]
 
 ## Previous Releases
 
