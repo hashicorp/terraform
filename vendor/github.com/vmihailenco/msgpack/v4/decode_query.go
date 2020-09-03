@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vmihailenco/msgpack/codes"
+	"github.com/vmihailenco/msgpack/v4/codes"
 )
 
 type queryResult struct {

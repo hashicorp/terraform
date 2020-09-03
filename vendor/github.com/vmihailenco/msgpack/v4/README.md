@@ -8,10 +8,10 @@ Supports:
 - Appengine *datastore.Key and datastore.Cursor.
 - [CustomEncoder](https://godoc.org/github.com/vmihailenco/msgpack#example-CustomEncoder)/CustomDecoder interfaces for custom encoding.
 - [Extensions](https://godoc.org/github.com/vmihailenco/msgpack#example-RegisterExt) to encode type information.
-- Renaming fields via `msgpack:"my_field_name"`.
+- Renaming fields via `msgpack:"my_field_name"` and alias via `msgpack:"alias:another_name"`.
 - Omitting individual empty fields via `msgpack:",omitempty"` tag or all [empty fields in a struct](https://godoc.org/github.com/vmihailenco/msgpack#example-Marshal--OmitEmpty).
 - [Map keys sorting](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.SortMapKeys).
-- Encoding/decoding all [structs as arrays](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.StructAsArray) or [individual structs](https://godoc.org/github.com/vmihailenco/msgpack#example-Marshal--AsArray).
+- Encoding/decoding all [structs as arrays](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.UseArrayForStructs) or [individual structs](https://godoc.org/github.com/vmihailenco/msgpack#example-Marshal--AsArray).
 - [Encoder.UseJSONTag](https://godoc.org/github.com/vmihailenco/msgpack#Encoder.UseJSONTag) with [Decoder.UseJSONTag](https://godoc.org/github.com/vmihailenco/msgpack#Decoder.UseJSONTag) can turn msgpack into drop-in replacement for JSON.
 - Simple but very fast and efficient [queries](https://godoc.org/github.com/vmihailenco/msgpack#example-Decoder-Query).
 
@@ -20,15 +20,18 @@ Examples: https://godoc.org/github.com/vmihailenco/msgpack#pkg-examples.
 
 ## Installation
 
-Install:
+This project uses [Go Modules](https://github.com/golang/go/wiki/Modules) and semantic import versioning since v4:
 
-```shell
-go get -u github.com/vmihailenco/msgpack
+``` shell
+go mod init github.com/my/repo
+go get github.com/vmihailenco/msgpack/v4
 ```
 
 ## Quickstart
 
-```go
+``` go
+import "github.com/vmihailenco/msgpack/v4"
+
 func ExampleMarshal() {
 	type Item struct {
 		Foo string
@@ -66,4 +69,4 @@ Please go through [examples](https://godoc.org/github.com/vmihailenco/msgpack#pk
 ## See also
 
 - [Golang PostgreSQL ORM](https://github.com/go-pg/pg)
-- [Golang message task queue](https://github.com/go-msgqueue/msgqueue)
+- [Golang message task queue](https://github.com/vmihailenco/taskq)

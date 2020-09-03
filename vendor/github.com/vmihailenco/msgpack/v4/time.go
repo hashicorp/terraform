@@ -6,14 +6,16 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/vmihailenco/msgpack/codes"
+	"github.com/vmihailenco/msgpack/v4/codes"
 )
 
-var timeExtId int8 = -1
+var timeExtID int8 = -1
 
+var timePtrType = reflect.TypeOf((*time.Time)(nil))
+
+//nolint:gochecknoinits
 func init() {
-	timeType := reflect.TypeOf((*time.Time)(nil)).Elem()
-	registerExt(timeExtId, timeType, encodeTimeValue, decodeTimeValue)
+	registerExt(timeExtID, timePtrType.Elem(), encodeTimeValue, decodeTimeValue)
 }
 
 func (e *Encoder) EncodeTime(tm time.Time) error {
@@ -21,7 +23,7 @@ func (e *Encoder) EncodeTime(tm time.Time) error {
 	if err := e.encodeExtLen(len(b)); err != nil {
 		return err
 	}
-	if err := e.w.WriteByte(byte(timeExtId)); err != nil {
+	if err := e.w.WriteByte(byte(timeExtID)); err != nil {
 		return err
 	}
 	return e.write(b)
@@ -32,19 +34,18 @@ func (e *Encoder) encodeTime(tm time.Time) []byte {
 	if secs>>34 == 0 {
 		data := uint64(tm.Nanosecond())<<34 | secs
 		if data&0xffffffff00000000 == 0 {
-			b := make([]byte, 4)
+			b := e.timeBuf[:4]
 			binary.BigEndian.PutUint32(b, uint32(data))
 			return b
-		} else {
-			b := make([]byte, 8)
-			binary.BigEndian.PutUint64(b, data)
-			return b
 		}
+		b := e.timeBuf[:8]
+		binary.BigEndian.PutUint64(b, data)
+		return b
 	}
 
-	b := make([]byte, 12)
+	b := e.timeBuf[:12]
 	binary.BigEndian.PutUint32(b, uint32(tm.Nanosecond()))
-	binary.BigEndian.PutUint64(b[4:], uint64(secs))
+	binary.BigEndian.PutUint64(b[4:], secs)
 	return b
 }
 
@@ -140,6 +141,9 @@ func decodeTimeValue(d *Decoder, v reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	v.Set(reflect.ValueOf(tm))
+
+	ptr := v.Addr().Interface().(*time.Time)
+	*ptr = tm
+
 	return nil
 }

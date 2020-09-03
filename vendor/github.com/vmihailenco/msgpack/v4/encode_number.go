@@ -4,7 +4,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/vmihailenco/msgpack/codes"
+	"github.com/vmihailenco/msgpack/v4/codes"
 )
 
 // EncodeUint8 encodes an uint8 in 2 bytes preserving type of the number.
@@ -13,7 +13,7 @@ func (e *Encoder) EncodeUint8(n uint8) error {
 }
 
 func (e *Encoder) encodeUint8Cond(n uint8) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeUint(uint64(n))
 	}
 	return e.EncodeUint8(n)
@@ -25,7 +25,7 @@ func (e *Encoder) EncodeUint16(n uint16) error {
 }
 
 func (e *Encoder) encodeUint16Cond(n uint16) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeUint(uint64(n))
 	}
 	return e.EncodeUint16(n)
@@ -37,7 +37,7 @@ func (e *Encoder) EncodeUint32(n uint32) error {
 }
 
 func (e *Encoder) encodeUint32Cond(n uint32) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeUint(uint64(n))
 	}
 	return e.EncodeUint32(n)
@@ -49,7 +49,7 @@ func (e *Encoder) EncodeUint64(n uint64) error {
 }
 
 func (e *Encoder) encodeUint64Cond(n uint64) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeUint(n)
 	}
 	return e.EncodeUint64(n)
@@ -61,7 +61,7 @@ func (e *Encoder) EncodeInt8(n int8) error {
 }
 
 func (e *Encoder) encodeInt8Cond(n int8) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeInt(int64(n))
 	}
 	return e.EncodeInt8(n)
@@ -73,7 +73,7 @@ func (e *Encoder) EncodeInt16(n int16) error {
 }
 
 func (e *Encoder) encodeInt16Cond(n int16) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeInt(int64(n))
 	}
 	return e.EncodeInt16(n)
@@ -85,7 +85,7 @@ func (e *Encoder) EncodeInt32(n int32) error {
 }
 
 func (e *Encoder) encodeInt32Cond(n int32) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeInt(int64(n))
 	}
 	return e.EncodeInt32(n)
@@ -97,7 +97,7 @@ func (e *Encoder) EncodeInt64(n int64) error {
 }
 
 func (e *Encoder) encodeInt64Cond(n int64) error {
-	if e.useCompact {
+	if e.flags&useCompactIntsFlag != 0 {
 		return e.EncodeInt(n)
 	}
 	return e.EncodeInt64(n)
@@ -118,11 +118,11 @@ func (e *Encoder) EncodeUint(n uint64) error {
 	if n <= math.MaxUint32 {
 		return e.EncodeUint32(uint32(n))
 	}
-	return e.EncodeUint64(uint64(n))
+	return e.EncodeUint64(n)
 }
 
 // EncodeNumber encodes an int64 in 1, 2, 3, 5, or 9 bytes.
-// Type of number is lost during encoding.
+// Type of the number is lost during encoding.
 func (e *Encoder) EncodeInt(n int64) error {
 	if n >= 0 {
 		return e.EncodeUint(uint64(n))
@@ -139,21 +139,35 @@ func (e *Encoder) EncodeInt(n int64) error {
 	if n >= math.MinInt32 {
 		return e.EncodeInt32(int32(n))
 	}
-	return e.EncodeInt64(int64(n))
+	return e.EncodeInt64(n)
 }
 
 func (e *Encoder) EncodeFloat32(n float32) error {
+	if e.flags&useCompactFloatsFlag != 0 {
+		if float32(int64(n)) == n {
+			return e.EncodeInt(int64(n))
+		}
+	}
 	return e.write4(codes.Float, math.Float32bits(n))
 }
 
 func (e *Encoder) EncodeFloat64(n float64) error {
+	if e.flags&useCompactFloatsFlag != 0 {
+		// Both NaN and Inf convert to int64(-0x8000000000000000)
+		// If n is NaN then it never compares true with any other value
+		// If n is Inf then it doesn't convert from int64 back to +/-Inf
+		// In both cases the comparison works.
+		if float64(int64(n)) == n {
+			return e.EncodeInt(int64(n))
+		}
+	}
 	return e.write8(codes.Double, math.Float64bits(n))
 }
 
 func (e *Encoder) write1(code codes.Code, n uint8) error {
 	e.buf = e.buf[:2]
 	e.buf[0] = byte(code)
-	e.buf[1] = byte(n)
+	e.buf[1] = n
 	return e.write(e.buf)
 }
 

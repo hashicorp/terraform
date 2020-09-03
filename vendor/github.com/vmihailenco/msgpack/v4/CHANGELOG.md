@@ -1,4 +1,4 @@
-## 3.4
+## v4
 
 - Encode, Decode, Marshal, and Unmarshal are changed to accept single argument. EncodeMulti and DecodeMulti are added as replacement.
 - Added EncodeInt8/16/32/64 and EncodeUint8/16/32/64.

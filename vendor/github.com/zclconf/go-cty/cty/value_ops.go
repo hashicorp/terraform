@@ -3,7 +3,6 @@ package cty
 import (
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/zclconf/go-cty/cty/set"
 )
@@ -270,24 +269,26 @@ func (val Value) Equals(other Value) Value {
 		s2 := other.v.(set.Set)
 		equal := true
 
-		// Note that by our definition of sets it's never possible for two
-		// sets that contain unknown values (directly or indicrectly) to
-		// ever be equal, even if they are otherwise identical.
-
-		// FIXME: iterating both lists and checking each item is not the
-		// ideal implementation here, but it works with the primitives we
-		// have in the set implementation. Perhaps the set implementation
-		// can provide its own equality test later.
-		s1.EachValue(func(v interface{}) {
-			if !s2.Has(v) {
+		// Two sets are equal if all of their values are known and all values
+		// in one are also in the other.
+		for it := s1.Iterator(); it.Next(); {
+			rv := it.Value()
+			if rv == unknown { // "unknown" is the internal representation of unknown-ness
+				return UnknownVal(Bool)
+			}
+			if !s2.Has(rv) {
 				equal = false
 			}
-		})
-		s2.EachValue(func(v interface{}) {
-			if !s1.Has(v) {
+		}
+		for it := s2.Iterator(); it.Next(); {
+			rv := it.Value()
+			if rv == unknown { // "unknown" is the internal representation of unknown-ness
+				return UnknownVal(Bool)
+			}
+			if !s1.Has(rv) {
 				equal = false
 			}
-		})
+		}
 
 		result = equal
 	case ty.IsMapType():
@@ -462,17 +463,32 @@ func (val Value) RawEquals(other Value) bool {
 			return true
 		}
 		return false
-	case ty.IsSetType():
-		s1 := val.v.(set.Set)
-		s2 := other.v.(set.Set)
 
-		// Since we're intentionally ignoring our rule that two unknowns
-		// are never equal, we can cheat here.
-		// (This isn't 100% right since e.g. it will fail if the set contains
-		// numbers that are infinite, which DeepEqual can't compare properly.
-		// We're accepting that limitation for simplicity here, since this
-		// function is here primarily for testing.)
-		return reflect.DeepEqual(s1, s2)
+	case ty.IsSetType():
+		// Convert the set values into a slice so that we can compare each
+		// value. This is safe because the underlying sets are ordered (see
+		// setRules in set_internals.go), and so the results are guaranteed to
+		// be in a consistent order for two equal sets
+		setList1 := val.AsValueSlice()
+		setList2 := other.AsValueSlice()
+
+		// If both physical sets have the same length and they have all of their
+		// _known_ values in common, we know that both sets also have the same
+		// number of unknown values.
+		if len(setList1) != len(setList2) {
+			return false
+		}
+
+		for i := range setList1 {
+			eq := setList1[i].RawEquals(setList2[i])
+			if !eq {
+				return false
+			}
+		}
+
+		// If we got here without returning false already then our sets are
+		// equal enough for RawEquals purposes.
+		return true
 
 	case ty.IsMapType():
 		ety := ty.typeImpl.(typeMap).ElementTypeT
@@ -955,8 +971,7 @@ func (val Value) HasElement(elem Value) Value {
 // If the receiver is null then this function will panic.
 //
 // Note that Length is not supported for strings. To determine the length
-// of a string, call AsString and take the length of the native Go string
-// that is returned.
+// of a string, use the Length function in funcs/stdlib.
 func (val Value) Length() Value {
 	if val.IsMarked() {
 		val, valMarks := val.Unmark()
@@ -971,6 +986,25 @@ func (val Value) Length() Value {
 	if !val.IsKnown() {
 		return UnknownVal(Number)
 	}
+	if val.Type().IsSetType() {
+		// The Length rules are a little different for sets because if any
+		// unknown values are present then the values they are standing in for
+		// may or may not be equal to other elements in the set, and thus they
+		// may or may not coalesce with other elements and produce fewer
+		// items in the resulting set.
+		storeLength := int64(val.v.(set.Set).Length())
+		if storeLength == 1 || val.IsWhollyKnown() {
+			// If our set is wholly known then we know its length.
+			//
+			// We also know the length if the physical store has only one
+			// element, even if that element is unknown, because there's
+			// nothing else in the set for it to coalesce with and a single
+			// unknown value cannot represent more than one known value.
+			return NumberIntVal(storeLength)
+		}
+		// Otherwise, we cannot predict the length.
+		return UnknownVal(Number)
+	}
 
 	return NumberIntVal(int64(val.LengthInt()))
 }
@@ -980,6 +1014,13 @@ func (val Value) Length() Value {
 //
 // This is an integration method provided for the convenience of code bridging
 // into Go's type system.
+//
+// For backward compatibility with an earlier implementation error, LengthInt's
+// result can disagree with Length's result for any set containing unknown
+// values. Length can potentially indicate the set's length is unknown in that
+// case, whereas LengthInt will return the maximum possible length as if the
+// unknown values were each a placeholder for a value not equal to any other
+// value in the set.
 func (val Value) LengthInt() int {
 	val.assertUnmarked()
 	if val.Type().IsTupleType() {
@@ -1003,6 +1044,15 @@ func (val Value) LengthInt() int {
 		return len(val.v.([]interface{}))
 
 	case val.ty.IsSetType():
+		// NOTE: This is technically not correct in cases where the set
+		// contains unknown values, because in that case we can't know how
+		// many known values those unknown values are standing in for -- they
+		// might coalesce with other values once known.
+		//
+		// However, this incorrect behavior is preserved for backward
+		// compatibility with callers that were relying on LengthInt rather
+		// than calling Length. Instead of panicking when a set contains an
+		// unknown value, LengthInt returns the largest possible length.
 		return val.v.(set.Set).Length()
 
 	case val.ty.IsMapType():

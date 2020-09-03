@@ -44,7 +44,7 @@ var SetUnionFunc = function.New(&function.Spec{
 	Type: setOperationReturnType,
 	Impl: setOperationImpl(func(s1, s2 cty.ValueSet) cty.ValueSet {
 		return s1.Union(s2)
-	}),
+	}, true),
 })
 
 var SetIntersectionFunc = function.New(&function.Spec{
@@ -63,7 +63,7 @@ var SetIntersectionFunc = function.New(&function.Spec{
 	Type: setOperationReturnType,
 	Impl: setOperationImpl(func(s1, s2 cty.ValueSet) cty.ValueSet {
 		return s1.Intersection(s2)
-	}),
+	}, false),
 })
 
 var SetSubtractFunc = function.New(&function.Spec{
@@ -82,7 +82,7 @@ var SetSubtractFunc = function.New(&function.Spec{
 	Type: setOperationReturnType,
 	Impl: setOperationImpl(func(s1, s2 cty.ValueSet) cty.ValueSet {
 		return s1.Subtract(s2)
-	}),
+	}, false),
 })
 
 var SetSymmetricDifferenceFunc = function.New(&function.Spec{
@@ -100,8 +100,8 @@ var SetSymmetricDifferenceFunc = function.New(&function.Spec{
 	},
 	Type: setOperationReturnType,
 	Impl: setOperationImpl(func(s1, s2 cty.ValueSet) cty.ValueSet {
-		return s1.Subtract(s2)
-	}),
+		return s1.SymmetricDifference(s2)
+	}, false),
 })
 
 // SetHasElement determines whether the given set contains the given value as an
@@ -187,12 +187,20 @@ func setOperationReturnType(args []cty.Value) (ret cty.Type, err error) {
 	return cty.Set(newEty), nil
 }
 
-func setOperationImpl(f func(s1, s2 cty.ValueSet) cty.ValueSet) function.ImplFunc {
+func setOperationImpl(f func(s1, s2 cty.ValueSet) cty.ValueSet, allowUnknowns bool) function.ImplFunc {
 	return func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		first := args[0]
 		first, err = convert.Convert(first, retType)
 		if err != nil {
 			return cty.NilVal, function.NewArgError(0, err)
+		}
+		if !allowUnknowns && !first.IsWhollyKnown() {
+			// This set function can produce a correct result only when all
+			// elements are known, because eventually knowing the unknown
+			// values may cause the result to have fewer known elements, or
+			// might cause a result with no unknown elements at all to become
+			// one with a different length.
+			return cty.UnknownVal(retType), nil
 		}
 
 		set := first.AsValueSet()
@@ -200,6 +208,10 @@ func setOperationImpl(f func(s1, s2 cty.ValueSet) cty.ValueSet) function.ImplFun
 			arg, err := convert.Convert(arg, retType)
 			if err != nil {
 				return cty.NilVal, function.NewArgError(i+1, err)
+			}
+			if !allowUnknowns && !arg.IsWhollyKnown() {
+				// (For the same reason as we did this check for "first" above.)
+				return cty.UnknownVal(retType), nil
 			}
 
 			argSet := arg.AsValueSet()

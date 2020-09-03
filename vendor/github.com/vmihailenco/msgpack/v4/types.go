@@ -1,23 +1,41 @@
 package msgpack
 
 import (
+	"encoding"
+	"fmt"
+	"log"
 	"reflect"
 	"sync"
+
+	"github.com/vmihailenco/tagparser"
 )
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-var customEncoderType = reflect.TypeOf((*CustomEncoder)(nil)).Elem()
-var customDecoderType = reflect.TypeOf((*CustomDecoder)(nil)).Elem()
+var (
+	customEncoderType = reflect.TypeOf((*CustomEncoder)(nil)).Elem()
+	customDecoderType = reflect.TypeOf((*CustomDecoder)(nil)).Elem()
+)
 
-var marshalerType = reflect.TypeOf((*Marshaler)(nil)).Elem()
-var unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+var (
+	marshalerType   = reflect.TypeOf((*Marshaler)(nil)).Elem()
+	unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+)
 
-type encoderFunc func(*Encoder, reflect.Value) error
-type decoderFunc func(*Decoder, reflect.Value) error
+var (
+	binaryMarshalerType   = reflect.TypeOf((*encoding.BinaryMarshaler)(nil)).Elem()
+	binaryUnmarshalerType = reflect.TypeOf((*encoding.BinaryUnmarshaler)(nil)).Elem()
+)
 
-var typEncMap = make(map[reflect.Type]encoderFunc)
-var typDecMap = make(map[reflect.Type]decoderFunc)
+type (
+	encoderFunc func(*Encoder, reflect.Value) error
+	decoderFunc func(*Decoder, reflect.Value) error
+)
+
+var (
+	typeEncMap sync.Map
+	typeDecMap sync.Map
+)
 
 // Register registers encoder and decoder functions for a value.
 // This is low level API and in most cases you should prefer implementing
@@ -25,49 +43,39 @@ var typDecMap = make(map[reflect.Type]decoderFunc)
 func Register(value interface{}, enc encoderFunc, dec decoderFunc) {
 	typ := reflect.TypeOf(value)
 	if enc != nil {
-		typEncMap[typ] = enc
+		typeEncMap.Store(typ, enc)
 	}
 	if dec != nil {
-		typDecMap[typ] = dec
+		typeDecMap.Store(typ, dec)
 	}
 }
 
 //------------------------------------------------------------------------------
 
-var structs = newStructCache(false)
-var jsonStructs = newStructCache(true)
+var (
+	structs     = newStructCache(false)
+	jsonStructs = newStructCache(true)
+)
 
 type structCache struct {
-	mu sync.RWMutex
-	m  map[reflect.Type]*fields
+	m sync.Map
 
 	useJSONTag bool
 }
 
 func newStructCache(useJSONTag bool) *structCache {
 	return &structCache{
-		m: make(map[reflect.Type]*fields),
-
 		useJSONTag: useJSONTag,
 	}
 }
 
 func (m *structCache) Fields(typ reflect.Type) *fields {
-	m.mu.RLock()
-	fs, ok := m.m[typ]
-	m.mu.RUnlock()
-	if ok {
-		return fs
+	if v, ok := m.m.Load(typ); ok {
+		return v.(*fields)
 	}
 
-	m.mu.Lock()
-	fs, ok = m.m[typ]
-	if !ok {
-		fs = getFields(typ, m.useJSONTag)
-		m.m[typ] = fs
-	}
-	m.mu.Unlock()
-
+	fs := getFields(typ, m.useJSONTag)
+	m.m.Store(typ, fs)
 	return fs
 }
 
@@ -81,44 +89,58 @@ type field struct {
 	decoder   decoderFunc
 }
 
-func (f *field) value(v reflect.Value) reflect.Value {
-	return fieldByIndex(v, f.index)
-}
-
 func (f *field) Omit(strct reflect.Value) bool {
-	return f.omitEmpty && isEmptyValue(f.value(strct))
+	v, isNil := fieldByIndex(strct, f.index)
+	if isNil {
+		return true
+	}
+	return f.omitEmpty && isEmptyValue(v)
 }
 
 func (f *field) EncodeValue(e *Encoder, strct reflect.Value) error {
-	return f.encoder(e, f.value(strct))
+	v, isNil := fieldByIndex(strct, f.index)
+	if isNil {
+		return e.EncodeNil()
+	}
+	return f.encoder(e, v)
 }
 
 func (f *field) DecodeValue(d *Decoder, strct reflect.Value) error {
-	return f.decoder(d, f.value(strct))
+	v := fieldByIndexAlloc(strct, f.index)
+	return f.decoder(d, v)
 }
 
 //------------------------------------------------------------------------------
 
 type fields struct {
-	Table   map[string]*field
+	Type    reflect.Type
+	Map     map[string]*field
 	List    []*field
 	AsArray bool
 
 	hasOmitEmpty bool
 }
 
-func newFields(numField int) *fields {
+func newFields(typ reflect.Type) *fields {
 	return &fields{
-		Table: make(map[string]*field, numField),
-		List:  make([]*field, 0, numField),
+		Type: typ,
+		Map:  make(map[string]*field, typ.NumField()),
+		List: make([]*field, 0, typ.NumField()),
 	}
 }
 
 func (fs *fields) Add(field *field) {
-	fs.Table[field.name] = field
+	fs.warnIfFieldExists(field.name)
+	fs.Map[field.name] = field
 	fs.List = append(fs.List, field)
 	if field.omitEmpty {
 		fs.hasOmitEmpty = true
+	}
+}
+
+func (fs *fields) warnIfFieldExists(name string) {
+	if _, ok := fs.Map[name]; ok {
+		log.Printf("msgpack: %s already has field=%s", fs.Type, name)
 	}
 }
 
@@ -128,37 +150,38 @@ func (fs *fields) OmitEmpty(strct reflect.Value) []*field {
 	}
 
 	fields := make([]*field, 0, len(fs.List))
+
 	for _, f := range fs.List {
 		if !f.Omit(strct) {
 			fields = append(fields, f)
 		}
 	}
+
 	return fields
 }
 
 func getFields(typ reflect.Type, useJSONTag bool) *fields {
-	numField := typ.NumField()
-	fs := newFields(numField)
+	fs := newFields(typ)
 
 	var omitEmpty bool
-	for i := 0; i < numField; i++ {
+	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
 
-		tag := f.Tag.Get("msgpack")
-		if useJSONTag && tag == "" {
-			tag = f.Tag.Get("json")
+		tagStr := f.Tag.Get("msgpack")
+		if useJSONTag && tagStr == "" {
+			tagStr = f.Tag.Get("json")
 		}
 
-		name, opt := parseTag(tag)
-		if name == "-" {
+		tag := tagparser.Parse(tagStr)
+		if tag.Name == "-" {
 			continue
 		}
 
 		if f.Name == "_msgpack" {
-			if opt.Contains("asArray") {
+			if tag.HasOption("asArray") {
 				fs.AsArray = true
 			}
-			if opt.Contains("omitempty") {
+			if tag.HasOption("omitempty") {
 				omitEmpty = true
 			}
 		}
@@ -168,38 +191,65 @@ func getFields(typ reflect.Type, useJSONTag bool) *fields {
 		}
 
 		field := &field{
-			name:      name,
+			name:      tag.Name,
 			index:     f.Index,
-			omitEmpty: omitEmpty || opt.Contains("omitempty"),
-			encoder:   getEncoder(f.Type),
-			decoder:   getDecoder(f.Type),
+			omitEmpty: omitEmpty || tag.HasOption("omitempty"),
+		}
+
+		if tag.HasOption("intern") {
+			switch f.Type.Kind() {
+			case reflect.Interface:
+				field.encoder = encodeInternInterfaceValue
+				field.decoder = decodeInternInterfaceValue
+			case reflect.String:
+				field.encoder = encodeInternStringValue
+				field.decoder = decodeInternStringValue
+			default:
+				err := fmt.Errorf("msgpack: intern strings are not supported on %s", f.Type)
+				panic(err)
+			}
+		} else {
+			field.encoder = getEncoder(f.Type)
+			field.decoder = getDecoder(f.Type)
 		}
 
 		if field.name == "" {
 			field.name = f.Name
 		}
 
-		if f.Anonymous && !opt.Contains("noinline") {
-			inline := opt.Contains("inline")
+		if f.Anonymous && !tag.HasOption("noinline") {
+			inline := tag.HasOption("inline")
 			if inline {
 				inlineFields(fs, f.Type, field, useJSONTag)
 			} else {
-				inline = autoinlineFields(fs, f.Type, field, useJSONTag)
+				inline = shouldInline(fs, f.Type, field, useJSONTag)
 			}
+
 			if inline {
-				fs.Table[field.name] = field
+				if _, ok := fs.Map[field.name]; ok {
+					log.Printf("msgpack: %s already has field=%s", fs.Type, field.name)
+				}
+				fs.Map[field.name] = field
 				continue
 			}
 		}
 
 		fs.Add(field)
+
+		if alias, ok := tag.Options["alias"]; ok {
+			fs.warnIfFieldExists(alias)
+			fs.Map[alias] = field
+		}
 	}
 	return fs
 }
 
-var encodeStructValuePtr uintptr
-var decodeStructValuePtr uintptr
+var (
+	encodeStructValuePtr uintptr
+	decodeStructValuePtr uintptr
+)
 
+//nolint:gochecknoinits
 func init() {
 	encodeStructValuePtr = reflect.ValueOf(encodeStructValue).Pointer()
 	decodeStructValuePtr = reflect.ValueOf(decodeStructValue).Pointer()
@@ -208,7 +258,7 @@ func init() {
 func inlineFields(fs *fields, typ reflect.Type, f *field, useJSONTag bool) {
 	inlinedFields := getFields(typ, useJSONTag).List
 	for _, field := range inlinedFields {
-		if _, ok := fs.Table[field.name]; ok {
+		if _, ok := fs.Map[field.name]; ok {
 			// Don't inline shadowed fields.
 			continue
 		}
@@ -217,7 +267,7 @@ func inlineFields(fs *fields, typ reflect.Type, f *field, useJSONTag bool) {
 	}
 }
 
-func autoinlineFields(fs *fields, typ reflect.Type, f *field, useJSONTag bool) bool {
+func shouldInline(fs *fields, typ reflect.Type, f *field, useJSONTag bool) bool {
 	var encoder encoderFunc
 	var decoder decoderFunc
 
@@ -244,7 +294,7 @@ func autoinlineFields(fs *fields, typ reflect.Type, f *field, useJSONTag bool) b
 
 	inlinedFields := getFields(typ, useJSONTag).List
 	for _, field := range inlinedFields {
-		if _, ok := fs.Table[field.name]; ok {
+		if _, ok := fs.Map[field.name]; ok {
 			// Don't auto inline if there are shadowed fields.
 			return false
 		}
@@ -275,11 +325,32 @@ func isEmptyValue(v reflect.Value) bool {
 	return false
 }
 
-func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+func fieldByIndex(v reflect.Value, index []int) (_ reflect.Value, isNil bool) {
+	if len(index) == 1 {
+		return v.Field(index[0]), false
+	}
+
+	for i, idx := range index {
+		if i > 0 {
+			if v.Kind() == reflect.Ptr {
+				if v.IsNil() {
+					return v, true
+				}
+				v = v.Elem()
+			}
+		}
+		v = v.Field(idx)
+	}
+
+	return v, false
+}
+
+func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
 	if len(index) == 1 {
 		return v.Field(index[0])
 	}
-	for i, x := range index {
+
+	for i, idx := range index {
 		if i > 0 {
 			var ok bool
 			v, ok = indirectNew(v)
@@ -287,8 +358,9 @@ func fieldByIndex(v reflect.Value, index []int) reflect.Value {
 				return v
 			}
 		}
-		v = v.Field(x)
+		v = v.Field(idx)
 	}
+
 	return v
 }
 

@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack/v4"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -31,6 +31,7 @@ func Marshal(val cty.Value, ty cty.Type) ([]byte, error) {
 	var path cty.Path
 	var buf bytes.Buffer
 	enc := msgpack.NewEncoder(&buf)
+	enc.UseCompactEncoding(true)
 
 	err := marshal(val, ty, path, enc)
 	if err != nil {

@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/vmihailenco/msgpack/codes"
+	"github.com/vmihailenco/msgpack/v4/codes"
 )
-
-const sliceElemsAllocLimit = 1e4
 
 var sliceStringPtrType = reflect.TypeOf((*[]string)(nil))
 
@@ -51,7 +49,7 @@ func (d *Decoder) decodeStringSlicePtr(ptr *[]string) error {
 		return nil
 	}
 
-	ss := setStringsCap(*ptr, n)
+	ss := makeStrings(*ptr, n)
 	for i := 0; i < n; i++ {
 		s, err := d.DecodeString()
 		if err != nil {
@@ -64,9 +62,9 @@ func (d *Decoder) decodeStringSlicePtr(ptr *[]string) error {
 	return nil
 }
 
-func setStringsCap(s []string, n int) []string {
-	if n > sliceElemsAllocLimit {
-		n = sliceElemsAllocLimit
+func makeStrings(s []string, n int) []string {
+	if n > sliceAllocLimit {
+		n = sliceAllocLimit
 	}
 
 	if s == nil {
@@ -107,8 +105,8 @@ func decodeSliceValue(d *Decoder, v reflect.Value) error {
 		if i >= v.Len() {
 			v.Set(growSliceValue(v, n))
 		}
-		sv := v.Index(i)
-		if err := d.DecodeValue(sv); err != nil {
+		elem := v.Index(i)
+		if err := d.DecodeValue(elem); err != nil {
 			return err
 		}
 	}
@@ -118,8 +116,8 @@ func decodeSliceValue(d *Decoder, v reflect.Value) error {
 
 func growSliceValue(v reflect.Value, n int) reflect.Value {
 	diff := n - v.Len()
-	if diff > sliceElemsAllocLimit {
-		diff = sliceElemsAllocLimit
+	if diff > sliceAllocLimit {
+		diff = sliceAllocLimit
 	}
 	v = reflect.AppendSlice(v, reflect.MakeSlice(v.Type(), diff, diff))
 	return v
@@ -134,10 +132,10 @@ func decodeArrayValue(d *Decoder, v reflect.Value) error {
 	if n == -1 {
 		return nil
 	}
-
 	if n > v.Len() {
 		return fmt.Errorf("%s len is %d, but msgpack has %d elements", v.Type(), v.Len(), n)
 	}
+
 	for i := 0; i < n; i++ {
 		sv := v.Index(i)
 		if err := d.DecodeValue(sv); err != nil {
@@ -165,7 +163,7 @@ func (d *Decoder) decodeSlice(c codes.Code) ([]interface{}, error) {
 		return nil, nil
 	}
 
-	s := make([]interface{}, 0, min(n, sliceElemsAllocLimit))
+	s := make([]interface{}, 0, min(n, sliceAllocLimit))
 	for i := 0; i < n; i++ {
 		v, err := d.decodeInterfaceCond()
 		if err != nil {

@@ -1,12 +1,14 @@
 package msgpack
 
 import (
+	"encoding"
 	"fmt"
 	"reflect"
 )
 
 var valueEncoders []encoderFunc
 
+//nolint:gochecknoinits
 func init() {
 	valueEncoders = []encoderFunc{
 		reflect.Bool:          encodeBoolValue,
@@ -38,8 +40,21 @@ func init() {
 }
 
 func getEncoder(typ reflect.Type) encoderFunc {
-	if encoder, ok := typEncMap[typ]; ok {
-		return encoder
+	if v, ok := typeEncMap.Load(typ); ok {
+		return v.(encoderFunc)
+	}
+	fn := _getEncoder(typ)
+	typeEncMap.Store(typ, fn)
+	return fn
+}
+
+func _getEncoder(typ reflect.Type) encoderFunc {
+	kind := typ.Kind()
+
+	if kind == reflect.Ptr {
+		if _, ok := typeEncMap.Load(typ.Elem()); ok {
+			return ptrEncoderFunc(typ)
+		}
 	}
 
 	if typ.Implements(customEncoderType) {
@@ -48,8 +63,9 @@ func getEncoder(typ reflect.Type) encoderFunc {
 	if typ.Implements(marshalerType) {
 		return marshalValue
 	}
-
-	kind := typ.Kind()
+	if typ.Implements(binaryMarshalerType) {
+		return marshalBinaryValue
+	}
 
 	// Addressable struct field value.
 	if kind != reflect.Ptr {
@@ -59,6 +75,9 @@ func getEncoder(typ reflect.Type) encoderFunc {
 		}
 		if ptr.Implements(marshalerType) {
 			return marshalValuePtr
+		}
+		if ptr.Implements(binaryMarshalerType) {
+			return marshalBinaryValuePtr
 		}
 	}
 
@@ -70,8 +89,12 @@ func getEncoder(typ reflect.Type) encoderFunc {
 	case reflect.Ptr:
 		return ptrEncoderFunc(typ)
 	case reflect.Slice:
-		if typ.Elem().Kind() == reflect.Uint8 {
+		elem := typ.Elem()
+		if elem.Kind() == reflect.Uint8 {
 			return encodeByteSliceValue
+		}
+		if elem == stringType {
+			return encodeStringSliceValue
 		}
 	case reflect.Array:
 		if typ.Elem().Kind() == reflect.Uint8 {
@@ -87,6 +110,7 @@ func getEncoder(typ reflect.Type) encoderFunc {
 			}
 		}
 	}
+
 	return valueEncoders[kind]
 }
 
@@ -109,11 +133,8 @@ func encodeCustomValuePtr(e *Encoder, v reflect.Value) error {
 }
 
 func encodeCustomValue(e *Encoder, v reflect.Value) error {
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		if v.IsNil() {
-			return e.EncodeNil()
-		}
+	if nilable(v) && v.IsNil() {
+		return e.EncodeNil()
 	}
 
 	encoder := v.Interface().(CustomEncoder)
@@ -128,11 +149,8 @@ func marshalValuePtr(e *Encoder, v reflect.Value) error {
 }
 
 func marshalValue(e *Encoder, v reflect.Value) error {
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		if v.IsNil() {
-			return e.EncodeNil()
-		}
+	if nilable(v) && v.IsNil() {
+		return e.EncodeNil()
 	}
 
 	marshaler := v.Interface().(Marshaler)
@@ -164,4 +182,35 @@ func encodeErrorValue(e *Encoder, v reflect.Value) error {
 
 func encodeUnsupportedValue(e *Encoder, v reflect.Value) error {
 	return fmt.Errorf("msgpack: Encode(unsupported %s)", v.Type())
+}
+
+func nilable(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return true
+	}
+	return false
+}
+
+//------------------------------------------------------------------------------
+
+func marshalBinaryValuePtr(e *Encoder, v reflect.Value) error {
+	if !v.CanAddr() {
+		return fmt.Errorf("msgpack: Encode(non-addressable %T)", v.Interface())
+	}
+	return marshalBinaryValue(e, v.Addr())
+}
+
+func marshalBinaryValue(e *Encoder, v reflect.Value) error {
+	if nilable(v) && v.IsNil() {
+		return e.EncodeNil()
+	}
+
+	marshaler := v.Interface().(encoding.BinaryMarshaler)
+	data, err := marshaler.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	return e.EncodeBytes(data)
 }

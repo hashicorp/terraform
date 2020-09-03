@@ -77,6 +77,10 @@ func IsString(c Code) bool {
 	return IsFixedString(c) || c == Str8 || c == Str16 || c == Str32
 }
 
+func IsBin(c Code) bool {
+	return c == Bin8 || c == Bin16 || c == Bin32
+}
+
 func IsFixedExt(c Code) bool {
 	return c >= FixExt1 && c <= FixExt16
 }
