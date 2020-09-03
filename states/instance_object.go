@@ -19,6 +19,9 @@ type ResourceInstanceObject struct {
 	// Terraform.
 	Value cty.Value
 
+	// PathValueMarks is a slice of paths and value marks of the value
+	PathValueMarks []cty.PathValueMarks
+
 	// Private is an opaque value set by the provider when this object was
 	// last created or updated. Terraform Core does not use this value in
 	// any way and it is not exposed anywhere in the user interface, so
@@ -98,7 +101,14 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// and raise an error about that.
 	val := cty.UnknownAsNull(o.Value)
 
-	src, err := ctyjson.Marshal(val, ty)
+	// If it contains marks, dump those now
+	unmarked := val
+	if val.ContainsMarked() {
+		var pvm []cty.PathValueMarks
+		unmarked, pvm = val.UnmarkDeepWithPaths()
+		o.PathValueMarks = pvm
+	}
+	src, err := ctyjson.Marshal(unmarked, ty)
 	if err != nil {
 		return nil, err
 	}

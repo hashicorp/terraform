@@ -337,19 +337,33 @@ type Change struct {
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
 func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
-	beforeDV, err := NewDynamicValue(c.Before, ty)
+	// Storing unmarked values so that we can encode unmarked values
+	// and save the PathValueMarks for re-marking the values later
+	var beforeVM, afterVM []cty.PathValueMarks
+	unmarkedBefore := c.Before
+	unmarkedAfter := c.After
+
+	if c.Before.ContainsMarked() {
+		unmarkedBefore, beforeVM = c.Before.UnmarkDeepWithPaths()
+	}
+	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
 	if err != nil {
 		return nil, err
 	}
-	afterDV, err, marks := NewDynamicValueMarks(c.After, ty)
+
+	if c.After.ContainsMarked() {
+		unmarkedAfter, afterVM = c.After.UnmarkDeepWithPaths()
+	}
+	afterDV, err := NewDynamicValue(unmarkedAfter, ty)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ChangeSrc{
-		Action:   c.Action,
-		Before:   beforeDV,
-		After:    afterDV,
-		ValMarks: marks,
+		Action:         c.Action,
+		Before:         beforeDV,
+		After:          afterDV,
+		BeforeValMarks: beforeVM,
+		AfterValMarks:  afterVM,
 	}, nil
 }

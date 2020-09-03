@@ -41,39 +41,9 @@ func Marshal(val cty.Value, ty cty.Type) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// This type should (likely) be a map of paths
-// and marks, so that multiple marks can be found
-// in case of a value containing multiple marked values
-type MarkInfo struct {
-	Marks cty.ValueMarks
-	Path  cty.Path
-}
-
-func MarshalWithMarks(val cty.Value, ty cty.Type) ([]byte, error, *MarkInfo) {
-	markInfo := MarkInfo{}
-	if val.ContainsMarked() {
-		// store the marked values so we can re-mark them later after
-		// we've sent things over the wire
-		cty.Walk(val, func(p cty.Path, v cty.Value) (bool, error) {
-			if v.IsMarked() {
-				markInfo.Path = p
-				markInfo.Marks = v.Marks()
-			}
-			return true, nil
-		})
-		val, _ = val.UnmarkDeep()
-	}
-	by, err := Marshal(val, ty)
-	if err != nil {
-		return nil, err, &markInfo
-	}
-
-	return by, nil, &markInfo
-}
-
 func marshal(val cty.Value, ty cty.Type, path cty.Path, enc *msgpack.Encoder) error {
 	if val.IsMarked() {
-		return path.NewErrorf("value has marks, so it cannot be seralized")
+		return path.NewErrorf("value has marks, so it cannot be serialized")
 	}
 
 	// If we're going to decode as DynamicPseudoType then we need to save

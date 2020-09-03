@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
-	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 )
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
@@ -159,7 +158,7 @@ type ChangeSrc struct {
 	Before, After DynamicValue
 
 	// Marked Paths
-	ValMarks *ctymsgpack.MarkInfo
+	BeforeValMarks, AfterValMarks []cty.PathValueMarks
 }
 
 // Decode unmarshals the raw representations of the before and after values

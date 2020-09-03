@@ -67,6 +67,23 @@ func (m ValueMarks) GoString() string {
 	return s.String()
 }
 
+// PathValueMarks is a structure that enables tracking marks
+// and the paths where they are located in one type
+type PathValueMarks struct {
+	Path  Path
+	Marks ValueMarks
+}
+
+func (p PathValueMarks) Equal(o PathValueMarks) bool {
+	if !p.Path.Equals(o.Path) {
+		return false
+	}
+	if !p.Marks.Equal(o.Marks) {
+		return false
+	}
+	return true
+}
+
 // IsMarked returns true if and only if the receiving value carries at least
 // one mark. A marked value cannot be used directly with integration methods
 // without explicitly unmarking it (and retrieving the markings) first.
@@ -174,6 +191,21 @@ func (val Value) Mark(mark interface{}) Value {
 	}
 }
 
+// MarkWithPaths accepts a slice of PathValueMarks to apply
+// marker particular paths
+func (val Value) MarkWithPaths(pvm []PathValueMarks) Value {
+	ret, _ := Transform(val, func(p Path, v Value) (Value, error) {
+		for _, path := range pvm {
+			if p.Equals(path.Path) {
+				return v.WithMarks(path.Marks), nil
+
+			}
+		}
+		return v, nil
+	})
+	return ret
+}
+
 // Unmark separates the marks of the receiving value from the value itself,
 // removing a new unmarked value and a map (representing a set) of the marks.
 //
@@ -203,6 +235,18 @@ func (val Value) UnmarkDeep() (Value, ValueMarks) {
 		unmarkedV, valueMarks := v.Unmark()
 		for m, s := range valueMarks {
 			marks[m] = s
+		}
+		return unmarkedV, nil
+	})
+	return ret, marks
+}
+
+func (val Value) UnmarkDeepWithPaths() (Value, []PathValueMarks) {
+	var marks []PathValueMarks
+	ret, _ := Transform(val, func(p Path, v Value) (Value, error) {
+		unmarkedV, valueMarks := v.Unmark()
+		if v.IsMarked() {
+			marks = append(marks, PathValueMarks{p, valueMarks})
 		}
 		return unmarkedV, nil
 	})
