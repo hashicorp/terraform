@@ -31,13 +31,20 @@ type ZeroThirteenUpgradeCommand struct {
 // Warning diagnostic detail message used for JSON and override config files
 const skippedConfigurationFileWarning = "The %s configuration file %q was skipped, because %s files are assumed to be generated. The program that generated this file may need to be updated for changes to the configuration language."
 
+const defaultTerraformVersionConstraint = ">= 0.13"
+
 func (c *ZeroThirteenUpgradeCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 
 	var skipConfirm bool
+	var terraformVersionConstraint string
+	var providerVersionConstraints FlagStringKV
 
 	flags := c.Meta.defaultFlagSet("0.13upgrade")
 	flags.BoolVar(&skipConfirm, "yes", false, "skip confirmation prompt")
+	flags.StringVar(&terraformVersionConstraint, "terraform-version", defaultTerraformVersionConstraint, "explicitly set the terraform version to use in updated configuration files, disabling any terraform version constraints checks")
+	flags.Var((*FlagStringKV)(&providerVersionConstraints), "provider-version", "explicitly set a terraform provider version")
+
 	flags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -184,25 +191,27 @@ command and dealing with them before running this command again.
 		))
 	}
 
-	// Check Terraform required_version constraints
-	for _, file := range files {
-		for _, constraint := range file.CoreVersionConstraints {
-			if !constraint.Required.Check(tfversion.SemVer) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unsupported Terraform Core version",
-					Detail: fmt.Sprintf(
-						"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
-						tfversion.String(),
-					),
-					Subject: &constraint.DeclRange,
-				})
+	// Check Terraform required_version constraints unless a specific version is explicitly set
+	if terraformVersionConstraint == defaultTerraformVersionConstraint {
+		for _, file := range files {
+			for _, constraint := range file.CoreVersionConstraints {
+				if !constraint.Required.Check(tfversion.SemVer) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unsupported Terraform Core version",
+						Detail: fmt.Sprintf(
+							"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+							tfversion.String(),
+						),
+						Subject: &constraint.DeclRange,
+					})
+				}
 			}
 		}
-	}
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
 	}
 
 	// Build up a list of required providers, uniquely by local name
@@ -428,10 +437,15 @@ command and dealing with them before running this command again.
 			var attributes = make(map[string]cty.Value)
 
 			if !requiredProvider.Type.IsZero() {
-				attributes["source"] = cty.StringVal(requiredProvider.Type.ForDisplay())
+				providerType := requiredProvider.Type.ForDisplay()
+				attributes["source"] = cty.StringVal(providerType)
+
+				if version, hasVersion := providerVersionConstraints[providerType]; hasVersion {
+					attributes["version"] = cty.StringVal(version)
+				}
 			}
 
-			if version := requiredProvider.Requirement.Required.String(); version != "" {
+			if version, currentVersion := requiredProvider.Requirement.Required.String(), attributes["version"]; version != "" && currentVersion == cty.NilVal {
 				attributes["version"] = cty.StringVal(version)
 			}
 
@@ -490,7 +504,7 @@ command and dealing with them before running this command again.
 		// we'll update that file separately.
 		versionsFilename := path.Join(dir, "versions.tf")
 		if filename == versionsFilename {
-			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(">= 0.13"))
+			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(terraformVersionConstraint))
 		}
 
 		// Remove the rest of the blocks (and the parent block, if it's empty)
@@ -541,7 +555,7 @@ command and dealing with them before running this command again.
 			}
 
 			// Set the required version attribute
-			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(">= 0.13"))
+			tfBlock.Body().SetAttributeValue("required_version", cty.StringVal(terraformVersionConstraint))
 
 			// Write the config back to the file
 			writeDiags := c.writeFile(file, versionsFilename)
@@ -822,9 +836,17 @@ Usage: terraform 0.13upgrade [options] [module-dir]
 
 Options:
 
-  -yes        Skip the initial introduction messages and interactive
-              confirmation. This can be used to run this command in
-              batch from a script.
+  -yes                            Skip the initial introduction messages and
+                                  interactive confirmation. This can be used to
+                                  run this command in batch from a script.
+
+  -terraform-version=0.13.2       Explicitly set the terraform version to use
+                                  in updated configuration files, disabling any
+                                  terraform version constraints checks.
+
+  -provider-version 'ns/foo=1.0'  Explicitly set a terraform provider version
+                                  to use in updated configuration files. This
+                                  flag can be set multiple times.
 `
 	return strings.TrimSpace(helpText)
 }

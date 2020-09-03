@@ -67,33 +67,35 @@ func TestZeroThirteenUpgrade_success(t *testing.T) {
 	registrySource, close := testRegistrySource(t)
 	defer close()
 
-	testCases := map[string]string{
-		"implicit":              "013upgrade-implicit-providers",
-		"explicit":              "013upgrade-explicit-providers",
-		"provider not found":    "013upgrade-provider-not-found",
-		"implicit not found":    "013upgrade-implicit-not-found",
-		"file exists":           "013upgrade-file-exists",
-		"no providers":          "013upgrade-no-providers",
-		"submodule":             "013upgrade-submodule",
-		"providers with source": "013upgrade-providers-with-source",
-		"preserves comments":    "013upgrade-preserves-comments",
-		"multiple blocks":       "013upgrade-multiple-blocks",
-		"multiple files":        "013upgrade-multiple-files",
-		"existing versions.tf":  "013upgrade-existing-versions-tf",
-		"skipped files":         "013upgrade-skipped-files",
-		"provider redirect":     "013upgrade-provider-redirect",
-		"version unavailable":   "013upgrade-provider-redirect-version-unavailable",
+	testCases := map[string][]string{
+		"implicit":              {"013upgrade-implicit-providers", "-yes"},
+		"explicit":              {"013upgrade-explicit-providers", "-yes"},
+		"provider not found":    {"013upgrade-provider-not-found", "-yes"},
+		"implicit not found":    {"013upgrade-implicit-not-found", "-yes"},
+		"file exists":           {"013upgrade-file-exists", "-yes"},
+		"no providers":          {"013upgrade-no-providers", "-yes"},
+		"submodule":             {"013upgrade-submodule", "-yes"},
+		"providers with source": {"013upgrade-providers-with-source", "-yes"},
+		"preserves comments":    {"013upgrade-preserves-comments", "-yes"},
+		"multiple blocks":       {"013upgrade-multiple-blocks", "-yes"},
+		"multiple files":        {"013upgrade-multiple-files", "-yes"},
+		"existing versions.tf":  {"013upgrade-existing-versions-tf", "-yes"},
+		"skipped files":         {"013upgrade-skipped-files", "-yes"},
+		"provider redirect":     {"013upgrade-provider-redirect", "-yes"},
+		"version unavailable":   {"013upgrade-provider-redirect-version-unavailable", "-yes"},
+		"specific versions":     {"013upgrade-specific-versions", "-yes", "-terraform-version=0.13.2", "-provider-version", "hashicorp/bar=2.0.0", "-provider-version", "terraform-providers/baz=3.0.0", "-provider-version", "foo=1.2.4"},
 	}
-	for name, testPath := range testCases {
+
+	for name, testArgs := range testCases {
 		t.Run(name, func(t *testing.T) {
-			inputPath, err := filepath.Abs(testFixturePath(path.Join(testPath, "input")))
+			inputPath, err := filepath.Abs(testFixturePath(path.Join(testArgs[0], "input")))
 			if err != nil {
-				t.Fatalf("failed to find input path %s: %s", testPath, err)
+				t.Fatalf("failed to find input path %s: %s", testArgs[0], err)
 			}
 
-			expectedPath, err := filepath.Abs(testFixturePath(path.Join(testPath, "expected")))
+			expectedPath, err := filepath.Abs(testFixturePath(path.Join(testArgs[0], "expected")))
 			if err != nil {
-				t.Fatalf("failed to find expected path %s: %s", testPath, err)
+				t.Fatalf("failed to find expected path %s: %s", testArgs[0], err)
 			}
 
 			td := tempDir(t)
@@ -110,7 +112,7 @@ func TestZeroThirteenUpgrade_success(t *testing.T) {
 				},
 			}
 
-			if code := c.Run([]string{"-yes"}); code != 0 {
+			if code := c.Run(testArgs[1:]); code != 0 {
 				t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 			}
 
