@@ -465,35 +465,27 @@ func (val Value) RawEquals(other Value) bool {
 		return false
 
 	case ty.IsSetType():
-		s1 := val.v.(set.Set)
-		s2 := other.v.(set.Set)
+		// Convert the set values into a slice so that we can compare each
+		// value. This is safe because the underlying sets are ordered (see
+		// setRules in set_internals.go), and so the results are guaranteed to
+		// be in a consistent order for two equal sets
+		setList1 := val.AsValueSlice()
+		setList2 := other.AsValueSlice()
 
-		// Raw equality for sets is a little tricky because our rules for a
-		// set of values say that unknown values are never equal. However,
-		// if both physical sets have the same length and they have all of
-		// their _known_ values in common, we know that both sets also have
-		// the same number of unknown values.
-		if s1.Length() != s2.Length() {
+		// If both physical sets have the same length and they have all of their
+		// _known_ values in common, we know that both sets also have the same
+		// number of unknown values.
+		if len(setList1) != len(setList2) {
 			return false
 		}
-		for it := s1.Iterator(); it.Next(); {
-			v := it.Value()
-			if v == unknown { // "unknown" is the internal representation of unknown-ness
-				continue
-			}
-			if !s2.Has(v) {
+
+		for i := range setList1 {
+			eq := setList1[i].RawEquals(setList2[i])
+			if !eq {
 				return false
 			}
 		}
-		for it := s2.Iterator(); it.Next(); {
-			v := it.Value()
-			if v == unknown { // "unknown" is the internal representation of unknown-ness
-				continue
-			}
-			if !s1.Has(v) {
-				return false
-			}
-		}
+
 		// If we got here without returning false already then our sets are
 		// equal enough for RawEquals purposes.
 		return true
