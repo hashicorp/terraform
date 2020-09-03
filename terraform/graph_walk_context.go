@@ -162,3 +162,38 @@ func (w *ContextGraphWalker) init() {
 		w.variableValues[""][k] = iv.Value
 	}
 }
+
+func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
+	// Acquire a lock on the semaphore
+	w.Context.parallelSem.Acquire()
+
+	err := n.Execute(ctx, w.Operation)
+
+	// Release the semaphore
+	w.Context.parallelSem.Release()
+
+	if err == nil {
+		return nil
+	}
+
+	// Acquire the lock because anything is going to require a lock.
+	w.errorLock.Lock()
+	defer w.errorLock.Unlock()
+
+	// If the error is non-fatal then we'll accumulate its diagnostics in our
+	// non-fatal list, rather than returning it directly, so that the graph
+	// walk can continue.
+	if nferr, ok := err.(tfdiags.NonFatalError); ok {
+		w.NonFatalDiagnostics = w.NonFatalDiagnostics.Append(nferr.Diagnostics)
+		return nil
+	}
+
+	// Otherwise, we'll let our usual diagnostics machinery figure out how to
+	// unpack this as one or more diagnostic messages and return that. If we
+	// get down here then the returned diagnostics will contain at least one
+	// error, causing the graph walk to halt.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(err)
+	return diags
+
+}
