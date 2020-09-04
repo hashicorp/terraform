@@ -1,10 +1,13 @@
 package habitat
 
 import (
+	"io"
+	"strings"
+	"testing"
+
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"testing"
 )
 
 const linuxDefaultSystemdUnitFileContents = `[Unit]
@@ -75,17 +78,17 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'bash ./install.sh -v 0.81.0'":                                                                                          true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab install core/busybox'":                                                                                             true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg exec core/busybox adduser -D -g \"\" hab'":                                                                     true,
-				"env HAB_LICENSE=accept sudo -E /bin/bash -c 'hab -V'":                                                                                                                                        true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'HAB_LICENSE=accept hab -V'":                                                                                            true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'rm -f install.sh'":                                                                                                     true,
 			},
 		},
 	}
 
-	o := new(terraform.MockUIOutput)
-	c := new(communicator.MockCommunicator)
+	ui := new(terraform.MockUIOutput)
+	comm := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
-		c.Commands = tc.Commands
+		comm.Commands = tc.Commands
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
@@ -93,8 +96,10 @@ func TestLinuxProvisioner_linuxInstallHabitat(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
+		p.ui = ui
+		p.comm = comm
 
-		err = p.linuxInstallHabitat(o, c)
+		err = p.linuxInstallHabitat()
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
@@ -195,12 +200,12 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 		},
 	}
 
-	o := new(terraform.MockUIOutput)
-	c := new(communicator.MockCommunicator)
+	ui := new(terraform.MockUIOutput)
+	comm := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
-		c.Commands = tc.Commands
-		c.Uploads = tc.Uploads
+		comm.Commands = tc.Commands
+		comm.Uploads = tc.Uploads
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
@@ -208,8 +213,10 @@ func TestLinuxProvisioner_linuxStartHabitat(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
+		p.ui = ui
+		p.comm = comm
 
-		err = p.linuxStartHabitat(o, c)
+		err = p.linuxStartHabitat()
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
@@ -238,11 +245,11 @@ func TestLinuxProvisioner_linuxUploadRingKey(t *testing.T) {
 		},
 	}
 
-	o := new(terraform.MockUIOutput)
-	c := new(communicator.MockCommunicator)
+	ui := new(terraform.MockUIOutput)
+	comm := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
-		c.Commands = tc.Commands
+		comm.Commands = tc.Commands
 
 		p, err := decodeConfig(
 			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
@@ -250,17 +257,20 @@ func TestLinuxProvisioner_linuxUploadRingKey(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
+		p.ui = ui
+		p.comm = comm
 
-		err = p.linuxUploadRingKey(o, c)
+		err = p.linuxUploadRingKey()
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
 }
 
-func TestLinuxProvisioner_linuxStartHabitatService(t *testing.T) {
+func TestLinuxProvisioner_linuxStartOrReconfigureHabitatService(t *testing.T) {
 	cases := map[string]struct {
 		Config   map[string]interface{}
+		Stdout   io.Reader
 		Commands map[string]bool
 		Uploads  map[string]string
 	}{
@@ -284,7 +294,7 @@ func TestLinuxProvisioner_linuxStartHabitatService(t *testing.T) {
 							map[string]interface{}{
 								"alias":   "backend",
 								"service": "bar",
-								"group":   "default",
+								"group":   "prod",
 							},
 						},
 					},
@@ -293,22 +303,123 @@ func TestLinuxProvisioner_linuxStartHabitatService(t *testing.T) {
 						"topology":  "standalone",
 						"strategy":  "rolling",
 						"channel":   "staging",
+						"group":     "prod",
 						"user_toml": "[config]\nlisten = 0.0.0.0:443",
 					},
 				},
 			},
 
 			Commands: map[string]bool{
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg install core/foo  --channel stable'": true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/foo/config'":              true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'curl -s http://127.0.0.1:9631/services/foo/prod'":                                                                                                                                                                true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg install core/foo  --channel stable'":                                                                                                                                                                     true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/foo/config'":                                                                                                                                                                                  true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'chmod o-r /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml && mv /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml /hab/user/foo/config/user.toml'": true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/foo  --topology standalone --strategy none --channel stable --bind backend:bar.default'":                                                                                                       true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/foo  --topology standalone --strategy none --channel stable --bind backend:bar.prod'":                                                                                                          true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'curl -s http://127.0.0.1:9631/services/bar/prod'":                                                                                                                                                                true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg install core/bar  --channel staging'":                                                                                                                                                                    true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/bar/config'":                                                                                                                                                                                  true,
 				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'chmod o-r /tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml && mv /tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml /hab/user/bar/config/user.toml'": true,
-				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/bar  --topology standalone --strategy rolling --channel staging'":                                                                                                                              true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/bar  --topology standalone --strategy rolling --channel staging --group prod'":                                                                                                                 true,
 			},
-
+			Uploads: map[string]string{
+				"/tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml": "[config]\nlisten = 0.0.0.0:8080",
+				"/tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml": "[config]\nlisten = 0.0.0.0:443",
+			},
+		},
+		"Reconfigure Habitat service that has diverged": {
+			Config: map[string]interface{}{
+				"version":          "0.79.1",
+				"auto_update":      false,
+				"use_sudo":         true,
+				"service_name":     "hab-sup",
+				"peers":            []interface{}{"1.2.3.4"},
+				"ring_key":         "test-ring",
+				"ring_key_content": "dead-beef",
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":      "core/foo",
+						"topology":  "standalone",
+						"strategy":  "none",
+						"channel":   "stable",
+						"user_toml": "[config]\nlisten = 0.0.0.0:8080",
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Commands: map[string]bool{
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'curl -s http://127.0.0.1:9631/services/foo/default'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc unload core/foo'":                            true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab pkg install core/foo  --channel stable'":         true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/foo/config'":                      true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'chmod o-r /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml && mv /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml /hab/user/foo/config/user.toml'": true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'hab svc load core/foo  --topology standalone --strategy none --channel stable --bind backend:bar.default'":                                                                                                       true,
+			},
+			// Return a truncated version of http://<hab-http-api>/services/<service-name>/<group-name>
+			// NOTE: the channel and update stategy intentionally diverges from
+			// the specification to trigger a reconfigure
+			Stdout: strings.NewReader(`{
+  "binds": [
+    "backend:bar.default"
+  ],
+  "bldr_url": "https://bldr.habitat.sh",
+  "channel": "current",
+  "service_group": "backend.default",
+  "topology": "standalone",
+  "update_strategy": "at-once"
+}`),
+			Uploads: map[string]string{
+				"/tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml": "[config]\nlisten = 0.0.0.0:8080",
+				"/tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml": "[config]\nlisten = 0.0.0.0:443",
+			},
+		},
+		"Don't reload an up-to-date service": {
+			Config: map[string]interface{}{
+				"version":          "0.79.1",
+				"auto_update":      false,
+				"use_sudo":         true,
+				"service_name":     "hab-sup",
+				"peers":            []interface{}{"1.2.3.4"},
+				"ring_key":         "test-ring",
+				"ring_key_content": "dead-beef",
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":      "core/foo",
+						"topology":  "standalone",
+						"strategy":  "at-once",
+						"channel":   "stable",
+						"user_toml": "[config]\nlisten = 0.0.0.0:8080",
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Commands: map[string]bool{
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'curl -s http://127.0.0.1:9631/services/foo/default'":                                                                                                                                                             true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'mkdir -p /hab/user/foo/config'":                                                                                                                                                                                  true,
+				"env HAB_NONINTERACTIVE=true HAB_NOCOLORING=true sudo -E /bin/bash -c 'chmod o-r /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml && mv /tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml /hab/user/foo/config/user.toml'": true,
+			},
+			// Return a truncated version of http://<hab-http-api>/services/<service-name>/<group-name>
+			Stdout: strings.NewReader(`{
+  "binds": [
+    "backend:bar.default"
+  ],
+  "bldr_url": "https://bldr.habitat.sh",
+  "channel": "stable",
+  "service_group": "backend.default",
+  "topology": "standalone",
+  "update_strategy": "at-once"
+}`),
 			Uploads: map[string]string{
 				"/tmp/user-a5b83ec1b302d109f41852ae17379f75c36dff9bc598aae76b6f7c9cd425fd76.toml": "[config]\nlisten = 0.0.0.0:8080",
 				"/tmp/user-6466ae3283ae1bd4737b00367bc676c6465b25682169ea5f7da222f3f078a5bf.toml": "[config]\nlisten = 0.0.0.0:443",
@@ -316,33 +427,339 @@ func TestLinuxProvisioner_linuxStartHabitatService(t *testing.T) {
 		},
 	}
 
-	o := new(terraform.MockUIOutput)
-	c := new(communicator.MockCommunicator)
+	ui := new(terraform.MockUIOutput)
+	comm := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
-		c.Commands = tc.Commands
-		c.Uploads = tc.Uploads
+		t.Run(k, func(t *testing.T) {
+			comm.Commands = tc.Commands
+			comm.Uploads = tc.Uploads
+			comm.Stdout = tc.Stdout
 
-		p, err := decodeConfig(
-			schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
-		)
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-
-		var errs []error
-		for _, s := range p.Services {
-			err = p.linuxStartHabitatService(o, c, s)
+			p, err := decodeConfig(
+				schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+			)
 			if err != nil {
-				errs = append(errs, err)
+				t.Fatalf("Error: %v", err)
 			}
-		}
+			p.ui = ui
+			p.comm = comm
 
-		if len(errs) > 0 {
-			for _, e := range errs {
-				t.Logf("Test %q failed: %v", k, e)
-				t.Fail()
+			var errs []error
+			for _, s := range p.Services {
+				err = p.linuxStartOrReconfigureHabitatService(s)
+				if err != nil {
+					errs = append(errs, err)
+				}
 			}
-		}
+
+			if len(errs) > 0 {
+				for _, e := range errs {
+					t.Logf("Test %q failed: %v", k, e)
+					t.Fail()
+				}
+			}
+		})
+	}
+}
+
+func TestLinuxProvisioner_ServiceInfo_Equal(t *testing.T) {
+	cases := map[string]struct {
+		Config map[string]interface{}
+		Info   *ServiceInfo
+		Equal  bool
+	}{
+		"equal": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"group":    "default",
+						"url":      defaultBldrURL,
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: true,
+		},
+		"equal with default bldr url and service group": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: true,
+		},
+		"divergent strategy": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "at-once",
+						"topology": "standalone",
+						"channel":  "stable",
+						"url":      defaultBldrURL,
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: false,
+		},
+		"divergent topology": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"url":      defaultBldrURL,
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "leader",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: false,
+		},
+		"divergent channel": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "current",
+						"url":      defaultBldrURL,
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: false,
+		},
+		"divergent bldr URL": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"url":      "https://mybldr.myorg.org",
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: false,
+		},
+		"divergent service group": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"url":      defaultBldrURL,
+						"group":    "bar.default",
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "backend",
+								"service": "bar",
+								"group":   "default",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"backend:bar.default"},
+			},
+			Equal: false,
+		},
+		"divergent many binds": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"url":      defaultBldrURL,
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "db",
+								"service": "postgres",
+								"group":   "staging",
+							},
+							map[string]interface{}{
+								"alias":   "db",
+								"service": "elasticsearch",
+								"group":   "prod",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"db:elasticsearch.prod", "db:postgres.prod"},
+			},
+			Equal: false,
+		},
+		"equal many unsorted binds": {
+			Config: map[string]interface{}{
+				"service": []interface{}{
+					map[string]interface{}{
+						"name":     "core/foo",
+						"strategy": "none",
+						"topology": "standalone",
+						"channel":  "stable",
+						"url":      defaultBldrURL,
+						"bind": []interface{}{
+							map[string]interface{}{
+								"alias":   "db",
+								"service": "postgres",
+								"group":   "prod",
+							},
+							map[string]interface{}{
+								"alias":   "db",
+								"service": "elasticsearch",
+								"group":   "prod",
+							},
+						},
+					},
+				},
+			},
+			Info: &ServiceInfo{
+				UpdateStrategy: "none",
+				Topology:       "standalone",
+				Channel:        "stable",
+				BldrURL:        defaultBldrURL,
+				ServiceGroup:   "foo.default",
+				Binds:          []string{"db:elasticsearch.prod", "db:postgres.prod"},
+			},
+			Equal: true,
+		},
+	}
+
+	for k, tc := range cases {
+		t.Run(k, func(t *testing.T) {
+			p, err := decodeConfig(
+				schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, tc.Config),
+			)
+			if err != nil {
+				t.Fatalf("Error: %v", err)
+			}
+
+			equal, err := tc.Info.Equal(p.Services[0])
+			if err != nil {
+				t.Fatalf("Error: %v", err)
+			}
+
+			if equal != tc.Equal {
+				t.Fatalf("Error: expected %t, got %t", tc.Equal, equal)
+			}
+		})
 	}
 }

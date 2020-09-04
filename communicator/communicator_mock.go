@@ -21,6 +21,8 @@ type MockCommunicator struct {
 	CommandFunc      func(*remote.Cmd) error
 	DisconnectFunc   func() error
 	ConnTimeout      time.Duration
+	Stdout           io.Reader
+	Stderr           io.Reader
 }
 
 // Connect implementation of communicator.Communicator interface
@@ -59,6 +61,20 @@ func (c *MockCommunicator) Start(r *remote.Cmd) error {
 
 	if !c.Commands[r.Command] {
 		return fmt.Errorf("Command not found!")
+	}
+
+	if c.Stderr != nil {
+		_, err := io.Copy(r.Stderr, c.Stderr)
+		if err != nil {
+			return err
+		}
+	}
+
+	if c.Stdout != nil {
+		_, err := io.Copy(r.Stdout, c.Stdout)
+		if err != nil {
+			return err
+		}
 	}
 
 	r.SetExitStatus(0, nil)

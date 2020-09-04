@@ -1,12 +1,14 @@
 package habitat
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 	"net/url"
+	"sort"
 	"strings"
 
 	version "github.com/hashicorp/go-version"
@@ -18,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
+
+const defaultBldrURL = "https://bldr.habitat.sh"
 
 type provisioner struct {
 	Version          string
@@ -46,17 +50,20 @@ type provisioner struct {
 	SupOptions       string
 	AcceptLicense    bool
 
-	installHabitat      provisionFn
-	startHabitat        provisionFn
-	uploadRingKey       provisionFn
-	uploadCtlSecret     provisionFn
-	startHabitatService provisionServiceFn
+	ui   terraform.UIOutput
+	comm communicator.Communicator
+
+	installHabitat                   provisionFn
+	startHabitat                     provisionFn
+	uploadRingKey                    provisionFn
+	uploadCtlSecret                  provisionFn
+	startOrReconfigureHabitatService provisionServiceFn
 
 	osType string
 }
 
-type provisionFn func(terraform.UIOutput, communicator.Communicator) error
-type provisionServiceFn func(terraform.UIOutput, communicator.Communicator, Service) error
+type provisionFn func() error
+type provisionServiceFn func(Service) error
 
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
@@ -263,7 +270,7 @@ func Provisioner() terraform.ResourceProvisioner {
 }
 
 func applyFn(ctx context.Context) error {
-	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+	ui := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
 	s := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 	d := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
 
@@ -271,6 +278,7 @@ func applyFn(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	p.ui = ui
 
 	// Automatically determine the OS type
 	switch t := s.Ephemeral.ConnInfo["type"]; t {
@@ -288,9 +296,9 @@ func applyFn(ctx context.Context) error {
 		p.uploadRingKey = p.linuxUploadRingKey
 		p.uploadCtlSecret = p.linuxUploadCtlSecret
 		p.startHabitat = p.linuxStartHabitat
-		p.startHabitatService = p.linuxStartHabitatService
+		p.startOrReconfigureHabitatService = p.linuxStartOrReconfigureHabitatService
 	case "windows":
-		return fmt.Errorf("windows is not supported yet for the habitat provisioner")
+		return fmt.Errorf("windows is not supported yet for the Habitat provisioner")
 	default:
 		return fmt.Errorf("unsupported os type: %s", p.osType)
 	}
@@ -300,13 +308,14 @@ func applyFn(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	p.comm = comm
 
 	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
 	// Wait and retry until we establish the connection
 	err = communicator.Retry(retryCtx, func() error {
-		return comm.Connect(o)
+		return comm.Connect(ui)
 	})
 
 	if err != nil {
@@ -315,35 +324,35 @@ func applyFn(ctx context.Context) error {
 	defer comm.Disconnect()
 
 	if !p.SkipInstall {
-		o.Output("Installing habitat...")
-		if err := p.installHabitat(o, comm); err != nil {
+		ui.Output("Installing Habitat...")
+		if err := p.installHabitat(); err != nil {
 			return err
 		}
 	}
 
 	if p.RingKeyContent != "" {
-		o.Output("Uploading supervisor ring key...")
-		if err := p.uploadRingKey(o, comm); err != nil {
+		ui.Output("Uploading supervisor ring key...")
+		if err := p.uploadRingKey(); err != nil {
 			return err
 		}
 	}
 
 	if p.CtlSecret != "" {
-		o.Output("Uploading ctl secret...")
-		if err := p.uploadCtlSecret(o, comm); err != nil {
+		ui.Output("Uploading ctl secret...")
+		if err := p.uploadCtlSecret(); err != nil {
 			return err
 		}
 	}
 
-	o.Output("Starting the habitat supervisor...")
-	if err := p.startHabitat(o, comm); err != nil {
+	ui.Output("Starting the Habitat supervisor...")
+	if err := p.startHabitat(); err != nil {
 		return err
 	}
 
 	if p.Services != nil {
 		for _, service := range p.Services {
-			o.Output("Starting service: " + service.Name)
-			if err := p.startHabitatService(o, comm, service); err != nil {
+			ui.Output("Starting or reconfiguring Habitat service: " + service.Name)
+			if err := p.startOrReconfigureHabitatService(service); err != nil {
 				return err
 			}
 		}
@@ -391,6 +400,70 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	}
 
 	return ws, es
+}
+
+// ServiceInfo is the habitat supervisor representation of the service
+type ServiceInfo struct {
+	Binds          []string `json:"binds"`
+	BldrURL        string   `json:"bldr_url"`
+	Channel        string   `json:"channel"`
+	ServiceGroup   string   `json:"service_group"`
+	Topology       string   `json:"topology"`
+	UpdateStrategy string   `json:"update_strategy"`
+}
+
+// Equal compares the ServiceInfo against a given Service specification and
+// returns true if the ServiceInfo matches the spec, otherwise it returns false.
+// NOTE: we don't currently take into account the package version as the habitat
+// supervisor is responsible for managing the package version that is running.
+func (si *ServiceInfo) Equal(svc Service) (bool, error) {
+	if si.UpdateStrategy != svc.Strategy {
+		return false, nil
+	}
+
+	if si.Topology != svc.Topology {
+		return false, nil
+	}
+
+	if si.Channel != svc.Channel {
+		return false, nil
+	}
+
+	parts := strings.Split(si.ServiceGroup, ".")
+	if len(parts) != 2 {
+		return false, fmt.Errorf("unable to determine service group for %s", svc.Name)
+	}
+
+	if (svc.Group == "" && parts[1] != "default") || (svc.Group != "" && (parts[1] != svc.Group)) {
+		return false, nil
+	}
+
+	if (svc.URL == "" && si.BldrURL != defaultBldrURL) || (svc.URL != "" && (si.BldrURL != svc.URL)) {
+		return false, nil
+	}
+
+	if !si.equalBinds(svc.BindStrings) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (si *ServiceInfo) equalBinds(binds []string) bool {
+	if len(si.Binds) != len(binds) {
+		return false
+	}
+
+	sort.Strings(si.Binds)
+	sort.Strings(binds)
+
+	for i := range si.Binds {
+		if si.Binds[i] != binds[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 type Service struct {
@@ -478,7 +551,6 @@ func getServices(v []interface{}) []Service {
 		env := (serviceData["environment"].(string))
 		userToml := (serviceData["user_toml"].(string))
 		serviceGroupKey := (serviceData["service_key"].(string))
-		var bindStrings []string
 		binds := getBinds(serviceData["bind"].(*schema.Set).List())
 		for _, b := range serviceData["binds"].([]interface{}) {
 			bind, err := getBindFromString(b.(string))
@@ -486,6 +558,10 @@ func getServices(v []interface{}) []Service {
 				return nil
 			}
 			binds = append(binds, bind)
+		}
+		bindStrings := []string{}
+		for _, bind := range binds {
+			bindStrings = append(bindStrings, bind.toBindString())
 		}
 
 		service := Service{
@@ -524,37 +600,63 @@ func getBinds(v []interface{}) []Bind {
 	return binds
 }
 
-func (p *provisioner) copyOutput(o terraform.UIOutput, r io.Reader) {
+func (p *provisioner) copyOutput(r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
-		o.Output(line)
+		p.ui.Output(line)
 	}
 }
 
-func (p *provisioner) runCommand(o terraform.UIOutput, comm communicator.Communicator, command string) error {
-	outR, outW := io.Pipe()
-	errR, errW := io.Pipe()
+func (p *provisioner) runCommand(command string) error {
+	uioutR, uioutW := io.Pipe()
+	uierrR, uierrW := io.Pipe()
 
-	go p.copyOutput(o, outR)
-	go p.copyOutput(o, errR)
-	defer outW.Close()
-	defer errW.Close()
+	go p.copyOutput(uioutR)
+	go p.copyOutput(uierrR)
 
 	cmd := &remote.Cmd{
 		Command: command,
-		Stdout:  outW,
-		Stderr:  errW,
+		Stdout:  uioutW,
+		Stderr:  uierrW,
 	}
 
-	if err := comm.Start(cmd); err != nil {
+	if err := p.comm.Start(cmd); err != nil {
 		return fmt.Errorf("error executing command %q: %v", cmd.Command, err)
 	}
 
-	if err := cmd.Wait(); err != nil {
-		return err
+	return cmd.Wait()
+}
+
+// outputCommand runs the command and returns stdout and stderr as strings. It
+// only copies STDERR to UI automatically.
+func (p *provisioner) outputCommand(command string) (string, string, error) {
+	var err error
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	uierrR, uierrW := io.Pipe()
+	go p.copyOutput(uierrR)
+
+	cmd := &remote.Cmd{
+		Command: command,
+		Stdout:  stdout,
+		Stderr:  io.MultiWriter(uierrW, stderr),
 	}
 
-	return nil
+	if err = p.comm.Start(cmd); err != nil {
+		return "", "", fmt.Errorf("error executing command %q: %v", cmd.Command, err)
+	}
+
+	if err = cmd.Wait(); err != nil {
+		return "", "", err
+	}
+
+	if err = uierrW.Close(); err != nil {
+		return "", "", err
+	}
+
+	return stdout.String(), stderr.String(), nil
 }
 
 func getBindFromString(bind string) (Bind, error) {
