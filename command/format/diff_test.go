@@ -1,6 +1,7 @@
 package format
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -3175,4 +3176,135 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 		})
 	}
+}
+
+func TestOutputChanges(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+
+	testCases := map[string]struct {
+		changes []*plans.OutputChangeSrc
+		output  string
+	}{
+		"new output value": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.NullVal(cty.DynamicPseudoType),
+					cty.StringVal("bar"),
+					false,
+				),
+			},
+			`
+  + foo = "bar"`,
+		},
+		"removed output": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.StringVal("bar"),
+					cty.NullVal(cty.DynamicPseudoType),
+					false,
+				),
+			},
+			`
+  - foo = "bar" -> null`,
+		},
+		"single string change": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.StringVal("bar"),
+					cty.StringVal("baz"),
+					false,
+				),
+			},
+			`
+  ~ foo = "bar" -> "baz"`,
+		},
+		"element added to list": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.ListVal([]cty.Value{
+						cty.StringVal("alpha"),
+						cty.StringVal("beta"),
+						cty.StringVal("delta"),
+						cty.StringVal("epsilon"),
+					}),
+					cty.ListVal([]cty.Value{
+						cty.StringVal("alpha"),
+						cty.StringVal("beta"),
+						cty.StringVal("gamma"),
+						cty.StringVal("delta"),
+						cty.StringVal("epsilon"),
+					}),
+					false,
+				),
+			},
+			`
+  ~ foo = [
+        "alpha",
+        "beta",
+      + "gamma",
+        "delta",
+        "epsilon",
+    ]`,
+		},
+		"multiple outputs changed, one sensitive": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"a",
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+					false,
+				),
+				outputChange(
+					"b",
+					cty.StringVal("hunter2"),
+					cty.StringVal("correct-horse-battery-staple"),
+					true,
+				),
+				outputChange(
+					"c",
+					cty.BoolVal(false),
+					cty.BoolVal(true),
+					false,
+				),
+			},
+			`
+  ~ a = 1 -> 2
+  ~ b = (sensitive value)
+  ~ c = false -> true`,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			output := OutputChanges(tc.changes, color)
+			if output != tc.output {
+				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.output)
+			}
+		})
+	}
+}
+
+func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {
+	addr := addrs.AbsOutputValue{
+		OutputValue: addrs.OutputValue{Name: name},
+	}
+
+	change := &plans.OutputChange{
+		Addr: addr, Change: plans.Change{
+			Before: before,
+			After:  after,
+		},
+		Sensitive: sensitive,
+	}
+
+	changeSrc, err := change.Encode()
+	if err != nil {
+		panic(fmt.Sprintf("failed to encode change for %s: %s", addr, err))
+	}
+
+	return changeSrc
 }
