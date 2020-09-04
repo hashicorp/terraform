@@ -357,13 +357,13 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 					// set and we've not changed the types of any elements here.
 					attrs[name] = cty.SetVal(elems)
 				} else {
-					attrs[name] = cty.TupleVal(elems)
+					attrs[name] = cty.ListVal(elems)
 				}
 			} else {
 				if blockType.Nesting == configschema.NestingSet {
 					attrs[name] = cty.SetValEmpty(blockType.Block.ImpliedType())
 				} else {
-					attrs[name] = cty.EmptyTupleVal
+					attrs[name] = cty.ListValEmpty(blockType.Block.ImpliedType())
 				}
 			}
 

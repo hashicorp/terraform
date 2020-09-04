@@ -572,6 +572,70 @@ func TestProposedNewObject(t *testing.T) {
 				}),
 			}),
 		},
+		"nested list in sed": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingList,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {
+												Type: cty.String,
+											},
+											"qux": {
+												Type:     cty.String,
+												Computed: true,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("beep"),
+								"qux": cty.StringVal("boop"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("beep"),
+								"qux": cty.NullVal(cty.String),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("beep"),
+								"qux": cty.StringVal("boop"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
