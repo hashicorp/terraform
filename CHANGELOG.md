@@ -1,5 +1,9 @@
 ## 0.14.0 (Unreleased)
 
+ENHANCEMENTS:
+
+* cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. [GH-26087]
+
 BUG FIXES:
 
 * command/clistate: return an error on a state unlock failure [GH-25729] 
