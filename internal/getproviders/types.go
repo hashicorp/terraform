@@ -385,7 +385,17 @@ func VersionConstraintsString(spec VersionConstraints) string {
 
 		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
 			// The minor-pessimistic syntax uses only two version components.
-			fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+			if sel.Boundary.Minor.Unconstrained {
+				// The parser allows writing ~> 2, which ends up being
+				// represented in memory as ~> 2.* because the minor
+				// version is unconstrained, but that's not really any
+				// different than saying 2.0 and so we'll prefer that in
+				// our serialization in order to be clearer about how we
+				// understood the version constraint.
+				fmt.Fprintf(&b, "%s.0", sel.Boundary.Major)
+			} else {
+				fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+			}
 		} else {
 			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
 		}
