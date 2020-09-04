@@ -49,6 +49,8 @@ to render templates while respecting resource dependencies.
 
 ## Examples
 
+### Lists
+
 Given a template file `backends.tmpl` with the following content:
 
 ```
@@ -64,6 +66,34 @@ The `templatefile` function renders the template:
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
 
+```
+
+### Maps
+
+Given a template file `config.tmpl` with the following content:
+
+```
+%{ for config_key, config_value in config }
+set %{config_key} = ${config_value}
+%{ endfor ~}
+```
+
+The `templatefile` function renders the template:
+
+```
+> templatefile(
+               "${path.module}/backends.tmpl", 
+               { 
+                 config = {
+                   "x"   = "y"
+                   "foo" = "bar"
+                   "key" = "value"
+                 }
+               }
+              )
+set foo = bar
+set key = value
+set x = y
 ```
 
 ### Generating JSON or YAML from a template
