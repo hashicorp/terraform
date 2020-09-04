@@ -781,20 +781,32 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 }
 
 func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
-	if operation == walkValidate {
-		return &ContextGraphWalker{
-			Context:            c,
-			State:              states.NewState().SyncWrapper(),
-			Changes:            c.changes.SyncWrapper(),
-			InstanceExpander:   instances.NewExpander(),
-			Operation:          operation,
-			StopContext:        c.runContext,
-			RootVariableValues: c.variables,
-		}
+	var state *states.SyncState
+	var refreshState *states.SyncState
+
+	switch operation {
+	case walkValidate:
+		// validate should not use any state
+		s := states.NewState()
+		state = s.SyncWrapper()
+
+		// validate currently uses the plan graph, so we have to populate the
+		// refreshState.
+		refreshState = s.SyncWrapper()
+
+	case walkPlan:
+		state = c.state.SyncWrapper()
+		// plan requires a second state to store the refreshed resources
+		refreshState = c.state.DeepCopy().SyncWrapper()
+
+	default:
+		state = c.state.SyncWrapper()
 	}
+
 	return &ContextGraphWalker{
 		Context:            c,
-		State:              c.state.SyncWrapper(),
+		State:              state,
+		RefreshState:       refreshState,
 		Changes:            c.changes.SyncWrapper(),
 		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,
