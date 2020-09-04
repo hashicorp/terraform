@@ -146,7 +146,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// necessary
 	unmarkedConfigVal := configVal
 	var unmarkedPaths []cty.PathValueMarks
-	// var marks cty.ValueMarks
 	if configVal.ContainsMarked() {
 		// store the marked values so we can re-mark them later after
 		// we've sent things over the wire. Right now this stores
@@ -250,8 +249,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	plannedNewVal := resp.PlannedState
 
 	// Add the marks back to the planned new value
+	markedPlannedNewVal := plannedNewVal
 	if configVal.ContainsMarked() {
-		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		markedPlannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	plannedPrivate := resp.PlannedPrivate
@@ -499,7 +499,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			Change: plans.Change{
 				Action: action,
 				Before: priorVal,
-				After:  plannedNewVal,
+				// Pass the marked value through in our change
+				// to propogate through evaluation.
+				// Marks will be removed when encoding.
+				After: markedPlannedNewVal,
 			},
 			RequiredReplace: reqRep,
 		}
