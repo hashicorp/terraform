@@ -162,3 +162,67 @@ func TestLoadLocksFromFile(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveLocksToFile(t *testing.T) {
+	locks := NewLocks()
+
+	fooProvider := addrs.MustParseProviderSourceString("test/foo")
+	barProvider := addrs.MustParseProviderSourceString("test/bar")
+	bazProvider := addrs.MustParseProviderSourceString("test/baz")
+	oneDotOh := getproviders.MustParseVersion("1.0.0")
+	oneDotTwo := getproviders.MustParseVersion("1.2.0")
+	atLeastOneDotOh := getproviders.MustParseVersionConstraints(">= 1.0.0")
+	pessimisticOneDotOh := getproviders.MustParseVersionConstraints("~> 1")
+	hashes := map[getproviders.Platform][]string{
+		{OS: "riscos", Arch: "arm"}: {
+			"cccccccccccccccccccccccccccccccccccccccccccccccc",
+			"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		},
+	}
+	locks.SetProvider(fooProvider, oneDotOh, atLeastOneDotOh, hashes)
+	locks.SetProvider(barProvider, oneDotTwo, pessimisticOneDotOh, nil)
+	locks.SetProvider(bazProvider, oneDotTwo, nil, nil)
+
+	dir, err := ioutil.TempDir("", "terraform-internal-depsfile-savelockstofile")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer os.RemoveAll(dir)
+
+	filename := filepath.Join(dir, LockFilePath)
+	diags := SaveLocksToFile(locks, filename)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	gotContentBytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	gotContent := string(gotContentBytes)
+	wantContent := `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/test/bar" {
+  version     = "1.2.0"
+  constraints = "~> 1.0"
+}
+
+provider "registry.terraform.io/test/baz" {
+  version = "1.2.0"
+}
+
+provider "registry.terraform.io/test/foo" {
+  version     = "1.0.0"
+  constraints = ">= 1.0.0"
+
+  hashes {
+    riscos_arm = ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccccccccccccccccccccccccccc"]
+  }
+}
+`
+	if diff := cmp.Diff(wantContent, gotContent); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}

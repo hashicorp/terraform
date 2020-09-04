@@ -2,10 +2,16 @@ package depsfile
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"sort"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -49,7 +55,95 @@ func LoadLocksFromFile(filename string) (*Locks, tfdiags.Diagnostics) {
 // temporary files may be temporarily created in the same directory as the
 // given filename during the operation.
 func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
-	panic("SaveLocksToFile is not implemented yet")
+	var diags tfdiags.Diagnostics
+
+	// In other uses of the "hclwrite" package we typically try to make
+	// surgical updates to the author's existing files, preserving their
+	// block ordering, comments, etc. We intentionally don't do that here
+	// to reinforce the fact that this file primarily belongs to Terraform,
+	// and to help ensure that VCS diffs of the file primarily reflect
+	// changes that actually affect functionality rather than just cosmetic
+	// changes, by maintaining it in a highly-normalized form.
+
+	f := hclwrite.NewEmptyFile()
+	rootBody := f.Body()
+
+	// End-users _may_ edit the lock file in exceptional situations, like
+	// working around potential dependency selection bugs, but we intend it
+	// to be primarily maintained automatically by the "terraform init"
+	// command.
+	rootBody.AppendUnstructuredTokens(hclwrite.Tokens{
+		{
+			Type:  hclsyntax.TokenComment,
+			Bytes: []byte("# This file is maintained automatically by \"terraform init\".\n"),
+		},
+		{
+			Type:  hclsyntax.TokenComment,
+			Bytes: []byte("# Manual edits may be lost in future updates.\n"),
+		},
+	})
+
+	providers := make([]addrs.Provider, 0, len(locks.providers))
+	for provider := range locks.providers {
+		providers = append(providers, provider)
+	}
+	sort.Slice(providers, func(i, j int) bool {
+		return providers[i].LessThan(providers[j])
+	})
+
+	for _, provider := range providers {
+		lock := locks.providers[provider]
+		rootBody.AppendNewline()
+		block := rootBody.AppendNewBlock("provider", []string{lock.addr.String()})
+		body := block.Body()
+		body.SetAttributeValue("version", cty.StringVal(lock.version.String()))
+		if constraintsStr := getproviders.VersionConstraintsString(lock.versionConstraints); constraintsStr != "" {
+			body.SetAttributeValue("constraints", cty.StringVal(constraintsStr))
+		}
+		if len(lock.hashes) != 0 {
+			platforms := make([]getproviders.Platform, 0, len(lock.hashes))
+			for platform := range lock.hashes {
+				platforms = append(platforms, platform)
+			}
+			sort.Slice(platforms, func(i, j int) bool {
+				return platforms[i].LessThan(platforms[j])
+			})
+			body.AppendNewline()
+			hashesBlock := body.AppendNewBlock("hashes", nil)
+			hashesBody := hashesBlock.Body()
+			for platform, hashes := range lock.hashes {
+				vals := make([]cty.Value, len(hashes))
+				for i := range hashes {
+					vals[i] = cty.StringVal(hashes[i])
+				}
+				var hashList cty.Value
+				if len(vals) > 0 {
+					hashList = cty.ListVal(vals)
+				} else {
+					hashList = cty.ListValEmpty(cty.String)
+				}
+				hashesBody.SetAttributeValue(platform.String(), hashList)
+			}
+		}
+	}
+
+	newContent := f.Bytes()
+
+	// TODO: Create the content in a new file and atomically pivot it into
+	// the target, so that there isn't a brief period where an incomplete
+	// file can be seen at the given location.
+	// But for now, this gets us started.
+	err := ioutil.WriteFile(filename, newContent, os.ModePerm)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to update dependency lock file",
+			fmt.Sprintf("Error while writing new dependency lock information to %s: %s.", filename, err),
+		))
+		return diags
+	}
+
+	return diags
 }
 
 func decodeLocksFromHCL(locks *Locks, body hcl.Body) tfdiags.Diagnostics {
