@@ -13,6 +13,13 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+type phaseState int
+
+const (
+	workingState phaseState = iota
+	refreshState
+)
+
 // EvalReadState is an EvalNode implementation that reads the
 // current object for a specific instance in the state.
 type EvalReadState struct {
@@ -220,6 +227,10 @@ type EvalWriteState struct {
 	// Dependencies are the inter-resource dependencies to be stored in the
 	// state.
 	Dependencies *[]addrs.ConfigResource
+
+	// targetState determines which context state we're writing to during plan.
+	// The default is the global working state.
+	targetState phaseState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -230,7 +241,15 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
+
+	var state *states.SyncState
+	switch n.targetState {
+	case refreshState:
+		log.Printf("[TRACE] EvalWriteState: using RefreshState for %s", absAddr)
+		state = ctx.RefreshState()
+	default:
+		state = ctx.State()
+	}
 
 	if n.ProviderAddr.Provider.Type == "" {
 		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
