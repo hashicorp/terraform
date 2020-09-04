@@ -237,6 +237,27 @@ func decodeProviderLockFromHCL(block *hcl.Block) (*ProviderLock, tfdiags.Diagnos
 		})
 		return nil, diags
 	}
+	if !ProviderIsLockable(addr) {
+		if addr.IsBuiltIn() {
+			// A specialized error for built-in providers, because we have an
+			// explicit explanation for why those are not allowed.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider source address",
+				Detail:   fmt.Sprintf("Cannot lock a version for built-in provider %s. Built-in providers are bundled inside Terraform itself, so you can't select a version for them independently of the Terraform release you are currently running.", addr),
+				Subject:  block.LabelRanges[0].Ptr(),
+			})
+			return nil, diags
+		}
+		// Otherwise, we'll use a generic error message.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider source address",
+			Detail:   fmt.Sprintf("Provider source address %s is a special provider that is not eligible for dependency locking.", addr),
+			Subject:  block.LabelRanges[0].Ptr(),
+		})
+		return nil, diags
+	}
 	if canonAddr := addr.String(); canonAddr != rawAddr {
 		// We also require the provider addresses in the lock file to be
 		// written in fully-qualified canonical form, so that it's totally

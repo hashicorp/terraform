@@ -1,6 +1,7 @@
 package depsfile
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -52,7 +53,16 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 // SetProvider returns the newly-created provider lock object, which
 // invalidates any ProviderLock object previously returned from Provider or
 // SetProvider for the given provider address.
+//
+// Only lockable providers can be passed to this method. If you pass a
+// non-lockable provider address then this function will panic. Use
+// function ProviderIsLockable to determine whether a particular provider
+// should participate in the version locking mechanism.
 func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes map[getproviders.Platform][]string) *ProviderLock {
+	if !ProviderIsLockable(addr) {
+		panic(fmt.Sprintf("Locks.SetProvider with non-lockable provider %s", addr))
+	}
+
 	// Normalize the hash lists into a consistent order.
 	for _, slice := range hashes {
 		sort.Strings(slice)
@@ -66,6 +76,15 @@ func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, c
 	}
 	l.providers[addr] = new
 	return new
+}
+
+// ProviderIsLockable returns true if the given provider is eligible for
+// version locking.
+//
+// Currently, all providers except builtin and legacy providers are eligible
+// for locking.
+func ProviderIsLockable(addr addrs.Provider) bool {
+	return !(addr.IsBuiltIn() || addr.IsLegacy())
 }
 
 // Sources returns the source code of the file the receiver was generated from,
