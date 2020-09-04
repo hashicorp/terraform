@@ -325,25 +325,6 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, priorState *states.St
 		))
 	}
 
-	// stats is similar to counts above, but:
-	// - it considers only resource changes
-	// - it simplifies "replace" into both a create and a delete
-	stats := map[plans.Action]int{}
-	for _, change := range rChanges {
-		switch change.Action {
-		case plans.CreateThenDelete, plans.DeleteThenCreate:
-			stats[plans.Create]++
-			stats[plans.Delete]++
-		default:
-			stats[change.Action]++
-		}
-	}
-	ui.Output(colorize.Color(fmt.Sprintf(
-		"[reset][bold]Plan:[reset] "+
-			"%d to add, %d to change, %d to destroy.",
-		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
-	)))
-
 	// If there is at least one planned change to the root module outputs
 	// then we'll render a summary of those too. This is easier said than done
 	// because currently output changes are not accurately recorded in
@@ -355,9 +336,9 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, priorState *states.St
 	// can't provide the prior state. In that case we'll skip showing the
 	// outputs for now, until we can make plan.Changes.Outputs itself be
 	// accurate and self-contained.
+	outputChangeCount := 0
 	if priorState != nil {
 		var synthOutputChanges []*plans.OutputChangeSrc
-		outputChangeCount := 0
 		for _, addr := range allRootModuleOutputs(priorState, plan.Changes) {
 			before := cty.NullVal(cty.DynamicPseudoType)
 			after := cty.NullVal(cty.DynamicPseudoType)
@@ -401,9 +382,29 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, priorState *states.St
 			synthOutputChanges = append(synthOutputChanges, newChangeSrc)
 		}
 		if outputChangeCount > 0 {
-			ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(synthOutputChanges, colorize)))
+			ui.Output(colorize.Color("[reset][bold]Changes to Outputs:[reset]" + format.OutputChanges(synthOutputChanges, colorize) + "\n"))
 		}
 	}
+
+	// stats is similar to counts above, but:
+	// - it considers only resource changes
+	// - it simplifies "replace" into both a create and a delete
+	stats := map[plans.Action]int{}
+	for _, change := range rChanges {
+		switch change.Action {
+		case plans.CreateThenDelete, plans.DeleteThenCreate:
+			stats[plans.Create]++
+			stats[plans.Delete]++
+		default:
+			stats[change.Action]++
+		}
+	}
+	ui.Output(colorize.Color(fmt.Sprintf(
+		"[reset][bold]Plan:[reset] "+
+			"%d to add, %d to change, %d to destroy, %d changes to outputs.",
+		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
+		outputChangeCount,
+	)))
 }
 
 // planHasSideEffects determines whether the given planned changeset has
