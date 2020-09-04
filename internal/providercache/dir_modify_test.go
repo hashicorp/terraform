@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -19,6 +20,10 @@ func TestInstallPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath, err = filepath.EvalSymlinks(tmpDirPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	linuxPlatform := getproviders.Platform{
 		OS:   "linux",
@@ -74,6 +79,10 @@ func TestLinkFromOtherCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath, err = filepath.EvalSymlinks(tmpDirPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	windowsPlatform := getproviders.Platform{
 		OS:   "windows",
