@@ -93,13 +93,14 @@ type ContextMeta struct {
 // perform operations on infrastructure. This structure is built using
 // NewContext.
 type Context struct {
-	config    *configs.Config
-	changes   *plans.Changes
-	state     *states.State
-	targets   []addrs.Targetable
-	variables InputValues
-	meta      *ContextMeta
-	destroy   bool
+	config       *configs.Config
+	changes      *plans.Changes
+	state        *states.State
+	refreshState *states.State
+	targets      []addrs.Targetable
+	variables    InputValues
+	meta         *ContextMeta
+	destroy      bool
 
 	hooks      []Hook
 	components contextComponentFactory
@@ -223,17 +224,18 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	}
 
 	return &Context{
-		components: components,
-		schemas:    schemas,
-		destroy:    opts.Destroy,
-		changes:    changes,
-		hooks:      hooks,
-		meta:       opts.Meta,
-		config:     config,
-		state:      state,
-		targets:    opts.Targets,
-		uiInput:    opts.UIInput,
-		variables:  variables,
+		components:   components,
+		schemas:      schemas,
+		destroy:      opts.Destroy,
+		changes:      changes,
+		hooks:        hooks,
+		meta:         opts.Meta,
+		config:       config,
+		state:        state,
+		refreshState: state.DeepCopy(),
+		targets:      opts.Targets,
+		uiInput:      opts.UIInput,
+		variables:    variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
@@ -493,7 +495,8 @@ Note that the -target option is not suitable for routine use, and is provided on
 	return c.state, diags
 }
 
-// Plan generates an execution plan for the given context.
+// Plan generates an execution plan for the given context, and returns the
+// refreshed state.
 //
 // The execution plan encapsulates the context and can be stored
 // in order to reinstantiate a context later for Apply.
@@ -577,6 +580,8 @@ The -target option is not for routine use, and is provided only for exceptional 
 		return nil, diags
 	}
 	p.Changes = c.changes
+
+	p.State = c.refreshState
 
 	return p, diags
 }
@@ -796,8 +801,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 
 	case walkPlan:
 		state = c.state.SyncWrapper()
-		// plan requires a second state to store the refreshed resources
-		refreshState = c.state.DeepCopy().SyncWrapper()
+		refreshState = c.refreshState.SyncWrapper()
 
 	default:
 		state = c.state.SyncWrapper()
