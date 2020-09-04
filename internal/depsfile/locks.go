@@ -1,6 +1,8 @@
 package depsfile
 
 import (
+	"sort"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -51,6 +53,11 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 // invalidates any ProviderLock object previously returned from Provider or
 // SetProvider for the given provider address.
 func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes map[getproviders.Platform][]string) *ProviderLock {
+	// Normalize the hash lists into a consistent order.
+	for _, slice := range hashes {
+		sort.Strings(slice)
+	}
+
 	new := &ProviderLock{
 		addr:               addr,
 		version:            version,
