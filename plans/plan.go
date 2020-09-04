@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,15 +17,16 @@ import (
 // result that will be completed during apply by resolving any values that
 // cannot be predicted.
 //
-// A plan must always be accompanied by the state and configuration it was
-// built from, since the plan does not itself include all of the information
-// required to make the changes indicated.
+// A plan must always be accompanied by the configuration it was built from,
+// since the plan does not itself include all of the information required to
+// make the changes indicated.
 type Plan struct {
 	VariableValues  map[string]DynamicValue
 	Changes         *Changes
 	TargetAddrs     []addrs.Targetable
 	ProviderSHA256s map[string][]byte
 	Backend         Backend
+	State           *states.State
 }
 
 // Backend represents the backend-related configuration and other data as it
