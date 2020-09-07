@@ -283,10 +283,6 @@ func (c *InitCommand) Run(args []string) int {
 		state = sMgr.State()
 	}
 
-	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
-		c.ignorePluginChecksum = true
-	}
-
 	// Now that we have loaded all modules, check the module tree for missing providers.
 	providersOutput, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
 	diags = diags.Append(providerDiags)

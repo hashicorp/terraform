@@ -62,8 +62,7 @@ type ContextOpts struct {
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
-	ProviderSHA256s    map[string][]byte
-	SkipProviderVerify bool
+	ProviderSHA256s map[string][]byte
 
 	UIInput UIInput
 }
