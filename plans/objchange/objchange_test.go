@@ -572,7 +572,7 @@ func TestProposedNewObject(t *testing.T) {
 				}),
 			}),
 		},
-		"nested list in sed": {
+		"nested list in set": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"foo": {
@@ -632,6 +632,44 @@ func TestProposedNewObject(t *testing.T) {
 								"qux": cty.StringVal("boop"),
 							}),
 						}),
+					}),
+				}),
+			}),
+		},
+		"empty nested list in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingList,
+									Block:   configschema.Block{},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListValEmpty((&configschema.Block{}).ImpliedType()),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListValEmpty((&configschema.Block{}).ImpliedType()),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListValEmpty((&configschema.Block{}).ImpliedType()),
 					}),
 				}),
 			}),
