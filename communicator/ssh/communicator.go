@@ -619,7 +619,7 @@ func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size
 	if size == 0 {
 		// While sending a multiple files to multiple server
 		// /tmp location occupies huge data due to that terraform fails
-		// due to disk issues.
+		// due to less disk space.
 		// Below code change the /tmp location to the current directory
 		// where terraform runs
 		currentdir, err := os.Getwd()
