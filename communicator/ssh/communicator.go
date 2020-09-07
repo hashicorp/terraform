@@ -618,11 +618,11 @@ func checkSCPStatus(r *bufio.Reader) error {
 func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size int64) error {
 	if size == 0 {
 		// While sending a multiple files to multiple server
-		// /tmp location occupies huge data due to that terraform fails 
+		// /tmp location occupies huge data due to that terraform fails
 		// due to disk issues.
-		// Below code change the /tmp location to the current directory 
+		// Below code change the /tmp location to the current directory
 		// where terraform runs
-		currentdir, err := os.Getwd() 
+		currentdir, err := os.Getwd()
 		if err != nil {
 			return err
 		}
