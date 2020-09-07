@@ -41,7 +41,7 @@ themselves.
 
 Terraform will also generate various `.json` index files which contain suitable
 responses to implement
-[the network mirror protocol](/docs/internals/providor-network-mirror-protocol.html),
+[the network mirror protocol](/docs/internals/provider-network-mirror-protocol.html),
 if you upload the resulting directory to a static website host. Terraform
 ignores those index files when using the directory as a filesystem mirror,
 because the directory entries themselves are authoritative in that case.
