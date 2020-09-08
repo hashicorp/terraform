@@ -67,7 +67,7 @@ GoReleaser is a tool for building Go projects for multiple platforms, creating a
 1. Install [GoReleaser](https://goreleaser.com) using the [installation instructions](https://goreleaser.com/install/).
 1. Copy the [.goreleaser.yml file](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml) from the [hashicorp/terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding) repository.
 1. Cache the password for your GPG private key with `gpg --armor --detach-sign` (see note below).
-1. Set your `GITHUB_TOKEN` to a [Personal Access Token](https://github.com/settings/tokens) that has the **public_repo** scope.
+1. Set your `GITHUB_TOKEN` to a [Personal Access Token](https://github.com/settings/tokens/new?scopes=public_repo) that has the **public_repo** scope.
 1. Tag your version with `git tag v1.2.3`.
 1. Build, sign, and upload your release with `goreleaser release --rm-dist`.
 
