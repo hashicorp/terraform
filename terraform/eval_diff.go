@@ -247,13 +247,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	plannedNewVal := resp.PlannedState
-
-	// Add the marks back to the planned new value
-	markedPlannedNewVal := plannedNewVal
-	if configVal.ContainsMarked() {
-		markedPlannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
-	}
-
 	plannedPrivate := resp.PlannedPrivate
 
 	if plannedNewVal == cty.NilVal {
@@ -480,6 +473,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	// Add the marks back to the planned new value
+	if configVal.ContainsMarked() {
+		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	}
+
 	// Call post-refresh hook
 	if !n.Stub {
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
@@ -499,10 +497,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			Change: plans.Change{
 				Action: action,
 				Before: priorVal,
-				// Pass the marked value through in our change
+				// Pass the marked planned value through in our change
 				// to propogate through evaluation.
 				// Marks will be removed when encoding.
-				After: markedPlannedNewVal,
+				After: plannedNewVal,
 			},
 			RequiredReplace: reqRep,
 		}
