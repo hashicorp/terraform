@@ -5,9 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"strings"
 
 	"golang.org/x/crypto/openpgp"
@@ -45,6 +43,32 @@ func (t *PackageAuthenticationResult) String() string {
 		"signed by a HashiCorp partner",
 		"self-signed",
 	}[t.result]
+}
+
+// SignedByHashiCorp returns whether the package was authenticated as signed
+// by HashiCorp.
+func (t *PackageAuthenticationResult) SignedByHashiCorp() bool {
+	if t == nil {
+		return false
+	}
+	if t.result == officialProvider {
+		return true
+	}
+
+	return false
+}
+
+// SignedByAnyParty returns whether the package was authenticated as signed
+// by either HashiCorp or by a third-party.
+func (t *PackageAuthenticationResult) SignedByAnyParty() bool {
+	if t == nil {
+		return false
+	}
+	if t.result == officialProvider || t.result == partnerProvider || t.result == communityProvider {
+		return true
+	}
+
+	return false
 }
 
 // ThirdPartySigned returns whether the package was authenticated as signed by a party
@@ -88,6 +112,44 @@ type PackageAuthentication interface {
 	AuthenticatePackage(localLocation PackageLocation) (*PackageAuthenticationResult, error)
 }
 
+// PackageAuthenticationHashes is an optional interface implemented by
+// PackageAuthentication implementations that are able to return a set of
+// hashes they would consider valid if a given PackageLocation referred to
+// a package that matched that hash string.
+//
+// This can be used to record a set of acceptable hashes for a particular
+// package in a lock file so that future install operations can determine
+// whether the package has changed since its initial installation.
+type PackageAuthenticationHashes interface {
+	PackageAuthentication
+
+	// AcceptableHashes returns a set of hash strings that this authenticator
+	// would accept as valid, grouped by platform. The order of the items
+	// in each of the slices is not significant, and may contain duplicates
+	// that are also not significant.
+	//
+	// This method's result should only be used to create a "lock" for a
+	// particular provider if an earlier call to AuthenticatePackage for
+	// the corresponding package succeeded. A caller might choose to apply
+	// differing levels of trust for the acceptable hashes depending on
+	// the authentication result: a "verified checksum" result only checked
+	// that the downloaded package matched what the source claimed, which
+	// could be considered to be less trustworthy than a check that includes
+	// verifying a signature from the origin registry, depending on what the
+	// hashes are going to be used for.
+	//
+	// Hashes are returned as strings with hashing scheme prefixes like "h1:"
+	// to record which hashing scheme the hash was created with.
+	// Implementations of PackageAuthenticationHashes may return multiple
+	// hashes with different schemes, which means that all of them are equally
+	// acceptable.
+	//
+	// Authenticators that don't use hashes as their authentication procedure
+	// will either not implement this interface or will have an implementation
+	// that returns an empty result.
+	AcceptableHashes() map[Platform][]string
+}
+
 type packageAuthenticationAll []PackageAuthentication
 
 // PackageAuthenticationAll combines several authentications together into a
@@ -98,6 +160,13 @@ type packageAuthenticationAll []PackageAuthentication
 //
 // The returned result is from the last authentication, so callers should
 // take care to order the authentications such that the strongest is last.
+//
+// The returned object also implements the AcceptableHashes method from
+// interface PackageAuthenticationHashes, returning the hashes from the
+// last of the given checks that indicates at least one acceptable hash,
+// or no hashes at all if none of the constituents indicate any. The result
+// may therefore be incomplete if there is more than one check that can provide
+// hashes and they disagree about which hashes are acceptable.
 func PackageAuthenticationAll(checks ...PackageAuthentication) PackageAuthentication {
 	return packageAuthenticationAll(checks)
 }
@@ -114,8 +183,28 @@ func (checks packageAuthenticationAll) AuthenticatePackage(localLocation Package
 	return authResult, nil
 }
 
+func (checks packageAuthenticationAll) AcceptableHashes() map[Platform][]string {
+	// The elements of checks are expected to be ordered so that the strongest
+	// one is later in the list, so we'll visit them in reverse order and
+	// take the first one that implements the interface and returns a non-empty
+	// result.
+	for i := len(checks) - 1; i >= 0; i-- {
+		check, ok := checks[i].(PackageAuthenticationHashes)
+		if !ok {
+			continue
+		}
+		allHashes := check.AcceptableHashes()
+		if len(allHashes) > 0 {
+			return allHashes
+		}
+	}
+	return nil
+}
+
 type packageHashAuthentication struct {
 	RequiredHash string
+	ValidHashes  []string
+	Platform     Platform
 }
 
 // NewPackageHashAuthentication returns a PackageAuthentication implementation
@@ -126,10 +215,12 @@ type packageHashAuthentication struct {
 // The PreferredHash function will select which of the given hashes is
 // considered by Terraform to be the strongest verification, and authentication
 // succeeds as long as that chosen hash matches.
-func NewPackageHashAuthentication(validHashes []string) PackageAuthentication {
+func NewPackageHashAuthentication(platform Platform, validHashes []string) PackageAuthentication {
 	requiredHash := PreferredHash(validHashes)
 	return packageHashAuthentication{
 		RequiredHash: requiredHash,
+		ValidHashes:  validHashes,
+		Platform:     platform,
 	}
 }
 
@@ -152,7 +243,14 @@ func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 	return nil, fmt.Errorf("provider package doesn't match the expected checksum %q", a.RequiredHash)
 }
 
+func (a packageHashAuthentication) AcceptableHashes() map[Platform][]string {
+	return map[Platform][]string{
+		a.Platform: a.ValidHashes,
+	}
+}
+
 type archiveHashAuthentication struct {
+	Platform      Platform
 	WantSHA256Sum [sha256.Size]byte
 }
 
@@ -169,8 +267,8 @@ type archiveHashAuthentication struct {
 // NewPackageHashAuthentication is preferable to use when possible because
 // it uses the newer hashing scheme (implemented by function Hash) that
 // can work with both packed and unpacked provider packages.
-func NewArchiveChecksumAuthentication(wantSHA256Sum [sha256.Size]byte) PackageAuthentication {
-	return archiveHashAuthentication{wantSHA256Sum}
+func NewArchiveChecksumAuthentication(platform Platform, wantSHA256Sum [sha256.Size]byte) PackageAuthentication {
+	return archiveHashAuthentication{platform, wantSHA256Sum}
 }
 
 func (a archiveHashAuthentication) AuthenticatePackage(localLocation PackageLocation) (*PackageAuthenticationResult, error) {

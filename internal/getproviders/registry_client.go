@@ -275,6 +275,10 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 		}
 	}
 
+	if body.OS != target.OS || body.Arch != target.Arch {
+		return PackageMeta{}, fmt.Errorf("registry response to request for %s archive has incorrect target %s", target, Platform{body.OS, body.Arch})
+	}
+
 	downloadURL, err := url.Parse(body.DownloadURL)
 	if err != nil {
 		return PackageMeta{}, fmt.Errorf("registry response includes invalid download URL: %s", err)
@@ -351,7 +355,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 
 	ret.Authentication = PackageAuthenticationAll(
 		NewMatchingChecksumAuthentication(document, body.Filename, checksum),
-		NewArchiveChecksumAuthentication(checksum),
+		NewArchiveChecksumAuthentication(ret.TargetPlatform, checksum),
 		NewSignatureAuthentication(document, signature, keys),
 	)
 

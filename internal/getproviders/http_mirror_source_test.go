@@ -124,10 +124,20 @@ func TestHTTPMirrorSource(t *testing.T) {
 			Location:       PackageHTTPURL(httpServer.URL + "/terraform.io/test/exists/terraform-provider-test_v1.0.0_tos_m68k.zip"),
 			Authentication: packageHashAuthentication{
 				RequiredHash: "h1:placeholder-hash",
+				ValidHashes:  []string{"h1:placeholder-hash", "h0:unacceptable-hash"},
+				Platform:     Platform{"tos", "m68k"},
 			},
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
+		}
+
+		gotHashes := got.AcceptableHashes()
+		wantHashes := map[Platform][]string{
+			tosPlatform: {"h1:placeholder-hash", "h0:unacceptable-hash"},
+		}
+		if diff := cmp.Diff(wantHashes, gotHashes); diff != "" {
+			t.Errorf("wrong acceptable hashes\n%s", diff)
 		}
 	})
 	t.Run("PackageMeta for a version that exists and has no hash", func(t *testing.T) {
@@ -238,7 +248,8 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 					"tos_m68k": {
 						"url": "terraform-provider-test_v1.0.0_tos_m68k.zip",
 						"hashes": [
-							"h1:placeholder-hash"
+							"h1:placeholder-hash",
+							"h0:unacceptable-hash"
 						]
 					}
 				}

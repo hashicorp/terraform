@@ -244,6 +244,29 @@ func (m PackageMeta) PackedFilePath(baseDir string) string {
 	return PackedFilePathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
 }
 
+// AcceptableHashes returns a set of hashes (grouped by target platform) that
+// could be recorded for comparison to future results for the same provider
+// version, to implement a "trust on first use" scheme.
+//
+// Callers of this method should typically also verify the package using the
+// object in the Authentication field, and consider how much trust to give
+// the result of this method depending on the authentication result: an
+// unauthenticated result or one that only verified a checksum could be
+// considered less trustworthy than one that checked the package against
+// a signature provided by the origin registry.
+//
+// The AcceptableHashes result is actually provided by the object in the
+// Authentication field. AcceptableHashes therefore returns an empty result
+// for a PackageMeta that has no authentication object, or has one that does
+// not make use of hashes.
+func (m PackageMeta) AcceptableHashes() map[Platform][]string {
+	auth, ok := m.Authentication.(PackageAuthenticationHashes)
+	if !ok {
+		return nil
+	}
+	return auth.AcceptableHashes()
+}
+
 // PackageLocation represents a location where a provider distribution package
 // can be obtained. A value of this type contains one of the following
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.

@@ -225,7 +225,7 @@ func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version,
 	// A network mirror might not provide any hashes at all, in which case
 	// the package has no source-defined authentication whatsoever.
 	if len(archiveMeta.Hashes) > 0 {
-		ret.Authentication = NewPackageHashAuthentication(archiveMeta.Hashes)
+		ret.Authentication = NewPackageHashAuthentication(target, archiveMeta.Hashes)
 	}
 
 	return ret, nil
