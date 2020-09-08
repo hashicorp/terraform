@@ -167,7 +167,7 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
 
-	err := n.Execute(ctx, w.Operation)
+	err := n.Execute(ctx, &w.Operation)
 
 	// Release the semaphore
 	w.Context.parallelSem.Release()
