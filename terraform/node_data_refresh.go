@@ -191,7 +191,7 @@ type NodeRefreshableDataResourceInstance struct {
 }
 
 // GraphNodeExecutable
-func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext, op *walkOperation) error {
+func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
 	addr := n.ResourceInstanceAddr()
 
 	// These variables are the state for the eval sequence below, and are
@@ -280,7 +280,5 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext, op *walkO
 			return err
 		}
 	}
-
 	return err
-
 }

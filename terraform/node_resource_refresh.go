@@ -209,7 +209,7 @@ func (n *NodeRefreshableManagedResourceInstance) DestroyAddr() *addrs.AbsResourc
 }
 
 // GraphNodeEvalable
-func (n *NodeRefreshableManagedResourceInstance) Execute(ctx EvalContext, op *walkOperation) error {
+func (n *NodeRefreshableManagedResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
@@ -238,7 +238,7 @@ func (n *NodeRefreshableManagedResourceInstance) Execute(ctx EvalContext, op *wa
 			}
 		}
 
-		return dn.Execute(ctx, nil)
+		return dn.Execute(ctx, op)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", addr.Resource.Resource.Mode))
 	}

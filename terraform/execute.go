@@ -5,5 +5,5 @@ package terraform
 // the process of being removed. A given graph node should _not_ implement both
 // GraphNodeExecutable and GraphNodeEvalable.
 type GraphNodeExecutable interface {
-	Execute(EvalContext, *walkOperation) error
+	Execute(EvalContext, walkOperation) error
 }
