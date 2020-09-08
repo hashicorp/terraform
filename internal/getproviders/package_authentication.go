@@ -181,23 +181,21 @@ func (a archiveHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 		return nil, fmt.Errorf("cannot check archive hash for non-archive location %s", localLocation)
 	}
 
-	f, err := os.Open(string(archiveLocation))
+	gotHash, err := PackageHashLegacyZipSHA(archiveLocation)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to compute checksum for %s: %s", archiveLocation, err)
 	}
-	defer f.Close()
-
-	h := sha256.New()
-	_, err = io.Copy(h, f)
-	if err != nil {
-		return nil, err
-	}
-
-	gotHash := h.Sum(nil)
-	if !bytes.Equal(gotHash, a.WantSHA256Sum[:]) {
-		return nil, fmt.Errorf("archive has incorrect SHA-256 checksum %x (expected %x)", gotHash, a.WantSHA256Sum[:])
+	wantHash := HashLegacyZipSHAFromSHA(a.WantSHA256Sum)
+	if gotHash != wantHash {
+		return nil, fmt.Errorf("archive has incorrect checksum %s (expected %s)", gotHash, wantHash)
 	}
 	return &PackageAuthenticationResult{result: verifiedChecksum}, nil
+}
+
+func (a archiveHashAuthentication) AcceptableHashes() map[Platform][]string {
+	return map[Platform][]string{
+		a.Platform: {HashLegacyZipSHAFromSHA(a.WantSHA256Sum)},
+	}
 }
 
 type matchingChecksumAuthentication struct {
