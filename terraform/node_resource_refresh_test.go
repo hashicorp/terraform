@@ -1,10 +1,8 @@
 package terraform
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -157,22 +155,5 @@ root - terraform.graphNodeRoot
 `
 	if expected != actual {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, actual)
-	}
-}
-
-func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
-	m := testModule(t, "refresh-resource-scale-inout")
-
-	n := &NodeRefreshableManagedResourceInstance{
-		NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "aws_instance", "foo").Instance(addrs.IntKey(2))),
-	}
-
-	n.AttachResourceConfig(m.Module.ManagedResources["aws_instance.foo"])
-
-	actual := n.EvalTree()
-	expected := n.evalTreeManagedResourceNoState()
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("Expected:\n\n%s\nGot:\n\n%s\n", spew.Sdump(expected), spew.Sdump(actual))
 	}
 }

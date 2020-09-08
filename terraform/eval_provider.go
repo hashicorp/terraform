@@ -46,6 +46,22 @@ func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *
 	}
 }
 
+// GetProvider returns the providers interface and schema for a given provider.
+func GetProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Interface, *ProviderSchema, error) {
+	if addr.Provider.Type == "" {
+		// Should never happen
+		panic("EvalGetProvider used with uninitialized provider configuration address")
+	}
+	provider := ctx.Provider(addr)
+	if provider == nil {
+		return nil, &ProviderSchema{}, fmt.Errorf("provider %s not initialized", addr)
+	}
+	// Not all callers require a schema, so we will leave checking for a nil
+	// schema to the callers.
+	schema := ctx.ProviderSchema(addr)
+	return provider, schema, nil
+}
+
 // EvalConfigProvider is an EvalNode implementation that configures
 // a provider that is already initialized and retrieved.
 type EvalConfigProvider struct {

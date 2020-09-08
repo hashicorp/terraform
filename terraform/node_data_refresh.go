@@ -4,7 +4,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -191,91 +190,97 @@ type NodeRefreshableDataResourceInstance struct {
 	*NodeAbstractResourceInstance
 }
 
-// GraphNodeEvalable
-func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
+// GraphNodeExecutable
+func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext, op *walkOperation) error {
 	addr := n.ResourceInstanceAddr()
 
 	// These variables are the state for the eval sequence below, and are
 	// updated through pointers.
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
 
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-			},
+	// EvalReadState
+	readStateReq := &EvalReadState{
+		Addr:           addr.Resource,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+		Output:         &state,
+	}
+	_, err = readStateReq.Eval(ctx)
+	if err != nil {
+		return err
+	}
 
-			// EvalReadDataRefresh will _attempt_ to read the data source, but
-			// may generate an incomplete planned object if the configuration
-			// includes values that won't be known until apply.
-			&evalReadDataRefresh{
-				evalReadData{
-					Addr:           addr.Resource,
-					Config:         n.Config,
-					Provider:       &provider,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderMetas:  n.ProviderMetas,
-					ProviderSchema: &providerSchema,
-					OutputChange:   &change,
-					State:          &state,
-					dependsOn:      n.dependsOn,
-					forceDependsOn: n.forceDependsOn,
-				},
-			},
-
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					return change == nil, nil
-
-				},
-				Then: &EvalSequence{
-					Nodes: []EvalNode{
-						&EvalWriteState{
-							Addr:           addr.Resource,
-							ProviderAddr:   n.ResolvedProvider,
-							State:          &state,
-							ProviderSchema: &providerSchema,
-						},
-						&EvalUpdateStateHook{},
-					},
-				},
-				Else: &EvalSequence{
-					// We can't deal with this yet, so we'll repeat this step
-					// during the plan walk to produce a planned change to read
-					// this during the apply walk. However, we do still need to
-					// save the generated change and partial state so that
-					// results from it can be included in other data resources
-					// or provider configurations during the refresh walk.
-					// (The planned object we save in the state here will be
-					// pruned out at the end of the refresh walk, returning
-					// it back to being unset again for subsequent walks.)
-					Nodes: []EvalNode{
-						&EvalWriteDiff{
-							Addr:           addr.Resource,
-							Change:         &change,
-							ProviderSchema: &providerSchema,
-						},
-						&EvalWriteState{
-							Addr:           addr.Resource,
-							ProviderAddr:   n.ResolvedProvider,
-							State:          &state,
-							ProviderSchema: &providerSchema,
-						},
-					},
-				},
-			},
+	// EvalReadDataRefresh will _attempt_ to read the data source, but
+	// may generate an incomplete planned object if the configuration
+	// includes values that won't be known until apply.
+	readDataRefreshReq := &evalReadDataRefresh{
+		evalReadData{
+			Addr:           addr.Resource,
+			Config:         n.Config,
+			Provider:       &provider,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			OutputChange:   &change,
+			State:          &state,
+			dependsOn:      n.dependsOn,
+			forceDependsOn: n.forceDependsOn,
 		},
 	}
+	_, err = readDataRefreshReq.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	if change == nil {
+		// EvalWriteState
+		writeStateRequest := EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			State:          &state,
+			ProviderSchema: &providerSchema,
+		}
+		_, err := writeStateRequest.Eval(ctx)
+		if err != nil {
+			return err
+		}
+
+		// EvalUpdateStateHook
+		updateStateHookReq := EvalUpdateStateHook{}
+		_, err = updateStateHookReq.Eval(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		// EvalWriteDiff
+		writeDiffReq := &EvalWriteDiff{
+			Addr:           addr.Resource,
+			Change:         &change,
+			ProviderSchema: &providerSchema,
+		}
+		_, err = writeDiffReq.Eval(ctx)
+		if err != nil {
+			return err
+		}
+		// EvalWriteState
+		writeStateRequest := EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			State:          &state,
+			ProviderSchema: &providerSchema,
+		}
+		_, err := writeStateRequest.Eval(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+
 }
