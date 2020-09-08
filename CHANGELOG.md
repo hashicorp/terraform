@@ -4,6 +4,9 @@ ENHANCEMENTS:
 
 * cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. [GH-26087]
 
+BREAKING CHANGES:
+* configs: The `version` argument inside provider configuration blocks is deprecated. Instead, use the required_providers setting. [GH-26135]
+
 BUG FIXES:
 
 * command/clistate: return an error on a state unlock failure [GH-25729] 
