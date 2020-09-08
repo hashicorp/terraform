@@ -206,7 +206,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
 
-		Authentication: NewArchiveChecksumAuthentication(checksum),
+		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
 	return meta, close, nil
 }

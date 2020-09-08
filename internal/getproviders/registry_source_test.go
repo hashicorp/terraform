@@ -111,11 +111,12 @@ func TestSourcePackageMeta(t *testing.T) {
 	defer close()
 
 	tests := []struct {
-		provider string
-		version  string
-		os, arch string
-		want     PackageMeta
-		wantErr  string
+		provider   string
+		version    string
+		os, arch   string
+		want       PackageMeta
+		wantHashes map[Platform][]string
+		wantErr    string
 	}{
 		// These test cases are relying on behaviors of the fake provider
 		// registry server implemented in client_test.go.
@@ -138,7 +139,7 @@ func TestSourcePackageMeta(t *testing.T) {
 						"happycloud_1.2.0.zip",
 						[32]byte{30: 0xf0, 31: 0x0d},
 					),
-					NewArchiveChecksumAuthentication([32]byte{30: 0xf0, 31: 0x0d}),
+					NewArchiveChecksumAuthentication(Platform{"linux", "amd64"}, [32]byte{30: 0xf0, 31: 0x0d}),
 					NewSignatureAuthentication(
 						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
 						[]byte("GPG signature"),
@@ -148,6 +149,11 @@ func TestSourcePackageMeta(t *testing.T) {
 					),
 				),
 			},
+			map[Platform][]string{
+				{"linux", "amd64"}: {
+					"zh:000000000000000000000000000000000000000000000000000000000000f00d",
+				},
+			},
 			``,
 		},
 		{
@@ -155,6 +161,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"nonexist", "amd64",
 			PackageMeta{},
+			nil,
 			`provider example.com/awesomesauce/happycloud 1.2.0 is not available for nonexist_amd64`,
 		},
 		{
@@ -162,6 +169,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
+			nil,
 			`host not.example.com does not offer a Terraform provider registry`,
 		},
 		{
@@ -169,6 +177,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
+			nil,
 			`host too-new.example.com does not support the provider registry protocol required by this Terraform version, but may be compatible with a different Terraform version`,
 		},
 		{
@@ -176,6 +185,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
+			nil,
 			`could not query provider registry for fails.example.com/awesomesauce/happycloud: the request failed after 2 attempts, please try again later: Get "http://placeholder-origin/fails-immediately/awesomesauce/happycloud/1.2.0/download/linux/amd64": EOF`,
 		},
 	}
@@ -219,6 +229,9 @@ func TestSourcePackageMeta(t *testing.T) {
 
 			if diff := cmp.Diff(test.want, got, cmpOpts); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
+			}
+			if diff := cmp.Diff(test.wantHashes, got.AcceptableHashes()); diff != "" {
+				t.Errorf("wrong AcceptableHashes result\n%s", diff)
 			}
 		})
 	}

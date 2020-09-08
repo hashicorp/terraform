@@ -109,7 +109,7 @@ func TestPackageHashAuthentication_success(t *testing.T) {
 		"h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g=",
 	}
 
-	auth := NewPackageHashAuthentication(wantHashes)
+	auth := NewPackageHashAuthentication(Platform{"linux", "amd64"}, wantHashes)
 	result, err := auth.AuthenticatePackage(location)
 
 	wantResult := PackageAuthenticationResult{result: verifiedChecksum}
@@ -143,9 +143,9 @@ func TestPackageHashAuthentication_failure(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Empty expected hash, either because we'll error before we
+			// Invalid expected hash, either because we'll error before we
 			// reach it, or we want to force a checksum mismatch.
-			auth := NewPackageHashAuthentication([]string{"h1:invalid"})
+			auth := NewPackageHashAuthentication(Platform{"linux", "amd64"}, []string{"h1:invalid"})
 			result, err := auth.AuthenticatePackage(test.location)
 
 			if result != nil {
@@ -172,7 +172,7 @@ func TestArchiveChecksumAuthentication_success(t *testing.T) {
 		0x5a, 0x79, 0x2a, 0xde, 0x97, 0x11, 0xf5, 0x01,
 	}
 
-	auth := NewArchiveChecksumAuthentication(wantSHA256Sum)
+	auth := NewArchiveChecksumAuthentication(Platform{"linux", "amd64"}, wantSHA256Sum)
 	result, err := auth.AuthenticatePackage(location)
 
 	wantResult := PackageAuthenticationResult{result: verifiedChecksum}
@@ -194,11 +194,11 @@ func TestArchiveChecksumAuthentication_failure(t *testing.T) {
 	}{
 		"missing file": {
 			PackageLocalArchive("testdata/no-package-here.zip"),
-			"open testdata/no-package-here.zip: no such file or directory",
+			"failed to compute checksum for testdata/no-package-here.zip: lstat testdata/no-package-here.zip: no such file or directory",
 		},
 		"checksum mismatch": {
 			PackageLocalArchive("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/terraform-provider-null_2.1.0_linux_amd64.zip"),
-			"archive has incorrect SHA-256 checksum 4fb39849f2e138eb16a18ba0c682635d781cb8c3b25901dd5a792ade9711f501 (expected 0000000000000000000000000000000000000000000000000000000000000000)",
+			"archive has incorrect checksum zh:4fb39849f2e138eb16a18ba0c682635d781cb8c3b25901dd5a792ade9711f501 (expected zh:0000000000000000000000000000000000000000000000000000000000000000)",
 		},
 		"invalid location": {
 			PackageLocalDir("testdata/filesystem-mirror/tfe.example.com/AwesomeCorp/happycloud/0.1.0-alpha.2/darwin_amd64"),
@@ -210,7 +210,7 @@ func TestArchiveChecksumAuthentication_failure(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// Zero expected checksum, either because we'll error before we
 			// reach it, or we want to force a checksum mismatch
-			auth := NewArchiveChecksumAuthentication([sha256.Size]byte{0})
+			auth := NewArchiveChecksumAuthentication(Platform{"linux", "amd64"}, [sha256.Size]byte{0})
 			result, err := auth.AuthenticatePackage(test.location)
 
 			if result != nil {
