@@ -192,13 +192,13 @@ func (val Value) Mark(mark interface{}) Value {
 }
 
 // MarkWithPaths accepts a slice of PathValueMarks to apply
-// marker particular paths
+// markers to particular paths and returns the marked
+// Value.
 func (val Value) MarkWithPaths(pvm []PathValueMarks) Value {
 	ret, _ := Transform(val, func(p Path, v Value) (Value, error) {
 		for _, path := range pvm {
 			if p.Equals(path.Path) {
 				return v.WithMarks(path.Marks), nil
-
 			}
 		}
 		return v, nil
@@ -241,6 +241,10 @@ func (val Value) UnmarkDeep() (Value, ValueMarks) {
 	return ret, marks
 }
 
+// UnmarkDeepWithPaths is like UnmarkDeep, except it returns a slice
+// of PathValueMarks rather than a superset of all marks. This allows
+// a caller to know which marks are associated with which paths
+// in the Value.
 func (val Value) UnmarkDeepWithPaths() (Value, []PathValueMarks) {
 	var marks []PathValueMarks
 	ret, _ := Transform(val, func(p Path, v Value) (Value, error) {
