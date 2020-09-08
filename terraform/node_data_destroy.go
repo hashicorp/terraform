@@ -13,7 +13,7 @@ var (
 )
 
 // GraphNodeExecutable
-func (n *NodeDestroyableDataResourceInstance) Execute(ctx EvalContext, op *walkOperation) error {
+func (n *NodeDestroyableDataResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
 	log.Printf("[TRACE] NodeDestroyableDataResourceInstance: removing state object for %s", n.Addr)
 	ctx.State().SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	return nil

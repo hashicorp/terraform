@@ -36,7 +36,7 @@ func TestNodeDataDestroyExecute(t *testing.T) {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 	}}
 
-	err := node.Execute(ctx, nil)
+	err := node.Execute(ctx, walkApply)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
