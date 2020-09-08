@@ -1,12 +1,18 @@
 package getproviders
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"golang.org/x/mod/sumdb/dirhash"
 )
+
+const h1Prefix = "h1:"
+const zipHashPrefix = "zh:"
 
 // PackageHash computes a hash of the contents of the package at the given
 // location, using whichever hash algorithm is the current default.
@@ -40,7 +46,7 @@ func PackageHash(loc PackageLocation) (string, error) {
 // a non-local location this function will always return an error.
 func PackageMatchesHash(loc PackageLocation, want string) (bool, error) {
 	switch {
-	case strings.HasPrefix(want, "h1"):
+	case strings.HasPrefix(want, h1Prefix):
 		got, err := PackageHashV1(loc)
 		if err != nil {
 			return false, err
@@ -61,11 +67,54 @@ func PackageMatchesHash(loc PackageLocation, want string) (bool, error) {
 // verification in order for a package to be considered valid.
 func PreferredHash(given []string) string {
 	for _, s := range given {
-		if strings.HasPrefix(s, "h1:") {
+		if strings.HasPrefix(s, h1Prefix) {
 			return s
 		}
 	}
 	return ""
+}
+
+// PackageHashLegacyZipSHA implements the old provider package hashing scheme
+// of taking a SHA256 hash of the containing .zip archive itself, rather than
+// of the contents of the archive.
+//
+// The result is a hash string with the "zh:" prefix, which is intended to
+// represent "zip hash". After the prefix is a lowercase-hex encoded SHA256
+// checksum, intended to exactly match the formatting used in the registry
+// API (apart from the prefix) so that checksums can be more conveniently
+// compared by humans.
+//
+// Because this hashing scheme uses the official provider .zip file as its
+// input, it accepts only PackageLocalArchive locations.
+func PackageHashLegacyZipSHA(loc PackageLocalArchive) (string, error) {
+	archivePath, err := filepath.EvalSymlinks(string(loc))
+	if err != nil {
+		return "", err
+	}
+
+	f, err := os.Open(archivePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	_, err = io.Copy(h, f)
+	if err != nil {
+		return "", err
+	}
+
+	gotHash := h.Sum(nil)
+	return fmt.Sprintf("%s%x", zipHashPrefix, gotHash), nil
+}
+
+// HashLegacyZipSHAFromSHA is a convenience method to produce the schemed-string
+// hash format from an already-calculated hash of a provider .zip archive.
+//
+// This just adds the "zh:" prefix and encodes the string in hex, so that the
+// result is in the same format as PackageHashLegacyZipSHA.
+func HashLegacyZipSHAFromSHA(sum [sha256.Size]byte) string {
+	return fmt.Sprintf("%s%x", zipHashPrefix, sum[:])
 }
 
 // PackageHashV1 computes a hash of the contents of the package at the given
