@@ -37,6 +37,11 @@ func NewBinary(binaryPath, workingDir string) *binary {
 		panic(err)
 	}
 
+	tmpDir, err = filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		panic(err)
+	}
+
 	// For our purposes here we do a very simplistic file copy that doesn't
 	// attempt to preserve file permissions, attributes, alternate data
 	// streams, etc. Since we only have to deal with our own fixtures in
