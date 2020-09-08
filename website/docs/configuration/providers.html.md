@@ -177,12 +177,12 @@ works the same way as the `version` argument in a
 constraint in a provider configuration is only used if `required_providers`
 does not include one for that provider.
 
-**We do not recommend using the `version` argument in provider configurations.**
+**The `version` argument in provider configurations is deprecated.** 
 In Terraform 0.13 and later, version constraints should always be declared in
-[the `required_providers` block](./provider-requirements.html).
+[the `required_providers` block](./provider-requirements.html). The `version`
+argument will be removed in a future version of Terraform.
 
 -> **Note:** The `version` meta-argument made sense before Terraform 0.13, since
 Terraform could only install providers that were distributed by HashiCorp. Now
 that Terraform can install providers from multiple sources, it makes more sense
 to keep version constraints and provider source addresses together.
-

@@ -115,7 +115,12 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 
 func TestConfigProviderRequirements(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
-	assertNoDiagnostics(t, diags)
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
 
 	tlsProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost,
@@ -153,7 +158,12 @@ func TestConfigProviderRequirements(t *testing.T) {
 
 func TestConfigProviderRequirementsByModule(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
-	assertNoDiagnostics(t, diags)
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
 
 	tlsProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost,

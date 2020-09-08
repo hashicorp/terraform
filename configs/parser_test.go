@@ -83,13 +83,12 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir(path)
-	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
 	}
 
 	versionI := 0
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
+	cfg, nestedDiags := BuildConfig(mod, ModuleWalkerFunc(
 		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to the calling module.
@@ -111,6 +110,8 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 			return mod, version, diags
 		},
 	))
+
+	diags = append(diags, nestedDiags...)
 	return cfg, diags
 }
 
