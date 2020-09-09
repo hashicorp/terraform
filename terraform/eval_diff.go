@@ -130,6 +130,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 	providerSchema := *n.ProviderSchema
 
+	createBeforeDestroy := n.CreateBeforeDestroy
+	if n.PreviousDiff != nil {
+		// If we already planned the action, we stick to that plan
+		createBeforeDestroy = (*n.PreviousDiff).Action == plans.CreateThenDelete
+	}
+
 	if providerSchema == nil {
 		return nil, fmt.Errorf("provider schema is unavailable for %s", n.Addr)
 	}
@@ -384,7 +390,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	case !reqRep.Empty():
 		// If there are any "requires replace" paths left _after our filtering
 		// above_ then this is a replace action.
-		if n.CreateBeforeDestroy {
+		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {
 			action = plans.DeleteThenCreate
@@ -450,7 +456,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// as a replace change, even though so far we've been treating it as a
 	// create.
 	if action == plans.Create && priorValTainted != cty.NilVal {
-		if n.CreateBeforeDestroy {
+		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {
 			action = plans.DeleteThenCreate
