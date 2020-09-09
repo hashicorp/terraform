@@ -263,10 +263,15 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					destroy := false
 					if diffApply != nil {
 						destroy = (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
+
+						// Get the stored action for CBD if we have a plan already
+						createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete
 					}
+
 					if destroy && n.CreateBeforeDestroy() {
 						createBeforeDestroyEnabled = true
 					}
+
 					return createBeforeDestroyEnabled, nil
 				},
 				Then: &EvalDeposeState{
