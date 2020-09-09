@@ -18,7 +18,7 @@ func TestNodeExpandModuleExecute(t *testing.T) {
 	ctx.installSimpleEval()
 
 	node := nodeExpandModule{
-		Addr: addrs.Module{"module.child"},
+		Addr: addrs.Module{"child"},
 		ModuleCall: &configs.ModuleCall{
 			Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
 		},
@@ -72,4 +72,45 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 	})
 }
 
-func TestNodeValidateModuleExecute(t *testing.T) {}
+func TestNodeValidateModuleExecute(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		ctx := &MockEvalContext{
+			InstanceExpanderExpander: instances.NewExpander(),
+		}
+		ctx.installSimpleEval()
+		node := nodeValidateModule{
+			nodeExpandModule{
+				Addr: addrs.Module{"child"},
+				ModuleCall: &configs.ModuleCall{
+					Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+				},
+			},
+		}
+
+		err := node.Execute(ctx, walkApply)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err.Error())
+		}
+	})
+
+	t.Run("invalid count", func(t *testing.T) {
+		ctx := &MockEvalContext{
+			InstanceExpanderExpander: instances.NewExpander(),
+		}
+		ctx.installSimpleEval()
+		node := nodeValidateModule{
+			nodeExpandModule{
+				Addr: addrs.Module{"child"},
+				ModuleCall: &configs.ModuleCall{
+					Count: hcltest.MockExprLiteral(cty.StringVal("invalid")),
+				},
+			},
+		}
+
+		err := node.Execute(ctx, walkApply)
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+	})
+
+}
