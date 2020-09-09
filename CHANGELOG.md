@@ -1,5 +1,9 @@
 ## 0.13.3 (Unreleased)
 
+BUG FIXES:
+
+* core: prevent create_before_destroy cycles by not connecting module close nodes to resource instance destroy nodes [GH-26186]
+
 ## 0.13.2 (September 02, 2020)
 
 NEW FEATURES:
