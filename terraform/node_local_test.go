@@ -10,15 +10,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/states"
 )
 
-func TestEvalLocal_impl(t *testing.T) {
-	var _ EvalNode = new(EvalLocal)
-}
-
-func TestEvalLocal(t *testing.T) {
+func TestNodeLocalExecute(t *testing.T) {
 	tests := []struct {
 		Value string
 		Want  interface{}
@@ -48,9 +45,11 @@ func TestEvalLocal(t *testing.T) {
 				t.Fatal(diags.Error())
 			}
 
-			n := &EvalLocal{
-				Addr: addrs.LocalValue{Name: "foo"},
-				Expr: expr,
+			n := &NodeLocal{
+				Addr: addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+				Config: &configs.Local{
+					Expr: expr,
+				},
 			}
 			ctx := &MockEvalContext{
 				StateState: states.NewState().SyncWrapper(),
@@ -58,7 +57,7 @@ func TestEvalLocal(t *testing.T) {
 				EvaluateExprResult: hcl2shim.HCL2ValueFromConfigValue(test.Want),
 			}
 
-			_, err := n.Eval(ctx)
+			err := n.Execute(ctx, walkApply)
 			if (err != nil) != test.Err {
 				if err != nil {
 					t.Errorf("unexpected error: %s", err)
