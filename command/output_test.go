@@ -41,7 +41,7 @@ func TestOutput(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	if actual != "bar" {
+	if actual != `"bar"` {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
@@ -80,9 +80,19 @@ func TestOutput_nestedListAndMap(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "foo = [\n  {\n    \"key\" = \"value\"\n    \"key2\" = \"value2\"\n  },\n  {\n    \"key\" = \"value\"\n  },\n]"
+	expected := strings.TrimSpace(`
+foo = tolist([
+  tomap({
+    "key" = "value"
+    "key2" = "value2"
+  }),
+  tomap({
+    "key" = "value"
+  }),
+])
+`)
 	if actual != expected {
-		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", actual, expected)
+		t.Fatalf("wrong output\ngot:  %s\nwant: %s", actual, expected)
 	}
 }
 
@@ -260,7 +270,7 @@ func TestOutput_blank(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	expectedOutput := "foo = bar\nname = john-doe\n"
+	expectedOutput := "foo = \"bar\"\nname = \"john-doe\"\n"
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
 		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", output, expectedOutput)
@@ -393,7 +403,7 @@ func TestOutput_stateDefault(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	if actual != "bar" {
+	if actual != `"bar"` {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

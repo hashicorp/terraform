@@ -10,7 +10,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -195,16 +194,7 @@ func (c *OutputCommand) Run(args []string) int {
 
 		c.Ui.Output(string(jsonOutput))
 	} else {
-		// Our formatter still wants an old-style raw interface{} value, so
-		// for now we'll just shim it.
-		// FIXME: Port the formatter to work with cty.Value directly.
-		legacyVal := hcl2shim.ConfigValueFromHCL2(v)
-		result, err := repl.FormatResult(legacyVal)
-		if err != nil {
-			diags = diags.Append(err)
-			c.showDiagnostics(diags)
-			return 1
-		}
+		result := repl.FormatValue(v, 0)
 		c.Ui.Output(result)
 	}
 
