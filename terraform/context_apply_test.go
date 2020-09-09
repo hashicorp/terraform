@@ -11766,3 +11766,84 @@ output "outputs" {
 	// Destroying again from the empty state should not cause any errors either
 	destroy()
 }
+
+func TestContext2Apply_createBeforeDestroyWithModule(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "v" {}
+
+module "mod" {
+    source = "./mod"
+    in = var.v
+}
+
+resource "test_resource" "a" {
+  value = var.v
+  depends_on = [module.mod]
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+		"mod/main.tf": `
+variable "in" {}
+
+resource "test_resource" "a" {
+  value = var.in
+}
+`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		proposed := req.ProposedNewState.AsValueMap()
+		proposed["id"] = cty.UnknownVal(cty.String)
+		return providers.PlanResourceChangeResponse{
+			PlannedState:    cty.ObjectVal(proposed),
+			RequiresReplace: []cty.Path{cty.Path{cty.GetAttrStep{Name: "value"}}},
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"v": &InputValue{
+				Value: cty.StringVal("A"),
+			},
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"v": &InputValue{
+				Value: cty.StringVal("B"),
+			},
+		},
+		State: state,
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+}

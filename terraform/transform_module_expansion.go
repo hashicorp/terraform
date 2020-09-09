@@ -43,8 +43,13 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// handled by the RemovedModuleTransformer, and those module closers are in
 	// the graph already, and need to be connected to their parent closers.
 	for _, v := range g.Vertices() {
-		// skip closers so they don't attach to themselves
-		if _, ok := v.(*nodeCloseModule); ok {
+		switch v.(type) {
+		case GraphNodeDestroyer:
+			// Destroy nodes can only be ordered relative to other resource
+			// instances.
+			continue
+		case *nodeCloseModule:
+			// a module closer cannot connect to itself
 			continue
 		}
 
@@ -84,17 +89,17 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		Config:     c.Module,
 		ModuleCall: modCall,
 	}
-	var v dag.Vertex = n
+	var expander dag.Vertex = n
 	if t.Concrete != nil {
-		v = t.Concrete(n)
+		expander = t.Concrete(n)
 	}
 
-	g.Add(v)
-	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, v)
+	g.Add(expander)
+	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, expander)
 
 	if parentNode != nil {
-		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(v), dag.VertexName(parentNode))
-		g.Connect(dag.BasicEdge(v, parentNode))
+		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(expander), dag.VertexName(parentNode))
+		g.Connect(dag.BasicEdge(expander, parentNode))
 	}
 
 	// Add the closer (which acts as the root module node) to provide a
@@ -103,12 +108,12 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		Addr: c.Path,
 	}
 	g.Add(closer)
-	g.Connect(dag.BasicEdge(closer, v))
+	g.Connect(dag.BasicEdge(closer, expander))
 	t.closers[c.Path.String()] = closer
 
 	for _, childV := range g.Vertices() {
 		// don't connect a node to itself
-		if childV == v {
+		if childV == expander {
 			continue
 		}
 
@@ -126,13 +131,13 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 		if path.Equal(c.Path) {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
-			g.Connect(dag.BasicEdge(childV, v))
+			g.Connect(dag.BasicEdge(childV, expander))
 		}
 	}
 
 	// Also visit child modules, recursively.
 	for _, cc := range c.Children {
-		if err := t.transform(g, cc, v); err != nil {
+		if err := t.transform(g, cc, expander); err != nil {
 			return err
 		}
 	}
