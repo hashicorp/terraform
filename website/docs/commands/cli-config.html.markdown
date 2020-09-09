@@ -271,18 +271,21 @@ method.
 The set of directories Terraform can select as filesystem mirrors depends on
 the operating system where you are running Terraform:
 
-* **Windows:** `%APPDATA%/HashiCorp/Terraform/plugins`
-* **Mac OS X:** `~/Library/Application Support/io.terraform/plugins` and
+* **Windows:** `%APPDATA%/terraform.d/plugins` and `%APPDATA%/HashiCorp/Terraform/plugins`
+* **Mac OS X:** `$HOME/.terraform.d/plugins/`,
+  `~/Library/Application Support/io.terraform/plugins`, and
   `/Library/Application Support/io.terraform/plugins`
-* **Linux and other Unix-like systems**: Terraform implements the
+* **Linux and other Unix-like systems**:`$HOME/.terraform.d/plugins/`, and
   [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-  specification and appends `terraform/plugins` to all of the specified
-  data directories. Without any XDG environment variables set, Terraform
-  will use `~/.local/share/terraform/plugins`,
+  data directories as configured, after appending `terraform/plugins`.
+  Without any XDG environment variables set, Terraform will use
+  `~/.local/share/terraform/plugins`,
   `/usr/local/share/terraform/plugins`, and `/usr/share/terraform/plugins`.
 
 Terraform will create an implied `filesystem_mirror` method block for each of
 the directories indicated above that exists when Terraform starts up.
+In addition, if a `terraform.d/plugins` directory exists in the current working
+directory, it will be added as a filesystem mirror.
 
 In addition to the zero or more implied `filesystem_mirror` blocks, Terraform
 also creates an implied `direct` block. Terraform will scan all of the
