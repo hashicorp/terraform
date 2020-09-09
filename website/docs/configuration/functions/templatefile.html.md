@@ -74,7 +74,7 @@ Given a template file `config.tmpl` with the following content:
 
 ```
 %{ for config_key, config_value in config }
-set %{config_key} = ${config_value}
+set ${config_key} = ${config_value}
 %{ endfor ~}
 ```
 
