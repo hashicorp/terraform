@@ -72,18 +72,19 @@ func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// `force` is passed down from the CLI flag and terminates here. Actual
-	// force pushing with the remote backend happens when Put()'ing the contents
-	// in the backend. If force is specified we skip verifications and hand the
-	// context off to the client to use when persitence operations actually take place.
-	c, isForcePusher := s.Client.(ClientForcePusher)
-	if force && isForcePusher {
-		c.EnableForcePush()
-	} else {
+	if !force {
 		checkFile := statefile.New(s.state, s.lineage, s.serial)
 		if err := statemgr.CheckValidImport(f, checkFile); err != nil {
 			return err
 		}
+	}
+
+	// The remote backend needs to pass the `force` flag through to its client.
+	// For backends that support such operations, inform the client
+	// that a force push has been requested
+	c, isForcePusher := s.Client.(ClientForcePusher)
+	if force && isForcePusher {
+		c.EnableForcePush()
 	}
 
 	// We create a deep copy of the state here, because the caller also has
