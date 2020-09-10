@@ -133,8 +133,8 @@ func ResourceChange(
 		changeV.Change.After = changeV.Change.After.MarkWithPaths(change.AfterValMarks)
 	}
 
-	bodyWritten := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
-	if bodyWritten {
+	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
+	if result.bodyWritten {
 		buf.WriteString("\n")
 		buf.WriteString(strings.Repeat(" ", 4))
 	}
