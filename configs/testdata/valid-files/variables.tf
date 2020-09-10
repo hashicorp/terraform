@@ -22,7 +22,3 @@ variable "cheeze_pizza" {
 variable "π" {
   default = 3.14159265359
 }
-
-variable "sensitive-value" {
-  sensitive = true
-}
