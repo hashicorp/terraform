@@ -227,10 +227,10 @@ func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c ma
 	ctx.ProviderLock.Unlock()
 }
 
-func (ctx *BuiltinEvalContext) InitProvisioner(n string) (provisioners.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvisioner(n string) error {
 	// If we already initialized, it is an error
 	if p := ctx.Provisioner(n); p != nil {
-		return nil, fmt.Errorf("Provisioner '%s' already initialized", n)
+		return fmt.Errorf("Provisioner '%s' already initialized", n)
 	}
 
 	// Warning: make sure to acquire these locks AFTER the call to Provisioner
@@ -240,12 +240,12 @@ func (ctx *BuiltinEvalContext) InitProvisioner(n string) (provisioners.Interface
 
 	p, err := ctx.Components.ResourceProvisioner(n)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	ctx.ProvisionerCache[n] = p
 
-	return p, nil
+	return nil
 }
 
 func (ctx *BuiltinEvalContext) Provisioner(n string) provisioners.Interface {

@@ -77,11 +77,9 @@ type EvalContext interface {
 	ProviderInput(addrs.AbsProviderConfig) map[string]cty.Value
 	SetProviderInput(addrs.AbsProviderConfig, map[string]cty.Value)
 
-	// InitProvisioner initializes the provisioner with the given name and
-	// returns the implementation of the resource provisioner or an error.
-	//
+	// InitProvisioner initializes the provisioner with the given name.
 	// It is an error to initialize the same provisioner more than once.
-	InitProvisioner(string) (provisioners.Interface, error)
+	InitProvisioner(string) error
 
 	// Provisioner gets the provisioner instance with the given name (already
 	// initialized) or returns nil if the provisioner isn't initialized.
