@@ -503,7 +503,6 @@ Note that the -target option is not suitable for routine use, and is provided on
 func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
 	c.changes = plans.NewChanges()
-
 	var diags tfdiags.Diagnostics
 
 	if len(c.targets) > 0 {
@@ -575,6 +574,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
+		fmt.Println("walkerr")
 		return nil, diags
 	}
 	p.Changes = c.changes

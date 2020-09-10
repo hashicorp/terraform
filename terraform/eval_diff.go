@@ -256,6 +256,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", absAddr.String()))
 	}
 
+	// Add the marks back to the planned new value
+	if configVal.ContainsMarked() {
+		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	}
+
 	// We allow the planned new value to disagree with configuration _values_
 	// here, since that allows the provider to do special logic like a
 	// DiffSuppressFunc, but we still require that the provider produces
@@ -471,11 +476,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			action = prevChange.Action
 			priorVal = prevChange.Before
 		}
-	}
-
-	// Add the marks back to the planned new value
-	if configVal.ContainsMarked() {
-		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	// Call post-refresh hook
