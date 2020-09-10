@@ -12,6 +12,7 @@ BUG FIXES:
 
 * command/clistate: return an error on a state unlock failure [GH-25729] 
 * lang/funcs: fix panic when element() is called with a negative offset [GH-26079]
+* states/remote: fix `state push -force` to work for all backends [GH-26190]
 
 ## Previous Releases
 
