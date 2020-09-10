@@ -16,7 +16,7 @@ type NodeProvisioner struct {
 var (
 	_ GraphNodeModuleInstance = (*NodeProvisioner)(nil)
 	_ GraphNodeProvisioner    = (*NodeProvisioner)(nil)
-	_ GraphNodeEvalable       = (*NodeProvisioner)(nil)
+	_ GraphNodeExecutable     = (*NodeProvisioner)(nil)
 )
 
 func (n *NodeProvisioner) Name() string {
@@ -38,7 +38,7 @@ func (n *NodeProvisioner) ProvisionerName() string {
 	return n.NameValue
 }
 
-// GraphNodeEvalable impl.
-func (n *NodeProvisioner) EvalTree() EvalNode {
-	return &EvalInitProvisioner{Name: n.NameValue}
+// GraphNodeExecutable impl.
+func (n *NodeProvisioner) Execute(ctx EvalContext, op walkOperation) error {
+	return ctx.InitProvisioner(n.NameValue)
 }

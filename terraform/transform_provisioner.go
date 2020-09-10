@@ -169,9 +169,9 @@ func (n *graphNodeCloseProvisioner) Name() string {
 	return fmt.Sprintf("provisioner.%s (close)", n.ProvisionerNameValue)
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeCloseProvisioner) EvalTree() EvalNode {
-	return &EvalCloseProvisioner{Name: n.ProvisionerNameValue}
+// GraphNodeExecutable impl.
+func (n *graphNodeCloseProvisioner) Execute(ctx EvalContext, op walkOperation) error {
+	return ctx.CloseProvisioner(n.ProvisionerNameValue)
 }
 
 func (n *graphNodeCloseProvisioner) CloseProvisionerName() string {
