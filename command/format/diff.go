@@ -301,10 +301,18 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 	return result
 }
 
-func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
-	path = append(path, cty.GetAttrStep{Name: name})
-	showJustNew := false
+// getPlanActionAndShow returns the action value
+// and a boolean for showJustNew. In this function we
+// modify the old and new values to remove any possible marks
+func getPlanActionAndShow(old cty.Value, new cty.Value) (plans.Action, bool) {
 	var action plans.Action
+	showJustNew := false
+	if old.ContainsMarked() {
+		old, _ = old.UnmarkDeep()
+	}
+	if new.ContainsMarked() {
+		new, _ = new.UnmarkDeep()
+	}
 	switch {
 	case old.IsNull():
 		action = plans.Create
@@ -317,6 +325,12 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	default:
 		action = plans.Update
 	}
+	return action, showJustNew
+}
+
+func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
+	path = append(path, cty.GetAttrStep{Name: name})
+	action, showJustNew := getPlanActionAndShow(old, new)
 
 	if action == plans.NoOp && p.concise && !identifyingAttribute(name, attrS) {
 		return true
@@ -752,6 +766,12 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, path cty.Path) {
 	ty := old.Type()
 	typesEqual := ctyTypesEqual(ty, new.Type())
+
+	// If either the old or new value is marked, don't display the value
+	if old.ContainsMarked() || new.ContainsMarked() {
+		p.buf.WriteString("(sensitive)")
+		return
+	}
 
 	// We have some specialized diff implementations for certain complex
 	// values where it's useful to see a visualization of the diff of
