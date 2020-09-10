@@ -95,6 +95,10 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				errs = append(errs, path.NewErrorf("attribute representing a list of nested blocks must be empty to indicate no blocks, not null"))
 				continue
 			}
+			if configV.IsNull() {
+				errs = append(errs, path.NewErrorf("attribute representing a list of nested blocks must be empty to indicate no blocks, not null"))
+				continue
+			}
 
 			plannedL := plannedV.LengthInt()
 			configL := configV.LengthInt()

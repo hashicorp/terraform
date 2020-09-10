@@ -1,7 +1,6 @@
 package configschema
 
 import (
-	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -17,7 +16,78 @@ func (b *Block) ImpliedType() cty.Type {
 		return cty.EmptyObject
 	}
 
-	return hcldec.ImpliedType(b.DecoderSpec())
+	// NOTE WELL: This is a hacky experimental implementation of
+	// ImpliedType to support an experiment with using attribute
+	// syntax exclusively, even for things that the provider protocol
+	// currently models as blocks. See the commentary in
+	// decoder_spec_block_transform.go for details. This is not intended
+	// for inclusion in any real Terraform release.
+	//
+	// The experiment needs a direct implementation of ImpliedType,
+	// rather than just relying on b.DecoderSpec().ImpliedType() as
+	// before, because this is relying on an experimental feature
+	// of cty that allows object types with some attributes marked
+	// as being optional under conversion, and because it's experimental
+	// hcldec doesn't currently know about it.
+
+	atys := make(map[string]cty.Type)
+	var optionalAttrs []string
+
+	for name, attrS := range b.Attributes {
+		atys[name] = attrS.Type
+		if !attrS.Required {
+			optionalAttrs = append(optionalAttrs, name)
+		}
+	}
+
+	for name, blockS := range b.BlockTypes {
+		objectType := blockS.Block.ImpliedType()
+
+		if blockS.MinItems == 0 {
+			optionalAttrs = append(optionalAttrs, name)
+		}
+
+		switch blockS.Nesting {
+		case NestingSingle, NestingGroup:
+			atys[name] = objectType
+		case NestingList:
+			if objectType.HasDynamicTypes() {
+				// We can't properly support this situation within the
+				// limitations of the blocks-as-attributes experiment, because
+				// it would require some custom transformation logic during
+				// decoding to construct a real tuple type. For experiment
+				// purposes we'll just pass through the user's value verbatim,
+				// without any further processing, and let it fail downstream
+				// (in the provider's own validation code) if it's not
+				// of a suitable type.
+				atys[name] = cty.DynamicPseudoType
+			} else {
+				atys[name] = cty.List(objectType)
+			}
+		case NestingSet:
+			atys[name] = cty.Set(objectType)
+		case NestingMap:
+			if blockS.Block.ImpliedType().HasDynamicTypes() {
+				// We can't properly support this situation within the
+				// limitations of the blocks-as-attributes experiment, because
+				// it would require some custom transformation logic during
+				// decoding to construct a real tuple type. For experiment
+				// purposes we'll just pass through the user's value verbatim,
+				// without any further processing, and let it fail downstream
+				// (in the provider's own validation code) if it's not
+				// of a suitable type.
+				atys[name] = cty.DynamicPseudoType
+			} else {
+				atys[name] = cty.Map(objectType)
+			}
+		default:
+			// Invalid nesting type is just ignored. It's checked by
+			// InternalValidate.
+			continue
+		}
+	}
+
+	return cty.ObjectWithOptionalAttrs(atys, optionalAttrs)
 }
 
 // ContainsSensitive returns true if any of the attributes of the receiving
