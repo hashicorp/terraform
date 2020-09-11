@@ -467,10 +467,10 @@ github.com/masterzen/simplexml/dom
 ## explicit
 github.com/masterzen/winrm
 github.com/masterzen/winrm/soap
-# github.com/mattn/go-colorable v0.1.4
+# github.com/mattn/go-colorable v0.1.7
 ## explicit
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.10
+# github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-shellwords v1.0.4
