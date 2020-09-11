@@ -54,7 +54,6 @@ func newConsulTestServer() (*testutil.TestServer, error) {
 }
 
 func TestBackend(t *testing.T) {
-	t.Fatalf("consul backend fail")
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend. We need two to test locking.
