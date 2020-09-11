@@ -38,6 +38,8 @@ jobs:
   go-test:
     executor:
       name: go
+    environment:
+      TF_CONSUL_TEST: 1
     parallelism: 4
     steps:
       - checkout
