@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/terraform/backend"
 )
 
@@ -36,7 +36,8 @@ func TestMain(m *testing.M) {
 }
 
 func newConsulTestServer() (*testutil.TestServer, error) {
-	srv, err := testutil.NewTestServerConfig(func(c *testutil.TestServerConfig) {
+	tb := new(testing.TB)
+	srv, err := testutil.NewTestServerConfigT(*tb, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 
 		if !testing.Verbose() {

@@ -56,6 +56,11 @@ func (r *R) Error(args ...interface{}) {
 	r.fail = true
 }
 
+func (r *R) Errorf(format string, args ...interface{}) {
+	r.log(fmt.Sprintf(format, args...))
+	r.fail = true
+}
+
 func (r *R) Check(err error) {
 	if err != nil {
 		r.log(err.Error())
@@ -82,7 +87,7 @@ func decorate(s string) string {
 }
 
 func Run(t Failer, f func(r *R)) {
-	run(TwoSeconds(), t, f)
+	run(DefaultFailer(), t, f)
 }
 
 func RunWith(r Retryer, t Failer, f func(r *R)) {
@@ -105,7 +110,7 @@ func dedup(a []string) string {
 			delete(m, s)
 		}
 	}
-	return string(b.Bytes())
+	return b.String()
 }
 
 func run(r Retryer, t Failer, f func(r *R)) {
@@ -131,6 +136,11 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		}
 		break
 	}
+}
+
+// DefaultFailer provides default retry.Run() behavior for unit tests.
+func DefaultFailer() *Timer {
+	return &Timer{Timeout: 7 * time.Second, Wait: 25 * time.Millisecond}
 }
 
 // TwoSeconds repeats an operation for two seconds and waits 25ms in between.

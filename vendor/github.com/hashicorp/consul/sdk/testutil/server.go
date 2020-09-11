@@ -22,13 +22,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/lib/freeport"
-	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-uuid"
 	"github.com/pkg/errors"
@@ -42,12 +43,14 @@ type TestPerformanceConfig struct {
 // TestPortConfig configures the various ports used for services
 // provided by the Consul server.
 type TestPortConfig struct {
-	DNS     int `json:"dns,omitempty"`
-	HTTP    int `json:"http,omitempty"`
-	HTTPS   int `json:"https,omitempty"`
-	SerfLan int `json:"serf_lan,omitempty"`
-	SerfWan int `json:"serf_wan,omitempty"`
-	Server  int `json:"server,omitempty"`
+	DNS          int `json:"dns,omitempty"`
+	HTTP         int `json:"http,omitempty"`
+	HTTPS        int `json:"https,omitempty"`
+	SerfLan      int `json:"serf_lan,omitempty"`
+	SerfWan      int `json:"serf_wan,omitempty"`
+	Server       int `json:"server,omitempty"`
+	ProxyMinPort int `json:"proxy_min_port,omitempty"`
+	ProxyMaxPort int `json:"proxy_max_port,omitempty"`
 }
 
 // TestAddressConfig contains the bind addresses for various
@@ -83,8 +86,9 @@ type TestServerConfig struct {
 	RaftProtocol        int                    `json:"raft_protocol,omitempty"`
 	ACLMasterToken      string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter       string                 `json:"acl_datacenter,omitempty"`
+	PrimaryDatacenter   string                 `json:"primary_datacenter,omitempty"`
 	ACLDefaultPolicy    string                 `json:"acl_default_policy,omitempty"`
-	ACLEnforceVersion8  bool                   `json:"acl_enforce_version_8"`
+	ACL                 TestACLs               `json:"acl,omitempty"`
 	Encrypt             string                 `json:"encrypt,omitempty"`
 	CAFile              string                 `json:"ca_file,omitempty"`
 	CertFile            string                 `json:"cert_file,omitempty"`
@@ -94,9 +98,33 @@ type TestServerConfig struct {
 	VerifyIncomingHTTPS bool                   `json:"verify_incoming_https,omitempty"`
 	VerifyOutgoing      bool                   `json:"verify_outgoing,omitempty"`
 	EnableScriptChecks  bool                   `json:"enable_script_checks,omitempty"`
+	Connect             map[string]interface{} `json:"connect,omitempty"`
+	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
-	Stdout, Stderr      io.Writer              `json:"-"`
+	Stdout              io.Writer              `json:"-"`
+	Stderr              io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
+	ReturnPorts         func()                 `json:"-"`
+}
+
+type TestACLs struct {
+	Enabled             bool       `json:"enabled,omitempty"`
+	TokenReplication    bool       `json:"enable_token_replication,omitempty"`
+	PolicyTTL           string     `json:"policy_ttl,omitempty"`
+	TokenTTL            string     `json:"token_ttl,omitempty"`
+	DownPolicy          string     `json:"down_policy,omitempty"`
+	DefaultPolicy       string     `json:"default_policy,omitempty"`
+	EnableKeyListPolicy bool       `json:"enable_key_list_policy,omitempty"`
+	Tokens              TestTokens `json:"tokens,omitempty"`
+	DisabledTTL         string     `json:"disabled_ttl,omitempty"`
+}
+
+type TestTokens struct {
+	Master      string `json:"master,omitempty"`
+	Replication string `json:"replication,omitempty"`
+	AgentMaster string `json:"agent_master,omitempty"`
+	Default     string `json:"default,omitempty"`
+	Agent       string `json:"agent,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -105,13 +133,15 @@ type ServerConfigCallback func(c *TestServerConfig)
 
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
-func defaultServerConfig() *TestServerConfig {
+func defaultServerConfig(t CleanupT) *TestServerConfig {
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
 		panic(err)
 	}
 
-	ports := freeport.Get(6)
+	ports := freeport.MustTake(6)
+	logBuffer := NewLogBuffer(t)
+
 	return &TestServerConfig{
 		NodeName:          "node-" + nodeID,
 		NodeID:            nodeID,
@@ -133,6 +163,18 @@ func defaultServerConfig() *TestServerConfig {
 			Server:  ports[5],
 		},
 		ReadyTimeout: 10 * time.Second,
+		Connect: map[string]interface{}{
+			"enabled": true,
+			"ca_config": map[string]interface{}{
+				// const TestClusterID causes import cycle so hard code it here.
+				"cluster_id": "11111111-2222-3333-4444-555555555555",
+			},
+		},
+		ReturnPorts: func() {
+			freeport.Return(ports)
+		},
+		Stdout: logBuffer,
+		Stderr: logBuffer,
 	}
 }
 
@@ -173,34 +215,28 @@ type TestServer struct {
 	tmpdir string
 }
 
-// NewTestServer is an easy helper method to create a new Consul
-// test server with the most basic configuration.
-func NewTestServer() (*TestServer, error) {
-	return NewTestServerConfigT(nil, nil)
-}
-
-func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
-	return NewTestServerConfigT(nil, cb)
-}
-
 // NewTestServerConfig creates a new TestServer, and makes a call to an optional
 // callback function to modify the configuration. If there is an error
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
-func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
-	return newTestServerConfigT(t, cb)
-}
-
-// newTestServerConfigT is the internal helper for NewTestServerConfigT.
-func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+func NewTestServerConfigT(t testing.TB, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
 			"consul or skip this test")
 	}
 
-	tmpdir := TempDir(t, "consul")
-	cfg := defaultServerConfig()
+	prefix := "consul"
+	if t != nil {
+		// Use test name for tmpdir if available
+		prefix = strings.Replace(t.Name(), "/", "_", -1)
+	}
+	tmpdir, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create tempdir")
+	}
+
+	cfg := defaultServerConfig(t)
 	cfg.DataDir = filepath.Join(tmpdir, "data")
 	if cb != nil {
 		cb(cfg)
@@ -208,31 +244,28 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 
 	b, err := json.Marshal(cfg)
 	if err != nil {
+		cfg.ReturnPorts()
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
+	t.Logf("CONFIG JSON: %s", string(b))
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
-		defer os.RemoveAll(tmpdir)
+		cfg.ReturnPorts()
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed writing config content")
-	}
-
-	stdout := io.Writer(os.Stdout)
-	if cfg.Stdout != nil {
-		stdout = cfg.Stdout
-	}
-	stderr := io.Writer(os.Stderr)
-	if cfg.Stderr != nil {
-		stderr = cfg.Stderr
 	}
 
 	// Start the server
 	args := []string{"agent", "-config-file", configFile}
 	args = append(args, cfg.Args...)
 	cmd := exec.Command("consul", args...)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	cmd.Stdout = cfg.Stdout
+	cmd.Stderr = cfg.Stderr
 	if err := cmd.Start(); err != nil {
+		cfg.ReturnPorts()
+		os.RemoveAll(tmpdir)
 		return nil, errors.Wrap(err, "failed starting command")
 	}
 
@@ -262,21 +295,20 @@ func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, e
 	}
 
 	// Wait for the server to be ready
-	if cfg.Bootstrap {
-		err = server.waitForLeader()
-	} else {
-		err = server.waitForAPI()
+	if err := server.waitForAPI(); err != nil {
+		if err := server.Stop(); err != nil {
+			t.Logf("server stop failed with: %v", err)
+		}
+		return nil, err
 	}
-	if err != nil {
-		defer server.Stop()
-		return nil, errors.Wrap(err, "failed waiting for server to start")
-	}
+
 	return server, nil
 }
 
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
+	defer s.Config.ReturnPorts()
 	defer os.RemoveAll(s.tmpdir)
 
 	// There was no process
@@ -285,8 +317,14 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
-		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			return errors.Wrap(err, "failed to kill consul server")
+		if runtime.GOOS == "windows" {
+			if err := s.cmd.Process.Kill(); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
+		} else { // interrupt is not supported in windows
+			if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
+				return errors.Wrap(err, "failed to kill consul server")
+			}
 		}
 	}
 
@@ -295,51 +333,48 @@ func (s *TestServer) Stop() error {
 	return s.cmd.Wait()
 }
 
-type failer struct {
-	failed bool
-}
-
-func (f *failer) Log(args ...interface{}) { fmt.Println(args) }
-func (f *failer) FailNow()                { f.failed = true }
-
-// waitForAPI waits for only the agent HTTP endpoint to start
+// waitForAPI waits for the /status/leader HTTP endpoint to start
 // responding. This is an indication that the agent has started,
 // but will likely return before a leader is elected.
+// Note: We do not check for a successful response status because
+// we want this function to return without error even when
+// there's no leader elected.
 func (s *TestServer) waitForAPI() error {
-	f := &failer{}
-	retry.Run(f, func(r *retry.R) {
-		resp, err := s.HTTPClient.Get(s.url("/v1/agent/self"))
+	var failed bool
+
+	// This retry replicates the logic of retry.Run to allow for nested retries.
+	// By returning an error we can wrap TestServer creation with retry.Run
+	// in makeClientWithConfig.
+	timer := retry.TwoSeconds()
+	deadline := time.Now().Add(timer.Timeout)
+	for !time.Now().After(deadline) {
+		time.Sleep(timer.Wait)
+
+		url := s.url("/v1/status/leader")
+		_, err := s.masterGet(url)
 		if err != nil {
-			r.Fatal(err)
+			failed = true
+			continue
 		}
-		defer resp.Body.Close()
-		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK respose", err)
-		}
-	})
-	if f.failed {
-		return errors.New("failed waiting for API")
+
+		failed = false
+	}
+	if failed {
+		return fmt.Errorf("api unavailable")
 	}
 	return nil
 }
 
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
-// 1 or more to be observed to confirm leader election is done.
-// It then waits to ensure the anti-entropy sync has completed.
-func (s *TestServer) waitForLeader() error {
-	f := &failer{}
-	timer := &retry.Timer{
-		Timeout: s.Config.ReadyTimeout,
-		Wait:    250 * time.Millisecond,
-	}
-	var index int64
-	retry.RunWith(timer, f, func(r *retry.R) {
+// 2 or more to be observed to confirm leader election is done.
+func (s *TestServer) WaitForLeader(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
-		resp, err := s.HTTPClient.Get(url)
+		url := s.url("/v1/catalog/nodes")
+		resp, err := s.masterGet(url)
 		if err != nil {
-			r.Fatal("failed http get", err)
+			r.Fatalf("failed http get '%s': %v", url, err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
@@ -350,33 +385,115 @@ func (s *TestServer) waitForLeader() error {
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
 			r.Fatalf("Consul leader status: %#v", leader)
 		}
-		index, err = strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
+		index, err := strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
 		if err != nil {
 			r.Fatal("bad consul index", err)
 		}
-		if index == 0 {
-			r.Fatal("consul index is 0")
+		if index < 2 {
+			r.Fatal("consul index should be at least 2")
+		}
+	})
+}
+
+// WaitForActiveCARoot waits until the server can return a Connect CA meaning
+// connect has completed bootstrapping and is ready to use.
+func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
+	// don't need to fully decode the response
+	type rootsResponse struct {
+		ActiveRootID string
+		TrustDomain  string
+		Roots        []interface{}
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/agent/connect/ca/roots")
+		resp, err := s.masterGet(url)
+		if err != nil {
+			r.Fatalf("failed http get '%s': %v", url, err)
+		}
+		defer resp.Body.Close()
+		// Roots will return an error status until it's been bootstrapped. We could
+		// parse the body and sanity check but that causes either import cycles
+		// since this is used in both `api` and consul test or duplication. The 200
+		// is all we really need to wait for.
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+
+		var roots rootsResponse
+
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&roots); err != nil {
+			r.Fatal(err)
+		}
+
+		if roots.ActiveRootID == "" || len(roots.Roots) < 1 {
+			r.Fatalf("/v1/agent/connect/ca/roots returned 200 but without roots: %+v", roots)
+		}
+	})
+}
+
+// WaitForSerfCheck ensures we have a node with serfHealth check registered
+// Behavior mirrors testrpc.WaitForTestAgent but avoids the dependency cycle in api pkg
+func (s *TestServer) WaitForSerfCheck(t *testing.T) {
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and check the status code.
+		url := s.url("/v1/catalog/nodes?index=0")
+		resp, err := s.masterGet(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
 		}
 
 		// Watch for the anti-entropy sync to finish.
-		var v []map[string]interface{}
+		var payload []map[string]interface{}
 		dec := json.NewDecoder(resp.Body)
-		if err := dec.Decode(&v); err != nil {
+		if err := dec.Decode(&payload); err != nil {
 			r.Fatal(err)
 		}
-		if len(v) < 1 {
+		if len(payload) < 1 {
 			r.Fatal("No nodes")
 		}
-		taggedAddresses, ok := v[0]["TaggedAddresses"].(map[string]interface{})
-		if !ok {
-			r.Fatal("Missing tagged addresses")
+
+		// Ensure the serfHealth check is registered
+		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
+		resp, err = s.masterGet(url)
+		if err != nil {
+			r.Fatal("failed http get", err)
 		}
-		if _, ok := taggedAddresses["lan"]; !ok {
-			r.Fatal("No lan tagged addresses")
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatal("failed OK response", err)
+		}
+		dec = json.NewDecoder(resp.Body)
+		if err = dec.Decode(&payload); err != nil {
+			r.Fatal(err)
+		}
+
+		var found bool
+		for _, check := range payload {
+			if check["CheckID"].(string) == "serfHealth" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			r.Fatal("missing serfHealth registration")
 		}
 	})
-	if f.failed {
-		return errors.New("failed waiting for leader")
+}
+
+func (s *TestServer) masterGet(url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	if s.Config.ACL.Tokens.Master != "" {
+		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.Master)
+	}
+	return s.HTTPClient.Do(req)
 }

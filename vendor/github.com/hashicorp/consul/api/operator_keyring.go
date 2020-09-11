@@ -16,8 +16,14 @@ type KeyringResponse struct {
 	// Segment has the network segment this request corresponds to.
 	Segment string
 
+	// Messages has information or errors from serf
+	Messages map[string]string `json:",omitempty"`
+
 	// A map of the encryption keys to the number of nodes they're installed on
 	Keys map[string]int
+
+	// A map of the encryption primary keys to the number of nodes they're installed on
+	PrimaryKeys map[string]int
 
 	// The total number of nodes in this ring
 	NumNodes int

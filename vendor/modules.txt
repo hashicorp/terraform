@@ -112,9 +112,8 @@ github.com/apparentlymart/go-versions/versions/constraints
 ## explicit
 github.com/armon/circbuf
 # github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
-## explicit
+github.com/armon/go-metrics
 # github.com/armon/go-radix v1.0.0
-## explicit
 github.com/armon/go-radix
 # github.com/aws/aws-sdk-go v1.31.9
 ## explicit
@@ -221,7 +220,7 @@ github.com/dylanmei/iso8601
 # github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 ## explicit
 github.com/dylanmei/winrmtest
-# github.com/fatih/color v1.7.0
+# github.com/fatih/color v1.9.0
 github.com/fatih/color
 # github.com/go-test/deep v1.0.3
 ## explicit
@@ -309,12 +308,14 @@ github.com/gophercloud/utils/terraform/auth
 ## explicit
 github.com/hashicorp/aws-sdk-go-base
 github.com/hashicorp/aws-sdk-go-base/tfawserr
-# github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
+# github.com/hashicorp/consul/api v1.7.0
 ## explicit
 github.com/hashicorp/consul/api
-github.com/hashicorp/consul/lib/freeport
-github.com/hashicorp/consul/testutil
-github.com/hashicorp/consul/testutil/retry
+# github.com/hashicorp/consul/sdk v0.6.0
+## explicit
+github.com/hashicorp/consul/sdk/freeport
+github.com/hashicorp/consul/sdk/testutil
+github.com/hashicorp/consul/sdk/testutil/retry
 # github.com/hashicorp/errwrap v1.0.0
 ## explicit
 github.com/hashicorp/errwrap
@@ -336,8 +337,8 @@ github.com/hashicorp/go-getter/helper/url
 # github.com/hashicorp/go-hclog v0.14.1
 ## explicit
 github.com/hashicorp/go-hclog
-# github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa
-## explicit
+# github.com/hashicorp/go-immutable-radix v1.0.0
+github.com/hashicorp/go-immutable-radix
 # github.com/hashicorp/go-msgpack v0.5.4
 ## explicit
 # github.com/hashicorp/go-multierror v1.1.0
@@ -357,8 +358,6 @@ github.com/hashicorp/go-rootcerts
 github.com/hashicorp/go-safetemp
 # github.com/hashicorp/go-slug v0.4.1
 github.com/hashicorp/go-slug
-# github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86
-## explicit
 # github.com/hashicorp/go-tfe v0.8.1
 ## explicit
 github.com/hashicorp/go-tfe
@@ -396,10 +395,7 @@ github.com/hashicorp/hcl/v2/hclsyntax
 github.com/hashicorp/hcl/v2/hcltest
 github.com/hashicorp/hcl/v2/hclwrite
 github.com/hashicorp/hcl/v2/json
-# github.com/hashicorp/memberlist v0.1.0
-## explicit
-# github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb
-## explicit
+# github.com/hashicorp/serf v0.9.3
 github.com/hashicorp/serf/coordinate
 # github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
 ## explicit
@@ -476,8 +472,6 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-shellwords v1.0.4
 ## explicit
 github.com/mattn/go-shellwords
-# github.com/miekg/dns v1.0.8
-## explicit
 # github.com/mitchellh/cli v1.1.0
 ## explicit
 github.com/mitchellh/cli
@@ -529,8 +523,6 @@ github.com/oklog/run
 # github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 ## explicit
 github.com/packer-community/winrmcp/winrmcp
-# github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c
-## explicit
 # github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 ## explicit
 github.com/pkg/browser
@@ -546,8 +538,6 @@ github.com/posener/complete/cmd/install
 ## explicit
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
-# github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
-## explicit
 # github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 ## explicit
 # github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a

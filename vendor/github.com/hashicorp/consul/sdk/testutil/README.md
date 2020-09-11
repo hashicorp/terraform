@@ -22,12 +22,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestFoo_bar(t *testing.T) {
 	// Create a test Consul server
-	srv1, err := testutil.NewTestServer()
+	srv1, err := testutil.NewTestServerConfigT(t, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestFoo_bar(t *testing.T) {
 
 	// Create a secondary server, passing in configuration
 	// to avoid bootstrapping as we are forming a cluster.
-	srv2, err := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+	srv2, err := testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.Bootstrap = false
 	})
 	if err != nil {

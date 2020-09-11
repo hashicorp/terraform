@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-rootcerts"
 )
 
@@ -29,6 +29,10 @@ const (
 	// HTTPTokenEnvName defines an environment variable name which sets
 	// the HTTP token.
 	HTTPTokenEnvName = "CONSUL_HTTP_TOKEN"
+
+	// HTTPTokenFileEnvName defines an environment variable name which sets
+	// the HTTP token file.
+	HTTPTokenFileEnvName = "CONSUL_HTTP_TOKEN_FILE"
 
 	// HTTPAuthEnvName defines an environment variable name which sets
 	// the HTTP authentication header.
@@ -61,10 +65,24 @@ const (
 	// HTTPSSLVerifyEnvName defines an environment variable name which sets
 	// whether or not to disable certificate checking.
 	HTTPSSLVerifyEnvName = "CONSUL_HTTP_SSL_VERIFY"
+
+	// GRPCAddrEnvName defines an environment variable name which sets the gRPC
+	// address for consul connect envoy. Note this isn't actually used by the api
+	// client in this package but is defined here for consistency with all the
+	// other ENV names we use.
+	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
+
+	// HTTPNamespaceEnvVar defines an environment variable name which sets
+	// the HTTP Namespace to be used by default. This can still be overridden.
+	HTTPNamespaceEnvName = "CONSUL_NAMESPACE"
 )
 
 // QueryOptions are used to parameterize a query
 type QueryOptions struct {
+	// Namespace overrides the `default` namespace
+	// Note: Namespaces are available only in Consul Enterprise
+	Namespace string
+
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
@@ -78,9 +96,36 @@ type QueryOptions struct {
 	// read.
 	RequireConsistent bool
 
+	// UseCache requests that the agent cache results locally. See
+	// https://www.consul.io/api/features/caching.html for more details on the
+	// semantics.
+	UseCache bool
+
+	// MaxAge limits how old a cached value will be returned if UseCache is true.
+	// If there is a cached response that is older than the MaxAge, it is treated
+	// as a cache miss and a new fetch invoked. If the fetch fails, the error is
+	// returned. Clients that wish to allow for stale results on error can set
+	// StaleIfError to a longer duration to change this behavior. It is ignored
+	// if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/features/caching.html for more details.
+	MaxAge time.Duration
+
+	// StaleIfError specifies how stale the client will accept a cached response
+	// if the servers are unavailable to fetch a fresh one. Only makes sense when
+	// UseCache is true and MaxAge is set to a lower, non-zero value. It is
+	// ignored if the endpoint supports background refresh caching. See
+	// https://www.consul.io/api/features/caching.html for more details.
+	StaleIfError time.Duration
+
 	// WaitIndex is used to enable a blocking query. Waits
 	// until the timeout or the next index is reached
 	WaitIndex uint64
+
+	// WaitHash is used by some endpoints instead of WaitIndex to perform blocking
+	// on state based on a hash of the response rather than a monotonic index.
+	// This is required when the state being blocked on is not stored in Raft, for
+	// example agent-local proxy configuration.
+	WaitHash string
 
 	// WaitTime is used to bound the duration of a wait.
 	// Defaults to that of the Config, but can be overridden.
@@ -101,14 +146,26 @@ type QueryOptions struct {
 	// be provided for filtering.
 	NodeMeta map[string]string
 
-	// RelayFactor is used in keyring operations to cause reponses to be
+	// RelayFactor is used in keyring operations to cause responses to be
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
 
+	// LocalOnly is used in keyring list operation to force the keyring
+	// query to only hit local servers (no WAN traffic).
+	LocalOnly bool
+
+	// Connect filters prepared query execution to only include Connect-capable
+	// services. This currently affects prepared query execution.
+	Connect bool
+
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use Context() and WithContext() to manage this.
 	ctx context.Context
+
+	// Filter requests filtering data prior to it being returned. The string
+	// is a go-bexpr compatible expression.
+	Filter string
 }
 
 func (o *QueryOptions) Context() context.Context {
@@ -129,6 +186,10 @@ func (o *QueryOptions) WithContext(ctx context.Context) *QueryOptions {
 
 // WriteOptions are used to parameterize a write
 type WriteOptions struct {
+	// Namespace overrides the `default` namespace
+	// Note: Namespaces are available only in Consul Enterprise
+	Namespace string
+
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
 	Datacenter string
@@ -137,7 +198,7 @@ type WriteOptions struct {
 	// which overrides the agent's default token.
 	Token string
 
-	// RelayFactor is used in keyring operations to cause reponses to be
+	// RelayFactor is used in keyring operations to cause responses to be
 	// relayed back to the sender through N other random nodes. Must be
 	// a value from 0 to 5 (inclusive).
 	RelayFactor uint8
@@ -169,6 +230,11 @@ type QueryMeta struct {
 	// a blocking query
 	LastIndex uint64
 
+	// LastContentHash. This can be used as a WaitHash to perform a blocking query
+	// for endpoints that support hash-based blocking. Endpoints that do not
+	// support it will return an empty hash.
+	LastContentHash string
+
 	// Time of last contact from the leader for the
 	// server servicing the request
 	LastContact time.Duration
@@ -181,6 +247,13 @@ type QueryMeta struct {
 
 	// Is address translation enabled for HTTP responses on this agent
 	AddressTranslationEnabled bool
+
+	// CacheHit is true if the result was served from agent-local cache.
+	CacheHit bool
+
+	// CacheAge is set if request was ?cached and indicates how stale the cached
+	// response is.
+	CacheAge time.Duration
 }
 
 // WriteMeta is used to return meta data about a write
@@ -227,6 +300,14 @@ type Config struct {
 	// which overrides the agent's default token.
 	Token string
 
+	// TokenFile is a file containing the current token to use for this client.
+	// If provided it is read once at startup and never again.
+	TokenFile string
+
+	// Namespace is the name of the namespace to send along for the request
+	// when no other Namespace ispresent in the QueryOptions
+	Namespace string
+
 	TLSConfig TLSConfig
 }
 
@@ -246,13 +327,25 @@ type TLSConfig struct {
 	// Consul communication, defaults to the system bundle if not specified.
 	CAPath string
 
+	// CAPem is the optional PEM-encoded CA certificate used for Consul
+	// communication, defaults to the system bundle if not specified.
+	CAPem []byte
+
 	// CertFile is the optional path to the certificate for Consul
 	// communication. If this is set then you need to also set KeyFile.
 	CertFile string
 
+	// CertPEM is the optional PEM-encoded certificate for Consul
+	// communication. If this is set then you need to also set KeyPEM.
+	CertPEM []byte
+
 	// KeyFile is the optional path to the private key for Consul communication.
 	// If this is set then you need to also set CertFile.
 	KeyFile string
+
+	// KeyPEM is the optional PEM-encoded private key for Consul communication.
+	// If this is set then you need to also set CertPEM.
+	KeyPEM []byte
 
 	// InsecureSkipVerify if set to true will disable TLS host verification.
 	InsecureSkipVerify bool
@@ -261,11 +354,18 @@ type TLSConfig struct {
 // DefaultConfig returns a default configuration for the client. By default this
 // will pool and reuse idle connections to Consul. If you have a long-lived
 // client object, this is the desired behavior and should make the most efficient
-// use of the connections to Consul. If you don't reuse a client object , which
+// use of the connections to Consul. If you don't reuse a client object, which
 // is not recommended, then you may notice idle connections building up over
 // time. To avoid this, use the DefaultNonPooledConfig() instead.
 func DefaultConfig() *Config {
-	return defaultConfig(cleanhttp.DefaultPooledTransport)
+	return defaultConfig(nil, cleanhttp.DefaultPooledTransport)
+}
+
+// DefaultConfigWithLogger returns a default configuration for the client. It
+// is exactly the same as DefaultConfig, but allows for a pre-configured logger
+// object to be passed through.
+func DefaultConfigWithLogger(logger hclog.Logger) *Config {
+	return defaultConfig(logger, cleanhttp.DefaultPooledTransport)
 }
 
 // DefaultNonPooledConfig returns a default configuration for the client which
@@ -274,12 +374,18 @@ func DefaultConfig() *Config {
 // accumulation of idle connections if you make many client objects during the
 // lifetime of your application.
 func DefaultNonPooledConfig() *Config {
-	return defaultConfig(cleanhttp.DefaultTransport)
+	return defaultConfig(nil, cleanhttp.DefaultTransport)
 }
 
 // defaultConfig returns the default configuration for the client, using the
 // given function to make the transport.
-func defaultConfig(transportFn func() *http.Transport) *Config {
+func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Config {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{
+			Name: "consul-api",
+		})
+	}
+
 	config := &Config{
 		Address:   "127.0.0.1:8500",
 		Scheme:    "http",
@@ -288,6 +394,10 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 
 	if addr := os.Getenv(HTTPAddrEnvName); addr != "" {
 		config.Address = addr
+	}
+
+	if tokenFile := os.Getenv(HTTPTokenFileEnvName); tokenFile != "" {
+		config.TokenFile = tokenFile
 	}
 
 	if token := os.Getenv(HTTPTokenEnvName); token != "" {
@@ -313,7 +423,7 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 	if ssl := os.Getenv(HTTPSSLEnvName); ssl != "" {
 		enabled, err := strconv.ParseBool(ssl)
 		if err != nil {
-			log.Printf("[WARN] client: could not parse %s: %s", HTTPSSLEnvName, err)
+			logger.Warn(fmt.Sprintf("could not parse %s", HTTPSSLEnvName), "error", err)
 		}
 
 		if enabled {
@@ -339,11 +449,15 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 	if v := os.Getenv(HTTPSSLVerifyEnvName); v != "" {
 		doVerify, err := strconv.ParseBool(v)
 		if err != nil {
-			log.Printf("[WARN] client: could not parse %s: %s", HTTPSSLVerifyEnvName, err)
+			logger.Warn(fmt.Sprintf("could not parse %s", HTTPSSLVerifyEnvName), "error", err)
 		}
 		if !doVerify {
 			config.TLSConfig.InsecureSkipVerify = true
 		}
+	}
+
+	if v := os.Getenv(HTTPNamespaceEnvName); v != "" {
+		config.Namespace = v
 	}
 
 	return config
@@ -369,23 +483,62 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 		tlsClientConfig.ServerName = server
 	}
 
+	if len(tlsConfig.CertPEM) != 0 && len(tlsConfig.KeyPEM) != 0 {
+		tlsCert, err := tls.X509KeyPair(tlsConfig.CertPEM, tlsConfig.KeyPEM)
+		if err != nil {
+			return nil, err
+		}
+		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
+	} else if len(tlsConfig.CertPEM) != 0 || len(tlsConfig.KeyPEM) != 0 {
+		return nil, fmt.Errorf("both client cert and client key must be provided")
+	}
+
 	if tlsConfig.CertFile != "" && tlsConfig.KeyFile != "" {
 		tlsCert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
 		if err != nil {
 			return nil, err
 		}
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
+	} else if tlsConfig.CertFile != "" || tlsConfig.KeyFile != "" {
+		return nil, fmt.Errorf("both client cert and client key must be provided")
 	}
 
-	rootConfig := &rootcerts.Config{
-		CAFile: tlsConfig.CAFile,
-		CAPath: tlsConfig.CAPath,
-	}
-	if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
-		return nil, err
+	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" || len(tlsConfig.CAPem) != 0 {
+		rootConfig := &rootcerts.Config{
+			CAFile:        tlsConfig.CAFile,
+			CAPath:        tlsConfig.CAPath,
+			CACertificate: tlsConfig.CAPem,
+		}
+		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	return tlsClientConfig, nil
+}
+
+func (c *Config) GenerateEnv() []string {
+	env := make([]string, 0, 10)
+
+	env = append(env,
+		fmt.Sprintf("%s=%s", HTTPAddrEnvName, c.Address),
+		fmt.Sprintf("%s=%s", HTTPTokenEnvName, c.Token),
+		fmt.Sprintf("%s=%s", HTTPTokenFileEnvName, c.TokenFile),
+		fmt.Sprintf("%s=%t", HTTPSSLEnvName, c.Scheme == "https"),
+		fmt.Sprintf("%s=%s", HTTPCAFile, c.TLSConfig.CAFile),
+		fmt.Sprintf("%s=%s", HTTPCAPath, c.TLSConfig.CAPath),
+		fmt.Sprintf("%s=%s", HTTPClientCert, c.TLSConfig.CertFile),
+		fmt.Sprintf("%s=%s", HTTPClientKey, c.TLSConfig.KeyFile),
+		fmt.Sprintf("%s=%s", HTTPTLSServerName, c.TLSConfig.Address),
+		fmt.Sprintf("%s=%t", HTTPSSLVerifyEnvName, !c.TLSConfig.InsecureSkipVerify))
+
+	if c.HttpAuth != nil {
+		env = append(env, fmt.Sprintf("%s=%s:%s", HTTPAuthEnvName, c.HttpAuth.Username, c.HttpAuth.Password))
+	} else {
+		env = append(env, fmt.Sprintf("%s=", HTTPAuthEnvName))
+	}
+
+	return env
 }
 
 // Client provides a client to the Consul API
@@ -398,11 +551,11 @@ func NewClient(config *Config) (*Client, error) {
 	// bootstrap the config
 	defConfig := DefaultConfig()
 
-	if len(config.Address) == 0 {
+	if config.Address == "" {
 		config.Address = defConfig.Address
 	}
 
-	if len(config.Scheme) == 0 {
+	if config.Scheme == "" {
 		config.Scheme = defConfig.Scheme
 	}
 
@@ -446,7 +599,7 @@ func NewClient(config *Config) (*Client, error) {
 	if len(parts) == 2 {
 		switch parts[0] {
 		case "http":
-			config.Scheme = "http"
+			// Never revert to http if TLS was explicitly requested.
 		case "https":
 			config.Scheme = "https"
 		case "unix":
@@ -454,15 +607,30 @@ func NewClient(config *Config) (*Client, error) {
 			trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 				return net.Dial("unix", parts[1])
 			}
-			config.HttpClient = &http.Client{
-				Transport: trans,
+			httpClient, err := NewHttpClient(trans, config.TLSConfig)
+			if err != nil {
+				return nil, err
 			}
+			config.HttpClient = httpClient
 		default:
 			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
 		config.Address = parts[1]
 	}
 
+	// If the TokenFile is set, always use that, even if a Token is configured.
+	// This is because when TokenFile is set it is read into the Token field.
+	// We want any derived clients to have to re-read the token file.
+	if config.TokenFile != "" {
+		data, err := ioutil.ReadFile(config.TokenFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error loading token file: %s", err)
+		}
+
+		if token := strings.TrimSpace(string(data)); token != "" {
+			config.Token = token
+		}
+	}
 	if config.Token == "" {
 		config.Token = defConfig.Token
 	}
@@ -476,6 +644,14 @@ func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, 
 	client := &http.Client{
 		Transport: transport,
 	}
+
+	// TODO (slackpad) - Once we get some run time on the HTTP/2 support we
+	// should turn it on by default if TLS is enabled. We would basically
+	// just need to call http2.ConfigureTransport(transport) here. We also
+	// don't want to introduce another external dependency on
+	// golang.org/x/net/http2 at this time. For a complete recipe for how
+	// to enable HTTP/2 support on a transport suitable for the API client
+	// library see agent/http_test.go:TestHTTPServer_H2.
 
 	if transport.TLSClientConfig == nil {
 		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
@@ -508,6 +684,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q == nil {
 		return
 	}
+	if q.Namespace != "" {
+		r.params.Set("ns", q.Namespace)
+	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}
@@ -523,11 +702,17 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(q.WaitTime))
 	}
+	if q.WaitHash != "" {
+		r.params.Set("hash", q.WaitHash)
+	}
 	if q.Token != "" {
 		r.header.Set("X-Consul-Token", q.Token)
 	}
 	if q.Near != "" {
 		r.params.Set("near", q.Near)
+	}
+	if q.Filter != "" {
+		r.params.Set("filter", q.Filter)
 	}
 	if len(q.NodeMeta) > 0 {
 		for key, value := range q.NodeMeta {
@@ -537,6 +722,27 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.RelayFactor != 0 {
 		r.params.Set("relay-factor", strconv.Itoa(int(q.RelayFactor)))
 	}
+	if q.LocalOnly {
+		r.params.Set("local-only", fmt.Sprintf("%t", q.LocalOnly))
+	}
+	if q.Connect {
+		r.params.Set("connect", "true")
+	}
+	if q.UseCache && !q.RequireConsistent {
+		r.params.Set("cached", "")
+
+		cc := []string{}
+		if q.MaxAge > 0 {
+			cc = append(cc, fmt.Sprintf("max-age=%.0f", q.MaxAge.Seconds()))
+		}
+		if q.StaleIfError > 0 {
+			cc = append(cc, fmt.Sprintf("stale-if-error=%.0f", q.StaleIfError.Seconds()))
+		}
+		if len(cc) > 0 {
+			r.header.Set("Cache-Control", strings.Join(cc, ", "))
+		}
+	}
+
 	r.ctx = q.ctx
 }
 
@@ -579,6 +785,9 @@ func IsRetryableError(err error) bool {
 func (r *request) setWriteOptions(q *WriteOptions) {
 	if q == nil {
 		return
+	}
+	if q.Namespace != "" {
+		r.params.Set("ns", q.Namespace)
 	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
@@ -623,9 +832,9 @@ func (r *request) toHTTP() (*http.Request, error) {
 	}
 	if r.ctx != nil {
 		return req.WithContext(r.ctx), nil
-	} else {
-		return req, nil
 	}
+
+	return req, nil
 }
 
 // newRequest is used to create a new request
@@ -643,6 +852,9 @@ func (c *Client) newRequest(method, path string) *request {
 	}
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
+	}
+	if c.config.Namespace != "" {
+		r.params.Set("ns", c.config.Namespace)
 	}
 	if c.config.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(r.config.WaitTime))
@@ -671,7 +883,7 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
 	r := c.newRequest("GET", endpoint)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.doRequest(r))
+	rtt, resp, err := c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -711,15 +923,21 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 }
 
 // parseQueryMeta is used to help parse query meta-data
+//
+// TODO(rb): bug? the error from this function is never handled
 func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	header := resp.Header
 
-	// Parse the X-Consul-Index
-	index, err := strconv.ParseUint(header.Get("X-Consul-Index"), 10, 64)
-	if err != nil {
-		return fmt.Errorf("Failed to parse X-Consul-Index: %v", err)
+	// Parse the X-Consul-Index (if it's set - hash based blocking queries don't
+	// set this)
+	if indexStr := header.Get("X-Consul-Index"); indexStr != "" {
+		index, err := strconv.ParseUint(indexStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("Failed to parse X-Consul-Index: %v", err)
+		}
+		q.LastIndex = index
 	}
-	q.LastIndex = index
+	q.LastContentHash = header.Get("X-Consul-ContentHash")
 
 	// Parse the X-Consul-LastContact
 	last, err := strconv.ParseUint(header.Get("X-Consul-LastContact"), 10, 64)
@@ -742,6 +960,18 @@ func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 		q.AddressTranslationEnabled = true
 	default:
 		q.AddressTranslationEnabled = false
+	}
+
+	// Parse Cache info
+	if cacheStr := header.Get("X-Cache"); cacheStr != "" {
+		q.CacheHit = strings.EqualFold(cacheStr, "HIT")
+	}
+	if ageStr := header.Get("Age"); ageStr != "" {
+		age, err := strconv.ParseUint(ageStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("Failed to parse Age Header: %v", err)
+		}
+		q.CacheAge = time.Duration(age) * time.Second
 	}
 
 	return nil
@@ -772,10 +1002,42 @@ func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *h
 		return d, nil, e
 	}
 	if resp.StatusCode != 200 {
-		var buf bytes.Buffer
-		io.Copy(&buf, resp.Body)
-		resp.Body.Close()
-		return d, nil, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+		return d, nil, generateUnexpectedResponseCodeError(resp)
 	}
 	return d, resp, nil
+}
+
+func (req *request) filterQuery(filter string) {
+	if filter == "" {
+		return
+	}
+
+	req.params.Set("filter", filter)
+}
+
+// generateUnexpectedResponseCodeError consumes the rest of the body, closes
+// the body stream and generates an error indicating the status code was
+// unexpected.
+func generateUnexpectedResponseCodeError(resp *http.Response) error {
+	var buf bytes.Buffer
+	io.Copy(&buf, resp.Body)
+	resp.Body.Close()
+	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+}
+
+func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
+	if e != nil {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return false, d, nil, e
+	}
+	switch resp.StatusCode {
+	case 200:
+		return true, d, resp, nil
+	case 404:
+		return false, d, resp, nil
+	default:
+		return false, d, nil, generateUnexpectedResponseCodeError(resp)
+	}
 }
