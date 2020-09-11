@@ -5,11 +5,13 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 
 	"github.com/hashicorp/go-multierror"
 )
 
 type installer interface {
+	IsInstalled(cmd, bin string) bool
 	Install(cmd, bin string) error
 	Uninstall(cmd, bin string) error
 }
@@ -36,6 +38,24 @@ func Install(cmd string) error {
 	return err
 }
 
+// IsInstalled returns true if the completion
+// for the given cmd is installed.
+func IsInstalled(cmd string) bool {
+	bin, err := getBinaryPath()
+	if err != nil {
+		return false
+	}
+
+	for _, i := range installers() {
+		installed := i.IsInstalled(cmd, bin)
+		if installed {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Uninstall complete command given:
 // cmd: is the command name
 func Uninstall(cmd string) error {
@@ -59,7 +79,16 @@ func Uninstall(cmd string) error {
 }
 
 func installers() (i []installer) {
-	for _, rc := range [...]string{".bashrc", ".bash_profile", ".bash_login", ".profile"} {
+	// The list of bash config files candidates where it is
+	// possible to install the completion command.
+	var bashConfFiles []string
+	switch runtime.GOOS {
+	case "darwin":
+		bashConfFiles = []string{".bash_profile"}
+	default:
+		bashConfFiles = []string{".bashrc", ".bash_profile", ".bash_login", ".profile"}
+	}
+	for _, rc := range bashConfFiles {
 		if f := rcFile(rc); f != "" {
 			i = append(i, bash{f})
 			break

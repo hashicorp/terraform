@@ -537,12 +537,11 @@ github.com/pkg/browser
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/posener/complete v1.2.1
+# github.com/posener/complete v1.2.3
 ## explicit
 github.com/posener/complete
 github.com/posener/complete/cmd
 github.com/posener/complete/cmd/install
-github.com/posener/complete/match
 # github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
 ## explicit
 # github.com/satori/go.uuid v1.2.0

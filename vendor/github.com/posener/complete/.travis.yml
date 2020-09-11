@@ -1,16 +1,16 @@
 language: go
-sudo: false
 go:
-  - 1.11
+  - tip
+  - 1.12.x
+  - 1.11.x
   - 1.10.x
-  - 1.9
-  - 1.8
-
-before_install:
-  - go get -u -t ./...
 
 script:
-  - GO111MODULE=on ./test.sh
+  - go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+
+matrix:
+  allow_failures:
+    - go: tip

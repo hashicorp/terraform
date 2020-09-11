@@ -10,20 +10,25 @@ type bash struct {
 	rc string
 }
 
-func (b bash) Install(cmd, bin string) error {
+func (b bash) IsInstalled(cmd, bin string) bool {
 	completeCmd := b.cmd(cmd, bin)
-	if lineInFile(b.rc, completeCmd) {
+	return lineInFile(b.rc, completeCmd)
+}
+
+func (b bash) Install(cmd, bin string) error {
+	if b.IsInstalled(cmd, bin) {
 		return fmt.Errorf("already installed in %s", b.rc)
 	}
+	completeCmd := b.cmd(cmd, bin)
 	return appendToFile(b.rc, completeCmd)
 }
 
 func (b bash) Uninstall(cmd, bin string) error {
-	completeCmd := b.cmd(cmd, bin)
-	if !lineInFile(b.rc, completeCmd) {
+	if !b.IsInstalled(cmd, bin) {
 		return fmt.Errorf("does not installed in %s", b.rc)
 	}
 
+	completeCmd := b.cmd(cmd, bin)
 	return removeFromFile(b.rc, completeCmd)
 }
 

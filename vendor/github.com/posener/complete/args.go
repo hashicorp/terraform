@@ -28,6 +28,8 @@ type Args struct {
 // Directory gives the directory of the current written
 // last argument if it represents a file name being written.
 // in case that it is not, we fall back to the current directory.
+//
+// Deprecated.
 func (a Args) Directory() string {
 	if info, err := os.Stat(a.Last); err == nil && info.IsDir() {
 		return fixPathForm(a.Last, a.Last)
@@ -83,16 +85,17 @@ func splitLastEqual(line []string) []string {
 	return append(line[:len(line)-1], parts...)
 }
 
+// from returns a copy of Args of all arguments after the i'th argument.
 func (a Args) from(i int) Args {
-	if i > len(a.All) {
-		i = len(a.All)
+	if i >= len(a.All) {
+		i = len(a.All) - 1
 	}
-	a.All = a.All[i:]
+	a.All = a.All[i+1:]
 
-	if i > len(a.Completed) {
-		i = len(a.Completed)
+	if i >= len(a.Completed) {
+		i = len(a.Completed) - 1
 	}
-	a.Completed = a.Completed[i:]
+	a.Completed = a.Completed[i+1:]
 	return a
 }
 
