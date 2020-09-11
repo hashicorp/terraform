@@ -332,6 +332,37 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Error: "Invalid source",
 		},
+		"additional attributes": {
+			Block: &hcl.Block{
+				Type: "required_providers",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"my-test": {
+							Name: "my-test",
+							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+								"source":  cty.StringVal("mycloud/test"),
+								"version": cty.StringVal("2.0.0"),
+								"invalid": cty.BoolVal(true),
+							})),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			Want: &RequiredProviders{
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:        "my-test",
+						Source:      "mycloud/test",
+						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
+						Requirement: testVC("2.0.0"),
+						DeclRange:   mockRange,
+					},
+				},
+				DeclRange: blockRange,
+			},
+			Error: "Invalid required_providers object",
+		},
 	}
 
 	for name, test := range tests {
