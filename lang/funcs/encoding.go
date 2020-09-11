@@ -114,7 +114,7 @@ var URLEncodeFunc = function.New(&function.Spec{
 
 // HexDecode decodes a hexadecimal string.
 //
-// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
+// This function decodes a hexadecimal string into its raw value.
 //
 func HexDecode(str cty.Value) (cty.Value, error) {
 	return HexDecodeFunc.Call([]cty.Value{str})

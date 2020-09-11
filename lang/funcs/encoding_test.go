@@ -163,3 +163,37 @@ func TestURLEncode(t *testing.T) {
 		})
 	}
 }
+
+
+func TestHexDecode(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("69206c6f7665207465727261666f726d"),
+			cty.StringVal("i love terraform"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("hexdecode(%#v)", test.String), func(t *testing.T) {
+			got, err := HexDecode(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
