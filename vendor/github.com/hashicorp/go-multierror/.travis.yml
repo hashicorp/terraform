@@ -9,4 +9,4 @@ branches:
   only:
     - master
 
-script: make test testrace
+script: env GO111MODULE=on make test testrace

@@ -14,9 +14,10 @@ be a list of errors. If the caller knows this, they can unwrap the
 list and access the errors. If the caller doesn't know, the error
 formats to a nice human-readable format.
 
-`go-multierror` implements the
-[errwrap](https://github.com/hashicorp/errwrap) interface so that it can
-be used with that library, as well.
+`go-multierror` is fully compatible with the Go standard library
+[errors](https://golang.org/pkg/errors/) package, including the
+functions `As`, `Is`, and `Unwrap`. This provides a standardized approach
+for introspecting on error values.
 
 ## Installation and Docs
 
@@ -78,6 +79,39 @@ if err := something(); err != nil {
 	if merr, ok := err.(*multierror.Error); ok {
 		// Use merr.Errors
 	}
+}
+```
+
+You can also use the standard [`errors.Unwrap`](https://golang.org/pkg/errors/#Unwrap)
+function. This will continue to unwrap into subsequent errors until none exist.
+
+**Extracting an error**
+
+The standard library [`errors.As`](https://golang.org/pkg/errors/#As)
+function can be used directly with a multierror to extract a specific error:
+
+```go
+// Assume err is a multierror value
+err := somefunc()
+
+// We want to know if "err" has a "RichErrorType" in it and extract it.
+var errRich RichErrorType
+if errors.As(err, &errRich) {
+	// It has it, and now errRich is populated.
+}
+```
+
+**Checking for an exact error value**
+
+Some errors are returned as exact errors such as the [`ErrNotExist`](https://golang.org/pkg/os/#pkg-variables)
+error in the `os` package. You can check if this error is present by using
+the standard [`errors.Is`](https://golang.org/pkg/errors/#Is) function.
+
+```go
+// Assume err is a multierror value
+err := somefunc()
+if errors.Is(err, os.ErrNotExist) {
+	// err contains os.ErrNotExist
 }
 ```
 
