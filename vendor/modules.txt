@@ -478,7 +478,7 @@ github.com/mattn/go-isatty
 github.com/mattn/go-shellwords
 # github.com/miekg/dns v1.0.8
 ## explicit
-# github.com/mitchellh/cli v1.0.0
+# github.com/mitchellh/cli v1.1.0
 ## explicit
 github.com/mitchellh/cli
 # github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
