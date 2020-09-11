@@ -605,7 +605,7 @@ github.com/xanzy/ssh-agent
 # github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 ## explicit
 github.com/xlab/treeprint
-# github.com/zclconf/go-cty v1.6.1
+# github.com/zclconf/go-cty v1.6.2-0.20200908203537-4ad5e68430d3
 ## explicit
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert

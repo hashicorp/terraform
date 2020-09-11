@@ -5626,6 +5626,61 @@ resource "aws_instance" "foo" {
 	}
 }
 
+func TestContext2Plan_variableSensitivity(t *testing.T) {
+	m := testModule(t, "plan-variable-sensitivity")
+
+	p := testProvider("aws")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo == "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo cannot be bar"))
+		}
+		return
+	}
+
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo": cty.StringVal("foo"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+}
+
 func checkVals(t *testing.T, expected, got cty.Value) {
 	t.Helper()
 	if !cmp.Equal(expected, got, valueComparer, typeComparer, equateEmpty) {

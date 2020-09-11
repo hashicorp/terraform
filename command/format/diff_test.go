@@ -3622,10 +3622,75 @@ func TestResourceChange_nestedMap(t *testing.T) {
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_sensitiveVariable(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update - creation": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"root_block_device": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"root_block_device": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"volume_type": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingMap,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = (sensitive)
+        id  = "i-02ae66f368e8518a9"
+
+      + root_block_device "a" {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
 type testCase struct {
 	Action          plans.Action
 	Mode            addrs.ResourceMode
 	Before          cty.Value
+	BeforeValMarks  []cty.PathValueMarks
+	AfterValMarks   []cty.PathValueMarks
 	After           cty.Value
 	Schema          *configschema.Block
 	RequiredReplace cty.PathSet
@@ -3679,9 +3744,11 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Module:   addrs.RootModule,
 				},
 				ChangeSrc: plans.ChangeSrc{
-					Action: tc.Action,
-					Before: before,
-					After:  after,
+					Action:         tc.Action,
+					Before:         before,
+					After:          after,
+					BeforeValMarks: tc.BeforeValMarks,
+					AfterValMarks:  tc.AfterValMarks,
 				},
 				RequiredReplace: tc.RequiredReplace,
 			}

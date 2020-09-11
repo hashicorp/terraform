@@ -98,7 +98,12 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// and raise an error about that.
 	val := cty.UnknownAsNull(o.Value)
 
-	src, err := ctyjson.Marshal(val, ty)
+	// If it contains marks, dump those now
+	unmarked := val
+	if val.ContainsMarked() {
+		unmarked, _ = val.UnmarkDeep()
+	}
+	src, err := ctyjson.Marshal(unmarked, ty)
 	if err != nil {
 		return nil, err
 	}

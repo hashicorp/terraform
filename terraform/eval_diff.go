@@ -141,6 +141,17 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
+	// Create an unmarked version of our config val, defaulting
+	// to the configVal so we don't do the work of unmarking unless
+	// necessary
+	unmarkedConfigVal := configVal
+	var unmarkedPaths []cty.PathValueMarks
+	if configVal.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedConfigVal, unmarkedPaths = configVal.UnmarkDeepWithPaths()
+	}
+
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 	if n.ProviderMetas != nil {
 		if m, ok := n.ProviderMetas[n.ProviderAddr.Provider]; ok && m != nil {
@@ -184,7 +195,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
 	if !n.Stub {
@@ -203,7 +214,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	validateResp := provider.ValidateResourceTypeConfig(
 		providers.ValidateResourceTypeConfigRequest{
 			TypeName: n.Addr.Resource.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		},
 	)
 	if validateResp.Diagnostics.HasErrors() {
@@ -223,7 +234,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
-		Config:           configVal,
+		Config:           unmarkedConfigVal,
 		PriorState:       priorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
@@ -242,6 +253,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// is always a bug in the client-side stub. This is more likely caused
 		// by an incompletely-configured mock provider in tests, though.
 		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", absAddr.String()))
+	}
+
+	// Add the marks back to the planned new value
+	if configVal.ContainsMarked() {
+		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	// We allow the planned new value to disagree with configuration _values_
@@ -480,7 +496,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			Change: plans.Change{
 				Action: action,
 				Before: priorVal,
-				After:  plannedNewVal,
+				// Pass the marked planned value through in our change
+				// to propogate through evaluation.
+				// Marks will be removed when encoding.
+				After: plannedNewVal,
 			},
 			RequiredReplace: reqRep,
 		}

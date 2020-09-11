@@ -104,11 +104,24 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
+
+	// If our config or After value contain any marked values,
+	// ensure those are stripped out before sending
+	// this to the provider
+	unmarkedConfigVal := configVal
+	if configVal.ContainsMarked() {
+		unmarkedConfigVal, _ = configVal.UnmarkDeep()
+	}
+	unmarkedAfter := change.After
+	if change.After.ContainsMarked() {
+		unmarkedAfter, _ = change.After.UnmarkDeep()
+	}
+
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
 		PriorState:     change.Before,
-		Config:         configVal,
-		PlannedState:   change.After,
+		Config:         unmarkedConfigVal,
+		PlannedState:   unmarkedAfter,
 		PlannedPrivate: change.Private,
 		ProviderMeta:   metaConfigVal,
 	})

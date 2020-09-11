@@ -302,6 +302,10 @@ func compactValueStr(val cty.Value) string {
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
 
+	if val.ContainsMarked() {
+		return "(sensitive value)"
+	}
+
 	ty := val.Type()
 	switch {
 	case val.IsNull():

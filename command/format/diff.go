@@ -125,10 +125,18 @@ func ResourceChange(
 	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
 	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
 
+	// Now that the change is decoded, add back the marks at the defined paths
+	if len(change.BeforeValMarks) > 0 {
+		changeV.Change.Before = changeV.Change.Before.MarkWithPaths(change.BeforeValMarks)
+	}
+	if len(change.AfterValMarks) > 0 {
+		changeV.Change.After = changeV.Change.After.MarkWithPaths(change.AfterValMarks)
+	}
+
 	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
 	if result.bodyWritten {
-		p.buf.WriteString("\n")
-		p.buf.WriteString(strings.Repeat(" ", 4))
+		buf.WriteString("\n")
+		buf.WriteString(strings.Repeat(" ", 4))
 	}
 	buf.WriteString("}\n")
 
@@ -293,10 +301,18 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 	return result
 }
 
-func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
-	path = append(path, cty.GetAttrStep{Name: name})
-	showJustNew := false
+// getPlanActionAndShow returns the action value
+// and a boolean for showJustNew. In this function we
+// modify the old and new values to remove any possible marks
+func getPlanActionAndShow(old cty.Value, new cty.Value) (plans.Action, bool) {
 	var action plans.Action
+	showJustNew := false
+	if old.ContainsMarked() {
+		old, _ = old.UnmarkDeep()
+	}
+	if new.ContainsMarked() {
+		new, _ = new.UnmarkDeep()
+	}
 	switch {
 	case old.IsNull():
 		action = plans.Create
@@ -309,6 +325,12 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	default:
 		action = plans.Update
 	}
+	return action, showJustNew
+}
+
+func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
+	path = append(path, cty.GetAttrStep{Name: name})
+	action, showJustNew := getPlanActionAndShow(old, new)
 
 	if action == plans.NoOp && p.concise && !identifyingAttribute(name, attrS) {
 		return true
@@ -586,6 +608,12 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 }
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
+	// Could check specifically for the sensitivity marker
+	if val.IsMarked() {
+		p.buf.WriteString("(sensitive)")
+		return
+	}
+
 	if !val.IsKnown() {
 		p.buf.WriteString("(known after apply)")
 		return
@@ -738,6 +766,12 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, path cty.Path) {
 	ty := old.Type()
 	typesEqual := ctyTypesEqual(ty, new.Type())
+
+	// If either the old or new value is marked, don't display the value
+	if old.ContainsMarked() || new.ContainsMarked() {
+		p.buf.WriteString("(sensitive)")
+		return
+	}
 
 	// We have some specialized diff implementations for certain complex
 	// values where it's useful to see a visualization of the diff of
@@ -1284,7 +1318,8 @@ func ctyGetAttrMaybeNull(val cty.Value, name string) cty.Value {
 	// This allows us to avoid spurious diffs
 	// until we introduce null to the SDK.
 	attrValue := val.GetAttr(name)
-	if ctyEmptyString(attrValue) {
+	// If the value is marked, the ctyEmptyString function will fail
+	if !val.ContainsMarked() && ctyEmptyString(attrValue) {
 		return cty.NullVal(attrType)
 	}
 

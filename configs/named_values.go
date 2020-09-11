@@ -25,6 +25,7 @@ type Variable struct {
 	Type        cty.Type
 	ParsingMode VariableParsingMode
 	Validations []*VariableValidation
+	Sensitive   bool
 
 	DescriptionSet bool
 
@@ -92,6 +93,11 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		diags = append(diags, tyDiags...)
 		v.Type = ty
 		v.ParsingMode = parseMode
+	}
+
+	if attr, exists := content.Attributes["sensitive"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Sensitive)
+		diags = append(diags, valDiags...)
 	}
 
 	if attr, exists := content.Attributes["default"]; exists {
@@ -533,6 +539,9 @@ var variableBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "type",
+		},
+		{
+			Name: "sensitive",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
