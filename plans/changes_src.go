@@ -157,7 +157,11 @@ type ChangeSrc struct {
 	// storage.
 	Before, After DynamicValue
 
-	// Marked Paths
+	// BeforeValMarks and AfterValMarks are stored path+mark combinations
+	// that might be discovered when encoding a change. Marks are removed
+	// to enable encoding (marked values cannot be marshalled), and so storing
+	// the path+mark combinations allow us to re-mark the value later
+	// when, for example, displaying the diff to the UI.
 	BeforeValMarks, AfterValMarks []cty.PathValueMarks
 }
 

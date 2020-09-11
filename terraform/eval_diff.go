@@ -148,8 +148,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	var unmarkedPaths []cty.PathValueMarks
 	if configVal.ContainsMarked() {
 		// store the marked values so we can re-mark them later after
-		// we've sent things over the wire. Right now this stores
-		// one path for proof of concept, but we should store multiple
+		// we've sent things over the wire.
 		unmarkedConfigVal, unmarkedPaths = configVal.UnmarkDeepWithPaths()
 	}
 
