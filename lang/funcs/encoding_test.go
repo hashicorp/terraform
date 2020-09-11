@@ -164,7 +164,6 @@ func TestURLEncode(t *testing.T) {
 	}
 }
 
-
 func TestHexDecode(t *testing.T) {
 	tests := []struct {
 		String cty.Value

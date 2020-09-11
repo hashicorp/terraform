@@ -72,7 +72,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"format":           stdlib.FormatFunc,
 			"formatdate":       stdlib.FormatDateFunc,
 			"formatlist":       stdlib.FormatListFunc,
-			"hexdecode":    	funcs.HexDecodeFunc,
+			"hexdecode":        funcs.HexDecodeFunc,
 			"indent":           stdlib.IndentFunc,
 			"index":            funcs.IndexFunc, // stdlib.IndexFunc is not compatible
 			"join":             stdlib.JoinFunc,
