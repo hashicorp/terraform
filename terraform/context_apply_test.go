@@ -9155,11 +9155,16 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	}
 
 	// correct the state
-	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.AbsProviderConfig{
-		Provider: addrs.NewDefaultProvider("aws"),
-		Alias:    "bar",
-		Module:   addrs.RootModule,
-	}
+	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"].bar`)
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatal(diags.Err())
