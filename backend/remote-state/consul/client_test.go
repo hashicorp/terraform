@@ -19,20 +19,29 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	// Get the backend
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"address": srv.HTTPAddr,
-		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
-	}))
-
-	// Grab the client
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	testCases := []string{
+		fmt.Sprintf("tf-unit/%s", time.Now().String()),
+		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
 	}
 
-	// Test
-	remote.TestClient(t, state.(*remote.State).Client)
+	for _, path := range testCases {
+		t.Run(path, func(*testing.T) {
+			// Get the backend
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+				"address": srv.HTTPAddr,
+				"path":    path,
+			}))
+
+			// Grab the client
+			state, err := b.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			// Test
+			remote.TestClient(t, state.(*remote.State).Client)
+		})
+	}
 }
 
 // test the gzip functionality of the client
@@ -72,62 +81,78 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
-	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
-
-	// create 2 instances to get 2 remote.Clients
-	sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"address": srv.HTTPAddr,
-		"path":    path,
-	})).StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	testCases := []string{
+		fmt.Sprintf("tf-unit/%s", time.Now().String()),
+		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
 	}
 
-	sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"address": srv.HTTPAddr,
-		"path":    path,
-	})).StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, path := range testCases {
+		t.Run(path, func(*testing.T) {
+			// create 2 instances to get 2 remote.Clients
+			sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+				"address": srv.HTTPAddr,
+				"path":    path,
+			})).StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	remote.TestRemoteLocks(t, sA.(*remote.State).Client, sB.(*remote.State).Client)
+			sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+				"address": srv.HTTPAddr,
+				"path":    path,
+			})).StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			remote.TestRemoteLocks(t, sA.(*remote.State).Client, sB.(*remote.State).Client)
+		})
+	}
 }
 
 func TestConsul_destroyLock(t *testing.T) {
-	// Get the backend
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"address": srv.HTTPAddr,
-		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
-	}))
-
-	// Grab the client
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	testCases := []string{
+		fmt.Sprintf("tf-unit/%s", time.Now().String()),
+		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
 	}
 
-	c := s.(*remote.State).Client.(*RemoteClient)
+	for _, path := range testCases {
+		t.Run(path, func(*testing.T) {
+			// Get the backend
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+				"address": srv.HTTPAddr,
+				"path":    path,
+			}))
 
-	info := statemgr.NewLockInfo()
-	id, err := c.Lock(info)
-	if err != nil {
-		t.Fatal(err)
-	}
+			// Grab the client
+			s, err := b.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-	lockPath := c.Path + lockSuffix
+			c := s.(*remote.State).Client.(*RemoteClient)
 
-	if err := c.Unlock(id); err != nil {
-		t.Fatal(err)
-	}
+			info := statemgr.NewLockInfo()
+			id, err := c.Lock(info)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	// get the lock val
-	pair, _, err := c.Client.KV().Get(lockPath, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pair != nil {
-		t.Fatalf("lock key not cleaned up at: %s", pair.Key)
+			lockPath := c.Path + lockSuffix
+
+			if err := c.Unlock(id); err != nil {
+				t.Fatal(err)
+			}
+
+			// get the lock val
+			pair, _, err := c.Client.KV().Get(lockPath, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pair != nil {
+				t.Fatalf("lock key not cleaned up at: %s", pair.Key)
+			}
+		})
 	}
 }
 

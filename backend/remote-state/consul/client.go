@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -161,13 +162,19 @@ func (c *RemoteClient) Delete() error {
 	return err
 }
 
+func (c *RemoteClient) lockPath() string {
+	// we sanitize the path for the lock as Consul does not like having
+	// two consecutive slashes for the lock path
+	return strings.TrimRight(c.Path, "/")
+}
+
 func (c *RemoteClient) putLockInfo(info *statemgr.LockInfo) error {
 	info.Path = c.Path
 	info.Created = time.Now().UTC()
 
 	kv := c.Client.KV()
 	_, err := kv.Put(&consulapi.KVPair{
-		Key:   c.Path + lockInfoSuffix,
+		Key:   c.lockPath() + lockInfoSuffix,
 		Value: info.Marshal(),
 	}, nil)
 
@@ -175,7 +182,7 @@ func (c *RemoteClient) putLockInfo(info *statemgr.LockInfo) error {
 }
 
 func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
-	path := c.Path + lockInfoSuffix
+	path := c.lockPath() + lockInfoSuffix
 	pair, _, err := c.Client.KV().Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -234,7 +241,7 @@ func (c *RemoteClient) lock() (string, error) {
 	c.info.Info = "consul session: " + lockSession
 
 	opts := &consulapi.LockOptions{
-		Key:     c.Path + lockSuffix,
+		Key:     c.lockPath() + lockSuffix,
 		Session: lockSession,
 
 		// only wait briefly, so terraform has the choice to fail fast or
@@ -419,7 +426,7 @@ func (c *RemoteClient) unlock(id string) error {
 
 	var errs error
 
-	if _, err := kv.Delete(c.Path+lockInfoSuffix, nil); err != nil {
+	if _, err := kv.Delete(c.lockPath()+lockInfoSuffix, nil); err != nil {
 		errs = multierror.Append(errs, err)
 	}
 
