@@ -2829,7 +2829,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 		}
 	}
 
-	expectedState := `aws_instance.foo.0:
+	expectedState := `aws_instance.foo:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = foo
@@ -4068,7 +4068,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
-			State: state,
+			State: state.DeepCopy(),
 		})
 
 		plan, diags := ctx.Plan()
@@ -4092,7 +4092,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			switch i := ric.Addr.String(); i {
 			case "aws_instance.foo[0]":
 				if res.Action != plans.DeleteThenCreate {
-					t.Fatalf("resource %s should be replaced", i)
+					t.Fatalf("resource %s should be replaced, not %s", i, res.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"id": cty.StringVal("bar"),

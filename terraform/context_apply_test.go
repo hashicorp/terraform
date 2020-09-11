@@ -9861,6 +9861,22 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 
 		return testApplyFn(info, s, d)
 	}
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -9981,7 +9997,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 		t.Fatal("test_instance.c should have no deposed instances")
 	}
 
-	if string(c.Current.AttrsJSON) != `{"id":"c","foo":"old"}` {
+	if string(c.Current.AttrsJSON) != `{"foo":"old","id":"c"}` {
 		t.Fatalf("unexpected attrs for c: %q\n", c.Current.AttrsJSON)
 	}
 }
