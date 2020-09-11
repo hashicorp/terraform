@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/url"
@@ -12,6 +13,25 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 )
+
+// HexDecodeFunc constructs a function that decodes a string in hex format
+var HexDecodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		s := args[0].AsString()
+		sDec, err := hex.DecodeString(s)
+		if err != nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode hex string '%s'", s)
+		}
+		return cty.StringVal(string(sDec)), nil
+	},
+})
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
 var Base64DecodeFunc = function.New(&function.Spec{
@@ -91,6 +111,14 @@ var URLEncodeFunc = function.New(&function.Spec{
 		return cty.StringVal(url.QueryEscape(args[0].AsString())), nil
 	},
 })
+
+// HexDecode decodes a hexadecimal string.
+//
+// Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
+//
+func HexDecode(str cty.Value) (cty.Value, error) {
+	return HexDecodeFunc.Call([]cty.Value{str})
+}
 
 // Base64Decode decodes a string containing a base64 sequence.
 //

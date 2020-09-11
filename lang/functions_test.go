@@ -437,6 +437,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"hexdecode": {
+			{
+				`hexdecode("69206c6f7665207465727261666f726d")`,
+				cty.StringVal("i love terraform"),
+			},
+		},
+
 		"indent": {
 			{
 				fmt.Sprintf("indent(4, %#v)", Poem),
