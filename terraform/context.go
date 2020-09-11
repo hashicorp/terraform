@@ -492,6 +492,10 @@ Note that the -target option is not suitable for routine use, and is provided on
 		))
 	}
 
+	// This isn't technically needed, but don't leave an old refreshed state
+	// around in case we re-use the context in internal tests.
+	c.refreshState = c.state.DeepCopy()
+
 	return c.state, diags
 }
 
