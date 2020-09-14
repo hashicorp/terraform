@@ -383,6 +383,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		ClientID:    clientConfig.ID,
 		Endpoint:    clientConfig.Endpoint(),
 		RedirectURL: callbackURL,
+		Scopes:      clientConfig.Scopes,
 	}
 
 	authCodeURL := oauthConfig.AuthCodeURL(
