@@ -460,6 +460,11 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
+// GraphNodeExecutable impl.
+func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) error {
+	return ctx.CloseProvider(n.Addr)
+}
+
 // GraphNodeDependable impl.
 func (n *graphNodeCloseProvider) DependableName() []string {
 	return []string{n.Name()}
