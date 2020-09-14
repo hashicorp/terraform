@@ -73,7 +73,7 @@ func TestSession_basicState(t *testing.T) {
 			Inputs: []testSessionInput{
 				{
 					Input:  "test_instance.foo.id",
-					Output: "bar",
+					Output: `"bar"`,
 				},
 			},
 		})

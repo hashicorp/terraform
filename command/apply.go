@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -345,17 +344,7 @@ func outputsAsString(state *states.State, modPath addrs.ModuleInstance, includeH
 				continue
 			}
 
-			// Our formatter still wants an old-style raw interface{} value, so
-			// for now we'll just shim it.
-			// FIXME: Port the formatter to work with cty.Value directly.
-			legacyVal := hcl2shim.ConfigValueFromHCL2(v.Value)
-			result, err := repl.FormatResult(legacyVal)
-			if err != nil {
-				// We can't really return errors from here, so we'll just have
-				// to stub this out. This shouldn't happen in practice anyway.
-				result = "<error during formatting>"
-			}
-
+			result := repl.FormatValue(v.Value, 0)
 			outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, result))
 		}
 	}
