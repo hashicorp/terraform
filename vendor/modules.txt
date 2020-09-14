@@ -404,7 +404,7 @@ github.com/hashicorp/serf/coordinate
 # github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
 ## explicit
 github.com/hashicorp/terraform-config-inspect/tfconfig
-# github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
+# github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 ## explicit
 github.com/hashicorp/terraform-svchost
 github.com/hashicorp/terraform-svchost/auth
