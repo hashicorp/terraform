@@ -3683,6 +3683,34 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
     }
 `,
 		},
+		"deletion": {
+			Action: plans.Delete,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - ami = (sensitive)
+      - id  = "i-02ae66f368e8518a9" -> null
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
