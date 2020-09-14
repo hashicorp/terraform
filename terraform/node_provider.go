@@ -32,10 +32,8 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) error
 
 	switch op {
 	case walkValidate:
-		//Validate
 		return n.ValidateProvider(ctx, provider)
 	case walkRefresh, walkPlan, walkApply, walkDestroy:
-		// EvalConfigProvider
 		return n.ConfigureProvider(ctx, provider, false)
 	case walkImport:
 		return n.ConfigureProvider(ctx, provider, true)
@@ -78,7 +76,10 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	return diags.ErrWithWarnings()
 }
 
-func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider providers.Interface, VerifyConfigIsKnown bool) error {
+// ConfigureProvider configures a provider that is already initialized and retrieved.
+// If verifyConfigIsKnown is true, ConfigureProvider will return an error if the
+// provider configVal is not wholly known and is meant only for use during import.
+func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider providers.Interface, verifyConfigIsKnown bool) error {
 	var diags tfdiags.Diagnostics
 	config := n.ProviderConfig()
 
@@ -97,7 +98,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 		return diags.ErrWithWarnings()
 	}
 
-	if VerifyConfigIsKnown && !configVal.IsWhollyKnown() {
+	if verifyConfigIsKnown && !configVal.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid provider configuration",
