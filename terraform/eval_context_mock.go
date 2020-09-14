@@ -198,10 +198,10 @@ func (c *MockEvalContext) SetProviderInput(addr addrs.AbsProviderConfig, vals ma
 	c.SetProviderInputValues = vals
 }
 
-func (c *MockEvalContext) InitProvisioner(n string) (provisioners.Interface, error) {
+func (c *MockEvalContext) InitProvisioner(n string) error {
 	c.InitProvisionerCalled = true
 	c.InitProvisionerName = n
-	return c.InitProvisionerProvisioner, c.InitProvisionerError
+	return c.InitProvisionerError
 }
 
 func (c *MockEvalContext) Provisioner(n string) provisioners.Interface {
