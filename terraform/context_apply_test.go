@@ -11847,3 +11847,68 @@ resource "test_resource" "a" {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
+
+func TestContext2Apply_forcedCBD(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "v" {}
+
+resource "test_instance" "a" {
+  require_new = var.v
+}
+
+resource "test_instance" "b" {
+  depends_on = [test_instance.a]
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"v": &InputValue{
+				Value: cty.StringVal("A"),
+			},
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"v": &InputValue{
+				Value: cty.StringVal("B"),
+			},
+		},
+		State: state,
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+}
