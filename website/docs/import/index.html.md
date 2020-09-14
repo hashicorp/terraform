@@ -41,6 +41,17 @@ imported object will be mapped.
 While this may seem tedious, it still gives Terraform users an avenue for
 importing existing resources.
 
+## Remote Backends
+
+When using Terraform import on the command line with a [remote
+backend](/docs/backends/types/remote.html), such a Terraform Cloud, the import
+command runs locally, unlike commands such as apply, which run inside your
+Terraform Cloud environment. Because of this, the import command will not have
+access to information from the remote backend, such as workspace variables.
+
+In order to use Terraform import with a remote state backend, you may need to
+set local variables equivalent to the remote workspace variables.
+
 ## Hands-On Tutorial
 
 You can follow the [Terraform Import
