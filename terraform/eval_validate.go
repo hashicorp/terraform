@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
@@ -61,50 +60,6 @@ func (n *EvalValidateCount) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 RETURN:
-	return nil, diags.NonFatalErr()
-}
-
-// EvalValidateProvider is an EvalNode implementation that validates
-// a provider configuration.
-type EvalValidateProvider struct {
-	Addr     addrs.AbsProviderConfig
-	Provider *providers.Interface
-	Config   *configs.Provider
-}
-
-func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
-	var diags tfdiags.Diagnostics
-	provider := *n.Provider
-
-	configBody := buildProviderConfig(ctx, n.Addr, n.Config)
-
-	resp := provider.GetSchema()
-	diags = diags.Append(resp.Diagnostics)
-	if diags.HasErrors() {
-		return nil, diags.NonFatalErr()
-	}
-
-	configSchema := resp.Provider.Block
-	if configSchema == nil {
-		// Should never happen in real code, but often comes up in tests where
-		// mock schemas are being used that tend to be incomplete.
-		log.Printf("[WARN] EvalValidateProvider: no config schema is available for %s, so using empty schema", n.Addr)
-		configSchema = &configschema.Block{}
-	}
-
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
-	diags = diags.Append(evalDiags)
-	if evalDiags.HasErrors() {
-		return nil, diags.NonFatalErr()
-	}
-
-	req := providers.PrepareProviderConfigRequest{
-		Config: configVal,
-	}
-
-	validateResp := provider.PrepareProviderConfig(req)
-	diags = diags.Append(validateResp.Diagnostics)
-
 	return nil, diags.NonFatalErr()
 }
 

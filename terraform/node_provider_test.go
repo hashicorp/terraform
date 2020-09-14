@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -67,27 +66,12 @@ func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
 	ctx.installSimpleEval()
 
 	err := n.Execute(ctx, walkImport)
-
-	var diags tfdiags.Diagnostics
-	switch e := err.(type) {
-	case tfdiags.NonFatalError:
-		diags = e.Diagnostics
-	default:
-		t.Fatalf("expected err to be NonFatalError, was %T", err)
+	if err == nil {
+		t.Fatal("expected error, got success")
 	}
 
-	if len(diags) != 1 {
-		t.Fatalf("expected 1 diagnostic, got %d", len(diags))
-	}
-
-	if got, want := diags[0].Severity(), tfdiags.Error; got != want {
-		t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
-	}
-	if got, want := diags[0].Description().Summary, "Invalid provider configuration"; got != want {
-		t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
-	}
-	detail := `The configuration for provider["registry.terraform.io/hashicorp/foo"] depends on values that cannot be determined until apply.`
-	if got, want := diags[0].Description().Detail, detail; got != want {
+	detail := `Invalid provider configuration: The configuration for provider["registry.terraform.io/hashicorp/foo"] depends on values that cannot be determined until apply.`
+	if got, want := err.Error(), detail; got != want {
 		t.Errorf("wrong diagnostic detail\n got: %q\nwant: %q", got, want)
 	}
 

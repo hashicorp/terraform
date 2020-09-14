@@ -460,11 +460,6 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeCloseProvider) EvalTree() EvalNode {
-	return CloseProviderEvalTree(n.Addr)
-}
-
 // GraphNodeDependable impl.
 func (n *graphNodeCloseProvider) DependableName() []string {
 	return []string{n.Name()}
