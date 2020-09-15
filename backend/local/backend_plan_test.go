@@ -478,6 +478,12 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
+	// since there is no longer a separate Refresh walk, `-refresh=false
+	// doesn't do anything.
+	// FIXME: determine if we need a refresh option for the new plan, or remove
+	// this test
+	t.Skip()
+
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
