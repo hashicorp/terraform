@@ -1,4 +1,4 @@
-// +build linux aix dragonfly freebsd netbsd solaris
+// +build linux aix dragonfly freebsd netbsd openbsd solaris
 
 package userdirs
 
