@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* build: fix crash with terraform binary on openBSD [GH-26250]
 * core: prevent create_before_destroy cycles by not connecting module close nodes to resource instance destroy nodes [GH-26186]
 * core: fix error where plan action changes from CreateThenDelete to DeleteThenCreate [GH-26192]
 * states/remote: fix `state push -force` to work for all backends [GH-26190]
