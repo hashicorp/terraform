@@ -3678,7 +3678,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = (sensitive)
+      ~ ami = "ami-BEFORE" -> (sensitive)
         id  = "i-02ae66f368e8518a9"
     }
 `,
@@ -3706,7 +3706,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - ami = (sensitive)
+      - ami = (sensitive) -> null
       - id  = "i-02ae66f368e8518a9" -> null
     }
 `,

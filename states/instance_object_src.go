@@ -1,6 +1,8 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -49,6 +51,10 @@ type ResourceInstanceObjectSrc struct {
 	// the recommendations in the AttrsJSON documentation above.
 	AttrsFlat map[string]string
 
+	// AttrPaths is an array of paths to mark as sensitive coming out of
+	// state, or to save as sensitive paths when saving state
+	AttrPaths []cty.PathValueMarks
+
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
 	Private             []byte
@@ -78,6 +84,12 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		}
 	} else {
 		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
+		// Mark the value with paths if applicable
+		if os.AttrPaths != nil {
+			fmt.Println("Marking in Decode")
+			val = val.MarkWithPaths(os.AttrPaths)
+			fmt.Println("val after mark in decode: ", val)
+		}
 		if err != nil {
 			return nil, err
 		}

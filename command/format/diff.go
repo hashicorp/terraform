@@ -767,12 +767,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	ty := old.Type()
 	typesEqual := ctyTypesEqual(ty, new.Type())
 
-	// If either the old or new value is marked, don't display the value
-	if old.ContainsMarked() || new.ContainsMarked() {
-		p.buf.WriteString("(sensitive)")
-		return
-	}
-
 	// We have some specialized diff implementations for certain complex
 	// values where it's useful to see a visualization of the diff of
 	// the nested elements rather than just showing the entire old and
@@ -787,8 +781,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			// to apply, both old and new must be valid JSON.
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
-			oldS := old.AsString()
-			newS := new.AsString()
+
+			var oldS, newS string
+			if old.ContainsMarked() {
+				oldS = "(sensitive)"
+			} else {
+				oldS = old.AsString()
+			}
+			if new.ContainsMarked() {
+				newS = "(sensitive)"
+			} else {
+				newS = new.AsString()
+			}
 
 			{
 				// Special behavior for JSON strings containing object or
