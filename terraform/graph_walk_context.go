@@ -188,6 +188,11 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 		return nil
 	}
 
+	//  If we early exit, it isn't an error.
+	if _, isEarlyExit := err.(EvalEarlyExitError); isEarlyExit {
+		return nil
+	}
+
 	// Otherwise, we'll let our usual diagnostics machinery figure out how to
 	// unpack this as one or more diagnostic messages and return that. If we
 	// get down here then the returned diagnostics will contain at least one
