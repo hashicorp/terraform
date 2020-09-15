@@ -476,6 +476,7 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	oauthConfig := &oauth2.Config{
 		ClientID: clientConfig.ID,
 		Endpoint: clientConfig.Endpoint(),
+		Scopes:   clientConfig.Scopes,
 	}
 	token, err := oauthConfig.PasswordCredentialsToken(context.Background(), username, password)
 	if err != nil {
