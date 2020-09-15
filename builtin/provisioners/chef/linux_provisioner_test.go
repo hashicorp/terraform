@@ -143,6 +143,25 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 				"rm -f install.sh": true,
 			},
 		},
+
+		"InstallURL": {
+			Config: map[string]interface{}{
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
+				"version":      "11.18.6",
+				"install_url":  "https://localhost/chef.zip",
+			},
+
+			Commands: map[string]bool{
+				"curl -LO https://localhost/chef.zip": true,
+				"bash ./install.sh -v \"11.18.6\" -c stable":   true,
+				"rm -f install.sh": true,
+			},
+		},
 	}
 
 	o := new(terraform.MockUIOutput)

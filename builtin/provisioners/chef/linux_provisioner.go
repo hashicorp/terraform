@@ -11,7 +11,7 @@ import (
 
 const (
 	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
-	installURL = "https://omnitruck.chef.io/install.sh"
+	installURLSuffix = "install.sh"
 )
 
 func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communicator.Communicator) error {
@@ -27,7 +27,14 @@ func (p *provisioner) linuxInstallChefClient(o terraform.UIOutput, comm communic
 		prefix += fmt.Sprintf("no_proxy='%s' ", strings.Join(p.NOProxy, ","))
 	}
 
+	var installURL string
 	// First download the install.sh script from Chef
+	if p.InstallURL == defaultBaseInstallURL {
+		installURL = strings.Join([]string{p.InstallURL, installURLSuffix}, "/")
+	} else {
+		installURL = p.InstallURL
+	}
+
 	err := p.runCommand(o, comm, fmt.Sprintf("%scurl -LO %s", prefix, installURL))
 	if err != nil {
 		return err
