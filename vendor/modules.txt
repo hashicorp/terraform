@@ -97,7 +97,7 @@ github.com/apparentlymart/go-cidr/cidr
 github.com/apparentlymart/go-dump/dump
 # github.com/apparentlymart/go-textseg/v12 v12.0.0
 github.com/apparentlymart/go-textseg/v12/textseg
-# github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9
+# github.com/apparentlymart/go-userdirs v0.0.0-20200915174352-b0c018a67c13
 ## explicit
 github.com/apparentlymart/go-userdirs/internal/unix
 github.com/apparentlymart/go-userdirs/macosbase
@@ -172,9 +172,6 @@ github.com/bgentry/go-netrc/netrc
 # github.com/bgentry/speakeasy v0.1.0
 ## explicit
 github.com/bgentry/speakeasy
-# github.com/blang/semver v3.5.1+incompatible
-## explicit
-github.com/blang/semver
 # github.com/bmatcuk/doublestar v1.1.5
 ## explicit
 github.com/bmatcuk/doublestar
@@ -510,9 +507,6 @@ github.com/mitchellh/go-wordwrap
 # github.com/mitchellh/gox v1.0.1
 ## explicit
 github.com/mitchellh/gox
-# github.com/mitchellh/hashstructure v1.0.0
-## explicit
-github.com/mitchellh/hashstructure
 # github.com/mitchellh/iochan v1.0.0
 github.com/mitchellh/iochan
 # github.com/mitchellh/mapstructure v1.1.2
