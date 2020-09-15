@@ -1,4 +1,4 @@
-// +build !linux,!windows,!darwin,!aix,!dragonfly,!freebsd,!netbsd,!solaris
+// +build !linux,!windows,!darwin,!aix,!dragonfly,!freebsd,!netbsd,!openbsd,!solaris
 
 // The above build constraint must contain the negation of all of the build
 // constraints found in the other app_*.go files, to catch any other OS
