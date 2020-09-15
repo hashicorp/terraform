@@ -12,57 +12,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-func TestEvalRequireState(t *testing.T) {
-	ctx := new(MockEvalContext)
-
-	cases := []struct {
-		State *states.ResourceInstanceObject
-		Exit  bool
-	}{
-		{
-			nil,
-			true,
-		},
-		{
-			&states.ResourceInstanceObject{
-				Value: cty.NullVal(cty.Object(map[string]cty.Type{
-					"id": cty.String,
-				})),
-				Status: states.ObjectReady,
-			},
-			true,
-		},
-		{
-			&states.ResourceInstanceObject{
-				Value: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("foo"),
-				}),
-				Status: states.ObjectReady,
-			},
-			false,
-		},
-	}
-
-	var exitVal EvalEarlyExitError
-	for _, tc := range cases {
-		node := &EvalRequireState{State: &tc.State}
-		_, err := node.Eval(ctx)
-		if tc.Exit {
-			if err != exitVal {
-				t.Fatalf("should've exited: %#v", tc.State)
-			}
-
-			continue
-		}
-		if !tc.Exit && err != nil {
-			t.Fatalf("shouldn't exit: %#v", tc.State)
-		}
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-}
-
 func TestEvalUpdateStateHook(t *testing.T) {
 	mockHook := new(MockHook)
 
@@ -274,4 +223,29 @@ aws_instance.foo: (1 deposed)
   provider = provider["registry.terraform.io/hashicorp/aws"]
   Deposed ID 1 = i-abc123
 	`)
+}
+
+// Same test as TestEvalUpdateStateHook, similar function, slightly different
+// signature. The EvalUpdateStateHook test and function will be removed when the
+// EvalNode Removal is complete.
+func TestUpdateStateHook(t *testing.T) {
+	mockHook := new(MockHook)
+
+	state := states.NewState()
+	state.Module(addrs.RootModuleInstance).SetLocalValue("foo", cty.StringVal("hello"))
+
+	ctx := new(MockEvalContext)
+	ctx.HookHook = mockHook
+	ctx.StateState = state.SyncWrapper()
+
+	if err := UpdateStateHook(ctx); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !mockHook.PostStateUpdateCalled {
+		t.Fatal("should call PostStateUpdate")
+	}
+	if mockHook.PostStateUpdateState.LocalValue(addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)) != cty.StringVal("hello") {
+		t.Fatalf("wrong state passed to hook: %s", spew.Sdump(mockHook.PostStateUpdateState))
+	}
 }

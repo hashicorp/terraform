@@ -143,25 +143,6 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	return obj, nil
 }
 
-// EvalRequireState is an EvalNode implementation that exits early if the given
-// object is null.
-type EvalRequireState struct {
-	State **states.ResourceInstanceObject
-}
-
-func (n *EvalRequireState) Eval(ctx EvalContext) (interface{}, error) {
-	if n.State == nil {
-		return nil, EvalEarlyExitError{}
-	}
-
-	state := *n.State
-	if state == nil || state.Value.IsNull() {
-		return nil, EvalEarlyExitError{}
-	}
-
-	return nil, nil
-}
-
 // EvalUpdateStateHook is an EvalNode implementation that calls the
 // PostStateUpdate hook with the current state.
 type EvalUpdateStateHook struct{}
