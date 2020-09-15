@@ -157,9 +157,9 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 			},
 
 			Commands: map[string]bool{
-				"curl -LO https://localhost/chef.zip": true,
-				"bash ./install.sh -v \"11.18.6\" -c stable":   true,
-				"rm -f install.sh": true,
+				"curl -LO https://localhost/chef.zip":        true,
+				"bash ./install.sh -v \"11.18.6\" -c stable": true,
+				"rm -f install.sh":                           true,
 			},
 		},
 	}

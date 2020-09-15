@@ -26,21 +26,21 @@ import (
 )
 
 const (
-	clienrb         = "client.rb"
-	defaultEnv      = "_default"
-	firstBoot       = "first-boot.json"
-	logfileDir      = "logfiles"
-	linuxChefCmd    = "chef-client"
-	linuxConfDir    = "/etc/chef"
-	linuxNoOutput   = "> /dev/null 2>&1"
-	linuxGemCmd     = "/opt/chef/embedded/bin/gem"
-	linuxKnifeCmd   = "knife"
-	secretKey       = "encrypted_data_bag_secret"
-	windowsChefCmd  = "cmd /c chef-client"
-	windowsConfDir  = "C:/chef"
-	windowsNoOutput = "> nul 2>&1"
-	windowsGemCmd   = "C:/opscode/chef/embedded/bin/gem"
-	windowsKnifeCmd = "cmd /c knife"
+	clienrb               = "client.rb"
+	defaultEnv            = "_default"
+	firstBoot             = "first-boot.json"
+	logfileDir            = "logfiles"
+	linuxChefCmd          = "chef-client"
+	linuxConfDir          = "/etc/chef"
+	linuxNoOutput         = "> /dev/null 2>&1"
+	linuxGemCmd           = "/opt/chef/embedded/bin/gem"
+	linuxKnifeCmd         = "knife"
+	secretKey             = "encrypted_data_bag_secret"
+	windowsChefCmd        = "cmd /c chef-client"
+	windowsConfDir        = "C:/chef"
+	windowsNoOutput       = "> nul 2>&1"
+	windowsGemCmd         = "C:/opscode/chef/embedded/bin/gem"
+	windowsKnifeCmd       = "cmd /c knife"
 	defaultBaseInstallURL = "https://omnitruck.chef.io"
 )
 
@@ -119,7 +119,7 @@ type provisioner struct {
 	Vaults                map[string][]string
 	Version               string
 	WaitForRetry          time.Duration
-	InstallURL			  string
+	InstallURL            string
 
 	cleanupUserKeyCmd     string
 	createConfigFiles     provisionFn
@@ -274,9 +274,9 @@ func Provisioner() terraform.ResourceProvisioner {
 				Default:  30,
 			},
 			"install_url": &schema.Schema{
-				Type: 	  schema.TypeString,
+				Type:     schema.TypeString,
 				Optional: true,
-				Default: defaultBaseInstallURL,
+				Default:  defaultBaseInstallURL,
 			},
 		},
 
@@ -818,7 +818,7 @@ func decodeConfig(d *schema.ResourceData) (*provisioner, error) {
 		UserKey:               d.Get("user_key").(string),
 		Version:               d.Get("version").(string),
 		WaitForRetry:          time.Duration(d.Get("wait_for_retry").(int)) * time.Second,
-		InstallURL: 		   d.Get("install_url").(string),
+		InstallURL:            d.Get("install_url").(string),
 	}
 
 	// Make sure the supplied URL has a trailing slash

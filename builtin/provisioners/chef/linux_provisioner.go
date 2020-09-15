@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	chmod      = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
+	chmod            = "find %s -maxdepth 1 -type f -exec /bin/chmod %d {} +"
 	installURLSuffix = "install.sh"
 )
 

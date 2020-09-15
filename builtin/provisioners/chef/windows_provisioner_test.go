@@ -95,11 +95,11 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 		"InstallURL": {
 			Config: map[string]interface{}{
-				"node_name":  "nodename1",
-				"run_list":   []interface{}{"cookbook::recipe"},
-				"server_url": "https://chef.local",
-				"user_name":  "bob",
-				"user_key":   "USER-KEY",
+				"node_name":   "nodename1",
+				"run_list":    []interface{}{"cookbook::recipe"},
+				"server_url":  "https://chef.local",
+				"user_name":   "bob",
+				"user_key":    "USER-KEY",
 				"install_url": "https://localhost",
 			},
 
