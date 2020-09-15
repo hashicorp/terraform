@@ -1,9 +1,14 @@
 package consul
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net"
+	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -78,6 +83,140 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 
 	// Test
 	remote.TestClient(t, state.(*remote.State).Client)
+}
+
+// TestConsul_largeState tries to write a large payload using the Consul state
+// manager, as there is a limit to the size of the values in the KV store it
+// will need to be split up before being saved and put back together when read.
+func TestConsul_largeState(t *testing.T) {
+	path := "tf-unit/test-large-state"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    path,
+	}))
+
+	s, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := s.(*remote.State).Client.(*RemoteClient)
+	c.Path = path
+
+	// testPaths fails the test if the keys found at the prefix don't match
+	// what is expected
+	testPaths := func(t *testing.T, expected []string) {
+		kv := c.Client.KV()
+		pairs, _, err := kv.List(c.Path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := make([]string, 0)
+		for _, p := range pairs {
+			res = append(res, p.Key)
+		}
+		if !reflect.DeepEqual(res, expected) {
+			t.Fatalf("Wrong keys: %#v", res)
+		}
+	}
+
+	testPayload := func(t *testing.T, data map[string]string, keys []string) {
+		payload, err := json.Marshal(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = c.Put(payload)
+		if err != nil {
+			t.Fatal("could not put payload", err)
+		}
+
+		remote, err := c.Get()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// md5 := md5.Sum(payload)
+		// if !bytes.Equal(md5[:], remote.MD5) {
+		// 	t.Fatal("the md5 sums do not match")
+		// }
+
+		if !bytes.Equal(payload, remote.Data) {
+			t.Fatal("the data do not match")
+		}
+
+		testPaths(t, keys)
+	}
+
+	// The default limit for the size of the value in Consul is 524288 bytes
+	testPayload(
+		t,
+		map[string]string{
+			"foo": strings.Repeat("a", 524288+2),
+		},
+		[]string{
+			"tf-unit/test-large-state",
+			"tf-unit/test-large-state/tfstate.2cb96f52c9fff8e0b56cb786ec4d2bed/0",
+			"tf-unit/test-large-state/tfstate.2cb96f52c9fff8e0b56cb786ec4d2bed/1",
+		},
+	)
+
+	// We try to replace the payload with a small one, the old chunks should be removed
+	testPayload(
+		t,
+		map[string]string{"var": "a"},
+		[]string{"tf-unit/test-large-state"},
+	)
+
+	// Test with gzip and chunks
+	b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    path,
+		"gzip":    true,
+	}))
+
+	s, err = b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c = s.(*remote.State).Client.(*RemoteClient)
+	c.Path = path
+
+	// We need a long random string so it results in multiple chunks even after
+	// being gziped
+
+	// We use a fixed seed so the test can be reproductible
+	rand.Seed(1234)
+	RandStringRunes := func(n int) string {
+		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+		b := make([]rune, n)
+		for i := range b {
+			b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		}
+		return string(b)
+	}
+
+	testPayload(
+		t,
+		map[string]string{
+			"bar": RandStringRunes(5 * (524288 + 2)),
+		},
+		[]string{
+			"tf-unit/test-large-state",
+			"tf-unit/test-large-state/tfstate.58e8160335864b520b1cc7f2222a4019/0",
+			"tf-unit/test-large-state/tfstate.58e8160335864b520b1cc7f2222a4019/1",
+			"tf-unit/test-large-state/tfstate.58e8160335864b520b1cc7f2222a4019/2",
+			"tf-unit/test-large-state/tfstate.58e8160335864b520b1cc7f2222a4019/3",
+		},
+	)
+
+	// Deleting the state should remove all chunks
+	err = c.Delete()
+	if err != nil {
+		t.Fatal(err)
+	}
+	testPaths(t, []string{})
 }
 
 func TestConsul_stateLock(t *testing.T) {
