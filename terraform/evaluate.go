@@ -621,12 +621,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	if rs == nil {
 		switch d.Operation {
-		case walkPlan:
-			// During plan as we evaluate each removed instance they are removed
-			// from the temporary working state. Since we know there there are
-			// no instances, and resources might be referenced in a context
-			// that needs to be known during plan, return an empty container of
-			// the expected type.
+		case walkPlan, walkApply:
+			// During plan and apply as we evaluate each removed instance they
+			// are removed from the working state. Since we know there are no
+			// instances, return an empty container of the expected type.
 			switch {
 			case config.Count != nil:
 				return cty.EmptyTupleVal, diags
