@@ -11390,17 +11390,28 @@ variable "ct" {
 
 resource "test_instance" "a" {
   count = var.ct
+}
+
+resource "test_instance" "b" {
+  require_new = local.removable
   lifecycle {
 	create_before_destroy = true
   }
 }
 
-resource "test_instance" "b" {
-  foo = join(".", test_instance.a[*].id)
+resource "test_instance" "c" {
+  require_new = test_instance.b.id
+  lifecycle {
+	create_before_destroy = true
+  }
 }
 
 output "out" {
   value = join(".", test_instance.a[*].id)
+}
+
+locals {
+  removable = join(".", test_instance.a[*].id)
 }
 `})
 
@@ -11409,27 +11420,43 @@ output "out" {
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_instance.a[0]").Resource,
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"a0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"a0"}`),
+			Dependencies:        []addrs.ConfigResource{},
+			CreateBeforeDestroy: true,
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_instance.a[1]").Resource,
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"a1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"a1"}`),
+			Dependencies:        []addrs.ConfigResource{},
+			CreateBeforeDestroy: true,
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_instance.b").Resource,
 		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"b", "foo":"old.old"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"b", "require_new":"old.old"}`),
+			Dependencies:        []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+			CreateBeforeDestroy: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.c").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"c", "require_new":"b"}`),
+			Dependencies: []addrs.ConfigResource{
+				mustResourceAddr("test_instance.a"),
+				mustResourceAddr("test_instance.b"),
+			},
+			CreateBeforeDestroy: true,
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -11443,7 +11470,7 @@ output "out" {
 	ctx := testContext2(t, &ContextOpts{
 		Variables: InputValues{
 			"ct": &InputValue{
-				Value:      cty.NumberIntVal(1),
+				Value:      cty.NumberIntVal(0),
 				SourceType: ValueFromCaller,
 			},
 		},
@@ -11462,6 +11489,11 @@ output "out" {
 	// if resource b isn't going to apply correctly, we will get an error about
 	// an invalid plan value
 	state, diags = ctx.Apply()
+	errMsg := diags.ErrWithWarnings().Error()
+	if strings.Contains(errMsg, "Cycle") {
+		t.Fatal("test should not produce a cycle:\n", errMsg)
+	}
+
 	if !diags.HasErrors() {
 		// FIXME: this test is correct, but needs to wait until we no longer
 		// evaluate resourced that are pending destruction.
