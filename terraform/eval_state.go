@@ -143,25 +143,6 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	return obj, nil
 }
 
-// EvalRequireState is an EvalNode implementation that exits early if the given
-// object is null.
-type EvalRequireState struct {
-	State **states.ResourceInstanceObject
-}
-
-func (n *EvalRequireState) Eval(ctx EvalContext) (interface{}, error) {
-	if n.State == nil {
-		return nil, EvalEarlyExitError{}
-	}
-
-	state := *n.State
-	if state == nil || state.Value.IsNull() {
-		return nil, EvalEarlyExitError{}
-	}
-
-	return nil, nil
-}
-
 // EvalUpdateStateHook is an EvalNode implementation that calls the
 // PostStateUpdate hook with the current state.
 type EvalUpdateStateHook struct{}
@@ -185,6 +166,27 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+// UpdateStateHook calls the PostStateUpdate hook with the current state.
+//
+// TODO: UpdateStateHook will eventually replace EvalUpdateStateHook, at which
+// point EvalUpdateStateHook can be removed and this comment updated.
+func UpdateStateHook(ctx EvalContext) error {
+	// In principle we could grab the lock here just long enough to take a
+	// deep copy and then pass that to our hooks below, but we'll instead
+	// hold the hook for the duration to avoid the potential confusing
+	// situation of us racing to call PostStateUpdate concurrently with
+	// different state snapshots.
+	stateSync := ctx.State()
+	state := stateSync.Lock().DeepCopy()
+	defer stateSync.Unlock()
+
+	// Call the hook
+	err := ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostStateUpdate(state)
+	})
+	return err
 }
 
 // evalWriteEmptyState wraps EvalWriteState to specifically record an empty
@@ -506,34 +508,6 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
-
-	return nil, nil
-}
-
-// EvalForgetResourceState is an EvalNode implementation that prunes out an
-// empty resource-level state for a given resource address, or produces an
-// error if it isn't empty after all.
-//
-// This should be the last action taken for a resource that has been removed
-// from the configuration altogether, to clean up the leftover husk of the
-// resource in the state after other EvalNodes have destroyed and removed
-// all of the instances and instance objects beneath it.
-type EvalForgetResourceState struct {
-	Addr addrs.Resource
-}
-
-func (n *EvalForgetResourceState) Eval(ctx EvalContext) (interface{}, error) {
-	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
-
-	pruned := state.RemoveResourceIfEmpty(absAddr)
-	if !pruned {
-		// If this produces an error, it indicates a bug elsewhere in Terraform
-		// -- probably missing graph nodes, graph edges, or
-		// incorrectly-implemented evaluation steps.
-		return nil, fmt.Errorf("orphan resource %s still has a non-empty state after apply; this is a bug in Terraform", absAddr)
-	}
-	log.Printf("[TRACE] EvalForgetResourceState: Pruned husk of %s from state", absAddr)
 
 	return nil, nil
 }

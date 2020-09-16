@@ -251,12 +251,11 @@ func (n *NodeRefreshableDataResourceInstance) Execute(ctx EvalContext, op walkOp
 			return err
 		}
 
-		// EvalUpdateStateHook
-		updateStateHookReq := EvalUpdateStateHook{}
-		_, err = updateStateHookReq.Eval(ctx)
+		err = UpdateStateHook(ctx)
 		if err != nil {
 			return err
 		}
+
 	} else {
 		// EvalWriteDiff
 		writeDiffReq := &EvalWriteDiff{
