@@ -14,8 +14,8 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-// HexDecodeFunc constructs a function that decodes a string in hex format
-var HexDecodeFunc = function.New(&function.Spec{
+// HexToBase64Func constructs a function that decodes a string in hex format
+var HexToBase64Func = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "str",
@@ -29,7 +29,7 @@ var HexDecodeFunc = function.New(&function.Spec{
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode hex string '%s'", s)
 		}
-		return cty.StringVal(string(sDec)), nil
+		return cty.StringVal(base64.StdEncoding.EncodeToString(sDec)), nil
 	},
 })
 
@@ -112,12 +112,12 @@ var URLEncodeFunc = function.New(&function.Spec{
 	},
 })
 
-// HexDecode decodes a hexadecimal string.
+// HexToBase64 decodes a hexstring then converts to base64
 //
-// This function decodes a hexadecimal string into its raw value.
-//
-func HexDecode(str cty.Value) (cty.Value, error) {
-	return HexDecodeFunc.Call([]cty.Value{str})
+// This function decodes a hexadecimal string and encodes
+// the result into a base64 representation
+func HexToBase64(str cty.Value) (cty.Value, error) {
+	return HexToBase64Func.Call([]cty.Value{str})
 }
 
 // Base64Decode decodes a string containing a base64 sequence.

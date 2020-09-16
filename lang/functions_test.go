@@ -437,10 +437,10 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"hexdecode": {
+		"hextobase64": {
 			{
 				`hexdecode("69206c6f7665207465727261666f726d")`,
-				cty.StringVal("i love terraform"),
+				cty.StringVal("aSBsb3ZlIHRlcnJhZm9ybQ=="),
 			},
 		},
 

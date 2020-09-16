@@ -172,14 +172,14 @@ func TestHexDecode(t *testing.T) {
 	}{
 		{
 			cty.StringVal("69206c6f7665207465727261666f726d"),
-			cty.StringVal("i love terraform"),
+			cty.StringVal("aSBsb3ZlIHRlcnJhZm9ybQ=="),
 			false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("hexdecode(%#v)", test.String), func(t *testing.T) {
-			got, err := HexDecode(test.String)
+			got, err := HexToBase64(test.String)
 
 			if test.Err {
 				if err == nil {
