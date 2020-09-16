@@ -522,6 +522,41 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend-config-file-change-migrate-existing"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	oldState := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+
+	// we deliberately do not provide the answer for backend-migrate-copy-to-empty to trigger error
+	args := []string{"-backend-config", "input.config", "-input=true"}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	// Read our backend config and verify new settings are not saved
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"local-state.tfstate"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// without changing config, hash should not change
+	if oldState.Backend.Hash != state.Backend.Hash {
+		t.Errorf("backend hash should not have changed\ngot:  %d\nwant: %d", state.Backend.Hash, oldState.Backend.Hash)
+	}
+}
+
 func TestInit_backendConfigKV(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
