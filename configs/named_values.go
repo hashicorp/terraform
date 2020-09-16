@@ -439,6 +439,8 @@ type Output struct {
 }
 
 func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
 	o := &Output{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
@@ -449,7 +451,13 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 		schema = schemaForOverrides(schema)
 	}
 
-	content, diags := block.Body.Content(schema)
+	// Produce deprecation messages for any pre-0.12-style
+	// single-interpolation-only expressions.
+	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
+	diags = append(diags, moreDiags...)
+
+	content, moreDiags := block.Body.Content(schema)
+	diags = append(diags, moreDiags...)
 
 	if !hclsyntax.ValidIdentifier(o.Name) {
 		diags = append(diags, &hcl.Diagnostic{
@@ -511,6 +519,11 @@ func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 				Subject:  &attr.NameRange,
 			})
 		}
+
+		// Produce deprecation messages for any pre-0.12-style
+		// single-interpolation-only expressions.
+		moreDiags := warnForDeprecatedInterpolationsInExpr(attr.Expr)
+		diags = append(diags, moreDiags...)
 
 		locals = append(locals, &Local{
 			Name:      name,
