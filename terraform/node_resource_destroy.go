@@ -21,8 +21,6 @@ type NodeDestroyResourceInstance struct {
 	// this node destroys a deposed object of the associated instance
 	// rather than its current object.
 	DeposedKey states.DeposedKey
-
-	CreateBeforeDestroyOverride *bool
 }
 
 var (
@@ -63,10 +61,6 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 		}
 	}
 
-	if n.CreateBeforeDestroyOverride != nil {
-		return *n.CreateBeforeDestroyOverride
-	}
-
 	if n.Config != nil && n.Config.Managed != nil {
 		return n.Config.Managed.CreateBeforeDestroy
 	}
@@ -76,7 +70,6 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
-	n.CreateBeforeDestroyOverride = &v
 	return nil
 }
 
