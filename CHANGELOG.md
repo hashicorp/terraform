@@ -1,13 +1,13 @@
-## 0.13.3 (Unreleased)
+## 0.13.3 (September 16, 2020)
 
 BUG FIXES:
 
-* build: fix crash with terraform binary on openBSD [GH-26250]
-* core: prevent create_before_destroy cycles by not connecting module close nodes to resource instance destroy nodes [GH-26186]
-* core: fix error where plan action changes from CreateThenDelete to DeleteThenCreate [GH-26192]
-* core: fix Cycle when create_before_destroy status wasn't checked from state [GH-26263]
-* core: fix "inconsistent final plan" error when changing the number of referenced resources to 0 [GH-26264]
-* states/remote: fix `state push -force` to work for all backends [GH-26190]
+* build: fix crash with terraform binary on openBSD ([#26250](https://github.com/hashicorp/terraform/issues/26250))
+* core: prevent create_before_destroy cycles by not connecting module close nodes to resource instance destroy nodes ([#26186](https://github.com/hashicorp/terraform/issues/26186))
+* core: fix error where plan action changes from CreateThenDelete to DeleteThenCreate ([#26192](https://github.com/hashicorp/terraform/issues/26192))
+* core: fix Cycle when create_before_destroy status wasn't checked from state ([#26263](https://github.com/hashicorp/terraform/issues/26263))
+* core: fix "inconsistent final plan" error when changing the number of referenced resources to 0 ([#26264](https://github.com/hashicorp/terraform/issues/26264))
+* states/remote: fix `state push -force` to work for all backends ([#26190](https://github.com/hashicorp/terraform/issues/26190))
 
 ## 0.13.2 (September 02, 2020)
 
