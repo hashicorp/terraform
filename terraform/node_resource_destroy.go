@@ -21,8 +21,6 @@ type NodeDestroyResourceInstance struct {
 	// this node destroys a deposed object of the associated instance
 	// rather than its current object.
 	DeposedKey states.DeposedKey
-
-	CreateBeforeDestroyOverride *bool
 }
 
 var (
@@ -53,20 +51,18 @@ func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
-	if n.CreateBeforeDestroyOverride != nil {
-		return *n.CreateBeforeDestroyOverride
-	}
-
-	// Config takes precedence
-	if n.Config != nil && n.Config.Managed != nil {
-		return n.Config.Managed.CreateBeforeDestroy
-	}
-
-	// Otherwise check the state for a stored destroy order
+	// State takes precedence during destroy.
+	// If the resource was removed, there is no config to check.
+	// If CBD was forced from descendent, it should be saved in the state
+	// already.
 	if s := n.instanceState; s != nil {
 		if s.Current != nil {
 			return s.Current.CreateBeforeDestroy
 		}
+	}
+
+	if n.Config != nil && n.Config.Managed != nil {
+		return n.Config.Managed.CreateBeforeDestroy
 	}
 
 	return false
@@ -74,7 +70,6 @@ func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
-	n.CreateBeforeDestroyOverride = &v
 	return nil
 }
 
