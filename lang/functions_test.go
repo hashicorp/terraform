@@ -439,7 +439,7 @@ func TestFunctions(t *testing.T) {
 
 		"hextobase64": {
 			{
-				`hexdecode("69206c6f7665207465727261666f726d")`,
+				`hextobase64("69206c6f7665207465727261666f726d")`,
 				cty.StringVal("aSBsb3ZlIHRlcnJhZm9ybQ=="),
 			},
 		},
