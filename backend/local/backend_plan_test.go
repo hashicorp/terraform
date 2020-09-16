@@ -830,7 +830,7 @@ func testPlanState_tainted() *states.State {
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
 			Name: "foo",
-		}.Instance(addrs.IntKey(0)),
+		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
 			Status: states.ObjectTainted,
 			AttrsJSON: []byte(`{
