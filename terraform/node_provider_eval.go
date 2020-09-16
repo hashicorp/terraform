@@ -8,11 +8,8 @@ type NodeEvalableProvider struct {
 	*NodeAbstractProvider
 }
 
-// GraphNodeEvalable
-func (n *NodeEvalableProvider) EvalTree() EvalNode {
-	addr := n.Addr
-
-	return &EvalInitProvider{
-		Addr: addr,
-	}
+// GraphNodeExecutable
+func (n *NodeEvalableProvider) Execute(ctx EvalContext, op walkOperation) error {
+	_, err := ctx.InitProvider(n.Addr)
+	return err
 }

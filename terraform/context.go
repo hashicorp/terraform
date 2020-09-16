@@ -574,7 +574,6 @@ The -target option is not for routine use, and is provided only for exceptional 
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
-		fmt.Println("walkerr")
 		return nil, diags
 	}
 	p.Changes = c.changes
