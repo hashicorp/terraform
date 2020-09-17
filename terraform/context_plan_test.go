@@ -6370,3 +6370,41 @@ data "test_data_source" "d" {
 		t.Fatal("expected data.test_data_source.d to be fully read in refreshed state, got status", d.Current.Status)
 	}
 }
+
+func TestContext2Plan_dataReferencesResource(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source should not be read"))
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+	x = "value"
+}
+
+resource "test_resource" "a" {
+	value = local.x
+}
+
+// test_resource.a.value can be resolved during plan, but the reference implies
+// that the data source should wait until the resource is created.
+data "test_data_source" "d" {
+	foo = test_resource.a.value
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+}
