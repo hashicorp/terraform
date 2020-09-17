@@ -658,24 +658,21 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			case config.ForEach != nil:
 				return cty.EmptyObjectVal, diags
 			default:
-				// FIXME: try to prove this path should not be reached during plan.
-				//
-				// while we can reference an expanded resource with 0
+				// While we can reference an expanded resource with 0
 				// instances, we cannot reference instances that do not exist.
-				// Since we haven't ensured that all instances exist in all
-				// cases (this path only ever returned unknown), only log this as
-				// an error for now, and continue to return a DynamicVal
+				// Due to the fact that we may have direct references to
+				// instances that may end up in a root output during destroy
+				// (since a planned destroy cannot yet remove root outputs), we
+				// need to return a dynamic value here to allow evaluation to
+				// continue.
 				log.Printf("[ERROR] unknown instance %q referenced during plan", addr.Absolute(d.ModulePath))
 				return cty.DynamicVal, diags
 			}
 
 		default:
-			// we must return DynamicVal so that both interpretations
-			// can proceed without generating errors, and we'll deal with this
-			// in a later step where more information is gathered.
-			// (In practice we should only end up here during the validate walk,
+			// We should only end up here during the validate walk,
 			// since later walks should have at least partial states populated
-			// for all resources in the configuration.)
+			// for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
 	}

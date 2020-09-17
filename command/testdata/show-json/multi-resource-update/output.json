@@ -101,20 +101,14 @@
         "format_version": "0.1",
         "terraform_version": "0.13.0",
         "values": {
-            "outputs": {
-                "test": {
-                    "sensitive": false,
-                    "value": "bar"
-                }
-            },
             "root_module": {
                 "resources": [
                     {
                         "address": "test_instance.test[0]",
+                        "index": 0,
                         "mode": "managed",
                         "type": "test_instance",
                         "name": "test",
-                        "index": 0,
                         "provider_name": "registry.terraform.io/hashicorp/test",
                         "schema_version": 0,
                         "values": {

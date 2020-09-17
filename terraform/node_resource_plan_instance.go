@@ -63,8 +63,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Addr:           addr.Resource,
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
-
-				Output: &state,
+				Output:         &state,
 			},
 
 			&EvalValidateSelfRef{
@@ -108,7 +107,8 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
+	var instanceRefreshState *states.ResourceInstanceObject
+	var instancePlanState *states.ResourceInstanceObject
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -118,19 +118,41 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Schema: &providerSchema,
 			},
 
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-			},
-
 			&EvalValidateSelfRef{
 				Addr:           addr.Resource,
 				Config:         config.Config,
 				ProviderSchema: &providerSchema,
 			},
 
+			// Refresh the instance
+			&EvalReadState{
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+				Output:         &instanceRefreshState,
+			},
+			&EvalRefreshDependencies{
+				State:        &instanceRefreshState,
+				Dependencies: &n.Dependencies,
+			},
+			&EvalRefresh{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				Provider:       &provider,
+				ProviderMetas:  n.ProviderMetas,
+				ProviderSchema: &providerSchema,
+				State:          &instanceRefreshState,
+				Output:         &instanceRefreshState,
+			},
+			&EvalWriteState{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &instanceRefreshState,
+				ProviderSchema: &providerSchema,
+				targetState:    refreshState,
+			},
+
+			// Plan the instance
 			&EvalDiff{
 				Addr:                addr.Resource,
 				Config:              n.Config,
@@ -139,9 +161,9 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				ProviderAddr:        n.ResolvedProvider,
 				ProviderMetas:       n.ProviderMetas,
 				ProviderSchema:      &providerSchema,
-				State:               &state,
+				State:               &instanceRefreshState,
 				OutputChange:        &change,
-				OutputState:         &state,
+				OutputState:         &instancePlanState,
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
@@ -151,7 +173,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
-				State:          &state,
+				State:          &instancePlanState,
 				ProviderSchema: &providerSchema,
 			},
 			&EvalWriteDiff{

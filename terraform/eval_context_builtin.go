@@ -71,6 +71,7 @@ type BuiltinEvalContext struct {
 	ProvisionerLock       *sync.Mutex
 	ChangesValue          *plans.ChangesSync
 	StateValue            *states.SyncState
+	RefreshStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
 }
 
@@ -348,6 +349,10 @@ func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
 
 func (ctx *BuiltinEvalContext) State() *states.SyncState {
 	return ctx.StateValue
+}
+
+func (ctx *BuiltinEvalContext) RefreshState() *states.SyncState {
+	return ctx.RefreshStateValue
 }
 
 func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {

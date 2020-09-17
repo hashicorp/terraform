@@ -2376,12 +2376,10 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 		t.Fatalf("plan failed unexpectedly: %s", diags.Err())
 	}
 
-	state := ctx.State()
-
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -6014,7 +6012,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 
 		t.Logf("Step 2 plan: %s", legacyDiffComparisonString(plan.Changes))
 
-		ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+		ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -6089,7 +6087,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+		ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -6245,7 +6243,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+		ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -8319,7 +8317,7 @@ func TestContext2Apply_issue7824(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, err := contextOptsForPlanViaFile(snap, ctx.State(), plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8396,7 +8394,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8473,7 +8471,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, err := contextOptsForPlanViaFile(snap, ctx.State(), plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8730,7 +8728,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+		ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -9157,11 +9155,16 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	}
 
 	// correct the state
-	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = addrs.AbsProviderConfig{
-		Provider: addrs.NewDefaultProvider("aws"),
-		Alias:    "bar",
-		Module:   addrs.RootModule,
-	}
+	state.Modules["module.mod.module.removed"].Resources["aws_instance.child"].ProviderConfig = mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"].bar`)
+
+	ctx = testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -9313,7 +9316,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, err := contextOptsForPlanViaFile(snap, ctx.State(), plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -9376,7 +9379,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, err := contextOptsForPlanViaFile(snap, ctx.State(), plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -9826,7 +9829,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -9857,6 +9860,22 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 		}
 
 		return testApplyFn(info, s, d)
+	}
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
 	}
 
 	state := states.NewState()
@@ -9978,7 +9997,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 		t.Fatal("test_instance.c should have no deposed instances")
 	}
 
-	if string(c.Current.AttrsJSON) != `{"id":"c","foo":"old"}` {
+	if string(c.Current.AttrsJSON) != `{"foo":"old","id":"c"}` {
 		t.Fatalf("unexpected attrs for c: %q\n", c.Current.AttrsJSON)
 	}
 }
@@ -10141,7 +10160,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, err := contextOptsForPlanViaFile(snap, state, plan)
+	ctxOpts, err := contextOptsForPlanViaFile(snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -93,13 +93,14 @@ type ContextMeta struct {
 // perform operations on infrastructure. This structure is built using
 // NewContext.
 type Context struct {
-	config    *configs.Config
-	changes   *plans.Changes
-	state     *states.State
-	targets   []addrs.Targetable
-	variables InputValues
-	meta      *ContextMeta
-	destroy   bool
+	config       *configs.Config
+	changes      *plans.Changes
+	state        *states.State
+	refreshState *states.State
+	targets      []addrs.Targetable
+	variables    InputValues
+	meta         *ContextMeta
+	destroy      bool
 
 	hooks      []Hook
 	components contextComponentFactory
@@ -223,17 +224,18 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	}
 
 	return &Context{
-		components: components,
-		schemas:    schemas,
-		destroy:    opts.Destroy,
-		changes:    changes,
-		hooks:      hooks,
-		meta:       opts.Meta,
-		config:     config,
-		state:      state,
-		targets:    opts.Targets,
-		uiInput:    opts.UIInput,
-		variables:  variables,
+		components:   components,
+		schemas:      schemas,
+		destroy:      opts.Destroy,
+		changes:      changes,
+		hooks:        hooks,
+		meta:         opts.Meta,
+		config:       config,
+		state:        state,
+		refreshState: state.DeepCopy(),
+		targets:      opts.Targets,
+		uiInput:      opts.UIInput,
+		variables:    variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
@@ -490,10 +492,15 @@ Note that the -target option is not suitable for routine use, and is provided on
 		))
 	}
 
+	// This isn't technically needed, but don't leave an old refreshed state
+	// around in case we re-use the context in internal tests.
+	c.refreshState = c.state.DeepCopy()
+
 	return c.state, diags
 }
 
-// Plan generates an execution plan for the given context.
+// Plan generates an execution plan for the given context, and returns the
+// refreshed state.
 //
 // The execution plan encapsulates the context and can be stored
 // in order to reinstantiate a context later for Apply.
@@ -538,31 +545,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 		ProviderSHA256s: c.providerSHA256s,
 	}
 
-	var operation walkOperation
-	if c.destroy {
-		operation = walkPlanDestroy
-	} else {
-		// Set our state to be something temporary. We do this so that
-		// the plan can update a fake state so that variables work, then
-		// we replace it back with our old state.
-		old := c.state
-		if old == nil {
-			c.state = states.NewState()
-		} else {
-			c.state = old.DeepCopy()
-		}
-		defer func() {
-			c.state = old
-		}()
-
-		operation = walkPlan
-	}
-
-	// Build the graph.
+	operation := walkPlan
 	graphType := GraphTypePlan
 	if c.destroy {
+		operation = walkPlanDestroy
 		graphType = GraphTypePlanDestroy
 	}
+
 	graph, graphDiags := c.Graph(graphType, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
@@ -577,6 +566,12 @@ The -target option is not for routine use, and is provided only for exceptional 
 		return nil, diags
 	}
 	p.Changes = c.changes
+
+	p.State = c.refreshState
+
+	// replace the working state with the updated state, so that immediate calls
+	// to Apply work as expected.
+	c.state = c.refreshState
 
 	return p, diags
 }
@@ -781,20 +776,31 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 }
 
 func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
-	if operation == walkValidate {
-		return &ContextGraphWalker{
-			Context:            c,
-			State:              states.NewState().SyncWrapper(),
-			Changes:            c.changes.SyncWrapper(),
-			InstanceExpander:   instances.NewExpander(),
-			Operation:          operation,
-			StopContext:        c.runContext,
-			RootVariableValues: c.variables,
-		}
+	var state *states.SyncState
+	var refreshState *states.SyncState
+
+	switch operation {
+	case walkValidate:
+		// validate should not use any state
+		s := states.NewState()
+		state = s.SyncWrapper()
+
+		// validate currently uses the plan graph, so we have to populate the
+		// refreshState.
+		refreshState = s.SyncWrapper()
+
+	case walkPlan:
+		state = c.state.SyncWrapper()
+		refreshState = c.refreshState.SyncWrapper()
+
+	default:
+		state = c.state.SyncWrapper()
 	}
+
 	return &ContextGraphWalker{
 		Context:            c,
-		State:              c.state.SyncWrapper(),
+		State:              state,
+		RefreshState:       refreshState,
 		Changes:            c.changes.SyncWrapper(),
 		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,

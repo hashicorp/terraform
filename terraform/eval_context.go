@@ -152,6 +152,11 @@ type EvalContext interface {
 	// the global state.
 	State() *states.SyncState
 
+	// RefreshState returns a wrapper object that provides safe concurrent
+	// access to the state used to store the most recently refreshed resource
+	// values.
+	RefreshState() *states.SyncState
+
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"
 	// arguments.

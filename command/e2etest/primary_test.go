@@ -9,6 +9,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/e2e"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -71,8 +72,23 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	}
 
 	diffResources := plan.Changes.Resources
-	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
-		t.Errorf("incorrect diff in plan; want just null_resource.test to have been rendered, but have:\n%s", spew.Sdump(diffResources))
+	if len(diffResources) != 2 {
+		t.Errorf("incorrect number of resources in plan")
+	}
+
+	expected := map[string]plans.Action{
+		"data.template_file.test": plans.Read,
+		"null_resource.test":      plans.Create,
+	}
+
+	for _, r := range diffResources {
+		expectedAction, ok := expected[r.Addr.String()]
+		if !ok {
+			t.Fatalf("unexpected change for %q", r.Addr)
+		}
+		if r.Action != expectedAction {
+			t.Fatalf("unexpected action %q for %q", r.Action, r.Addr)
+		}
 	}
 
 	//// APPLY

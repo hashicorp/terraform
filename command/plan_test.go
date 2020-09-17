@@ -96,10 +96,6 @@ func TestPlan_plan(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("wrong exit status %d; want 1\nstderr: %s", code, ui.ErrorWriter.String())
 	}
-
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not have been called")
-	}
 }
 
 func TestPlan_destroy(t *testing.T) {
@@ -140,10 +136,6 @@ func TestPlan_destroy(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should have been called")
 	}
 
 	plan := testReadPlan(t, outPath)
