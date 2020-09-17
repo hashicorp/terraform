@@ -3,7 +3,7 @@ layout: "registry"
 page_title: "Terraform Registry - HTTP API"
 sidebar_current: "docs-registry-api"
 description: |-
-  The /acl endpoints create, update, destroy, and query ACL tokens in Consul.
+  The /api endpoints list modules according to some criteria.
 ---
 
 # HTTP API
