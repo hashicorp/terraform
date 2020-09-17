@@ -395,8 +395,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
 
-			// Unmark for this test for equality
-			// TODO: If one is marked and one is not, they are not equal!
+			// Unmark for this value for the equality test. If only sensitivity has changed,
+			// this does not require an Update or Replace
 			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
 			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
 			if !eqV.IsKnown() || eqV.False() {
@@ -408,10 +408,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	// Unmark for this test for equality
+	// Unmark for this test for equality. If only sensitivity has changed,
+	// this does not require an Update or Replace
 	unmarkedPlannedNewVal, _ := plannedNewVal.UnmarkDeep()
-
-	// TODO if one is marked and one is not, they are not equal!
 	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
