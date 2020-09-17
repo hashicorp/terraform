@@ -5630,14 +5630,6 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 	m := testModule(t, "plan-variable-sensitivity")
 
 	p := testProvider("aws")
-	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
-		foo := req.Config.GetAttr("foo").AsString()
-		if foo == "bar" {
-			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo cannot be bar"))
-		}
-		return
-	}
-
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = req.ProposedNewState
 		return
@@ -5675,6 +5667,81 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"foo": cty.StringVal("foo"),
 			}), ric.After)
+			if len(res.ChangeSrc.BeforeValMarks) != 0 {
+				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
+			}
+			if len(res.ChangeSrc.AfterValMarks) != 1 {
+				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+				continue
+			}
+			pvm := res.ChangeSrc.AfterValMarks[0]
+			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
+				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			}
+			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+}
+
+func TestContext2Plan_variableSensitivityModule(t *testing.T) {
+	m := testModule(t, "plan-variable-sensitivity-module")
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.child.aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo": cty.StringVal("foo"),
+			}), ric.After)
+			if len(res.ChangeSrc.BeforeValMarks) != 0 {
+				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
+			}
+			if len(res.ChangeSrc.AfterValMarks) != 1 {
+				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+				continue
+			}
+			pvm := res.ChangeSrc.AfterValMarks[0]
+			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
+				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			}
+			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			}
 		default:
 			t.Fatal("unknown instance:", i)
 		}
