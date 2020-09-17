@@ -138,6 +138,8 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
+	// We still default to read here, to indicate any changes in the plan, even
+	// though this will already be written in the refreshed state.
 	action := plans.Read
 	if priorVal.Equals(newVal).True() {
 		action = plans.NoOp
@@ -159,7 +161,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 
 	*n.State = &states.ResourceInstanceObject{
 		Value:  newVal,
-		Status: states.ObjectPlanned,
+		Status: states.ObjectReady,
 	}
 
 	if err := ctx.Hook(func(h Hook) (HookAction, error) {

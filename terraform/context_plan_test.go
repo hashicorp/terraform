@@ -6333,3 +6333,40 @@ func TestContext2Plan_targetedModuleInstance(t *testing.T) {
 		}
 	}
 }
+
+func TestContext2Plan_dataRefreshedInPlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "d" {
+}
+`})
+
+	p := testProvider("test")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("this"),
+			"foo": cty.NullVal(cty.String),
+		}),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	d := plan.State.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.d"))
+	if d == nil || d.Current == nil {
+		t.Fatal("data.test_data_source.d not found in state:", plan.State)
+	}
+
+	if d.Current.Status != states.ObjectReady {
+		t.Fatal("expected data.test_data_source.d to be fully read in refreshed state, got status", d.Current.Status)
+	}
+}
