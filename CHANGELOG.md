@@ -1,5 +1,9 @@
 ## 0.13.4 (Unreleased)
 
+UPGRADE NOTES:
+
+* Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. An expression like `"${foo}"` should be rewritten as just `foo`. [GH-27272]
+
 ## 0.13.3 (September 16, 2020)
 
 BUG FIXES:
