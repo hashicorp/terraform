@@ -1,8 +1,6 @@
 package states
 
 import (
-	"fmt"
-
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -86,9 +84,7 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
 		// Mark the value with paths if applicable
 		if os.AttrPaths != nil {
-			fmt.Println("Marking in Decode")
 			val = val.MarkWithPaths(os.AttrPaths)
-			fmt.Println("val after mark in decode: ", val)
 		}
 		if err != nil {
 			return nil, err

@@ -552,8 +552,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Update the state if we care
 	if n.OutputState != nil {
-		fmt.Println("writing output state in eval diff")
-		fmt.Printf("planned new val contains marks %v\n", plannedNewVal.ContainsMarked())
 		*n.OutputState = &states.ResourceInstanceObject{
 			// We use the special "planned" status here to note that this
 			// object's value is not yet complete. Objects with this status

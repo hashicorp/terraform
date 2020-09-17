@@ -1,8 +1,6 @@
 package states
 
 import (
-	"fmt"
-
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -89,7 +87,6 @@ const (
 // so the caller must not mutate the receiver any further once once this
 // method is called.
 func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
-	fmt.Println("encode called")
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
 	// values here and expecting to get them out again later.
@@ -106,9 +103,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	var pvm []cty.PathValueMarks
 	if val.ContainsMarked() {
 		unmarked, pvm = val.UnmarkDeepWithPaths()
-		fmt.Printf("Encode(): %#v\n", pvm)
 	}
-	fmt.Printf("pvm length is >0 %v\n", len(pvm) > 0)
 	src, err := ctyjson.Marshal(unmarked, ty)
 	if err != nil {
 		return nil, err
