@@ -113,6 +113,12 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		unmarkedConfigVal, _ = configVal.UnmarkDeep()
 	}
 
+	unmarkedBefore := change.Before
+	var beforePaths []cty.PathValueMarks
+	if change.After.ContainsMarked() {
+		unmarkedBefore, beforePaths = change.Before.UnmarkDeepWithPaths()
+	}
+
 	unmarkedAfter := change.After
 	var afterPaths []cty.PathValueMarks
 	if change.After.ContainsMarked() {
@@ -121,7 +127,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
-		PriorState:     change.Before,
+		PriorState:     unmarkedBefore,
 		Config:         unmarkedConfigVal,
 		PlannedState:   unmarkedAfter,
 		PlannedPrivate: change.Private,
@@ -141,6 +147,9 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	newVal := resp.NewState
 
 	// If we have paths to mark, mark those on this new value
+	if len(beforePaths) > 0 {
+		newVal = newVal.MarkWithPaths(beforePaths)
+	}
 	if len(afterPaths) > 0 {
 		newVal = newVal.MarkWithPaths(afterPaths)
 	}
