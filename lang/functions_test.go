@@ -67,9 +67,9 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"all": {
+		"alltrue": {
 			{
-				`all([true])`,
+				`alltrue([true])`,
 				cty.True,
 			},
 		},

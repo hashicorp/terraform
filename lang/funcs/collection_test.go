@@ -139,7 +139,7 @@ func TestLength(t *testing.T) {
 	}
 }
 
-func TestAll(t *testing.T) {
+func TestAllTrue(t *testing.T) {
 	tests := []struct {
 		Collection cty.Value
 		Want       cty.Value
@@ -171,6 +171,11 @@ func TestAll(t *testing.T) {
 			false,
 		},
 		{
+			cty.TupleVal([]cty.Value{cty.True, cty.StringVal("true")}),
+			cty.True,
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{cty.False}),
 			cty.False,
 			false,
@@ -195,26 +200,21 @@ func TestAll(t *testing.T) {
 			cty.False,
 			true,
 		},
-		// {
-		// 	cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
-		// 	cty.False,
-		// 	false,
-		// },
-		// {
-		// 	cty.ListVal([]cty.Value{cty.True, cty.StringVal("true")}),
-		// 	cty.True,
-		// 	false,
-		// },
-		// {
-		// 	cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
-		// 	cty.False,
-		// 	false,
-		// },
+		{
+			cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
+			cty.False,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("all(%#v)", test.Collection), func(t *testing.T) {
-			got, err := All(test.Collection)
+		t.Run(fmt.Sprintf("alltrue(%#v)", test.Collection), func(t *testing.T) {
+			got, err := AllTrue(test.Collection)
 
 			if test.Err {
 				if err == nil {

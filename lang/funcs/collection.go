@@ -56,9 +56,9 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
-// AllFunc constructs a function that returns true if all elements of the
+// AllTrueFunc constructs a function that returns true if all elements of the
 // collection are true or "true". If the collection is empty, return true.
-var AllFunc = function.New(&function.Spec{
+var AllTrueFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "collection",
@@ -75,6 +75,9 @@ var AllFunc = function.New(&function.Spec{
 		tobool := MakeToFunc(cty.Bool)
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
+			if !v.IsKnown() {
+				return cty.UnknownVal(cty.Bool), nil
+			}
 			got, err := tobool.Call([]cty.Value{v})
 			if err != nil {
 				return cty.False, nil
@@ -617,10 +620,10 @@ func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
 }
 
-// All returns true if all elements of the collection are true or "true".
+// AllTrue returns true if all elements of the collection are true or "true".
 // If the collection is empty, return true.
-func All(collection cty.Value) (cty.Value, error) {
-	return AllFunc.Call([]cty.Value{collection})
+func AllTrue(collection cty.Value) (cty.Value, error) {
+	return AllTrueFunc.Call([]cty.Value{collection})
 }
 
 // Coalesce takes any number of arguments and returns the first one that isn't empty.
