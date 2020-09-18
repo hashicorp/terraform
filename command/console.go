@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/lang/funcs"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -126,6 +127,8 @@ func (c *ConsoleCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+	scope.AddFunc("type", funcs.TypeFunc)
+
 	if diags.HasErrors() {
 		diags = diags.Append(tfdiags.SimpleWarning("Due to the problems above, some expressions may produce unexpected results."))
 	}

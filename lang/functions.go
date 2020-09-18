@@ -199,3 +199,22 @@ func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn funct
 		},
 	})
 }
+
+// AddFunc allows adding Functions directly to the scope. This is intended
+// for use by the console command, to allow for functions that aren't
+// otherwise supported in configuration.
+func (s *Scope) AddFunc(name string, newFunc function.Function) {
+	s.funcsLock.Lock()
+	if s.funcs == nil {
+		s.funcs = map[string]function.Function{
+			name: newFunc,
+		}
+	} else {
+		if _, ok := s.funcs[name]; ok {
+			panic("cannot re-register an existing function")
+		}
+		s.funcs[name] = newFunc
+	}
+	s.funcsLock.Unlock()
+	return
+}
