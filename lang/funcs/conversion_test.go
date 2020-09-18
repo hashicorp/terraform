@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -175,5 +176,68 @@ func TestTo(t *testing.T) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
 			}
 		})
+	}
+}
+
+func TestType(t *testing.T) {
+	tests := []struct {
+		Input cty.Value
+		Want  string
+	}{
+		// Primititves
+		{
+			cty.StringVal("a"),
+			"string",
+		},
+		{
+			cty.NumberIntVal(42),
+			"number",
+		},
+		{
+			cty.BoolVal(true),
+			"bool",
+		},
+		// Collections
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a")}),
+			`list(string)`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.ListVal([]cty.Value{cty.NumberIntVal(42)})}),
+			`list(list(number))`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.MapValEmpty(cty.String)}),
+			`list(map(string))`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			})}),
+			"list(\n    object({\n        foo: string,\n    }),\n)",
+		},
+		// Unknowns and Nulls
+		{
+			cty.UnknownVal(cty.String),
+			"string",
+		},
+		{
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+			})),
+			"object({\n    foo: string,\n})",
+		},
+	}
+	for _, test := range tests {
+		got, err := Type([]cty.Value{test.Input})
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		// The value is marked to help with formatting
+		got, _ = got.Unmark()
+
+		if got.AsString() != test.Want {
+			t.Errorf("wrong result:\n%s", cmp.Diff(got.AsString(), test.Want))
+		}
 	}
 }

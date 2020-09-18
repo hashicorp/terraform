@@ -127,6 +127,10 @@ func (c *ConsoleCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// set the ConsoleMode to true so any available console-only functions included.
+	scope.ConsoleMode = true
+
 	if diags.HasErrors() {
 		diags = diags.Append(tfdiags.SimpleWarning("Due to the problems above, some expressions may produce unexpected results."))
 	}
