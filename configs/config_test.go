@@ -32,6 +32,7 @@ func TestConfigProviderTypes(t *testing.T) {
 		addrs.NewDefaultProvider("aws"),
 		addrs.NewDefaultProvider("null"),
 		addrs.NewDefaultProvider("template"),
+		addrs.NewDefaultProvider("test"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)
