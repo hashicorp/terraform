@@ -46,6 +46,7 @@ type GraphNodeAttachDependencies interface {
 // graphNodeDependsOn is implemented by resources that need to expose any
 // references set via DependsOn in their configuration.
 type graphNodeDependsOn interface {
+	GraphNodeReferencer
 	DependsOn() []*addrs.Reference
 }
 
@@ -326,6 +327,31 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 	fromModule := false
 
 	refs := depender.DependsOn()
+
+	// For data sources we implicitly treat references as depends_on entries.
+	// If a data source references a resource, even if that reference is
+	// resolvable, it stands to reason that the user intends for the data
+	// source to require that resource in some way.
+	if n, ok := depender.(GraphNodeConfigResource); ok &&
+		n.ResourceAddr().Resource.Mode == addrs.DataResourceMode {
+		for _, r := range depender.References() {
+
+			// We don't need to wait on referenced data sources. They have no
+			// side effects, so our configuration reference should suffice for
+			// proper ordering.
+			var resAddr addrs.Resource
+			switch s := r.Subject.(type) {
+			case addrs.Resource:
+				resAddr = s
+			case addrs.ResourceInstance:
+				resAddr = s.Resource
+			}
+
+			if resAddr.Mode == addrs.ManagedResourceMode {
+				refs = append(refs, r)
+			}
+		}
+	}
 
 	// This is where we record that a module has depends_on configured.
 	if _, ok := depender.(*nodeExpandModule); ok && len(refs) > 0 {
