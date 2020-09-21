@@ -578,51 +578,17 @@ The -target option is not for routine use, and is provided only for exceptional 
 }
 
 // Refresh goes through all the resources in the state and refreshes them
-// to their latest state. This will update the state that this context
-// works with, along with returning it.
+// to their latest state. This is done by executing a plan, and retaining the
+// state while discarding the change set.
 //
-// Even in the case an error is returned, the state may be returned and
-// will potentially be partially updated.
+// In the case of an error, there is no state returned.
 func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
-	defer c.acquireRun("refresh")()
-
-	// Copy our own state
-	c.state = c.state.DeepCopy()
-
-	// Refresh builds a partial changeset as part of its work because it must
-	// create placeholder stubs for any resource instances that'll be created
-	// in subsequent plan so that provider configurations and data resources
-	// can interpolate from them. This plan is always thrown away after
-	// the operation completes, restoring any existing changeset.
-	oldChanges := c.changes
-	defer func() { c.changes = oldChanges }()
-	c.changes = plans.NewChanges()
-
-	// Build the graph.
-	graph, diags := c.Graph(GraphTypeRefresh, nil)
+	p, diags := c.Plan()
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	// Do the walk
-	_, walkDiags := c.walk(graph, walkRefresh)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// During our walk we will have created planned object placeholders in
-	// state for resource instances that are in configuration but not yet
-	// created. These were created only to allow expression evaluation to
-	// work properly in provider and data blocks during the walk and must
-	// now be discarded, since a subsequent plan walk is responsible for
-	// creating these "for real".
-	// TODO: Consolidate refresh and plan into a single walk, so that the
-	// refresh walk doesn't need to emulate various aspects of the plan
-	// walk in order to properly evaluate provider and data blocks.
-	c.state.SyncWrapper().RemovePlannedResourceInstanceObjects()
-
-	return c.state, diags
+	return p.State, diags
 }
 
 // Stop stops the running task.
