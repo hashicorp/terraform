@@ -226,33 +226,36 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 	var diags hcl.Diagnostics
 
 	// First we'll deal with the requirements directly in _our_ module...
-	for _, providerReqs := range c.Module.ProviderRequirements.RequiredProviders {
-		fqn := providerReqs.Type
-		if _, ok := reqs[fqn]; !ok {
-			// We'll at least have an unconstrained dependency then, but might
-			// add to this in the loop below.
-			reqs[fqn] = nil
+	if c.Module.ProviderRequirements != nil {
+		for _, providerReqs := range c.Module.ProviderRequirements.RequiredProviders {
+			fqn := providerReqs.Type
+			if _, ok := reqs[fqn]; !ok {
+				// We'll at least have an unconstrained dependency then, but might
+				// add to this in the loop below.
+				reqs[fqn] = nil
+			}
+			// The model of version constraints in this package is still the
+			// old one using a different upstream module to represent versions,
+			// so we'll need to shim that out here for now. The two parsers
+			// don't exactly agree in practice 🙄 so this might produce new errors.
+			// TODO: Use the new parser throughout this package so we can get the
+			// better error messages it produces in more situations.
+			constraints, err := getproviders.ParseVersionConstraints(providerReqs.Requirement.Required.String())
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					// The errors returned by ParseVersionConstraint already include
+					// the section of input that was incorrect, so we don't need to
+					// include that here.
+					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+					Subject: providerReqs.Requirement.DeclRange.Ptr(),
+				})
+			}
+			reqs[fqn] = append(reqs[fqn], constraints...)
 		}
-		// The model of version constraints in this package is still the
-		// old one using a different upstream module to represent versions,
-		// so we'll need to shim that out here for now. The two parsers
-		// don't exactly agree in practice 🙄 so this might produce new errors.
-		// TODO: Use the new parser throughout this package so we can get the
-		// better error messages it produces in more situations.
-		constraints, err := getproviders.ParseVersionConstraints(providerReqs.Requirement.Required.String())
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid version constraint",
-				// The errors returned by ParseVersionConstraint already include
-				// the section of input that was incorrect, so we don't need to
-				// include that here.
-				Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
-				Subject: providerReqs.Requirement.DeclRange.Ptr(),
-			})
-		}
-		reqs[fqn] = append(reqs[fqn], constraints...)
 	}
+
 	// Each resource in the configuration creates an *implicit* provider
 	// dependency, though we'll only record it if there isn't already
 	// an explicit dependency on the same provider.
@@ -323,43 +326,17 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 // provider version selection in an earlier step and have identified suitable
 // versions for each provider.
 func (c *Config) ProviderTypes() []addrs.Provider {
-	m := make(map[addrs.Provider]struct{})
-	c.gatherProviderTypes(m)
+	// Ignore diagnostics here because they relate to version constraints
+	reqs, _ := c.ProviderRequirements()
 
-	ret := make([]addrs.Provider, 0, len(m))
-	for k := range m {
+	ret := make([]addrs.Provider, 0, len(reqs))
+	for k := range reqs {
 		ret = append(ret, k)
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].String() < ret[j].String()
 	})
 	return ret
-}
-
-func (c *Config) gatherProviderTypes(m map[addrs.Provider]struct{}) {
-	if c == nil {
-		return
-	}
-
-	for _, pc := range c.Module.ProviderConfigs {
-		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pc.Name})
-		m[fqn] = struct{}{}
-	}
-	for _, rc := range c.Module.ManagedResources {
-		providerAddr := rc.ProviderConfigAddr()
-		fqn := c.Module.ProviderForLocalConfig(providerAddr)
-		m[fqn] = struct{}{}
-	}
-	for _, rc := range c.Module.DataResources {
-		providerAddr := rc.ProviderConfigAddr()
-		fqn := c.Module.ProviderForLocalConfig(providerAddr)
-		m[fqn] = struct{}{}
-	}
-
-	// Must also visit our child modules, recursively.
-	for _, cc := range c.Children {
-		cc.gatherProviderTypes(m)
-	}
 }
 
 // ResolveAbsProviderAddr returns the AbsProviderConfig represented by the given
