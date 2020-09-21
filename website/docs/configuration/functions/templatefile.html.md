@@ -41,11 +41,7 @@ sequences then this function will produce an error.
 This function can be used only with files that already exist on disk at the
 beginning of a Terraform run. Functions do not participate in the dependency
 graph, so this function cannot be used with files that are generated
-dynamically during a Terraform operation. We do not recommend using dynamic
-templates in Terraform configurations, but in rare situations where this is
-necessary you can use
-[the `template_file` data source](/docs/providers/template/d/file.html)
-to render templates while respecting resource dependencies.
+dynamically during a Terraform operation.
 
 ## Examples
 
