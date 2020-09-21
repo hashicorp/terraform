@@ -160,6 +160,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				State:          &instanceRefreshState,
 				ProviderSchema: &providerSchema,
 				targetState:    refreshState,
+				Dependencies:   &n.Dependencies,
 			},
 
 			// Plan the instance
