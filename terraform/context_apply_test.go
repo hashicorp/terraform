@@ -3987,77 +3987,6 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_outputDependsOn(t *testing.T) {
-	m := testModule(t, "apply-output-depends-on")
-	p := testProvider("aws")
-	p.DiffFn = testDiffFn
-
-	{
-		// Create a custom apply function that sleeps a bit (to allow parallel
-		// graph execution) and then returns an error to force a partial state
-		// return. We then verify the output is NOT there.
-		p.ApplyFn = func(
-			info *InstanceInfo,
-			is *InstanceState,
-			id *InstanceDiff) (*InstanceState, error) {
-			// Sleep to allow parallel execution
-			time.Sleep(50 * time.Millisecond)
-
-			// Return error to force partial state
-			return nil, fmt.Errorf("abcd")
-		}
-
-		ctx := testContext2(t, &ContextOpts{
-			Config: m,
-			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-			},
-		})
-
-		if _, diags := ctx.Plan(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
-		}
-
-		state, diags := ctx.Apply()
-		if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "abcd") {
-			t.Fatalf("err: %s", diags.Err())
-		}
-
-		checkStateString(t, state, `<no state>`)
-	}
-
-	{
-		// Create the standard apply function and verify we get the output
-		p.ApplyFn = testApplyFn
-
-		ctx := testContext2(t, &ContextOpts{
-			Config: m,
-			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-			},
-		})
-
-		if _, diags := ctx.Plan(); diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
-		}
-
-		state, diags := ctx.Apply()
-		if diags.HasErrors() {
-			t.Fatalf("diags: %s", diags.Err())
-		}
-
-		checkStateString(t, state, `
-aws_instance.foo:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-
-Outputs:
-
-value = result
-		`)
-	}
-}
-
 func TestContext2Apply_outputOrphan(t *testing.T) {
 	m := testModule(t, "apply-output-orphan")
 	p := testProvider("aws")
@@ -8604,6 +8533,16 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"eip-abc123","instance":"i-abc123"}`),
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: addrs.RootModule,
+				},
+			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -8612,6 +8551,16 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"eip-bcd234","instance":"i-bcd234"}`),
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: addrs.RootModule,
+				},
+			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -8621,7 +8570,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
+		State: state.DeepCopy(),
 	})
 
 	_, diags := ctx.Plan()
@@ -8801,10 +8750,7 @@ resource "null_instance" "depends" {
 		}
 	}
 
-	_, diags := ctx.Refresh()
-	assertNoErrors(t, diags)
-
-	_, diags = ctx.Plan()
+	_, diags := ctx.Plan()
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply()
@@ -10594,45 +10540,6 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_ProviderMeta_refresh_unset(t *testing.T) {
-	m := testModule(t, "provider-meta-unset")
-	p := testProvider("test")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
-	schema := p.GetSchemaReturn
-	schema.ProviderMeta = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"baz": {
-				Type:     cty.String,
-				Required: true,
-			},
-		},
-	}
-	p.GetSchemaReturn = schema
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
-	_, diags := ctx.Plan()
-	assertNoErrors(t, diags)
-
-	_, diags = ctx.Apply()
-	assertNoErrors(t, diags)
-
-	_, diags = ctx.Refresh()
-	assertNoErrors(t, diags)
-
-	if !p.ReadResourceCalled {
-		t.Fatalf("ReadResource not called")
-	}
-	if !p.ReadResourceRequest.ProviderMeta.IsNull() {
-		t.Fatalf("Expected null ProviderMeta in ReadResource, got %v", p.ReadResourceRequest.ProviderMeta)
-	}
-}
-
 func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
@@ -10924,10 +10831,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh()
-	assertNoErrors(t, diags)
-
-	_, diags = ctx.Plan()
+	_, diags := ctx.Plan()
 	assertNoErrors(t, diags)
 
 	_, diags = ctx.Apply()
@@ -11228,12 +11132,7 @@ func TestContext2Apply_moduleDependsOn(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatal(diags.ErrWithWarnings())
-	}
-
-	_, diags = ctx.Plan()
+	_, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -11243,11 +11142,6 @@ func TestContext2Apply_moduleDependsOn(t *testing.T) {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	// run the plan again to ensure that data sources are not going to be re-read
-	_, diags = ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatal(diags.ErrWithWarnings())
-	}
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
@@ -11798,10 +11692,6 @@ output "outputs" {
 			State:   state,
 			Destroy: true,
 		})
-
-		if _, diags := ctx.Refresh(); diags.HasErrors() {
-			t.Fatalf("destroy plan errors: %s", diags.Err())
-		}
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
 			t.Fatalf("destroy plan errors: %s", diags.Err())
