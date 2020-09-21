@@ -154,19 +154,20 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 
 			// Sensitive paths
 			if isV4.AttributePaths != nil {
-				fmt.Println("attribute paths not nil")
-				// Convert strings to ValPathMarks
+				paths, pathsDiags := unmarshalPaths([]byte(isV4.AttributePaths))
+				diags = diags.Append(pathsDiags)
+				if pathsDiags.HasErrors() {
+					continue
+				}
+
 				var pvm []cty.PathValueMarks
-				for _, p := range isV4.AttributePaths {
-					// TODO string to Path method here
-					path := cty.Path{cty.GetAttrStep{Name: p}}
+				for _, path := range paths {
 					pvm = append(pvm, cty.PathValueMarks{
 						Path:  path,
 						Marks: cty.NewValueMarks("sensitive"),
 					})
 				}
 				obj.AttrPaths = pvm
-
 			}
 
 			{
@@ -470,22 +471,18 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		}
 	}
 
-	// TODO Convert paths to string representations
-	var paths []string
+	// Extract paths from path value marks
 	fmt.Println("writing state attr paths")
 	fmt.Printf("obj.AttrPaths: %#v\n", obj.AttrPaths)
+	var paths []cty.Path
 	for _, vm := range obj.AttrPaths {
-		var s string
-		for _, p := range vm.Path {
-			switch p := p.(type) {
-			case cty.GetAttrStep:
-				s = p.Name
-			}
-		}
-		paths = append(paths, s)
+		paths = append(paths, vm.Path)
 	}
-	// paths = append(paths, "prefix")
-	fmt.Println("string paths:", paths)
+	fmt.Printf("paths: %#v\n", paths)
+
+	// Marshal paths to JSON
+	attributePaths, pathsDiags := marshalPaths(paths)
+	diags = diags.Append(pathsDiags)
 
 	return append(isV4s, instanceObjectStateV4{
 		IndexKey:            rawKey,
@@ -494,7 +491,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		SchemaVersion:       obj.SchemaVersion,
 		AttributesFlat:      obj.AttrsFlat,
 		AttributesRaw:       obj.AttrsJSON,
-		AttributePaths:      paths,
+		AttributePaths:      attributePaths,
 		PrivateRaw:          privateRaw,
 		Dependencies:        deps,
 		CreateBeforeDestroy: obj.CreateBeforeDestroy,
@@ -544,7 +541,7 @@ type instanceObjectStateV4 struct {
 	SchemaVersion  uint64            `json:"schema_version"`
 	AttributesRaw  json.RawMessage   `json:"attributes,omitempty"`
 	AttributesFlat map[string]string `json:"attributes_flat,omitempty"`
-	AttributePaths []string          `json:"sensitive_attributes,omitempty,"`
+	AttributePaths json.RawMessage   `json:"sensitive_attributes,omitempty,"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
@@ -613,4 +610,136 @@ func (si sortInstancesV4) Less(i, j int) bool {
 		return si[i].Deposed < si[j].Deposed
 	}
 	return false
+}
+
+// pathStep is an intermediate representation of a cty.PathStep to facilitate
+// consistent JSON serialization. The Value field can either be a cty.Value of
+// dynamic type (for index steps), or a string (for get attr steps).
+type pathStep struct {
+	Type  string          `json:"type"`
+	Value json.RawMessage `json:"value"`
+}
+
+const (
+	indexPathStepType   = "index"
+	getAttrPathStepType = "get_attr"
+)
+
+func unmarshalPaths(buf []byte) ([]cty.Path, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var jsonPaths [][]pathStep
+
+	err := json.Unmarshal(buf, &jsonPaths)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error unmarshaling path steps",
+			err.Error(),
+		))
+	}
+
+	paths := make([]cty.Path, 0, len(jsonPaths))
+
+unmarshalOuter:
+	for _, jsonPath := range jsonPaths {
+		var path cty.Path
+		for _, jsonStep := range jsonPath {
+			switch jsonStep.Type {
+			case indexPathStepType:
+				key, err := ctyjson.Unmarshal(jsonStep.Value, cty.DynamicPseudoType)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error unmarshaling path step",
+						fmt.Sprintf("Failed to unmarshal index step key: %s", err),
+					))
+					continue unmarshalOuter
+				}
+				path = append(path, cty.IndexStep{Key: key})
+			case getAttrPathStepType:
+				var name string
+				if err := json.Unmarshal(jsonStep.Value, &name); err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error unmarshaling path step",
+						fmt.Sprintf("Failed to unmarshal get attr step name: %s", err),
+					))
+					continue unmarshalOuter
+				}
+				path = append(path, cty.GetAttrStep{Name: name})
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unsupported path step",
+					fmt.Sprintf("Unsupported path step type %q", jsonStep.Type),
+				))
+				continue unmarshalOuter
+			}
+		}
+		paths = append(paths, path)
+	}
+
+	return paths, diags
+}
+
+func marshalPaths(paths []cty.Path) ([]byte, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// cty.Path is a slice of cty.PathSteps, so our representation of a slice
+	// of paths is a nested slice of our intermediate pathStep struct
+	jsonPaths := make([][]pathStep, 0, len(paths))
+
+marshalOuter:
+	for _, path := range paths {
+		jsonPath := make([]pathStep, 0, len(path))
+		for _, step := range path {
+			var jsonStep pathStep
+			switch s := step.(type) {
+			case cty.IndexStep:
+				key, err := ctyjson.Marshal(s.Key, cty.DynamicPseudoType)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error marshaling path step",
+						fmt.Sprintf("Failed to marshal index step key %#v: %s", s.Key, err),
+					))
+					continue marshalOuter
+				}
+				jsonStep.Type = indexPathStepType
+				jsonStep.Value = key
+			case cty.GetAttrStep:
+				name, err := json.Marshal(s.Name)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error marshaling path step",
+						fmt.Sprintf("Failed to marshal get attr step name %s: %s", s.Name, err),
+					))
+					continue marshalOuter
+				}
+				jsonStep.Type = getAttrPathStepType
+				jsonStep.Value = name
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unsupported path step",
+					fmt.Sprintf("Unsupported path step %#v (%t)", step, step),
+				))
+				continue marshalOuter
+			}
+			jsonPath = append(jsonPath, jsonStep)
+		}
+		jsonPaths = append(jsonPaths, jsonPath)
+	}
+
+	buf, err := json.Marshal(jsonPaths)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error marshaling path steps",
+			fmt.Sprintf("Failed to marshal path steps: %s", err),
+		))
+	}
+
+	return buf, diags
 }
