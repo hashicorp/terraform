@@ -50,18 +50,6 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		storageAccountName: config.StorageAccountName,
 	}
 
-	// if we have an Access Key - we don't need the other clients
-	if config.AccessKey != "" {
-		client.accessKey = config.AccessKey
-		return &client, nil
-	}
-
-	// likewise with a SAS token
-	if config.SasToken != "" {
-		client.sasToken = config.SasToken
-		return &client, nil
-	}
-
 	builder := authentication.Builder{
 		ClientID:                      config.ClientID,
 		SubscriptionID:                config.SubscriptionID,
@@ -93,6 +81,34 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
+	if config.KeyVaultKeyIdentifier != "" {
+		authKV, err := getAzureKeyVaultAuthorizer(env, builder)
+		if err != nil {
+			return nil, err
+		}
+
+		kvClient := keyvault.New()
+		client.configureClient(&kvClient.Client, authKV)
+
+		encClient, err := NewEncryptionClient(config.KeyVaultKeyIdentifier, &kvClient)
+		if err != nil {
+			return nil, err
+		}
+		client.encClient = encClient
+	}
+
+	// if we have an Access Key - we don't need the other clients
+	if config.AccessKey != "" {
+		client.accessKey = config.AccessKey
+		return &client, nil
+	}
+
+	// likewise with a SAS token
+	if config.SasToken != "" {
+		client.sasToken = config.SasToken
+		return &client, nil
+	}
+
 	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
 	if err != nil {
 		return nil, err
@@ -110,22 +126,6 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	groupsClient := resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
 	client.configureClient(&groupsClient.Client, auth)
 	client.groupsClient = &groupsClient
-
-	if config.KeyVaultKeyIdentifier != "" {
-		authKV, err := getAzureKeyVaultAuthorizer(env, builder)
-		if err != nil {
-			return nil, err
-		}
-
-		kvClient := keyvault.New()
-		client.configureClient(&kvClient.Client, authKV)
-
-		encClient, err := NewEncryptionClient(config.KeyVaultKeyIdentifier, &kvClient)
-		if err != nil {
-			return nil, err
-		}
-		client.encClient = encClient
-	}
 
 	return &client, nil
 }
