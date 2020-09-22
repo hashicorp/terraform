@@ -117,3 +117,7 @@ In the top-right navigation, select [Publish > Provider](https://registry.terraf
 #### Terms of Use
 
 Anything published to the Terraform Registry is subject to our terms of use. A copy of the terms are available for viewing at https://registry.terraform.io/terms
+
+### Support
+
+If you experience issues publishing your provider to the Terraform Registry, please contact us at [terraform-registry@hashicorp.com](mailto:terraform-registry@hashicorp.com).
