@@ -230,7 +230,14 @@ func TestStateDeepCopy(t *testing.T) {
 			Status:        ObjectReady,
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
-			Private:       []byte("private data"),
+			// Sensitive path at "woozles"
+			AttrPaths: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "woozles"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			Private: []byte("private data"),
 			Dependencies: []addrs.ConfigResource{
 				{
 					Module: addrs.RootModule,
