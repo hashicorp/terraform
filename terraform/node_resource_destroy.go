@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -21,18 +20,17 @@ type NodeDestroyResourceInstance struct {
 	// this node destroys a deposed object of the associated instance
 	// rather than its current object.
 	DeposedKey states.DeposedKey
-
-	CreateBeforeDestroyOverride *bool
 }
 
 var (
-	_ GraphNodeResource            = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeModuleInstance      = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeConfigResource      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeResourceInstance    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyer           = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeDestroyerCBD        = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferenceable       = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferencer          = (*NodeDestroyResourceInstance)(nil)
-	_ GraphNodeEvalable            = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
 )
@@ -52,21 +50,25 @@ func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyResourceInstance) CreateBeforeDestroy() bool {
-	if n.CreateBeforeDestroyOverride != nil {
-		return *n.CreateBeforeDestroyOverride
+	// State takes precedence during destroy.
+	// If the resource was removed, there is no config to check.
+	// If CBD was forced from descendent, it should be saved in the state
+	// already.
+	if s := n.instanceState; s != nil {
+		if s.Current != nil {
+			return s.Current.CreateBeforeDestroy
+		}
 	}
 
-	// If we have no config, we just assume no
-	if n.Config == nil || n.Config.Managed == nil {
-		return false
+	if n.Config != nil && n.Config.Managed != nil {
+		return n.Config.Managed.CreateBeforeDestroy
 	}
 
-	return n.Config.Managed.CreateBeforeDestroy
+	return false
 }
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
-	n.CreateBeforeDestroyOverride = &v
 	return nil
 }
 
@@ -119,203 +121,160 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 	return nil
 }
 
-// GraphNodeEvalable
-func (n *NodeDestroyResourceInstance) EvalTree() EvalNode {
+// GraphNodeExecutable
+func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
-	rs := n.ResourceState
-	var is *states.ResourceInstance
-	if rs != nil {
-		is = rs.Instance(n.InstanceKey)
-	}
+	is := n.instanceState
 	if is == nil {
 		log.Printf("[WARN] NodeDestroyResourceInstance for %s with no state", addr)
 	}
 
+	// These vars are updated through pointers at various stages below.
 	var changeApply *plans.ResourceInstanceChange
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
 	var state *states.ResourceInstanceObject
-	var err error
-	return &EvalOpFilter{
-		Ops: []walkOperation{walkApply, walkDestroy},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalGetProvider{
-					Addr:   n.ResolvedProvider,
-					Output: &provider,
-					Schema: &providerSchema,
-				},
+	var provisionerErr error
 
-				// Get the saved diff for apply
-				&EvalReadDiff{
-					Addr:           addr.Resource,
-					ProviderSchema: &providerSchema,
-					Change:         &changeApply,
-				},
+	switch op {
+	case walkApply, walkDestroy:
+		provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+		if err != nil {
+			return err
+		}
 
-				&EvalReduceDiff{
-					Addr:      addr.Resource,
-					InChange:  &changeApply,
-					Destroy:   true,
-					OutChange: &changeApply,
-				},
+		evalReadDiff := &EvalReadDiff{
+			Addr:           addr.Resource,
+			ProviderSchema: &providerSchema,
+			Change:         &changeApply,
+		}
+		_, err = evalReadDiff.Eval(ctx)
+		if err != nil {
+			return err
+		}
 
-				// EvalReduceDiff may have simplified our planned change
-				// into a NoOp if it does not require destroying.
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						if changeApply == nil || changeApply.Action == plans.NoOp {
-							return true, EvalEarlyExitError{}
-						}
-						return true, nil
-					},
-					Then: EvalNoop{},
-				},
+		evalReduceDiff := &EvalReduceDiff{
+			Addr:      addr.Resource,
+			InChange:  &changeApply,
+			Destroy:   true,
+			OutChange: &changeApply,
+		}
+		_, err = evalReduceDiff.Eval(ctx)
+		if err != nil {
+			return err
+		}
 
-				&EvalReadState{
-					Addr:           addr.Resource,
-					Output:         &state,
-					Provider:       &provider,
-					ProviderSchema: &providerSchema,
-				},
-				&EvalRequireState{
-					State: &state,
-				},
+		// EvalReduceDiff may have simplified our planned change
+		// into a NoOp if it does not require destroying.
+		if changeApply == nil || changeApply.Action == plans.NoOp {
+			return EvalEarlyExitError{}
+		}
 
-				// Call pre-apply hook
-				&EvalApplyPre{
-					Addr:   addr.Resource,
-					State:  &state,
-					Change: &changeApply,
-				},
+		evalReadState := &EvalReadState{
+			Addr:           addr.Resource,
+			Output:         &state,
+			Provider:       &provider,
+			ProviderSchema: &providerSchema,
+		}
+		_, err = evalReadState.Eval(ctx)
+		if err != nil {
+			return err
+		}
 
-				// Run destroy provisioners if not tainted
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						if state != nil && state.Status == states.ObjectTainted {
-							return false, nil
-						}
+		// Exit early if the state object is null after reading the state
+		if state == nil || state.Value.IsNull() {
+			return EvalEarlyExitError{}
+		}
 
-						return true, nil
-					},
+		evalApplyPre := &EvalApplyPre{
+			Addr:   addr.Resource,
+			State:  &state,
+			Change: &changeApply,
+		}
+		_, err = evalApplyPre.Eval(ctx)
+		if err != nil {
+			return err
+		}
 
-					Then: &EvalApplyProvisioners{
-						Addr:           addr.Resource,
-						State:          &state,
-						ResourceConfig: n.Config,
-						Error:          &err,
-						When:           configs.ProvisionerWhenDestroy,
-					},
-				},
-
+		// Run destroy provisioners if not tainted
+		if state != nil && state.Status != states.ObjectTainted {
+			evalApplyProvisioners := &EvalApplyProvisioners{
+				Addr:           addr.Resource,
+				State:          &state,
+				ResourceConfig: n.Config,
+				Error:          &provisionerErr,
+				When:           configs.ProvisionerWhenDestroy,
+			}
+			_, err := evalApplyProvisioners.Eval(ctx)
+			if err != nil {
+				return err
+			}
+			if provisionerErr != nil {
 				// If we have a provisioning error, then we just call
 				// the post-apply hook now.
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						return err != nil, nil
-					},
-
-					Then: &EvalApplyPost{
-						Addr:  addr.Resource,
-						State: &state,
-						Error: &err,
-					},
-				},
-
-				// Make sure we handle data sources properly.
-				&EvalIf{
-					If: func(ctx EvalContext) (bool, error) {
-						return addr.Resource.Resource.Mode == addrs.DataResourceMode, nil
-					},
-
-					Then: &EvalReadDataApply{
-						Addr:           addr.Resource,
-						Config:         n.Config,
-						Change:         &changeApply,
-						Provider:       &provider,
-						ProviderAddr:   n.ResolvedProvider,
-						ProviderSchema: &providerSchema,
-						Output:         &state,
-					},
-					Else: &EvalApply{
-						Addr:           addr.Resource,
-						Config:         nil, // No configuration because we are destroying
-						State:          &state,
-						Change:         &changeApply,
-						Provider:       &provider,
-						ProviderAddr:   n.ResolvedProvider,
-						ProviderSchema: &providerSchema,
-						Output:         &state,
-						Error:          &err,
-					},
-				},
-				&EvalWriteState{
-					Addr:           addr.Resource,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-				},
-				&EvalApplyPost{
+				evalApplyPost := &EvalApplyPost{
 					Addr:  addr.Resource,
 					State: &state,
-					Error: &err,
-				},
-				&EvalUpdateStateHook{},
-			},
-		},
+					Error: &provisionerErr,
+				}
+				_, err = evalApplyPost.Eval(ctx)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// Managed resources need to be destroyed, while data sources
+		// are only removed from state.
+		if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
+			evalApply := &EvalApply{
+				Addr:           addr.Resource,
+				Config:         nil, // No configuration because we are destroying
+				State:          &state,
+				Change:         &changeApply,
+				Provider:       &provider,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
+				ProviderSchema: &providerSchema,
+				Output:         &state,
+				Error:          &provisionerErr,
+			}
+			_, err = evalApply.Eval(ctx)
+			if err != nil {
+				return err
+			}
+
+			evalWriteState := &EvalWriteState{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				ProviderSchema: &providerSchema,
+				State:          &state,
+			}
+			_, err = evalWriteState.Eval(ctx)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
+			state := ctx.State()
+			state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+		}
+
+		evalApplyPost := &EvalApplyPost{
+			Addr:  addr.Resource,
+			State: &state,
+			Error: &provisionerErr,
+		}
+		_, err = evalApplyPost.Eval(ctx)
+		if err != nil {
+			return err
+		}
+
+		err = UpdateStateHook(ctx)
+		if err != nil {
+			return err
+		}
 	}
-}
 
-// NodeDestroyResourceInstance represents a resource that is to be destroyed.
-//
-// Destroying a resource is a state-only operation: it is the individual
-// instances being destroyed that affects remote objects. During graph
-// construction, NodeDestroyResource should always depend on any other node
-// related to the given resource, since it's just a final cleanup to avoid
-// leaving skeleton resource objects in state after their instances have
-// all been destroyed.
-type NodeDestroyResource struct {
-	*NodeAbstractResource
-}
-
-var (
-	_ GraphNodeResource      = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferenceable = (*NodeDestroyResource)(nil)
-	_ GraphNodeReferencer    = (*NodeDestroyResource)(nil)
-	_ GraphNodeEvalable      = (*NodeDestroyResource)(nil)
-)
-
-func (n *NodeDestroyResource) Name() string {
-	return n.ResourceAddr().String() + " (clean up state)"
-}
-
-// GraphNodeReferenceable, overriding NodeAbstractResource
-func (n *NodeDestroyResource) ReferenceableAddrs() []addrs.Referenceable {
-	// NodeDestroyResource doesn't participate in references: the graph
-	// builder that created it should ensure directly that it already depends
-	// on every other node related to its resource, without relying on
-	// references.
 	return nil
-}
-
-// GraphNodeReferencer, overriding NodeAbstractResource
-func (n *NodeDestroyResource) References() []*addrs.Reference {
-	// NodeDestroyResource doesn't participate in references: the graph
-	// builder that created it should ensure directly that it already depends
-	// on every other node related to its resource, without relying on
-	// references.
-	return nil
-}
-
-// GraphNodeEvalable
-func (n *NodeDestroyResource) EvalTree() EvalNode {
-	// This EvalNode will produce an error if the resource isn't already
-	// empty by the time it is called, since it should just be pruning the
-	// leftover husk of a resource in state after all of the child instances
-	// and their objects were destroyed.
-	return &EvalForgetResourceState{
-		Addr: n.ResourceAddr().Resource,
-	}
 }

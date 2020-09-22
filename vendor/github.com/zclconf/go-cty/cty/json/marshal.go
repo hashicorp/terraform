@@ -9,6 +9,10 @@ import (
 )
 
 func marshal(val cty.Value, t cty.Type, path cty.Path, b *bytes.Buffer) error {
+	if val.IsMarked() {
+		return path.NewErrorf("value has marks, so it cannot be serialized as JSON")
+	}
+
 	// If we're going to decode as DynamicPseudoType then we need to save
 	// dynamic type information to recover the real type.
 	if t == cty.DynamicPseudoType && val.Type() != cty.DynamicPseudoType {

@@ -23,7 +23,7 @@ var rngSource = rand.New(rand.NewSource(time.Now().UnixNano()))
 // mutual-exclusion locks for state.
 //
 // Implementing Locker alongside Persistent relaxes some of the usual
-// implemention constraints for implementations of Refresher and Persister,
+// implementation constraints for implementations of Refresher and Persister,
 // under the assumption that the locking mechanism effectively prevents
 // multiple Terraform processes from reading and writing state concurrently.
 // In particular, a type that implements both Locker and Persistent is only
@@ -114,7 +114,7 @@ func LockWithContext(ctx context.Context, s Locker, info *LockInfo) (string, err
 // of the fields populated with suitable default values.
 type LockInfo struct {
 	// Unique ID for the lock. NewLockInfo provides a random ID, but this may
-	// be overridden by the lock implementation. The final value if ID will be
+	// be overridden by the lock implementation. The final value of ID will be
 	// returned by the call to Lock.
 	ID string
 

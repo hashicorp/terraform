@@ -43,30 +43,60 @@ number of fields, or this function will produce an error.
 ]
 ```
 
-## Use with the `count` meta-argument
+## Use with the `for_each` meta-argument
 
-It can be tempting to use `csvdecode` to generate a set of similar resources
-using the `count` meta-argument, as in this example:
+You can use the result of `csvdecode` with
+[the `for_each` meta-argument](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+to describe a collection of similar objects whose differences are
+described by the rows in the given CSV file.
+
+There must be one column in the CSV file that can serve as a unique id for each
+row, which we can then use as the tracking key for the individual instances in
+the `for_each` expression. For example:
 
 ```hcl
 locals {
-  instances = csvdecode(file("${path.module}/instances.csv"))
+  # We've included this inline to create a complete example, but in practice
+  # this is more likely to be loaded from a file using the "file" function.
+  csv_data = <<-CSV
+    local_id,instance_type,ami
+    foo1,t2.micro,ami-54d2a63b
+    foo2,t2.micro,ami-54d2a63b
+    foo3,t2.micro,ami-54d2a63b
+    bar1,m3.large,ami-54d2a63b
+  CSV
+
+  instances = csvdecode(local.csv_data)
 }
 
 resource "aws_instance" "example" {
-  count = len(local.instances) # Beware! (see below)
+  for_each = { for inst in local.instances : inst.local_id => inst }
 
-  instance_type = local.instances[count.index].instance_type
-  ami           = local.instances[count.index].ami
+  instance_type = each.value.instance_type
+  ami           = each.value.ami
 }
 ```
 
-The above example will work on initial creation, but if any rows are removed
-from the CSV file, or if the records in the CSV file are re-ordered, Terraform
-will not understand that the ordering has changed and will instead interpret
-this as requests for changes to many or all of the instances, which will in
-turn force these instances to be destroyed and re-created.
+The `for` expression in our `for_each` argument transforms the list produced
+by `csvdecode` into a map using the `local_id` as a key, which tells
+Terraform to use the `local_id` value to track each instance it creates.
+Terraform will create and manage the following instance addresses:
 
-The above pattern can be used with care in situations where, for example, the
-CSV file is only ever appended to, or if mass-updating the resources would
-not be harmful, but in general we recommend avoiding the above pattern.
+- `aws_instance.example["foo1"]`
+- `aws_instance.example["foo2"]`
+- `aws_instance.example["foo3"]`
+- `aws_instance.example["bar1"]`
+
+If you modify a row in the CSV on a subsequent plan, Terraform will interpret
+that as an update to the existing object as long as the `local_id` value is
+unchanged. If you add or remove rows from the CSV then Terraform will plan to
+create or destroy associated instances as appropriate.
+
+If there is no reasonable value you can use as a unique identifier in your CSV
+then you could instead use
+[the `count` meta-argument](/docs/configuration/resources.html#count-multiple-resource-instances-by-count)
+to define an object for each CSV row, with each one identified by its index into
+the list returned by `csvdecode`. However, in that case any future updates to
+the CSV may be disruptive if they change the positions of particular objects in
+the list. We recommend using `for_each` with a unique id column to make
+behavior more predictable on future changes.

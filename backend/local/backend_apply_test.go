@@ -32,7 +32,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		"ami": cty.StringVal("bar"),
 	})}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/apply")
+	op, configCleanup := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -59,9 +59,10 @@ func TestLocal_applyBasic(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 `)
+
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
@@ -71,7 +72,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -90,6 +91,9 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	if _, err := os.Stat(b.StateOutPath); err == nil {
 		t.Fatal("should not exist")
 	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
@@ -99,7 +103,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 	op.Destroy = true
 
@@ -161,7 +165,7 @@ func TestLocal_applyError(t *testing.T) {
 		}
 	}
 
-	op, configCleanup := testOperationApply(t, "./test-fixtures/apply-error")
+	op, configCleanup := testOperationApply(t, "./testdata/apply-error")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -176,9 +180,12 @@ func TestLocal_applyError(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 	`)
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
@@ -201,7 +208,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	op, configCleanup := testOperationApply(t, wd+"/test-fixtures/apply")
+	op, configCleanup := testOperationApply(t, wd+"/testdata/apply")
 	defer configCleanup()
 
 	b.Backend = &backendWithFailingState{}
@@ -226,9 +233,12 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	checkState(t, "errored.tfstate", `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
 	`)
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 type backendWithFailingState struct {
@@ -261,28 +271,8 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 	}, configCleanup
 }
 
-// testApplyState is just a common state that we use for testing refresh.
-func testApplyState() *terraform.State {
-	return &terraform.State{
-		Version: 2,
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 // applyFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/apply . This schema should be
+// configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
 func applyFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

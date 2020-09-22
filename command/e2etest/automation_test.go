@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/e2e"
+	"github.com/hashicorp/terraform/plans"
 )
 
 // The tests in this file run through different scenarios recommended in our
@@ -24,7 +25,7 @@ func TestPlanApplyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -40,11 +41,11 @@ func TestPlanApplyInAutomation(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
+	if !strings.Contains(stdout, "Installing hashicorp/template v") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
+	if !strings.Contains(stdout, "Installing hashicorp/null v") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -72,9 +73,23 @@ func TestPlanApplyInAutomation(t *testing.T) {
 
 	// stateResources := plan.Changes.Resources
 	diffResources := plan.Changes.Resources
-
-	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
+	if len(diffResources) != 2 {
 		t.Errorf("incorrect number of resources in plan")
+	}
+
+	expected := map[string]plans.Action{
+		"data.template_file.test": plans.Read,
+		"null_resource.test":      plans.Create,
+	}
+
+	for _, r := range diffResources {
+		expectedAction, ok := expected[r.Addr.String()]
+		if !ok {
+			t.Fatalf("unexpected change for %q", r.Addr)
+		}
+		if r.Action != expectedAction {
+			t.Fatalf("unexpected action %q for %q", r.Action, r.Addr)
+		}
 	}
 
 	//// APPLY
@@ -119,7 +134,7 @@ func TestAutoApplyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -135,11 +150,11 @@ func TestAutoApplyInAutomation(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
+	if !strings.Contains(stdout, "Installing hashicorp/template v") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
+	if !strings.Contains(stdout, "Installing hashicorp/null v") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
@@ -186,7 +201,7 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	fixturePath := filepath.Join("test-fixtures", "full-workflow-null")
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
@@ -202,11 +217,11 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"template") {
+	if !strings.Contains(stdout, "Installing hashicorp/template v") {
 		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-	if !strings.Contains(stdout, "- Downloading plugin for provider \"null") {
+	if !strings.Contains(stdout, "Installing hashicorp/null v") {
 		t.Errorf("null provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/terraform/command"
+	"github.com/hashicorp/terraform/command/cliconfig"
 )
 
 func init() {
@@ -17,7 +18,7 @@ var checkpointResult chan *checkpoint.CheckResponse
 
 // runCheckpoint runs a HashiCorp Checkpoint request. You can read about
 // Checkpoint here: https://github.com/hashicorp/go-checkpoint.
-func runCheckpoint(c *Config) {
+func runCheckpoint(c *cliconfig.Config) {
 	// If the user doesn't want checkpoint at all, then return.
 	if c.DisableCheckpoint {
 		log.Printf("[INFO] Checkpoint disabled. Not running.")
@@ -25,7 +26,7 @@ func runCheckpoint(c *Config) {
 		return
 	}
 
-	configDir, err := ConfigDir()
+	configDir, err := cliconfig.ConfigDir()
 	if err != nil {
 		log.Printf("[ERR] Checkpoint setup error: %s", err)
 		checkpointResult <- nil

@@ -9,8 +9,8 @@ type Module struct {
 	Variables map[string]*Variable `json:"variables"`
 	Outputs   map[string]*Output   `json:"outputs"`
 
-	RequiredCore      []string            `json:"required_core,omitempty"`
-	RequiredProviders map[string][]string `json:"required_providers"`
+	RequiredCore      []string                        `json:"required_core,omitempty"`
+	RequiredProviders map[string]*ProviderRequirement `json:"required_providers"`
 
 	ManagedResources map[string]*Resource   `json:"managed_resources"`
 	DataResources    map[string]*Resource   `json:"data_resources"`
@@ -27,7 +27,7 @@ func newModule(path string) *Module {
 		Path:              path,
 		Variables:         make(map[string]*Variable),
 		Outputs:           make(map[string]*Output),
-		RequiredProviders: make(map[string][]string),
+		RequiredProviders: make(map[string]*ProviderRequirement),
 		ManagedResources:  make(map[string]*Resource),
 		DataResources:     make(map[string]*Resource),
 		ModuleCalls:       make(map[string]*ModuleCall),

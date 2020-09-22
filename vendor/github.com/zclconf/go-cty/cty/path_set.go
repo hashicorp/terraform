@@ -196,3 +196,9 @@ func (r pathSetRules) Equivalent(a, b interface{}) bool {
 
 	return true
 }
+
+// SameRules is true if both Rules instances are pathSetRules structs.
+func (r pathSetRules) SameRules(other set.Rules) bool {
+	_, ok := other.(pathSetRules)
+	return ok
+}

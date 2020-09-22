@@ -2,8 +2,6 @@ package terraform
 
 import (
 	"sort"
-
-	"github.com/hashicorp/terraform/config"
 )
 
 // Semaphore is a wrapper around a channel to provide
@@ -14,8 +12,8 @@ type Semaphore chan struct{}
 // NewSemaphore creates a semaphore that allows up
 // to a given limit of simultaneous acquisitions
 func NewSemaphore(n int) Semaphore {
-	if n == 0 {
-		panic("semaphore with limit 0")
+	if n <= 0 {
+		panic("semaphore with limit <=0")
 	}
 	ch := make(chan struct{}, n)
 	return Semaphore(ch)
@@ -46,10 +44,6 @@ func (s Semaphore) Release() {
 	default:
 		panic("release without an acquire")
 	}
-}
-
-func resourceProvider(resourceType, explicitProvider string) string {
-	return config.ResourceProviderFullName(resourceType, explicitProvider)
 }
 
 // strSliceContains checks if a given string is contained in a slice

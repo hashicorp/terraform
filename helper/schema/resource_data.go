@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // ResourceData is used to query and set the attributes of a resource.
@@ -20,12 +22,13 @@ import (
 // The most relevant methods to take a look at are Get, Set, and Partial.
 type ResourceData struct {
 	// Settable (internally)
-	schema   map[string]*Schema
-	config   *terraform.ResourceConfig
-	state    *terraform.InstanceState
-	diff     *terraform.InstanceDiff
-	meta     map[string]interface{}
-	timeouts *ResourceTimeout
+	schema       map[string]*Schema
+	config       *terraform.ResourceConfig
+	state        *terraform.InstanceState
+	diff         *terraform.InstanceDiff
+	meta         map[string]interface{}
+	timeouts     *ResourceTimeout
+	providerMeta cty.Value
 
 	// Don't set
 	multiReader *MultiLevelFieldReader
@@ -548,4 +551,11 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 		Exists:         result.Exists,
 		Schema:         schema,
 	}
+}
+
+func (d *ResourceData) GetProviderMeta(dst interface{}) error {
+	if d.providerMeta.IsNull() {
+		return nil
+	}
+	return gocty.FromCtyValue(d.providerMeta, &dst)
 }

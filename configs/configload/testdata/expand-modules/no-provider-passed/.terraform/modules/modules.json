@@ -1,0 +1,14 @@
+{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": "testdata/expand-modules/no-provider-passed"
+        },
+        {
+            "Key": "child",
+            "Source": "./child",
+            "Dir": "testdata/expand-modules/no-provider-passed/child"
+        }
+    ]
+}

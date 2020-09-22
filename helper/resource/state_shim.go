@@ -1,12 +1,13 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/hashicorp/terraform/states"
@@ -46,49 +47,60 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 		}
 
 		for _, res := range newMod.Resources {
-			resType := res.Addr.Type
-			providerType := res.ProviderConfig.ProviderConfig.Type
+			resType := res.Addr.Resource.Type
+			providerType := res.ProviderConfig.Provider.Type
 
-			resource := getResource(providers, providerType, res.Addr)
+			resource := getResource(providers, providerType, res.Addr.Resource)
 
 			for key, i := range res.Instances {
-				flatmap, err := shimmedAttributes(i.Current, resource)
-				if err != nil {
-					return nil, fmt.Errorf("error decoding state for %q: %s", resType, err)
+				resState := &terraform.ResourceState{
+					Type:     resType,
+					Provider: legacyProviderConfigString(res.ProviderConfig),
 				}
 
-				resState := &terraform.ResourceState{
-					Type: resType,
-					Primary: &terraform.InstanceState{
+				// We should always have a Current instance here, but be safe about checking.
+				if i.Current != nil {
+					flatmap, err := shimmedAttributes(i.Current, resource)
+					if err != nil {
+						return nil, fmt.Errorf("error decoding state for %q: %s", resType, err)
+					}
+
+					var meta map[string]interface{}
+					if i.Current.Private != nil {
+						err := json.Unmarshal(i.Current.Private, &meta)
+						if err != nil {
+							return nil, err
+						}
+					}
+
+					resState.Primary = &terraform.InstanceState{
 						ID:         flatmap["id"],
 						Attributes: flatmap,
 						Tainted:    i.Current.Status == states.ObjectTainted,
-					},
-					Provider: res.ProviderConfig.String(),
-				}
-				if i.Current.SchemaVersion != 0 {
-					resState.Primary.Meta = map[string]interface{}{
-						"schema_version": i.Current.SchemaVersion,
+						Meta:       meta,
 					}
-				}
 
-				for _, dep := range i.Current.Dependencies {
-					resState.Dependencies = append(resState.Dependencies, dep.String())
-				}
-
-				// convert the indexes to the old style flapmap indexes
-				idx := ""
-				switch key.(type) {
-				case addrs.IntKey:
-					// don't add numeric index values to resources with a count of 0
-					if len(res.Instances) > 1 {
-						idx = fmt.Sprintf(".%d", key)
+					if i.Current.SchemaVersion != 0 {
+						if resState.Primary.Meta == nil {
+							resState.Primary.Meta = map[string]interface{}{}
+						}
+						resState.Primary.Meta["schema_version"] = i.Current.SchemaVersion
 					}
-				case addrs.StringKey:
-					idx = "." + key.String()
-				}
 
-				mod.Resources[res.Addr.String()+idx] = resState
+					// convert the indexes to the old style flapmap indexes
+					idx := ""
+					switch key.(type) {
+					case addrs.IntKey:
+						// don't add numeric index values to resources with a count of 0
+						if len(res.Instances) > 1 {
+							idx = fmt.Sprintf(".%d", key)
+						}
+					case addrs.StringKey:
+						idx = "." + key.String()
+					}
+
+					mod.Resources[res.Addr.Resource.String()+idx] = resState
+				}
 
 				// add any deposed instances
 				for _, dep := range i.Deposed {
@@ -97,10 +109,19 @@ func shimNewState(newState *states.State, providers map[string]terraform.Resourc
 						return nil, fmt.Errorf("error decoding deposed state for %q: %s", resType, err)
 					}
 
+					var meta map[string]interface{}
+					if dep.Private != nil {
+						err := json.Unmarshal(dep.Private, &meta)
+						if err != nil {
+							return nil, err
+						}
+					}
+
 					deposed := &terraform.InstanceState{
 						ID:         flatmap["id"],
 						Attributes: flatmap,
 						Tainted:    dep.Status == states.ObjectTainted,
+						Meta:       meta,
 					}
 					if dep.SchemaVersion != 0 {
 						deposed.Meta = map[string]interface{}{
@@ -160,4 +181,38 @@ func shimmedAttributes(instance *states.ResourceInstanceObjectSrc, res *schema.R
 	}
 
 	return instanceState.Attributes, nil
+}
+
+func shimLegacyState(legacy *terraform.State) (*states.State, error) {
+	state, err := terraform.ShimLegacyState(legacy)
+	if err != nil {
+		return nil, err
+	}
+
+	if state.HasResources() {
+		for _, module := range state.Modules {
+			for name, resource := range module.Resources {
+				module.Resources[name].ProviderConfig.Provider = addrs.ImpliedProviderForUnqualifiedType(resource.Addr.Resource.ImpliedProvider())
+			}
+		}
+	}
+	return state, err
+}
+
+// legacyProviderConfigString was copied from addrs.Provider.LegacyString() to
+// create a legacy-style string from a non-legacy provider. This is only
+// necessary as this package shims back and forth between legacy and modern
+// state, neither of which encode the addrs.Provider for a resource.
+func legacyProviderConfigString(pc addrs.AbsProviderConfig) string {
+	if pc.Alias != "" {
+		if len(pc.Module) == 0 {
+			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.Type, pc.Alias)
+		} else {
+			return fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString(), pc.Alias)
+		}
+	}
+	if len(pc.Module) == 0 {
+		return fmt.Sprintf("%s.%s", "provider", pc.Provider.Type)
+	}
+	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.Type)
 }

@@ -8,6 +8,8 @@ description: |-
 
 # Command: import
 
+> For a hands-on tutorial, try the [Import Terraform Configuration](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 The `terraform import` command is used to
 [import existing resources](/docs/import/index.html)
 into Terraform.
@@ -21,13 +23,21 @@ state at the given ADDRESS.
 
 ADDRESS must be a valid [resource address](/docs/internals/resource-addressing.html).
 Because any resource address is valid, the import command can import resources
-into modules as well directly into the root of your state.
+into modules as well as directly into the root of your state.
 
 ID is dependent on the resource type being imported. For example, for AWS
 instances it is the instance ID (`i-abcd1234`) but for AWS Route53 zones
 it is the zone ID (`Z12ABC4UGMOZ2N`). Please reference the provider documentation for details
 on the ID format. If you're unsure, feel free to just try an ID. If the ID
 is invalid, you'll just receive an error message.
+
+~> Warning: Terraform expects that each remote object it is managing will be
+bound to only one resource address, which is normally guaranteed by Terraform
+itself having created all objects. If you import existing objects into Terraform,
+be careful to import each remote object to only one Terraform resource address.
+If you import the same object multiple times, Terraform may exhibit unwanted
+behavior. For more information on this assumption, see
+[the State section](/docs/state/).
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -52,10 +62,9 @@ The command-line flags are all optional. The list of available flags are:
   [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
   to 10.
 
-* `-provider=provider` - Specified provider to use for import. The value should be a provider
-  alias in the form `TYPE.ALIAS`, such as "aws.eu". This defaults to the normal
-  provider based on the prefix of the resource being imported. You usually
-  don't need to specify this.
+* `-provider=provider` - **Deprecated** Override the provider configuration to
+use when importing the object. By default, Terraform uses the provider specified
+in the configuration for the target resource, and that is the best behavior in most cases.
 
 * `-state=path` - Path to the source state file to read from. Defaults to the
   configured backend, or "terraform.tfstate".
@@ -105,23 +114,50 @@ provider "aws" {
 }
 ```
 
-You can force Terraform to explicitly not load your configuration by
-specifying `-config=""` (empty string). This is useful in situations where
-you want to manually configure the provider because your configuration
-may not be valid.
+## Example: Import into Resource
 
-## Example: AWS Instance
-
-This example will import an AWS instance:
+This example will import an AWS instance into the `aws_instance` resource named `foo`:
 
 ```shell
 $ terraform import aws_instance.foo i-abcd1234
 ```
 
-## Example: Import to Module
+## Example: Import into Module
 
-The example below will import an AWS instance into a module:
+The example below will import an AWS instance into the `aws_instance` resource named `bar` into a module named `foo`:
 
 ```shell
 $ terraform import module.foo.aws_instance.bar i-abcd1234
+```
+
+## Example: Import into Resource configured with count
+
+The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
+[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+
+```shell
+$ terraform import 'aws_instance.baz[0]' i-abcd1234
+```
+
+## Example: Import into Resource configured with for_each
+
+The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+Linux, Mac OS, and UNIX:
+
+```shell
+$ terraform import 'aws_instance.baz["example"]' i-abcd1234
+```
+
+PowerShell:
+
+```shell
+$ terraform import 'aws_instance.baz[\"example\"]' i-abcd1234
+```
+
+Windows `cmd.exe`:
+
+```shell
+$ terraform import aws_instance.baz[\"example\"] i-abcd1234
 ```

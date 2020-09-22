@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
-func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *configs.Provider) hcl.Body {
+func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *configs.Provider) hcl.Body {
 	var configBody hcl.Body
 	if config != nil {
 		configBody = config.Config
@@ -46,65 +45,20 @@ func buildProviderConfig(ctx EvalContext, addr addrs.ProviderConfig, config *con
 	}
 }
 
-// EvalConfigProvider is an EvalNode implementation that configures
-// a provider that is already initialized and retrieved.
-type EvalConfigProvider struct {
-	Addr     addrs.ProviderConfig
-	Provider *providers.Interface
-	Config   *configs.Provider
-}
-
-func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
-	if n.Provider == nil {
-		return nil, fmt.Errorf("EvalConfigProvider Provider is nil")
+// GetProvider returns the providers.Interface and schema for a given provider.
+func GetProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Interface, *ProviderSchema, error) {
+	if addr.Provider.Type == "" {
+		// Should never happen
+		panic("EvalGetProvider used with uninitialized provider configuration address")
 	}
-
-	var diags tfdiags.Diagnostics
-	provider := *n.Provider
-	config := n.Config
-
-	configBody := buildProviderConfig(ctx, n.Addr, config)
-
-	resp := provider.GetSchema()
-	diags = diags.Append(resp.Diagnostics)
-	if diags.HasErrors() {
-		return nil, diags.NonFatalErr()
+	provider := ctx.Provider(addr)
+	if provider == nil {
+		return nil, &ProviderSchema{}, fmt.Errorf("provider %s not initialized", addr)
 	}
-
-	configSchema := resp.Provider.Block
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
-	diags = diags.Append(evalDiags)
-	if evalDiags.HasErrors() {
-		return nil, diags.NonFatalErr()
-	}
-
-	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
-	configDiags = configDiags.InConfigBody(configBody)
-
-	return nil, configDiags.ErrWithWarnings()
-}
-
-// EvalInitProvider is an EvalNode implementation that initializes a provider
-// and returns nothing. The provider can be retrieved again with the
-// EvalGetProvider node.
-type EvalInitProvider struct {
-	TypeName string
-	Addr     addrs.ProviderConfig
-}
-
-func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
-	return ctx.InitProvider(n.TypeName, n.Addr)
-}
-
-// EvalCloseProvider is an EvalNode implementation that closes provider
-// connections that aren't needed anymore.
-type EvalCloseProvider struct {
-	Addr addrs.ProviderConfig
-}
-
-func (n *EvalCloseProvider) Eval(ctx EvalContext) (interface{}, error) {
-	ctx.CloseProvider(n.Addr)
-	return nil, nil
+	// Not all callers require a schema, so we will leave checking for a nil
+	// schema to the callers.
+	schema := ctx.ProviderSchema(addr)
+	return provider, schema, nil
 }
 
 // EvalGetProvider is an EvalNode implementation that retrieves an already
@@ -125,7 +79,7 @@ type EvalGetProvider struct {
 }
 
 func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
-	if n.Addr.ProviderConfig.Type == "" {
+	if n.Addr.Provider.Type == "" {
 		// Should never happen
 		panic("EvalGetProvider used with uninitialized provider configuration address")
 	}

@@ -23,6 +23,8 @@ To learn how to _use_ modules, see [the Modules configuration section](/docs/con
 This section is about _creating_ re-usable modules that other configurations
 can include using `module` blocks.
 
+You can also learn more about how to use and create modules with our hands-on [modules track on learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+
 ## Module structure
 
 Re-usable modules are defined using all of the same
@@ -97,7 +99,7 @@ don't need to do any extra work to follow the standard structure.
   directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
   Consider including a visual diagram depicting the infrastructure resources
   the module may create and their relationship.
-  
+
   The README doesn't need to document inputs or outputs of the module because
   tooling will automatically generate this. If you are linking to a file or
   embedding an image contained in the repository itself, use a commit-specific

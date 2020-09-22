@@ -18,6 +18,14 @@ func testACC(t *testing.T) {
 		t.Log("Manta backend tests require setting TF_ACC or TF_MANTA_TEST")
 		t.Skip()
 	}
+	skip = os.Getenv("TRITON_ACCOUNT") == "" && os.Getenv("SDC_ACCOUNT") == ""
+	if skip {
+		t.Fatal("Manta backend tests require setting TRITON_ACCOUNT or SDC_ACCOUNT")
+	}
+	skip = os.Getenv("TRITON_KEY_ID") == "" && os.Getenv("SDC_KEY_ID") == ""
+	if skip {
+		t.Fatal("Manta backend tests require setting TRITON_KEY_ID or SDC_KEY_ID")
+	}
 }
 
 func TestBackend_impl(t *testing.T) {

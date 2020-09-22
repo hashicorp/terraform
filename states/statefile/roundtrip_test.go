@@ -2,7 +2,6 @@ package statefile
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestRoundtrip(t *testing.T) {
@@ -21,8 +18,6 @@ func TestRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	currentVersion := tfversion.Version
 
 	for _, info := range entries {
 		const inSuffix = ".in.tfstate"
@@ -39,14 +34,20 @@ func TestRoundtrip(t *testing.T) {
 		outName := name + outSuffix
 
 		t.Run(name, func(t *testing.T) {
-			ir, err := os.Open(filepath.Join(dir, inName))
-			if err != nil {
-				t.Fatal(err)
-			}
 			oSrcWant, err := ioutil.ReadFile(filepath.Join(dir, outName))
 			if err != nil {
 				t.Fatal(err)
 			}
+			oWant, diags := readStateV4(oSrcWant)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			ir, err := os.Open(filepath.Join(dir, inName))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer ir.Close()
 
 			f, err := Read(ir)
 			if err != nil {
@@ -58,20 +59,12 @@ func TestRoundtrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			oSrcGot := buf.Bytes()
+			oSrcWritten := buf.Bytes()
 
-			var oGot, oWant map[string]interface{}
-			err = json.Unmarshal(oSrcGot, &oGot)
-			if err != nil {
-				t.Fatalf("result isn't JSON: %s", err)
+			oGot, diags := readStateV4(oSrcWritten)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
 			}
-			err = json.Unmarshal(oSrcWant, &oWant)
-			if err != nil {
-				t.Fatalf("wanted result isn't JSON: %s", err)
-			}
-
-			// A newly written state should always reflect the current terraform version.
-			oWant["terraform_version"] = currentVersion
 
 			problems := deep.Equal(oGot, oWant)
 			sort.Strings(problems)

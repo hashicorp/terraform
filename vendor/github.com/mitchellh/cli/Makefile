@@ -12,9 +12,6 @@ testrace:
 
 # updatedeps installs all the dependencies to run and build
 updatedeps:
-	go list ./... \
-		| xargs go list -f '{{ join .Deps "\n" }}{{ printf "\n" }}{{ join .TestImports "\n" }}' \
-		| grep -v github.com/mitchellh/cli \
-		| xargs go get -f -u -v
+	go mod download
 
 .PHONY: test testrace updatedeps

@@ -1,6 +1,7 @@
 package getter
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -24,6 +26,8 @@ type GitGetter struct {
 	getter
 }
 
+var defaultBranchRegexp = regexp.MustCompile(`\s->\sorigin/(.*)`)
+
 func (g *GitGetter) ClientMode(_ *url.URL) (ClientMode, error) {
 	return ClientModeDir, nil
 }
@@ -37,6 +41,9 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 	// The port number must be parseable as an integer. If not, the user
 	// was probably trying to use a scp-style address, in which case the
 	// ssh:// prefix must be removed to indicate that.
+	//
+	// This is not necessary in versions of Go which have patched
+	// CVE-2019-14809 (e.g. Go 1.12.8+)
 	if portStr := u.Port(); portStr != "" {
 		if _, err := strconv.ParseUint(portStr, 10, 16); err != nil {
 			return fmt.Errorf("invalid port number %q; if using the \"scp-like\" git address scheme where a colon introduces the path instead, remove the ssh:// portion and use just the git:: prefix", portStr)
@@ -179,10 +186,10 @@ func (g *GitGetter) update(ctx context.Context, dst, sshKeyFile, ref string, dep
 	cmd.Dir = dst
 
 	if getRunCommand(cmd) != nil {
-		// Not a branch, switch to master. This will also catch non-existent
-		// branches, in which case we want to switch to master and then
-		// checkout the proper branch later.
-		ref = "master"
+		// Not a branch, switch to default branch. This will also catch
+		// non-existent branches, in which case we want to switch to default
+		// and then checkout the proper branch later.
+		ref = findDefaultBranch(dst)
 	}
 
 	// We have to be on a branch to pull
@@ -211,6 +218,22 @@ func (g *GitGetter) fetchSubmodules(ctx context.Context, dst, sshKeyFile string,
 	cmd.Dir = dst
 	setupGitEnv(cmd, sshKeyFile)
 	return getRunCommand(cmd)
+}
+
+// findDefaultBranch checks the repo's origin remote for its default branch
+// (generally "master"). "master" is returned if an origin default branch
+// can't be determined.
+func findDefaultBranch(dst string) string {
+	var stdoutbuf bytes.Buffer
+	cmd := exec.Command("git", "branch", "-r", "--points-at", "refs/remotes/origin/HEAD")
+	cmd.Dir = dst
+	cmd.Stdout = &stdoutbuf
+	err := cmd.Run()
+	matches := defaultBranchRegexp.FindStringSubmatch(stdoutbuf.String())
+	if err != nil || matches == nil {
+		return "master"
+	}
+	return matches[len(matches)-1]
 }
 
 // setupGitEnv sets up the environment for the given command. This is used to

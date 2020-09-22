@@ -2,11 +2,12 @@ package lang
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -53,6 +54,19 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"abspath": {
+			{
+				`abspath(".")`,
+				cty.StringVal((func() string {
+					cwd, err := os.Getwd()
+					if err != nil {
+						panic(err)
+					}
+					return cwd
+				})()),
+			},
+		},
+
 		"base64decode": {
 			{
 				`base64decode("YWJjMTIzIT8kKiYoKSctPUB+")`,
@@ -92,6 +106,27 @@ func TestFunctions(t *testing.T) {
 			{
 				`basename("testdata/hello.txt")`,
 				cty.StringVal("hello.txt"),
+			},
+		},
+
+		"can": {
+			{
+				`can(true)`,
+				cty.True,
+			},
+			{
+				// Note: "can" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "can" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference.
+				`can({}.baz)`,
+				cty.False,
 			},
 		},
 
@@ -144,6 +179,18 @@ func TestFunctions(t *testing.T) {
 			{
 				`cidrsubnet("192.168.2.0/20", 4, 6)`,
 				cty.StringVal("192.168.6.0/24"),
+			},
+		},
+
+		"cidrsubnets": {
+			{
+				`cidrsubnets("10.0.0.0/8", 8, 8, 16, 8)`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("10.0.0.0/16"),
+					cty.StringVal("10.1.0.0/16"),
+					cty.StringVal("10.2.0.0/24"),
+					cty.StringVal("10.3.0.0/16"),
+				}),
 			},
 		},
 
@@ -262,6 +309,37 @@ func TestFunctions(t *testing.T) {
 			{
 				`fileexists("hello.txt")`,
 				cty.BoolVal(true),
+			},
+		},
+
+		"fileset": {
+			{
+				`fileset(".", "*/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "subdirectory/hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory/hello.tmpl"),
+					cty.StringVal("subdirectory/hello.txt"),
+				}),
+			},
+			{
+				`fileset(".", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
+			},
+			{
+				`fileset("subdirectory", "hello.*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("hello.tmpl"),
+					cty.StringVal("hello.txt"),
+				}),
 			},
 		},
 
@@ -394,6 +472,12 @@ func TestFunctions(t *testing.T) {
 				`jsonencode({"hello"="world"})`,
 				cty.StringVal("{\"hello\":\"world\"}"),
 			},
+			// We are intentionally choosing to escape <, >, and & characters
+			// to preserve backwards compatibility with Terraform 0.11
+			{
+				`jsonencode({"hello"="<cats & kittens>"})`,
+				cty.StringVal("{\"hello\":\"\\u003ccats \\u0026 kittens\\u003e\"}"),
+			},
 		},
 
 		"keys": {
@@ -459,6 +543,13 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("a"),
 				}),
 			},
+			{ // mixing types in searchset
+				`matchkeys(["a", "b", "c"], [1, 2, 3], [1, "3"])`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("c"),
+				}),
+			},
 		},
 
 		"max": {
@@ -492,6 +583,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"parseint": {
+			{
+				`parseint("100", 10)`,
+				cty.NumberIntVal(100),
+			},
+		},
+
 		"pathexpand": {
 			{
 				`pathexpand("~/test-file")`,
@@ -503,6 +601,51 @@ func TestFunctions(t *testing.T) {
 			{
 				`pow(1,0)`,
 				cty.NumberFloatVal(1),
+			},
+		},
+
+		"range": {
+			{
+				`range(3)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(0),
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+				}),
+			},
+			{
+				`range(1, 4)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+					cty.NumberIntVal(3),
+				}),
+			},
+			{
+				`range(1, 8, 2)`,
+				cty.ListVal([]cty.Value{
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(3),
+					cty.NumberIntVal(5),
+					cty.NumberIntVal(7),
+				}),
+			},
+		},
+
+		"regex": {
+			{
+				`regex("(\\d+)([a-z]+)", "aaa111bbb222")`,
+				cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("bbb")}),
+			},
+		},
+
+		"regexall": {
+			{
+				`regexall("(\\d+)([a-z]+)", "...111aaa222bbb...")`,
+				cty.ListVal([]cty.Value{
+					cty.TupleVal([]cty.Value{cty.StringVal("111"), cty.StringVal("aaa")}),
+					cty.TupleVal([]cty.Value{cty.StringVal("222"), cty.StringVal("bbb")}),
+				}),
 			},
 		},
 
@@ -546,6 +689,15 @@ func TestFunctions(t *testing.T) {
 					cty.TupleVal([]cty.Value{cty.StringVal("staging"), cty.StringVal("app2")}),
 					cty.TupleVal([]cty.Value{cty.StringVal("production"), cty.StringVal("app1")}),
 					cty.TupleVal([]cty.Value{cty.StringVal("production"), cty.StringVal("app2")}),
+				}),
+			},
+		},
+
+		"setsubtract": {
+			{
+				`setsubtract(["a", "b", "c"], ["a", "c"])`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("b"),
 				}),
 			},
 		},
@@ -640,6 +792,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"sum": {
+			{
+				`sum([2340.5,10,3])`,
+				cty.NumberFloatVal(2353.5),
+			},
+		},
+
 		"templatefile": {
 			{
 				`templatefile("hello.tmpl", {name = "Jodie"})`,
@@ -721,10 +880,55 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"trim": {
+			{
+				`trim("?!hello?!", "!?")`,
+				cty.StringVal("hello"),
+			},
+		},
+
+		"trimprefix": {
+			{
+				`trimprefix("helloworld", "hello")`,
+				cty.StringVal("world"),
+			},
+		},
+
 		"trimspace": {
 			{
 				`trimspace(" hello ")`,
 				cty.StringVal("hello"),
+			},
+		},
+
+		"trimsuffix": {
+			{
+				`trimsuffix("helloworld", "world")`,
+				cty.StringVal("hello"),
+			},
+		},
+
+		"try": {
+			{
+				// Note: "try" only works with expressions that pass static
+				// validation, because it only gets an opportunity to run in
+				// that case. The following "works" (captures the error) because
+				// Terraform understands it as a reference to an attribute
+				// that does not exist during dynamic evaluation.
+				//
+				// "try" doesn't work with references that could never possibly
+				// be valid and are thus caught during static validation, such
+				// as an expression like "foo" alone which would be understood
+				// as an invalid resource reference. That's okay because this
+				// function exists primarily to ease access to dynamically-typed
+				// structures that Terraform can't statically validate by
+				// definition.
+				`try({}.baz, "fallback")`,
+				cty.StringVal("fallback"),
+			},
+			{
+				`try("fallback")`,
+				cty.StringVal("fallback"),
 			},
 		},
 
@@ -742,6 +946,29 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"uuidv5": {
+			{
+				`uuidv5("dns", "tada")`,
+				cty.StringVal("faa898db-9b9d-5b75-86a9-149e7bb8e3b8"),
+			},
+			{
+				`uuidv5("url", "tada")`,
+				cty.StringVal("2c1ff6b4-211f-577e-94de-d978b0caa16e"),
+			},
+			{
+				`uuidv5("oid", "tada")`,
+				cty.StringVal("61eeea26-5176-5288-87fc-232d6ed30d2f"),
+			},
+			{
+				`uuidv5("x500", "tada")`,
+				cty.StringVal("7e12415e-f7c9-57c3-9e43-52dc9950d264"),
+			},
+			{
+				`uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "tada")`,
+				cty.StringVal("faa898db-9b9d-5b75-86a9-149e7bb8e3b8"),
+			},
+		},
+
 		"values": {
 			{
 				`values({"hello"="world", "what's"="up"})`,
@@ -749,6 +976,35 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("world"),
 					cty.StringVal("up"),
 				}),
+			},
+		},
+
+		"yamldecode": {
+			{
+				`yamldecode("true")`,
+				cty.True,
+			},
+			{
+				`yamldecode("key: 0ba")`,
+				cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("0ba"),
+				}),
+			},
+		},
+
+		"yamlencode": {
+			{
+				`yamlencode(["foo", "bar", true])`,
+				cty.StringVal("- \"foo\"\n- \"bar\"\n- true\n"),
+			},
+			{
+				`yamlencode({a = "b", c = "d"})`,
+				cty.StringVal("\"a\": \"b\"\n\"c\": \"d\"\n"),
+			},
+			{
+				`yamlencode(true)`,
+				// the ... here is an "end of document" marker, produced for implied primitive types only
+				cty.StringVal("true\n...\n"),
 			},
 		},
 

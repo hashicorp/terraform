@@ -17,7 +17,7 @@ process.
 
 ## Usage
 
-Usage: terraform force-unlock LOCK_ID [DIR]
+Usage: terraform force-unlock LOCK_ID
 
 Manually unlock the state for the defined configuration.
 

@@ -33,7 +33,58 @@ func (m Module) String() string {
 	if len(m) == 0 {
 		return ""
 	}
-	return strings.Join([]string(m), ".")
+	var steps []string
+	for _, s := range m {
+		steps = append(steps, "module", s)
+	}
+	return strings.Join(steps, ".")
+}
+
+func (m Module) Equal(other Module) bool {
+	return m.String() == other.String()
+}
+
+func (m Module) targetableSigil() {
+	// Module is targetable
+}
+
+// TargetContains implements Targetable for Module by returning true if the given other
+// address either matches the receiver, is a sub-module-instance of the
+// receiver, or is a targetable absolute address within a module that
+// is contained within the receiver.
+func (m Module) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+
+	case Module:
+		if len(to) < len(m) {
+			// Can't be contained if the path is shorter
+			return false
+		}
+		// Other is contained if its steps match for the length of our own path.
+		for i, ourStep := range m {
+			otherStep := to[i]
+			if ourStep != otherStep {
+				return false
+			}
+		}
+		// If we fall out here then the prefixed matched, so it's contained.
+		return true
+
+	case ModuleInstance:
+		return m.TargetContains(to.Module())
+
+	case ConfigResource:
+		return m.TargetContains(to.Module)
+
+	case AbsResource:
+		return m.TargetContains(to.Module)
+
+	case AbsResourceInstance:
+		return m.TargetContains(to.Module)
+
+	default:
+		return false
+	}
 }
 
 // Child returns the address of a child call in the receiver, identified by the
@@ -72,4 +123,18 @@ func (m Module) Call() (Module, ModuleCall) {
 	return caller, ModuleCall{
 		Name: callName,
 	}
+}
+
+// Ancestors returns a slice containing the receiver and all of its ancestor
+// modules, all the way up to (and including) the root module.  The result is
+// ordered by depth, with the root module always first.
+//
+// Since the result always includes the root module, a caller may choose to
+// ignore it by slicing the result with [1:].
+func (m Module) Ancestors() []Module {
+	ret := make([]Module, 0, len(m)+1)
+	for i := 0; i <= len(m); i++ {
+		ret = append(ret, m[:i])
+	}
+	return ret
 }

@@ -3,8 +3,6 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -23,38 +21,39 @@ import (
 type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
-	destroyNode      GraphNodeDestroyerCBD
-	graphNodeDeposer // implementation of GraphNodeDeposer
+	graphNodeDeposer // implementation of GraphNodeDeposerConfig
+
+	// If this node is forced to be CreateBeforeDestroy, we need to record that
+	// in the state to.
+	ForceCreateBeforeDestroy bool
 }
 
 var (
-	_ GraphNodeResource         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator          = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer       = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer          = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeEvalable         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeConfigResource     = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeEvalable           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
 
-// GraphNodeAttachDestroyer
-func (n *NodeApplyableResourceInstance) AttachDestroyNode(d GraphNodeDestroyerCBD) {
-	n.destroyNode = d
-}
-
-// createBeforeDestroy checks this nodes config status and the status af any
-// companion destroy node for CreateBeforeDestroy.
-func (n *NodeApplyableResourceInstance) createBeforeDestroy() bool {
-	cbd := false
+// CreateBeforeDestroy returns this node's CreateBeforeDestroy status.
+func (n *NodeApplyableResourceInstance) CreateBeforeDestroy() bool {
+	if n.ForceCreateBeforeDestroy {
+		return n.ForceCreateBeforeDestroy
+	}
 
 	if n.Config != nil && n.Config.Managed != nil {
-		cbd = n.Config.Managed.CreateBeforeDestroy
+		return n.Config.Managed.CreateBeforeDestroy
 	}
 
-	if n.destroyNode != nil {
-		cbd = cbd || n.destroyNode.CreateBeforeDestroy()
-	}
+	return false
+}
 
-	return cbd
+func (n *NodeApplyableResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
+	n.ForceCreateBeforeDestroy = v
+	return nil
 }
 
 // GraphNodeCreator
@@ -77,7 +76,7 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 	// would create a dependency cycle. We make a compromise here of requiring
 	// changes to be updated across two applies in this case, since the first
 	// plan will use the old values.
-	if !n.createBeforeDestroy() {
+	if !n.CreateBeforeDestroy() {
 		for _, ref := range ret {
 			switch tr := ref.Subject.(type) {
 			case addrs.ResourceInstance:
@@ -97,16 +96,14 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 	return ret
 }
 
+// GraphNodeAttachDependencies
+func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigResource) {
+	n.Dependencies = deps
+}
+
 // GraphNodeEvalable
 func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
-
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
-	// Determine the dependencies for the state.
-	stateDeps := n.StateReferences()
 
 	if n.Config == nil {
 		// This should not be possible, but we've got here in at least one
@@ -132,15 +129,15 @@ func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr, stateId, stateDeps)
+		return n.evalTreeManagedResource(addr)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr, stateId, stateDeps)
+		return n.evalTreeDataResource(addr)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
@@ -175,15 +172,17 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			// In this particular call to EvalReadData we include our planned
 			// change, which signals that we expect this read to complete fully
 			// with no unknown values; it'll produce an error if not.
-			&EvalReadData{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Dependencies:   n.StateReferences(),
-				Planned:        &change, // setting this indicates that the result must be complete
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				OutputState:    &state,
+			&evalReadDataApply{
+				evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Planned:        &change,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					State:          &state,
+				},
 			},
 
 			&EvalWriteState{
@@ -206,7 +205,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider providers.Interface
@@ -216,7 +215,6 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
-	var configVal cty.Value
 	var deposedKey states.DeposedKey
 
 	return &EvalSequence{
@@ -254,10 +252,15 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					destroy := false
 					if diffApply != nil {
 						destroy = (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
+
+						// Get the stored action for CBD if we have a plan already
+						createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete
 					}
-					if destroy && n.createBeforeDestroy() {
+
+					if destroy && n.CreateBeforeDestroy() {
 						createBeforeDestroyEnabled = true
 					}
+
 					return createBeforeDestroyEnabled, nil
 				},
 				Then: &EvalDeposeState{
@@ -289,11 +292,11 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Config:         n.Config,
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
+				ProviderMetas:  n.ProviderMetas,
 				ProviderSchema: &providerSchema,
 				State:          &state,
 				PreviousDiff:   &diff,
 				OutputChange:   &diffApply,
-				OutputValue:    &configVal,
 				OutputState:    &state,
 			},
 
@@ -346,30 +349,31 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Change: &diffApply,
 			},
 			&EvalApply{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Dependencies:   n.StateReferences(),
-				State:          &state,
-				Change:         &diffApply,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-				Error:          &err,
-				CreateNew:      &createNew,
+				Addr:                addr.Resource,
+				Config:              n.Config,
+				State:               &state,
+				Change:              &diffApply,
+				Provider:            &provider,
+				ProviderAddr:        n.ResolvedProvider,
+				ProviderMetas:       n.ProviderMetas,
+				ProviderSchema:      &providerSchema,
+				Output:              &state,
+				Error:               &err,
+				CreateNew:           &createNew,
+				CreateBeforeDestroy: n.CreateBeforeDestroy(),
 			},
 			&EvalMaybeTainted{
-				Addr:        addr.Resource,
-				State:       &state,
-				Change:      &diffApply,
-				Error:       &err,
-				StateOutput: &state,
+				Addr:   addr.Resource,
+				State:  &state,
+				Change: &diffApply,
+				Error:  &err,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
+				Dependencies:   &n.Dependencies,
 			},
 			&EvalApplyProvisioners{
 				Addr:           addr.Resource,
@@ -380,25 +384,26 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				When:           configs.ProvisionerWhenCreate,
 			},
 			&EvalMaybeTainted{
-				Addr:        addr.Resource,
-				State:       &state,
-				Change:      &diffApply,
-				Error:       &err,
-				StateOutput: &state,
+				Addr:   addr.Resource,
+				State:  &state,
+				Change: &diffApply,
+				Error:  &err,
 			},
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
 				State:          &state,
+				Dependencies:   &n.Dependencies,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
 					return createBeforeDestroyEnabled && err != nil, nil
 				},
 				Then: &EvalMaybeRestoreDeposedObject{
-					Addr: addr.Resource,
-					Key:  &deposedKey,
+					Addr:          addr.Resource,
+					PlannedChange: &diffApply,
+					Key:           &deposedKey,
 				},
 			},
 
@@ -410,7 +415,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					if !diff.Action.IsReplace() {
 						return true, nil
 					}
-					if !n.createBeforeDestroy() {
+					if !n.CreateBeforeDestroy() {
 						return true, nil
 					}
 					return false, nil

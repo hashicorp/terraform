@@ -1,0 +1,323 @@
+syntax = "proto2";
+package otsprotocol;
+
+enum QueryType {
+    MATCH_QUERY = 1;
+    MATCH_PHRASE_QUERY = 2;
+    TERM_QUERY = 3;
+    RANGE_QUERY = 4;
+    PREFIX_QUERY = 5;
+    BOOL_QUERY = 6;
+    CONST_SCORE_QUERY = 7;
+    FUNCTION_SCORE_QUERY = 8;
+    NESTED_QUERY = 9;
+    WILDCARD_QUERY = 10;
+    MATCH_ALL_QUERY = 11;
+    GEO_BOUNDING_BOX_QUERY = 12;
+    GEO_DISTANCE_QUERY = 13;
+    GEO_POLYGON_QUERY = 14;
+    TERMS_QUERY = 15;
+}
+
+enum QueryOperator {
+    OR = 1;
+    AND = 2;
+}
+
+message MatchQuery {
+    optional string field_name = 1;
+    optional string text = 2;
+    optional int32 minimum_should_match = 3;
+    optional QueryOperator operator = 4;
+}
+
+message MatchPhraseQuery {
+    optional string field_name = 1;
+    optional string text = 2;
+}
+
+message MatchAllQuery {
+}
+
+message TermQuery {
+    optional string field_name = 1;
+    optional bytes term = 2;
+}
+
+message TermsQuery {
+    optional string field_name = 1;
+    repeated bytes terms = 2;
+}
+
+message RangeQuery {
+    optional string field_name = 1;
+    optional bytes range_from = 2;  // variant value
+    optional bytes range_to = 3; // variant value
+    optional bool include_lower = 4;
+    optional bool include_upper = 5;
+}
+
+message PrefixQuery {
+    optional string field_name = 1;
+    optional string prefix = 2;
+}
+
+message WildcardQuery {
+    optional string field_name = 1;
+    optional string value = 2;
+}
+
+message BoolQuery {
+    repeated Query must_queries = 1;
+    repeated Query must_not_queries = 2;
+    repeated Query filter_queries = 3;
+    repeated Query should_queries = 4;
+    optional int32 minimum_should_match = 5;
+}
+
+message ConstScoreQuery {
+    optional Query filter = 1;
+}
+
+message FieldValueFactor {
+    optional string field_name = 1;
+}
+
+message FunctionScoreQuery {
+    optional Query query = 1;
+    optional FieldValueFactor field_value_factor = 2;
+}
+
+enum ScoreMode {
+    SCORE_MODE_NONE = 1;
+    SCORE_MODE_AVG = 2;
+    SCORE_MODE_MAX = 3;
+    SCORE_MODE_TOTAL = 4;
+    SCORE_MODE_MIN = 5;
+}
+
+message NestedQuery {
+    optional string path = 1;
+    optional Query query = 2;
+    optional ScoreMode score_mode = 3;
+}
+
+message GeoBoundingBoxQuery {
+    optional string field_name = 1;
+    optional string top_left = 2;
+    optional string bottom_right = 3;
+}
+
+message GeoDistanceQuery {
+    optional string field_name = 1;
+    optional string center_point = 2;
+    optional double distance = 3;
+}
+
+message GeoPolygonQuery {
+    optional string field_name = 1;
+    repeated string points = 2;
+}
+
+message Query {
+    optional QueryType type = 1;
+    optional bytes query = 2;
+}
+
+message Collapse {
+    optional string field_name = 1;
+}
+
+message NestedFilter {
+    optional string path = 1;
+    optional Query filter = 2;
+}
+
+enum SortOrder {
+    SORT_ORDER_ASC = 0;
+    SORT_ORDER_DESC = 1;
+}
+
+enum SortMode {
+    SORT_MODE_MIN = 0;
+    SORT_MODE_MAX = 1;
+    SORT_MODE_AVG = 2;
+}
+
+message ScoreSort {
+    optional SortOrder order = 1;
+}
+
+message FieldSort {
+    optional string field_name = 1;
+    optional SortOrder order = 2;
+    optional SortMode mode = 3;
+    optional NestedFilter nested_filter = 4;
+}
+
+enum GeoDistanceType {
+    GEO_DISTANCE_ARC = 0;
+    GEO_DISTANCE_PLANE = 1;
+}
+
+message GeoDistanceSort {
+    optional string field_name = 1;
+    repeated string points = 2;
+    optional SortOrder order = 3;
+    optional SortMode mode = 4;
+    optional GeoDistanceType distance_type = 5;
+    optional NestedFilter nested_filter = 6;
+}
+
+message PrimaryKeySort {
+    optional SortOrder order = 1;
+}
+
+message Sorter {
+    optional FieldSort field_sort = 1;
+    optional GeoDistanceSort geo_distance_sort = 2;
+    optional ScoreSort score_sort = 3;
+    optional PrimaryKeySort pk_sort = 4;
+}
+
+message Sort {
+    repeated Sorter sorter = 1;
+}
+
+message SearchQuery {
+    optional int32 offset = 1;
+    optional int32 limit = 2;
+    optional Query query = 4;
+    optional Collapse collapse = 5;
+    optional Sort sort = 6;
+    optional bool getTotalCount = 8;
+    optional bytes token = 9;
+}
+
+enum ColumnReturnType {
+    RETURN_ALL = 1;
+    RETURN_SPECIFIED = 2;
+    RETURN_NONE = 3;
+}
+
+message ColumnsToGet {
+    optional ColumnReturnType return_type = 1;
+    repeated string column_names = 2;
+}
+
+message SearchRequest {
+    optional string table_name = 1;
+    optional string index_name = 2;
+    optional ColumnsToGet columns_to_get = 3;
+    optional bytes search_query = 4;
+    repeated bytes routing_values = 5;
+}
+
+/**
+ * Response部分：
+ **/
+
+message SearchResponse {
+    optional int64 total_hits = 1;
+    repeated bytes rows = 2;
+    optional bool is_all_succeeded = 3;
+    optional bytes next_token = 6;
+}
+
+/* Create Search Index */
+
+enum IndexOptions {
+    DOCS = 1;
+    FREQS = 2;
+    POSITIONS = 3;
+    OFFSETS = 4;
+}
+
+enum FieldType {
+    LONG = 1;
+    DOUBLE = 2;
+    BOOLEAN = 3;
+    KEYWORD = 4;
+    TEXT = 5;
+    NESTED = 6;
+    GEO_POINT = 7;
+}
+
+message FieldSchema {
+    optional string field_name = 1;
+    optional FieldType field_type = 2;
+    optional IndexOptions index_options = 3;
+    optional string analyzer = 4;
+    optional bool index = 5;
+    optional bool doc_values = 6;
+    optional bool store = 7;
+    repeated FieldSchema field_schemas = 8; // only for nested type
+    optional bool is_array = 9;
+}
+
+message IndexSchema {
+    repeated FieldSchema field_schemas = 1;
+    optional IndexSetting index_setting = 2;
+    optional Sort index_sort = 3;
+}
+
+message IndexSetting {
+    optional int32 number_of_shards = 1;
+    repeated string routing_fields = 2;
+    optional int32 routing_partition_size = 3;
+}
+
+message CreateSearchIndexRequest {
+    required string table_name = 1;
+    required string index_name = 2;
+    optional IndexSchema schema = 3;
+}
+
+message CreateSearchIndexResponse {
+}
+
+/* List Search Index */
+
+message IndexInfo {
+    optional string table_name = 1;
+    optional string index_name = 2;
+}
+
+message ListSearchIndexRequest {
+    optional string table_name = 1;
+}
+message ListSearchIndexResponse {
+    repeated IndexInfo indices = 1;
+}
+
+/* Delete Search Index */
+
+message DeleteSearchIndexRequest {
+    optional string table_name = 1;
+    optional string index_name = 2;
+}
+
+message DeleteSearchIndexResponse {
+}
+
+/* Describe Search Index */
+
+enum SyncPhase {
+    FULL = 1;
+    INCR = 2;
+}
+
+message SyncStat {
+    optional SyncPhase sync_phase = 1;
+    optional int64 current_sync_timestamp = 2; // 同步进度，参考TunnelService。
+}
+
+message DescribeSearchIndexRequest {
+    optional string table_name = 1;
+    optional string index_name = 2;
+}
+
+message DescribeSearchIndexResponse {
+    optional IndexSchema schema = 1;
+    optional SyncStat sync_stat = 2;
+}

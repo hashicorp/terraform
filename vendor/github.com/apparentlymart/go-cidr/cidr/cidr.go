@@ -28,6 +28,16 @@ import (
 // For example, 10.3.0.0/16, extended by 8 bits, with a network number
 // of 5, becomes 10.3.5.0/24 .
 func Subnet(base *net.IPNet, newBits int, num int) (*net.IPNet, error) {
+	return SubnetBig(base, newBits, big.NewInt(int64(num)))
+}
+
+// SubnetBig takes a parent CIDR range and creates a subnet within it with the
+// given number of additional prefix bits and the given network number. It
+// differs from Subnet in that it takes a *big.Int for the num, instead of an int.
+//
+// For example, 10.3.0.0/16, extended by 8 bits, with a network number of 5,
+// becomes 10.3.5.0/24 .
+func SubnetBig(base *net.IPNet, newBits int, num *big.Int) (*net.IPNet, error) {
 	ip := base.IP
 	mask := base.Mask
 
@@ -39,7 +49,7 @@ func Subnet(base *net.IPNet, newBits int, num int) (*net.IPNet, error) {
 	}
 
 	maxNetNum := uint64(1<<uint64(newBits)) - 1
-	if uint64(num) > maxNetNum {
+	if num.Uint64() > maxNetNum {
 		return nil, fmt.Errorf("prefix extension of %d does not accommodate a subnet numbered %d", newBits, num)
 	}
 
@@ -49,26 +59,38 @@ func Subnet(base *net.IPNet, newBits int, num int) (*net.IPNet, error) {
 	}, nil
 }
 
-// Host takes a parent CIDR range and turns it into a host IP address with
-// the given host number.
+// Host takes a parent CIDR range and turns it into a host IP address with the
+// given host number.
 //
 // For example, 10.3.0.0/16 with a host number of 2 gives 10.3.0.2.
 func Host(base *net.IPNet, num int) (net.IP, error) {
+	return HostBig(base, big.NewInt(int64(num)))
+}
+
+// HostBig takes a parent CIDR range and turns it into a host IP address with
+// the given host number. It differs from Host in that it takes a *big.Int for
+// the num, instead of an int.
+//
+// For example, 10.3.0.0/16 with a host number of 2 gives 10.3.0.2.
+func HostBig(base *net.IPNet, num *big.Int) (net.IP, error) {
 	ip := base.IP
 	mask := base.Mask
 
 	parentLen, addrLen := mask.Size()
 	hostLen := addrLen - parentLen
 
-	maxHostNum := uint64(1<<uint64(hostLen)) - 1
+	maxHostNum := big.NewInt(int64(1))
+	maxHostNum.Lsh(maxHostNum, uint(hostLen))
+	maxHostNum.Sub(maxHostNum, big.NewInt(1))
 
-	numUint64 := uint64(num)
-	if num < 0 {
-		numUint64 = uint64(-num) - 1
-		num = int(maxHostNum - numUint64)
+	numUint64 := big.NewInt(int64(num.Uint64()))
+	if num.Cmp(big.NewInt(0)) == -1 {
+		numUint64.Neg(num)
+		numUint64.Sub(numUint64, big.NewInt(int64(1)))
+		num.Sub(maxHostNum, numUint64)
 	}
 
-	if numUint64 > maxHostNum {
+	if numUint64.Cmp(maxHostNum) == 1 {
 		return nil, fmt.Errorf("prefix of %d does not accommodate a host numbered %d", parentLen, num)
 	}
 	var bitlength int
@@ -129,7 +151,11 @@ func VerifyNoOverlap(subnets []*net.IPNet, CIDRBlock *net.IPNet) error {
 		if !CIDRBlock.Contains(firstLastIP[i][0]) || !CIDRBlock.Contains(firstLastIP[i][1]) {
 			return fmt.Errorf("%s does not fully contain %s", CIDRBlock.String(), s.String())
 		}
-		for j := i + 1; j < len(subnets); j++ {
+		for j := 0; j < len(subnets); j++ {
+			if i == j {
+				continue
+			}
+
 			first := firstLastIP[j][0]
 			last := firstLastIP[j][1]
 			if s.Contains(first) || s.Contains(last) {

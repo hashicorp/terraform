@@ -20,11 +20,7 @@ func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh, detailed bool
 	var outPath string
 
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
@@ -96,7 +92,6 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
-	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypePlan
@@ -140,7 +135,12 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 		var backendForPlan plans.Backend
 		backendForPlan.Type = backendPseudoState.Type
-		backendForPlan.Workspace = c.Workspace()
+		workspace, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		backendForPlan.Workspace = workspace
 
 		// Configuration is a little more awkward to handle here because it's
 		// stored in state as raw JSON but we need it as a plans.DynamicValue
@@ -201,6 +201,10 @@ Usage: terraform plan [options] [DIR]
   this plan exactly.
 
 Options:
+
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact form
+                      that includes only the summary messages.
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.

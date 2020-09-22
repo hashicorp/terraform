@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -36,60 +37,65 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		}
 	}
 
-	// Our addressing system distinguishes between modules and module instances,
-	// but we're not yet ready to make that distinction here (since we don't
-	// support "count"/"for_each" on modules) and so we just do a naive
-	// transform of the module path into a module instance path, assuming that
-	// no keys are in use. This should be removed when "count" and "for_each"
-	// are implemented for modules.
-	path := c.Path.UnkeyedInstanceShim()
-
+	// Add plannable outputs to the graph, which will be dynamically expanded
+	// into NodeApplyableOutputs to reflect possible expansion
+	// through the presence of "count" or "for_each" on the modules.
 	for _, o := range c.Module.Outputs {
-		addr := path.OutputValue(o.Name)
-		node := &NodeApplyableOutput{
-			Addr:   addr,
+		node := &nodeExpandOutput{
+			Addr:   addrs.OutputValue{Name: o.Name},
+			Module: c.Path,
 			Config: o,
 		}
+		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
 		g.Add(node)
 	}
 
 	return nil
 }
 
-// DestroyOutputTransformer is a GraphTransformer that adds nodes to delete
+// destroyRootOutputTransformer is a GraphTransformer that adds nodes to delete
 // outputs during destroy. We need to do this to ensure that no stale outputs
 // are ever left in the state.
-type DestroyOutputTransformer struct {
+type destroyRootOutputTransformer struct {
+	Destroy bool
 }
 
-func (t *DestroyOutputTransformer) Transform(g *Graph) error {
+func (t *destroyRootOutputTransformer) Transform(g *Graph) error {
+	// Only clean root outputs on a full destroy
+	if !t.Destroy {
+		return nil
+	}
+
 	for _, v := range g.Vertices() {
-		output, ok := v.(*NodeApplyableOutput)
+		output, ok := v.(*nodeExpandOutput)
 		if !ok {
+			continue
+		}
+
+		// We only destroy root outputs
+		if !output.Module.Equal(addrs.RootModule) {
 			continue
 		}
 
 		// create the destroy node for this output
 		node := &NodeDestroyableOutput{
-			Addr:   output.Addr,
+			Addr:   output.Addr.Absolute(addrs.RootModuleInstance),
 			Config: output.Config,
 		}
 
 		log.Printf("[TRACE] creating %s", node.Name())
 		g.Add(node)
 
-		deps, err := g.Descendents(v)
-		if err != nil {
-			return err
-		}
+		deps := g.UpEdges(v)
 
-		// the destroy node must depend on the eval node
-		deps.Add(v)
-
-		for _, d := range deps.List() {
+		for _, d := range deps {
 			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
 			g.Connect(dag.BasicEdge(node, d))
 		}
+
+		// We no longer need the expand node, since we intend to remove this
+		// output from the state.
+		g.Remove(v)
 	}
 	return nil
 }

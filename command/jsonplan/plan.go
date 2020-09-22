@@ -91,12 +91,7 @@ func Marshal(
 	p *plans.Plan,
 	sf *statefile.File,
 	schemas *terraform.Schemas,
-	stateSchemas *terraform.Schemas,
 ) ([]byte, error) {
-	if stateSchemas == nil {
-		stateSchemas = schemas
-	}
-
 	output := newPlan()
 	output.TerraformVersion = version.String()
 
@@ -125,7 +120,7 @@ func Marshal(
 
 	// output.PriorState
 	if sf != nil && !sf.State.Empty() {
-		output.PriorState, err = jsonstate.Marshal(sf, stateSchemas)
+		output.PriorState, err = jsonstate.Marshal(sf, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling prior state: %s", err)
 		}
@@ -183,12 +178,12 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.ProviderConfig.Type,
+			rc.ProviderAddr.Provider,
 			addr.Resource.Resource.Mode,
 			addr.Resource.Resource.Type,
 		)
 		if schema == nil {
-			return fmt.Errorf("no schema found for %s", r.Address)
+			return fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 		}
 
 		changeV, err := rc.Decode(schema.ImpliedType())
@@ -210,21 +205,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				if err != nil {
 					return err
 				}
-				afterUnknown, _ = cty.Transform(changeV.After, func(path cty.Path, val cty.Value) (cty.Value, error) {
-					if val.IsNull() {
-						return cty.False, nil
-					}
-
-					if !val.Type().IsPrimitiveType() {
-						return val, nil // just pass through non-primitives; they already contain our transform results
-					}
-
-					if val.IsKnown() {
-						return cty.False, nil
-					}
-
-					return cty.True, nil
-				})
+				afterUnknown = cty.EmptyObjectVal
 			} else {
 				filteredAfter := omitUnknowns(changeV.After)
 				if filteredAfter.IsNull() {
@@ -271,7 +252,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.ModuleAddress = addr.Module.String()
 		r.Name = addr.Resource.Resource.Name
 		r.Type = addr.Resource.Resource.Type
-		r.ProviderName = rc.ProviderAddr.ProviderConfig.StringCompact()
+		r.ProviderName = rc.ProviderAddr.Provider.String()
 
 		p.ResourceChanges = append(p.ResourceChanges, r)
 

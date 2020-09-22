@@ -13,37 +13,33 @@ die() {
   exit 1
 }
 
-# Check to make sure it's safe to modify the user's git repo.
-if git status --porcelain | read; then
-  die "Uncommitted or untracked files found; commit changes first"
-fi
-
-if [[ -d "${GOPATH}/src" ]]; then
-  die "\${GOPATH}/src (${GOPATH}/src) exists; this script will delete it."
-fi
-
-# Undo any edits made by this script.
-cleanup() {
-  rm -rf "${GOPATH}/src"
-  git reset --hard HEAD
-}
-trap cleanup EXIT
-
 fail_on_output() {
   tee /dev/stderr | (! read)
 }
+
+# Check to make sure it's safe to modify the user's git repo.
+git status --porcelain | fail_on_output
+
+# Undo any edits made by this script.
+cleanup() {
+  git reset --hard HEAD
+}
+trap cleanup EXIT
 
 PATH="${GOPATH}/bin:${GOROOT}/bin:${PATH}"
 
 if [[ "$1" = "-install" ]]; then
   # Check for module support
   if go help mod >& /dev/null; then
+    # Install the pinned versions as defined in module tools.
+    pushd ./test/tools
     go install \
       golang.org/x/lint/golint \
       golang.org/x/tools/cmd/goimports \
       honnef.co/go/tools/cmd/staticcheck \
       github.com/client9/misspell/cmd/misspell \
       github.com/golang/protobuf/protoc-gen-go
+    popd
   else
     # Ye olde `go get` incantation.
     # Note: this gets the latest version of all tools (vs. the pinned versions
@@ -74,18 +70,21 @@ elif [[ "$#" -ne 0 ]]; then
 fi
 
 # - Ensure all source files contain a copyright message.
-git ls-files "*.go" | xargs grep -L "\(Copyright [0-9]\{4,\} gRPC authors\)\|DO NOT EDIT" 2>&1 | fail_on_output
+(! git grep -L "\(Copyright [0-9]\{4,\} gRPC authors\)\|DO NOT EDIT" -- '*.go')
 
 # - Make sure all tests in grpc and grpc/test use leakcheck via Teardown.
 (! grep 'func Test[^(]' *_test.go)
 (! grep 'func Test[^(]' test/*.go)
 
+# - Do not import x/net/context.
+(! git grep -l 'x/net/context' -- "*.go")
+
 # - Do not import math/rand for real library code.  Use internal/grpcrand for
 #   thread safety.
-git ls-files "*.go" | xargs grep -l '"math/rand"' 2>&1 | (! grep -v '^examples\|^stress\|grpcrand')
+git grep -l '"math/rand"' -- "*.go" 2>&1 | (! grep -v '^examples\|^stress\|grpcrand\|^benchmark\|wrr_test')
 
 # - Ensure all ptypes proto packages are renamed when importing.
-git ls-files "*.go" | (! xargs grep "\(import \|^\s*\)\"github.com/golang/protobuf/ptypes/")
+(! git grep "\(import \|^\s*\)\"github.com/golang/protobuf/ptypes/" -- "*.go")
 
 # - Check imports that are illegal in appengine (until Go 1.11).
 # TODO: Remove when we drop Go 1.10 support
@@ -93,9 +92,11 @@ go list -f {{.Dir}} ./... | xargs go run test/go_vet/vet.go
 
 # - gofmt, goimports, golint (with exceptions for generated code), go vet.
 gofmt -s -d -l . 2>&1 | fail_on_output
-goimports -l . 2>&1 | fail_on_output
+goimports -l . 2>&1 | (! grep -vE "(_mock|\.pb)\.go")
 golint ./... 2>&1 | (! grep -vE "(_mock|\.pb)\.go:")
-go tool vet -all .
+go vet -all .
+
+misspell -error .
 
 # - Check that generated proto files are up to date.
 if [[ -z "${VET_SKIP_PROTO}" ]]; then
@@ -112,30 +113,47 @@ if go help mod >& /dev/null; then
 fi
 
 # - Collection of static analysis checks
-### HACK HACK HACK: Remove once staticcheck works with modules.
-# Make a symlink in ${GOPATH}/src to its ${GOPATH}/pkg/mod equivalent for every package we use.
-for x in $(find "${GOPATH}/pkg/mod" -name '*@*' | grep -v \/mod\/cache\/); do
-  pkg="$(echo ${x#"${GOPATH}/pkg/mod/"} | cut -f1 -d@)";
-  # If multiple versions exist, just use the existing one.
-  if [[ -L "${GOPATH}/src/${pkg}" ]]; then continue; fi
-  mkdir -p "$(dirname "${GOPATH}/src/${pkg}")";
-  ln -s $x "${GOPATH}/src/${pkg}";
-done
-### END HACK HACK HACK
-
-# TODO(menghanl): fix errors in transport_test.
-staticcheck -go 1.9 -ignore '
-balancer.go:SA1019
-balancer_test.go:SA1019
-clientconn_test.go:SA1019
-balancer/roundrobin/roundrobin_test.go:SA1019
-benchmark/benchmain/main.go:SA1019
-internal/transport/handler_server.go:SA1019
-internal/transport/handler_server_test.go:SA1019
-internal/transport/transport_test.go:SA2002
-stats/stats_test.go:SA1019
-test/channelz_test.go:SA1019
-test/end2end_test.go:SA1019
-test/healthcheck_test.go:SA1019
-' ./...
-misspell -error .
+#
+# TODO(dfawley): don't use deprecated functions in examples or first-party
+# plugins.
+SC_OUT="$(mktemp)"
+staticcheck -go 1.9 -checks 'inherit,-ST1015' ./... > "${SC_OUT}" || true
+# Error if anything other than deprecation warnings are printed.
+(! grep -v "is deprecated:.*SA1019" "${SC_OUT}")
+# Only ignore the following deprecated types/fields/functions.
+(! grep -Fv '.HandleResolvedAddrs
+.HandleSubConnStateChange
+.HeaderMap
+.NewAddress
+.NewServiceConfig
+.Metadata is deprecated: use Attributes
+.Type is deprecated: use Attributes
+.UpdateBalancerState
+balancer.Picker
+grpc.CallCustomCodec
+grpc.Code
+grpc.Compressor
+grpc.Decompressor
+grpc.MaxMsgSize
+grpc.MethodConfig
+grpc.NewGZIPCompressor
+grpc.NewGZIPDecompressor
+grpc.RPCCompressor
+grpc.RPCDecompressor
+grpc.RoundRobin
+grpc.ServiceConfig
+grpc.WithBalancer
+grpc.WithBalancerName
+grpc.WithCompressor
+grpc.WithDecompressor
+grpc.WithDialer
+grpc.WithMaxMsgSize
+grpc.WithServiceConfig
+grpc.WithTimeout
+http.CloseNotifier
+naming.Resolver
+naming.Update
+naming.Watcher
+resolver.Backend
+resolver.GRPCLB' "${SC_OUT}"
+)

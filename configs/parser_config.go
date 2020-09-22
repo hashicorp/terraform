@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 // LoadConfigFile reads the file at the given path and parses it as a config
@@ -42,6 +42,12 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 	file.CoreVersionConstraints, reqDiags = sniffCoreVersionRequirements(body)
 	diags = append(diags, reqDiags...)
 
+	// We'll load the experiments first because other decoding logic in the
+	// loop below might depend on these experiments.
+	var expDiags hcl.Diagnostics
+	file.ActiveExperiments, expDiags = sniffActiveExperiments(body)
+	diags = append(diags, expDiags...)
+
 	content, contentDiags := body.Content(configFileSchema)
 	diags = append(diags, contentDiags...)
 
@@ -52,8 +58,9 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
 
-			// We ignore the "terraform_version" attribute here because
-			// sniffCoreVersionRequirements already dealt with that above.
+			// We ignore the "terraform_version" and "experiments" attributes
+			// here because sniffCoreVersionRequirements and
+			// sniffActiveExperiments already dealt with those above.
 
 			for _, innerBlock := range content.Blocks {
 				switch innerBlock.Type {
@@ -68,7 +75,14 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.ProviderRequirements = append(file.ProviderRequirements, reqs...)
+					file.RequiredProviders = append(file.RequiredProviders, reqs)
+
+				case "provider_meta":
+					providerCfg, cfgDiags := decodeProviderMetaBlock(innerBlock)
+					diags = append(diags, cfgDiags...)
+					if providerCfg != nil {
+						file.ProviderMetas = append(file.ProviderMetas, providerCfg)
+					}
 
 				default:
 					// Should never happen because the above cases should be exhaustive
@@ -77,6 +91,15 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 
 				}
 			}
+
+		case "required_providers":
+			// required_providers should be nested inside a "terraform" block
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid required_providers block",
+				Detail:   "A \"required_providers\" block must be nested inside a \"terraform\" block.",
+				Subject:  block.TypeRange.Ptr(),
+			})
 
 		case "provider":
 			cfg, cfgDiags := decodeProviderBlock(block)
@@ -148,7 +171,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 // able to find, but may return no constraints at all if the given body is
 // so invalid that it cannot be decoded at all.
 func sniffCoreVersionRequirements(body hcl.Body) ([]VersionConstraint, hcl.Diagnostics) {
-	rootContent, _, diags := body.PartialContent(configFileVersionSniffRootSchema)
+	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
 
 	var constraints []VersionConstraint
 
@@ -178,6 +201,12 @@ var configFileSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
 			Type: "terraform",
+		},
+		{
+			// This one is not really valid, but we include it here so we
+			// can create a specialized error message hinting the user to
+			// nest it inside a "terraform" block.
+			Type: "required_providers",
 		},
 		{
 			Type:       "provider",
@@ -213,9 +242,8 @@ var configFileSchema = &hcl.BodySchema{
 // a configuration file.
 var terraformBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{
-			Name: "required_version",
-		},
+		{Name: "required_version"},
+		{Name: "experiments"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{
@@ -225,11 +253,16 @@ var terraformBlockSchema = &hcl.BodySchema{
 		{
 			Type: "required_providers",
 		},
+		{
+			Type:       "provider_meta",
+			LabelNames: []string{"provider"},
+		},
 	},
 }
 
-// configFileVersionSniffRootSchema is a schema for sniffCoreVersionRequirements
-var configFileVersionSniffRootSchema = &hcl.BodySchema{
+// configFileTerraformBlockSniffRootSchema is a schema for
+// sniffCoreVersionRequirements and sniffActiveExperiments.
+var configFileTerraformBlockSniffRootSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
 			Type: "terraform",
@@ -242,6 +275,16 @@ var configFileVersionSniffBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{
 			Name: "required_version",
+		},
+	},
+}
+
+// configFileExperimentsSniffBlockSchema is a schema for sniffActiveExperiments,
+// to decode a single attribute from inside a "terraform" block.
+var configFileExperimentsSniffBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "experiments",
 		},
 	},
 }

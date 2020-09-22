@@ -112,11 +112,9 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 	}
 
 	// Setup our provider
-	b.ContextOpts.ProviderResolver = providers.ResolverFixed(
-		map[string]providers.Factory{
-			name: providers.FactoryFixed(p),
-		},
-	)
+	b.ContextOpts.Providers = map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider(name): providers.FactoryFixed(p),
+	}
 
 	return p
 
@@ -210,4 +208,46 @@ func testTempDir(t *testing.T) string {
 func testStateFile(t *testing.T, path string, s *states.State) {
 	stateFile := statemgr.NewFilesystem(path)
 	stateFile.WriteState(s)
+}
+
+func mustProviderConfig(s string) addrs.AbsProviderConfig {
+	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
+func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
+	addr, diags := addrs.ParseAbsResourceInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+// assertBackendStateUnlocked attempts to lock the backend state. Failure
+// indicates that the state was indeed locked and therefore this function will
+// return true.
+func assertBackendStateUnlocked(t *testing.T, b *Local) bool {
+	t.Helper()
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Errorf("state is already locked: %s", err.Error())
+		return false
+	}
+	return true
+}
+
+// assertBackendStateLocked attempts to lock the backend state. Failure
+// indicates that the state was already locked and therefore this function will
+// return false.
+func assertBackendStateLocked(t *testing.T, b *Local) bool {
+	t.Helper()
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		return true
+	}
+	t.Error("unexpected success locking state")
+	return true
 }

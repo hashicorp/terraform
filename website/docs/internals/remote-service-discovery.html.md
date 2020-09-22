@@ -83,9 +83,11 @@ version 1 of the module registry protocol:
 
 ## Supported Services
 
-At present, only one service identifier is in use:
+At present, the following service identifiers are in use:
 
-* `modules.v1`: [module registry API version 1](/docs/registry/api.html)
+* `login.v1`: [login protocol version 1](/docs/commands/login.html#protocol-v1)
+* `modules.v1`: [module registry API version 1](module-registry-protocol.html)
+* `providers.v1`: [provider registry API version 1](provider-registry-protocol.html)
 
 ## Authentication
 

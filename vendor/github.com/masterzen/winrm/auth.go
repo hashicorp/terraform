@@ -14,7 +14,7 @@ import (
 
 type ClientAuthRequest struct {
 	transport http.RoundTripper
-	dial func(network, addr string) (net.Conn, error)
+	dial      func(network, addr string) (net.Conn, error)
 }
 
 func (c *ClientAuthRequest) Transport(endpoint *Endpoint) error {
@@ -35,10 +35,11 @@ func (c *ClientAuthRequest) Transport(endpoint *Endpoint) error {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
+			Renegotiation:      tls.RenegotiateOnceAsClient,
 			InsecureSkipVerify: endpoint.Insecure,
 			Certificates:       []tls.Certificate{cert},
 		},
-		Dial: dial,
+		Dial:                  dial,
 		ResponseHeaderTimeout: endpoint.Timeout,
 	}
 
@@ -113,6 +114,6 @@ func (c ClientAuthRequest) Post(client *Client, request *soap.SoapMessage) (stri
 
 func NewClientAuthRequestWithDial(dial func(network, addr string) (net.Conn, error)) *ClientAuthRequest {
 	return &ClientAuthRequest{
-		dial:dial,
+		dial: dial,
 	}
 }

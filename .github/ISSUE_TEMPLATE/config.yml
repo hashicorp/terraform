@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Provider-related Feedback and Questions
+    url: https://github.com/terraform-providers
+    about: Each provider (e.g. AWS, Azure, GCP, Oracle, K8S, etc.) has its own repository, any provider related issues or questions should be directed to appropriate provider repository.
+  - name: Provider Development Feedback and Questions
+    url: https://github.com/hashicorp/terraform-plugin-sdk/issues/new/choose
+    about: Plugin SDK has its own repository, any SDK and provider development related issues or questions should be directed there.
+  - name: Terraform Language or Workflow Questions
+    url: https://discuss.hashicorp.com/c/terraform-core
+    about: Please ask and answer language or workflow related questions through the Terraform Core Community Forum.

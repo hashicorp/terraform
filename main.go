@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,9 +14,13 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
@@ -106,7 +112,10 @@ func init() {
 		OutputPrefix: OutputPrefix,
 		InfoPrefix:   OutputPrefix,
 		ErrorPrefix:  ErrorPrefix,
-		Ui:           &cli.BasicUi{Writer: os.Stdout},
+		Ui: &cli.BasicUi{
+			Writer: os.Stdout,
+			Reader: os.Stdin,
+		},
 	}
 }
 
@@ -120,7 +129,13 @@ func wrappedMain() int {
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
-	config, diags := LoadConfig()
+	// NOTE: We're intentionally calling LoadConfig _before_ handling a possible
+	// -chdir=... option on the command line, so that a possible relative
+	// path in the TERRAFORM_CONFIG_FILE environment variable (though probably
+	// ill-advised) will be resolved relative to the true working directory,
+	// not the overridden one.
+	config, diags := cliconfig.LoadConfig()
+
 	if len(diags) > 0 {
 		// Since we haven't instantiated a command.Meta yet, we need to do
 		// some things manually here and use some "safe" defaults for things
@@ -144,16 +159,89 @@ func wrappedMain() int {
 	}
 
 	// Get any configured credentials from the config and initialize
-	// a service discovery object.
-	credsSrc := credentialsSource(config)
-	services := disco.NewWithCredentialsSource(credsSrc)
+	// a service discovery object. The slightly awkward predeclaration of
+	// disco is required to allow us to pass untyped nil as the creds source
+	// when creating the source fails. Otherwise we pass a typed nil which
+	// breaks the nil checks in the disco object
+	var services *disco.Disco
+	credsSrc, err := credentialsSource(config)
+	if err == nil {
+		services = disco.NewWithCredentialsSource(credsSrc)
+	} else {
+		// Most commands don't actually need credentials, and most situations
+		// that would get us here would already have been reported by the config
+		// loading above, so we'll just log this one as an aid to debugging
+		// in the unlikely event that it _does_ arise.
+		log.Printf("[WARN] Cannot initialize remote host credentials manager: %s", err)
+		// passing (untyped) nil as the creds source is okay because the disco
+		// object checks that and just acts as though no credentials are present.
+		services = disco.NewWithCredentialsSource(nil)
+	}
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+
+	providerSrc, diags := providerSource(config.ProviderInstallation, services)
+	if len(diags) > 0 {
+		Ui.Error("There are some problems with the provider_installation configuration:")
+		for _, diag := range diags {
+			earlyColor := &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true, // Disable color to be conservative until we know better
+				Reset:   true,
+			}
+			Ui.Error(format.Diagnostic(diag, nil, earlyColor, 78))
+		}
+		if diags.HasErrors() {
+			Ui.Error("As a result of the above problems, Terraform's provider installer may not behave as intended.\n\n")
+			// We continue to run anyway, because most commands don't do provider installation.
+		}
+	}
+
+	// The user can declare that certain providers are being managed on
+	// Terraform's behalf using this environment variable. Thsi is used
+	// primarily by the SDK's acceptance testing framework.
+	unmanagedProviders, err := parseReattachProviders(os.Getenv("TF_REATTACH_PROVIDERS"))
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
 
 	// Initialize the backends.
 	backendInit.Init(services)
 
+	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
+	args := os.Args[1:]
+
+	originalWd, err := os.Getwd()
+	if err != nil {
+		// It would be very strange to end up here
+		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
+		return 1
+	}
+
+	// The arguments can begin with a -chdir option to ask Terraform to switch
+	// to a different working directory for the rest of its work. If that
+	// option is present then extractChdirOption returns a trimmed args with that option removed.
+	overrideWd, args, err := extractChdirOption(args)
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
+		return 1
+	}
+	if overrideWd != "" {
+		os.Chdir(overrideWd)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
+			return 1
+		}
+	}
+
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(config, services)
+		// Commands get to hold on to the original working directory here,
+		// in case they need to refer back to it for any special reason, though
+		// they should primarily be working with the override working directory
+		// that we've now switched to above.
+		initCommands(originalWd, config, services, providerSrc, unmanagedProviders)
 	}
 
 	// Run checkpoint
@@ -161,10 +249,6 @@ func wrappedMain() int {
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
-
-	// Get the command line args.
-	binName := filepath.Base(os.Args[0])
-	args := os.Args[1:]
 
 	// Build the CLI so far, we do this so we can query the subcommand.
 	cliRunner := &cli.CLI{
@@ -227,41 +311,6 @@ func wrappedMain() int {
 	}
 
 	return exitCode
-}
-
-func cliConfigFile() (string, error) {
-	mustExist := true
-
-	configFilePath := os.Getenv("TF_CLI_CONFIG_FILE")
-	if configFilePath == "" {
-		configFilePath = os.Getenv("TERRAFORM_CONFIG")
-	}
-
-	if configFilePath == "" {
-		var err error
-		configFilePath, err = ConfigFile()
-		mustExist = false
-
-		if err != nil {
-			log.Printf(
-				"[ERROR] Error detecting default CLI config file path: %s",
-				err)
-		}
-	}
-
-	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
-	f, err := os.Open(configFilePath)
-	if err == nil {
-		f.Close()
-		return configFilePath, nil
-	}
-
-	if mustExist || !os.IsNotExist(err) {
-		return "", err
-	}
-
-	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
-	return "", nil
 }
 
 // copyOutput uses output prefixes to determine whether data on stdout
@@ -365,4 +414,100 @@ func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 	copy(newArgs[idx:], extra)
 	copy(newArgs[len(extra)+idx:], args[idx:])
 	return newArgs, nil
+}
+
+// parse information on reattaching to unmanaged providers out of a
+// JSON-encoded environment variable.
+func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfig, error) {
+	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
+	if in != "" {
+		type reattachConfig struct {
+			Protocol string
+			Addr     struct {
+				Network string
+				String  string
+			}
+			Pid  int
+			Test bool
+		}
+		var m map[string]reattachConfig
+		err := json.Unmarshal([]byte(in), &m)
+		if err != nil {
+			return unmanagedProviders, fmt.Errorf("Invalid format for TF_REATTACH_PROVIDERS: %w", err)
+		}
+		for p, c := range m {
+			a, diags := addrs.ParseProviderSourceString(p)
+			if diags.HasErrors() {
+				return unmanagedProviders, fmt.Errorf("Error parsing %q as a provider address: %w", a, diags.Err())
+			}
+			var addr net.Addr
+			switch c.Addr.Network {
+			case "unix":
+				addr, err = net.ResolveUnixAddr("unix", c.Addr.String)
+				if err != nil {
+					return unmanagedProviders, fmt.Errorf("Invalid unix socket path %q for %q: %w", c.Addr.String, p, err)
+				}
+			case "tcp":
+				addr, err = net.ResolveTCPAddr("tcp", c.Addr.String)
+				if err != nil {
+					return unmanagedProviders, fmt.Errorf("Invalid TCP address %q for %q: %w", c.Addr.String, p, err)
+				}
+			default:
+				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
+			}
+			unmanagedProviders[a] = &plugin.ReattachConfig{
+				Protocol: plugin.Protocol(c.Protocol),
+				Pid:      c.Pid,
+				Test:     c.Test,
+				Addr:     addr,
+			}
+		}
+	}
+	return unmanagedProviders, nil
+}
+
+func extractChdirOption(args []string) (string, []string, error) {
+	if len(args) == 0 {
+		return "", args, nil
+	}
+
+	const argName = "-chdir"
+	const argPrefix = argName + "="
+	var argValue string
+	var argPos int
+
+	for i, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			// Because the chdir option is a subcommand-agnostic one, we require
+			// it to appear before any subcommand argument, so if we find a
+			// non-option before we find -chdir then we are finished.
+			break
+		}
+		if arg == argName || arg == argPrefix {
+			return "", args, fmt.Errorf("must include an equals sign followed by a directory path, like -chdir=example")
+		}
+		if strings.HasPrefix(arg, argPrefix) {
+			argPos = i
+			argValue = arg[len(argPrefix):]
+		}
+	}
+
+	// When we fall out here, we'll have populated argValue with a non-empty
+	// string if the -chdir=... option was present and valid, or left it
+	// empty if it wasn't present.
+	if argValue == "" {
+		return "", args, nil
+	}
+
+	// If we did find the option then we'll need to produce a new args that
+	// doesn't include it anymore.
+	if argPos == 0 {
+		// Easy case: we can just slice off the front
+		return argValue, args[1:], nil
+	}
+	// Otherwise we need to construct a new array and copy to it.
+	newArgs := make([]string, len(args)-1)
+	copy(newArgs, args[:argPos])
+	copy(newArgs[argPos:], args[argPos+1:])
+	return argValue, newArgs, nil
 }

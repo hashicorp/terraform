@@ -14,7 +14,7 @@ earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `base64sha512` computes the SHA512 hash of a given string and encodes it with
-Base64. This is not equivalent to base64encode(sha512("test")) since sha512()
+Base64. This is not equivalent to `base64encode(sha512("test"))` since `sha512()`
 returns hexadecimal representation. 
 
 The given string is first encoded as UTF-8 and then the SHA512 algorithm is applied

@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -47,9 +47,9 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Build the state client
-	var stateMgr state.State = &remote.State{
+	var stateMgr statemgr.Full = &remote.State{
 		Client: &RemoteClient{
 			Client:     b.db,
 			Name:       name,
@@ -77,7 +77,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// exist already. We have to write an empty state as a sentinel value
 	// so Workspaces() knows it exists.
 	if !exists {
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockId, err := stateMgr.Lock(lockInfo)
 		if err != nil {

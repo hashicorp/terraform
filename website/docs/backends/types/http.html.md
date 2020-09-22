@@ -30,7 +30,7 @@ terraform {
 }
 ```
 
-## Example Referencing
+## Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -43,20 +43,28 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration variables
 
-The following configuration options are supported:
+The following configuration options / environment variables are supported:
 
- * `address` - (Required) The address of the REST endpoint
- * `update_method` - (Optional) HTTP method to use when updating state.
-   Defaults to `POST`.
- * `lock_address` - (Optional) The address of the lock REST endpoint.
-   Defaults to disabled.
- * `lock_method` - (Optional) The HTTP method to use when locking.
-   Defaults to `LOCK`.
- * `unlock_address` - (Optional) The address of the unlock REST endpoint.
-   Defaults to disabled.
- * `unlock_method` - (Optional) The HTTP method to use when unlocking.
-   Defaults to `UNLOCK`.
- * `username` - (Optional) The username for HTTP basic authentication
- * `password` - (Optional) The password for HTTP basic authentication
+ * `address` / `TF_HTTP_ADDRESS` - (Required) The address of the REST endpoint
+ * `update_method` / `TF_HTTP_UPDATE_METHOD` - (Optional) HTTP method to use
+   when updating state. Defaults to `POST`.
+ * `lock_address` / `TF_HTTP_LOCK_ADDRESS` - (Optional) The address of the lock
+   REST endpoint. Defaults to disabled.
+ * `lock_method` / `TF_HTTP_LOCK_METHOD` - (Optional) The HTTP method to use
+   when locking. Defaults to `LOCK`.
+ * `unlock_address` / `TF_HTTP_UNLOCK_ADDRESS` - (Optional) The address of the
+   unlock REST endpoint. Defaults to disabled.
+ * `unlock_method` / `TF_HTTP_UNLOCK_METHOD` - (Optional) The HTTP method to use
+   when unlocking. Defaults to `UNLOCK`.
+ * `username` / `TF_HTTP_USERNAME` - (Optional) The username for HTTP basic
+   authentication
+ * `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
+   authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.
+ * `retry_max` / `TF_HTTP_RETRY_MAX` – (Optional) The number of HTTP request
+   retries. Defaults to `2`.
+ * `retry_wait_min` / `TF_HTTP_RETRY_WAIT_MIN` – (Optional) The minimum time in
+   seconds to wait between HTTP request attempts. Defaults to `1`.
+ * `retry_wait_max` / `TF_HTTP_RETRY_WAIT_MAX` – (Optional) The maximum time in
+   seconds to wait between HTTP request attempts. Defaults to `30`.

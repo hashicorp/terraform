@@ -43,5 +43,6 @@ the ordering of the given elements is not preserved.
   a given element value.
 * [`setintersection`](./setintersection.html) computes the _intersection_ of
   multiple sets.
-* [`setproduct`](./setproduct.html) computes the _cartesian product_ of multiple
+* [`setproduct`](./setproduct.html) computes the _Cartesian product_ of multiple
   sets.
+* [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets

@@ -60,6 +60,108 @@ func (c *IAM) WaitUntilInstanceProfileExistsWithContext(ctx aws.Context, input *
 	return w.WaitWithContext(ctx)
 }
 
+// WaitUntilPolicyExists uses the IAM API operation
+// GetPolicy to wait for a condition to be met before returning.
+// If the condition is not met within the max attempt window, an error will
+// be returned.
+func (c *IAM) WaitUntilPolicyExists(input *GetPolicyInput) error {
+	return c.WaitUntilPolicyExistsWithContext(aws.BackgroundContext(), input)
+}
+
+// WaitUntilPolicyExistsWithContext is an extended version of WaitUntilPolicyExists.
+// With the support for passing in a context and options to configure the
+// Waiter and the underlying request options.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) WaitUntilPolicyExistsWithContext(ctx aws.Context, input *GetPolicyInput, opts ...request.WaiterOption) error {
+	w := request.Waiter{
+		Name:        "WaitUntilPolicyExists",
+		MaxAttempts: 20,
+		Delay:       request.ConstantWaiterDelay(1 * time.Second),
+		Acceptors: []request.WaiterAcceptor{
+			{
+				State:    request.SuccessWaiterState,
+				Matcher:  request.StatusWaiterMatch,
+				Expected: 200,
+			},
+			{
+				State:    request.RetryWaiterState,
+				Matcher:  request.ErrorWaiterMatch,
+				Expected: "NoSuchEntity",
+			},
+		},
+		Logger: c.Config.Logger,
+		NewRequest: func(opts []request.Option) (*request.Request, error) {
+			var inCpy *GetPolicyInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetPolicyRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+	w.ApplyOptions(opts...)
+
+	return w.WaitWithContext(ctx)
+}
+
+// WaitUntilRoleExists uses the IAM API operation
+// GetRole to wait for a condition to be met before returning.
+// If the condition is not met within the max attempt window, an error will
+// be returned.
+func (c *IAM) WaitUntilRoleExists(input *GetRoleInput) error {
+	return c.WaitUntilRoleExistsWithContext(aws.BackgroundContext(), input)
+}
+
+// WaitUntilRoleExistsWithContext is an extended version of WaitUntilRoleExists.
+// With the support for passing in a context and options to configure the
+// Waiter and the underlying request options.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) WaitUntilRoleExistsWithContext(ctx aws.Context, input *GetRoleInput, opts ...request.WaiterOption) error {
+	w := request.Waiter{
+		Name:        "WaitUntilRoleExists",
+		MaxAttempts: 20,
+		Delay:       request.ConstantWaiterDelay(1 * time.Second),
+		Acceptors: []request.WaiterAcceptor{
+			{
+				State:    request.SuccessWaiterState,
+				Matcher:  request.StatusWaiterMatch,
+				Expected: 200,
+			},
+			{
+				State:    request.RetryWaiterState,
+				Matcher:  request.ErrorWaiterMatch,
+				Expected: "NoSuchEntity",
+			},
+		},
+		Logger: c.Config.Logger,
+		NewRequest: func(opts []request.Option) (*request.Request, error) {
+			var inCpy *GetRoleInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetRoleRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+	w.ApplyOptions(opts...)
+
+	return w.WaitWithContext(ctx)
+}
+
 // WaitUntilUserExists uses the IAM API operation
 // GetUser to wait for a condition to be met before returning.
 // If the condition is not met within the max attempt window, an error will

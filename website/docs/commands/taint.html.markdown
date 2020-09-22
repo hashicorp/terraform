@@ -33,10 +33,17 @@ the case.
 
 ## Usage
 
-Usage: `terraform taint [options] name`
+Usage: `terraform taint [options] address`
 
-The `name` argument is the name of the resource to mark as tainted.
-The format of this argument is `TYPE.NAME`, such as `aws_instance.foo`.
+The `address` argument is the address of the resource to mark as tainted.
+The address is in
+[the resource address syntax](/docs/internals/resource-addressing.html) syntax,
+as shown in the output from other commands, such as:
+
+ * `aws_instance.foo`
+ * `aws_instance.bar[1]`
+ * `aws_instance.baz``[\"key\"]` (quotes in resource addresses must be escaped on the command line, so that they are not interpreted by your shell)
+ * `module.foo.module.bar.aws_instance.qux`
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -51,14 +58,6 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
-* `-module=path` - The module path where the resource to taint exists.
-    By default this is the root path. Other modules can be specified by
-    a period-separated list. Example: "foo" would reference the module
-    "foo" but "foo.bar" would reference the "bar" module in the "foo"
-    module.
-
-* `-no-color` - Disables output with coloring
-
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
   Ignored when [remote state](/docs/state/remote.html) is used.
 
@@ -72,14 +71,36 @@ This example will taint a single resource:
 
 ```
 $ terraform taint aws_security_group.allow_all
-The resource aws_security_group.allow_all in the module root has been marked as tainted!
+The resource aws_security_group.allow_all in the module root has been marked as tainted.
 ```
+
+## Example: Tainting a single resource created with for_each
+
+It is necessary to wrap the resource in single quotes and escape the quotes.
+This example will taint a single resource created with for_each:
+
+```
+$ terraform taint "module.route_tables.azurerm_route_table.rt[\"DefaultSubnet\"]"
+The resource module.route_tables.azurerm_route_table.rt["DefaultSubnet"] in the module root has been marked as tainted.
+```
+
 
 ## Example: Tainting a Resource within a Module
 
 This example will only taint a resource within a module:
 
 ```
-$ terraform taint -module=couchbase aws_instance.cb_node.9
-The resource aws_instance.cb_node.9 in the module root.couchbase has been marked as tainted!
+$ terraform taint "module.couchbase.aws_instance.cb_node[9]"
+Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as tainted.
+```
+
+Although we recommend that most configurations use only one level of nesting
+and employ [module composition](/docs/modules/composition.html), it's possible
+to have multiple levels of nested modules. In that case the resource instance
+address must include all of the steps to the target instance, as in the
+following example:
+
+```
+$ terraform taint "module.child.module.grandchild.aws_instance.example[2]"
+Resource instance module.child.module.grandchild.aws_instance.example[2] has been marked as tainted.
 ```

@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -20,10 +19,10 @@ type NodePlannableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeSubPath              = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeModuleInstance       = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeReferenceable        = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeReferencer           = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeResource             = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeConfigResource       = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
@@ -34,31 +33,23 @@ var (
 func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 	addr := n.ResourceInstanceAddr()
 
-	// State still uses legacy-style internal ids, so we need to shim to get
-	// a suitable key to use.
-	stateId := NewLegacyResourceInstanceAddress(addr).stateId()
-
-	// Determine the dependencies for the state.
-	stateDeps := n.StateReferences()
-
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr, stateId, stateDeps)
+		return n.evalTreeManagedResource(addr)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr, stateId, stateDeps)
+		return n.evalTreeDataResource(addr)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
 	config := n.Config
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -72,44 +63,7 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				Addr:           addr.Resource,
 				Provider:       &provider,
 				ProviderSchema: &providerSchema,
-
-				Output: &state,
-			},
-
-			// If we already have a non-planned state then we already dealt
-			// with this during the refresh walk and so we have nothing to do
-			// here.
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					depChanges := false
-
-					// Check and see if any of our dependencies have changes.
-					changes := ctx.Changes()
-					for _, d := range n.StateReferences() {
-						ri, ok := d.(addrs.ResourceInstance)
-						if !ok {
-							continue
-						}
-						change := changes.GetResourceInstanceChange(ri.Absolute(ctx.Path()), states.CurrentGen)
-						if change != nil && change.Action != plans.NoOp {
-							depChanges = true
-							break
-						}
-					}
-
-					refreshed := state != nil && state.Status != states.ObjectPlanned
-
-					// If there are no dependency changes, and it's not a forced
-					// read because we there was no Refresh, then we don't need
-					// to re-read. If any dependencies have changes, it means
-					// our config may also have changes and we need to Read the
-					// data source again.
-					if !depChanges && refreshed {
-						return false, EvalEarlyExitError{}
-					}
-					return true, nil
-				},
-				Then: EvalNoop{},
+				Output:         &state,
 			},
 
 			&EvalValidateSelfRef{
@@ -118,17 +72,28 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 				ProviderSchema: &providerSchema,
 			},
 
-			&EvalReadData{
+			&evalReadDataPlan{
+				evalReadData: evalReadData{
+					Addr:           addr.Resource,
+					Config:         n.Config,
+					Provider:       &provider,
+					ProviderAddr:   n.ResolvedProvider,
+					ProviderMetas:  n.ProviderMetas,
+					ProviderSchema: &providerSchema,
+					OutputChange:   &change,
+					State:          &state,
+					dependsOn:      n.dependsOn,
+				},
+			},
+
+			// write the data source into both the refresh state and the
+			// working state
+			&EvalWriteState{
 				Addr:           addr.Resource,
-				Config:         n.Config,
-				Dependencies:   n.StateReferences(),
-				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
 				ProviderSchema: &providerSchema,
-				ForcePlanRead:  true, // _always_ produce a Read change, even if the config seems ready
-				OutputChange:   &change,
-				OutputValue:    &configVal,
-				OutputState:    &state,
+				State:          &state,
+				targetState:    refreshState,
 			},
 
 			&EvalWriteState{
@@ -147,12 +112,13 @@ func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance, stateId string, stateDeps []addrs.Referenceable) EvalNode {
+func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
 	config := n.Config
 	var provider providers.Interface
 	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
+	var instanceRefreshState *states.ResourceInstanceObject
+	var instancePlanState *states.ResourceInstanceObject
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
@@ -162,30 +128,52 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				Schema: &providerSchema,
 			},
 
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-
-				Output: &state,
-			},
-
 			&EvalValidateSelfRef{
 				Addr:           addr.Resource,
 				Config:         config.Config,
 				ProviderSchema: &providerSchema,
 			},
 
+			// Refresh the instance
+			&EvalReadState{
+				Addr:           addr.Resource,
+				Provider:       &provider,
+				ProviderSchema: &providerSchema,
+				Output:         &instanceRefreshState,
+			},
+			&EvalRefreshDependencies{
+				State:        &instanceRefreshState,
+				Dependencies: &n.Dependencies,
+			},
+			&EvalRefresh{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				Provider:       &provider,
+				ProviderMetas:  n.ProviderMetas,
+				ProviderSchema: &providerSchema,
+				State:          &instanceRefreshState,
+				Output:         &instanceRefreshState,
+			},
+			&EvalWriteState{
+				Addr:           addr.Resource,
+				ProviderAddr:   n.ResolvedProvider,
+				State:          &instanceRefreshState,
+				ProviderSchema: &providerSchema,
+				targetState:    refreshState,
+			},
+
+			// Plan the instance
 			&EvalDiff{
 				Addr:                addr.Resource,
 				Config:              n.Config,
 				CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
 				Provider:            &provider,
 				ProviderAddr:        n.ResolvedProvider,
+				ProviderMetas:       n.ProviderMetas,
 				ProviderSchema:      &providerSchema,
-				State:               &state,
+				State:               &instanceRefreshState,
 				OutputChange:        &change,
-				OutputState:         &state,
+				OutputState:         &instancePlanState,
 			},
 			&EvalCheckPreventDestroy{
 				Addr:   addr.Resource,
@@ -195,7 +183,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			&EvalWriteState{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
-				State:          &state,
+				State:          &instancePlanState,
 				ProviderSchema: &providerSchema,
 			},
 			&EvalWriteDiff{
