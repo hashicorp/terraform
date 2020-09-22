@@ -4,6 +4,7 @@ require (
 	cloud.google.com/go v0.45.1
 	github.com/Azure/azure-sdk-for-go v45.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.3
+	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
@@ -110,6 +111,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.1
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829 // indirect
+	github.com/satori/go.uuid v1.2.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
