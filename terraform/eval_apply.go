@@ -115,7 +115,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	unmarkedBefore := change.Before
 	var beforePaths []cty.PathValueMarks
-	if change.After.ContainsMarked() {
+	if change.Before.ContainsMarked() {
 		unmarkedBefore, beforePaths = change.Before.UnmarkDeepWithPaths()
 	}
 

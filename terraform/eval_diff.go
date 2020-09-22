@@ -214,11 +214,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	unmarkedPriorVal := priorVal
-	var priorPaths []cty.PathValueMarks
 	if priorVal.ContainsMarked() {
 		// store the marked values so we can re-mark them later after
 		// we've sent things over the wire.
-		unmarkedPriorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
+		unmarkedPriorVal, _ = priorVal.UnmarkDeep()
 	}
 
 	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
@@ -284,9 +283,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// Add the marks back to the planned new value
 	if configVal.ContainsMarked() {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
-	}
-	if priorVal.ContainsMarked() {
-		plannedNewVal = plannedNewVal.MarkWithPaths(priorPaths)
 	}
 
 	// We allow the planned new value to disagree with configuration _values_
