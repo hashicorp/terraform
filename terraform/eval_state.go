@@ -529,3 +529,33 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
+
+// EvalRefreshLifecycle is an EvalNode implementation that updates
+// the status of the lifecycle options stored in the state.
+// This currently only applies to create_before_destroy.
+type EvalRefreshLifecycle struct {
+	Config *configs.Resource
+	// Prior State
+	State **states.ResourceInstanceObject
+	// ForceCreateBeforeDestroy indicates a create_before_destroy resource
+	// depends on this resource.
+	ForceCreateBeforeDestroy bool
+}
+
+func (n *EvalRefreshLifecycle) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
+	if state == nil {
+		// no existing state
+		return nil, nil
+	}
+
+	// In 0.13 we could be refreshing a resource with no config.
+	// We should be operating on managed resource, but check here to be certain
+	if n.Config == nil || n.Config.Managed == nil {
+		log.Print("[WARN] no Managed config value found in instance state")
+	}
+
+	state.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+
+	return nil, nil
+}
