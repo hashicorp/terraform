@@ -2,6 +2,7 @@
 
 UPGRADE NOTES:
 
+* The built-in vendor (third-party) provisioners, which include `habitat`, `puppet`, `chef`, and `salt-masterless` are now deprecated and will be removed in a future version of Terraform. More information [on Discuss](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-3/13997/).
 * Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. An expression like `"${foo}"` should be rewritten as just `foo`. [GH-27272]
 
 BUG FIXES:
