@@ -11954,6 +11954,7 @@ resource "test_resource" "foo" {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
+	// Run a second apply with no changes
 	ctx = testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -11966,7 +11967,7 @@ resource "test_resource" "foo" {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	_, diags = ctx.Apply()
+	state, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
