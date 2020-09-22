@@ -105,7 +105,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
 
-	// If our config or After value contain any marked values,
+	// If our config, Before or After value contain any marked values,
 	// ensure those are stripped out before sending
 	// this to the provider
 	unmarkedConfigVal := configVal
@@ -114,9 +114,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	unmarkedBefore := change.Before
-	var beforePaths []cty.PathValueMarks
 	if change.Before.ContainsMarked() {
-		unmarkedBefore, beforePaths = change.Before.UnmarkDeepWithPaths()
+		unmarkedBefore, _ = change.Before.UnmarkDeep()
 	}
 
 	unmarkedAfter := change.After
@@ -147,9 +146,6 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	newVal := resp.NewState
 
 	// If we have paths to mark, mark those on this new value
-	if len(beforePaths) > 0 {
-		newVal = newVal.MarkWithPaths(beforePaths)
-	}
 	if len(afterPaths) > 0 {
 		newVal = newVal.MarkWithPaths(afterPaths)
 	}
