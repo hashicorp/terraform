@@ -907,9 +907,7 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	checkStateString(t, s, `data.test.foo.0:
-  ID = 
-  provider = provider["registry.terraform.io/hashicorp/test"]`)
+	checkStateString(t, s, `<no state>`)
 }
 
 func TestContext2Refresh_dataState(t *testing.T) {
