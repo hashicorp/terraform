@@ -3683,34 +3683,40 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
     }
 `,
 		},
-		"in-place update - after sensitive": {
+		"in-place update - after sensitive, map type": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-BEFORE"),
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name": cty.StringVal("anna"),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-AFTER"),
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name": cty.StringVal("bob"),
+				}),
 			}),
 			AfterValMarks: []cty.PathValueMarks{
 				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("name")}},
 					Marks: cty.NewValueMarks("sensitive"),
 				}},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+					"id":   {Type: cty.String, Optional: true, Computed: true},
+					"tags": {Type: cty.Map(cty.String), Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> (sensitive)
-        id  = "i-02ae66f368e8518a9"
+        id   = "i-02ae66f368e8518a9"
+      ~ tags = {
+          ~ "name" = "anna" -> "(sensitive)"
+        }
     }
 `,
 		},

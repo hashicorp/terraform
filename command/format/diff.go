@@ -774,6 +774,15 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
+		// If marked, create unmarked values for comparisons
+		unmarkedOld := old
+		unmarkedNew := new
+		if old.ContainsMarked() {
+			unmarkedOld, _ = old.UnmarkDeep()
+		}
+		if new.ContainsMarked() {
+			unmarkedNew, _ = new.UnmarkDeep()
+		}
 		switch {
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
@@ -1108,7 +1117,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if new.HasIndex(kV).False() {
 					action = plans.Delete
-				} else if eqV := old.Index(kV).Equals(new.Index(kV)); eqV.IsKnown() && eqV.True() {
+				} else if eqV := unmarkedOld.Index(kV).Equals(unmarkedNew.Index(kV)); eqV.IsKnown() && eqV.True() {
 					action = plans.NoOp
 				} else {
 					action = plans.Update
@@ -1129,14 +1138,26 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				switch action {
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
+					if v.ContainsMarked() {
+						v = cty.StringVal("(sensitive)")
+					}
 					p.writeValue(v, action, indent+4)
 				case plans.Delete:
 					oldV := old.Index(kV)
+					if oldV.ContainsMarked() {
+						oldV = cty.StringVal("(sensitive)")
+					}
 					newV := cty.NullVal(oldV.Type())
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
 					oldV := old.Index(kV)
+					if oldV.ContainsMarked() {
+						oldV = cty.StringVal("(sensitive)")
+					}
 					newV := new.Index(kV)
+					if newV.ContainsMarked() {
+						newV = cty.StringVal("(sensitive)")
+					}
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				}
 
