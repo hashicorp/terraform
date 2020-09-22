@@ -47,4 +47,24 @@ type Parameter struct {
 	// values are not, thus improving the type-check accuracy of derived
 	// values.
 	AllowDynamicType bool
+
+	// If AllowMarked is set then marked values may be passed into this
+	// argument's slot in the implementation function. If not set, any
+	// marked value will be unmarked before calling and then the markings
+	// from that value will be applied automatically to the function result,
+	// ensuring that the marks get propagated in a simplistic way even if
+	// a function is unable to handle them.
+	//
+	// For any argument whose parameter has AllowMarked set, it's the
+	// function implementation's responsibility to Unmark the given value
+	// and propagate the marks appropriatedly to the result in order to
+	// avoid losing the marks. Application-specific functions might use
+	// special rules to selectively propagate particular marks.
+	//
+	// The automatic unmarking of values applies only to the main
+	// implementation function. In an application that uses marked values,
+	// the Type implementation for a function must always be prepared to accept
+	// marked values, which is easy to achieve by consulting only the type
+	// and ignoring the value itself.
+	AllowMarked bool
 }

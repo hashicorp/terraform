@@ -8,10 +8,10 @@ import (
 )
 
 // TestParseLoadConfigDirSuccess is a simple test that just verifies that
-// a number of test configuration directories (in test-fixtures/valid-modules)
+// a number of test configuration directories (in testdata/valid-modules)
 // can be parsed without raising any diagnostics.
 //
-// It also re-tests the individual files in test-fixtures/valid-files as if
+// It also re-tests the individual files in testdata/valid-files as if
 // they were single-file modules, to ensure that they can be bundled into
 // modules correctly.
 //
@@ -19,7 +19,7 @@ import (
 // module element contents. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirSuccess(t *testing.T) {
-	dirs, err := ioutil.ReadDir("test-fixtures/valid-modules")
+	dirs, err := ioutil.ReadDir("testdata/valid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
-			path := filepath.Join("test-fixtures/valid-modules", name)
+			path := filepath.Join("testdata/valid-modules", name)
 
 			mod, diags := parser.LoadConfigDir(path)
 			if len(diags) != 0 {
@@ -44,9 +44,9 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 		})
 	}
 
-	// The individual files in test-fixtures/valid-files should also work
+	// The individual files in testdata/valid-files should also work
 	// when loaded as modules.
-	files, err := ioutil.ReadDir("test-fixtures/valid-files")
+	files, err := ioutil.ReadDir("testdata/valid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/valid-files", name))
+			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -76,10 +76,10 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 }
 
 // TestParseLoadConfigDirFailure is a simple test that just verifies that
-// a number of test configuration directories (in test-fixtures/invalid-modules)
+// a number of test configuration directories (in testdata/invalid-modules)
 // produce diagnostics when parsed.
 //
-// It also re-tests the individual files in test-fixtures/invalid-files as if
+// It also re-tests the individual files in testdata/invalid-files as if
 // they were single-file modules, to ensure that their errors are still
 // detected when loading as part of a module.
 //
@@ -87,7 +87,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 // diagnostics in particular. More detailed assertions may be made on some subset
 // of these configuration files in other tests.
 func TestParserLoadConfigDirFailure(t *testing.T) {
-	dirs, err := ioutil.ReadDir("test-fixtures/invalid-modules")
+	dirs, err := ioutil.ReadDir("testdata/invalid-modules")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
-			path := filepath.Join("test-fixtures/invalid-modules", name)
+			path := filepath.Join("testdata/invalid-modules", name)
 
 			_, diags := parser.LoadConfigDir(path)
 			if !diags.HasErrors() {
@@ -108,9 +108,9 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 		})
 	}
 
-	// The individual files in test-fixtures/valid-files should also work
+	// The individual files in testdata/valid-files should also work
 	// when loaded as modules.
-	files, err := ioutil.ReadDir("test-fixtures/invalid-files")
+	files, err := ioutil.ReadDir("testdata/invalid-files")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("test-fixtures/invalid-files", name))
+			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -137,4 +137,34 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 		})
 	}
 
+}
+
+func TestIsEmptyDir(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
+	}
+}
+
+func TestIsEmptyDir_noExist(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !val {
+		t.Fatal("should be empty")
+	}
+}
+
+func TestIsEmptyDir_noConfigs(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !val {
+		t.Fatal("should be empty")
+	}
 }

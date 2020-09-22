@@ -2,49 +2,12 @@ package funcs
 
 import (
 	"math"
+	"math/big"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
-
-// CeilFunc contructs a function that returns the closest whole number greater
-// than or equal to the given value.
-var CeilFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "num",
-			Type: cty.Number,
-		},
-	},
-	Type: function.StaticReturnType(cty.Number),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		var val float64
-		if err := gocty.FromCtyValue(args[0], &val); err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-		return cty.NumberIntVal(int64(math.Ceil(val))), nil
-	},
-})
-
-// FloorFunc contructs a function that returns the closest whole number lesser
-// than or equal to the given value.
-var FloorFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "num",
-			Type: cty.Number,
-		},
-	},
-	Type: function.StaticReturnType(cty.Number),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		var val float64
-		if err := gocty.FromCtyValue(args[0], &val); err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-		return cty.NumberIntVal(int64(math.Floor(val))), nil
-	},
-})
 
 // LogFunc contructs a function that returns the logarithm of a given number in a given base.
 var LogFunc = function.New(&function.Spec{
@@ -128,15 +91,61 @@ var SignumFunc = function.New(&function.Spec{
 	},
 })
 
-// Ceil returns the closest whole number greater than or equal to the given value.
-func Ceil(num cty.Value) (cty.Value, error) {
-	return CeilFunc.Call([]cty.Value{num})
-}
+// ParseIntFunc contructs a function that parses a string argument and returns an integer of the specified base.
+var ParseIntFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "number",
+			Type: cty.DynamicPseudoType,
+		},
+		{
+			Name: "base",
+			Type: cty.Number,
+		},
+	},
 
-// Floor returns the closest whole number lesser than or equal to the given value.
-func Floor(num cty.Value) (cty.Value, error) {
-	return FloorFunc.Call([]cty.Value{num})
-}
+	Type: func(args []cty.Value) (cty.Type, error) {
+		if !args[0].Type().Equals(cty.String) {
+			return cty.Number, function.NewArgErrorf(0, "first argument must be a string, not %s", args[0].Type().FriendlyName())
+		}
+		return cty.Number, nil
+	},
+
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		var numstr string
+		var base int
+		var err error
+
+		if err = gocty.FromCtyValue(args[0], &numstr); err != nil {
+			return cty.UnknownVal(cty.String), function.NewArgError(0, err)
+		}
+
+		if err = gocty.FromCtyValue(args[1], &base); err != nil {
+			return cty.UnknownVal(cty.Number), function.NewArgError(1, err)
+		}
+
+		if base < 2 || base > 62 {
+			return cty.UnknownVal(cty.Number), function.NewArgErrorf(
+				1,
+				"base must be a whole number between 2 and 62 inclusive",
+			)
+		}
+
+		num, ok := (&big.Int{}).SetString(numstr, base)
+		if !ok {
+			return cty.UnknownVal(cty.Number), function.NewArgErrorf(
+				0,
+				"cannot parse %q as a base %d integer",
+				numstr,
+				base,
+			)
+		}
+
+		parsedNum := cty.NumberVal((&big.Float{}).SetInt(num))
+
+		return parsedNum, nil
+	},
+})
 
 // Log returns returns the logarithm of a given number in a given base.
 func Log(num, base cty.Value) (cty.Value, error) {
@@ -152,4 +161,9 @@ func Pow(num, power cty.Value) (cty.Value, error) {
 // 1 to represent the sign.
 func Signum(num cty.Value) (cty.Value, error) {
 	return SignumFunc.Call([]cty.Value{num})
+}
+
+// ParseInt parses a string argument and returns an integer of the specified base.
+func ParseInt(num cty.Value, base cty.Value) (cty.Value, error) {
+	return ParseIntFunc.Call([]cty.Value{num, base})
 }

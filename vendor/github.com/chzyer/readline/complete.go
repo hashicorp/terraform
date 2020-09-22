@@ -203,7 +203,9 @@ func (o *opCompleter) CompleteRefresh() {
 	// -1 to avoid reach the end of line
 	width := o.width - 1
 	colNum := width / colWidth
-	colWidth += (width - (colWidth * colNum)) / colNum
+	if colNum != 0 {
+		colWidth += (width - (colWidth * colNum)) / colNum
+	}
 
 	o.candidateColNum = colNum
 	buf := bufio.NewWriter(o.w)
@@ -219,7 +221,7 @@ func (o *opCompleter) CompleteRefresh() {
 		}
 		buf.WriteString(string(same))
 		buf.WriteString(string(c))
-		buf.Write(bytes.Repeat([]byte(" "), colWidth-len(c)-len(same)))
+		buf.Write(bytes.Repeat([]byte(" "), colWidth-runes.WidthAll(c)-runes.WidthAll(same)))
 
 		if inSelect {
 			buf.WriteString("\033[0m")

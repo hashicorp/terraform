@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -245,6 +245,51 @@ func TestParseTarget(t *testing.T) {
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 					End:   tfdiags.SourcePos{Line: 1, Column: 44, Byte: 43},
+				},
+			},
+			``,
+		},
+		{
+			`module.foo.module.bar[0].data.aws_instance.baz`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: DataResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+					Module: ModuleInstance{
+						{Name: "foo", InstanceKey: NoKey},
+						{Name: "bar", InstanceKey: IntKey(0)},
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 47, Byte: 46},
+				},
+			},
+			``,
+		},
+		{
+			`module.foo.module.bar["a"].data.aws_instance.baz["hello"]`,
+			&Target{
+				Subject: AbsResourceInstance{
+					Resource: ResourceInstance{
+						Resource: Resource{
+							Mode: DataResourceMode,
+							Type: "aws_instance",
+							Name: "baz",
+						},
+						Key: StringKey("hello"),
+					},
+					Module: ModuleInstance{
+						{Name: "foo", InstanceKey: NoKey},
+						{Name: "bar", InstanceKey: StringKey("a")},
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 58, Byte: 57},
 				},
 			},
 			``,

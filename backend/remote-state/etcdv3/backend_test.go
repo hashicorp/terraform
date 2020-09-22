@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +45,9 @@ func prepareEtcdv3(t *testing.T) {
 	if skip {
 		t.Log("etcd server tests require setting TF_ACC or TF_ETCDV3_TEST")
 		t.Skip()
+	}
+	if reflect.DeepEqual(etcdv3Endpoints, []string{""}) {
+		t.Fatal("etcd server tests require setting TF_ETCDV3_ENDPOINTS")
 	}
 	cleanupEtcdv3(t)
 }

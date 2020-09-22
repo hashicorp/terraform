@@ -45,9 +45,10 @@ func TestSession_basicState(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -59,9 +60,10 @@ func TestSession_basicState(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"bar"}`),
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -71,7 +73,7 @@ func TestSession_basicState(t *testing.T) {
 			Inputs: []testSessionInput{
 				{
 					Input:  "test_instance.foo.id",
-					Output: "bar",
+					Output: `"bar"`,
 				},
 			},
 		})
@@ -123,7 +125,7 @@ func TestSession_basicState(t *testing.T) {
 				{
 					Input:         "module.module.foo",
 					Error:         true,
-					ErrorContains: `An output value with the name "foo" has not been declared in module.module`,
+					ErrorContains: `Unsupported attribute: This object does not have an attribute named "foo"`,
 				},
 			},
 		})
@@ -211,9 +213,9 @@ func testSession(t *testing.T, test testSessionTest) {
 	// Build the TF context
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
 		State: test.State,
-		ProviderResolver: providers.ResolverFixed(map[string]providers.Factory{
-			"test": providers.FactoryFixed(p),
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
+		},
 		Config: config,
 	})
 	if diags.HasErrors() {
@@ -270,7 +272,7 @@ func testSession(t *testing.T, test testSessionTest) {
 
 type testSessionTest struct {
 	State  *states.State // State to use
-	Module string        // Module name in test-fixtures to load
+	Module string        // Module name in testdata to load
 
 	// Inputs are the list of test inputs that are run in order.
 	// Each input can test the output of each step.

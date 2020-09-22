@@ -2,7 +2,7 @@ package tfconfig
 
 import (
 	legacyhcltoken "github.com/hashicorp/hcl/hcl/token"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 // SourcePos is a pointer to a particular location in a source file.

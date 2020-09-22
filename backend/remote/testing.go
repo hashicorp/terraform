@@ -10,16 +10,18 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -115,12 +117,13 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.CLI = cli.NewMockUi()
 	b.client.Applies = mc.Applies
 	b.client.ConfigurationVersions = mc.ConfigurationVersions
-	b.client.CostEstimations = mc.CostEstimations
+	b.client.CostEstimates = mc.CostEstimates
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
+	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 
 	b.ShowDiagnostics = func(vals ...interface{}) {
@@ -204,6 +207,12 @@ func testServer(t *testing.T) *httptest.Server {
 }`, path.Base(r.URL.Path)))
 	})
 
+	// Respond to pings to get the API version header.
+	mux.HandleFunc("/api/v2/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("TFP-API-Version", "2.3")
+	})
+
 	// Respond to the initial query to read the hashicorp org entitlements.
 	mux.HandleFunc("/api/v2/organizations/hashicorp/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")
@@ -268,6 +277,7 @@ func testDisco(s *httptest.Server) *disco.Disco {
 		"versions.v1": fmt.Sprintf("%s/v1/versions/", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
+	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	d.ForceHostServices(svchost.Hostname(defaultHostname), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)

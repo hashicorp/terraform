@@ -41,7 +41,11 @@ func (a servicePrincipalClientCertificateAuth) name() string {
 	return "Service Principal / Client Certificate"
 }
 
-func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(oauthConfig *adal.OAuthConfig, endpoint string) (*autorest.BearerAuthorizer, error) {
+func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(sender autorest.Sender, oauth *OAuthConfig, endpoint string) (autorest.Authorizer, error) {
+	if oauth.OAuth == nil {
+		return nil, fmt.Errorf("Error getting Authorization Token for client cert: an OAuth token wasn't configured correctly; please file a bug with more details")
+	}
+
 	certificateData, err := ioutil.ReadFile(a.clientCertPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading Client Certificate %q: %v", a.clientCertPath, err)
@@ -53,10 +57,12 @@ func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(oauthConfig
 		return nil, fmt.Errorf("Error decoding pkcs12 certificate: %v", err)
 	}
 
-	spt, err := adal.NewServicePrincipalTokenFromCertificate(*oauthConfig, a.clientId, certificate, rsaPrivateKey, endpoint)
+	spt, err := adal.NewServicePrincipalTokenFromCertificate(*oauth.OAuth, a.clientId, certificate, rsaPrivateKey, endpoint)
 	if err != nil {
 		return nil, err
 	}
+
+	spt.SetSender(sender)
 
 	err = spt.Refresh()
 	if err != nil {
@@ -69,6 +75,7 @@ func (a servicePrincipalClientCertificateAuth) getAuthorizationToken(oauthConfig
 
 func (a servicePrincipalClientCertificateAuth) populateConfig(c *Config) error {
 	c.AuthenticatedAsAServicePrincipal = true
+	c.GetAuthenticatedObjectID = buildServicePrincipalObjectIDFunc(c)
 	return nil
 }
 

@@ -15,25 +15,32 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	cache := make(map[string]map[string]cty.Value)
 
 	ctx1 := testBuiltinEvalContext(t)
-	ctx1.PathValue = addrs.RootModuleInstance
+	ctx1 = ctx1.WithPath(addrs.RootModuleInstance).(*BuiltinEvalContext)
 	ctx1.ProviderInputConfig = cache
 	ctx1.ProviderLock = &lock
 
 	ctx2 := testBuiltinEvalContext(t)
-	ctx2.PathValue = addrs.RootModuleInstance.Child("child", addrs.NoKey)
+	ctx2 = ctx2.WithPath(addrs.RootModuleInstance.Child("child", addrs.NoKey)).(*BuiltinEvalContext)
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
 
-	providerAddr := addrs.ProviderConfig{Type: "foo"}
+	providerAddr1 := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("foo"),
+	}
+	providerAddr2 := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule.Child("child"),
+		Provider: addrs.NewDefaultProvider("foo"),
+	}
 
 	expected1 := map[string]cty.Value{"value": cty.StringVal("foo")}
-	ctx1.SetProviderInput(providerAddr, expected1)
+	ctx1.SetProviderInput(providerAddr1, expected1)
 
 	try2 := map[string]cty.Value{"value": cty.StringVal("bar")}
-	ctx2.SetProviderInput(providerAddr, try2) // ignored because not a root module
+	ctx2.SetProviderInput(providerAddr2, try2) // ignored because not a root module
 
-	actual1 := ctx1.ProviderInput(providerAddr)
-	actual2 := ctx2.ProviderInput(providerAddr)
+	actual1 := ctx1.ProviderInput(providerAddr1)
+	actual2 := ctx2.ProviderInput(providerAddr2)
 
 	if !reflect.DeepEqual(actual1, expected1) {
 		t.Errorf("wrong result 1\ngot:  %#v\nwant: %#v", actual1, expected1)
@@ -49,22 +56,30 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	testP := &MockProvider{}
 
 	ctx := testBuiltinEvalContext(t)
+	ctx = ctx.WithPath(addrs.RootModuleInstance).(*BuiltinEvalContext)
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Components = &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"test": providers.FactoryFixed(testP),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(testP),
 		},
 	}
 
-	providerAddrDefault := addrs.ProviderConfig{Type: "test"}
-	providerAddrAlias := addrs.ProviderConfig{Type: "test", Alias: "foo"}
+	providerAddrDefault := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("test"),
+	}
+	providerAddrAlias := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("test"),
+		Alias:    "foo",
+	}
 
-	_, err := ctx.InitProvider("test", providerAddrDefault)
+	_, err := ctx.InitProvider(providerAddrDefault)
 	if err != nil {
 		t.Fatalf("error initializing provider test: %s", err)
 	}
-	_, err = ctx.InitProvider("test", providerAddrAlias)
+	_, err = ctx.InitProvider(providerAddrAlias)
 	if err != nil {
 		t.Fatalf("error initializing provider test.foo: %s", err)
 	}

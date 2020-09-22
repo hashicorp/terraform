@@ -1,13 +1,12 @@
 package terraform
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/instances"
 )
 
 func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
@@ -39,18 +38,19 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleOut(t *testing.T) {
 		},
 	}).SyncWrapper()
 
+	cfgAddr := addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo")
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+			Addr:   cfgAddr,
 			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
+		Addr: cfgAddr.Absolute(addrs.RootModuleInstance),
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   addrs.RootModuleInstance,
-		StateState: state,
+		PathPath:                 addrs.RootModuleInstance,
+		StateState:               state,
+		InstanceExpanderExpander: instances.NewExpander(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -120,18 +120,19 @@ func TestNodeRefreshableManagedResourceDynamicExpand_scaleIn(t *testing.T) {
 		},
 	}).SyncWrapper()
 
+	cfgAddr := addrs.RootModule.Resource(addrs.ManagedResourceMode, "aws_instance", "foo")
 	n := &NodeRefreshableManagedResource{
 		NodeAbstractResource: &NodeAbstractResource{
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+			Addr:   cfgAddr,
 			Config: m.Module.ManagedResources["aws_instance.foo"],
 		},
+		Addr: cfgAddr.Absolute(addrs.RootModuleInstance),
 	}
 
 	g, err := n.DynamicExpand(&MockEvalContext{
-		PathPath:   addrs.RootModuleInstance,
-		StateState: state,
+		PathPath:                 addrs.RootModuleInstance,
+		StateState:               state,
+		InstanceExpanderExpander: instances.NewExpander(),
 
 		// DynamicExpand will call EvaluateExpr to evaluate the "count"
 		// expression, which is just a literal number 3 in the fixture config
@@ -154,28 +155,5 @@ root - terraform.graphNodeRoot
 `
 	if expected != actual {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, actual)
-	}
-}
-
-func TestNodeRefreshableManagedResourceEvalTree_scaleOut(t *testing.T) {
-	m := testModule(t, "refresh-resource-scale-inout")
-
-	n := &NodeRefreshableManagedResourceInstance{
-		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
-			NodeAbstractResource: NodeAbstractResource{
-				Addr: addrs.RootModuleInstance.Resource(
-					addrs.ManagedResourceMode, "aws_instance", "foo",
-				),
-				Config: m.Module.ManagedResources["aws_instance.foo"],
-			},
-			InstanceKey: addrs.IntKey(2),
-		},
-	}
-
-	actual := n.EvalTree()
-	expected := n.evalTreeManagedResourceNoState()
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("Expected:\n\n%s\nGot:\n\n%s\n", spew.Sdump(expected), spew.Sdump(actual))
 	}
 }

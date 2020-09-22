@@ -112,7 +112,7 @@ func Must(v *Version, err error) *Version {
 // or larger than the other version, respectively.
 //
 // If you want boolean results, use the LessThan, Equal,
-// or GreaterThan methods.
+// GreaterThan, GreaterThanOrEqual or LessThanOrEqual methods.
 func (v *Version) Compare(other *Version) int {
 	// A quick, efficient equality check
 	if v.String() == other.String() {
@@ -288,9 +288,19 @@ func (v *Version) GreaterThan(o *Version) bool {
 	return v.Compare(o) > 0
 }
 
+// GreaterThanOrEqualTo tests if this version is greater than or equal to another version.
+func (v *Version) GreaterThanOrEqual(o *Version) bool {
+	return v.Compare(o) >= 0
+}
+
 // LessThan tests if this version is less than another version.
 func (v *Version) LessThan(o *Version) bool {
 	return v.Compare(o) < 0
+}
+
+// LessThanOrEqualTo tests if this version is less than or equal to another version.
+func (v *Version) LessThanOrEqual(o *Version) bool {
+	return v.Compare(o) <= 0
 }
 
 // Metadata returns any metadata that was part of the version

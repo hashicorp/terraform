@@ -19,15 +19,16 @@ plan or apply.
 
 ## Usage
 
-Usage: `terraform refresh [options] [dir]`
+Usage: `terraform refresh [options]`
 
-By default, `refresh` requires no flags and looks in the current directory
-for the configuration and state file to refresh.
-
-The command-line flags are all optional. The list of available flags are:
+The `terraform refresh` command accepts the following options:
 
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
+
+* `-compact-warnings` - If Terraform produces any warnings that are not
+  accompanied by errors, show them in a more compact form that includes only
+  the summary messages.
 
 * `-input=true` - Ask for input for variables if not directly set.
 

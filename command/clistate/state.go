@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/slowmessage"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -51,15 +50,15 @@ that no one else is holding a lock.
 `
 )
 
-// Locker allows for more convenient usage of the lower-level state.Locker
+// Locker allows for more convenient usage of the lower-level statemgr.Locker
 // implementations.
-// The state.Locker API requires passing in a state.LockInfo struct. Locker
+// The statemgr.Locker API requires passing in a statemgr.LockInfo struct. Locker
 // implementations are expected to create the required LockInfo struct when
 // Lock is called, populate the Operation field with the "reason" string
-// provided, and pass that on to the underlying state.Locker.
+// provided, and pass that on to the underlying statemgr.Locker.
 // Locker implementations are also expected to store any state required to call
 // Unlock, which is at a minimum the LockID string returned by the
-// state.Locker.
+// statemgr.Locker.
 type Locker interface {
 	// Lock the provided state manager, storing the reason string in the LockInfo.
 	Lock(s statemgr.Locker, reason string) error
@@ -110,7 +109,7 @@ func (l *locker) Lock(s statemgr.Locker, reason string) error {
 	ctx, cancel := context.WithTimeout(l.ctx, l.timeout)
 	defer cancel()
 
-	lockInfo := state.NewLockInfo()
+	lockInfo := statemgr.NewLockInfo()
 	lockInfo.Operation = reason
 
 	err := slowmessage.Do(LockThreshold, func() error {
@@ -150,9 +149,7 @@ func (l *locker) Unlock(parentErr error) error {
 		l.ui.Output(l.color.Color(fmt.Sprintf(
 			"\n"+strings.TrimSpace(UnlockErrorMessage)+"\n", err)))
 
-		if parentErr != nil {
-			parentErr = multierror.Append(parentErr, err)
-		}
+		parentErr = multierror.Append(parentErr, err)
 	}
 
 	return parentErr

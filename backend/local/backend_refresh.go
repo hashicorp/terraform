@@ -50,6 +50,16 @@ func (b *Local) opRefresh(
 		return
 	}
 
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
+
 	// Set our state
 	runningOp.State = opState.State()
 	if !runningOp.State.HasResources() {

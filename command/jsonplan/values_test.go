@@ -31,6 +31,18 @@ func TestMarshalAttributeValues(t *testing.T) {
 			nil,
 		},
 		{
+			cty.NullVal(cty.String),
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			nil,
+		},
+		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("bar"),
 			}),
@@ -173,7 +185,7 @@ func TestMarshalPlanResources(t *testing.T) {
 		Want   []resource
 		Err    bool
 	}{
-		"create with unkonwns": {
+		"create with unknowns": {
 			Action: plans.Create,
 			Before: cty.NullVal(cty.EmptyObject),
 			After: cty.ObjectVal(map[string]cty.Value{
@@ -186,7 +198,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Type:            "test_thing",
 				Name:            "example",
 				Index:           addrs.InstanceKey(nil),
-				ProviderName:    "test",
+				ProviderName:    "registry.terraform.io/hashicorp/test",
 				SchemaVersion:   1,
 				AttributeValues: attributeValues{},
 			}},
@@ -215,7 +227,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Type:          "test_thing",
 				Name:          "example",
 				Index:         addrs.InstanceKey(nil),
-				ProviderName:  "test",
+				ProviderName:  "registry.terraform.io/hashicorp/test",
 				SchemaVersion: 1,
 				AttributeValues: attributeValues{
 
@@ -246,7 +258,10 @@ func TestMarshalPlanResources(t *testing.T) {
 							Type: "test_thing",
 							Name: "example",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+						ProviderAddr: addrs.AbsProviderConfig{
+							Provider: addrs.NewDefaultProvider("test"),
+							Module:   addrs.RootModule,
+						},
 						ChangeSrc: plans.ChangeSrc{
 							Action: test.Action,
 							Before: before,
@@ -278,8 +293,8 @@ func TestMarshalPlanResources(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": &terraform.ProviderSchema{
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewDefaultProvider("test"): &terraform.ProviderSchema{
 				ResourceTypes: map[string]*configschema.Block{
 					"test_thing": {
 						Attributes: map[string]*configschema.Attribute{

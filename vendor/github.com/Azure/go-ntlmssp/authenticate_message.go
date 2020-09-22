@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -123,6 +125,59 @@ func ProcessChallenge(challengeMessageData []byte, user, password string) ([]byt
 		am.LmChallengeResponse = computeLmV2Response(ntlmV2Hash,
 			cm.ServerChallenge[:], clientChallenge)
 	}
+	return am.MarshalBinary()
+}
 
+func ProcessChallengeWithHash(challengeMessageData []byte, user, hash string) ([]byte, error) {
+	if user == "" && hash == "" {
+		return nil, errors.New("Anonymous authentication not supported")
+	}
+
+	var cm challengeMessage
+	if err := cm.UnmarshalBinary(challengeMessageData); err != nil {
+		return nil, err
+	}
+
+	if cm.NegotiateFlags.Has(negotiateFlagNTLMSSPNEGOTIATELMKEY) {
+		return nil, errors.New("Only NTLM v2 is supported, but server requested v1 (NTLMSSP_NEGOTIATE_LM_KEY)")
+	}
+	if cm.NegotiateFlags.Has(negotiateFlagNTLMSSPNEGOTIATEKEYEXCH) {
+		return nil, errors.New("Key exchange requested but not supported (NTLMSSP_NEGOTIATE_KEY_EXCH)")
+	}
+
+	am := authenicateMessage{
+		UserName:       user,
+		TargetName:     cm.TargetName,
+		NegotiateFlags: cm.NegotiateFlags,
+	}
+
+	timestamp := cm.TargetInfo[avIDMsvAvTimestamp]
+	if timestamp == nil { // no time sent, take current time
+		ft := uint64(time.Now().UnixNano()) / 100
+		ft += 116444736000000000 // add time between unix & windows offset
+		timestamp = make([]byte, 8)
+		binary.LittleEndian.PutUint64(timestamp, ft)
+	}
+
+	clientChallenge := make([]byte, 8)
+	rand.Reader.Read(clientChallenge)
+
+	hashParts := strings.Split(hash, ":")
+	if len(hashParts) > 1 {
+		hash = hashParts[1]
+	}
+	hashBytes, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+	ntlmV2Hash := hmacMd5(hashBytes, toUnicode(strings.ToUpper(user)+cm.TargetName))
+
+	am.NtChallengeResponse = computeNtlmV2Response(ntlmV2Hash,
+		cm.ServerChallenge[:], clientChallenge, timestamp, cm.TargetInfoRaw)
+
+	if cm.TargetInfoRaw == nil {
+		am.LmChallengeResponse = computeLmV2Response(ntlmV2Hash,
+			cm.ServerChallenge[:], clientChallenge)
+	}
 	return am.MarshalBinary()
 }

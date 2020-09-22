@@ -26,7 +26,7 @@ This function is useful for inserting a multi-line string into an
 already-indented context in another string:
 
 ```
-> "  items: %{indent(2, "[\n  foo,\n  bar,\n]\n")}"
+> "  items: ${indent(2, "[\n  foo,\n  bar,\n]\n")}"
   items: [
     foo,
     bar,

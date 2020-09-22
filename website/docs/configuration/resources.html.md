@@ -14,6 +14,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Resources](../configuration-0-11/resources.html).
 
+> For a hands-on tutorial, try the [Get Started](https://learn.hashicorp.com/terraform/getting-started/intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 _Resources_ are the most important element in the Terraform language.
 Each resource block describes one or more infrastructure objects, such
 as virtual networks, compute instances, or higher-level components such
@@ -36,7 +38,7 @@ resource "aws_instance" "web" {
 A `resource` block declares a resource of a given type ("aws_instance")
 with a given local name ("web"). The name is used to refer to this resource
 from elsewhere in the same Terraform module, but has no significance outside
-of the scope of a module.
+that module's scope.
 
 The resource type and name together serve as an identifier for a given
 resource and so must be unique within a module.
@@ -49,19 +51,45 @@ arguments defined specifically for [the `aws_instance` resource type](/docs/prov
 -> **Note:** Resource names must start with a letter or underscore, and may
 contain only letters, digits, underscores, and dashes.
 
-## Resource Types and Arguments
+## Resource Types
 
 Each resource is associated with a single _resource type_, which determines
 the kind of infrastructure object it manages and what arguments and other
 attributes the resource supports.
 
-Each resource type in turn belongs to a [provider](./providers.html),
+### Providers
+
+Each resource type is implemented by a [provider](./provider-requirements.html),
 which is a plugin for Terraform that offers a collection of resource types. A
 provider usually provides resources to manage a single cloud or on-premises
-infrastructure platform.
+infrastructure platform. Providers are distributed separately from Terraform
+itself, but Terraform can automatically install most providers when initializing
+a working directory.
 
-Most of the items within the body of a `resource` block are specific to the
-selected resource type. These arguments can make full use of
+In order to manage resources, a Terraform module must specify which providers it
+requires. Additionally, most providers need some configuration in order to
+access their remote APIs, and the root module must provide that configuration.
+
+For more information, see:
+
+- [Provider Requirements](./provider-requirements.html), for declaring which
+  providers a module uses.
+- [Provider Configuration](./providers.html), for configuring provider settings.
+
+Terraform usually automatically determines which provider to use based on a
+resource type's name. (By convention, resource type names start with their
+provider's preferred local name.) When using multiple configurations of a
+provider (or non-preferred local provider names), you must use the `provider`
+meta-argument to manually choose an alternate provider configuration. See
+[the section on `provider` below][inpage-provider] for more details.
+
+### Resource Arguments
+
+Most of the arguments within the body of a `resource` block are specific to the
+selected resource type. The resource type's documentation lists which arguments
+are available and how their values should be formatted.
+
+The values for resource arguments can make full use of
 [expressions](./expressions.html) and other dynamic Terraform
 language features.
 
@@ -70,24 +98,30 @@ and apply across all resource types. (See [Meta-Arguments](#meta-arguments) belo
 
 ### Documentation for Resource Types
 
-[Terraform's provider documentation][providers] is the primary place to
-learn which resource types are available and which arguments to use for each
-resource type. Once you understand Terraform's basic syntax, the provider
-documentation will be where you spend the majority of your time on this website.
+Every Terraform provider has its own documentation, describing its resource
+types and their arguments.
 
-The "[Providers][]" link at the top level of the navigation sidebar will take
-you to an alphabetical list of all of the providers distributed by HashiCorp.
-You can find a specific provider in this master list, or choose a category from
-the navigation sidebar to browse a more focused list of providers.
+Most publicly available providers are distributed on the
+[Terraform Registry](https://registry.terraform.io/browse/providers), which also
+hosts their documentation. When viewing a provider's page on the Terraform
+Registry, you can click the "Documentation" link in the header to browse its
+documentation. Provider documentation on the registry is versioned, and you can
+use the dropdown version menu in the header to switch which version's
+documentation you are viewing.
 
-You can also search GitHub or other sources for third-party providers, which can
-be installed as plugins to enable an even broader selection of resource types.
+To browse the publicly available providers and their documentation, see
+[the providers section of the Terraform Registry](https://registry.terraform.io/browse/providers).
 
-[providers]: /docs/providers/index.html
+-> **Note:** Provider documentation used to be hosted directly on terraform.io,
+as part of Terraform's core documentation. Although some provider documentation
+might still be hosted here, the Terraform Registry is now the main home for all
+public provider docs. (The exception is the built-in
+[`terraform` provider](/docs/providers/terraform/index.html) for reading state
+data, since it is not available on the Terraform Registry.)
 
 ## Resource Behavior
 
-A `resource` block describes your intent for a particular infrastructure object
+A `resource` block declares that you want a particular infrastructure object
 to exist with the given settings. If you are writing a new configuration for
 the first time, the resources it defines will exist _only_ in the configuration,
 and will not yet represent real infrastructure objects in the target platform.
@@ -112,6 +146,28 @@ all.
 The meta-arguments within `resource` blocks, documented in the
 sections below, allow some details of this standard resource behavior to be
 customized on a per-resource basis.
+
+### Accessing Resource Attributes
+
+[Expressions](./expressions.html) within a Terraform module can access
+information about resources in the same module, and you can use that information
+to help configure other resources. Use the `<RESOURCE TYPE>.<NAME>.<ATTRIBUTE>`
+syntax to reference a resource attribute in an expression.
+
+In addition to arguments specified in the configuration, resources often provide
+read-only attributes with information obtained from the remote API; this often
+includes things that can't be known until the resource is created, like the
+resource's unique random ID.
+
+Many providers also include [data sources](./data-sources.html), which are a
+special type of resource used only for looking up information.
+
+For a list of the attributes a resource or data source type provides, consult
+its documentation; these are generally included in a second list below its list
+of configurable arguments.
+
+For more information about referencing resource attributes in expressions, see
+[Expressions: References to Resource Attributes](./expressions.html#references-to-resource-attributes).
 
 ### Resource Dependencies
 
@@ -143,7 +199,8 @@ Terraform CLI defines the following meta-arguments, which can be used with
 any resource type to change the behavior of resources:
 
 - [`depends_on`, for specifying hidden dependencies][inpage-depend]
-- [`count`, for creating multiple resource instances][inpage-count]
+- [`count`, for creating multiple resource instances according to a count][inpage-count]
+- [`for_each`, to create multiple instances according to a map, or set of strings][inpage-for_each]
 - [`provider`, for selecting a non-default provider configuration][inpage-provider]
 - [`lifecycle`, for lifecycle customizations][inpage-lifecycle]
 - [`provisioner` and `connection`, for taking extra actions after resource creation][inpage-provisioner]
@@ -221,15 +278,24 @@ The `depends_on` argument should be used only as a last resort. When using it,
 always include a comment explaining why it is being used, to help future
 maintainers understand the purpose of the additional dependency.
 
-### `count`: Multiple Resource Instances
+### `count`: Multiple Resource Instances By Count
 
-[inpage-count]: #count-multiple-resource-instances
+[inpage-count]: #count-multiple-resource-instances-by-count
 
-By default, a single `resource` block corresponds to only one real
-infrastructure object. Sometimes it is desirable to instead manage a set
-of _similar_ objects of the same type, such as a fixed pool of compute
-instances. You can achieve this by using the `count` meta-argument,
-which is allowed in all `resource` blocks:
+-> **Note:** A given resource block cannot use both `count` and `for_each`.
+
+By default, a `resource` block configures one real infrastructure object.
+However, sometimes you want to manage several similar objects, such as a fixed
+pool of compute instances. Terraform has two ways to do this:
+`count` and [`for_each`][inpage-for_each].
+
+> For a hands-on tutorial, try the [Manage Similar Resources With Count](https://learn.hashicorp.com/terraform/configuration/count?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+
+The `count` meta-argument accepts a whole number, and creates that many
+instances of the resource. Each instance has a distinct infrastructure object
+associated with it (as described above in
+[Resource Behavior](#resource-behavior)), and each is separately created,
+updated, or destroyed when the configuration is applied.
 
 ```hcl
 resource "aws_instance" "server" {
@@ -238,38 +304,55 @@ resource "aws_instance" "server" {
   ami           = "ami-a1b2c3d4"
   instance_type = "t2.micro"
 
-  tags {
+  tags = {
     Name = "Server ${count.index}"
   }
 }
 ```
 
-When the `count` meta-argument is present, a distinction exists between
-the resource block itself — identified as `aws_instance.server` —
-and the multiple _resource instances_ associated with it, identified as
-`aws_instance.server[0]`, `aws_instance.server[1]`, etc. Each instance has a
-distinct infrastructure object associated with it (as described above in
-[Resource Behavior](#resource-behavior)), and each is separately created,
-updated, or destroyed when the configuration is applied.
+#### The `count` Object
 
-When `count` is _not_ present, a resource block has only a single resource
-instance, which has no associated index.
+In resource blocks where `count` is set, an additional `count` object is
+available in expressions, so you can modify the configuration of each instance.
+This object has one attribute:
 
-Within resource blocks where `count` is set, an additional `count` object is
-available for use in expressions so you can modify the configuration of each
-instance. This object has one attribute, `count.index`, which provides the
-distinct index number (starting with `0`) for each instance.
+- `count.index` — The distinct index number (starting with `0`) corresponding
+  to this instance.
 
-The `count` meta-argument accepts [expressions](./expressions.html)
-in its value, similar to the resource-type-specific arguments for a resource.
-However, Terraform must interpret the `count` argument _before_ any actions
-are taken from remote resources, and so (unlike the resource-type-specifc arguments)
-the `count` expressions may not refer to any resource attributes that are
-not known until after a configuration is applied, such as a unique id
-generated by the remote API when an object is created.
+#### Referring to Instances
 
-For example, `count` can be used with an input variable that carries a list
-value, to create one instance for each element of the list:
+When `count` is set, Terraform distinguishes between the resource block itself
+and the multiple _resource instances_ associated with it. Instances are
+identified by an index number, starting with `0`.
+
+- `<TYPE>.<NAME>` (for example, `aws_instance.server`) refers to the resource block.
+- `<TYPE>.<NAME>[<INDEX>]` (for example, `aws_instance.server[0]`,
+  `aws_instance.server[1]`, etc.) refers to individual instances.
+
+This is different from resources without `count` or `for_each`, which can be
+referenced without an index or key.
+
+-> **Note:** Within nested `provisioner` or `connection` blocks, the special
+`self` object refers to the current _resource instance,_ not the resource block
+as a whole.
+
+#### Using Expressions in `count`
+
+The `count` meta-argument accepts numeric [expressions](./expressions.html).
+However, unlike most resource arguments, the `count` value must be known
+_before_ Terraform performs any remote resource actions. This means `count`
+can't refer to any resource attributes that aren't known until after a
+configuration is applied (such as a unique ID generated by the remote API when
+an object is created).
+
+#### When to Use `for_each` Instead of `count`
+
+If your resource instances are almost identical, `count` is appropriate. If some
+of their arguments need distinct values that can't be directly derived from an
+integer, it's safer to use `for_each`.
+
+Before `for_each` was available, it was common to derive `count` from the
+length of a list and use `count.index` to look up the original list value:
 
 ```hcl
 variable "subnet_ids" {
@@ -284,40 +367,183 @@ resource "aws_instance" "server" {
   instance_type = "t2.micro"
   subnet_id     = var.subnet_ids[count.index]
 
-  tags {
+  tags = {
     Name = "Server ${count.index}"
   }
 }
 ```
 
-Note that the separate resource instances created by `count` are still
-identified by their _index_, and not by the string values in the given
-list. This means that if an element is removed from the middle of the list,
-all of the indexed instances _after_ it will see their `subnet_id` values
-change, which will cause more remote object changes than were probably
-intended. The practice of generating multiple instances from lists should
-be used sparingly, and with due care given to what will happen if the list is
-changed later.
+This was fragile, because the resource instances were still identified by their
+_index_ instead of the string values in the list. If an element was removed from
+the middle of the list, every instance _after_ that element would see its
+`subnet_id` value change, resulting in more remote object changes than intended.
+Using `for_each` gives the same flexibility without the extra churn.
+
+### `for_each`: Multiple Resource Instances Defined By a Map, or Set of Strings
+
+[inpage-for_each]: #for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings
+
+-> **Version note:** `for_each` was added in Terraform 0.12.6.
+
+-> **Note:** A given resource block cannot use both `count` and `for_each`.
+
+By default, a `resource` block configures one real infrastructure object.
+However, sometimes you want to manage several similar objects, such as a fixed
+pool of compute instances. Terraform has two ways to do this:
+[`count`][inpage-count] and `for_each`.
+
+> For a hands-on tutorial, try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/terraform/configuration/for-each?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+
+The `for_each` meta-argument accepts a map or a set of strings, and creates an
+instance for each item in that map or set. Each instance has a distinct
+infrastructure object associated with it (as described above in
+[Resource Behavior](#resource-behavior)), and each is separately created,
+updated, or destroyed when the configuration is applied.
+
+-> **Note:** The keys of the map (or all the values in the case of a set of strings) must
+be _known values_, or you will get an error message that `for_each` has dependencies
+that cannot be determined before apply, and a `-target` may be needed. `for_each` keys
+cannot be the result (or rely on the result of) of impure functions, including `uuid`, `bcrypt`,
+or `timestamp`, as their evaluation is deferred resource during evaluation.
+
+Map:
+
+```hcl
+resource "azurerm_resource_group" "rg" {
+  for_each = {
+    a_group = "eastus"
+    another_group = "westus2"
+  }
+  name     = each.key
+  location = each.value
+}
+```
+Set of strings:
+
+```hcl
+resource "aws_iam_user" "the-accounts" {
+  for_each = toset( ["Todd", "James", "Alice", "Dottie"] )
+  name     = each.key
+}
+```
+#### The `each` Object
+
+In resource blocks where `for_each` is set, an additional `each` object is
+available in expressions, so you can modify the configuration of each instance.
+This object has two attributes:
+
+- `each.key` — The map key (or set member) corresponding to this instance.
+- `each.value` — The map value corresponding to this instance. (If a set was
+  provided, this is the same as `each.key`.)
+
+#### Using Expressions in `for_each`
+
+The `for_each` meta-argument accepts map or set [expressions](./expressions.html).
+However, unlike most resource arguments, the `for_each` value must be known
+_before_ Terraform performs any remote resource actions. This means `for_each`
+can't refer to any resource attributes that aren't known until after a
+configuration is applied (such as a unique ID generated by the remote API when
+an object is created).
+
+The `for_each` value must be a map or set with one element per desired
+resource instance. If you need to declare resource instances based on a nested
+data structure or combinations of elements from multiple data structures you
+can use Terraform expressions and functions to derive a suitable value.
+For example:
+
+* Transform a multi-level nested structure into a flat list by
+  [using nested `for` expressions with the `flatten` function](./functions/flatten.html#flattening-nested-structures-for-for_each).
+* Produce an exhaustive list of combinations of elements from two or more
+  collections by
+  [using the `setproduct` function inside a `for` expression](./functions/setproduct.html#finding-combinations-for-for_each).
+
+#### Referring to Instances
+
+When `for_each` is set, Terraform distinguishes between the resource block itself
+and the multiple _resource instances_ associated with it. Instances are
+identified by a map key (or set member) from the value provided to `for_each`.
+
+- `<TYPE>.<NAME>` (for example, `azurerm_resource_group.rg`) refers to the resource block.
+- `<TYPE>.<NAME>[<KEY>]` (for example, `azurerm_resource_group.rg["a_group"]`,
+  `azurerm_resource_group.rg["another_group"]`, etc.) refers to individual instances.
+
+This is different from resources without `count` or `for_each`, which can be
+referenced without an index or key.
+
+-> **Note:** Within nested `provisioner` or `connection` blocks, the special
+`self` object refers to the current _resource instance,_ not the resource block
+as a whole.
+
+#### Using Sets
+
+The Terraform language doesn't have a literal syntax for
+[set values](./types.html#collection-types), but you can use the `toset`
+function to explicitly convert a list of strings to a set:
+
+```hcl
+locals {
+  subnet_ids = toset([
+    "subnet-abcdef",
+    "subnet-012345",
+  ])
+}
+
+resource "aws_instance" "server" {
+  for_each = local.subnet_ids
+
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+  subnet_id     = each.key # note: each.key and each.value are the same for a set
+
+  tags = {
+    Name = "Server ${each.key}"
+  }
+}
+```
+
+Conversion from list to set discards the ordering of the items in the list and
+removes any duplicate elements. `toset(["b", "a", "b"])` will produce a set
+containing only `"a"` and `"b"` in no particular order; the second `"b"` is
+discarded.
+
+If you are writing a module with an [input variable](./variables.html) that
+will be used as a set of strings for `for_each`, you can set its type to
+`set(string)` to avoid the need for an explicit type conversion:
+
+```
+variable "subnet_ids" {
+  type = set(string)
+}
+
+resource "aws_instance" "server" {
+  for_each = var.subnet_ids
+
+  # (and the other arguments as above)
+}
+```
 
 ### `provider`: Selecting a Non-default Provider Configuration
 
 [inpage-provider]: #provider-selecting-a-non-default-provider-configuration
 
-As described in [the Providers page](./providers.html),
-Terraform optionally allows the definition of multiple alternative ("aliased")
-configurations for a single provider, to allow management of resources
-in different regions in multi-region services, etc.
-The `provider` meta-argument overrides Terraform's default behavior of
-selecting a provider configuration based on the resource type name.
+The `provider` meta-argument specifies which provider configuration to use,
+overriding Terraform's default behavior of selecting one based on the resource
+type name. Its value should be an unquoted `<PROVIDER>.<ALIAS>` reference.
 
-By default, Terraform takes the initial word in the resource type name
-(separated by underscores) and selects the default configuration for that
-named provider. For example, the resource type `google_compute_instance`
-is associated automatically with the default configuration for the provider
-named `google`.
+As described in [Provider Configuration](./providers.html), you can optionally
+create multiple configurations for a single provider (usually to manage
+resources in different regions of multi-region services). Each provider can have
+one default configuration, and any number of alternate configurations that
+include an extra name segment (or "alias").
 
-By using the `provider` meta-argument, an aliased provider configuration
-can be selected:
+By default, Terraform interprets the initial word in the resource type name
+(separated by underscores) as the local name of a provider, and uses that
+provider's default configuration. For example, the resource type
+`google_compute_instance` is associated automatically with the default
+configuration for the provider named `google`.
+
+By using the `provider` meta-argument, you can select an alternate provider
+configuration for a resource:
 
 ```hcl
 # default configuration
@@ -325,7 +551,7 @@ provider "google" {
   region = "us-central1"
 }
 
-# alternative, aliased configuration
+# alternate configuration, whose alias is "europe"
 provider "google" {
   alias  = "europe"
   region = "europe-west1"
@@ -345,8 +571,9 @@ A resource always has an implicit dependency on its associated provider, to
 ensure that the provider is fully configured before any resource actions
 are taken.
 
-The `provider` meta-argument expects [a `<PROVIDER>.<ALIAS>` reference](./providers.html#referring-to-alternate-providers), which
-does not need to be quoted. Arbitrary expressions are not permitted for
+The `provider` meta-argument expects
+[a `<PROVIDER>.<ALIAS>` reference](./providers.html#referring-to-alternate-providers),
+which does not need to be quoted. Arbitrary expressions are not permitted for
 `provider` because it must be resolved while Terraform is constructing the
 dependency graph, before it is safe to evaluate expressions.
 
@@ -436,6 +663,35 @@ meta-arguments are supported:
     }
     ```
 
+    You can also ignore specific map elements by writing references like
+    `tags["Name"]` in the `ignore_changes` list, though with an important
+    caveat: the ignoring applies only to in-place updates to an existing
+    key. Adding or removing a key is treated by Terraform as a change to the
+    containing map itself rather than to the individual key, and so if you
+    wish to ignore changes to a particular tag made by an external system
+    you must ensure that the Terraform configuration creates a placeholder
+    element for that tag name so that the external system changes will be
+    understood as an in-place edit of that key:
+
+    ```hcl
+    resource "aws_instance" "example" {
+      # ...
+
+      tags = {
+        # Initial value for Name is overridden by our automatic scheduled
+        # re-tagging process; changes to this are ignored by ignore_changes
+        # below.
+        Name = "placeholder"
+      }
+
+      lifecycle {
+        ignore_changes = [
+          tags["Name"],
+        ]
+      }
+    }
+    ```
+
     Instead of a list, the special keyword `all` may be used to instruct
     Terraform to ignore _all_ attributes, which means that Terraform can
     create and destroy the remote object but will never propose updates to it.
@@ -450,6 +706,8 @@ the processing happens too early for arbitrary expression evaluation.
 ### `provisioner` and `connection`: Resource Provisioners
 
 [inpage-provisioner]: #provisioner-and-connection-resource-provisioners
+
+> For hands-on tutorials about handling provisioning actions declaratively, try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/terraform/provision/packer?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
 
 Some infrastructure objects require some special actions to be taken after they
 are created before they can become fully functional. For example, compute
@@ -523,4 +781,3 @@ The set of configurable operations is chosen by each resource type. Most
 resource types do not support the `timeouts` block at all. Consult the
 documentation for each resource type to see which operations it offers
 for configuration, if any.
-

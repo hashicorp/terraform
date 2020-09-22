@@ -14,13 +14,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -101,7 +101,11 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	}
 
 	// Setup the CLI opts we pass into backends that support it.
-	cliOpts := m.backendCLIOpts()
+	cliOpts, err := m.backendCLIOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
 	cliOpts.Validation = true
 
 	// If the backend supports CLI initialization, do it.
@@ -180,7 +184,10 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	}
 
 	// Get the currently selected workspace.
-	workspace := m.Workspace()
+	workspace, err := m.Workspace()
+	if err != nil {
+		return err
+	}
 
 	// Check if any of the existing workspaces matches the selected
 	// workspace and create a numbered list of existing workspaces.
@@ -249,7 +256,11 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backend.CLI); ok {
-		cliOpts := m.backendCLIOpts()
+		cliOpts, err := m.backendCLIOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
 		if err := cli.CLIInit(cliOpts); err != nil {
 			diags = diags.Append(fmt.Errorf(
 				"Error initializing backend %T: %s\n\n"+
@@ -270,7 +281,11 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
 	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
-	cliOpts := m.backendCLIOpts()
+	cliOpts, err := m.backendCLIOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
 	cliOpts.Validation = false // don't validate here in case config contains file(...) calls where the file doesn't exist
 	local := backendLocal.NewWithBackend(b)
 	if err := local.CLIInit(cliOpts); err != nil {
@@ -283,7 +298,11 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 // backendCLIOpts returns a backend.CLIOpts object that should be passed to
 // a backend that supports local CLI operations.
-func (m *Meta) backendCLIOpts() *backend.CLIOpts {
+func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
+	contextOpts, err := m.contextOpts()
+	if err != nil {
+		return nil, err
+	}
 	return &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
@@ -291,10 +310,10 @@ func (m *Meta) backendCLIOpts() *backend.CLIOpts {
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,
-		ContextOpts:         m.contextOpts(),
+		ContextOpts:         contextOpts,
 		Input:               m.Input(),
 		RunningInAutomation: m.RunningInAutomation,
-	}
+	}, nil
 }
 
 // IsLocalBackend returns true if the backend is a local backend. We use this
@@ -318,7 +337,13 @@ func (m *Meta) IsLocalBackend(b backend.Backend) bool {
 // be called.
 func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 	schema := b.ConfigSchema()
-	workspace := m.Workspace()
+	workspace, err := m.Workspace()
+	if err != nil {
+		// An invalid workspace error would have been raised when creating the
+		// backend, and the caller should have already exited. Seeing the error
+		// here first is a bug, so panic.
+		panic(fmt.Sprintf("invalid workspace: %s", err))
+	}
 	planOutBackend, err := m.backendState.ForPlan(schema, workspace)
 	if err != nil {
 		// Always indicates an implementation error in practice, because
@@ -346,9 +371,10 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	if opts.Config == nil {
 		// check if the config was missing, or just not required
-		conf, err := m.loadBackendConfig(".")
-		if err != nil {
-			return nil, 0, err
+		conf, moreDiags := m.loadBackendConfig(".")
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return nil, 0, diags
 		}
 
 		if conf == nil {
@@ -438,7 +464,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// if we're using a remote backend. This may not yet exist which means
 	// we haven't used a non-local backend before. That is okay.
 	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
-	sMgr := &state.LocalState{Path: statePath}
+	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
 		return nil, diags
@@ -561,6 +587,75 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	}
 }
 
+// backendFromState returns the initialized (not configured) backend directly
+// from the state. This should be used only when a user runs `terraform init
+// -backend=false`. This function returns a local backend if there is no state
+// or no backend configured.
+func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	// Get the path to where we store a local cache of backend configuration
+	// if we're using a remote backend. This may not yet exist which means
+	// we haven't used a non-local backend before. That is okay.
+	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
+	sMgr := &clistate.LocalState{Path: statePath}
+	if err := sMgr.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		return nil, diags
+	}
+	s := sMgr.State()
+	if s == nil {
+		// no state, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
+		return backendLocal.New(), diags
+	}
+	if s.Backend == nil {
+		// s.Backend is nil, so return a local backend
+		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
+		return backendLocal.New(), diags
+	}
+	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
+
+	//backend init function
+	if s.Backend.Type == "" {
+		return backendLocal.New(), diags
+	}
+	f := backendInit.Backend(s.Backend.Type)
+	if f == nil {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type))
+		return nil, diags
+	}
+	b := f()
+
+	// The configuration saved in the working directory state file is used
+	// in this case, since it will contain any additional values that
+	// were provided via -backend-config arguments on terraform init.
+	schema := b.ConfigSchema()
+	configVal, err := s.Backend.Config(schema)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to decode current backend config",
+			fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
+		))
+		return nil, diags
+	}
+
+	// Validate the config and then configure the backend
+	newVal, validDiags := b.PrepareConfig(configVal)
+	diags = diags.Append(validDiags)
+	if validDiags.HasErrors() {
+		return nil, diags
+	}
+
+	configDiags := b.Configure(newVal)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return b, diags
+}
+
 //-------------------------------------------------------------------
 // Backend Config Scenarios
 //
@@ -579,7 +674,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 //-------------------------------------------------------------------
 
 // Unconfiguring a backend (moving from backend => local).
-func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *state.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
 	s := sMgr.State()
 
 	// Get the backend type for output
@@ -634,7 +729,7 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *state.LocalSta
 }
 
 // Legacy remote state
-func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *state.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -644,7 +739,7 @@ func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *state.LocalState) (backen
 }
 
 // Unsetting backend, saved backend, legacy remote state
-func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *state.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -654,7 +749,7 @@ func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *state.LocalSta
 }
 
 // Configuring a backend for the first time with legacy remote state.
-func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *state.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -664,7 +759,7 @@ func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *state.LocalState) (backen
 }
 
 // Configuring a backend for the first time.
-func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	// Get the backend
 	b, configVal, diags := m.backendInitFromConfig(c)
 	if diags.HasErrors() {
@@ -684,7 +779,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 		return nil, diags
 	}
 
-	var localStates []state.State
+	var localStates []statemgr.Full
 	for _, workspace := range workspaces {
 		localState, err := localB.StateMgr(workspace)
 		if err != nil {
@@ -791,7 +886,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *state.LocalSta
 }
 
 // Changing a previously saved backend.
-func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *state.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
 	if output {
 		// Notify the user
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -876,7 +971,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *state.
 }
 
 // Initiailizing an unchanged saved backend
-func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *state.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := sMgr.State()
@@ -931,7 +1026,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *stat
 }
 
 // Initiailizing a changed saved backend with legacy remote state.
-func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *state.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
@@ -941,7 +1036,7 @@ func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *state.LocalState)
 }
 
 // Initiailizing an unchanged saved backend with legacy remote state.
-func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *state.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")

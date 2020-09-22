@@ -9,9 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/errwrap"
@@ -44,7 +42,7 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 
 	// Build the context
 	opts.Config = cfg
-	opts.State, err = terraform.ShimLegacyState(state)
+	opts.State, err = shimLegacyState(state)
 	if err != nil {
 		return nil, err
 	}
@@ -62,27 +60,17 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 		log.Printf("[WARN] Config warnings:\n%s", stepDiags)
 	}
 
-	// Refresh!
-	newState, stepDiags := ctx.Refresh()
-	// shim the state first so the test can check the state on errors
-
-	state, err = shimNewState(newState, step.providers)
-	if err != nil {
-		return nil, err
-	}
-	if stepDiags.HasErrors() {
-		return state, newOperationError("refresh", stepDiags)
-	}
-
 	// If this step is a PlanOnly step, skip over this first Plan and subsequent
 	// Apply, and use the follow up Plan that checks for perpetual diffs
 	if !step.PlanOnly {
 		// Plan!
-		if p, stepDiags := ctx.Plan(); stepDiags.HasErrors() {
+		p, stepDiags := ctx.Plan()
+		if stepDiags.HasErrors() {
 			return state, newOperationError("plan", stepDiags)
-		} else {
-			log.Printf("[WARN] Test: Step plan: %s", legacyPlanComparisonString(newState, p.Changes))
 		}
+
+		newState := p.State
+		log.Printf("[WARN] Test: Step plan: %s", legacyPlanComparisonString(newState, p.Changes))
 
 		// We need to keep a copy of the state prior to destroying
 		// such that destroy steps can verify their behavior in the check
@@ -116,49 +104,26 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 
 	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
 	// We do this with TWO plans. One without a refresh.
-	var p *plans.Plan
-	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
+	p, stepDiags := ctx.Plan()
+	if stepDiags.HasErrors() {
 		return state, newOperationError("follow-up plan", stepDiags)
 	}
-	if !p.Changes.Empty() {
+
+	// we don't technically need this any longer with plan handling refreshing,
+	// but run it anyway to ensure the context is working as expected.
+	p, stepDiags = ctx.Plan()
+	if stepDiags.HasErrors() {
+		return state, newOperationError("second follow-up plan", stepDiags)
+	}
+	empty := p.Changes.Empty()
+	newState := p.State
+
+	if !empty {
 		if step.ExpectNonEmptyPlan {
 			log.Printf("[INFO] Got non-empty plan, as expected:\n\n%s", legacyPlanComparisonString(newState, p.Changes))
 		} else {
 			return state, fmt.Errorf(
 				"After applying this step, the plan was not empty:\n\n%s", legacyPlanComparisonString(newState, p.Changes))
-		}
-	}
-
-	// And another after a Refresh.
-	if !step.Destroy || (step.Destroy && !step.PreventPostDestroyRefresh) {
-		newState, stepDiags = ctx.Refresh()
-		if stepDiags.HasErrors() {
-			return state, newOperationError("follow-up refresh", stepDiags)
-		}
-
-		state, err = shimNewState(newState, step.providers)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if p, stepDiags = ctx.Plan(); stepDiags.HasErrors() {
-		return state, newOperationError("second follow-up refresh", stepDiags)
-	}
-	empty := p.Changes.Empty()
-
-	// Data resources are tricky because they legitimately get instantiated
-	// during refresh so that they will be already populated during the
-	// plan walk. Because of this, if we have any data resources in the
-	// config we'll end up wanting to destroy them again here. This is
-	// acceptable and expected, and we'll treat it as "empty" for the
-	// sake of this testing.
-	if step.Destroy && !empty {
-		empty = true
-		for _, change := range p.Changes.Resources {
-			if change.Addr.Resource.Resource.Mode != addrs.DataResourceMode {
-				empty = false
-				break
-			}
 		}
 	}
 
@@ -341,7 +306,7 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 				v := newAttrs[attrK]
 				u := oldAttrs[attrK]
 
-				if v == config.UnknownVariableValue {
+				if v == hcl2shim.UnknownVariableValue {
 					v = "<computed>"
 				}
 				// NOTE: we don't support <sensitive> here because we would

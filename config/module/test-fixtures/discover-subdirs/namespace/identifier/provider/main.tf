@@ -1,3 +1,0 @@
-output "local" {
-	value = "test"
-}

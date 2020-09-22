@@ -25,6 +25,12 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli-inde
   instead; it presents similar information from the perspective of the SDK
   API, rather than the plugin wire protocol.)
 
+* [Plugin Protocol](./plugin-protocol/): gRPC/protobuf definitions for the
+  plugin wire protocol and information about its versioning strategy.
+
+  This documentation is for SDK developers, and is not necessary reading for
+  those implementing a provider using the official SDK.
+
 ## Contribution Guides
 
 * [Maintainer Etiquette](./maintainer-etiquette.md): guidelines and expectations

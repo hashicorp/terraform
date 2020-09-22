@@ -25,7 +25,10 @@ func TestStateRm(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -37,7 +40,10 @@ func TestStateRm(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -84,7 +90,10 @@ func TestStateRmNotChildModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		// This second instance has the same local address as the first but
 		// is in a child module. Older versions of Terraform would incorrectly
@@ -99,7 +108,10 @@ func TestStateRmNotChildModule(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -129,7 +141,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider.test
+    provider = provider["registry.terraform.io/-/test"]
     bar = value
     foo = value
 `)
@@ -142,14 +154,14 @@ module.child:
 	testStateOutput(t, backups[0], `
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider.test
+    provider = provider["registry.terraform.io/-/test"]
     bar = value
     foo = value
 `)
@@ -167,7 +179,10 @@ func TestStateRmNoArgs(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -179,7 +194,10 @@ func TestStateRmNoArgs(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -220,7 +238,10 @@ func TestStateRmNonExist(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -232,7 +253,10 @@ func TestStateRmNonExist(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -252,14 +276,9 @@ func TestStateRmNonExist(t *testing.T) {
 		"-state", statePath,
 		"test_instance.baz", // doesn't exist in the state constructed above
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("expected exit status %d, got: %d", 0, code)
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected exit status %d, got: %d", 1, code)
 	}
-
-	if msg := ui.OutputWriter.String(); !strings.Contains(msg, "No matching resource instances found") {
-		t.Fatalf("unexpected output:\n%s", msg)
-	}
-
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
@@ -274,7 +293,10 @@ func TestStateRm_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -286,7 +308,10 @@ func TestStateRm_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -384,7 +409,10 @@ func TestStateRm_backendState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -396,7 +424,10 @@ func TestStateRm_backendState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -443,12 +474,12 @@ func TestStateRm_backendState(t *testing.T) {
 const testStateRmOutputOriginal = `
 test_instance.bar:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 `
@@ -456,7 +487,7 @@ test_instance.foo:
 const testStateRmOutput = `
 test_instance.bar:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
 `

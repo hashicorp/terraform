@@ -66,6 +66,41 @@ a = 1 +
 	}
 }
 
+func TestFmt_snippetInError(t *testing.T) {
+	tempDir := testTempDir(t)
+
+	backendSrc := `terraform {backend "s3" {}}`
+
+	err := ioutil.WriteFile(filepath.Join(tempDir, "backend.tf"), []byte(backendSrc), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{tempDir}
+	if code := c.Run(args); code != 2 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+
+	substrings := []string{
+		"Argument definition required",
+		"line 1, in terraform",
+		`1: terraform {backend "s3" {}}`,
+	}
+	for _, substring := range substrings {
+		if actual := ui.ErrorWriter.String(); !strings.Contains(actual, substring) {
+			t.Errorf("expected:\n%s\n\nto include: %q", actual, substring)
+		}
+	}
+}
+
 func TestFmt_tooManyArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &FmtCommand{
@@ -244,6 +279,10 @@ func TestFmt_check(t *testing.T) {
 	if code := c.Run(args); code != 3 {
 		t.Fatalf("wrong exit code. expected 3")
 	}
+
+	// Given that we give relative paths back to the user, normalize this temp
+	// dir so that we're comparing against a relative-ized (normalized) path
+	tempDir = c.normalizePath(tempDir)
 
 	if actual := ui.OutputWriter.String(); !strings.Contains(actual, tempDir) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, tempDir)

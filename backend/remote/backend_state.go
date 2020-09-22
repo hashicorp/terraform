@@ -8,18 +8,19 @@ import (
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 type remoteClient struct {
 	client         *tfe.Client
-	lockInfo       *state.LockInfo
+	lockInfo       *statemgr.LockInfo
 	organization   string
 	runID          string
 	stateUploadErr bool
 	workspace      *tfe.Workspace
+	forcePush      bool
 }
 
 // Get the remote state.
@@ -69,6 +70,7 @@ func (r *remoteClient) Put(state []byte) error {
 		Serial:  tfe.Int64(int64(stateFile.Serial)),
 		MD5:     tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
 		State:   tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:   tfe.Bool(r.forcePush),
 	}
 
 	// If we have a run ID, make sure to add it to the options
@@ -97,11 +99,17 @@ func (r *remoteClient) Delete() error {
 	return nil
 }
 
+// EnableForcePush to allow the remote client to overwrite state
+// by implementing remote.ClientForcePusher
+func (r *remoteClient) EnableForcePush() {
+	r.forcePush = true
+}
+
 // Lock the remote state.
-func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
+func (r *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.Background()
 
-	lockErr := &state.LockError{Info: r.lockInfo}
+	lockErr := &statemgr.LockError{Info: r.lockInfo}
 
 	// Lock the workspace.
 	_, err := r.client.Workspaces.Lock(ctx, r.workspace.ID, tfe.WorkspaceLockOptions{
@@ -131,7 +139,7 @@ func (r *remoteClient) Unlock(id string) error {
 		return nil
 	}
 
-	lockErr := &state.LockError{Info: r.lockInfo}
+	lockErr := &statemgr.LockError{Info: r.lockInfo}
 
 	// With lock info this should be treated as a normal unlock.
 	if r.lockInfo != nil {

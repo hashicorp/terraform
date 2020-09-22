@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -180,11 +179,6 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
-	type Config struct {
-		Path         string `hcl:"path,optional"`
-		WorkspaceDir string `hcl:"workspace_dir,optional"`
-	}
-
 	if val := obj.GetAttr("path"); !val.IsNull() {
 		p := val.AsString()
 		b.StatePath = p
@@ -342,16 +336,6 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		defer stop()
 		defer cancel()
 
-		// the state was locked during context creation, unlock the state when
-		// the operation completes
-		defer func() {
-			err := op.StateLocker.Unlock(nil)
-			if err != nil {
-				b.ShowDiagnostics(err)
-				runningOp.Result = backend.OperationFailure
-			}
-		}()
-
 		defer b.opLock.Unlock()
 		f(stopCtx, cancelCtx, op, runningOp)
 	}()
@@ -443,7 +427,7 @@ func (b *Local) ReportResult(op *backend.RunningOperation, diags tfdiags.Diagnos
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
-// output. This is gauranteed to always return a non-nil value and so is useful
+// output. This is guaranteed to always return a non-nil value and so is useful
 // as a helper to wrap any potentially colored strings.
 func (b *Local) Colorize() *colorstring.Colorize {
 	if b.CLIColor != nil {
@@ -454,39 +438,6 @@ func (b *Local) Colorize() *colorstring.Colorize {
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
 	}
-}
-
-func (b *Local) schemaConfigure(ctx context.Context) error {
-	d := schema.FromContextBackendConfig(ctx)
-
-	// Set the path if it is set
-	pathRaw, ok := d.GetOk("path")
-	if ok {
-		path := pathRaw.(string)
-		if path == "" {
-			return fmt.Errorf("configured path is empty")
-		}
-
-		b.StatePath = path
-		b.StateOutPath = path
-	}
-
-	if raw, ok := d.GetOk("workspace_dir"); ok {
-		path := raw.(string)
-		if path != "" {
-			b.StateWorkspaceDir = path
-		}
-	}
-
-	// Legacy name, which ConflictsWith workspace_dir
-	if raw, ok := d.GetOk("environment_dir"); ok {
-		path := raw.(string)
-		if path != "" {
-			b.StateWorkspaceDir = path
-		}
-	}
-
-	return nil
 }
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as

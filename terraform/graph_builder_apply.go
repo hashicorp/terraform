@@ -40,9 +40,6 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Destroy, if true, represents a pure destroy operation
 	Destroy bool
 
@@ -69,13 +66,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeApplyableResource{
-			NodeAbstractResource: a,
-		}
-	}
-
-	concreteOrphanResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodeDestroyResource{
+		return &nodeExpandApplyableResource{
 			NodeAbstractResource: a,
 		}
 	}
@@ -105,19 +96,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Changes:  b.Changes,
 		},
 
-		// Creates extra cleanup nodes for any entire resources that are
-		// no longer present in config, so we can make sure we clean up the
-		// leftover empty resource states after the instances have been
-		// destroyed.
-		// (We don't track this particular type of change in the plan because
-		// it's just cleanup of our own state object, and so doesn't effect
-		// any real remote objects or consumable outputs.)
-		&OrphanResourceTransformer{
-			Concrete: concreteOrphanResource,
-			Config:   b.Config,
-			State:    b.State,
-		},
-
 		// Create orphan output nodes
 		&OrphanOutputTransformer{Config: b.Config, State: b.State},
 
@@ -126,21 +104,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
-
-		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
-		},
-		GraphTransformIf(
-			func() bool { return !b.Destroy },
-			&CBDEdgeTransformer{
-				Config:  b.Config,
-				State:   b.State,
-				Schemas: b.Schemas,
-			},
-		),
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
@@ -166,46 +129,72 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{Config: b.Config},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
 
-		// Handle destroy time transformations for output and local values.
-		// Reverse the edges from outputs and locals, so that
-		// interpolations don't fail during destroy.
-		// Create a destroy node for outputs to remove them from the state.
-		// Prune unreferenced values, which may have interpolations that can't
-		// be resolved.
-		GraphTransformIf(
-			func() bool { return b.Destroy },
-			GraphTransformMulti(
-				&DestroyValueReferenceTransformer{},
-				&DestroyOutputTransformer{},
-				&PruneUnusedValuesTransformer{},
-			),
-		),
+		// Detect when create_before_destroy must be forced on for a particular
+		// node due to dependency edges, to avoid graph cycles during apply.
+		&ForcedCBDTransformer{},
+
+		// Destruction ordering
+		&DestroyEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+		},
+
+		&CBDEdgeTransformer{
+			Config:  b.Config,
+			State:   b.State,
+			Schemas: b.Schemas,
+		},
+
+		// Create a destroy node for root outputs to remove them from the
+		// state.  This does nothing unless invoked via the destroy command
+		// directly.  A destroy is identical to a normal apply, except for the
+		// fact that we also have configuration to evaluate. While the rest of
+		// the unused nodes can be programmatically pruned (via
+		// pruneUnusedNodesTransformer), root module outputs always have an
+		// implied dependency on remote state. This means that if they exist in
+		// the configuration, the only signal to remove them is via the destroy
+		// command itself.
+		&destroyRootOutputTransformer{Destroy: b.Destroy},
+
+		// We need to remove configuration nodes that are not used at all, as
+		// they may not be able to evaluate, especially during destroy.
+		// These include variables, locals, and instance expanders.
+		&pruneUnusedNodesTransformer{},
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{
 			Config: b.Config,
 		},
 
-		// Target
-		&TargetsTransformer{Targets: b.Targets},
-
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
-		// Single root
-		&RootTransformer{},
-	}
+		// Add destroy node reference edges where needed, until we can fix
+		// full-destroy evaluation.
+		&applyDestroyNodeReferenceFixupTransformer{},
 
-	if !b.DisableReduce {
+		// close the root module
+		&CloseRootModuleTransformer{},
+
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps

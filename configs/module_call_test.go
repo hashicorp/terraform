@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 )
 
 func TestLoadModuleCall(t *testing.T) {
-	src, err := ioutil.ReadFile("test-fixtures/invalid-files/module-calls.tf")
+	src, err := ioutil.ReadFile("testdata/invalid-files/module-calls.tf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,9 +20,7 @@ func TestLoadModuleCall(t *testing.T) {
 
 	file, diags := parser.LoadConfigFile("module-calls.tf")
 	assertExactDiagnostics(t, diags, []string{
-		`module-calls.tf:19,3-8: Reserved argument name in module block; The name "count" is reserved for use in a future version of Terraform.`,
-		`module-calls.tf:20,3-11: Reserved argument name in module block; The name "for_each" is reserved for use in a future version of Terraform.`,
-		`module-calls.tf:22,3-13: Reserved argument name in module block; The name "depends_on" is reserved for use in a future version of Terraform.`,
+		`module-calls.tf:20,3-11: Invalid combination of "count" and "for_each"; The "count" and "for_each" meta-arguments are mutually-exclusive, only one should be used to be explicit about the number of resources to be created.`,
 	})
 
 	gotModules := file.ModuleCalls

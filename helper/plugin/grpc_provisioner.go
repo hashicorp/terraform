@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"log"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
@@ -90,7 +92,7 @@ type uiOutput struct {
 
 func (o uiOutput) Output(s string) {
 	err := o.srv.Send(&proto.ProvisionResource_Response{
-		Output: s,
+		Output: toValidUTF8(s, string(utf8.RuneError)),
 	})
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
@@ -144,4 +146,56 @@ func (s *GRPCProvisionerServer) Stop(_ context.Context, req *proto.Stop_Request)
 	}
 
 	return resp, nil
+}
+
+// FIXME: backported from go1.13 strings package, remove once terraform is
+//        using go >= 1.13
+// ToValidUTF8 returns a copy of the string s with each run of invalid UTF-8 byte sequences
+// replaced by the replacement string, which may be empty.
+func toValidUTF8(s, replacement string) string {
+	var b strings.Builder
+
+	for i, c := range s {
+		if c != utf8.RuneError {
+			continue
+		}
+
+		_, wid := utf8.DecodeRuneInString(s[i:])
+		if wid == 1 {
+			b.Grow(len(s) + len(replacement))
+			b.WriteString(s[:i])
+			s = s[i:]
+			break
+		}
+	}
+
+	// Fast path for unchanged input
+	if b.Cap() == 0 { // didn't call b.Grow above
+		return s
+	}
+
+	invalid := false // previous byte was from an invalid UTF-8 sequence
+	for i := 0; i < len(s); {
+		c := s[i]
+		if c < utf8.RuneSelf {
+			i++
+			invalid = false
+			b.WriteByte(c)
+			continue
+		}
+		_, wid := utf8.DecodeRuneInString(s[i:])
+		if wid == 1 {
+			i++
+			if !invalid {
+				invalid = true
+				b.WriteString(replacement)
+			}
+			continue
+		}
+		invalid = false
+		b.WriteString(s[i : i+wid])
+		i += wid
+	}
+
+	return b.String()
 }

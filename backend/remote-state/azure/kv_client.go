@@ -189,7 +189,7 @@ func (e *EncryptionClient) encryptByteBlock(ctx context.Context, data []byte) ([
 	}
 
 	if len(data) > e.kvAlgorithmParameters.encryptBlockSizeBytes {
-		return nil, fmt.Errorf("Can not encrypt more than %v bytes at a time.", e.kvAlgorithmParameters.encryptBlockSizeBytes)
+		return nil, fmt.Errorf("Can not encrypt more than %v bytes at a time", e.kvAlgorithmParameters.encryptBlockSizeBytes)
 	}
 
 	encoded := base64.RawStdEncoding.EncodeToString(data)
@@ -216,7 +216,7 @@ func (e *EncryptionClient) decryptByteBlock(ctx context.Context, data []byte) ([
 	}
 
 	if len(data) > e.kvAlgorithmParameters.decryptBlockSizeBytes {
-		return nil, fmt.Errorf("Can not decrypt more than %v bytes at a time.", e.kvAlgorithmParameters.decryptBlockSizeBytes)
+		return nil, fmt.Errorf("can not decrypt more than %v bytes at a time", e.kvAlgorithmParameters.decryptBlockSizeBytes)
 	}
 
 	str := string(data)

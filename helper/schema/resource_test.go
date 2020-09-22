@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/zclconf/go-cty/cty"
@@ -217,19 +216,15 @@ func TestResourceDiff_Timeout_diff(t *testing.T) {
 		return nil
 	}
 
-	raw, err := config.NewRawConfig(
+	conf := terraform.NewResourceConfigRaw(
 		map[string]interface{}{
 			"foo": 42,
 			TimeoutsConfigKey: map[string]interface{}{
 				"create": "2h",
 			},
-		})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	var s *terraform.InstanceState = nil
-	conf := terraform.NewResourceConfig(raw)
+		},
+	)
+	var s *terraform.InstanceState
 
 	actual, err := r.Diff(s, conf, nil)
 	if err != nil {
@@ -276,18 +271,15 @@ func TestResourceDiff_CustomizeFunc(t *testing.T) {
 		return nil
 	}
 
-	raw, err := config.NewRawConfig(
+	conf := terraform.NewResourceConfigRaw(
 		map[string]interface{}{
 			"foo": 42,
-		})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+		},
+	)
 
 	var s *terraform.InstanceState
-	conf := terraform.NewResourceConfig(raw)
 
-	_, err = r.Diff(s, conf, nil)
+	_, err := r.Diff(s, conf, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

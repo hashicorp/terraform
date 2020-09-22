@@ -3,7 +3,7 @@ sudo: false
 language: go
 
 before_script:
-  - go get -u github.com/golang/lint/golint
+  - go get -u golang.org/x/lint/golint
 
 go:
   - 1.10.x

@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/configs"
@@ -37,7 +37,7 @@ func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
 						"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
 						tfversion.String(),
 					),
-					Subject: &constraint.DeclRange,
+					Subject: constraint.DeclRange.Ptr(),
 				})
 			default:
 				diags = diags.Append(&hcl.Diagnostic{
@@ -47,7 +47,7 @@ func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
 						"Module %s (from %s) does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
 						config.Path, config.SourceAddr, tfversion.String(),
 					),
-					Subject: &constraint.DeclRange,
+					Subject: constraint.DeclRange.Ptr(),
 				})
 			}
 		}

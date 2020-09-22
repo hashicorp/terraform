@@ -9,6 +9,7 @@ type capsuleType struct {
 	typeImplSigil
 	Name   string
 	GoType reflect.Type
+	Ops    *CapsuleOps
 }
 
 func (t *capsuleType) Equals(other Type) bool {
@@ -24,10 +25,22 @@ func (t *capsuleType) FriendlyName(mode friendlyTypeNameMode) string {
 }
 
 func (t *capsuleType) GoString() string {
-	// To get a useful representation of our native type requires some
-	// shenanigans.
-	victimVal := reflect.Zero(t.GoType)
-	return fmt.Sprintf("cty.Capsule(%q, reflect.TypeOf(%#v))", t.Name, victimVal.Interface())
+	impl := t.Ops.TypeGoString
+	if impl == nil {
+		// To get a useful representation of our native type requires some
+		// shenanigans.
+		victimVal := reflect.Zero(t.GoType)
+		if t.Ops == noCapsuleOps {
+			return fmt.Sprintf("cty.Capsule(%q, reflect.TypeOf(%#v))", t.Name, victimVal.Interface())
+		} else {
+			// Including the operations in the output will make this _very_ long,
+			// so in practice any capsule type with ops ought to provide a
+			// TypeGoString function to override this with something more
+			// reasonable.
+			return fmt.Sprintf("cty.CapsuleWithOps(%q, reflect.TypeOf(%#v), %#v)", t.Name, victimVal.Interface(), t.Ops)
+		}
+	}
+	return impl(t.GoType)
 }
 
 // Capsule creates a new Capsule type.
@@ -47,8 +60,11 @@ func (t *capsuleType) GoString() string {
 // use the same native type.
 //
 // Each capsule-typed value contains a pointer to a value of the given native
-// type. A capsule-typed value supports no operations except equality, and
-// equality is implemented by pointer identity of the encapsulated pointer.
+// type. A capsule-typed value by default supports no operations except
+// equality, and equality is implemented by pointer identity of the
+// encapsulated pointer. A capsule type can optionally have its own
+// implementations of certain operations if it is created with CapsuleWithOps
+// instead of Capsule.
 //
 // The given name is used as the new type's "friendly name". This can be any
 // string in principle, but will usually be a short, all-lowercase name aimed
@@ -65,6 +81,29 @@ func Capsule(name string, nativeType reflect.Type) Type {
 		&capsuleType{
 			Name:   name,
 			GoType: nativeType,
+			Ops:    noCapsuleOps,
+		},
+	}
+}
+
+// CapsuleWithOps is like Capsule except the caller may provide an object
+// representing some overloaded operation implementations to associate with
+// the given capsule type.
+//
+// All of the other caveats and restrictions for capsule types still apply, but
+// overloaded operations can potentially help a capsule type participate better
+// in cty operations.
+func CapsuleWithOps(name string, nativeType reflect.Type, ops *CapsuleOps) Type {
+	// Copy the operations to make sure the caller can't modify them after
+	// we're constructed.
+	ourOps := *ops
+	ourOps.assertValid()
+
+	return Type{
+		&capsuleType{
+			Name:   name,
+			GoType: nativeType,
+			Ops:    &ourOps,
 		},
 	}
 }

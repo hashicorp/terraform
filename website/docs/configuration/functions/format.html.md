@@ -98,14 +98,14 @@ omitted then default values are selected based on the given value. For example:
 | `%9.2f`  | Width 9, precision 2.        |
 
 The following additional symbols can be used immediately after the `%` symbol
-to set additoinal flags:
+to set additional flags:
 
 | Symbol | Result                                                         |
 | ------ | -------------------------------------------------------------- |
 | space  | Leave a space where the sign would be if a number is positive. |
 | `+`    | Show the sign of a number even if it is positive.              |
 | `-`    | Pad the width with spaces on the left rather than the right.   |
-| `0`    | Pad the width with zeros rather than spaces.                   |
+| `0`    | Pad the width with leading zeros rather than spaces.           |
 
 By default, `%` sequences consume successive arguments starting with the first.
 Introducing a `[n]` sequence immediately before the verb letter, where `n` is a
@@ -116,6 +116,10 @@ with `n`+1, `n`+2, etc.
 The function produces an error if the format string requests an impossible
 conversion or access more arguments than are given. An error is produced also
 for an unsupported format verb.
+
+-> **Note:** Width and precision modifiers with non-numeric types such as
+strings (`%s`) are interpreted differently. Setting either width or precision to
+zero is the same as not including them at all.
 
 ## Related Functions
 

@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var (
@@ -199,53 +200,51 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 	}
 }
 
-func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValues, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	result := make(terraform.InputValues)
-
+// hasExplicitVariableValues is a best-effort check to determine whether the
+// user has provided -var or -var-file arguments to a remote operation.
+//
+// The results may be inaccurate if the configuration is invalid or if
+// individual variable values are invalid. That's okay because we only use this
+// result to hint the user to set variables a different way. It's always the
+// remote system's responsibility to do final validation of the input.
+func (b *Remote) hasExplicitVariableValues(op *backend.Operation) bool {
 	// Load the configuration using the caller-provided configuration loader.
 	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
-	diags = diags.Append(configDiags)
-	if diags.HasErrors() {
-		return nil, diags
+	if configDiags.HasErrors() {
+		// If we can't load the configuration then we'll assume no explicit
+		// variable values just to let the remote operation start and let
+		// the remote system return the same set of configuration errors.
+		return false
 	}
 
-	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
+	// We're intentionally ignoring the diagnostics here because validation
+	// of the variable values is the responsibilty of the remote system. Our
+	// goal here is just to make a best effort count of how many variable
+	// values are coming from -var or -var-file CLI arguments so that we can
+	// hint the user that those are not supported for remote operations.
+	variables, _ := backend.ParseVariableValues(op.Variables, config.Module.Variables)
 
-	// Save only the explicitly defined variables.
-	for k, v := range variables {
+	// Check for explicitly-defined (-var and -var-file) variables, which the
+	// remote backend does not support. All other source types are okay,
+	// because they are implicit from the execution context anyway and so
+	// their final values will come from the _remote_ execution context.
+	for _, v := range variables {
 		switch v.SourceType {
 		case terraform.ValueFromCLIArg, terraform.ValueFromNamedFile:
-			result[k] = v
+			return true
 		}
 	}
 
-	return result, diags
+	return false
 }
 
-func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
-	if r.CostEstimation == nil {
+func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+	if r.CostEstimate == nil {
 		return nil
 	}
 
 	if b.CLI != nil {
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
-	}
-
-	logs, err := b.client.CostEstimations.Logs(stopCtx, r.CostEstimation.ID)
-	if err != nil {
-		return generalError("Failed to retrieve cost estimation logs", err)
-	}
-	scanner := bufio.NewScanner(logs)
-
-	// Retrieve the cost estimation to get its current status.
-	ce, err := b.client.CostEstimations.Read(stopCtx, r.CostEstimation.ID)
-	if err != nil {
-		return generalError("Failed to retrieve cost estimation", err)
 	}
 
 	msgPrefix := "Cost estimation"
@@ -253,29 +252,83 @@ func (b *Remote) costEstimation(stopCtx, cancelCtx context.Context, op *backend.
 		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 	}
 
-	for scanner.Scan() {
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
+	started := time.Now()
+	updated := started
+	for i := 0; ; i++ {
+		select {
+		case <-stopCtx.Done():
+			return stopCtx.Err()
+		case <-cancelCtx.Done():
+			return cancelCtx.Err()
+		case <-time.After(1 * time.Second):
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		return generalError("Failed to read logs", err)
-	}
+		// Retrieve the cost estimate to get its current status.
+		ce, err := b.client.CostEstimates.Read(stopCtx, r.CostEstimate.ID)
+		if err != nil {
+			return generalError("Failed to retrieve cost estimate", err)
+		}
 
-	switch ce.Status {
-	case tfe.CostEstimationFinished:
-		if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply && b.CLI != nil {
+		// If the run is canceled or errored, but the cost-estimate still has
+		// no result, there is nothing further to render.
+		if ce.Status != tfe.CostEstimateFinished {
+			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+				return nil
+			}
+		}
+
+		switch ce.Status {
+		case tfe.CostEstimateFinished:
+			delta, err := strconv.ParseFloat(ce.DeltaMonthlyCost, 64)
+			if err != nil {
+				return generalError("Unexpected error", err)
+			}
+
+			sign := "+"
+			if delta < 0 {
+				sign = "-"
+			}
+
+			deltaRepr := strings.Replace(ce.DeltaMonthlyCost, "-", "", 1)
+
+			if b.CLI != nil {
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
+
+				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply {
+					b.CLI.Output("\n------------------------------------------------------------------------")
+				}
+			}
+
+			return nil
+		case tfe.CostEstimatePending, tfe.CostEstimateQueued:
+			// Check if 30 seconds have passed since the last update.
+			current := time.Now()
+			if b.CLI != nil && (i == 0 || current.Sub(updated).Seconds() > 30) {
+				updated = current
+				elapsed := ""
+
+				// Calculate and set the elapsed time.
+				if i > 0 {
+					elapsed = fmt.Sprintf(
+						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
+				}
+				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
+			}
+			continue
+		case tfe.CostEstimateSkippedDueToTargeting:
+			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
 			b.CLI.Output("\n------------------------------------------------------------------------")
+			return nil
+		case tfe.CostEstimateErrored:
+			return fmt.Errorf(msgPrefix + " errored.")
+		case tfe.CostEstimateCanceled:
+			return fmt.Errorf(msgPrefix + " canceled.")
+		default:
+			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
 		}
-		return nil
-	case tfe.CostEstimationErrored:
-		return fmt.Errorf(msgPrefix + " errored.")
-	case tfe.CostEstimationCanceled:
-		return fmt.Errorf(msgPrefix + " canceled.")
-	default:
-		return fmt.Errorf("Unknown or unexpected cost estimation state: %s", ce.Status)
 	}
+	return nil
 }
 
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
@@ -283,6 +336,8 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
 	for i, pc := range r.PolicyChecks {
+		// Read the policy check logs. This is a blocking call that will only
+		// return once the policy check is complete.
 		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("Failed to retrieve policy check logs", err)
@@ -293,6 +348,15 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("Failed to retrieve policy check", err)
+		}
+
+		// If the run is canceled or errored, but the policy check still has
+		// no result, there is nothing further to render.
+		if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+			switch pc.Status {
+			case tfe.PolicyPending, tfe.PolicyQueued, tfe.PolicyUnreachable:
+				continue
+			}
 		}
 
 		var msgPrefix string

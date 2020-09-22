@@ -177,6 +177,19 @@ type withAPIKey string
 
 func (w withAPIKey) Apply(o *internal.DialSettings) { o.APIKey = string(w) }
 
+// WithAudiences returns a ClientOption that specifies an audience to be used
+// as the audience field ("aud") for the JWT token authentication.
+func WithAudiences(audience ...string) ClientOption {
+	return withAudiences(audience)
+}
+
+type withAudiences []string
+
+func (w withAudiences) Apply(o *internal.DialSettings) {
+	o.Audiences = make([]string, len(w))
+	copy(o.Audiences, w)
+}
+
 // WithoutAuthentication returns a ClientOption that specifies that no
 // authentication should be used. It is suitable only for testing and for
 // accessing public resources, like public Google Cloud Storage buckets.
@@ -189,3 +202,34 @@ func WithoutAuthentication() ClientOption {
 type withoutAuthentication struct{}
 
 func (w withoutAuthentication) Apply(o *internal.DialSettings) { o.NoAuth = true }
+
+// WithQuotaProject returns a ClientOption that specifies the project used
+// for quota and billing purposes.
+//
+// For more information please read:
+// https://cloud.google.com/apis/docs/system-parameters
+func WithQuotaProject(quotaProject string) ClientOption {
+	return withQuotaProject(quotaProject)
+}
+
+type withQuotaProject string
+
+func (w withQuotaProject) Apply(o *internal.DialSettings) {
+	o.QuotaProject = string(w)
+}
+
+// WithRequestReason returns a ClientOption that specifies a reason for
+// making the request, which is intended to be recorded in audit logging.
+// An example reason would be a support-case ticket number.
+//
+// For more information please read:
+// https://cloud.google.com/apis/docs/system-parameters
+func WithRequestReason(requestReason string) ClientOption {
+	return withRequestReason(requestReason)
+}
+
+type withRequestReason string
+
+func (w withRequestReason) Apply(o *internal.DialSettings) {
+	o.RequestReason = string(w)
+}

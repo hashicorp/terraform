@@ -48,6 +48,7 @@ type moduleCall struct {
 	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
 	VersionConstraint string                 `json:"version_constraint,omitempty"`
+	DependsOn         []string               `json:"depends_on,omitempty"`
 }
 
 // variables is the JSON representation of the variables provided to the current
@@ -139,7 +140,8 @@ func marshalProviderConfigs(
 	}
 
 	for k, pc := range c.Module.ProviderConfigs {
-		schema := schemas.ProviderConfig(pc.Name)
+		providerFqn := c.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: pc.Name})
+		schema := schemas.ProviderConfig(providerFqn)
 		p := providerConfig{
 			Name:              pc.Name,
 			Alias:             pc.Alias,
@@ -238,6 +240,11 @@ func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[strin
 }
 
 func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terraform.Schemas) moduleCall {
+	// It is possible to have a module call with a nil config.
+	if c == nil {
+		return moduleCall{}
+	}
+
 	ret := moduleCall{
 		Source:            mc.SourceAddr,
 		VersionConstraint: mc.Version.Required.String(),
@@ -263,6 +270,20 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	ret.Expressions = marshalExpressions(mc.Config, schema)
 	module, _ := marshalModule(c, schemas, mc.Name)
 	ret.Module = module
+
+	if len(mc.DependsOn) > 0 {
+		dependencies := make([]string, len(mc.DependsOn))
+		for i, d := range mc.DependsOn {
+			ref, diags := addrs.ParseRef(d)
+			// we should not get an error here, because `terraform validate`
+			// would have complained well before this point, but if we do we'll
+			// silenty skip it.
+			if !diags.HasErrors() {
+				dependencies[i] = ref.Subject.String()
+			}
+		}
+		ret.DependsOn = dependencies
+	}
 
 	return ret
 }
@@ -297,12 +318,12 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		}
 
 		schema, schemaVer := schemas.ResourceTypeConfig(
-			v.ProviderConfigAddr().Type,
+			v.Provider,
 			v.Mode,
 			v.Type,
 		)
 		if schema == nil {
-			return nil, fmt.Errorf("no schema found for %s", v.Addr().String())
+			return nil, fmt.Errorf("no schema found for %s (in provider %s)", v.Addr().String(), v.Provider)
 		}
 		r.SchemaVersion = schemaVer
 

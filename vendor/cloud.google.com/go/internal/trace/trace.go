@@ -16,6 +16,7 @@ package trace
 
 import (
 	"context"
+	"fmt"
 
 	"go.opencensus.io/trace"
 	"google.golang.org/api/googleapi"
@@ -38,7 +39,7 @@ func EndSpan(ctx context.Context, err error) {
 	span.End()
 }
 
-// ToStatus interrogates an error and converts it to an appropriate
+// toStatus interrogates an error and converts it to an appropriate
 // OpenCensus status.
 func toStatus(err error) trace.Status {
 	if err2, ok := err.(*googleapi.Error); ok {
@@ -50,7 +51,7 @@ func toStatus(err error) trace.Status {
 	}
 }
 
-// TODO (deklerk): switch to using OpenCensus function when it becomes available.
+// TODO(deklerk): switch to using OpenCensus function when it becomes available.
 // Reference: https://github.com/googleapis/googleapis/blob/26b634d2724ac5dd30ae0b0cbfb01f07f2e4050e/google/rpc/code.proto
 func httpStatusCodeToOCCode(httpStatusCode int) int32 {
 	switch httpStatusCode {
@@ -81,4 +82,28 @@ func httpStatusCodeToOCCode(httpStatusCode int) int32 {
 	default:
 		return int32(code.Code_UNKNOWN)
 	}
+}
+
+// TODO: (odeke-em): perhaps just pass around spans due to the cost
+// incurred from using trace.FromContext(ctx) yet we could avoid
+// throwing away the work done by ctx, span := trace.StartSpan.
+func TracePrintf(ctx context.Context, attrMap map[string]interface{}, format string, args ...interface{}) {
+	var attrs []trace.Attribute
+	for k, v := range attrMap {
+		var a trace.Attribute
+		switch v := v.(type) {
+		case string:
+			a = trace.StringAttribute(k, v)
+		case bool:
+			a = trace.BoolAttribute(k, v)
+		case int:
+			a = trace.Int64Attribute(k, int64(v))
+		case int64:
+			a = trace.Int64Attribute(k, v)
+		default:
+			a = trace.StringAttribute(k, fmt.Sprintf("%#v", v))
+		}
+		attrs = append(attrs, a)
+	}
+	trace.FromContext(ctx).Annotatef(attrs, format, args...)
 }

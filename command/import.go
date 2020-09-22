@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
@@ -32,10 +32,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	var configPath string
-	args, err = c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
+	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.extendedFlagSet("import")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
@@ -43,7 +40,6 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
-	cmdFlags.StringVar(&c.Meta.provider, "provider", "", "provider")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.Meta.allowMissingConfig, "allow-missing-config", false, "allow missing config")
@@ -156,31 +152,6 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Also parse the user-provided provider address, if any.
-	var providerAddr addrs.AbsProviderConfig
-	if c.Meta.provider != "" {
-		traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(c.Meta.provider), `-provider=...`, hcl.Pos{Line: 1, Column: 1})
-		diags = diags.Append(travDiags)
-		if travDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			c.Ui.Info(importCommandInvalidAddressReference)
-			return 1
-		}
-		relAddr, addrDiags := addrs.ParseProviderConfigCompact(traversal)
-		diags = diags.Append(addrDiags)
-		if addrDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		providerAddr = relAddr.Absolute(addrs.RootModuleInstance)
-	} else {
-		// Use a default address inferred from the resource type.
-		// We assume the same module as the resource address here, which
-		// may get resolved to an inherited provider when we construct the
-		// import graph inside ctx.Import, called below.
-		providerAddr = resourceRelAddr.DefaultProviderConfig().Absolute(addr.Module)
-	}
-
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
@@ -235,7 +206,7 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Make sure to unlock the state
+	// Successfully creating the context can result in a lock, so ensure we release it
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {
@@ -249,9 +220,8 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, importDiags := ctx.Import(&terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr:         addr,
-				ID:           args[1],
-				ProviderAddr: providerAddr,
+				Addr: addr,
+				ID:   args[1],
 			},
 		},
 	})
@@ -335,10 +305,6 @@ Options:
   -lock-timeout=0s        Duration to retry a state lock.
 
   -no-color               If specified, output won't contain any color.
-
-  -provider=provider      Specific provider to use for import. This is used for
-                          specifying aliases, such as "aws.eu". Defaults to the
-                          normal provider prefix of the resource being imported.
 
   -state=PATH             Path to the source state file. Defaults to the configured
                           backend, or "terraform.tfstate"

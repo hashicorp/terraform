@@ -128,6 +128,12 @@ func xiEndPath(p *parseStack, i lexer.XItem) {
 }
 
 func xiFunc(p *parseStack, i lexer.XItem) {
+	if p.cur.Val.Typ == Empty {
+		p.cur.pushNotEmpty(i)
+		p.push(funcState)
+		p.cur = p.cur.next
+		return
+	}
 	p.cur.push(i)
 	p.cur = p.cur.next
 	p.push(funcState)

@@ -2,10 +2,10 @@ package awsbase
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
@@ -13,7 +13,22 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/hashicorp/aws-sdk-go-base/tfawserr"
 	"github.com/hashicorp/go-cleanhttp"
+)
+
+const (
+	// AppendUserAgentEnvVar is a conventionally used environment variable
+	// containing additional HTTP User-Agent information.
+	// If present and its value is non-empty, it is directly appended to the
+	// User-Agent header for HTTP requests.
+	AppendUserAgentEnvVar = "TF_APPEND_USER_AGENT"
+	// Maximum network retries.
+	// We depend on the AWS Go SDK DefaultRetryer exponential backoff.
+	// Ensure that if the AWS Config MaxRetries is set high (which it is by
+	// default), that we only retry for a few seconds with typically
+	// unrecoverable network errors, such as DNS lookup failures.
+	MaxNetworkRetryCount = 9
 )
 
 // GetSessionOptions attempts to return valid AWS Go SDK session authentication
@@ -22,51 +37,23 @@ import (
 func GetSessionOptions(c *Config) (*session.Options, error) {
 	options := &session.Options{
 		Config: aws.Config{
-			HTTPClient: cleanhttp.DefaultClient(),
-			MaxRetries: aws.Int(0),
-			Region:     aws.String(c.Region),
+			EndpointResolver: c.EndpointResolver(),
+			HTTPClient:       cleanhttp.DefaultClient(),
+			MaxRetries:       aws.Int(0),
+			Region:           aws.String(c.Region),
 		},
+		Profile:           c.Profile,
+		SharedConfigState: session.SharedConfigEnable,
 	}
 
+	// get and validate credentials
 	creds, err := GetCredentials(c)
 	if err != nil {
 		return nil, err
 	}
 
-	// Call Get to check for credential provider. If nothing found, we'll get an
-	// error, and we can present it nicely to the user
-	cp, err := creds.Get()
-	if err != nil {
-		if IsAWSErr(err, "NoCredentialProviders", "") {
-			// If a profile wasn't specified, the session may still be able to resolve credentials from shared config.
-			if c.Profile == "" {
-				sess, err := session.NewSession()
-				if err != nil {
-					return nil, errors.New(`No valid credential sources found for AWS Provider.
-	Please see https://terraform.io/docs/providers/aws/index.html for more information on
-	providing credentials for the AWS Provider`)
-				}
-				_, err = sess.Config.Credentials.Get()
-				if err != nil {
-					return nil, errors.New(`No valid credential sources found for AWS Provider.
-	Please see https://terraform.io/docs/providers/aws/index.html for more information on
-	providing credentials for the AWS Provider`)
-				}
-				log.Printf("[INFO] Using session-derived AWS Auth")
-				options.Config.Credentials = sess.Config.Credentials
-			} else {
-				log.Printf("[INFO] AWS Auth using Profile: %q", c.Profile)
-				options.Profile = c.Profile
-				options.SharedConfigState = session.SharedConfigEnable
-			}
-		} else {
-			return nil, fmt.Errorf("Error loading credentials for AWS Provider: %s", err)
-		}
-	} else {
-		// add the validated credentials to the session options
-		log.Printf("[INFO] AWS Auth provider used: %q", cp.ProviderName)
-		options.Config.Credentials = creds
-	}
+	// add the validated credentials to the session options
+	options.Config.Credentials = creds
 
 	if c.Insecure {
 		transport := options.Config.HTTPClient.Transport.(*http.Transport)
@@ -83,8 +70,12 @@ func GetSessionOptions(c *Config) (*session.Options, error) {
 	return options, nil
 }
 
-// GetSession attempts to return valid AWS Go SDK session
+// GetSession attempts to return valid AWS Go SDK session.
 func GetSession(c *Config) (*session.Session, error) {
+	if c.SkipMetadataApiCheck {
+		os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	}
+
 	options, err := GetSessionOptions(c)
 
 	if err != nil {
@@ -93,12 +84,10 @@ func GetSession(c *Config) (*session.Session, error) {
 
 	sess, err := session.NewSessionWithOptions(*options)
 	if err != nil {
-		if IsAWSErr(err, "NoCredentialProviders", "") {
-			return nil, errors.New(`No valid credential sources found for AWS Provider.
-  Please see https://terraform.io/docs/providers/aws/index.html for more information on
-  providing credentials for the AWS Provider`)
+		if tfawserr.ErrCodeEquals(err, "NoCredentialProviders") {
+			return nil, c.NewNoValidCredentialSourcesError(err)
 		}
-		return nil, fmt.Errorf("Error creating AWS session: %s", err)
+		return nil, fmt.Errorf("Error creating AWS session: %w", err)
 	}
 
 	if c.MaxRetries > 0 {
@@ -109,6 +98,13 @@ func GetSession(c *Config) (*session.Session, error) {
 		sess.Handlers.Build.PushBack(request.MakeAddToUserAgentHandler(product.Name, product.Version, product.Extra...))
 	}
 
+	// Add custom input from ENV to the User-Agent request header
+	// Reference: https://github.com/terraform-providers/terraform-provider-aws/issues/9149
+	if v := os.Getenv(AppendUserAgentEnvVar); v != "" {
+		log.Printf("[DEBUG] Using additional User-Agent Info: %s", v)
+		sess.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler(v))
+	}
+
 	// Generally, we want to configure a lower retry theshold for networking issues
 	// as the session retry threshold is very high by default and can mask permanent
 	// networking failures, such as a non-existent service endpoint.
@@ -116,29 +112,26 @@ func GetSession(c *Config) (*session.Session, error) {
 	// NOTE: This logic can be fooled by other request errors raising the retry count
 	//       before any networking error occurs
 	sess.Handlers.Retry.PushBack(func(r *request.Request) {
-		// We currently depend on the DefaultRetryer exponential backoff here.
-		// ~10 retries gives a fair backoff of a few seconds.
-		if r.RetryCount < 9 {
+		if r.RetryCount < MaxNetworkRetryCount {
 			return
 		}
 		// RequestError: send request failed
 		// caused by: Post https://FQDN/: dial tcp: lookup FQDN: no such host
-		if IsAWSErrExtended(r.Error, "RequestError", "send request failed", "no such host") {
+		if tfawserr.ErrMessageAndOrigErrContain(r.Error, "RequestError", "send request failed", "no such host") {
 			log.Printf("[WARN] Disabling retries after next request due to networking issue")
 			r.Retryable = aws.Bool(false)
 		}
 		// RequestError: send request failed
 		// caused by: Post https://FQDN/: dial tcp IPADDRESS:443: connect: connection refused
-		if IsAWSErrExtended(r.Error, "RequestError", "send request failed", "connection refused") {
+		if tfawserr.ErrMessageAndOrigErrContain(r.Error, "RequestError", "send request failed", "connection refused") {
 			log.Printf("[WARN] Disabling retries after next request due to networking issue")
 			r.Retryable = aws.Bool(false)
 		}
 	})
 
 	if !c.SkipCredsValidation {
-		stsClient := sts.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)}))
-		if _, _, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsClient); err != nil {
-			return nil, fmt.Errorf("error validating provider credentials: %s", err)
+		if _, _, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(sts.New(sess)); err != nil {
+			return nil, fmt.Errorf("error validating provider credentials: %w", err)
 		}
 	}
 
@@ -159,14 +152,14 @@ func GetSessionWithAccountIDAndPartition(c *Config) (*session.Session, string, s
 		return sess, accountID, partition, nil
 	}
 
-	iamClient := iam.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.IamEndpoint)}))
-	stsClient := sts.New(sess.Copy(&aws.Config{Endpoint: aws.String(c.StsEndpoint)}))
+	iamClient := iam.New(sess)
+	stsClient := sts.New(sess)
 
 	if !c.SkipCredsValidation {
 		accountID, partition, err := GetAccountIDAndPartitionFromSTSGetCallerIdentity(stsClient)
 
 		if err != nil {
-			return nil, "", "", fmt.Errorf("error validating provider credentials: %s", err)
+			return nil, "", "", fmt.Errorf("error validating provider credentials: %w", err)
 		}
 
 		return sess, accountID, partition, nil
@@ -185,13 +178,10 @@ func GetSessionWithAccountIDAndPartition(c *Config) (*session.Session, string, s
 			return sess, accountID, partition, nil
 		}
 
-		// DEPRECATED: Next major version of the provider should return the error instead of logging
-		//             if skip_request_account_id is not enabled.
-		log.Printf("[WARN] %s", fmt.Sprintf(
+		return nil, "", "", fmt.Errorf(
 			"AWS account ID not previously found and failed retrieving via all available methods. "+
-				"This will return an error in the next major version of the AWS provider. "+
 				"See https://www.terraform.io/docs/providers/aws/index.html#skip_requesting_account_id for workaround and implications. "+
-				"Errors: %s", err))
+				"Errors: %w", err)
 	}
 
 	var partition string

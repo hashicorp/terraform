@@ -39,20 +39,22 @@ func TestMarshalBlock(t *testing.T) {
 			},
 			Want: &block{
 				Attributes: map[string]*attribute{
-					"ami": {AttributeType: json.RawMessage(`"string"`), Optional: true},
-					"id":  {AttributeType: json.RawMessage(`"string"`), Optional: true, Computed: true},
+					"ami": {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
+					"id":  {AttributeType: json.RawMessage(`"string"`), Optional: true, Computed: true, DescriptionKind: "plain"},
 				},
 				BlockTypes: map[string]*blockType{
 					"network_interface": {
 						NestingMode: "list",
 						Block: &block{
 							Attributes: map[string]*attribute{
-								"description":  {AttributeType: json.RawMessage(`"string"`), Optional: true},
-								"device_index": {AttributeType: json.RawMessage(`"string"`), Optional: true},
+								"description":  {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
+								"device_index": {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
 							},
+							DescriptionKind: "plain",
 						},
 					},
 				},
+				DescriptionKind: "plain",
 			},
 		},
 	}

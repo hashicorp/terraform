@@ -1,20 +1,18 @@
 package azure
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/states"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -24,50 +22,41 @@ const (
 )
 
 type RemoteClient struct {
-	blobClient    storage.BlobStorageClient
-	containerName string
-	keyName       string
-	leaseID       string
-	encClient     *EncryptionClient
+	giovanniBlobClient blobs.Client
+	encClient          *EncryptionClient
+	accountName        string
+	containerName      string
+	keyName            string
+	leaseID            string
+	snapshot           bool
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	options := &storage.GetBlobOptions{}
-
+	options := blobs.GetInput{}
 	if c.leaseID != "" {
-		options.LeaseID = c.leaseID
+		options.LeaseID = &c.leaseID
 	}
 
-	blob, err := blobReference.Get(options)
+	ctx := context.TODO()
+	blob, err := c.giovanniBlobClient.Get(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
-		if storErr, ok := err.(storage.AzureStorageServiceError); ok {
-			if storErr.Code == "BlobNotFound" {
-				return nil, nil
-			}
+		if blob.Response.StatusCode == 404 {
+			return nil, nil
 		}
 		return nil, err
 	}
 
-	defer blob.Close()
-
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, blob); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	}
-
-	dataProcessed := buf.Bytes()
+	blobContents := blob.Contents
 	// Decrypt operation if Key Vault key is provided
 	if c.encClient != nil {
-		dataProcessed, err = c.encClient.Decrypt(context.TODO(), buf.Bytes())
+		blobContents, err = c.encClient.Decrypt(context.TODO(), blobContents)
 		if err != nil {
 			return nil, fmt.Errorf("Error during decryption: %v", err)
 		}
 	}
 
 	payload := &remote.Payload{
-		Data: dataProcessed,
+		Data: blobContents,
 	}
 
 	// If there was no data, then return nil
@@ -79,66 +68,74 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
-	getOptions := &storage.GetBlobMetadataOptions{}
-	setOptions := &storage.SetBlobPropertiesOptions{}
-	putOptions := &storage.PutBlobOptions{}
+	getOptions := blobs.GetPropertiesInput{}
+	setOptions := blobs.SetPropertiesInput{}
+	putOptions := blobs.PutBlockBlobInput{}
 
-	var err error
-	dataProcessed := data
+	options := blobs.GetInput{}
+	if c.leaseID != "" {
+		options.LeaseID = &c.leaseID
+		getOptions.LeaseID = &c.leaseID
+		setOptions.LeaseID = &c.leaseID
+		putOptions.LeaseID = &c.leaseID
+	}
+
+	ctx := context.TODO()
+
+	if c.snapshot {
+		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
+
+		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
+		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.accountName, c.containerName, c.keyName, snapshotInput); err != nil {
+			return fmt.Errorf("error snapshotting Blob %q (Container %q / Account %q): %+v", c.keyName, c.containerName, c.accountName, err)
+		}
+
+		log.Print("[DEBUG] Created blob snapshot")
+	}
+
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
+	if err != nil {
+		if blob.StatusCode != 404 {
+			return err
+		}
+	}
+
+	blobContents := data
 	// Encrypt operation if Key Vault key is provided
 	if c.encClient != nil {
-		dataProcessed, err = c.encClient.Encrypt(context.TODO(), data)
+		blobContents, err = c.encClient.Encrypt(context.TODO(), blobContents)
 		if err != nil {
 			return fmt.Errorf("Error during encryption: %v", err)
 		}
 	}
 
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	blobReference.Properties.ContentType = "application/json"
-	blobReference.Properties.ContentLength = int64(len(dataProcessed))
+	contentType := "application/json"
+	putOptions.Content = &blobContents
+	putOptions.ContentType = &contentType
+	putOptions.MetaData = blob.MetaData
+	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putOptions)
 
-	if c.leaseID != "" {
-		getOptions.LeaseID = c.leaseID
-		setOptions.LeaseID = c.leaseID
-		putOptions.LeaseID = c.leaseID
-	}
-
-	exists, err := blobReference.Exists()
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		err = blobReference.GetMetadata(getOptions)
-		if err != nil {
-			return err
-		}
-	}
-
-	reader := bytes.NewReader(dataProcessed)
-
-	err = blobReference.CreateBlockBlobFromReader(reader, putOptions)
-	if err != nil {
-		return err
-	}
-
-	return blobReference.SetProperties(setOptions)
+	return err
 }
 
 func (c *RemoteClient) Delete() error {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	options := &storage.DeleteBlobOptions{}
+	options := blobs.DeleteInput{}
 
 	if c.leaseID != "" {
-		options.LeaseID = c.leaseID
+		options.LeaseID = &c.leaseID
 	}
 
-	return blobReference.Delete(options)
+	ctx := context.TODO()
+	resp, err := c.giovanniBlobClient.Delete(ctx, c.accountName, c.containerName, c.keyName, options)
+	if err != nil {
+		if resp.Response.StatusCode != 404 {
+			return err
+		}
+	}
+	return nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	stateName := fmt.Sprintf("%s/%s", c.containerName, c.keyName)
 	info.Path = stateName
 
@@ -157,47 +154,50 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			err = multierror.Append(err, infoErr)
 		}
 
-		return &state.LockError{
+		return &statemgr.LockError{
 			Err:  err,
 			Info: lockInfo,
 		}
 	}
 
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	leaseID, err := blobReference.AcquireLease(-1, info.ID, &storage.LeaseOptions{})
+	leaseOptions := blobs.AcquireLeaseInput{
+		ProposedLeaseID: &info.ID,
+		LeaseDuration:   -1,
+	}
+	ctx := context.TODO()
+
+	// obtain properties to see if the blob lease is already in use. If the blob doesn't exist, create it
+	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
-		if storErr, ok := err.(storage.AzureStorageServiceError); ok && storErr.Code != "BlobNotFound" {
+		// error if we had issues getting the blob
+		if properties.Response.StatusCode != 404 {
 			return "", getLockInfoErr(err)
 		}
+		// if we don't find the blob, we need to build it
 
-		// failed to lock as there was no state blob, write empty state
-		stateMgr := &remote.State{Client: c}
-
-		// ensure state is actually empty
-		if err := stateMgr.RefreshState(); err != nil {
-			return "", fmt.Errorf("Failed to refresh state before writing empty state for locking: %s", err)
+		contentType := "application/json"
+		putGOptions := blobs.PutBlockBlobInput{
+			ContentType: &contentType,
 		}
 
-		log.Print("[DEBUG] Could not lock as state blob did not exist, creating with empty state")
-
-		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(states.NewState()); err != nil {
-				return "", fmt.Errorf("Failed to write empty state for locking: %s", err)
-			}
-			if err := stateMgr.PersistState(); err != nil {
-				return "", fmt.Errorf("Failed to persist empty state for locking: %s", err)
-			}
-		}
-
-		leaseID, err = blobReference.AcquireLease(-1, info.ID, &storage.LeaseOptions{})
+		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
 		if err != nil {
 			return "", getLockInfoErr(err)
 		}
 	}
 
-	info.ID = leaseID
-	c.leaseID = leaseID
+	// if the blob is already locked then error
+	if properties.LeaseStatus == blobs.Locked {
+		return "", getLockInfoErr(fmt.Errorf("state blob is already locked"))
+	}
+
+	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.accountName, c.containerName, c.keyName, leaseOptions)
+	if err != nil {
+		return "", getLockInfoErr(err)
+	}
+
+	info.ID = leaseID.LeaseID
+	c.leaseID = leaseID.LeaseID
 
 	if err := c.writeLockInfo(info); err != nil {
 		return "", err
@@ -206,15 +206,19 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
+	options := blobs.GetPropertiesInput{}
+	if c.leaseID != "" {
+		options.LeaseID = &c.leaseID
+	}
+
+	ctx := context.TODO()
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
 		return nil, err
 	}
 
-	raw := blobReference.Metadata[lockInfoMetaKey]
+	raw := blob.MetaData[lockInfoMetaKey]
 	if raw == "" {
 		return nil, fmt.Errorf("blob metadata %q was empty", lockInfoMetaKey)
 	}
@@ -224,7 +228,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		return nil, err
 	}
 
-	lockInfo := &state.LockInfo{}
+	lockInfo := &statemgr.LockInfo{}
 	err = json.Unmarshal(data, lockInfo)
 	if err != nil {
 		return nil, err
@@ -234,31 +238,34 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 }
 
 // writes info to blob meta data, deletes metadata entry if info is nil
-func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	err := blobReference.GetMetadata(&storage.GetBlobMetadataOptions{
-		LeaseID: c.leaseID,
-	})
+func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
+	ctx := context.TODO()
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
 
 	if info == nil {
-		delete(blobReference.Metadata, lockInfoMetaKey)
+		delete(blob.MetaData, lockInfoMetaKey)
 	} else {
 		value := base64.StdEncoding.EncodeToString(info.Marshal())
-		blobReference.Metadata[lockInfoMetaKey] = value
+		blob.MetaData[lockInfoMetaKey] = value
 	}
 
-	opts := &storage.SetBlobMetadataOptions{
-		LeaseID: c.leaseID,
+	opts := blobs.SetMetaDataInput{
+		LeaseID:  &c.leaseID,
+		MetaData: blob.MetaData,
 	}
-	return blobReference.SetMetadata(opts)
+
+	_, err = c.giovanniBlobClient.SetMetaData(ctx, c.accountName, c.containerName, c.keyName, opts)
+	return err
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
@@ -278,9 +285,8 @@ func (c *RemoteClient) Unlock(id string) error {
 		return lockErr
 	}
 
-	containerReference := c.blobClient.GetContainerReference(c.containerName)
-	blobReference := containerReference.GetBlobReference(c.keyName)
-	err = blobReference.ReleaseLease(id, &storage.LeaseOptions{})
+	ctx := context.TODO()
+	_, err = c.giovanniBlobClient.ReleaseLease(ctx, c.accountName, c.containerName, c.keyName, id)
 	if err != nil {
 		lockErr.Err = err
 		return lockErr

@@ -196,12 +196,22 @@ type Operation struct {
 	Targets      []addrs.Targetable
 	Variables    map[string]UnparsedVariableValue
 
+	// Some operations use root module variables only opportunistically or
+	// don't need them at all. If this flag is set, the backend must treat
+	// all variables as optional and provide an unknown value for any required
+	// variables that aren't set in order to allow partial evaluation against
+	// the resulting incomplete context.
+	//
+	// This flag is honored only if PlanFile isn't set. If PlanFile is set then
+	// the variables set in the plan are used instead, and they must be valid.
+	AllowUnsetVariables bool
+
 	// Input/output/control options.
 	UIIn  terraform.UIInput
 	UIOut terraform.UIOutput
 
 	// If LockState is true, the Operation must Lock any
-	// state.Lockers for its duration, and Unlock when complete.
+	// statemgr.Lockers for its duration, and Unlock when complete.
 	LockState bool
 
 	// StateLocker is used to lock the state while providing UI feedback to the

@@ -5,8 +5,11 @@ import (
 )
 
 type block struct {
-	Attributes map[string]*attribute `json:"attributes,omitempty"`
-	BlockTypes map[string]*blockType `json:"block_types,omitempty"`
+	Attributes      map[string]*attribute `json:"attributes,omitempty"`
+	BlockTypes      map[string]*blockType `json:"block_types,omitempty"`
+	Description     string                `json:"description,omitempty"`
+	DescriptionKind string                `json:"description_kind,omitempty"`
+	Deprecated      bool                  `json:"deprecated,omitempty"`
 }
 
 type blockType struct {
@@ -48,7 +51,12 @@ func marshalBlock(configBlock *configschema.Block) *block {
 		return &block{}
 	}
 
-	var ret block
+	ret := block{
+		Deprecated:      configBlock.Deprecated,
+		Description:     configBlock.Description,
+		DescriptionKind: marshalStringKind(configBlock.DescriptionKind),
+	}
+
 	if len(configBlock.Attributes) > 0 {
 		attrs := make(map[string]*attribute, len(configBlock.Attributes))
 		for k, attr := range configBlock.Attributes {

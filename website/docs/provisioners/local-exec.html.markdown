@@ -18,6 +18,10 @@ Note that even though the resource will be fully created when the provisioner is
 run, there is no guarantee that it will be in an operable state - for example
 system services such as `sshd` may not be started yet on compute resources.
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Example usage
 
 ```hcl

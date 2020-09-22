@@ -14,10 +14,7 @@ and later, see
 
 Outputs define values that will be highlighted to the user
 when Terraform applies, and can be queried easily using the
-[output command](/docs/commands/output.html). Output usage
-is covered in more detail in the
-[getting started guide](/intro/getting-started/outputs.html).
-This page covers configuration syntax for outputs.
+[output command](/docs/commands/output.html).
 
 Terraform knows a lot about the infrastructure it manages.
 Most resources have attributes associated with them, and

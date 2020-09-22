@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -91,7 +91,7 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 		return d.staticValidateModuleCallReference(modCfg, addr, ref.Remaining, ref.SourceRange)
 	case addrs.ModuleCallInstance:
 		return d.staticValidateModuleCallReference(modCfg, addr.Call, ref.Remaining, ref.SourceRange)
-	case addrs.ModuleCallOutput:
+	case addrs.AbsModuleCallOutput:
 		// This one is a funny one because we will take the output name referenced
 		// and use it to fake up a "remaining" that would make sense for the
 		// module call itself, rather than for the specific output, and then
@@ -212,11 +212,8 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		return diags
 	}
 
-	// Normally accessing this directly is wrong because it doesn't take into
-	// account provider inheritance, etc but it's okay here because we're only
-	// paying attention to the type anyway.
-	providerType := cfg.ProviderConfigAddr().Type
-	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerType, addr.Mode, addr.Type)
+	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
+	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerFqn, addr.Mode, addr.Type)
 
 	if schema == nil {
 		// Prior validation should've taken care of a resource block with an
@@ -225,7 +222,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid resource type`,
-			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerType),
+			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerFqn.String()),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags

@@ -73,6 +73,9 @@ type GetSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
 
+	// ProviderMeta is the schema for the provider's meta info in a module
+	ProviderMeta Schema
+
 	// ResourceTypes map the resource type name to that type's schema.
 	ResourceTypes map[string]Schema
 
@@ -176,6 +179,16 @@ type ReadResourceRequest struct {
 
 	// PriorState contains the previously saved state value for this resource.
 	PriorState cty.Value
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
+
+	// ProviderMeta is the configuration for the provider_meta block for the
+	// module and provider this resource belongs to. Its use is defined by
+	// each provider, and it should not be used without coordination with
+	// HashiCorp. It is considered experimental and subject to change.
+	ProviderMeta cty.Value
 }
 
 type ReadResourceResponse struct {
@@ -184,6 +197,10 @@ type ReadResourceResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Private is an opaque blob that will be stored in state along with the
+	// resource. It is intended only for interpretation by the provider itself.
+	Private []byte
 }
 
 type PlanResourceChangeRequest struct {
@@ -208,6 +225,12 @@ type PlanResourceChangeRequest struct {
 	// PriorPrivate is the previously saved private data returned from the
 	// provider during the last apply.
 	PriorPrivate []byte
+
+	// ProviderMeta is the configuration for the provider_meta block for the
+	// module and provider this resource belongs to. Its use is defined by
+	// each provider, and it should not be used without coordination with
+	// HashiCorp. It is considered experimental and subject to change.
+	ProviderMeta cty.Value
 }
 
 type PlanResourceChangeResponse struct {
@@ -254,6 +277,12 @@ type ApplyResourceChangeRequest struct {
 
 	// PlannedPrivate is the same value as returned by PlanResourceChange.
 	PlannedPrivate []byte
+
+	// ProviderMeta is the configuration for the provider_meta block for the
+	// module and provider this resource belongs to. Its use is defined by
+	// each provider, and it should not be used without coordination with
+	// HashiCorp. It is considered experimental and subject to change.
+	ProviderMeta cty.Value
 }
 
 type ApplyResourceChangeResponse struct {
@@ -340,6 +369,12 @@ type ReadDataSourceRequest struct {
 
 	// Config is the complete configuration for the requested data source.
 	Config cty.Value
+
+	// ProviderMeta is the configuration for the provider_meta block for the
+	// module and provider this resource belongs to. Its use is defined by
+	// each provider, and it should not be used without coordination with
+	// HashiCorp. It is considered experimental and subject to change.
+	ProviderMeta cty.Value
 }
 
 type ReadDataSourceResponse struct {

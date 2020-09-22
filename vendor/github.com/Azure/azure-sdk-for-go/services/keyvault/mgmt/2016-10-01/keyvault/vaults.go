@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/validation"
+	"github.com/Azure/go-autorest/tracing"
 	"net/http"
 )
 
@@ -36,7 +37,8 @@ func NewVaultsClient(subscriptionID string) VaultsClient {
 	return NewVaultsClientWithBaseURI(DefaultBaseURI, subscriptionID)
 }
 
-// NewVaultsClientWithBaseURI creates an instance of the VaultsClient client.
+// NewVaultsClientWithBaseURI creates an instance of the VaultsClient client using a custom endpoint.  Use this when
+// interacting with an Azure cloud that uses a non-standard base URI (sovereign clouds, Azure stack).
 func NewVaultsClientWithBaseURI(baseURI string, subscriptionID string) VaultsClient {
 	return VaultsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
@@ -45,6 +47,16 @@ func NewVaultsClientWithBaseURI(baseURI string, subscriptionID string) VaultsCli
 // Parameters:
 // vaultName - the name of the vault.
 func (client VaultsClient) CheckNameAvailability(ctx context.Context, vaultName VaultCheckNameAvailabilityParameters) (result CheckNameAvailabilityResult, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.CheckNameAvailability")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: vaultName,
 			Constraints: []validation.Constraint{{Target: "vaultName.Name", Name: validation.Null, Rule: true, Chain: nil},
@@ -97,8 +109,7 @@ func (client VaultsClient) CheckNameAvailabilityPreparer(ctx context.Context, va
 // CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
@@ -106,7 +117,6 @@ func (client VaultsClient) CheckNameAvailabilitySender(req *http.Request) (*http
 func (client VaultsClient) CheckNameAvailabilityResponder(resp *http.Response) (result CheckNameAvailabilityResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -120,6 +130,16 @@ func (client VaultsClient) CheckNameAvailabilityResponder(resp *http.Response) (
 // vaultName - name of the vault
 // parameters - parameters to create or update the vault
 func (client VaultsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, vaultName string, parameters VaultCreateOrUpdateParameters) (result Vault, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.CreateOrUpdate")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: vaultName,
 			Constraints: []validation.Constraint{{Target: "vaultName", Name: validation.Pattern, Rule: `^[a-zA-Z0-9-]{3,24}$`, Chain: nil}}},
@@ -180,8 +200,7 @@ func (client VaultsClient) CreateOrUpdatePreparer(ctx context.Context, resourceG
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
@@ -189,7 +208,6 @@ func (client VaultsClient) CreateOrUpdateSender(req *http.Request) (*http.Respon
 func (client VaultsClient) CreateOrUpdateResponder(resp *http.Response) (result Vault, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -202,6 +220,16 @@ func (client VaultsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // resourceGroupName - the name of the Resource Group to which the vault belongs.
 // vaultName - the name of the vault to delete
 func (client VaultsClient) Delete(ctx context.Context, resourceGroupName string, vaultName string) (result autorest.Response, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.Delete")
+		defer func() {
+			sc := -1
+			if result.Response != nil {
+				sc = result.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.DeletePreparer(ctx, resourceGroupName, vaultName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "keyvault.VaultsClient", "Delete", nil, "Failure preparing request")
@@ -247,8 +275,7 @@ func (client VaultsClient) DeletePreparer(ctx context.Context, resourceGroupName
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -256,8 +283,7 @@ func (client VaultsClient) DeleteSender(req *http.Request) (*http.Response, erro
 func (client VaultsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -268,6 +294,16 @@ func (client VaultsClient) DeleteResponder(resp *http.Response) (result autorest
 // resourceGroupName - the name of the Resource Group to which the vault belongs.
 // vaultName - the name of the vault.
 func (client VaultsClient) Get(ctx context.Context, resourceGroupName string, vaultName string) (result Vault, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.Get")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetPreparer(ctx, resourceGroupName, vaultName)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "keyvault.VaultsClient", "Get", nil, "Failure preparing request")
@@ -313,8 +349,7 @@ func (client VaultsClient) GetPreparer(ctx context.Context, resourceGroupName st
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetResponder handles the response to the Get request. The method always
@@ -322,7 +357,6 @@ func (client VaultsClient) GetSender(req *http.Request) (*http.Response, error) 
 func (client VaultsClient) GetResponder(resp *http.Response) (result Vault, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -335,6 +369,16 @@ func (client VaultsClient) GetResponder(resp *http.Response) (result Vault, err 
 // vaultName - the name of the vault.
 // location - the location of the deleted vault.
 func (client VaultsClient) GetDeleted(ctx context.Context, vaultName string, location string) (result DeletedVault, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.GetDeleted")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.GetDeletedPreparer(ctx, vaultName, location)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "keyvault.VaultsClient", "GetDeleted", nil, "Failure preparing request")
@@ -380,8 +424,7 @@ func (client VaultsClient) GetDeletedPreparer(ctx context.Context, vaultName str
 // GetDeletedSender sends the GetDeleted request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) GetDeletedSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetDeletedResponder handles the response to the GetDeleted request. The method always
@@ -389,7 +432,6 @@ func (client VaultsClient) GetDeletedSender(req *http.Request) (*http.Response, 
 func (client VaultsClient) GetDeletedResponder(resp *http.Response) (result DeletedVault, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -401,6 +443,16 @@ func (client VaultsClient) GetDeletedResponder(resp *http.Response) (result Dele
 // Parameters:
 // top - maximum number of results to return.
 func (client VaultsClient) List(ctx context.Context, top *int32) (result ResourceListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.List")
+		defer func() {
+			sc := -1
+			if result.rlr.Response.Response != nil {
+				sc = result.rlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, top)
 	if err != nil {
@@ -449,8 +501,7 @@ func (client VaultsClient) ListPreparer(ctx context.Context, top *int32) (*http.
 // ListSender sends the List request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) ListSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListResponder handles the response to the List request. The method always
@@ -458,7 +509,6 @@ func (client VaultsClient) ListSender(req *http.Request) (*http.Response, error)
 func (client VaultsClient) ListResponder(resp *http.Response) (result ResourceListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -467,8 +517,8 @@ func (client VaultsClient) ListResponder(resp *http.Response) (result ResourceLi
 }
 
 // listNextResults retrieves the next set of results, if any.
-func (client VaultsClient) listNextResults(lastResults ResourceListResult) (result ResourceListResult, err error) {
-	req, err := lastResults.resourceListResultPreparer()
+func (client VaultsClient) listNextResults(ctx context.Context, lastResults ResourceListResult) (result ResourceListResult, err error) {
+	req, err := lastResults.resourceListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "keyvault.VaultsClient", "listNextResults", nil, "Failure preparing next results request")
 	}
@@ -489,6 +539,16 @@ func (client VaultsClient) listNextResults(lastResults ResourceListResult) (resu
 
 // ListComplete enumerates all values, automatically crossing page boundaries as required.
 func (client VaultsClient) ListComplete(ctx context.Context, top *int32) (result ResourceListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.List")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.List(ctx, top)
 	return
 }
@@ -499,6 +559,16 @@ func (client VaultsClient) ListComplete(ctx context.Context, top *int32) (result
 // resourceGroupName - the name of the Resource Group to which the vault belongs.
 // top - maximum number of results to return.
 func (client VaultsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, top *int32) (result VaultListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.vlr.Response.Response != nil {
+				sc = result.vlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, top)
 	if err != nil {
@@ -547,8 +617,7 @@ func (client VaultsClient) ListByResourceGroupPreparer(ctx context.Context, reso
 // ListByResourceGroupSender sends the ListByResourceGroup request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) ListByResourceGroupSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListByResourceGroupResponder handles the response to the ListByResourceGroup request. The method always
@@ -556,7 +625,6 @@ func (client VaultsClient) ListByResourceGroupSender(req *http.Request) (*http.R
 func (client VaultsClient) ListByResourceGroupResponder(resp *http.Response) (result VaultListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -565,8 +633,8 @@ func (client VaultsClient) ListByResourceGroupResponder(resp *http.Response) (re
 }
 
 // listByResourceGroupNextResults retrieves the next set of results, if any.
-func (client VaultsClient) listByResourceGroupNextResults(lastResults VaultListResult) (result VaultListResult, err error) {
-	req, err := lastResults.vaultListResultPreparer()
+func (client VaultsClient) listByResourceGroupNextResults(ctx context.Context, lastResults VaultListResult) (result VaultListResult, err error) {
+	req, err := lastResults.vaultListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "keyvault.VaultsClient", "listByResourceGroupNextResults", nil, "Failure preparing next results request")
 	}
@@ -587,6 +655,16 @@ func (client VaultsClient) listByResourceGroupNextResults(lastResults VaultListR
 
 // ListByResourceGroupComplete enumerates all values, automatically crossing page boundaries as required.
 func (client VaultsClient) ListByResourceGroupComplete(ctx context.Context, resourceGroupName string, top *int32) (result VaultListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.ListByResourceGroup")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListByResourceGroup(ctx, resourceGroupName, top)
 	return
 }
@@ -595,6 +673,16 @@ func (client VaultsClient) ListByResourceGroupComplete(ctx context.Context, reso
 // Parameters:
 // top - maximum number of results to return.
 func (client VaultsClient) ListBySubscription(ctx context.Context, top *int32) (result VaultListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.vlr.Response.Response != nil {
+				sc = result.vlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx, top)
 	if err != nil {
@@ -642,8 +730,7 @@ func (client VaultsClient) ListBySubscriptionPreparer(ctx context.Context, top *
 // ListBySubscriptionSender sends the ListBySubscription request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) ListBySubscriptionSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListBySubscriptionResponder handles the response to the ListBySubscription request. The method always
@@ -651,7 +738,6 @@ func (client VaultsClient) ListBySubscriptionSender(req *http.Request) (*http.Re
 func (client VaultsClient) ListBySubscriptionResponder(resp *http.Response) (result VaultListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -660,8 +746,8 @@ func (client VaultsClient) ListBySubscriptionResponder(resp *http.Response) (res
 }
 
 // listBySubscriptionNextResults retrieves the next set of results, if any.
-func (client VaultsClient) listBySubscriptionNextResults(lastResults VaultListResult) (result VaultListResult, err error) {
-	req, err := lastResults.vaultListResultPreparer()
+func (client VaultsClient) listBySubscriptionNextResults(ctx context.Context, lastResults VaultListResult) (result VaultListResult, err error) {
+	req, err := lastResults.vaultListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "keyvault.VaultsClient", "listBySubscriptionNextResults", nil, "Failure preparing next results request")
 	}
@@ -682,12 +768,32 @@ func (client VaultsClient) listBySubscriptionNextResults(lastResults VaultListRe
 
 // ListBySubscriptionComplete enumerates all values, automatically crossing page boundaries as required.
 func (client VaultsClient) ListBySubscriptionComplete(ctx context.Context, top *int32) (result VaultListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.ListBySubscription")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListBySubscription(ctx, top)
 	return
 }
 
 // ListDeleted gets information about the deleted vaults in a subscription.
 func (client VaultsClient) ListDeleted(ctx context.Context) (result DeletedVaultListResultPage, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.ListDeleted")
+		defer func() {
+			sc := -1
+			if result.dvlr.Response.Response != nil {
+				sc = result.dvlr.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.fn = client.listDeletedNextResults
 	req, err := client.ListDeletedPreparer(ctx)
 	if err != nil {
@@ -732,8 +838,7 @@ func (client VaultsClient) ListDeletedPreparer(ctx context.Context) (*http.Reque
 // ListDeletedSender sends the ListDeleted request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) ListDeletedSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // ListDeletedResponder handles the response to the ListDeleted request. The method always
@@ -741,7 +846,6 @@ func (client VaultsClient) ListDeletedSender(req *http.Request) (*http.Response,
 func (client VaultsClient) ListDeletedResponder(resp *http.Response) (result DeletedVaultListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -750,8 +854,8 @@ func (client VaultsClient) ListDeletedResponder(resp *http.Response) (result Del
 }
 
 // listDeletedNextResults retrieves the next set of results, if any.
-func (client VaultsClient) listDeletedNextResults(lastResults DeletedVaultListResult) (result DeletedVaultListResult, err error) {
-	req, err := lastResults.deletedVaultListResultPreparer()
+func (client VaultsClient) listDeletedNextResults(ctx context.Context, lastResults DeletedVaultListResult) (result DeletedVaultListResult, err error) {
+	req, err := lastResults.deletedVaultListResultPreparer(ctx)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "keyvault.VaultsClient", "listDeletedNextResults", nil, "Failure preparing next results request")
 	}
@@ -772,6 +876,16 @@ func (client VaultsClient) listDeletedNextResults(lastResults DeletedVaultListRe
 
 // ListDeletedComplete enumerates all values, automatically crossing page boundaries as required.
 func (client VaultsClient) ListDeletedComplete(ctx context.Context) (result DeletedVaultListResultIterator, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.ListDeleted")
+		defer func() {
+			sc := -1
+			if result.Response().Response.Response != nil {
+				sc = result.page.Response().Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	result.page, err = client.ListDeleted(ctx)
 	return
 }
@@ -781,6 +895,16 @@ func (client VaultsClient) ListDeletedComplete(ctx context.Context) (result Dele
 // vaultName - the name of the soft-deleted vault.
 // location - the location of the soft-deleted vault.
 func (client VaultsClient) PurgeDeleted(ctx context.Context, vaultName string, location string) (result VaultsPurgeDeletedFuture, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.PurgeDeleted")
+		defer func() {
+			sc := -1
+			if result.Response() != nil {
+				sc = result.Response().StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	req, err := client.PurgeDeletedPreparer(ctx, vaultName, location)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "keyvault.VaultsClient", "PurgeDeleted", nil, "Failure preparing request")
@@ -821,12 +945,7 @@ func (client VaultsClient) PurgeDeletedPreparer(ctx context.Context, vaultName s
 // http.Response Body if it receives an error.
 func (client VaultsClient) PurgeDeletedSender(req *http.Request) (future VaultsPurgeDeletedFuture, err error) {
 	var resp *http.Response
-	resp, err = autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	resp, err = client.Send(req, azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
@@ -839,7 +958,6 @@ func (client VaultsClient) PurgeDeletedSender(req *http.Request) (future VaultsP
 func (client VaultsClient) PurgeDeletedResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
 		autorest.ByClosing())
 	result.Response = resp
@@ -852,6 +970,16 @@ func (client VaultsClient) PurgeDeletedResponder(resp *http.Response) (result au
 // vaultName - name of the vault
 // parameters - parameters to patch the vault
 func (client VaultsClient) Update(ctx context.Context, resourceGroupName string, vaultName string, parameters VaultPatchParameters) (result Vault, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.Update")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: vaultName,
 			Constraints: []validation.Constraint{{Target: "vaultName", Name: validation.Pattern, Rule: `^[a-zA-Z0-9-]{3,24}$`, Chain: nil}}}}); err != nil {
@@ -905,8 +1033,7 @@ func (client VaultsClient) UpdatePreparer(ctx context.Context, resourceGroupName
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateResponder handles the response to the Update request. The method always
@@ -914,7 +1041,6 @@ func (client VaultsClient) UpdateSender(req *http.Request) (*http.Response, erro
 func (client VaultsClient) UpdateResponder(resp *http.Response) (result Vault, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -929,6 +1055,16 @@ func (client VaultsClient) UpdateResponder(resp *http.Response) (result Vault, e
 // operationKind - name of the operation
 // parameters - access policy to merge into the vault
 func (client VaultsClient) UpdateAccessPolicy(ctx context.Context, resourceGroupName string, vaultName string, operationKind AccessPolicyUpdateKind, parameters VaultAccessPolicyParameters) (result VaultAccessPolicyParameters, err error) {
+	if tracing.IsEnabled() {
+		ctx = tracing.StartSpan(ctx, fqdn+"/VaultsClient.UpdateAccessPolicy")
+		defer func() {
+			sc := -1
+			if result.Response.Response != nil {
+				sc = result.Response.Response.StatusCode
+			}
+			tracing.EndSpan(ctx, sc, err)
+		}()
+	}
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: vaultName,
 			Constraints: []validation.Constraint{{Target: "vaultName", Name: validation.Pattern, Rule: `^[a-zA-Z0-9-]{3,24}$`, Chain: nil}}},
@@ -973,6 +1109,10 @@ func (client VaultsClient) UpdateAccessPolicyPreparer(ctx context.Context, resou
 		"api-version": APIVersion,
 	}
 
+	parameters.ID = nil
+	parameters.Name = nil
+	parameters.Type = nil
+	parameters.Location = nil
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
@@ -986,8 +1126,7 @@ func (client VaultsClient) UpdateAccessPolicyPreparer(ctx context.Context, resou
 // UpdateAccessPolicySender sends the UpdateAccessPolicy request. The method will close the
 // http.Response Body if it receives an error.
 func (client VaultsClient) UpdateAccessPolicySender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req,
-		azure.DoRetryWithRegistration(client.Client))
+	return client.Send(req, azure.DoRetryWithRegistration(client.Client))
 }
 
 // UpdateAccessPolicyResponder handles the response to the UpdateAccessPolicy request. The method always
@@ -995,7 +1134,6 @@ func (client VaultsClient) UpdateAccessPolicySender(req *http.Request) (*http.Re
 func (client VaultsClient) UpdateAccessPolicyResponder(resp *http.Response) (result VaultAccessPolicyParameters, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())

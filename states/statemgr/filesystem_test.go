@@ -41,6 +41,7 @@ func TestFilesystemRace(t *testing.T) {
 			ls.WriteState(current)
 		}()
 	}
+	wg.Wait()
 }
 
 func TestFilesystemLocks(t *testing.T) {
@@ -295,6 +296,41 @@ func TestFilesystem_nonExist(t *testing.T) {
 
 	if state := ls.State(); state != nil {
 		t.Fatalf("bad: %#v", state)
+	}
+}
+
+func TestFilesystem_lockUnlockWithoutWrite(t *testing.T) {
+	info := NewLockInfo()
+	info.Operation = "test"
+
+	ls := testFilesystem(t)
+
+	// Delete the just-created tempfile so that Lock recreates it
+	os.Remove(ls.path)
+
+	// Lock the state, and in doing so recreate the tempfile
+	lockID, err := ls.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ls.created {
+		t.Fatal("should have marked state as created")
+	}
+
+	if err := ls.Unlock(lockID); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(ls.path)
+	if os.IsNotExist(err) {
+		// Success! Unlocking the state successfully deleted the tempfile
+		return
+	} else if err != nil {
+		t.Fatalf("unexpected error from os.Stat: %s", err)
+	} else {
+		os.Remove(ls.readPath)
+		t.Fatal("should have removed path, but exists")
 	}
 }
 

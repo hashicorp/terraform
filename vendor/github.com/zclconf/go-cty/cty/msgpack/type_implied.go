@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vmihailenco/msgpack"
-	msgpackcodes "github.com/vmihailenco/msgpack/codes"
+	"github.com/vmihailenco/msgpack/v4"
+	msgpackcodes "github.com/vmihailenco/msgpack/v4/codes"
 	"github.com/zclconf/go-cty/cty"
 )
 

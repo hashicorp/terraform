@@ -20,11 +20,9 @@ type ValidateCommand struct {
 const defaultPath = "."
 
 func (c *ValidateCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
+	// TODO: The `var` and `var-file` options are not actually used, and should
+	// be removed in the next major release.
 	if c.Meta.variableArgs.items == nil {
 		c.Meta.variableArgs = newRawFlags("-var")
 	}
@@ -38,7 +36,19 @@ func (c *ValidateCommand) Run(args []string) int {
 	cmdFlags.Var(varFiles, "var-file", "variable file")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// If set, output a warning indicating that these values are not used.
+	if !varValues.Empty() || !varFiles.Empty() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"The -var and -var-file flags are not used in validate. Setting them has no effect.",
+			"These flags will be removed in a future version of Terraform.",
+		))
 	}
 
 	// After this point, we must only produce JSON output if JSON mode is
@@ -46,7 +56,6 @@ func (c *ValidateCommand) Run(args []string) int {
 	// print out a suitable result at the end, depending on the format
 	// selection. All returns from this point on must be tail-calls into
 	// c.showResults in order to produce the expected output.
-	var diags tfdiags.Diagnostics
 	args = cmdFlags.Args()
 
 	var dirPath string
@@ -101,7 +110,11 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		}
 	}
 
-	opts := c.contextOpts()
+	opts, err := c.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
 	opts.Config = cfg
 	opts.Variables = varValues
 
@@ -229,10 +242,10 @@ Usage: terraform validate [options] [dir]
   configuration and not accessing any remote services such as remote state,
   provider APIs, etc.
 
-  Validate runs checks that verify whether a configuration is
-  internally-consistent, regardless of any provided variables or existing
-  state. It is thus primarily useful for general verification of reusable
-  modules, including correctness of attribute names and value types.
+  Validate runs checks that verify whether a configuration is syntactically
+  valid and internally consistent, regardless of any provided variables or
+  existing state. It is thus primarily useful for general verification of
+  reusable modules, including correctness of attribute names and value types.
 
   It is safe to run this command automatically, for example as a post-save
   check in a text editor or as a test step for a re-usable module in a CI
@@ -246,14 +259,16 @@ Usage: terraform validate [options] [dir]
   If dir is not specified, then the current directory will be used.
 
   To verify configuration in the context of a particular run (a particular
-  target workspace, operation variables, etc), use the terraform plan
-  subcommand instead, which includes an implied validation check.
+  target workspace, input variable values, etc), use the 'terraform plan'
+  command instead, which includes an implied validation check.
 
 Options:
 
   -json        Produce output in a machine-readable JSON format, suitable for
-               use in e.g. text editor integrations.
+               use in text editor integrations and other automated systems.
+               Always disables color.
 
+  -no-color    If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }

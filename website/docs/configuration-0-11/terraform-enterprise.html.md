@@ -11,7 +11,7 @@ description: |-
 -> **Note:** This page is about Terraform 0.11 and earlier, and documents a
 feature that was removed in Terraform 0.12.
 
-~> **Important:** The `terraform push` command is deprecated, and only works with [the legacy version of Terraform Enterprise](/docs/enterprise-legacy/index.html). In the current version of Terraform Enterprise, you can upload configurations using the API. See [the docs about API-driven runs](/docs/enterprise/run/api.html) for more details.
+~> **Important:** The `terraform push` command is deprecated, and only works with the legacy version of Terraform Enterprise. In the current version of Terraform Cloud, you can upload configurations using the API. See [the docs about API-driven runs](/docs/cloud/run/api.html) for more details.
 
 The [`terraform push` command](/docs/commands/push.html) uploads a configuration to a Terraform Enterprise (legacy) environment. The name of the environment (and the organization it's in) can be specified on the command line, or as part of the Terraform configuration in an `atlas` block.
 

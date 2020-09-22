@@ -18,11 +18,7 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	// We create two metas to track the two states
 	var backupPathOut, statePathOut string
 
@@ -36,7 +32,8 @@ func (c *StateMvCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	cmdFlags.StringVar(&statePathOut, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
 	}
 	args = cmdFlags.Args()
 	if len(args) != 2 {
@@ -193,13 +190,7 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 			diags = diags.Append(c.validateResourceMove(addrFrom, addrTo))
-			if stateTo.Module(addrTo.Module) == nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					msgInvalidTarget,
-					fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.Module),
-				))
-			}
+
 			if stateTo.Resource(addrTo) != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -228,8 +219,8 @@ func (c *StateMvCommand) Run(args []string) int {
 				ssFrom.RemoveResource(addrFrom)
 
 				// Update the address before adding it to the state.
-				rs.Addr = addrTo.Resource
-				stateTo.Module(addrTo.Module).Resources[addrTo.Resource.String()] = rs
+				rs.Addr = addrTo
+				stateTo.EnsureModule(addrTo.Module).Resources[addrTo.Resource.String()] = rs
 			}
 
 		case addrs.AbsResourceInstance:
@@ -251,11 +242,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			diags = diags.Append(c.validateResourceMove(addrFrom.ContainingResource(), addrTo.ContainingResource()))
 
 			if stateTo.Module(addrTo.Module) == nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					msgInvalidTarget,
-					fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.Module),
-				))
+				// moving something to a mew module, so we need to ensure it exists
+				stateTo.EnsureModule(addrTo.Module)
 			}
 			if stateTo.ResourceInstance(addrTo) != nil {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -283,7 +271,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), args[1]))
 			if !dryRun {
 				fromResourceAddr := addrFrom.ContainingResource()
-				fromProviderAddr := ssFrom.Resource(fromResourceAddr).ProviderConfig
+				fromResource := ssFrom.Resource(fromResourceAddr)
+				fromProviderAddr := fromResource.ProviderConfig
 				ssFrom.ForgetResourceInstanceAll(addrFrom)
 				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
 
@@ -292,22 +281,11 @@ func (c *StateMvCommand) Run(args []string) int {
 					// If we're moving to an address without an index then that
 					// suggests the user's intent is to establish both the
 					// resource and the instance at the same time (since the
-					// address covers both), but if there's an index in the
-					// target then the resource must already exist.
-					if addrTo.Resource.Key != addrs.NoKey {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							msgInvalidTarget,
-							fmt.Sprintf("Cannot move to %s: %s does not exist in the current state.", addrTo, addrTo.ContainingResource()),
-						))
-						c.showDiagnostics(diags)
-						return 1
-					}
-
+					// address covers both). If there's an index in the
+					// target then allow creating the new instance here.
 					resourceAddr := addrTo.ContainingResource()
-					stateTo.SyncWrapper().SetResourceMeta(
+					stateTo.SyncWrapper().SetResourceProvider(
 						resourceAddr,
-						states.NoEach,
 						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
 					)
 					rs = stateTo.Resource(resourceAddr)
@@ -321,6 +299,28 @@ func (c *StateMvCommand) Run(args []string) int {
 				msgInvalidSource,
 				fmt.Sprintf("Cannot move %s: Terraform doesn't know how to move this object.", rawAddrFrom),
 			))
+		}
+
+		// Look for any dependencies that may be effected and
+		// remove them to ensure they are recreated in full.
+		for _, mod := range stateTo.Modules {
+			for _, res := range mod.Resources {
+				for _, ins := range res.Instances {
+					if ins.Current == nil {
+						continue
+					}
+
+					for _, dep := range ins.Current.Dependencies {
+						// check both directions here, since we may be moving
+						// an instance which is in a resource, or a module
+						// which can contain a resource.
+						if dep.TargetContains(rawAddrFrom) || rawAddrFrom.TargetContains(dep) {
+							ins.Current.Dependencies = nil
+							break
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -392,10 +392,12 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 		//   terraform state mv aws_instance.foo aws_instance.bar[1]
 		// That wouldn't be allowed if aws_instance.foo had multiple instances
 		// since we can't move multiple instances into one.
-		if rs := state.Resource(addr); rs != nil && rs.EachMode == states.NoEach {
-			ret = append(ret, addr.Instance(addrs.NoKey))
-		} else {
-			ret = append(ret, addr)
+		if rs := state.Resource(addr); rs != nil {
+			if _, ok := rs.Instances[addrs.NoKey]; ok {
+				ret = append(ret, addr.Instance(addrs.NoKey))
+			} else {
+				ret = append(ret, addr)
+			}
 		}
 	default:
 		ret = append(ret, matched)

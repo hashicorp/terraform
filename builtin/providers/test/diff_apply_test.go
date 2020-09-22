@@ -47,6 +47,8 @@ func TestDiffApply_set(t *testing.T) {
 			"egress.746197026.security_groups.#":   {Old: "", New: "0", NewComputed: false, NewRemoved: false},
 			"egress.746197026.self":                {Old: "", New: "false", NewComputed: false, NewRemoved: false},
 			"egress.746197026.to_port":             {Old: "", New: "8000", NewComputed: false, NewRemoved: false},
+			// an erroneous nil diff should do nothing
+			"egress.111111111.to_port": nil,
 		},
 	}
 
