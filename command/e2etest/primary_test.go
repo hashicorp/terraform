@@ -72,13 +72,12 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	}
 
 	diffResources := plan.Changes.Resources
-	if len(diffResources) != 2 {
+	if len(diffResources) != 1 {
 		t.Errorf("incorrect number of resources in plan")
 	}
 
 	expected := map[string]plans.Action{
-		"data.template_file.test": plans.Read,
-		"null_resource.test":      plans.Create,
+		"null_resource.test": plans.Create,
 	}
 
 	for _, r := range diffResources {
