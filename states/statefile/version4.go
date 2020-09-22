@@ -472,13 +472,10 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	}
 
 	// Extract paths from path value marks
-	fmt.Println("writing state attr paths")
-	fmt.Printf("obj.AttrPaths: %#v\n", obj.AttrPaths)
 	var paths []cty.Path
 	for _, vm := range obj.AttrPaths {
 		paths = append(paths, vm.Path)
 	}
-	fmt.Printf("paths: %#v\n", paths)
 
 	// Marshal paths to JSON
 	attributePaths, pathsDiags := marshalPaths(paths)
