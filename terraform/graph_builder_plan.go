@@ -146,6 +146,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
 
 		// Make sure data sources are aware of any depends_on from the
 		// configuration

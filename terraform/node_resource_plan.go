@@ -20,6 +20,10 @@ type nodeExpandPlannableResource struct {
 	// during graph construction, if dependencies require us to force this
 	// on regardless of what the configuration says.
 	ForceCreateBeforeDestroy *bool
+
+	// We attach dependencies to the Resource during refresh, since the
+	// instances are instantiated during DynamicExpand.
+	dependencies []addrs.ConfigResource
 }
 
 var (
@@ -29,11 +33,17 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 )
 
 func (n *nodeExpandPlannableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
+}
+
+// GraphNodeAttachDependencies
+func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigResource) {
+	n.dependencies = deps
 }
 
 // GraphNodeDestroyerCBD
@@ -71,6 +81,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			NodeAbstractResource:     n.NodeAbstractResource,
 			Addr:                     resAddr,
 			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+			dependencies:             n.dependencies,
 		})
 	}
 
@@ -101,6 +112,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		a.Schema = n.Schema
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
+		a.Dependencies = n.dependencies
 
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
@@ -131,6 +143,8 @@ type NodePlannableResource struct {
 	// during graph construction, if dependencies require us to force this
 	// on regardless of what the configuration says.
 	ForceCreateBeforeDestroy *bool
+
+	dependencies []addrs.ConfigResource
 }
 
 var (
@@ -220,6 +234,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
 		a.dependsOn = n.dependsOn
+		a.Dependencies = n.dependencies
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,

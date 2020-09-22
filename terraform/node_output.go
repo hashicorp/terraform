@@ -230,6 +230,13 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
 			return diags.Err()
 		}
 		n.setValue(state, changes, val)
+
+		// If we were able to evaluate a new value, we can update that in the
+		// refreshed state as well.
+		if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
+			n.setValue(state, changes, val)
+		}
+
 		return nil
 	default:
 		return nil

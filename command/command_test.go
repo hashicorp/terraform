@@ -466,9 +466,11 @@ func testStateOutput(t *testing.T, path string, expected string) {
 
 func testProvider() *terraform.MockProvider {
 	p := new(terraform.MockProvider)
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
-		PlannedState: cty.EmptyObjectVal,
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return resp
 	}
+
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{
 			NewState: req.PriorState,
