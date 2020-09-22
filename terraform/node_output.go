@@ -200,7 +200,7 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
 	switch op {
 	// Everything except walkImport
-	case walkEval, walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy:
+	case walkEval, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy:
 		// This has to run before we have a state lock, since evaluation also
 		// reads the state
 		val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)

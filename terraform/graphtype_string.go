@@ -9,18 +9,16 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[GraphTypeInvalid-0]
-	_ = x[GraphTypeLegacy-1]
-	_ = x[GraphTypeRefresh-2]
-	_ = x[GraphTypePlan-3]
-	_ = x[GraphTypePlanDestroy-4]
-	_ = x[GraphTypeApply-5]
-	_ = x[GraphTypeValidate-6]
-	_ = x[GraphTypeEval-7]
+	_ = x[GraphTypePlan-1]
+	_ = x[GraphTypePlanDestroy-2]
+	_ = x[GraphTypeApply-3]
+	_ = x[GraphTypeValidate-4]
+	_ = x[GraphTypeEval-5]
 }
 
-const _GraphType_name = "GraphTypeInvalidGraphTypeLegacyGraphTypeRefreshGraphTypePlanGraphTypePlanDestroyGraphTypeApplyGraphTypeValidateGraphTypeEval"
+const _GraphType_name = "GraphTypeInvalidGraphTypePlanGraphTypePlanDestroyGraphTypeApplyGraphTypeValidateGraphTypeEval"
 
-var _GraphType_index = [...]uint8{0, 16, 31, 47, 60, 80, 94, 111, 124}
+var _GraphType_index = [...]uint8{0, 16, 29, 49, 63, 80, 93}
 
 func (i GraphType) String() string {
 	if i >= GraphType(len(_GraphType_index)-1) {

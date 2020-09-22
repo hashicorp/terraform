@@ -33,7 +33,7 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) error
 	switch op {
 	case walkValidate:
 		return n.ValidateProvider(ctx, provider)
-	case walkRefresh, walkPlan, walkApply, walkDestroy:
+	case walkPlan, walkApply, walkDestroy:
 		return n.ConfigureProvider(ctx, provider, false)
 	case walkImport:
 		return n.ConfigureProvider(ctx, provider, true)
