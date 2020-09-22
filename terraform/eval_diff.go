@@ -281,7 +281,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Add the marks back to the planned new value
-	if configVal.ContainsMarked() {
+	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
