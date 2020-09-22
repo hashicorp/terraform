@@ -1879,22 +1879,11 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	diags := ctx.Validate()
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Refresh() // data resource is read in this step
+	_, diags = ctx.Plan()
 	assertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource was not called on provider during refresh; should've been called")
-	}
-	p.ReadDataSourceCalled = false // reset for next call
-
-	t.Logf("state after refresh:\n%s", state)
-
-	_, diags = ctx.Plan() // should do nothing with data resource in this step, since it was already read
-	assertNoErrors(t, diags)
-
-	if p.ReadDataSourceCalled {
-		// there was no config change to read during plan
-		t.Fatalf("ReadDataSource should not have been called")
+		t.Fatalf("ReadDataSource was not called on provider during plan; should've been called")
 	}
 }
 
@@ -5007,11 +4996,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		},
 	})
 
-	// We're skipping ctx.Refresh here, which simulates what happens when
-	// running "terraform plan -refresh=false". As a result, we don't get our
-	// usual opportunity to read the data source during the refresh step and
-	// thus the plan call below is forced to produce a deferred read action.
-
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
@@ -5052,22 +5036,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					"num":      cty.StringVal("2"),
 					"computed": cty.StringVal("data_id"),
 				}), ric.After)
-			case "data.aws_vpc.bar[0]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id":  cty.StringVal("data_id"),
-					"foo": cty.StringVal("0"),
-				}), ric.After)
-			case "data.aws_vpc.bar[1]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id":  cty.StringVal("data_id"),
-					"foo": cty.StringVal("1"),
-				}), ric.After)
 			default:
 				t.Fatal("unknown instance:", i)
 			}
@@ -5077,8 +5045,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	wantAddrs := map[string]struct{}{
 		"aws_instance.foo[0]": struct{}{},
 		"aws_instance.foo[1]": struct{}{},
-		"data.aws_vpc.bar[0]": struct{}{},
-		"data.aws_vpc.bar[1]": struct{}{},
 	}
 	if !cmp.Equal(seenAddrs, wantAddrs) {
 		t.Errorf("incorrect addresses in changeset:\n%s", cmp.Diff(wantAddrs, seenAddrs))
