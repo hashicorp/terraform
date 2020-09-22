@@ -4,6 +4,10 @@ UPGRADE NOTES:
 
 * Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. An expression like `"${foo}"` should be rewritten as just `foo`. [GH-27272]
 
+BUG FIXES:
+
+* command: Include schemas from required but unused providers in the output of `terraform providers schema`. This allows development tools such as the Terraform language server to offer autocompletion for the first resource for a given provider. [GH-26318]
+
 ## 0.13.3 (September 16, 2020)
 
 BUG FIXES:
