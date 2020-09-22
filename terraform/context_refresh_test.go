@@ -1689,3 +1689,56 @@ aws_instance.foo:
 
 	checkStateString(t, result, expect)
 }
+
+// verify that create_before_destroy is updated in the state during refresh
+func TestRefresh_updateLifecycle(t *testing.T) {
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "bar" {
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	state, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	r := state.ResourceInstance(mustResourceInstanceAddr("aws_instance.bar"))
+	if !r.Current.CreateBeforeDestroy {
+		t.Fatal("create_before_destroy not updated in instance state")
+	}
+}
