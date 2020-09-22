@@ -10,30 +10,34 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"net"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
+
+	"github.com/apparentlymart/go-cidr/cidr"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
 
 // Helpers for generating random tidbits for use in identifiers to prevent
 // collisions in acceptance tests.
 
 // RandInt generates a random integer
 func RandInt() int {
-	reseed()
 	return rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 }
 
 // RandomWithPrefix is used to generate a unique name with a prefix, for
 // randomizing names in acceptance tests
 func RandomWithPrefix(name string) string {
-	reseed()
 	return fmt.Sprintf("%s-%d", name, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
 }
 
 func RandIntRange(min int, max int) int {
-	reseed()
 	source := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rangeMax := max - min
 
@@ -48,7 +52,6 @@ func RandString(strlen int) string {
 // RandStringFromCharSet generates a random string by selecting characters from
 // the charset provided
 func RandStringFromCharSet(strlen int, charSet string) string {
-	reseed()
 	result := make([]byte, strlen)
 	for i := 0; i < strlen; i++ {
 		result[i] = charSet[rand.Intn(len(charSet))]
@@ -105,6 +108,39 @@ func RandTLSCert(orgName string) (string, string, error) {
 	return certPEM, privateKeyPEM, nil
 }
 
+// RandIpAddress returns a random IP address in the specified CIDR block.
+// The prefix length must be less than 31.
+func RandIpAddress(s string) (string, error) {
+	_, network, err := net.ParseCIDR(s)
+	if err != nil {
+		return "", err
+	}
+
+	firstIp, lastIp := cidr.AddressRange(network)
+	first := &big.Int{}
+	first.SetBytes([]byte(firstIp))
+	last := &big.Int{}
+	last.SetBytes([]byte(lastIp))
+	r := &big.Int{}
+	r.Sub(last, first)
+	if len := r.BitLen(); len > 31 {
+		return "", fmt.Errorf("CIDR range is too large: %d", len)
+	}
+
+	max := int(r.Int64())
+	if max == 0 {
+		// panic: invalid argument to Int31n
+		return firstIp.String(), nil
+	}
+
+	host, err := cidr.Host(network, RandIntRange(0, max))
+	if err != nil {
+		return "", err
+	}
+
+	return host.String(), nil
+}
+
 func genPrivateKey() (*rsa.PrivateKey, string, error) {
 	privateKey, err := rsa.GenerateKey(crand.Reader, 1024)
 	if err != nil {
@@ -127,11 +163,6 @@ func pemEncode(b []byte, block string) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-// Seeds random with current timestamp
-func reseed() {
-	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 const (

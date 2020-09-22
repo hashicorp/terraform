@@ -6,7 +6,7 @@ An opinionated [AWS Go SDK](https://github.com/aws/aws-sdk-go) library for consi
 
 ## Requirements
 
-- [Go](https://golang.org/doc/install) 1.11.4+
+- [Go](https://golang.org/doc/install) 1.13
 
 ## Development
 
@@ -24,4 +24,17 @@ Code quality assurance uses [golangci-lint](https://github.com/golangci/golangci
 $ golangci-lint run ./...
 # Optionally if Make is available; both run the same linting
 $ make lint
+```
+
+## Release Process
+
+- Push a new `vX.Y.Z` tag to the repository
+- Close associated `vX.Y.Z` milestone
+- For Terraform AWS Provider: Renovate will automatically detect the update and submit a dependency pull request (usually within an hour)
+- For Terraform S3 Backend: Submit a new dependency pull request by running:
+
+```sh
+go get github.com/hashicorp/aws-sdk-go-base@vX.Y.Z
+go mod tidy
+go mod vendor
 ```

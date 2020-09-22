@@ -8,6 +8,9 @@ import (
 	"os/user"
 	"path/filepath"
 	"reflect"
+
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/utils/env"
 )
 
 // defaultIfEmpty is a helper function to make it cleaner to set default value
@@ -87,7 +90,7 @@ func mergeInterfaces(overridingInterface, inferiorInterface interface{}) interfa
 	}
 }
 
-// findAndReadCloudsYAML attempts to locate a clouds.yaml file in the following
+// FindAndReadCloudsYAML attempts to locate a clouds.yaml file in the following
 // locations:
 //
 // 1. OS_CLIENT_CONFIG_FILE
@@ -96,35 +99,37 @@ func mergeInterfaces(overridingInterface, inferiorInterface interface{}) interfa
 // 4. unix-specific site_config_dir (/etc/openstack/clouds.yaml)
 //
 // If found, the contents of the file is returned.
-func findAndReadCloudsYAML() ([]byte, error) {
+func FindAndReadCloudsYAML() (string, []byte, error) {
 	// OS_CLIENT_CONFIG_FILE
-	if v := os.Getenv("OS_CLIENT_CONFIG_FILE"); v != "" {
+	if v := env.Getenv("OS_CLIENT_CONFIG_FILE"); v != "" {
 		if ok := fileExists(v); ok {
-			return ioutil.ReadFile(v)
+			content, err := ioutil.ReadFile(v)
+			return v, content, err
 		}
 	}
 
-	return findAndReadYAML("clouds.yaml")
+	return FindAndReadYAML("clouds.yaml")
 }
 
-func findAndReadPublicCloudsYAML() ([]byte, error) {
-	return findAndReadYAML("clouds-public.yaml")
+func FindAndReadPublicCloudsYAML() (string, []byte, error) {
+	return FindAndReadYAML("clouds-public.yaml")
 }
 
-func findAndReadSecureCloudsYAML() ([]byte, error) {
-	return findAndReadYAML("secure.yaml")
+func FindAndReadSecureCloudsYAML() (string, []byte, error) {
+	return FindAndReadYAML("secure.yaml")
 }
 
-func findAndReadYAML(yamlFile string) ([]byte, error) {
+func FindAndReadYAML(yamlFile string) (string, []byte, error) {
 	// current directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("unable to determine working directory: %s", err)
+		return "", nil, fmt.Errorf("unable to determine working directory: %s", err)
 	}
 
 	filename := filepath.Join(cwd, yamlFile)
 	if ok := fileExists(filename); ok {
-		return ioutil.ReadFile(filename)
+		content, err := ioutil.ReadFile(filename)
+		return filename, content, err
 	}
 
 	// unix user config directory: ~/.config/openstack.
@@ -133,17 +138,20 @@ func findAndReadYAML(yamlFile string) ([]byte, error) {
 		if homeDir != "" {
 			filename := filepath.Join(homeDir, ".config/openstack/"+yamlFile)
 			if ok := fileExists(filename); ok {
-				return ioutil.ReadFile(filename)
+				content, err := ioutil.ReadFile(filename)
+				return filename, content, err
 			}
 		}
 	}
 
 	// unix-specific site config directory: /etc/openstack.
-	if ok := fileExists("/etc/openstack/" + yamlFile); ok {
-		return ioutil.ReadFile("/etc/openstack/" + yamlFile)
+	filename = "/etc/openstack/" + yamlFile
+	if ok := fileExists(filename); ok {
+		content, err := ioutil.ReadFile(filename)
+		return filename, content, err
 	}
 
-	return nil, fmt.Errorf("no " + yamlFile + " file found")
+	return "", nil, fmt.Errorf("no " + yamlFile + " file found")
 }
 
 // fileExists checks for the existence of a file at a given location.
@@ -152,4 +160,16 @@ func fileExists(filename string) bool {
 		return true
 	}
 	return false
+}
+
+// GetEndpointType is a helper method to determine the endpoint type
+// requested by the user.
+func GetEndpointType(endpointType string) gophercloud.Availability {
+	if endpointType == "internal" || endpointType == "internalURL" {
+		return gophercloud.AvailabilityInternal
+	}
+	if endpointType == "admin" || endpointType == "adminURL" {
+		return gophercloud.AvailabilityAdmin
+	}
+	return gophercloud.AvailabilityPublic
 }

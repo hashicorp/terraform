@@ -58,11 +58,11 @@ func TestRootTransformer(t *testing.T) {
 
 const testTransformRootBasicStr = `
 aws_instance.foo
-  provider.aws
+  provider["registry.terraform.io/hashicorp/aws"]
 do_droplet.bar
-  provider.do
-provider.aws
-provider.do
+  provider["registry.terraform.io/hashicorp/do"]
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/do"]
 root
   aws_instance.foo
   do_droplet.bar

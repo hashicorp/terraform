@@ -5,11 +5,13 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"sync"
 )
 
 type commandWriter struct {
 	*Command
-	eof bool
+	mutex sync.Mutex
+	eof   bool
 }
 
 type commandReader struct {
@@ -167,12 +169,12 @@ func (c *Command) slurpAllOutput() (bool, error) {
 	return finished, nil
 }
 
-func (c *Command) sendInput(data []byte) error {
+func (c *Command) sendInput(data []byte, eof bool) error {
 	if err := c.check(); err != nil {
 		return err
 	}
 
-	request := NewSendInputRequest(c.client.url, c.shell.id, c.id, data, &c.client.Parameters)
+	request := NewSendInputRequest(c.client.url, c.shell.id, c.id, data, eof, &c.client.Parameters)
 	defer request.Free()
 
 	_, err := c.client.sendRequest(request)
@@ -191,28 +193,42 @@ func (c *Command) Wait() {
 }
 
 // Write data to this Pipe
-// commandWriter implements io.Writer interface
+// commandWriter implements io.Writer and io.Closer interface
 func (w *commandWriter) Write(data []byte) (int, error) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	if w.eof {
+		return 0, io.ErrClosedPipe
+	}
 
 	var (
 		written int
 		err     error
 	)
-
+	origLen := len(data)
 	for len(data) > 0 {
-		if w.eof {
-			return written, io.EOF
-		}
 		// never send more data than our EnvelopeSize.
 		n := min(w.client.Parameters.EnvelopeSize-1000, len(data))
-		if err := w.sendInput(data[:n]); err != nil {
+		if err := w.sendInput(data[:n], false); err != nil {
 			break
 		}
 		data = data[n:]
 		written += n
 	}
 
+	// signal that we couldn't write all data
+	if err == nil && written < origLen {
+		err = io.ErrShortWrite
+	}
+
 	return written, err
+}
+
+// Write data to this Pipe and mark EOF
+func (w *commandWriter) WriteClose(data []byte) (int, error) {
+	w.eof = true
+	return w.Write(data)
 }
 
 func min(a int, b int) int {
@@ -225,8 +241,14 @@ func min(a int, b int) int {
 // Close method wrapper
 // commandWriter implements io.Closer interface
 func (w *commandWriter) Close() error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	if w.eof {
+		return io.ErrClosedPipe
+	}
 	w.eof = true
-	return w.Close()
+	return w.sendInput(nil, w.eof)
 }
 
 // Read data from this Pipe

@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	_ "github.com/lib/pq"
 )
 
@@ -17,7 +17,7 @@ type RemoteClient struct {
 	Name       string
 	SchemaName string
 
-	info *state.LockInfo
+	info *statemgr.LockInfo
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -60,7 +60,7 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	var err error
 	var lockID string
 
@@ -80,7 +80,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		var didUnlock []byte
 		err := row.Scan(&didUnlock)
 		if err != nil {
-			return &state.LockError{Info: info, Err: err}
+			return &statemgr.LockError{Info: info, Err: err}
 		}
 		return nil
 	}
@@ -97,22 +97,22 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 		var innerDidLock []byte
 		err := innerRow.Scan(&innerDidLock)
 		if err != nil {
-			return "", &state.LockError{Info: info, Err: err}
+			return "", &statemgr.LockError{Info: info, Err: err}
 		}
 		if string(innerDidLock) == "false" {
-			return "", &state.LockError{Info: info, Err: fmt.Errorf("Already locked for workspace creation: %s", c.Name)}
+			return "", &statemgr.LockError{Info: info, Err: fmt.Errorf("Already locked for workspace creation: %s", c.Name)}
 		}
 		info.Path = "-1"
 	case err != nil:
-		return "", &state.LockError{Info: info, Err: err}
+		return "", &statemgr.LockError{Info: info, Err: err}
 	case string(didLock) == "false":
 		// Existing workspace is already locked. Release the attempted creation lock.
 		lockUnlock("-1")
-		return "", &state.LockError{Info: info, Err: fmt.Errorf("Workspace is already locked: %s", c.Name)}
+		return "", &statemgr.LockError{Info: info, Err: fmt.Errorf("Workspace is already locked: %s", c.Name)}
 	case string(didLockForCreate) == "false":
 		// Someone has the creation lock already. Release the existing workspace because it might not be safe to touch.
 		lockUnlock(string(pgLockId))
-		return "", &state.LockError{Info: info, Err: fmt.Errorf("Cannot lock workspace; already locked for workspace creation: %s", c.Name)}
+		return "", &statemgr.LockError{Info: info, Err: fmt.Errorf("Cannot lock workspace; already locked for workspace creation: %s", c.Name)}
 	default:
 		// Existing workspace is now locked. Release the attempted creation lock.
 		lockUnlock("-1")
@@ -123,7 +123,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	return c.info, nil
 }
 
@@ -134,7 +134,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		var didUnlock []byte
 		err := row.Scan(&didUnlock)
 		if err != nil {
-			return &state.LockError{Info: c.info, Err: err}
+			return &statemgr.LockError{Info: c.info, Err: err}
 		}
 		c.info = nil
 	}

@@ -14,12 +14,12 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -142,6 +142,9 @@ func (b *Remote) ConfigSchema() *configschema.Block {
 // PrepareConfig implements backend.Backend.
 func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return obj, diags
+	}
 
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
 		diags = diags.Append(tfdiags.AttributeValue(
@@ -188,6 +191,9 @@ func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 // Configure implements backend.Enhanced.
 func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return diags
+	}
 
 	// Get the hostname.
 	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
@@ -267,12 +273,17 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Return an error if we still don't have a token at this point.
 	if token == "" {
+		loginCommand := "terraform login"
+		if b.hostname != defaultHostname {
+			loginCommand = loginCommand + " " + b.hostname
+		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Required token could not be found",
 			fmt.Sprintf(
-				"Make sure you configured a credentials block for %s in your CLI Config File.",
+				"Run the following command to generate a token for %s:\n    %s",
 				b.hostname,
+				loginCommand,
 			),
 		))
 		return diags
@@ -484,7 +495,7 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 		// The retry logic in the TFE client will retry both rate limited
 		// requests and server errors, but in the remote backend we only
 		// care about server errors so we ignore rate limit (429) errors.
-		if attemptNum == 0 || resp.StatusCode == 429 {
+		if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
 			// Reset the last retry time.
 			b.lastRetry = time.Now()
 			return
@@ -580,7 +591,7 @@ func (b *Remote) DeleteWorkspace(name string) error {
 }
 
 // StateMgr implements backend.Enhanced.
-func (b *Remote) StateMgr(name string) (state.State, error) {
+func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
@@ -652,16 +663,12 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				"workspace %s not found\n\n"+
 					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
 					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. When the resource does exists, please check the rights for the used token.",
+					"to. If the resource does exist, please check the rights for the used token.",
 				name,
 			)
 		default:
 			return nil, fmt.Errorf(
-				"%s\n\n"+
-					"The configured \"remote\" backend encountered an unexpected error. Sometimes\n"+
-					"this is caused by network connection problems, in which case you could retr\n"+
-					"the command. If the issue persists please open a support ticket to get help\n"+
-					"resolving the problem.",
+				"The configured \"remote\" backend encountered an unexpected error:\n\n%s",
 				err,
 			)
 		}
@@ -862,7 +869,7 @@ func generalError(msg string, err error) error {
 			fmt.Sprintf("%s: %v", msg, err),
 			`The configured "remote" backend returns '404 Not Found' errors for resources `+
 				`that do not exist, as well as for resources that a user doesn't have access `+
-				`to. If the resource does exists, please check the rights for the used token.`,
+				`to. If the resource does exist, please check the rights for the used token.`,
 		))
 		return diags.Err()
 	default:

@@ -45,24 +45,16 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 // EvalRaw is like Eval except that it returns all errors, even if they
 // signal something normal such as EvalEarlyExitError.
 func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
-	path := "unknown"
-	if ctx != nil {
-		path = ctx.Path().String()
-	}
-	if path == "" {
-		path = "<root>"
-	}
-
-	log.Printf("[TRACE] %s: eval: %T", path, n)
+	log.Printf("[TRACE] eval: %T", n)
 	output, err := n.Eval(ctx)
 	if err != nil {
 		switch err.(type) {
 		case EvalEarlyExitError:
-			log.Printf("[TRACE] %s: eval: %T, early exit err: %s", path, n, err)
+			log.Printf("[TRACE] eval: %T, early exit err: %s", n, err)
 		case tfdiags.NonFatalError:
-			log.Printf("[WARN] %s: eval: %T, non-fatal err: %s", path, n, err)
+			log.Printf("[WARN] eval: %T, non-fatal err: %s", n, err)
 		default:
-			log.Printf("[ERROR] %s: eval: %T, err: %s", path, n, err)
+			log.Printf("[ERROR] eval: %T, err: %s", n, err)
 		}
 	}
 

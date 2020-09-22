@@ -30,15 +30,21 @@ type DialSettings struct {
 	Endpoint        string
 	Scopes          []string
 	TokenSource     oauth2.TokenSource
-	Credentials     *google.DefaultCredentials
+	Credentials     *google.Credentials
 	CredentialsFile string // if set, Token Source is ignored.
 	CredentialsJSON []byte
 	UserAgent       string
 	APIKey          string
+	Audiences       []string
 	HTTPClient      *http.Client
 	GRPCDialOpts    []grpc.DialOption
 	GRPCConn        *grpc.ClientConn
 	NoAuth          bool
+
+	// Google API system parameters. For more information please read:
+	// https://cloud.google.com/apis/docs/system-parameters
+	QuotaProject  string
+	RequestReason string
 }
 
 // Validate reports an error if ds is invalid.
@@ -66,6 +72,9 @@ func (ds *DialSettings) Validate() error {
 	if ds.TokenSource != nil {
 		nCreds++
 	}
+	if len(ds.Scopes) > 0 && len(ds.Audiences) > 0 {
+		return errors.New("WithScopes is incompatible with WithAudience")
+	}
 	// Accept only one form of credentials, except we allow TokenSource and CredentialsFile for backwards compatibility.
 	if nCreds > 1 && !(nCreds == 2 && ds.TokenSource != nil && ds.CredentialsFile != "") {
 		return errors.New("multiple credential options provided")
@@ -75,6 +84,12 @@ func (ds *DialSettings) Validate() error {
 	}
 	if ds.HTTPClient != nil && ds.GRPCDialOpts != nil {
 		return errors.New("WithHTTPClient is incompatible with gRPC dial options")
+	}
+	if ds.HTTPClient != nil && ds.QuotaProject != "" {
+		return errors.New("WithHTTPClient is incompatible with QuotaProject")
+	}
+	if ds.HTTPClient != nil && ds.RequestReason != "" {
+		return errors.New("WithHTTPClient is incompatible with RequestReason")
 	}
 
 	return nil

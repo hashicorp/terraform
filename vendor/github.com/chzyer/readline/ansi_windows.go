@@ -25,6 +25,7 @@ const (
 	COLOR_BINTENSITY = 0x0080
 
 	COMMON_LVB_UNDERSCORE = 0x8000
+	COMMON_LVB_BOLD       = 0x0007
 )
 
 var ColorTableFg = []word{
@@ -163,6 +164,8 @@ func (a *ANSIWriterCtx) ioloopEscSeq(w *bufio.Writer, r rune, argptr *[]string) 
 				color |= ColorTableBg[c-40]
 			} else if c == 4 {
 				color |= COMMON_LVB_UNDERSCORE | ColorTableFg[7]
+			} else if c == 1 {
+				color |= COMMON_LVB_BOLD | COLOR_FINTENSITY
 			} else { // unknown code treat as reset
 				color = ColorTableFg[7]
 			}

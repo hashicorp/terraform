@@ -1,73 +1,69 @@
 package terraform
 
 import (
-	"github.com/hashicorp/hcl2/hcl"
+	"fmt"
+	"log"
+
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
-// NodeApplyableModuleVariable represents a module variable input during
-// the apply step.
-type NodeApplyableModuleVariable struct {
-	Addr   addrs.AbsInputVariableInstance
-	Config *configs.Variable // Config is the var in the config
-	Expr   hcl.Expression    // Expr is the value expression given in the call
+// nodeExpandModuleVariable is the placeholder for an variable that has not yet had
+// its module path expanded.
+type nodeExpandModuleVariable struct {
+	Addr   addrs.InputVariable
+	Module addrs.Module
+	Config *configs.Variable
+	Expr   hcl.Expression
 }
 
-// Ensure that we are implementing all of the interfaces we think we are
-// implementing.
 var (
-	_ GraphNodeSubPath          = (*NodeApplyableModuleVariable)(nil)
-	_ RemovableIfNotTargeted    = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeReferenceOutside = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeReferenceable    = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeReferencer       = (*NodeApplyableModuleVariable)(nil)
-	_ GraphNodeEvalable         = (*NodeApplyableModuleVariable)(nil)
-	_ dag.GraphNodeDotter       = (*NodeApplyableModuleVariable)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandModuleVariable)(nil)
+	_ GraphNodeReferenceOutside  = (*nodeExpandModuleVariable)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandModuleVariable)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandModuleVariable)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandModuleVariable)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandModuleVariable)(nil)
 )
 
-func (n *NodeApplyableModuleVariable) Name() string {
-	return n.Addr.String()
-}
+func (n *nodeExpandModuleVariable) expandsInstances() {}
 
-// GraphNodeSubPath
-func (n *NodeApplyableModuleVariable) Path() addrs.ModuleInstance {
-	// We execute in the parent scope (above our own module) because
-	// expressions in our value are resolved in that context.
-	return n.Addr.Module.Parent()
-}
-
-// RemovableIfNotTargeted
-func (n *NodeApplyableModuleVariable) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
+func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true
 }
 
-// GraphNodeReferenceOutside implementation
-func (n *NodeApplyableModuleVariable) ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance) {
-
-	// Module input variables have their value expressions defined in the
-	// context of their calling (parent) module, and so references from
-	// a node of this type should be resolved in the parent module instance.
-	referencePath = n.Addr.Module.Parent()
-
-	// Input variables are _referenced_ from their own module, though.
-	selfPath = n.Addr.Module
-
-	return // uses named return values
+func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+	expander := ctx.InstanceExpander()
+	for _, module := range expander.ExpandModule(n.Module) {
+		o := &nodeModuleVariable{
+			Addr:           n.Addr.Absolute(module),
+			Config:         n.Config,
+			Expr:           n.Expr,
+			ModuleInstance: module,
+		}
+		g.Add(o)
+	}
+	return &g, nil
 }
 
-// GraphNodeReferenceable
-func (n *NodeApplyableModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
-	return []addrs.Referenceable{n.Addr.Variable}
+func (n *nodeExpandModuleVariable) Name() string {
+	return fmt.Sprintf("%s.%s (expand)", n.Module, n.Addr.String())
+}
+
+// GraphNodeModulePath
+func (n *nodeExpandModuleVariable) ModulePath() addrs.Module {
+	return n.Module
 }
 
 // GraphNodeReferencer
-func (n *NodeApplyableModuleVariable) References() []*addrs.Reference {
+func (n *nodeExpandModuleVariable) References() []*addrs.Reference {
 
 	// If we have no value expression, we cannot depend on anything.
 	if n.Expr == nil {
@@ -76,7 +72,7 @@ func (n *NodeApplyableModuleVariable) References() []*addrs.Reference {
 
 	// Variables in the root don't depend on anything, because their values
 	// are gathered prior to the graph walk and recorded in the context.
-	if len(n.Addr.Module) == 0 {
+	if len(n.Module) == 0 {
 		return nil
 	}
 
@@ -94,44 +90,91 @@ func (n *NodeApplyableModuleVariable) References() []*addrs.Reference {
 	return refs
 }
 
-// GraphNodeEvalable
-func (n *NodeApplyableModuleVariable) EvalTree() EvalNode {
+// GraphNodeReferenceOutside implementation
+func (n *nodeExpandModuleVariable) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+	return n.Module, n.Module.Parent()
+}
+
+// GraphNodeReferenceable
+func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
+	return []addrs.Referenceable{n.Addr}
+}
+
+// nodeModuleVariable represents a module variable input during
+// the apply step.
+type nodeModuleVariable struct {
+	Addr   addrs.AbsInputVariableInstance
+	Config *configs.Variable // Config is the var in the config
+	Expr   hcl.Expression    // Expr is the value expression given in the call
+	// ModuleInstance in order to create the appropriate context for evaluating
+	// ModuleCallArguments, ex. so count.index and each.key can resolve
+	ModuleInstance addrs.ModuleInstance
+}
+
+// Ensure that we are implementing all of the interfaces we think we are
+// implementing.
+var (
+	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
+	_ GraphNodeExecutable     = (*nodeModuleVariable)(nil)
+	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
+	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
+)
+
+func (n *nodeModuleVariable) temporaryValue() bool {
+	return true
+}
+
+func (n *nodeModuleVariable) Name() string {
+	return n.Addr.String()
+}
+
+// GraphNodeModuleInstance
+func (n *nodeModuleVariable) Path() addrs.ModuleInstance {
+	// We execute in the parent scope (above our own module) because
+	// expressions in our value are resolved in that context.
+	return n.Addr.Module.Parent()
+}
+
+// GraphNodeModulePath
+func (n *nodeModuleVariable) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
+}
+
+// GraphNodeExecutable
+func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
 	// If we have no value, do nothing
 	if n.Expr == nil {
-		return &EvalNoop{}
+		return nil
 	}
 
 	// Otherwise, interpolate the value of this variable and set it
 	// within the variables mapping.
-	vals := make(map[string]cty.Value)
+	var vals map[string]cty.Value
+	var err error
 
-	_, call := n.Addr.Module.CallInstance()
-
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalOpFilter{
-				Ops: []walkOperation{walkRefresh, walkPlan, walkApply,
-					walkDestroy, walkValidate},
-				Node: &EvalModuleCallArgument{
-					Addr:   n.Addr.Variable,
-					Config: n.Config,
-					Expr:   n.Expr,
-					Values: vals,
-
-					IgnoreDiagnostics: false,
-				},
-			},
-
-			&EvalSetModuleCallArguments{
-				Module: call,
-				Values: vals,
-			},
-		},
+	switch op {
+	case walkRefresh, walkPlan, walkApply, walkDestroy, walkImport:
+		vals, err = n.EvalModuleCallArgument(ctx, false)
+		if err != nil {
+			return err
+		}
+	case walkValidate:
+		vals, err = n.EvalModuleCallArgument(ctx, true)
+		if err != nil {
+			return err
+		}
 	}
+
+	// Set values for arguments of a child module call, for later retrieval
+	// during expression evaluation.
+	_, call := n.Addr.Module.CallInstance()
+	ctx.SetModuleCallArguments(call, vals)
+
+	return evalVariableValidations(n.Addr, n.Config, n.Expr, ctx)
 }
 
 // dag.GraphNodeDotter impl.
-func (n *NodeApplyableModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 	return &dag.DotNode{
 		Name: name,
 		Attrs: map[string]string{
@@ -139,4 +182,76 @@ func (n *NodeApplyableModuleVariable) DotNode(name string, opts *dag.DotOpts) *d
 			"shape": "note",
 		},
 	}
+}
+
+// EvalModuleCallArgument produces the value for a particular variable as will
+// be used by a child module instance.
+//
+// The result is written into a map, with its key set to the local name of the
+// variable, disregarding the module instance address. A map is returned instead
+// of a single value as a result of trying to be convenient for use with
+// EvalContext.SetModuleCallArguments, which expects a map to merge in with any
+// existing arguments.
+//
+// validateOnly indicates that this evaluation is only for config
+// validation, and we will not have any expansion module instance
+// repetition data.
+func (n *nodeModuleVariable) EvalModuleCallArgument(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
+	wantType := n.Config.Type
+	name := n.Addr.Variable.Name
+	expr := n.Expr
+
+	if expr == nil {
+		// Should never happen, but we'll bail out early here rather than
+		// crash in case it does. We set no value at all in this case,
+		// making a subsequent call to EvalContext.SetModuleCallArguments
+		// a no-op.
+		log.Printf("[ERROR] attempt to evaluate %s with nil expression", n.Addr.String())
+		return nil, nil
+	}
+
+	var moduleInstanceRepetitionData instances.RepetitionData
+
+	switch {
+	case validateOnly:
+		// the instance expander does not track unknown expansion values, so we
+		// have to assume all RepetitionData is unknown.
+		moduleInstanceRepetitionData = instances.RepetitionData{
+			CountIndex: cty.UnknownVal(cty.Number),
+			EachKey:    cty.UnknownVal(cty.String),
+			EachValue:  cty.DynamicVal,
+		}
+
+	default:
+		// Get the repetition data for this module instance,
+		// so we can create the appropriate scope for evaluating our expression
+		moduleInstanceRepetitionData = ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
+	}
+
+	scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
+	val, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+
+	// We intentionally passed DynamicPseudoType to EvalExpr above because
+	// now we can do our own local type conversion and produce an error message
+	// with better context if it fails.
+	var convErr error
+	val, convErr = convert.Convert(val, wantType)
+	if convErr != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid value for module argument",
+			Detail: fmt.Sprintf(
+				"The given value is not suitable for child module variable %q defined at %s: %s.",
+				name, n.Config.DeclRange.String(), convErr,
+			),
+			Subject: expr.Range().Ptr(),
+		})
+		// We'll return a placeholder unknown value to avoid producing
+		// redundant downstream errors.
+		val = cty.UnknownVal(wantType)
+	}
+
+	vals := make(map[string]cty.Value)
+	vals[name] = val
+	return vals, diags.ErrWithWarnings()
 }

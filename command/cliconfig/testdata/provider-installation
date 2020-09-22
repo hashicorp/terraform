@@ -1,0 +1,17 @@
+provider_installation {
+  filesystem_mirror {
+    path    = "/tmp/example1"
+    include = ["example.com/*/*"]
+  }
+  network_mirror {
+    url     = "https://tf-Mirror.example.com/"
+    include = ["registry.terraform.io/*/*"]
+    exclude = ["registry.Terraform.io/foobar/*"]
+  }
+  filesystem_mirror {
+    path    = "/tmp/example2"
+  }
+  direct {
+    exclude = ["example.com/*/*"]
+  }
+}

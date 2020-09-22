@@ -2,8 +2,10 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -12,16 +14,40 @@ import (
 // graph to represent the imports we want to do for resources.
 type ImportStateTransformer struct {
 	Targets []*ImportTarget
+	Config  *configs.Config
 }
 
 func (t *ImportStateTransformer) Transform(g *Graph) error {
 	for _, target := range t.Targets {
-		// The ProviderAddr may not be supplied for non-aliased providers.
-		// This will be populated if the targets come from the cli, but tests
-		// may not specify implied provider addresses.
-		providerAddr := target.ProviderAddr
-		if providerAddr.ProviderConfig.Type == "" {
-			providerAddr = target.Addr.Resource.Resource.DefaultProviderConfig().Absolute(target.Addr.Module)
+
+		// This is only likely to happen in misconfigured tests
+		if t.Config == nil {
+			return fmt.Errorf("Cannot import into an empty configuration.")
+		}
+
+		// Get the module config
+		modCfg := t.Config.Descendent(target.Addr.Module.Module())
+		if modCfg == nil {
+			return fmt.Errorf("Module %s not found.", target.Addr.Module.Module())
+		}
+
+		providerAddr := addrs.AbsProviderConfig{
+			Module: target.Addr.Module.Module(),
+		}
+
+		// Try to find the resource config
+		rsCfg := modCfg.Module.ResourceByAddr(target.Addr.Resource.Resource)
+		if rsCfg != nil {
+			// Get the provider FQN for the resource from the resource configuration
+			providerAddr.Provider = rsCfg.Provider
+
+			// Get the alias from the resource's provider local config
+			providerAddr.Alias = rsCfg.ProviderConfigAddr().Alias
+		} else {
+			// Resource has no matching config, so use an implied provider
+			// based on the resource type
+			rsProviderType := target.Addr.Resource.Resource.ImpliedProvider()
+			providerAddr.Provider = modCfg.Module.ImpliedProviderForUnqualifiedType(rsProviderType)
 		}
 
 		node := &graphNodeImportState{
@@ -44,8 +70,8 @@ type graphNodeImportState struct {
 }
 
 var (
-	_ GraphNodeSubPath           = (*graphNodeImportState)(nil)
-	_ GraphNodeEvalable          = (*graphNodeImportState)(nil)
+	_ GraphNodeModulePath        = (*graphNodeImportState)(nil)
+	_ GraphNodeExecutable        = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
 )
@@ -55,7 +81,7 @@ func (n *graphNodeImportState) Name() string {
 }
 
 // GraphNodeProviderConsumer
-func (n *graphNodeImportState) ProvidedBy() (addrs.AbsProviderConfig, bool) {
+func (n *graphNodeImportState) ProvidedBy() (addrs.ProviderConfig, bool) {
 	// We assume that n.ProviderAddr has been properly populated here.
 	// It's the responsibility of the code creating a graphNodeImportState
 	// to populate this, possibly by calling DefaultProviderConfig() on the
@@ -65,37 +91,72 @@ func (n *graphNodeImportState) ProvidedBy() (addrs.AbsProviderConfig, bool) {
 }
 
 // GraphNodeProviderConsumer
+func (n *graphNodeImportState) Provider() addrs.Provider {
+	// We assume that n.ProviderAddr has been properly populated here.
+	// It's the responsibility of the code creating a graphNodeImportState
+	// to populate this, possibly by calling DefaultProviderConfig() on the
+	// resource address to infer an implied provider from the resource type
+	// name.
+	return n.ProviderAddr.Provider
+}
+
+// GraphNodeProviderConsumer
 func (n *graphNodeImportState) SetProvider(addr addrs.AbsProviderConfig) {
 	n.ResolvedProvider = addr
 }
 
-// GraphNodeSubPath
+// GraphNodeModuleInstance
 func (n *graphNodeImportState) Path() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeImportState) EvalTree() EvalNode {
-	var provider providers.Interface
+// GraphNodeModulePath
+func (n *graphNodeImportState) ModulePath() addrs.Module {
+	return n.Addr.Module.Module()
+}
 
+// GraphNodeExecutable impl.
+func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error {
 	// Reset our states
 	n.states = nil
 
-	// Return our sequence
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-			},
-			&EvalImportState{
-				Addr:     n.Addr.Resource,
-				Provider: &provider,
-				ID:       n.ID,
-				Output:   &n.states,
-			},
-		},
+	provider, _, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
 	}
+
+	// import state
+	absAddr := n.Addr.Resource.Absolute(ctx.Path())
+	var diags tfdiags.Diagnostics
+
+	// Call pre-import hook
+	err = ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreImportState(absAddr, n.ID)
+	})
+	if err != nil {
+		return err
+	}
+
+	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
+		TypeName: n.Addr.Resource.Resource.Type,
+		ID:       n.ID,
+	})
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+
+	imported := resp.ImportedResources
+	for _, obj := range imported {
+		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.ID, obj.TypeName)
+	}
+	n.states = imported
+
+	// Call post-import hook
+	err = ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostImportState(absAddr, imported)
+	})
+	return err
 }
 
 // GraphNodeDynamicExpandable impl.
@@ -154,9 +215,9 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	}
 
 	// For each of the states, we add a node to handle the refresh/add to state.
-	// "n.states" is populated by our own EvalTree with the result of
-	// ImportState. Since DynamicExpand is always called after EvalTree, this
-	// is safe.
+	// "n.states" is populated by our own Execute with the result of
+	// ImportState. Since DynamicExpand is always called after Execute, this is
+	// safe.
 	for i, state := range n.states {
 		g.Add(&graphNodeImportStateSub{
 			TargetAddr:       addrs[i],
@@ -185,8 +246,8 @@ type graphNodeImportStateSub struct {
 }
 
 var (
-	_ GraphNodeSubPath  = (*graphNodeImportStateSub)(nil)
-	_ GraphNodeEvalable = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeModuleInstance = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeExecutable     = (*graphNodeImportStateSub)(nil)
 )
 
 func (n *graphNodeImportStateSub) Name() string {
@@ -197,43 +258,54 @@ func (n *graphNodeImportStateSub) Path() addrs.ModuleInstance {
 	return n.TargetAddr.Module
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeImportStateSub) EvalTree() EvalNode {
+// GraphNodeExecutable impl.
+func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) error {
 	// If the Ephemeral type isn't set, then it is an error
 	if n.State.TypeName == "" {
-		err := fmt.Errorf("import of %s didn't set type", n.TargetAddr.String())
-		return &EvalReturnError{Error: &err}
+		return fmt.Errorf("import of %s didn't set type", n.TargetAddr.String())
 	}
 
 	state := n.State.AsInstanceObject()
-
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-			&EvalRefresh{
-				Addr:           n.TargetAddr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				Output:         &state,
-			},
-			&EvalImportStateVerify{
-				Addr:  n.TargetAddr.Resource,
-				State: &state,
-			},
-			&EvalWriteState{
-				Addr:           n.TargetAddr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-			},
-		},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
 	}
+
+	// EvalRefresh
+	evalRefresh := &EvalRefresh{
+		Addr:           n.TargetAddr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+		Output:         &state,
+	}
+	_, err = evalRefresh.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Verify the existance of the imported resource
+	if state.Value.IsNull() {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cannot import non-existent remote object",
+			fmt.Sprintf(
+				"While attempting to import an existing object to %s, the provider detected that no object exists with the given id. Only pre-existing objects can be imported; check that the id is correct and that it is associated with the provider's configured region or endpoint, or use \"terraform apply\" to create a new remote object for this resource.",
+				n.TargetAddr.Resource.String(),
+			),
+		))
+		return diags.Err()
+	}
+
+	//EvalWriteState
+	evalWriteState := &EvalWriteState{
+		Addr:           n.TargetAddr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+	}
+	_, err = evalWriteState.Eval(ctx)
+	return err
 }

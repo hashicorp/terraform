@@ -210,35 +210,50 @@ shell.Close()
 
 For using HTTPS authentication with x 509 cert without checking the CA
 ```go
-	package main
+package main
 
-	import (
-		"github.com/masterzen/winrm"
-		"os"
-		"io/ioutil"
-	)
+import (
+    "github.com/masterzen/winrm"
+    "io/ioutil"
+    "log"
+    "os"
+)
 
-	clientCert, err := ioutil.ReadFile("path/to/cert")
-	if err != nil {
-		panic(err)
-	}
+func main() {
+    clientCert, err := ioutil.ReadFile("/home/example/winrm_client_cert.pem")
+    if err != nil {
+        log.Fatalf("failed to read client certificate: %q", err)
+    }
 
-	clientKey, err := ioutil.ReadFile("path/to/key")
-	if err != nil {
-		panic(err)
-	}
+    clientKey, err := ioutil.ReadFile("/home/example/winrm_client_key.pem")
+    if err != nil {
+        log.Fatalf("failed to read client key: %q", err)
+    }
 
-	winrm.DefaultParameters.TransportDecorator = func() winrm.Transporter {
-		// winrm https module
-		return &winrm.ClientAuthRequest{}
-	}
+    winrm.DefaultParameters.TransportDecorator = func() winrm.Transporter {
+        // winrm https module
+        return &winrm.ClientAuthRequest{}
+    }
 
-	endpoint := winrm.NewEndpoint(host, 5986, false, false, clientCert, clientKey, nil, 0)
-	client, err := winrm.NewClient(endpoint, "Administrator", ""
-	if err != nil {
-		panic(err)
-	}
-	client.Run("ipconfig /all", os.Stdout, os.Stderr)
+    endpoint := winrm.NewEndpoint(
+        "192.168.100.2", // host to connect to
+        5986,            // winrm port
+        true,            // use TLS
+        true,            // Allow insecure connection
+        nil,             // CA certificate
+        clientCert,      // Client Certificate
+        clientKey,       // Client Key
+        0,               // Timeout
+    )
+    client, err := winrm.NewClient(endpoint, "Administrator", "")
+    if err != nil {
+        log.Fatalf("failed to create client: %q", err)
+    }
+    _, err = client.Run("whoami", os.Stdout, os.Stderr)
+    if err != nil {
+        log.Fatalf("failed to run command: %q", err)
+    }
+}
 ```
 
 ## Developing on WinRM

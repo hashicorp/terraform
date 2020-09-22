@@ -1,6 +1,6 @@
 package terraform
 
-//go:generate stringer -type=GraphType context_graph_type.go
+//go:generate go run golang.org/x/tools/cmd/stringer -type=GraphType context_graph_type.go
 
 // GraphType is an enum of the type of graph to create with a Context.
 // The values of the constants may change so they shouldn't be depended on;

@@ -8,8 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -119,6 +118,7 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	}
 	if p.GetSchemaReturn != nil {
 		ret.Provider.Block = p.GetSchemaReturn.Provider
+		ret.ProviderMeta.Block = p.GetSchemaReturn.ProviderMeta
 		for n, s := range p.GetSchemaReturn.DataSources {
 			ret.DataSources[n] = providers.Schema{
 				Block: s,
@@ -391,7 +391,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 			for k, new := range plannedMap {
 				old := priorMap[k]
 				newComputed := false
-				if new == config.UnknownVariableValue {
+				if new == hcl2shim.UnknownVariableValue {
 					new = ""
 					newComputed = true
 				}

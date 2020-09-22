@@ -98,6 +98,10 @@ Example to Download an Object's Data
 	containerName := "my_container"
 
 	object := objects.Download(objectStorageClient, containerName, objectName, nil)
+	if object.Err != nil {
+		panic(object.Err)
+	}
+	// if "ExtractContent" method is not called, the HTTP connection will remain consumed
 	content, err := object.ExtractContent()
 	if err != nil {
 		panic(err)

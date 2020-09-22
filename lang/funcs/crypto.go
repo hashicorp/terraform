@@ -6,18 +6,20 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"hash"
+	"strings"
 
+	uuidv5 "github.com/google/uuid"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ssh"
 )
 
 var UUIDFunc = function.New(&function.Spec{
@@ -29,6 +31,39 @@ var UUIDFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), err
 		}
 		return cty.StringVal(result), nil
+	},
+})
+
+var UUIDV5Func = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "namespace",
+			Type: cty.String,
+		},
+		{
+			Name: "name",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		var namespace uuidv5.UUID
+		switch {
+		case args[0].AsString() == "dns":
+			namespace = uuidv5.NameSpaceDNS
+		case args[0].AsString() == "url":
+			namespace = uuidv5.NameSpaceURL
+		case args[0].AsString() == "oid":
+			namespace = uuidv5.NameSpaceOID
+		case args[0].AsString() == "x500":
+			namespace = uuidv5.NameSpaceX500
+		default:
+			if namespace, err = uuidv5.Parse(args[0].AsString()); err != nil {
+				return cty.UnknownVal(cty.String), fmt.Errorf("uuidv5() doesn't support namespace %s (%v)", args[0].AsString(), err)
+			}
+		}
+		val := args[1].AsString()
+		return cty.StringVal(uuidv5.NewSHA1(namespace, []byte(val)).String()), nil
 	},
 })
 
@@ -118,27 +153,30 @@ var RsaDecryptFunc = function.New(&function.Spec{
 
 		b, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode input %q: cipher text must be base64-encoded", s)
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "failed to decode input %q: cipher text must be base64-encoded", s)
 		}
 
-		block, _ := pem.Decode([]byte(key))
-		if block == nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to parse key: no key found")
-		}
-		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-			return cty.UnknownVal(cty.String), fmt.Errorf(
-				"failed to parse key: password protected keys are not supported. Please decrypt the key prior to use",
-			)
-		}
-
-		x509Key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		rawKey, err := ssh.ParseRawPrivateKey([]byte(key))
 		if err != nil {
-			return cty.UnknownVal(cty.String), err
+			var errStr string
+			switch e := err.(type) {
+			case asn1.SyntaxError:
+				errStr = strings.ReplaceAll(e.Error(), "asn1: syntax error", "invalid ASN1 data in the given private key")
+			case asn1.StructuralError:
+				errStr = strings.ReplaceAll(e.Error(), "asn1: struture error", "invalid ASN1 data in the given private key")
+			default:
+				errStr = fmt.Sprintf("invalid private key: %s", e)
+			}
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, errStr)
+		}
+		privateKey, ok := rawKey.(*rsa.PrivateKey)
+		if !ok {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "invalid private key type %t", rawKey)
 		}
 
-		out, err := rsa.DecryptPKCS1v15(nil, x509Key, b)
+		out, err := rsa.DecryptPKCS1v15(nil, privateKey, b)
 		if err != nil {
-			return cty.UnknownVal(cty.String), err
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decrypt: %s", err)
 		}
 
 		return cty.StringVal(string(out)), nil
@@ -226,6 +264,12 @@ func makeFileHashFunction(baseDir string, hf func() hash.Hash, enc func([]byte) 
 // table in the "lang" package.
 func UUID() (cty.Value, error) {
 	return UUIDFunc.Call(nil)
+}
+
+// UUIDV5 generates and returns a Type-5 UUID in the standard hexadecimal string
+// format.
+func UUIDV5(namespace cty.Value, name cty.Value) (cty.Value, error) {
+	return UUIDV5Func.Call([]cty.Value{namespace, name})
 }
 
 // Base64Sha256 computes the SHA256 hash of a given string and encodes it with

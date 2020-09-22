@@ -24,8 +24,8 @@ to create and manage a new infrastructure component, data sources
 present read-only views into pre-existing data, or they compute
 new values on the fly within Terraform itself.
 
-For example, a data source may retrieve artifact information from
-Terraform Enterprise, configuration information from Consul, or look up a pre-existing
+For example, a data source may retrieve remote state data from a
+Terraform Cloud workspace, configuration information from Consul, or look up a pre-existing
 AWS resource by filtering on its attributes and tags.
 
 Every data source in Terraform is mapped to a provider based

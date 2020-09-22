@@ -35,7 +35,9 @@ func TestSetDifference(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			var one, two, expected Set
+			one := make(Set)
+			two := make(Set)
+			expected := make(Set)
 			for _, v := range tc.A {
 				one.Add(v)
 			}
@@ -46,8 +48,8 @@ func TestSetDifference(t *testing.T) {
 				expected.Add(v)
 			}
 
-			actual := one.Difference(&two)
-			match := actual.Intersection(&expected)
+			actual := one.Difference(two)
+			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
 				t.Fatalf("bad: %#v", actual.List())
 			}
@@ -78,7 +80,8 @@ func TestSetFilter(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%#v", i, tc.Input), func(t *testing.T) {
-			var input, expected Set
+			input := make(Set)
+			expected := make(Set)
 			for _, v := range tc.Input {
 				input.Add(v)
 			}
@@ -89,10 +92,30 @@ func TestSetFilter(t *testing.T) {
 			actual := input.Filter(func(v interface{}) bool {
 				return v.(int) < 5
 			})
-			match := actual.Intersection(&expected)
+			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
 				t.Fatalf("bad: %#v", actual.List())
 			}
 		})
 	}
+}
+
+func TestSetCopy(t *testing.T) {
+	a := make(Set)
+	a.Add(1)
+	a.Add(2)
+
+	b := a.Copy()
+	b.Add(3)
+
+	diff := b.Difference(a)
+
+	if diff.Len() != 1 {
+		t.Fatalf("expected single diff value, got %#v", diff)
+	}
+
+	if !diff.Include(3) {
+		t.Fatalf("diff does not contain 3, got %#v", diff)
+	}
+
 }

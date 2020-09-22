@@ -24,7 +24,7 @@ func ValidateAccountID(accountID string, allowedAccountIDs, forbiddenAccountIDs 
 			}
 		}
 
-		return fmt.Errorf("AWS Account ID not allowed: %s)", accountID)
+		return fmt.Errorf("AWS Account ID not allowed: %s", accountID)
 	}
 
 	return nil

@@ -24,13 +24,9 @@ The command-line flags are all optional. The list of available flags are:
 * `-json` - If specified, the outputs are formatted as a JSON object, with
     a key per output. If `NAME` is specified, only the output specified will be
     returned. This can be piped into tools such as `jq` for further processing.
+* `-no-color` - If specified, output won't contain any color.
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
     Ignored when [remote state](/docs/state/remote.html) is used.
-* `-module=module_name` - The module path which has needed output.
-    By default this is the root path. Other modules can be specified by
-    a period-separated list. Example: "foo" would reference the module
-    "foo" but "foo.bar" would reference the "bar" module in the "foo"
-    module.
 
 ## Examples
 
@@ -44,12 +40,23 @@ output "lb_address" {
 output "instance_ips" {
   value = ["${aws_instance.web.*.public_ip}"]
 }
+
+output "password" {
+  sensitive = true
+  value = ["${var.secret_password}"]
+}
 ```
 
 To list all outputs:
 
 ```shell
 $ terraform output
+```
+
+Note that outputs with the `sensitive` attribute will be redacted:
+```shell
+$ terraform output password
+password = <sensitive>
 ```
 
 To query for the DNS address of the load balancer:

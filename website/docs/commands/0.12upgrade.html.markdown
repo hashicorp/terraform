@@ -12,7 +12,7 @@ The `terraform 0.12upgrade` command applies several automatic upgrade rules to
 help prepare a module that was written for Terraform v0.11 to be used
 with Terraform v0.12.
 
--> This command requires **Terraform v0.12 or later**.
+-> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](https://www.terraform.io/upgrade-guides/0-12.html).
 
 ## Usage
 
@@ -99,8 +99,16 @@ are not supported by the tool itself, but if you are on a Unix-style system
 you can achieve this using the `find` command as follows:
 
 ```
-find . -name '*.tf' -printf "%h\n" | xargs -n1 terraform 0.12upgrade -yes
+find . -name '*.tf' -printf "%h\n" | uniq | xargs -n1 terraform 0.12upgrade -yes
 ```
+
+On Mac OS X, the `find` included with the system does not support the `-printf` argument. You can install GNU find using Homebrew in order to use that argument:
+
+```
+brew install findutils
+```
+Once installed, run the above command line using `gfind` instead of `find`.
+
 
 Note that the above includes the `-yes` option to override the interactive
 prompt, so be sure you have a clean work tree before running it.

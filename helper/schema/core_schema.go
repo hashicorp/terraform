@@ -87,7 +87,7 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 // whose elem is a whole resource.
 func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 	// The Schema.DefaultFunc capability adds some extra weirdness here since
-	// it can be combined with "Required: true" to create a sitution where
+	// it can be combined with "Required: true" to create a situation where
 	// required-ness is conditional. Terraform Core doesn't share this concept,
 	// so we must sniff for this possibility here and conditionally turn
 	// off the "Required" flag if it looks like the DefaultFunc is going

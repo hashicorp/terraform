@@ -22,8 +22,15 @@ set their values using CLI options and environment variables.
 When you declare them in [child modules](./modules.html),
 the calling module should pass values in the `module` block.
 
+If you're familiar with traditional programming languages, it can be useful to
+compare Terraform modules to function definitions:
+
+- Input variables are like function arguments.
+- [Output values](./outputs.html) are like function return values.
+- [Local values](./locals.html) are like a function's temporary local variables.
+
 Input variable usage is introduced in the Getting Started guide section
-[_Input Variables_](/intro/getting-started/variables.html).
+[_Input Variables_](https://learn.hashicorp.com/terraform/getting-started/variables).
 
 -> **Note:** For brevity, input variables are often referred to as just
 "variables" or "Terraform variables" when it is clear from context what sort of
@@ -45,6 +52,21 @@ variable "image_id" {
 variable "availability_zone_names" {
   type    = list(string)
   default = ["us-west-1a"]
+}
+
+variable "docker_ports" {
+  type = list(object({
+    internal = number
+    external = number
+    protocol = string
+  }))
+  default = [
+    {
+      internal = 8300
+      external = 8300
+      protocol = "tcp"
+    }
+  ]
 }
 ```
 
@@ -85,6 +107,9 @@ Within the module that declared a variable, its value can be accessed from
 within [expressions](./expressions.html) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
+-> **Note:** Input variables are _created_ by a `variable` block, but you
+_reference_ them as attributes on an object named `var`.
+
 ```hcl
 resource "aws_instance" "example" {
   instance_type = "t2.micro"
@@ -92,7 +117,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-The value assigned to a variable can be accessed only from expressions within
+The value assigned to a variable can only be accessed in expressions within
 the module where it was declared.
 
 ## Type Constraints
@@ -149,12 +174,58 @@ might be included in documentation about the module, and so it should be written
 from the perspective of the user of the module rather than its maintainer. For
 commentary for module maintainers, use comments.
 
+## Custom Validation Rules
+
+-> This feature was introduced in Terraform CLI v0.13.0.
+
+In addition to Type Constraints as described above, a module author can specify
+arbitrary custom validation rules for a particular variable using a `validation`
+block nested within the corresponding `variable` block:
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+The `condition` argument is an expression that must use the value of the
+variable to return `true` if the value is valid, or `false` if it is invalid.
+The expression can refer only to the variable that the condition applies to,
+and _must not_ produce errors.
+
+If the failure of an expression is the basis of the validation decision, use
+[the `can` function](./functions/can.html) to detect such errors. For example:
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    # regex(...) fails if it cannot find a match
+    condition     = can(regex("^ami-", var.image_id))
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+If `condition` evaluates to `false`, Terraform will produce an error message
+that includes the sentences given in `error_message`. The error message string
+should be at least one full sentence explaining the constraint that failed,
+using a sentence structure similar to the above examples.
+
 ## Assigning Values to Root Module Variables
 
 When variables are declared in the root module of your configuration, they
 can be set in a number of ways:
 
-* [In a Terraform Enterprise workspace](/docs/enterprise/workspaces/variables.html).
+* [In a Terraform Cloud workspace](/docs/cloud/workspaces/variables.html).
 * Individually, with the `-var` command line option.
 * In variable definitions (`.tfvars`) files, either specified on the command line
   or automatically loaded.
@@ -167,7 +238,7 @@ assigned in the configuration of their parent module, as described in
 
 ### Variables on the Command Line
 
-To specify individual modules on the command line, use the `-var` option
+To specify individual variables on the command line, use the `-var` option
 when running the `terraform plan` and `terraform apply` commands:
 
 ```
@@ -189,8 +260,8 @@ or `.tfvars.json`) and then specify that file on the command line with
 terraform apply -var-file="testing.tfvars"
 ```
 
--> **Note:** This is how Terraform Enterprise passes
-[workspace variables](/docs/enterprise/workspaces/variables.html) to Terraform.
+-> **Note:** This is how Terraform Cloud passes
+[workspace variables](/docs/cloud/workspaces/variables.html) to Terraform.
 
 A variable definitions file uses the same basic syntax as Terraform language
 files, but consists only of variable name assignments:
@@ -271,7 +342,8 @@ recommend always setting complex variable values via variable definitions files.
 
 The above mechanisms for setting variables can be used together in any
 combination. If the same variable is assigned multiple values, Terraform uses
-the _last_ value it finds, overriding any previous values.
+the _last_ value it finds, overriding any previous values. Note that the same
+variable cannot be assigned multiple values within a single source.
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:
@@ -282,7 +354,7 @@ precedence over earlier ones:
 * Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
   of their filenames.
 * Any `-var` and `-var-file` options on the command line, in the order they
-  are provided. (This includes variables set by a Terraform Enterprise
+  are provided. (This includes variables set by a Terraform Cloud
   workspace.)
 
 ~> **Important:** In Terraform 0.12 and later, variables with map and object

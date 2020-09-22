@@ -137,7 +137,7 @@ func (l Negotiator) RoundTrip(req *http.Request) (res *http.Response, err error)
 
 		req.Body = ioutil.NopCloser(bytes.NewReader(body.Bytes()))
 
-		res, err = rt.RoundTrip(req)
+		return rt.RoundTrip(req)
 	}
 
 	return res, err

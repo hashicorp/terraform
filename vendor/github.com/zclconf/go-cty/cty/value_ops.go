@@ -3,7 +3,6 @@ package cty
 import (
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/zclconf/go-cty/cty/set"
 )
@@ -11,6 +10,18 @@ import (
 // GoString is an implementation of fmt.GoStringer that produces concise
 // source-like representations of values suitable for use in debug messages.
 func (val Value) GoString() string {
+	if val.IsMarked() {
+		unVal, marks := val.Unmark()
+		if len(marks) == 1 {
+			var mark interface{}
+			for m := range marks {
+				mark = m
+			}
+			return fmt.Sprintf("%#v.Mark(%#v)", unVal, mark)
+		}
+		return fmt.Sprintf("%#v.WithMarks(%#v)", unVal, marks)
+	}
+
 	if val == NilVal {
 		return "cty.NilVal"
 	}
@@ -82,7 +93,11 @@ func (val Value) GoString() string {
 		vals := val.AsValueMap()
 		return fmt.Sprintf("cty.ObjectVal(%#v)", vals)
 	case val.ty.IsCapsuleType():
-		return fmt.Sprintf("cty.CapsuleVal(%#v, %#v)", val.ty, val.v)
+		impl := val.ty.CapsuleOps().GoString
+		if impl == nil {
+			return fmt.Sprintf("cty.CapsuleVal(%#v, %#v)", val.ty, val.v)
+		}
+		return impl(val.EncapsulatedValue())
 	}
 
 	// Default exposes implementation details, so should actually cover
@@ -101,6 +116,12 @@ func (val Value) GoString() string {
 // Use RawEquals to compare if two values are equal *ignoring* the
 // short-circuit rules and the exception for null values.
 func (val Value) Equals(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Equals(other).WithMarks(valMarks, otherMarks)
+	}
+
 	// Start by handling Unknown values before considering types.
 	// This needs to be done since Null values are always equal regardless of
 	// type.
@@ -111,9 +132,9 @@ func (val Value) Equals(other Value) Value {
 	case val.IsKnown() && !other.IsKnown():
 		switch {
 		case val.IsNull(), other.ty.HasDynamicTypes():
-			// If known is Null, we need to wait for the unkown value since
+			// If known is Null, we need to wait for the unknown value since
 			// nulls of any type are equal.
-			// An unkown with a dynamic type compares as unknown, which we need
+			// An unknown with a dynamic type compares as unknown, which we need
 			// to check before the type comparison below.
 			return UnknownVal(Bool)
 		case !val.ty.Equals(other.ty):
@@ -126,9 +147,9 @@ func (val Value) Equals(other Value) Value {
 	case other.IsKnown() && !val.IsKnown():
 		switch {
 		case other.IsNull(), val.ty.HasDynamicTypes():
-			// If known is Null, we need to wait for the unkown value since
+			// If known is Null, we need to wait for the unknown value since
 			// nulls of any type are equal.
-			// An unkown with a dynamic type compares as unknown, which we need
+			// An unknown with a dynamic type compares as unknown, which we need
 			// to check before the type comparison below.
 			return UnknownVal(Bool)
 		case !other.ty.Equals(val.ty):
@@ -149,7 +170,15 @@ func (val Value) Equals(other Value) Value {
 		return BoolVal(false)
 	}
 
-	if val.ty.HasDynamicTypes() || other.ty.HasDynamicTypes() {
+	// Check if there are any nested dynamic values making this comparison
+	// unknown.
+	if !val.HasWhollyKnownType() || !other.HasWhollyKnownType() {
+		// Even if we have dynamic values, we can still determine inequality if
+		// there is no way the types could later conform.
+		if val.ty.TestConformance(other.ty) != nil && other.ty.TestConformance(val.ty) != nil {
+			return BoolVal(false)
+		}
+
 		return UnknownVal(Bool)
 	}
 
@@ -240,24 +269,26 @@ func (val Value) Equals(other Value) Value {
 		s2 := other.v.(set.Set)
 		equal := true
 
-		// Note that by our definition of sets it's never possible for two
-		// sets that contain unknown values (directly or indicrectly) to
-		// ever be equal, even if they are otherwise identical.
-
-		// FIXME: iterating both lists and checking each item is not the
-		// ideal implementation here, but it works with the primitives we
-		// have in the set implementation. Perhaps the set implementation
-		// can provide its own equality test later.
-		s1.EachValue(func(v interface{}) {
-			if !s2.Has(v) {
+		// Two sets are equal if all of their values are known and all values
+		// in one are also in the other.
+		for it := s1.Iterator(); it.Next(); {
+			rv := it.Value()
+			if rv == unknown { // "unknown" is the internal representation of unknown-ness
+				return UnknownVal(Bool)
+			}
+			if !s2.Has(rv) {
 				equal = false
 			}
-		})
-		s2.EachValue(func(v interface{}) {
-			if !s1.Has(v) {
+		}
+		for it := s2.Iterator(); it.Next(); {
+			rv := it.Value()
+			if rv == unknown { // "unknown" is the internal representation of unknown-ness
+				return UnknownVal(Bool)
+			}
+			if !s1.Has(rv) {
 				equal = false
 			}
-		})
+		}
 
 		result = equal
 	case ty.IsMapType():
@@ -288,10 +319,22 @@ func (val Value) Equals(other Value) Value {
 			}
 		}
 	case ty.IsCapsuleType():
-		// A capsule type's encapsulated value is a pointer to a value of its
-		// native type, so we can just compare these to get the identity test
-		// we need.
-		return BoolVal(val.v == other.v)
+		impl := val.ty.CapsuleOps().Equals
+		if impl == nil {
+			impl := val.ty.CapsuleOps().RawEquals
+			if impl == nil {
+				// A capsule type's encapsulated value is a pointer to a value of its
+				// native type, so we can just compare these to get the identity test
+				// we need.
+				return BoolVal(val.v == other.v)
+			}
+			return BoolVal(impl(val.v, other.v))
+		}
+		ret := impl(val.v, other.v)
+		if !ret.Type().Equals(Bool) {
+			panic(fmt.Sprintf("Equals for %#v returned %#v, not cty.Bool", ty, ret.Type()))
+		}
+		return ret
 
 	default:
 		// should never happen
@@ -314,6 +357,7 @@ func (val Value) NotEqual(other Value) Value {
 // or null values. For more robust handling with unknown value
 // short-circuiting, use val.Equals(cty.True).
 func (val Value) True() bool {
+	val.assertUnmarked()
 	if val.ty != Bool {
 		panic("not bool")
 	}
@@ -338,6 +382,13 @@ func (val Value) RawEquals(other Value) bool {
 	if !val.ty.Equals(other.ty) {
 		return false
 	}
+	if !val.HasSameMarks(other) {
+		return false
+	}
+	// Since we've now checked the marks, we'll unmark for the rest of this...
+	val = val.unmarkForce()
+	other = other.unmarkForce()
+
 	if (!val.IsKnown()) && (!other.IsKnown()) {
 		return true
 	}
@@ -412,17 +463,32 @@ func (val Value) RawEquals(other Value) bool {
 			return true
 		}
 		return false
-	case ty.IsSetType():
-		s1 := val.v.(set.Set)
-		s2 := other.v.(set.Set)
 
-		// Since we're intentionally ignoring our rule that two unknowns
-		// are never equal, we can cheat here.
-		// (This isn't 100% right since e.g. it will fail if the set contains
-		// numbers that are infinite, which DeepEqual can't compare properly.
-		// We're accepting that limitation for simplicity here, since this
-		// function is here primarily for testing.)
-		return reflect.DeepEqual(s1, s2)
+	case ty.IsSetType():
+		// Convert the set values into a slice so that we can compare each
+		// value. This is safe because the underlying sets are ordered (see
+		// setRules in set_internals.go), and so the results are guaranteed to
+		// be in a consistent order for two equal sets
+		setList1 := val.AsValueSlice()
+		setList2 := other.AsValueSlice()
+
+		// If both physical sets have the same length and they have all of their
+		// _known_ values in common, we know that both sets also have the same
+		// number of unknown values.
+		if len(setList1) != len(setList2) {
+			return false
+		}
+
+		for i := range setList1 {
+			eq := setList1[i].RawEquals(setList2[i])
+			if !eq {
+				return false
+			}
+		}
+
+		// If we got here without returning false already then our sets are
+		// equal enough for RawEquals purposes.
+		return true
 
 	case ty.IsMapType():
 		ety := ty.typeImpl.(typeMap).ElementTypeT
@@ -448,10 +514,14 @@ func (val Value) RawEquals(other Value) bool {
 		}
 		return false
 	case ty.IsCapsuleType():
-		// A capsule type's encapsulated value is a pointer to a value of its
-		// native type, so we can just compare these to get the identity test
-		// we need.
-		return val.v == other.v
+		impl := val.ty.CapsuleOps().RawEquals
+		if impl == nil {
+			// A capsule type's encapsulated value is a pointer to a value of its
+			// native type, so we can just compare these to get the identity test
+			// we need.
+			return val.v == other.v
+		}
+		return impl(val.v, other.v)
 
 	default:
 		// should never happen
@@ -462,6 +532,12 @@ func (val Value) RawEquals(other Value) bool {
 // Add returns the sum of the receiver and the given other value. Both values
 // must be numbers; this method will panic if not.
 func (val Value) Add(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Add(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -475,6 +551,12 @@ func (val Value) Add(other Value) Value {
 // Subtract returns receiver minus the given other value. Both values must be
 // numbers; this method will panic if not.
 func (val Value) Subtract(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Subtract(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -486,6 +568,11 @@ func (val Value) Subtract(other Value) Value {
 // Negate returns the numeric negative of the receiver, which must be a number.
 // This method will panic when given a value of any other type.
 func (val Value) Negate() Value {
+	if val.IsMarked() {
+		val, valMarks := val.Unmark()
+		return val.Negate().WithMarks(valMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -498,6 +585,12 @@ func (val Value) Negate() Value {
 // Multiply returns the product of the receiver and the given other value.
 // Both values must be numbers; this method will panic if not.
 func (val Value) Multiply(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Multiply(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -520,6 +613,12 @@ func (val Value) Multiply(other Value) Value {
 // If both values are zero or infinity, this function will panic with
 // an instance of big.ErrNaN.
 func (val Value) Divide(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Divide(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -546,6 +645,12 @@ func (val Value) Divide(other Value) Value {
 // may wish to disallow such things outright or implement their own modulo
 // if they disagree with the interpretation used here.
 func (val Value) Modulo(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Modulo(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -576,6 +681,11 @@ func (val Value) Modulo(other Value) Value {
 // Absolute returns the absolute (signless) value of the receiver, which must
 // be a number or this method will panic.
 func (val Value) Absolute() Value {
+	if val.IsMarked() {
+		val, valMarks := val.Unmark()
+		return val.Absolute().WithMarks(valMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Number, val); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Number)
 		return *shortCircuit
@@ -596,6 +706,11 @@ func (val Value) Absolute() Value {
 // This method may be called on a value whose type is DynamicPseudoType,
 // in which case the result will also be DynamicVal.
 func (val Value) GetAttr(name string) Value {
+	if val.IsMarked() {
+		val, valMarks := val.Unmark()
+		return val.GetAttr(name).WithMarks(valMarks)
+	}
+
 	if val.ty == DynamicPseudoType {
 		return DynamicVal
 	}
@@ -638,6 +753,12 @@ func (val Value) GetAttr(name string) Value {
 // This method may be called on a value whose type is DynamicPseudoType,
 // in which case the result will also be the DynamicValue.
 func (val Value) Index(key Value) Value {
+	if val.IsMarked() || key.IsMarked() {
+		val, valMarks := val.Unmark()
+		key, keyMarks := key.Unmark()
+		return val.Index(key).WithMarks(valMarks, keyMarks)
+	}
+
 	if val.ty == DynamicPseudoType {
 		return DynamicVal
 	}
@@ -733,6 +854,12 @@ func (val Value) Index(key Value) Value {
 // This method will panic if the receiver is not indexable, but does not
 // impose any panic-causing type constraints on the key.
 func (val Value) HasIndex(key Value) Value {
+	if val.IsMarked() || key.IsMarked() {
+		val, valMarks := val.Unmark()
+		key, keyMarks := key.Unmark()
+		return val.HasIndex(key).WithMarks(valMarks, keyMarks)
+	}
+
 	if val.ty == DynamicPseudoType {
 		return UnknownVal(Bool)
 	}
@@ -810,6 +937,12 @@ func (val Value) HasIndex(key Value) Value {
 //
 // This method will panic if the receiver is not a set, or if it is a null set.
 func (val Value) HasElement(elem Value) Value {
+	if val.IsMarked() || elem.IsMarked() {
+		val, valMarks := val.Unmark()
+		elem, elemMarks := elem.Unmark()
+		return val.HasElement(elem).WithMarks(valMarks, elemMarks)
+	}
+
 	ty := val.Type()
 
 	if !ty.IsSetType() {
@@ -838,15 +971,38 @@ func (val Value) HasElement(elem Value) Value {
 // If the receiver is null then this function will panic.
 //
 // Note that Length is not supported for strings. To determine the length
-// of a string, call AsString and take the length of the native Go string
-// that is returned.
+// of a string, use the Length function in funcs/stdlib.
 func (val Value) Length() Value {
+	if val.IsMarked() {
+		val, valMarks := val.Unmark()
+		return val.Length().WithMarks(valMarks)
+	}
+
 	if val.Type().IsTupleType() {
 		// For tuples, we can return the length even if the value is not known.
 		return NumberIntVal(int64(val.Type().Length()))
 	}
 
 	if !val.IsKnown() {
+		return UnknownVal(Number)
+	}
+	if val.Type().IsSetType() {
+		// The Length rules are a little different for sets because if any
+		// unknown values are present then the values they are standing in for
+		// may or may not be equal to other elements in the set, and thus they
+		// may or may not coalesce with other elements and produce fewer
+		// items in the resulting set.
+		storeLength := int64(val.v.(set.Set).Length())
+		if storeLength == 1 || val.IsWhollyKnown() {
+			// If our set is wholly known then we know its length.
+			//
+			// We also know the length if the physical store has only one
+			// element, even if that element is unknown, because there's
+			// nothing else in the set for it to coalesce with and a single
+			// unknown value cannot represent more than one known value.
+			return NumberIntVal(storeLength)
+		}
+		// Otherwise, we cannot predict the length.
 		return UnknownVal(Number)
 	}
 
@@ -858,7 +1014,15 @@ func (val Value) Length() Value {
 //
 // This is an integration method provided for the convenience of code bridging
 // into Go's type system.
+//
+// For backward compatibility with an earlier implementation error, LengthInt's
+// result can disagree with Length's result for any set containing unknown
+// values. Length can potentially indicate the set's length is unknown in that
+// case, whereas LengthInt will return the maximum possible length as if the
+// unknown values were each a placeholder for a value not equal to any other
+// value in the set.
 func (val Value) LengthInt() int {
+	val.assertUnmarked()
 	if val.Type().IsTupleType() {
 		// For tuples, we can return the length even if the value is not known.
 		return val.Type().Length()
@@ -880,6 +1044,15 @@ func (val Value) LengthInt() int {
 		return len(val.v.([]interface{}))
 
 	case val.ty.IsSetType():
+		// NOTE: This is technically not correct in cases where the set
+		// contains unknown values, because in that case we can't know how
+		// many known values those unknown values are standing in for -- they
+		// might coalesce with other values once known.
+		//
+		// However, this incorrect behavior is preserved for backward
+		// compatibility with callers that were relying on LengthInt rather
+		// than calling Length. Instead of panicking when a set contains an
+		// unknown value, LengthInt returns the largest possible length.
 		return val.v.(set.Set).Length()
 
 	case val.ty.IsMapType():
@@ -915,6 +1088,7 @@ func (val Value) LengthInt() int {
 // ElementIterator is an integration method, so it cannot handle Unknown
 // values. This method will panic if the receiver is Unknown.
 func (val Value) ElementIterator() ElementIterator {
+	val.assertUnmarked()
 	if !val.IsKnown() {
 		panic("can't use ElementIterator on unknown value")
 	}
@@ -943,6 +1117,7 @@ func (val Value) CanIterateElements() bool {
 // ForEachElement is an integration method, so it cannot handle Unknown
 // values. This method will panic if the receiver is Unknown.
 func (val Value) ForEachElement(cb ElementCallback) bool {
+	val.assertUnmarked()
 	it := val.ElementIterator()
 	for it.Next() {
 		key, val := it.Element()
@@ -957,6 +1132,11 @@ func (val Value) ForEachElement(cb ElementCallback) bool {
 // Not returns the logical inverse of the receiver, which must be of type
 // Bool or this method will panic.
 func (val Value) Not() Value {
+	if val.IsMarked() {
+		val, valMarks := val.Unmark()
+		return val.Not().WithMarks(valMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Bool, Bool, val); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Bool)
 		return *shortCircuit
@@ -968,6 +1148,12 @@ func (val Value) Not() Value {
 // And returns the result of logical AND with the receiver and the other given
 // value, which must both be of type Bool or this method will panic.
 func (val Value) And(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.And(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Bool, Bool, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Bool)
 		return *shortCircuit
@@ -979,6 +1165,12 @@ func (val Value) And(other Value) Value {
 // Or returns the result of logical OR with the receiver and the other given
 // value, which must both be of type Bool or this method will panic.
 func (val Value) Or(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.Or(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Bool, Bool, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Bool)
 		return *shortCircuit
@@ -990,6 +1182,12 @@ func (val Value) Or(other Value) Value {
 // LessThan returns True if the receiver is less than the other given value,
 // which must both be numbers or this method will panic.
 func (val Value) LessThan(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.LessThan(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Bool, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Bool)
 		return *shortCircuit
@@ -1001,6 +1199,12 @@ func (val Value) LessThan(other Value) Value {
 // GreaterThan returns True if the receiver is greater than the other given
 // value, which must both be numbers or this method will panic.
 func (val Value) GreaterThan(other Value) Value {
+	if val.IsMarked() || other.IsMarked() {
+		val, valMarks := val.Unmark()
+		other, otherMarks := other.Unmark()
+		return val.GreaterThan(other).WithMarks(valMarks, otherMarks)
+	}
+
 	if shortCircuit := mustTypeCheck(Number, Bool, val, other); shortCircuit != nil {
 		shortCircuit = forceShortCircuitType(shortCircuit, Bool)
 		return *shortCircuit
@@ -1022,6 +1226,7 @@ func (val Value) GreaterThanOrEqualTo(other Value) Value {
 // AsString returns the native string from a non-null, non-unknown cty.String
 // value, or panics if called on any other value.
 func (val Value) AsString() string {
+	val.assertUnmarked()
 	if val.ty != String {
 		panic("not a string")
 	}
@@ -1041,6 +1246,7 @@ func (val Value) AsString() string {
 // For more convenient conversions to other native numeric types, use the
 // "gocty" package.
 func (val Value) AsBigFloat() *big.Float {
+	val.assertUnmarked()
 	if val.ty != Number {
 		panic("not a number")
 	}
@@ -1064,6 +1270,7 @@ func (val Value) AsBigFloat() *big.Float {
 // For more convenient conversions to slices of more specific types, use
 // the "gocty" package.
 func (val Value) AsValueSlice() []Value {
+	val.assertUnmarked()
 	l := val.LengthInt()
 	if l == 0 {
 		return nil
@@ -1084,6 +1291,7 @@ func (val Value) AsValueSlice() []Value {
 // For more convenient conversions to maps of more specific types, use
 // the "gocty" package.
 func (val Value) AsValueMap() map[string]Value {
+	val.assertUnmarked()
 	l := val.LengthInt()
 	if l == 0 {
 		return nil
@@ -1108,6 +1316,7 @@ func (val Value) AsValueMap() map[string]Value {
 //
 // The returned ValueSet can store only values of the receiver's element type.
 func (val Value) AsValueSet() ValueSet {
+	val.assertUnmarked()
 	if !val.Type().IsCollectionType() {
 		panic("not a collection type")
 	}
@@ -1130,6 +1339,7 @@ func (val Value) AsValueSet() ValueSet {
 // the value. Since cty considers values to be immutable, it is strongly
 // recommended to treat the encapsulated value itself as immutable too.
 func (val Value) EncapsulatedValue() interface{} {
+	val.assertUnmarked()
 	if !val.Type().IsCapsuleType() {
 		panic("not a capsule-typed value")
 	}

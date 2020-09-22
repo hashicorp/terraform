@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
@@ -57,7 +57,7 @@ func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagn
 // If a reference string is coming from a source that should be identified in
 // error messages then the caller should instead parse it directly using a
 // suitable function from the HCL API and pass the traversal itself to
-// ParseProviderConfigCompact.
+// ParseModuleInstance.
 //
 // Error diagnostics are returned if either the parsing fails or the analysis
 // of the traversal fails. There is no way for the caller to distinguish the
@@ -383,8 +383,7 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 // is contained within the reciever.
 func (m ModuleInstance) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
-
-	case ModuleInstance:
+	case Module:
 		if len(to) < len(m) {
 			// Can't be contained if the path is shorter
 			return false
@@ -392,12 +391,54 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 		// Other is contained if its steps match for the length of our own path.
 		for i, ourStep := range m {
 			otherStep := to[i]
-			if ourStep != otherStep {
+
+			// We can't contain an entire module if we have a specific instance
+			// key. The case of NoKey is OK because this address is either
+			// meant to address an unexpanded module, or a single instance of
+			// that module, and both of those are a covered in-full by the
+			// Module address.
+			if ourStep.InstanceKey != NoKey {
+				return false
+			}
+
+			if ourStep.Name != otherStep {
 				return false
 			}
 		}
 		// If we fall out here then the prefixed matched, so it's contained.
 		return true
+
+	case ModuleInstance:
+		if len(to) < len(m) {
+			return false
+		}
+		for i, ourStep := range m {
+			otherStep := to[i]
+
+			if ourStep.Name != otherStep.Name {
+				return false
+			}
+
+			// if this is our last step, because all targets are parsed as
+			// instances, this may be a ModuleInstance intended to be used as a
+			// Module.
+			if i == len(m)-1 {
+				if ourStep.InstanceKey == NoKey {
+					// If the other step is a keyed instance, then we contain that
+					// step, and if it isn't it's a match, which is true either way
+					return true
+				}
+			}
+
+			if ourStep.InstanceKey != otherStep.InstanceKey {
+				return false
+			}
+
+		}
+		return true
+
+	case ConfigResource:
+		return m.TargetContains(to.Module)
 
 	case AbsResource:
 		return m.TargetContains(to.Module)
@@ -410,6 +451,26 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 	}
 }
 
+// Module returns the address of the module that this instance is an instance
+// of.
+func (m ModuleInstance) Module() Module {
+	if len(m) == 0 {
+		return nil
+	}
+	ret := make(Module, len(m))
+	for i, step := range m {
+		ret[i] = step.Name
+	}
+	return ret
+}
+
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
+}
+
+func (s ModuleInstanceStep) String() string {
+	if s.InstanceKey != NoKey {
+		return s.Name + s.InstanceKey.String()
+	}
+	return s.Name
 }

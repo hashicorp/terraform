@@ -39,9 +39,6 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
 
@@ -52,6 +49,7 @@ type PlanGraphBuilder struct {
 	ConcreteProvider       ConcreteProviderNodeFunc
 	ConcreteResource       ConcreteResourceNodeFunc
 	ConcreteResourceOrphan ConcreteResourceInstanceNodeFunc
+	ConcreteModule         ConcreteModuleNodeFunc
 
 	once sync.Once
 }
@@ -135,44 +133,48 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas},
+		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{
+			Concrete: b.ConcreteModule,
+			Config:   b.Config,
+		},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 
-		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{
-			Config: b.Config,
-		},
+		// Make sure data sources are aware of any depends_on from the
+		// configuration
+		&attachDataResourceDependenciesTransformer{},
 
 		// Target
 		&TargetsTransformer{
 			Targets: b.Targets,
-
-			// Resource nodes from config have not yet been expanded for
-			// "count", so we must apply targeting without indices. Exact
-			// targeting will be dealt with later when these resources
-			// DynamicExpand.
-			IgnoreIndices: true,
 		},
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
 
+		// Add the node to fix the state count boundaries
+		&CountBoundaryTransformer{
+			Config: b.Config,
+		},
+
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
-		// Single root
-		&RootTransformer{},
-	}
+		// Close the root module
+		&CloseRootModuleTransformer{},
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps
@@ -191,7 +193,7 @@ func (b *PlanGraphBuilder) init() {
 	}
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResource{
+		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 		}
 	}

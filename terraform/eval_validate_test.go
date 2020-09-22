@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcltest"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -52,7 +52,7 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -98,7 +98,7 @@ func TestEvalValidateResource_managedResourceCount(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -144,7 +144,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -181,7 +181,7 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("Expected nil error, got: %s", err)
 	}
@@ -219,7 +219,7 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err == nil {
 		t.Fatal("unexpected success; want error")
 	}
@@ -271,7 +271,7 @@ func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %s", err)
 	}
@@ -323,13 +323,13 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("error for supposedly-valid config: %s", err)
 	}
 
-	// No we'll make it invalid, but adding additional traversal steps
-	// on the end of what we're referencing. This is intended to catch the
+	// Now we'll make it invalid by adding additional traversal steps at
+	// the end of what we're referencing. This is intended to catch the
 	// situation where the user tries to depend on e.g. a specific resource
 	// attribute, rather than the whole resource, like aws_instance.foo.id.
 	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
@@ -344,7 +344,23 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	_, err = node.Eval(ctx)
+	err = node.Validate(ctx)
+	if err == nil {
+		t.Fatal("no error for invalid depends_on")
+	}
+	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+
+	// Test for handling an unknown root without attribute, like a
+	// typo that omits the dot inbetween "path.module".
+	rc.DependsOn = append(rc.DependsOn, hcl.Traversal{
+		hcl.TraverseRoot{
+			Name: "pathmodule",
+		},
+	})
+
+	err = node.Validate(ctx)
 	if err == nil {
 		t.Fatal("no error for invalid depends_on")
 	}
@@ -381,14 +397,10 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 		},
 	}
 
-	result, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("node.Eval failed: %s", err)
 	}
-	if result != nil {
-		t.Errorf("node.Eval returned non-nil result")
-	}
-
 	if !mp.ValidateProvisionerConfigCalled {
 		t.Fatalf("p.ValidateProvisionerConfig not called")
 	}
@@ -437,7 +449,7 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 		}
 	}
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err == nil {
 		t.Fatalf("node.Eval succeeded; want error")
 	}
@@ -488,7 +500,7 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 		},
 	}
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err == nil {
 		t.Fatalf("node.Eval succeeded; want error")
 	}

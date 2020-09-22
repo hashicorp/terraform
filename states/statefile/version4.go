@@ -84,30 +84,22 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
 		diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
-			continue
-		}
-
-		var eachMode states.EachMode
-		switch rsV4.EachMode {
-		case "":
-			eachMode = states.NoEach
-		case "list":
-			eachMode = states.EachList
-		case "map":
-			eachMode = states.EachMap
-		default:
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid resource metadata in state",
-				fmt.Sprintf("Resource %s has invalid \"each\" value %q in state.", rAddr.Absolute(moduleAddr), eachMode),
-			))
-			continue
+			// If ParseAbsProviderConfigStr returns an error, the state may have
+			// been written before Provider FQNs were introduced and the
+			// AbsProviderConfig string format will need normalization. If so,
+			// we treat it like a legacy provider (namespace "-") and let the
+			// provider installer handle detecting the FQN.
+			var legacyAddrDiags tfdiags.Diagnostics
+			providerAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
+			if legacyAddrDiags.HasErrors() {
+				continue
+			}
 		}
 
 		ms := state.EnsureModule(moduleAddr)
 
 		// Ensure the resource container object is present in the state.
-		ms.SetResourceMeta(rAddr, eachMode, providerAddr)
+		ms.SetResourceProvider(rAddr, providerAddr)
 
 		for _, isV4 := range rsV4.Instances {
 			keyRaw := isV4.IndexKey
@@ -139,7 +131,8 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			instAddr := rAddr.Instance(key)
 
 			obj := &states.ResourceInstanceObjectSrc{
-				SchemaVersion: isV4.SchemaVersion,
+				SchemaVersion:       isV4.SchemaVersion,
+				CreateBeforeDestroy: isV4.CreateBeforeDestroy,
 			}
 
 			{
@@ -182,25 +175,14 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 
 			{
 				depsRaw := isV4.Dependencies
-				deps := make([]addrs.Referenceable, 0, len(depsRaw))
+				deps := make([]addrs.ConfigResource, 0, len(depsRaw))
 				for _, depRaw := range depsRaw {
-					ref, refDiags := addrs.ParseRefStr(depRaw)
-					diags = diags.Append(refDiags)
-					if refDiags.HasErrors() {
+					addr, addrDiags := addrs.ParseAbsResourceStr(depRaw)
+					diags = diags.Append(addrDiags)
+					if addrDiags.HasErrors() {
 						continue
 					}
-					if len(ref.Remaining) != 0 {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Invalid resource instance metadata in state",
-							fmt.Sprintf("Instance %s declares dependency on %q, which is not a reference to a dependable object.", instAddr.Absolute(moduleAddr), depRaw),
-						))
-					}
-					if ref.Subject == nil {
-						// Should never happen
-						panic(fmt.Sprintf("parsing dependency %q for instance %s returned a nil address", depRaw, instAddr.Absolute(moduleAddr)))
-					}
-					deps = append(deps, ref.Subject)
+					deps = append(deps, addr.Config())
 				}
 				obj.Dependencies = deps
 			}
@@ -247,7 +229,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		// on the incoming objects. That behavior is useful when we're making
 		// piecemeal updates to the state during an apply, but when we're
 		// reading the state file we want to reflect its contents exactly.
-		ms.SetResourceMeta(rAddr, eachMode, providerAddr)
+		ms.SetResourceProvider(rAddr, providerAddr)
 	}
 
 	// The root module is special in that we persist its attributes and thus
@@ -256,7 +238,13 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	{
 		rootModule := state.RootModule()
 		for name, fos := range sV4.RootOutputs {
-			os := &states.OutputValue{}
+			os := &states.OutputValue{
+				Addr: addrs.AbsOutputValue{
+					OutputValue: addrs.OutputValue{
+						Name: name,
+					},
+				},
+			}
 			os.Sensitive = fos.Sensitive
 
 			ty, err := ctyjson.UnmarshalType([]byte(fos.ValueTypeRaw))
@@ -346,7 +334,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 	for _, ms := range file.State.Modules {
 		moduleAddr := ms.Addr
 		for _, rs := range ms.Resources {
-			resourceAddr := rs.Addr
+			resourceAddr := rs.Addr.Resource
 
 			var mode string
 			switch resourceAddr.Mode {
@@ -363,29 +351,11 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 				continue
 			}
 
-			var eachMode string
-			switch rs.EachMode {
-			case states.NoEach:
-				eachMode = ""
-			case states.EachList:
-				eachMode = "list"
-			case states.EachMap:
-				eachMode = "map"
-			default:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to serialize resource in state",
-					fmt.Sprintf("Resource %s has \"each\" mode %s, which cannot be serialized in state", resourceAddr.Absolute(moduleAddr), rs.EachMode),
-				))
-				continue
-			}
-
 			sV4.Resources = append(sV4.Resources, resourceStateV4{
 				Module:         moduleAddr.String(),
 				Mode:           mode,
 				Type:           resourceAddr.Type,
 				Name:           resourceAddr.Name,
-				EachMode:       eachMode,
 				ProviderConfig: rs.ProviderConfig.String(),
 				Instances:      []instanceObjectStateV4{},
 			})
@@ -483,14 +453,15 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	}
 
 	return append(isV4s, instanceObjectStateV4{
-		IndexKey:       rawKey,
-		Deposed:        string(deposed),
-		Status:         status,
-		SchemaVersion:  obj.SchemaVersion,
-		AttributesFlat: obj.AttrsFlat,
-		AttributesRaw:  obj.AttrsJSON,
-		PrivateRaw:     privateRaw,
-		Dependencies:   deps,
+		IndexKey:            rawKey,
+		Deposed:             string(deposed),
+		Status:              status,
+		SchemaVersion:       obj.SchemaVersion,
+		AttributesFlat:      obj.AttrsFlat,
+		AttributesRaw:       obj.AttrsJSON,
+		PrivateRaw:          privateRaw,
+		Dependencies:        deps,
+		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}), diags
 }
 
@@ -540,7 +511,9 @@ type instanceObjectStateV4 struct {
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty"`
+
+	CreateBeforeDestroy bool `json:"create_before_destroy,omitempty"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded
@@ -562,6 +535,8 @@ func (sr sortResourcesV4) Len() int      { return len(sr) }
 func (sr sortResourcesV4) Swap(i, j int) { sr[i], sr[j] = sr[j], sr[i] }
 func (sr sortResourcesV4) Less(i, j int) bool {
 	switch {
+	case sr[i].Module != sr[j].Module:
+		return sr[i].Module < sr[j].Module
 	case sr[i].Mode != sr[j].Mode:
 		return sr[i].Mode < sr[j].Mode
 	case sr[i].Type != sr[j].Type:

@@ -3,9 +3,10 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/experiments"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -25,9 +26,13 @@ type Module struct {
 
 	CoreVersionConstraints []VersionConstraint
 
+	ActiveExperiments experiments.Set
+
 	Backend              *Backend
 	ProviderConfigs      map[string]*Provider
-	ProviderRequirements map[string][]VersionConstraint
+	ProviderRequirements *RequiredProviders
+	ProviderLocalNames   map[addrs.Provider]string
+	ProviderMetas        map[addrs.Provider]*ProviderMeta
 
 	Variables map[string]*Variable
 	Locals    map[string]*Local
@@ -53,9 +58,12 @@ type Module struct {
 type File struct {
 	CoreVersionConstraints []VersionConstraint
 
-	Backends             []*Backend
-	ProviderConfigs      []*Provider
-	ProviderRequirements []*ProviderRequirement
+	ActiveExperiments experiments.Set
+
+	Backends          []*Backend
+	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
+	RequiredProviders []*RequiredProviders
 
 	Variables []*Variable
 	Locals    []*Local
@@ -78,14 +86,50 @@ type File struct {
 func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
-		ProviderConfigs:      map[string]*Provider{},
-		ProviderRequirements: map[string][]VersionConstraint{},
-		Variables:            map[string]*Variable{},
-		Locals:               map[string]*Local{},
-		Outputs:              map[string]*Output{},
-		ModuleCalls:          map[string]*ModuleCall{},
-		ManagedResources:     map[string]*Resource{},
-		DataResources:        map[string]*Resource{},
+		ProviderConfigs:    map[string]*Provider{},
+		ProviderLocalNames: map[addrs.Provider]string{},
+		Variables:          map[string]*Variable{},
+		Locals:             map[string]*Local{},
+		Outputs:            map[string]*Output{},
+		ModuleCalls:        map[string]*ModuleCall{},
+		ManagedResources:   map[string]*Resource{},
+		DataResources:      map[string]*Resource{},
+		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+	}
+
+	// Process the required_providers blocks first, to ensure that all
+	// resources have access to the correct provider FQNs
+	for _, file := range primaryFiles {
+		for _, r := range file.RequiredProviders {
+			if mod.ProviderRequirements != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate required providers configuration",
+					Detail:   fmt.Sprintf("A module may have only one required providers configuration. The required providers were previously configured at %s.", mod.ProviderRequirements.DeclRange),
+					Subject:  &r.DeclRange,
+				})
+				continue
+			}
+			mod.ProviderRequirements = r
+		}
+	}
+
+	// If no required_providers block is configured, create a useful empty
+	// state to reduce nil checks elsewhere
+	if mod.ProviderRequirements == nil {
+		mod.ProviderRequirements = &RequiredProviders{
+			RequiredProviders: make(map[string]*RequiredProvider),
+		}
+	}
+
+	// Any required_providers blocks in override files replace the entire
+	// block for each provider
+	for _, file := range overrideFiles {
+		for _, override := range file.RequiredProviders {
+			for name, rp := range override.RequiredProviders {
+				mod.ProviderRequirements.RequiredProviders[name] = rp
+			}
+		}
 	}
 
 	for _, file := range primaryFiles {
@@ -97,6 +141,11 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		fileDiags := mod.mergeFile(file)
 		diags = append(diags, fileDiags...)
 	}
+
+	diags = append(diags, checkModuleExperiments(mod)...)
+
+	// Generate the FQN -> LocalProviderName map
+	mod.gatherProviderLocalNames()
 
 	return mod, diags
 }
@@ -123,6 +172,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		// when we actually check these constraints.
 		m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
 	}
+
+	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
 	for _, b := range file.Backends {
 		if m.Backend != nil {
@@ -160,8 +211,17 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.ProviderConfigs[key] = pc
 	}
 
-	for _, reqd := range file.ProviderRequirements {
-		m.ProviderRequirements[reqd.Name] = append(m.ProviderRequirements[reqd.Name], reqd.Requirement)
+	for _, pm := range file.ProviderMetas {
+		provider := m.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pm.Provider})
+		if existing, exists := m.ProviderMetas[provider]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate provider_meta block",
+				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
+				Subject:  &pm.DeclRange,
+			})
+		}
+		m.ProviderMetas[provider] = pm
 	}
 
 	for _, v := range file.Variables {
@@ -205,7 +265,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate module call",
-				Detail:   fmt.Sprintf("An module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
 				Subject:  &mc.DeclRange,
 			})
 		}
@@ -224,6 +284,21 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ManagedResources[key] = r
+
+		// set the provider FQN for the resource
+		if r.ProviderConfigRef != nil {
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			// an invalid resource name (for e.g. "null resource" instead of
+			// "null_resource") can cause a panic down the line in addrs:
+			// https://github.com/hashicorp/terraform/issues/25560
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
+		}
 	}
 
 	for _, r := range file.DataResources {
@@ -238,6 +313,21 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+
+		// set the provider FQN for the resource
+		if r.ProviderConfigRef != nil {
+			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+		} else {
+			// an invalid data source name (for e.g. "null resource" instead of
+			// "null_resource") can cause a panic down the line in addrs:
+			// https://github.com/hashicorp/terraform/issues/25560
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
+		}
 	}
 
 	return diags
@@ -302,10 +392,6 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			mergeDiags := existing.merge(pc)
 			diags = append(diags, mergeDiags...)
 		}
-	}
-
-	if len(file.ProviderRequirements) != 0 {
-		mergeProviderVersionConstraints(m.ProviderRequirements, file.ProviderRequirements)
 	}
 
 	for _, v := range file.Variables {
@@ -380,7 +466,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r)
+		mergeDiags := existing.merge(r, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
 	}
 
@@ -396,9 +482,53 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			})
 			continue
 		}
-		mergeDiags := existing.merge(r)
+		mergeDiags := existing.merge(r, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
 	}
 
 	return diags
+}
+
+// gatherProviderLocalNames is a helper function that populatesA a map of
+// provider FQNs -> provider local names. This information is useful for
+// user-facing output, which should include both the FQN and LocalName. It must
+// only be populated after the module has been parsed.
+func (m *Module) gatherProviderLocalNames() {
+	providers := make(map[addrs.Provider]string)
+	for k, v := range m.ProviderRequirements.RequiredProviders {
+		providers[v.Type] = k
+	}
+	m.ProviderLocalNames = providers
+}
+
+// LocalNameForProvider returns the module-specific user-supplied local name for
+// a given provider FQN, or the default local name if none was supplied.
+func (m *Module) LocalNameForProvider(p addrs.Provider) string {
+	if existing, exists := m.ProviderLocalNames[p]; exists {
+		return existing
+	} else {
+		// If there isn't a map entry, fall back to the default:
+		// Type = LocalName
+		return p.Type
+	}
+}
+
+// ProviderForLocalConfig returns the provider FQN for a given
+// LocalProviderConfig, based on its local name.
+func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
+	return m.ImpliedProviderForUnqualifiedType(pc.LocalName)
+}
+
+// ImpliedProviderForUnqualifiedType returns the provider FQN for a given type,
+// first by looking up the type in the provider requirements map, and falling
+// back to an implied default provider.
+//
+// The intended behaviour is that configuring a provider with local name "foo"
+// in a required_providers block will result in resources with type "foo" using
+// that provider.
+func (m *Module) ImpliedProviderForUnqualifiedType(pType string) addrs.Provider {
+	if provider, exists := m.ProviderRequirements.RequiredProviders[pType]; exists {
+		return provider.Type
+	}
+	return addrs.ImpliedProviderForUnqualifiedType(pType)
 }

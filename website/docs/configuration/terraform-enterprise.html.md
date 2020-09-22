@@ -27,6 +27,5 @@ These features are no longer available on Terraform Enterprise and so the
 corresponding configuration elements and commands have been removed in
 Terraform v0.12.
 
-To migrate to the current version of Terraform Enterprise, refer to
-[the upgrade guide](/docs/enterprise/upgrade/index.html). After upgrading,
+After upgrading to the current version of Terraform Enterprise,
 any `atlas` blocks in your configuration can be safely removed.

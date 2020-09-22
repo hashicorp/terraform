@@ -5,7 +5,8 @@ package cty
 type unknownType struct {
 }
 
-// Unknown is a special value that can be
+// unknown is a special value that can be used as the internal value of a
+// Value to create a placeholder for a value that isn't yet known.
 var unknown interface{} = &unknownType{}
 
 // UnknownVal returns an Value that represents an unknown value of the given

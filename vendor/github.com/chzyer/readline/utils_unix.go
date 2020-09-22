@@ -1,4 +1,4 @@
-// +build darwin dragonfly freebsd linux,!appengine netbsd openbsd
+// +build darwin dragonfly freebsd linux,!appengine netbsd openbsd solaris
 
 package readline
 
@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"unsafe"
 )
 
 type winsize struct {
@@ -30,17 +29,11 @@ func SuspendMe() {
 
 // get width of the terminal
 func getWidth(stdoutFd int) int {
-	ws := &winsize{}
-	retCode, _, errno := syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(stdoutFd),
-		uintptr(syscall.TIOCGWINSZ),
-		uintptr(unsafe.Pointer(ws)))
-
-	if int(retCode) == -1 {
-		_ = errno
+	cols, _, err := GetSize(stdoutFd)
+	if err != nil {
 		return -1
 	}
-	return int(ws.Col)
+	return cols
 }
 
 func GetScreenWidth() int {

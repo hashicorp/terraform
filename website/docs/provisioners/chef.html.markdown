@@ -12,12 +12,19 @@ The `chef` provisioner installs, configures and runs the Chef Client on a remote
 resource. The `chef` provisioner supports both `ssh` and `winrm` type
 [connections](/docs/provisioners/connection.html).
 
+-> **Note:** This provisioner has been deprecated as of Terraform 0.13.3 and will be
+removed in a future version of Terraform. For most common situations there are better
+alternatives to using provisioners. For more information, see
+[the main Provisioners page](./).
+
 ## Requirements
 
 The `chef` provisioner has some prerequisites for specific connection types:
 
 * For `ssh` type connections, `cURL` must be available on the remote host.
 * For `winrm` connections, `PowerShell 2.0` must be available on the remote host.
+
+[Chef end user license agreement](https://www.chef.io/end-user-license-agreement/) must be accepted by setting `chef_license` to `accept` in `client_options` argument unless you are installing an old version of Chef client.
 
 Without these prerequisites, your provisioning execution will fail.
 
@@ -43,6 +50,7 @@ resource "aws_instance" "web" {
     EOF
 
     environment     = "_default"
+    client_options  = ["chef_license 'accept'"]
     run_list        = ["cookbook::recipe"]
     node_name       = "webserver1"
     secret_key      = "${file("../encrypted_data_bag_secret")}"
@@ -50,7 +58,7 @@ resource "aws_instance" "web" {
     recreate_client = true
     user_name       = "bork"
     user_key        = "${file("../bork.pem")}"
-    version         = "12.4.1"
+    version         = "15.10.13"
     # If you have a self signed cert on your chef server change this to :verify_none
     ssl_verify_mode = ":verify_peer"
   }
@@ -102,6 +110,9 @@ The following arguments are supported:
 
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.
 
+* `max_retries (integer)` - (Optional) The number of times to retry the provisioning process
+  after receiving an exit code in the `retry_on_error` list. Defaults to `0`
+
 * `named_run_list (string)` - (Optional) The name of an alternate run-list to invoke during the
   initial Chef Client run. The run-list must already exist in the Policyfile that defines
   `policy_name`. Only applies when `use_policyfile` is `true`.
@@ -123,6 +134,11 @@ The following arguments are supported:
 
 * `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
+
+* `retry_on_error (array)` - (Optional) The error codes upon which Terraform should
+  gracefully retry the provisioning process. Intended for use with
+  [Chef RFC062 codes](https://github.com/chef-boneyard/chef-rfc/blob/master/rfc062-exit-status.md).
+  (Defaults to `[35, 37, 213]`)
 
 * `run_list (array)` - (Optional) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful
@@ -162,3 +178,7 @@ The following arguments are supported:
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set, the latest available version will be installed.
+
+* `wait_for_retry (integer)` - (Optional) - Amount of time in seconds to wait before
+  retrying the provisionining process after receiving an exit code in the `retry_on_error`
+  list.  Defaults to `30`.

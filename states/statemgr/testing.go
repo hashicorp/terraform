@@ -5,13 +5,11 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-
-	"github.com/hashicorp/terraform/states/statefile"
-
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // TestFull is a helper for testing full state manager implementations. It
@@ -152,6 +150,10 @@ func TestFullInitialState() *states.State {
 		Type: "null_resource",
 		Name: "foo",
 	}
-	childMod.SetResourceMeta(rAddr, states.EachList, rAddr.DefaultProviderConfig().Absolute(addrs.RootModuleInstance))
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: addrs.NewLegacyProvider(rAddr.ImpliedProvider()),
+		Module:   addrs.RootModule,
+	}
+	childMod.SetResourceProvider(rAddr, providerAddr)
 	return state
 }

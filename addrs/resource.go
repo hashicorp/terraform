@@ -50,24 +50,24 @@ func (r Resource) Absolute(module ModuleInstance) AbsResource {
 	}
 }
 
-// DefaultProviderConfig returns the address of the provider configuration
-// that should be used for the resource identified by the reciever if it
-// does not have a provider configuration address explicitly set in
-// configuration.
-//
-// This method is not able to verify that such a configuration exists, nor
-// represent the behavior of automatically inheriting certain provider
-// configurations from parent modules. It just does a static analysis of the
-// receiving address and returns an address to start from, relative to the
-// same module that contains the resource.
-func (r Resource) DefaultProviderConfig() ProviderConfig {
+// InModule returns a ConfigResource from the receiver and the given module
+// address.
+func (r Resource) InModule(module Module) ConfigResource {
+	return ConfigResource{
+		Module:   module,
+		Resource: r,
+	}
+}
+
+// ImpliedProvider returns the implied provider type name, for e.g. the "aws" in
+// "aws_instance"
+func (r Resource) ImpliedProvider() string {
 	typeName := r.Type
 	if under := strings.Index(typeName, "_"); under != -1 {
 		typeName = typeName[:under]
 	}
-	return ProviderConfig{
-		Type: typeName,
-	}
+
+	return typeName
 }
 
 // ResourceInstance is an address for a specific instance of a resource.
@@ -131,6 +131,14 @@ func (r AbsResource) Instance(key InstanceKey) AbsResourceInstance {
 	}
 }
 
+// Config returns the unexpanded ConfigResource for this AbsResource.
+func (r AbsResource) Config() ConfigResource {
+	return ConfigResource{
+		Module:   r.Module.Module(),
+		Resource: r.Resource,
+	}
+}
+
 // TargetContains implements Targetable by returning true if the given other
 // address is either equal to the receiver or is an instance of the
 // receiver.
@@ -139,6 +147,11 @@ func (r AbsResource) TargetContains(other Targetable) bool {
 
 	case AbsResource:
 		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+
+	case ConfigResource:
+		// if an absolute resource from parsing a target address contains a
+		// ConfigResource, the string representation will match
 		return to.String() == r.String()
 
 	case AbsResourceInstance:
@@ -199,8 +212,14 @@ func (r AbsResourceInstance) ContainingResource() AbsResource {
 func (r AbsResourceInstance) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
 
+	// while we currently don't start with an AbsResourceInstance as a target
+	// address, check all resource types for consistency.
 	case AbsResourceInstance:
 		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+	case ConfigResource:
+		return to.String() == r.String()
+	case AbsResource:
 		return to.String() == r.String()
 
 	default:
@@ -249,11 +268,66 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 	}
 }
 
+// ConfigResource is an address for a resource within a configuration.
+type ConfigResource struct {
+	targetable
+	Module   Module
+	Resource Resource
+}
+
+// Resource returns the address of a particular resource within the module.
+func (m Module) Resource(mode ResourceMode, typeName string, name string) ConfigResource {
+	return ConfigResource{
+		Module: m,
+		Resource: Resource{
+			Mode: mode,
+			Type: typeName,
+			Name: name,
+		},
+	}
+}
+
+// Absolute produces the address for the receiver within a specific module instance.
+func (r ConfigResource) Absolute(module ModuleInstance) AbsResource {
+	return AbsResource{
+		Module:   module,
+		Resource: r.Resource,
+	}
+}
+
+// TargetContains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
+func (r ConfigResource) TargetContains(other Targetable) bool {
+	switch to := other.(type) {
+	case ConfigResource:
+		// We'll use our stringification as a cheat-ish way to test for equality.
+		return to.String() == r.String()
+	case AbsResource:
+		return r.TargetContains(to.Config())
+	case AbsResourceInstance:
+		return r.TargetContains(to.ContainingResource())
+	default:
+		return false
+	}
+}
+
+func (r ConfigResource) String() string {
+	if len(r.Module) == 0 {
+		return r.Resource.String()
+	}
+	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+}
+
+func (r ConfigResource) Equal(o ConfigResource) bool {
+	return r.String() == o.String()
+}
+
 // ResourceMode defines which lifecycle applies to a given resource. Each
 // resource lifecycle has a slightly different address format.
 type ResourceMode rune
 
-//go:generate stringer -type ResourceMode
+//go:generate go run golang.org/x/tools/cmd/stringer -type ResourceMode
 
 const (
 	// InvalidResourceMode is the zero value of ResourceMode and is not
