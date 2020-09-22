@@ -50,6 +50,18 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		storageAccountName: config.StorageAccountName,
 	}
 
+	// if we have an Access Key - we don't need the other clients
+	if config.AccessKey != "" {
+		client.accessKey = config.AccessKey
+		return &client, nil
+	}
+
+	// likewise with a SAS token
+	if config.SasToken != "" {
+		client.sasToken = config.SasToken
+		return &client, nil
+	}
+
 	builder := authentication.Builder{
 		ClientID:                      config.ClientID,
 		SubscriptionID:                config.SubscriptionID,
