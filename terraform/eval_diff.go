@@ -334,16 +334,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	// TODO: We should be able to remove this repeat of processing ignored changes
-	// after the plan, which helps providers relying on old behavior "just work"
-	// in the next major version, such that we can be stricter about ignore_changes
-	// values
-	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
-	diags = diags.Append(ignoreChangeDiags)
-	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
 	// The provider produces a list of paths to attributes whose changes mean
 	// that we must replace rather than update an existing remote object.
 	// However, we only need to do that if the identified attributes _have_
