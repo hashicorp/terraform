@@ -311,16 +311,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
-	case GraphTypeRefresh:
-		return (&RefreshGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
-		}).Build(addrs.RootModuleInstance)
-
 	case GraphTypeEval:
 		return (&EvalGraphBuilder{
 			Config:     c.config,

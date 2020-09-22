@@ -10,7 +10,6 @@ const (
 	walkApply
 	walkPlan
 	walkPlanDestroy
-	walkRefresh
 	walkValidate
 	walkDestroy
 	walkImport
