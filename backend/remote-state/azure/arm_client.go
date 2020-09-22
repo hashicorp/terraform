@@ -16,7 +16,6 @@ import (
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/sender"
@@ -77,20 +76,9 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		SupportsManagedServiceIdentity: config.UseMsi,
 	}
 
-	if config.KeyVaultKeyIdentifier != "" {
-		authKV, err := getAzureKeyVaultAuthorizer(env, builder)
-		if err != nil {
-			return nil, err
-		}
-
-		kvClient := keyvault.New()
-		client.configureClient(&kvClient.Client, authKV)
-
-		encClient, err := NewEncryptionClient(config.KeyVaultKeyIdentifier, &kvClient)
-		if err != nil {
-			return nil, err
-		}
-		client.encClient = encClient
+	armConfig, err := builder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
 	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
@@ -110,6 +98,22 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	groupsClient := resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
 	client.configureClient(&groupsClient.Client, auth)
 	client.groupsClient = &groupsClient
+
+	if config.KeyVaultKeyIdentifier != "" {
+		authKV, err := getAzureKeyVaultAuthorizer(env, builder)
+		if err != nil {
+			return nil, err
+		}
+
+		kvClient := keyvault.New()
+		client.configureClient(&kvClient.Client, authKV)
+
+		encClient, err := NewEncryptionClient(config.KeyVaultKeyIdentifier, &kvClient)
+		if err != nil {
+			return nil, err
+		}
+		client.encClient = encClient
+	}
 
 	return &client, nil
 }
@@ -220,42 +224,22 @@ func buildUserAgent() string {
 	return userAgent
 }
 
-func getAzureMgmtAuthorizer(env *azure.Environment, builder authentication.Builder) (*autorest.BearerAuthorizer, *authentication.Config, error) {
-	armConfig, err := builder.Build()
-	if err != nil {
-		return nil, nil, fmt.Errorf("Error building ARM Config: %+v", err)
-	}
-
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, armConfig.TenantID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	auth, err := armConfig.GetAuthorizationToken(oauthConfig, env.TokenAudience)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return auth, armConfig, nil
-}
-
-func getAzureKeyVaultAuthorizer(env *azure.Environment, builder authentication.Builder) (*autorest.BearerAuthorizer, error) {
+func getAzureKeyVaultAuthorizer(env *azure.Environment, builder authentication.Builder) (autorest.Authorizer, error) {
 	armConfig, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
-	vaultEndpoint := strings.TrimSuffix(env.KeyVaultEndpoint, "/")
-	alternateEndpoint, _ := url.Parse("https://login.windows.net/" + armConfig.TenantID + "/oauth2/token")
-
-	oauthConfigKV, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, armConfig.TenantID)
+	oauthConfigKV, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	oauthConfigKV.AuthorizeEndpoint = *alternateEndpoint
+	alternateEndpoint, _ := url.Parse("https://login.windows.net/" + armConfig.TenantID + "/oauth2/token")
+	oauthConfigKV.OAuth.AuthorizeEndpoint = *alternateEndpoint
 
-	authKV, err := armConfig.GetAuthorizationToken(oauthConfigKV, vaultEndpoint)
+	vaultEndpoint := strings.TrimSuffix(env.KeyVaultEndpoint, "/")
+	authKV, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfigKV, vaultEndpoint)
 	if err != nil {
 		return nil, err
 	}

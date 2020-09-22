@@ -185,7 +185,7 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	log.Printf("fetching access key for storage account")
 	resp, err := c.storageAccountsClient.ListKeys(ctx, names.resourceGroup, names.storageAccountName)
 	if err != nil {
-		return fmt.Errorf("failed to list storage account keys %s:", err)
+		return fmt.Errorf("failed to list storage account keys %s", err)
 	}
 
 	keys := *resp.Keys

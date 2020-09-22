@@ -135,13 +135,6 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
 
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom Endpoint used to access the Azure Resource Manager API's.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_ENDPOINT", ""),
-			},
-
 			"key_vault_key_identifier": {
 				Type:        schema.TypeString,
 				Optional:    true,
