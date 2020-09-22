@@ -19,6 +19,7 @@ BUG FIXES:
 * build: fix crash with terraform binary on openBSD [#26249]
 * command/clistate: return an error on a state unlock failure [[#25729](https://github.com/hashicorp/terraform/issues/25729)] 
 * configs: Report an error when provider configuration attributes are incorrectly added to a `required_providers` object. [GH-26184]
+* core: Errors with data sources reading old data during refresh, failing to refresh, and not appearing to wait on resource dependencies are fixed by updates to the data source lifecycle and the merging of refresh and plan [GH-26270]
 * lang/funcs: fix panic when element() is called with a negative offset ([#26079](https://github.com/hashicorp/terraform/issues/26079))
 * states/remote: fix `state push -force` to work for all backends ([#26190](https://github.com/hashicorp/terraform/issues/26190))
 
