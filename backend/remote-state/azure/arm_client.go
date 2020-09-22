@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -81,8 +80,14 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
 	}
 
+	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
 	if config.KeyVaultKeyIdentifier != "" {
-		authKV, err := getAzureKeyVaultAuthorizer(env, builder)
+		vaultEndpoint := strings.TrimSuffix(env.KeyVaultEndpoint, "/")
+		authKV, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, vaultEndpoint)
 		if err != nil {
 			return nil, err
 		}
@@ -107,11 +112,6 @@ func buildArmClient(config BackendConfig) (*ArmClient, error) {
 	if config.SasToken != "" {
 		client.sasToken = config.SasToken
 		return &client, nil
-	}
-
-	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
-	if err != nil {
-		return nil, err
 	}
 
 	auth, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, env.TokenAudience)
@@ -234,27 +234,4 @@ func buildUserAgent() string {
 	}
 
 	return userAgent
-}
-
-func getAzureKeyVaultAuthorizer(env *azure.Environment, builder authentication.Builder) (autorest.Authorizer, error) {
-	armConfig, err := builder.Build()
-	if err != nil {
-		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
-	}
-
-	oauthConfigKV, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	alternateEndpoint, _ := url.Parse("https://login.windows.net/" + armConfig.TenantID + "/oauth2/token")
-	oauthConfigKV.OAuth.AuthorizeEndpoint = *alternateEndpoint
-
-	vaultEndpoint := strings.TrimSuffix(env.KeyVaultEndpoint, "/")
-	authKV, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfigKV, vaultEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return authKV, nil
 }
