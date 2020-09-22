@@ -100,7 +100,7 @@ Before publishing a provider, you must first sign in to the Terraform Registry w
 
 All provider releases are required to be signed, thus you must provide HashiCorp with the public key for the GPG keypair that you will be signing releases with. The Terraform Registry will validate that the release is signed with this key when publishing each version, and Terraform will verify this during `terraform init`.
 
-- Generate a GPG key to be used when signing releases (See [GitHub's detailed instructions](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-gpg-key) for help with this step)
+- Generate a GPG key to be used when signing releases (See [GitHub's detailed instructions](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-gpg-key) for help with this step, but you do not need to add the key to GitHub)
 - Export your public key in ASCII-armor format using the following command, substituting the GPG key ID created in the step above:
 
 ```console
