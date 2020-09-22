@@ -283,6 +283,12 @@ func (n *NodeRefreshableManagedResourceInstance) evalTreeManagedResource() EvalN
 				Dependencies: &n.Dependencies,
 			},
 
+			&EvalRefreshLifecycle{
+				Addr:   n.Addr,
+				Config: n.Config,
+				State:  &state,
+			},
+
 			&EvalRefresh{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,
