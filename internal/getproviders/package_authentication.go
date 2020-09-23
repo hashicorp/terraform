@@ -216,7 +216,12 @@ type packageHashAuthentication struct {
 // considered by Terraform to be the strongest verification, and authentication
 // succeeds as long as that chosen hash matches.
 func NewPackageHashAuthentication(platform Platform, validHashes []string) PackageAuthentication {
-	requiredHash := PreferredHash(validHashes)
+	requiredHashes := PreferredHashes(validHashes)
+	// TODO: Update to support multiple hashes
+	var requiredHash string
+	if len(requiredHashes) > 0 {
+		requiredHash = requiredHashes[0]
+	}
 	return packageHashAuthentication{
 		RequiredHash: requiredHash,
 		ValidHashes:  validHashes,

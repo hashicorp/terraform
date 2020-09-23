@@ -57,7 +57,7 @@ func PackageMatchesHash(loc PackageLocation, want string) (bool, error) {
 	}
 }
 
-// PreferredHash examines all of the given hash strings and returns the one
+// PreferredHashes examines all of the given hash strings and returns the one
 // that the current version of Terraform considers to provide the strongest
 // verification.
 //
@@ -65,13 +65,14 @@ func PackageMatchesHash(loc PackageLocation, want string) (bool, error) {
 // format. If PreferredHash returns a non-empty string then it will be one
 // of the hash strings in "given", and that hash is the one that must pass
 // verification in order for a package to be considered valid.
-func PreferredHash(given []string) string {
+func PreferredHashes(given []string) []string {
+	var ret []string
 	for _, s := range given {
 		if strings.HasPrefix(s, h1Prefix) {
-			return s
+			return append(ret, s)
 		}
 	}
-	return ""
+	return ret
 }
 
 // PackageHashLegacyZipSHA implements the old provider package hashing scheme

@@ -12,13 +12,9 @@ provider "terraform.io/test/all-the-things" {
   version = "3.0.10"
   constraints = ">= 3.0.2"
 
-  hashes {
-    amigaos_m68k = [
-      "placeholder-hash-1",
-    ]
-    tos_m68k = [
-      "placeholder-hash-2",
-      "placeholder-hash-3",
-    ]
-  }
+  hashes = [
+    "test:placeholder-hash-1",
+    "test:placeholder-hash-2",
+    "test:placeholder-hash-3",
+  ]
 }
