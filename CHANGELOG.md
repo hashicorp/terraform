@@ -1,5 +1,8 @@
 ## 0.14.0 (Unreleased)
 
+UPGRADE NOTES:
+* configs: The `version` argument inside provider configuration blocks has been documented as deprecated since Terraform 0.12. As of 0.14 it will now also generate an explicit deprecation warning. To avoid the warning, use [provider requirements](https://www.terraform.io/docs/configuration/provider-requirements.html) declarations instead. ([#26135](https://github.com/hashicorp/terraform/issues/26135))
+
 ENHANCEMENTS:
 
 * backend/consul: Split state into chunks when outgrowing the limit of the Consul KV store. This allows storing state larger than the Consul 512KB limit. [GH-25856]
@@ -9,9 +12,6 @@ ENHANCEMENTS:
 * `terraform plan` and `terraform apply`: Added an experimental concise diff renderer. By default, Terraform plans now hide most unchanged fields, only displaying the most relevant changes and some identifying context. This experiment can be disabled by setting a `TF_X_CONCISE_DIFF` environment variable to `0`. ([#26187](https://github.com/hashicorp/terraform/issues/26187))
 * `terraform login`: Added support for OAuth2 application scopes. [GH-26239]
 * `terraform console`: Now has distinct rendering of lists, sets, and tuples, and correctly renders objects with `null` attribute values. [GH-26189]
-
-BREAKING CHANGES:
-* configs: The `version` argument inside provider configuration blocks is deprecated. Instead, use the required_providers setting. ([#26135](https://github.com/hashicorp/terraform/issues/26135))
 
 BUG FIXES:
 
