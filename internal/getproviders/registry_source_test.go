@@ -115,11 +115,11 @@ func TestSourcePackageMeta(t *testing.T) {
 		version    string
 		os, arch   string
 		want       PackageMeta
-		wantHashes map[Platform][]Hash
+		wantHashes []Hash
 		wantErr    string
 	}{
 		// These test cases are relying on behaviors of the fake provider
-		// registry server implemented in client_test.go.
+		// registry server implemented in registry_client_test.go.
 		{
 			"example.com/awesomesauce/happycloud",
 			"1.2.0",
@@ -135,13 +135,13 @@ func TestSourcePackageMeta(t *testing.T) {
 				Location:         PackageHTTPURL(baseURL + "/pkg/awesomesauce/happycloud_1.2.0.zip"),
 				Authentication: PackageAuthenticationAll(
 					NewMatchingChecksumAuthentication(
-						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
+						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"),
 						"happycloud_1.2.0.zip",
 						[32]byte{30: 0xf0, 31: 0x0d},
 					),
 					NewArchiveChecksumAuthentication(Platform{"linux", "amd64"}, [32]byte{30: 0xf0, 31: 0x0d}),
 					NewSignatureAuthentication(
-						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
+						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"),
 						[]byte("GPG signature"),
 						[]SigningKey{
 							{ASCIIArmor: HashicorpPublicKey},
@@ -149,10 +149,9 @@ func TestSourcePackageMeta(t *testing.T) {
 					),
 				),
 			},
-			map[Platform][]Hash{
-				{"linux", "amd64"}: {
-					"zh:000000000000000000000000000000000000000000000000000000000000f00d",
-				},
+			[]Hash{
+				"zh:000000000000000000000000000000000000000000000000000000000000f00d",
+				"zh:000000000000000000000000000000000000000000000000000000000000face",
 			},
 			``,
 		},

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/crypto/openpgp"
 )
 
@@ -388,7 +389,7 @@ func TestSignatureAuthentication_success(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			auth := NewSignatureAuthentication([]byte(testShaSums), signature, test.keys)
+			auth := NewSignatureAuthentication([]byte(testShaSumsPlaceholder), signature, test.keys)
 			result, err := auth.AuthenticatePackage(location)
 
 			if result == nil || *result != test.result {
@@ -468,7 +469,7 @@ func TestSignatureAuthentication_failure(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			auth := NewSignatureAuthentication([]byte(testShaSums), signature, test.keys)
+			auth := NewSignatureAuthentication([]byte(testShaSumsPlaceholder), signature, test.keys)
 			result, err := auth.AuthenticatePackage(location)
 
 			if result != nil {
@@ -478,6 +479,33 @@ func TestSignatureAuthentication_failure(t *testing.T) {
 				t.Errorf("wrong err: got %s, want %s", gotErr, test.err)
 			}
 		})
+	}
+}
+
+func TestSignatureAuthentication_acceptableHashes(t *testing.T) {
+	auth := NewSignatureAuthentication([]byte(testShaSumsRealistic), nil, nil)
+	authWithHashes, ok := auth.(PackageAuthenticationHashes)
+	if !ok {
+		t.Fatalf("%T does not implement PackageAuthenticationHashes", auth)
+	}
+	got := authWithHashes.AcceptableHashes()
+	want := []Hash{
+		// These are the hashes encoded in constant testShaSumsRealistic
+		"zh:7d7e888fdd28abfe00894f9055209b9eec785153641de98e6852aa071008d4ee",
+		"zh:f8b6cf9ade087c17826d49d89cef21261cdc22bd27065bbc5b27d7dbf7fbbf6c",
+		"zh:a5ba9945606bb7bfb821ba303957eeb40dd9ee4e706ba8da1eaf7cbeb0356e63",
+		"zh:df3a5a8d6ffff7bacf19c92d10d0d500f98169ea17b3764b01a789f563d1aad7",
+		"zh:086119a26576d06b8281a97e8644380da89ce16197cd955f74ea5ee664e9358b",
+		"zh:1e5f7a5f3ade7b8b1d1d59c5cea2e1a2f8d2f8c3f41962dbbe8647e222be8239",
+		"zh:0e9fd0f3e2254b526a0e81e0cfdfc82583b0cd343778c53ead21aa7d52f776d7",
+		"zh:66a947e7de1c74caf9f584c3ed4e91d2cb1af6fe5ce8abaf1cf8f7ff626a09d1",
+		"zh:def1b73849bec0dc57a04405847921bf9206c75b52ae9de195476facb26bd85e",
+		"zh:48f1826ec31d6f104e46cc2022b41f30cd1019ef48eaec9697654ef9ec37a879",
+		"zh:17e0b496022bc4e4137be15e96d2b051c8acd6e14cb48d9b13b262330464f6cc",
+		"zh:2696c86228f491bc5425561c45904c9ce39b1c676b1e17734cb2ee6b578c4bcd",
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
 	}
 }
 
@@ -554,9 +582,26 @@ SnHodBLlpKLyUXi36DCDy/iKVsieqLsAdcYe0nQFuhoQcOme33A=
 =aHOG
 -----END PGP SIGNATURE-----`
 
-// testShaSums is a string that represents the SHA256SUMS file downloaded
-// for a release.
-const testShaSums = "example shasums data"
+// testShaSumsPlaceholder is a string that represents a signed document that
+// the signature authenticator will check. Some of the signature valuesin
+// other constants in this file are signing this string.
+const testShaSumsPlaceholder = "example shasums data"
+
+// testShaSumsRealistic is a more realistic SHA256SUMS document that we can use
+// to test the AcceptableHashes method. The signature values in other constants
+// in this file do not sign this string.
+const testShaSumsRealistic = `7d7e888fdd28abfe00894f9055209b9eec785153641de98e6852aa071008d4ee  terraform_0.14.0-alpha20200923_darwin_amd64.zip
+f8b6cf9ade087c17826d49d89cef21261cdc22bd27065bbc5b27d7dbf7fbbf6c  terraform_0.14.0-alpha20200923_freebsd_386.zip
+a5ba9945606bb7bfb821ba303957eeb40dd9ee4e706ba8da1eaf7cbeb0356e63  terraform_0.14.0-alpha20200923_freebsd_amd64.zip
+df3a5a8d6ffff7bacf19c92d10d0d500f98169ea17b3764b01a789f563d1aad7  terraform_0.14.0-alpha20200923_freebsd_arm.zip
+086119a26576d06b8281a97e8644380da89ce16197cd955f74ea5ee664e9358b  terraform_0.14.0-alpha20200923_linux_386.zip
+1e5f7a5f3ade7b8b1d1d59c5cea2e1a2f8d2f8c3f41962dbbe8647e222be8239  terraform_0.14.0-alpha20200923_linux_amd64.zip
+0e9fd0f3e2254b526a0e81e0cfdfc82583b0cd343778c53ead21aa7d52f776d7  terraform_0.14.0-alpha20200923_linux_arm.zip
+66a947e7de1c74caf9f584c3ed4e91d2cb1af6fe5ce8abaf1cf8f7ff626a09d1  terraform_0.14.0-alpha20200923_openbsd_386.zip
+def1b73849bec0dc57a04405847921bf9206c75b52ae9de195476facb26bd85e  terraform_0.14.0-alpha20200923_openbsd_amd64.zip
+48f1826ec31d6f104e46cc2022b41f30cd1019ef48eaec9697654ef9ec37a879  terraform_0.14.0-alpha20200923_solaris_amd64.zip
+17e0b496022bc4e4137be15e96d2b051c8acd6e14cb48d9b13b262330464f6cc  terraform_0.14.0-alpha20200923_windows_386.zip
+2696c86228f491bc5425561c45904c9ce39b1c676b1e17734cb2ee6b578c4bcd  terraform_0.14.0-alpha20200923_windows_amd64.zip`
 
 // testAuthorSignatureGoodBase64 is a signature of testShaSums signed with
 // testAuthorKeyArmor, which represents the SHA256SUMS.sig file downloaded for
