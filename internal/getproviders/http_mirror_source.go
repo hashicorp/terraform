@@ -225,7 +225,18 @@ func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version,
 	// A network mirror might not provide any hashes at all, in which case
 	// the package has no source-defined authentication whatsoever.
 	if len(archiveMeta.Hashes) > 0 {
-		ret.Authentication = NewPackageHashAuthentication(target, archiveMeta.Hashes)
+		hashes := make([]Hash, 0, len(archiveMeta.Hashes))
+		for _, hashStr := range archiveMeta.Hashes {
+			hash, err := ParseHash(hashStr)
+			if err != nil {
+				return PackageMeta{}, s.errQueryFailed(
+					provider,
+					fmt.Errorf("provider mirror returned invalid provider hash %q: %s", hashStr, err),
+				)
+			}
+			hashes = append(hashes, hash)
+		}
+		ret.Authentication = NewPackageHashAuthentication(target, hashes)
 	}
 
 	return ret, nil

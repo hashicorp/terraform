@@ -144,10 +144,10 @@ func TestLoadLocksFromFile(t *testing.T) {
 						if got, want := getproviders.VersionConstraintsString(lock.VersionConstraints()), ">= 3.0.2"; got != want {
 							t.Errorf("wrong version constraints\ngot:  %s\nwant: %s", got, want)
 						}
-						wantHashes := []string{
-							"test:placeholder-hash-1",
-							"test:placeholder-hash-2",
-							"test:placeholder-hash-3",
+						wantHashes := []getproviders.Hash{
+							getproviders.MustParseHash("test:placeholder-hash-1"),
+							getproviders.MustParseHash("test:placeholder-hash-2"),
+							getproviders.MustParseHash("test:placeholder-hash-3"),
 						}
 						if diff := cmp.Diff(wantHashes, lock.hashes); diff != "" {
 							t.Errorf("wrong hashes\n%s", diff)
@@ -169,10 +169,10 @@ func TestSaveLocksToFile(t *testing.T) {
 	oneDotTwo := getproviders.MustParseVersion("1.2.0")
 	atLeastOneDotOh := getproviders.MustParseVersionConstraints(">= 1.0.0")
 	pessimisticOneDotOh := getproviders.MustParseVersionConstraints("~> 1")
-	hashes := []string{
-		"test:cccccccccccccccccccccccccccccccccccccccccccccccc",
-		"test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-		"test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	hashes := []getproviders.Hash{
+		getproviders.MustParseHash("test:cccccccccccccccccccccccccccccccccccccccccccccccc"),
+		getproviders.MustParseHash("test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+		getproviders.MustParseHash("test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 	}
 	locks.SetProvider(fooProvider, oneDotOh, atLeastOneDotOh, hashes)
 	locks.SetProvider(barProvider, oneDotTwo, pessimisticOneDotOh, nil)

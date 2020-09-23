@@ -115,7 +115,7 @@ func TestSourcePackageMeta(t *testing.T) {
 		version    string
 		os, arch   string
 		want       PackageMeta
-		wantHashes map[Platform][]string
+		wantHashes map[Platform][]Hash
 		wantErr    string
 	}{
 		// These test cases are relying on behaviors of the fake provider
@@ -149,7 +149,7 @@ func TestSourcePackageMeta(t *testing.T) {
 					),
 				),
 			},
-			map[Platform][]string{
+			map[Platform][]Hash{
 				{"linux", "amd64"}: {
 					"zh:000000000000000000000000000000000000000000000000000000000000f00d",
 				},

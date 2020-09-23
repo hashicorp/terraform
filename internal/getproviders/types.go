@@ -259,7 +259,7 @@ func (m PackageMeta) PackedFilePath(baseDir string) string {
 // Authentication field. AcceptableHashes therefore returns an empty result
 // for a PackageMeta that has no authentication object, or has one that does
 // not make use of hashes.
-func (m PackageMeta) AcceptableHashes() map[Platform][]string {
+func (m PackageMeta) AcceptableHashes() map[Platform][]Hash {
 	auth, ok := m.Authentication.(PackageAuthenticationHashes)
 	if !ok {
 		return nil

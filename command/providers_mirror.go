@@ -269,8 +269,8 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 				indexArchives[version] = map[string]interface{}{}
 			}
 			indexArchives[version][platform.String()] = map[string]interface{}{
-				"url":    archiveFilename, // a relative URL from the index file's URL
-				"hashes": []string{hash},  // an array to allow for additional hash formats in future
+				"url":    archiveFilename,         // a relative URL from the index file's URL
+				"hashes": []string{hash.String()}, // an array to allow for additional hash formats in future
 			}
 		}
 		mainIndex := map[string]interface{}{
