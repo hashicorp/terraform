@@ -826,7 +826,7 @@ func testLockState(sourceDir, path string) (func(), error) {
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
 
-	cmd := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source)
+	cmd := exec.Command("go", "build", "-o", lockBin, source)
 	cmd.Dir = filepath.Dir(sourceDir)
 
 	out, err := cmd.CombinedOutput()
