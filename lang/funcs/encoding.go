@@ -9,8 +9,11 @@ import (
 	"net/url"
 	"unicode/utf8"
 
+	dotenv "github.com/direnv/go-dotenv"
+
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
@@ -92,6 +95,28 @@ var URLEncodeFunc = function.New(&function.Spec{
 	},
 })
 
+// DotEnvDecodeFunc constructs a function parses "dotenv" format and produces a map.
+var DotEnvDecodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Map(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		m, err := dotenv.Parse(args[0].AsString())
+		if err != nil {
+			return cty.UnknownVal(cty.Map(cty.String)), err
+		}
+		mv, err := gocty.ToCtyValue(m, cty.Map(cty.String))
+		if err != nil {
+			return cty.UnknownVal(cty.Map(cty.String)), err
+		}
+		return mv, nil
+	},
+})
+
 // Base64Decode decodes a string containing a base64 sequence.
 //
 // Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
@@ -137,4 +162,9 @@ func Base64Gzip(str cty.Value) (cty.Value, error) {
 // UTF-8 and then percent encoding is applied separately to each UTF-8 byte.
 func URLEncode(str cty.Value) (cty.Value, error) {
 	return URLEncodeFunc.Call([]cty.Value{str})
+}
+
+// DotEnvDecode converts a string in "dotenv" format to a map
+func DotEnvDecode(str cty.Value) (cty.Value, error) {
+	return DotEnvDecodeFunc.Call([]cty.Value{str})
 }

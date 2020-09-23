@@ -305,6 +305,15 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"dotenvdecode": {
+			{
+				`dotenvdecode("TEST=123")`,
+				cty.MapVal(map[string]cty.Value{
+					"TEST": cty.StringVal("123"),
+				}),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,

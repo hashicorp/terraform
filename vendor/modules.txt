@@ -215,6 +215,9 @@ github.com/davecgh/go-spew/spew
 github.com/dgrijalva/jwt-go
 # github.com/dimchansky/utfbom v1.1.0
 github.com/dimchansky/utfbom
+# github.com/direnv/go-dotenv v0.0.0-20181227095604-4cce6d1a66f7
+## explicit
+github.com/direnv/go-dotenv
 # github.com/dylanmei/iso8601 v0.1.0
 ## explicit
 github.com/dylanmei/iso8601
