@@ -439,6 +439,9 @@ github.com/json-iterator/go
 # github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 ## explicit
 github.com/kardianos/osext
+# github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
+## explicit
+github.com/kevinburke/ssh_config
 # github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba
 ## explicit
 github.com/keybase/go-crypto/brainpool

@@ -148,7 +148,9 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 			c.connInfo.HostKey != "",
 		))
 
-		if c.connInfo.BastionHost != "" {
+		if os.Getenv(SSH_CONFIG_ENABLER) == "yes" {
+			c.connInfo.BastionConfConn.BastionInfo(o)
+		} else if c.connInfo.BastionHost != "" {
 			o.Output(fmt.Sprintf(
 				"Using configured bastion host...\n"+
 					"  Host: %s\n"+

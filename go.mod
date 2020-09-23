@@ -82,6 +82,7 @@ require (
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
+	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 	github.com/keybase/go-crypto v0.0.0-20161004153544-93f5b35093ba // indirect
 	github.com/lib/pq v1.0.0
 	github.com/likexian/gokit v0.20.15

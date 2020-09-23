@@ -164,3 +164,44 @@ The `ssh` connection also supports the following fields to facilitate connnectio
 * `bastion_certificate` - The contents of a signed CA Certificate. The certificate argument
   must be used in conjunction with a `bastion_private_key`. These can be loaded from
   a file on disk using the [the `file` function](/docs/configuration/functions/file.html).
+  
+<a id="multi-bastion"></a>
+
+## Connecting through multiple Bastion Hosts with SSH
+
+The `ssh` connection also supports connnections via more than one
+[bastion host](https://en.wikipedia.org/wiki/Bastion_host) using 
+[ssh_config](https://linux.die.net/man/5/sshd_config) files.  
+  
+### Using multiple bastions
+Two environment variables are used to control this behavior.
+
+* `TF_USE_SSH_CONFIG` - If it contains "yes" the ssh_config file will be used for the bastion
+connections.
+
+* `TF_SSH_CONFIG` - Can be used to override the location of the default ssh_config file
+(which is ~/.ssh/config).
+
+### ssh_config parsing
+The purpose is deliberately not to implement a fully fledged ssh client, but only to support
+as much functionality as necessary in order to provide support for multiple bastion hosts.  
+  
+In particular this means that only those ssh_config keywords are supported.
+
+* `ProxyJump` - To privide a single bastion host or a comma separated list of bastion hosts.
+(The `ProxyCommand` keyword is NOT supported)
+
+* `User` - To set a specific user.
+
+* `Host` - In order to be able to specify per host specific key/value pairs.
+
+* `IdentityFile` - To provide the private key.
+
+* `CertificateFile` - To provide a signed CA Certificate.
+
+* `UserKnownHostsFile` - In order to determine the bastion host's host key.
+
+* `StrictHostKeyChecking` - To be able to disable host key checking (if set to "no"/"off").
+
+Those values are used in the very same way as described above. Missing values will be
+complemented with the corresponding values as defined in the `connection` of the target host.
