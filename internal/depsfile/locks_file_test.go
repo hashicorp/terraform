@@ -144,14 +144,10 @@ func TestLoadLocksFromFile(t *testing.T) {
 						if got, want := getproviders.VersionConstraintsString(lock.VersionConstraints()), ">= 3.0.2"; got != want {
 							t.Errorf("wrong version constraints\ngot:  %s\nwant: %s", got, want)
 						}
-						wantHashes := map[getproviders.Platform][]string{
-							{OS: "amigaos", Arch: "m68k"}: {
-								"placeholder-hash-1",
-							},
-							{OS: "tos", Arch: "m68k"}: {
-								"placeholder-hash-2",
-								"placeholder-hash-3",
-							},
+						wantHashes := []string{
+							"test:placeholder-hash-1",
+							"test:placeholder-hash-2",
+							"test:placeholder-hash-3",
 						}
 						if diff := cmp.Diff(wantHashes, lock.hashes); diff != "" {
 							t.Errorf("wrong hashes\n%s", diff)
@@ -173,12 +169,10 @@ func TestSaveLocksToFile(t *testing.T) {
 	oneDotTwo := getproviders.MustParseVersion("1.2.0")
 	atLeastOneDotOh := getproviders.MustParseVersionConstraints(">= 1.0.0")
 	pessimisticOneDotOh := getproviders.MustParseVersionConstraints("~> 1")
-	hashes := map[getproviders.Platform][]string{
-		{OS: "riscos", Arch: "arm"}: {
-			"cccccccccccccccccccccccccccccccccccccccccccccccc",
-			"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		},
+	hashes := []string{
+		"test:cccccccccccccccccccccccccccccccccccccccccccccccc",
+		"test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		"test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 	}
 	locks.SetProvider(fooProvider, oneDotOh, atLeastOneDotOh, hashes)
 	locks.SetProvider(barProvider, oneDotTwo, pessimisticOneDotOh, nil)
@@ -216,10 +210,7 @@ provider "registry.terraform.io/test/baz" {
 provider "registry.terraform.io/test/foo" {
   version     = "1.0.0"
   constraints = ">= 1.0.0"
-
-  hashes {
-    riscos_arm = ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccccccccccccccccccccccccccc"]
-  }
+  hashes      = ["test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "test:cccccccccccccccccccccccccccccccccccccccccccccccc"]
 }
 `
 	if diff := cmp.Diff(wantContent, gotContent); diff != "" {
