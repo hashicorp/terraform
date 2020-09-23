@@ -3678,6 +3678,8 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
       ~ ami = (sensitive)
         id  = "i-02ae66f368e8518a9"
     }
@@ -3714,7 +3716,11 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         id   = "i-02ae66f368e8518a9"
-      ~ tags = (sensitive)
+      ~ tags = {
+          # Warning: this attribute value will be marked as sensitive and will
+          # not display in UI output after applying this change
+          ~ "name" = (sensitive)
+        }
     }
 `,
 		},
@@ -3777,7 +3783,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - ami = (sensitive)
+      - ami = (sensitive) -> null
       - id  = "i-02ae66f368e8518a9" -> null
     }
 `,

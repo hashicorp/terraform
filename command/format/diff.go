@@ -337,6 +337,12 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	}
 
 	p.buf.WriteString("\n")
+
+	// Write sensitivity warning for non-delete plans
+	if action != plans.Delete && action != plans.Create {
+		p.writeSensitivityWarning(old, new, indent)
+	}
+
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
@@ -767,12 +773,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	ty := old.Type()
 	typesEqual := ctyTypesEqual(ty, new.Type())
 
-	// If either the old or new value is marked, don't display the value
-	if old.ContainsMarked() || new.ContainsMarked() {
-		p.buf.WriteString("(sensitive)")
-		return
-	}
-
 	// We have some specialized diff implementations for certain complex
 	// values where it's useful to see a visualization of the diff of
 	// the nested elements rather than just showing the entire old and
@@ -780,6 +780,15 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
+		// If marked, create unmarked values for comparisons
+		unmarkedOld := old
+		unmarkedNew := new
+		if old.ContainsMarked() {
+			unmarkedOld, _ = old.UnmarkDeep()
+		}
+		if new.ContainsMarked() {
+			unmarkedNew, _ = new.UnmarkDeep()
+		}
 		switch {
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
@@ -787,6 +796,11 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			// to apply, both old and new must be valid JSON.
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
+
+			if old.ContainsMarked() || new.ContainsMarked() {
+				p.buf.WriteString("(sensitive)")
+				return
+			}
 			oldS := old.AsString()
 			newS := new.AsString()
 
@@ -811,7 +825,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 							p.buf.WriteString(strings.Repeat(" ", indent))
 							p.buf.WriteByte(')')
 						} else {
-							// if they differ only in insigificant whitespace
+							// if they differ only in insignificant whitespace
 							// then we'll note that but still expand out the
 							// effective value.
 							if p.pathForcesNewResource(path) {
@@ -1104,7 +1118,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if new.HasIndex(kV).False() {
 					action = plans.Delete
-				} else if eqV := old.Index(kV).Equals(new.Index(kV)); eqV.IsKnown() && eqV.True() {
+				} else if eqV := unmarkedOld.Index(kV).Equals(unmarkedNew.Index(kV)); eqV.IsKnown() && eqV.True() {
 					action = plans.NoOp
 				} else {
 					action = plans.Update
@@ -1117,6 +1131,10 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				path := append(path, cty.IndexStep{Key: kV})
 
+				oldV := old.Index(kV)
+				newV := new.Index(kV)
+				p.writeSensitivityWarning(oldV, newV, indent+2)
+
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
 				p.writeValue(kV, action, indent+4)
@@ -1125,15 +1143,21 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				switch action {
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
-					p.writeValue(v, action, indent+4)
+					if v.IsMarked() {
+						p.buf.WriteString("(sensitive)")
+					} else {
+						p.writeValue(v, action, indent+4)
+					}
 				case plans.Delete:
 					oldV := old.Index(kV)
 					newV := cty.NullVal(oldV.Type())
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
-					oldV := old.Index(kV)
-					newV := new.Index(kV)
-					p.writeValueDiff(oldV, newV, indent+4, path)
+					if oldV.IsMarked() || newV.IsMarked() {
+						p.buf.WriteString("(sensitive)")
+					} else {
+						p.writeValueDiff(oldV, newV, indent+4, path)
+					}
 				}
 
 				p.buf.WriteByte('\n')
@@ -1284,6 +1308,23 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 	default:
 		// Should never happen
 		p.buf.WriteString(p.color.Color("? "))
+	}
+}
+
+func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, indent int) {
+	if new.IsMarked() && !old.IsMarked() {
+		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(p.color.Color("[yellow]# Warning: this attribute value will be marked as sensitive and will\n"))
+		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(p.color.Color("[yellow]# not display in UI output after applying this change[reset]\n"))
+	}
+
+	// Note if changing this attribute will change its sensitivity
+	if old.IsMarked() && !new.IsMarked() {
+		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(p.color.Color("[yellow]# Warning: this attribute value will no longer be marked as sensitive\n"))
+		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(p.color.Color("[yellow]# after applying this change[reset]\n"))
 	}
 }
 
