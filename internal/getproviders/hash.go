@@ -186,9 +186,75 @@ func PackageMatchesHash(loc PackageLocation, want Hash) (bool, error) {
 			return false, err
 		}
 		return got == want, nil
+	case HashSchemeZip:
+		archiveLoc, ok := loc.(PackageLocalArchive)
+		if !ok {
+			return false, fmt.Errorf(`ziphash scheme ("zh:" prefix) is not supported for unpacked provider packages`)
+		}
+		got, err := PackageHashLegacyZipSHA(archiveLoc)
+		if err != nil {
+			return false, err
+		}
+		return got == want, nil
 	default:
 		return false, fmt.Errorf("unsupported hash format (this may require a newer version of Terraform)")
 	}
+}
+
+// PackageMatchesAnyHash returns true if the package at the given location
+// matches at least one of the given hashes, or false otherwise.
+//
+// If it cannot read from the given location, PackageMatchesAnyHash returns an
+// error. Unlike the singular PackageMatchesHash, PackageMatchesAnyHash
+// considers unsupported hash formats as successfully non-matching, rather
+// than returning an error.
+//
+// PackageMatchesAnyHash can be used only with the two local package location
+// types PackageLocalDir and PackageLocalArchive, because it needs to access the
+// contents of the indicated package in order to compute the hash. If given
+// a non-local location this function will always return an error.
+func PackageMatchesAnyHash(loc PackageLocation, allowed []Hash) (bool, error) {
+	// It's likely that we'll have multiple hashes of the same scheme in
+	// the "allowed" set, in which case we'll avoid repeatedly re-reading the
+	// given package by caching its result for each of the two
+	// currently-supported hash formats. These will be NilHash until we
+	// encounter the first hash of the corresponding scheme.
+	var v1Hash, zipHash Hash
+	for _, want := range allowed {
+		switch want.Scheme() {
+		case HashScheme1:
+			if v1Hash == NilHash {
+				got, err := PackageHashV1(loc)
+				if err != nil {
+					return false, err
+				}
+				v1Hash = got
+			}
+			if v1Hash == want {
+				return true, nil
+			}
+		case HashSchemeZip:
+			archiveLoc, ok := loc.(PackageLocalArchive)
+			if !ok {
+				// A zip hash can never match an unpacked directory
+				continue
+			}
+			if zipHash == NilHash {
+				got, err := PackageHashLegacyZipSHA(archiveLoc)
+				if err != nil {
+					return false, err
+				}
+				zipHash = got
+			}
+			if zipHash == want {
+				return true, nil
+			}
+		default:
+			// If it's not a supported format then it can't match.
+			continue
+		}
+	}
+	return false, nil
 }
 
 // PreferredHashes examines all of the given hash strings and returns the one
@@ -200,10 +266,20 @@ func PackageMatchesHash(loc PackageLocation, want Hash) (bool, error) {
 // of the hash strings in "given", and that hash is the one that must pass
 // verification in order for a package to be considered valid.
 func PreferredHashes(given []Hash) []Hash {
+	// For now this is just filtering for the two hash formats we support,
+	// both of which are considered equally "preferred". If we introduce
+	// a new scheme like "h2:" in future then, depending on the characteristics
+	// of that new version, it might make sense to rework this function so
+	// that it only returns "h1:" hashes if the input has no "h2:" hashes,
+	// so that h2: is preferred when possible and h1: is only a fallback for
+	// interacting with older systems that haven't been updated with the new
+	// scheme yet.
+
 	var ret []Hash
 	for _, hash := range given {
-		if hash.Scheme() == HashScheme1 {
-			return append(ret, hash)
+		switch hash.Scheme() {
+		case HashScheme1, HashSchemeZip:
+			ret = append(ret, hash)
 		}
 	}
 	return ret

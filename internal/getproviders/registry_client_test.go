@@ -174,7 +174,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		case "/pkg/awesomesauce/happycloud_1.2.0.zip":
 			resp.Write([]byte("some zip file"))
 		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS":
-			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"))
+			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"))
 		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS.sig":
 			resp.Write([]byte("GPG signature"))
 		default:

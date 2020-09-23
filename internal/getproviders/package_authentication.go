@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -123,9 +124,10 @@ type PackageAuthentication interface {
 type PackageAuthenticationHashes interface {
 	PackageAuthentication
 
-	// AcceptableHashes returns a set of hash strings that this authenticator
-	// would accept as valid, grouped by platform. The order of the items
-	// in each of the slices is not significant, and may contain duplicates
+	// AcceptableHashes returns a set of hashes that this authenticator
+	// considers to be valid for the current package or, where possible,
+	// equivalent packages on other platforms. The order of the items in
+	// the result is not significant, and it may contain duplicates
 	// that are also not significant.
 	//
 	// This method's result should only be used to create a "lock" for a
@@ -138,16 +140,17 @@ type PackageAuthenticationHashes interface {
 	// verifying a signature from the origin registry, depending on what the
 	// hashes are going to be used for.
 	//
-	// Hashes are returned as strings with hashing scheme prefixes like "h1:"
-	// to record which hashing scheme the hash was created with.
 	// Implementations of PackageAuthenticationHashes may return multiple
 	// hashes with different schemes, which means that all of them are equally
-	// acceptable.
+	// acceptable. Implementors may also return hashes that use schemes the
+	// current version of the authenticator would not allow but that could be
+	// accepted by other versions of Terraform, e.g. if a particular hash
+	// scheme has been deprecated.
 	//
 	// Authenticators that don't use hashes as their authentication procedure
 	// will either not implement this interface or will have an implementation
 	// that returns an empty result.
-	AcceptableHashes() map[Platform][]Hash
+	AcceptableHashes() []Hash
 }
 
 type packageAuthenticationAll []PackageAuthentication
@@ -183,7 +186,7 @@ func (checks packageAuthenticationAll) AuthenticatePackage(localLocation Package
 	return authResult, nil
 }
 
-func (checks packageAuthenticationAll) AcceptableHashes() map[Platform][]Hash {
+func (checks packageAuthenticationAll) AcceptableHashes() []Hash {
 	// The elements of checks are expected to be ordered so that the strongest
 	// one is later in the list, so we'll visit them in reverse order and
 	// take the first one that implements the interface and returns a non-empty
@@ -202,42 +205,37 @@ func (checks packageAuthenticationAll) AcceptableHashes() map[Platform][]Hash {
 }
 
 type packageHashAuthentication struct {
-	RequiredHash Hash
-	ValidHashes  []Hash
-	Platform     Platform
+	RequiredHashes []Hash
+	AllHashes      []Hash
+	Platform       Platform
 }
 
 // NewPackageHashAuthentication returns a PackageAuthentication implementation
-// that checks whether the contents of the package match whichever of the
-// given hashes is most preferred by the current version of Terraform.
+// that checks whether the contents of the package match whatever subset of the
+// given hashes are considered acceptable by the current version of Terraform.
 //
-// This uses the hash algorithms implemented by functions Hash and MatchesHash.
-// The PreferredHash function will select which of the given hashes is
-// considered by Terraform to be the strongest verification, and authentication
-// succeeds as long as that chosen hash matches.
+// This uses the hash algorithms implemented by functions PackageHash and
+// MatchesHash. The PreferredHashes function will select which of the given
+// hashes are considered by Terraform to be the strongest verification, and
+// authentication succeeds as long as one of those matches.
 func NewPackageHashAuthentication(platform Platform, validHashes []Hash) PackageAuthentication {
 	requiredHashes := PreferredHashes(validHashes)
-	// TODO: Update to support multiple hashes
-	var requiredHash Hash
-	if len(requiredHashes) > 0 {
-		requiredHash = requiredHashes[0]
-	}
 	return packageHashAuthentication{
-		RequiredHash: requiredHash,
-		ValidHashes:  validHashes,
-		Platform:     platform,
+		RequiredHashes: requiredHashes,
+		AllHashes:      validHashes,
+		Platform:       platform,
 	}
 }
 
 func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLocation) (*PackageAuthenticationResult, error) {
-	if a.RequiredHash == "" {
+	if len(a.RequiredHashes) == 0 {
 		// Indicates that none of the hashes given to
 		// NewPackageHashAuthentication were considered to be usable by this
 		// version of Terraform.
 		return nil, fmt.Errorf("this version of Terraform does not support any of the checksum formats given for this provider")
 	}
 
-	matches, err := PackageMatchesHash(localLocation, a.RequiredHash)
+	matches, err := PackageMatchesAnyHash(localLocation, a.RequiredHashes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify provider package checksums: %s", err)
 	}
@@ -245,13 +243,25 @@ func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 	if matches {
 		return &PackageAuthenticationResult{result: verifiedChecksum}, nil
 	}
-	return nil, fmt.Errorf("provider package doesn't match the expected checksum %q", a.RequiredHash)
+	if len(a.RequiredHashes) == 1 {
+		return nil, fmt.Errorf("provider package doesn't match the expected checksum %q", a.RequiredHashes[0].String())
+	}
+	// It's non-ideal that this doesn't actually list the expected checksums,
+	// but in the many-checksum case the message would get pretty unweildy.
+	// In practice today we typically use this authenticator only with a
+	// single hash returned from a network mirror, so the better message
+	// above will prevail in that case. Maybe we'll improve on this somehow
+	// if the future introduction of a new hash scheme causes there to more
+	// commonly be multiple hashes.
+	return nil, fmt.Errorf("provider package doesn't match the any of the expected checksums")
 }
 
-func (a packageHashAuthentication) AcceptableHashes() map[Platform][]Hash {
-	return map[Platform][]Hash{
-		a.Platform: a.ValidHashes,
-	}
+func (a packageHashAuthentication) AcceptableHashes() []Hash {
+	// In this case we include even hashes the current version of Terraform
+	// doesn't prefer, because this result is used for building a lock file
+	// and so it's helpful to include older hash formats that other Terraform
+	// versions might need in order to do authentication successfully.
+	return a.AllHashes
 }
 
 type archiveHashAuthentication struct {
@@ -270,7 +280,7 @@ type archiveHashAuthentication struct {
 // given localLocation is not PackageLocalArchive.
 //
 // NewPackageHashAuthentication is preferable to use when possible because
-// it uses the newer hashing scheme (implemented by function Hash) that
+// it uses the newer hashing scheme (implemented by function PackageHash) that
 // can work with both packed and unpacked provider packages.
 func NewArchiveChecksumAuthentication(platform Platform, wantSHA256Sum [sha256.Size]byte) PackageAuthentication {
 	return archiveHashAuthentication{platform, wantSHA256Sum}
@@ -295,10 +305,8 @@ func (a archiveHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 	return &PackageAuthenticationResult{result: verifiedChecksum}, nil
 }
 
-func (a archiveHashAuthentication) AcceptableHashes() map[Platform][]Hash {
-	return map[Platform][]Hash{
-		a.Platform: {HashLegacyZipSHAFromSHA(a.WantSHA256Sum)},
-	}
+func (a archiveHashAuthentication) AcceptableHashes() []Hash {
+	return []Hash{HashLegacyZipSHAFromSHA(a.WantSHA256Sum)}
 }
 
 type matchingChecksumAuthentication struct {
@@ -435,6 +443,51 @@ func (s signatureAuthentication) AuthenticatePackage(location PackageLocation) (
 	// We have a valid signature, but it's not from the HashiCorp key, and it
 	// also isn't a trusted partner. This is a community provider.
 	return &PackageAuthenticationResult{result: communityProvider, KeyID: keyID}, nil
+}
+
+func (s signatureAuthentication) AcceptableHashes() []Hash {
+	// This is a bit of an abstraction leak because signatureAuthentication
+	// otherwise just treats the document as an opaque blob that's been
+	// signed, but here we're making assumptions about its format because
+	// we only want to trust that _all_ of the checksums are valid (rather
+	// than just the current platform's one) if we've also verified that the
+	// bag of checksums is signed.
+	//
+	// In recognition of that layering quirk this implementation is intended to
+	// be somewhat resilient to potentially using this authenticator with
+	// non-checksums files in future (in which case it'll return nothing at all)
+	// but it might be better in the long run to instead combine
+	// signatureAuthentication and matchingChecksumAuthentication together and
+	// be explicit that the resulting merged authenticator is exclusively for
+	// checksums files.
+
+	var ret []Hash
+	sc := bufio.NewScanner(bytes.NewReader(s.Document))
+	for sc.Scan() {
+		parts := bytes.Fields(sc.Bytes())
+		if len(parts) != 0 && len(parts) < 2 {
+			// Doesn't look like a valid sums file line, so we'll assume
+			// this whole thing isn't a checksums file.
+			return nil
+		}
+
+		// If this is a checksums file then the first part should be a
+		// hex-encoded SHA256 hash, so it should be 64 characters long
+		// and contain only hex digits.
+		hashStr := parts[0]
+		if len(hashStr) != 64 {
+			return nil // doesn't look like a checksums file
+		}
+
+		var gotSHA256Sum [sha256.Size]byte
+		if _, err := hex.Decode(gotSHA256Sum[:], hashStr); err != nil {
+			return nil // doesn't look like a checksums file
+		}
+
+		ret = append(ret, HashLegacyZipSHAFromSHA(gotSHA256Sum))
+	}
+
+	return ret
 }
 
 // findSigningKey attempts to verify the signature using each of the keys

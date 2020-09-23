@@ -244,9 +244,19 @@ func (m PackageMeta) PackedFilePath(baseDir string) string {
 	return PackedFilePathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
 }
 
-// AcceptableHashes returns a set of hashes (grouped by target platform) that
-// could be recorded for comparison to future results for the same provider
-// version, to implement a "trust on first use" scheme.
+// AcceptableHashes returns a set of hashes that could be recorded for
+// comparison to future results for the same provider version, to implement a
+// "trust on first use" scheme.
+//
+// The AcceptableHashes result is a platform-agnostic set of hashes, with the
+// intent that in most cases it will be used as an additional cross-check in
+// addition to a platform-specific hash check made during installation. However,
+// there are some situations (such as verifying an already-installed package
+// that's on local disk) where Terraform would check only against the results
+// of this function, meaning that it would in principle accept another
+// platform's package as a substitute for the correct platform. That's a
+// pragmatic compromise to allow lock files derived from the result of this
+// method to be portable across platforms.
 //
 // Callers of this method should typically also verify the package using the
 // object in the Authentication field, and consider how much trust to give
@@ -259,7 +269,7 @@ func (m PackageMeta) PackedFilePath(baseDir string) string {
 // Authentication field. AcceptableHashes therefore returns an empty result
 // for a PackageMeta that has no authentication object, or has one that does
 // not make use of hashes.
-func (m PackageMeta) AcceptableHashes() map[Platform][]Hash {
+func (m PackageMeta) AcceptableHashes() []Hash {
 	auth, ok := m.Authentication.(PackageAuthenticationHashes)
 	if !ok {
 		return nil
