@@ -47,13 +47,14 @@ var (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Config    *configs.Config
-	Changes   *plans.Changes
-	State     *states.State
-	Targets   []addrs.Targetable
-	Variables InputValues
-	Meta      *ContextMeta
-	Destroy   bool
+	Config      *configs.Config
+	Changes     *plans.Changes
+	State       *states.State
+	Targets     []addrs.Targetable
+	Variables   InputValues
+	Meta        *ContextMeta
+	Destroy     bool
+	SkipRefresh bool
 
 	Hooks        []Hook
 	Parallelism  int
@@ -97,6 +98,7 @@ type Context struct {
 	changes      *plans.Changes
 	state        *states.State
 	refreshState *states.State
+	skipRefresh  bool
 	targets      []addrs.Targetable
 	variables    InputValues
 	meta         *ContextMeta
@@ -233,6 +235,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		config:       config,
 		state:        state,
 		refreshState: state.DeepCopy(),
+		skipRefresh:  opts.SkipRefresh,
 		targets:      opts.Targets,
 		uiInput:      opts.UIInput,
 		variables:    variables,
@@ -293,12 +296,13 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	case GraphTypePlan:
 		// Create the plan graph builder
 		return (&PlanGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
+			Config:      c.config,
+			State:       c.state,
+			Components:  c.components,
+			Schemas:     c.schemas,
+			Targets:     c.targets,
+			Validate:    opts.Validate,
+			skipRefresh: c.skipRefresh,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
