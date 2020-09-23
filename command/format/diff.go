@@ -767,6 +767,12 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	ty := old.Type()
 	typesEqual := ctyTypesEqual(ty, new.Type())
 
+	// If either the old or new value is marked, don't display the value
+	if old.ContainsMarked() || new.ContainsMarked() {
+		p.buf.WriteString("(sensitive)")
+		return
+	}
+
 	// We have some specialized diff implementations for certain complex
 	// values where it's useful to see a visualization of the diff of
 	// the nested elements rather than just showing the entire old and
@@ -774,15 +780,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
-		// If marked, create unmarked values for comparisons
-		unmarkedOld := old
-		unmarkedNew := new
-		if old.ContainsMarked() {
-			unmarkedOld, _ = old.UnmarkDeep()
-		}
-		if new.ContainsMarked() {
-			unmarkedNew, _ = new.UnmarkDeep()
-		}
 		switch {
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
@@ -790,18 +787,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			// to apply, both old and new must be valid JSON.
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
-
-			var oldS, newS string
-			if old.ContainsMarked() {
-				oldS = "(sensitive)"
-			} else {
-				oldS = old.AsString()
-			}
-			if new.ContainsMarked() {
-				newS = "(sensitive)"
-			} else {
-				newS = new.AsString()
-			}
+			oldS := old.AsString()
+			newS := new.AsString()
 
 			{
 				// Special behavior for JSON strings containing object or
@@ -1117,7 +1104,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if new.HasIndex(kV).False() {
 					action = plans.Delete
-				} else if eqV := unmarkedOld.Index(kV).Equals(unmarkedNew.Index(kV)); eqV.IsKnown() && eqV.True() {
+				} else if eqV := old.Index(kV).Equals(new.Index(kV)); eqV.IsKnown() && eqV.True() {
 					action = plans.NoOp
 				} else {
 					action = plans.Update
@@ -1138,26 +1125,14 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				switch action {
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
-					if v.ContainsMarked() {
-						v = cty.StringVal("(sensitive)")
-					}
 					p.writeValue(v, action, indent+4)
 				case plans.Delete:
 					oldV := old.Index(kV)
-					if oldV.ContainsMarked() {
-						oldV = cty.StringVal("(sensitive)")
-					}
 					newV := cty.NullVal(oldV.Type())
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
 					oldV := old.Index(kV)
-					if oldV.ContainsMarked() {
-						oldV = cty.StringVal("(sensitive)")
-					}
 					newV := new.Index(kV)
-					if newV.ContainsMarked() {
-						newV = cty.StringVal("(sensitive)")
-					}
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				}
 

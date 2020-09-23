@@ -3678,7 +3678,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = (sensitive) -> "ami-AFTER"
+      ~ ami = (sensitive)
         id  = "i-02ae66f368e8518a9"
     }
 `,
@@ -3714,9 +3714,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         id   = "i-02ae66f368e8518a9"
-      ~ tags = {
-          ~ "name" = "anna" -> "(sensitive)"
-        }
+      ~ tags = (sensitive)
     }
 `,
 		},
@@ -3751,7 +3749,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = (sensitive) -> (sensitive)
+      ~ ami = (sensitive)
         id  = "i-02ae66f368e8518a9"
     }
 `,
@@ -3779,7 +3777,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - ami = (sensitive) -> null
+      - ami = (sensitive)
       - id  = "i-02ae66f368e8518a9" -> null
     }
 `,
