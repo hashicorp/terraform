@@ -6374,3 +6374,43 @@ data "test_data_source" "d" {
 	_, diags := ctx.Plan()
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Plan_skipRefresh(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State:       state,
+		SkipRefresh: true,
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if p.ReadResourceCalled {
+		t.Fatal("Resource should not have been refreshed")
+	}
+}
