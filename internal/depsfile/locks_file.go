@@ -102,8 +102,8 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 		}
 		if len(lock.hashes) != 0 {
 			hashVals := make([]cty.Value, 0, len(lock.hashes))
-			for _, str := range lock.hashes {
-				hashVals = append(hashVals, cty.StringVal(str))
+			for _, hash := range lock.hashes {
+				hashVals = append(hashVals, cty.StringVal(hash.String()))
 			}
 			// We're using a set rather than a list here because the order
 			// isn't significant and SetAttributeValue will automatically
@@ -369,7 +369,7 @@ func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl
 	return constraints, diags
 }
 
-func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) ([]string, tfdiags.Diagnostics) {
+func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) ([]getproviders.Hash, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if attr == nil {
 		// It's okay to omit this argument.
@@ -396,7 +396,7 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 		return nil, diags
 	}
 
-	ret := make([]string, 0, len(hashExprs))
+	ret := make([]getproviders.Hash, 0, len(hashExprs))
 	for _, hashExpr := range hashExprs {
 		var raw string
 		hclDiags := gohcl.DecodeExpression(hashExpr, nil, &raw)
@@ -404,10 +404,19 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 		if hclDiags.HasErrors() {
 			continue
 		}
-		// TODO: Validate the hash syntax, but not the actual hash schemes
-		// because we expect to support different hash formats over time and
-		// will silently ignore ones that we no longer prefer.
-		ret = append(ret, raw)
+
+		hash, err := getproviders.ParseHash(raw)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider hash string",
+				Detail:   fmt.Sprintf("Cannot interpret %q as a provider hash: %s.", raw, err),
+				Subject:  expr.Range().Ptr(),
+			})
+			continue
+		}
+
+		ret = append(ret, hash)
 	}
 
 	return ret, diags

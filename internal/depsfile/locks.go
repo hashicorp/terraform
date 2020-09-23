@@ -2,7 +2,6 @@ package depsfile
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -58,13 +57,10 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 // non-lockable provider address then this function will panic. Use
 // function ProviderIsLockable to determine whether a particular provider
 // should participate in the version locking mechanism.
-func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes []string) *ProviderLock {
+func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes []getproviders.Hash) *ProviderLock {
 	if !ProviderIsLockable(addr) {
 		panic(fmt.Sprintf("Locks.SetProvider with non-lockable provider %s", addr))
 	}
-
-	// Normalize the hash lists into a consistent order.
-	sort.Strings(hashes)
 
 	new := &ProviderLock{
 		addr:               addr,
@@ -137,7 +133,7 @@ type ProviderLock struct {
 	// means we can only populate the hash for the current platform, and so
 	// it won't be possible to verify a subsequent installation of the same
 	// provider on a different platform.
-	hashes []string
+	hashes []getproviders.Hash
 }
 
 // Provider returns the address of the provider this lock applies to.
@@ -172,7 +168,7 @@ func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
 // of which must match in order for verification to be considered successful.
 //
 // Do not modify the backing array of the returned slice.
-func (l *ProviderLock) AllHashes() []string {
+func (l *ProviderLock) AllHashes() []getproviders.Hash {
 	return l.hashes
 }
 
@@ -183,6 +179,6 @@ func (l *ProviderLock) AllHashes() []string {
 //
 // At least one of the given hashes must match for a package to be considered
 // valud.
-func (l *ProviderLock) PreferredHashes() []string {
+func (l *ProviderLock) PreferredHashes() []getproviders.Hash {
 	return getproviders.PreferredHashes(l.hashes)
 }

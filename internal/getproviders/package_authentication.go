@@ -147,7 +147,7 @@ type PackageAuthenticationHashes interface {
 	// Authenticators that don't use hashes as their authentication procedure
 	// will either not implement this interface or will have an implementation
 	// that returns an empty result.
-	AcceptableHashes() map[Platform][]string
+	AcceptableHashes() map[Platform][]Hash
 }
 
 type packageAuthenticationAll []PackageAuthentication
@@ -183,7 +183,7 @@ func (checks packageAuthenticationAll) AuthenticatePackage(localLocation Package
 	return authResult, nil
 }
 
-func (checks packageAuthenticationAll) AcceptableHashes() map[Platform][]string {
+func (checks packageAuthenticationAll) AcceptableHashes() map[Platform][]Hash {
 	// The elements of checks are expected to be ordered so that the strongest
 	// one is later in the list, so we'll visit them in reverse order and
 	// take the first one that implements the interface and returns a non-empty
@@ -202,8 +202,8 @@ func (checks packageAuthenticationAll) AcceptableHashes() map[Platform][]string 
 }
 
 type packageHashAuthentication struct {
-	RequiredHash string
-	ValidHashes  []string
+	RequiredHash Hash
+	ValidHashes  []Hash
 	Platform     Platform
 }
 
@@ -215,10 +215,10 @@ type packageHashAuthentication struct {
 // The PreferredHash function will select which of the given hashes is
 // considered by Terraform to be the strongest verification, and authentication
 // succeeds as long as that chosen hash matches.
-func NewPackageHashAuthentication(platform Platform, validHashes []string) PackageAuthentication {
+func NewPackageHashAuthentication(platform Platform, validHashes []Hash) PackageAuthentication {
 	requiredHashes := PreferredHashes(validHashes)
 	// TODO: Update to support multiple hashes
-	var requiredHash string
+	var requiredHash Hash
 	if len(requiredHashes) > 0 {
 		requiredHash = requiredHashes[0]
 	}
@@ -248,8 +248,8 @@ func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 	return nil, fmt.Errorf("provider package doesn't match the expected checksum %q", a.RequiredHash)
 }
 
-func (a packageHashAuthentication) AcceptableHashes() map[Platform][]string {
-	return map[Platform][]string{
+func (a packageHashAuthentication) AcceptableHashes() map[Platform][]Hash {
+	return map[Platform][]Hash{
 		a.Platform: a.ValidHashes,
 	}
 }
@@ -295,8 +295,8 @@ func (a archiveHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 	return &PackageAuthenticationResult{result: verifiedChecksum}, nil
 }
 
-func (a archiveHashAuthentication) AcceptableHashes() map[Platform][]string {
-	return map[Platform][]string{
+func (a archiveHashAuthentication) AcceptableHashes() map[Platform][]Hash {
+	return map[Platform][]Hash{
 		a.Platform: {HashLegacyZipSHAFromSHA(a.WantSHA256Sum)},
 	}
 }

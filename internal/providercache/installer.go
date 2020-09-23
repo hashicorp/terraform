@@ -418,7 +418,7 @@ NeedProvider:
 		}
 		lockEntries[provider] = lockFileEntry{
 			SelectedVersion: version,
-			PackageHash:     hash,
+			PackageHash:     hash.String(),
 		}
 	}
 	err := i.lockFile().Write(lockEntries)
@@ -471,7 +471,13 @@ func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, erro
 			continue
 		}
 
-		ok, err := cached.MatchesHash(entry.PackageHash)
+		hash, err := getproviders.ParseHash(entry.PackageHash)
+		if err != nil {
+			errs[provider] = fmt.Errorf("local cache for %s has invalid hash %q: %s", provider, entry.PackageHash, err)
+			continue
+		}
+
+		ok, err := cached.MatchesHash(hash)
 		if err != nil {
 			errs[provider] = fmt.Errorf("failed to verify checksum for v%s package: %s", entry.SelectedVersion, err)
 			continue

@@ -104,9 +104,9 @@ func TestPackageHashAuthentication_success(t *testing.T) {
 	// Location must be a PackageLocalArchive path
 	location := PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64")
 
-	wantHashes := []string{
+	wantHashes := []Hash{
 		// Known-good HashV1 result for this directory
-		"h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g=",
+		Hash("h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g="),
 	}
 
 	auth := NewPackageHashAuthentication(Platform{"linux", "amd64"}, wantHashes)
@@ -145,7 +145,7 @@ func TestPackageHashAuthentication_failure(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// Invalid expected hash, either because we'll error before we
 			// reach it, or we want to force a checksum mismatch.
-			auth := NewPackageHashAuthentication(Platform{"linux", "amd64"}, []string{"h1:invalid"})
+			auth := NewPackageHashAuthentication(Platform{"linux", "amd64"}, []Hash{"h1:invalid"})
 			result, err := auth.AuthenticatePackage(test.location)
 
 			if result != nil {
