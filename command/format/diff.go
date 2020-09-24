@@ -790,6 +790,11 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			unmarkedNew, _ = new.UnmarkDeep()
 		}
 		switch {
+		case ty == cty.Bool || ty == cty.Number:
+			if old.ContainsMarked() || new.ContainsMarked() {
+				p.buf.WriteString("(sensitive)")
+				return
+			}
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
 			// and for strings that can parse as JSON. For the JSON handling
