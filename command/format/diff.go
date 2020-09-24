@@ -338,10 +338,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 
 	p.buf.WriteString("\n")
 
-	// Write sensitivity warning for non-delete plans
-	if action != plans.Delete && action != plans.Create {
-		p.writeSensitivityWarning(old, new, indent)
-	}
+	p.writeSensitivityWarning(old, new, indent, action)
 
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
@@ -1138,7 +1135,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				oldV := old.Index(kV)
 				newV := new.Index(kV)
-				p.writeSensitivityWarning(oldV, newV, indent+2)
+				p.writeSensitivityWarning(oldV, newV, indent+2, action)
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
@@ -1316,7 +1313,12 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 	}
 }
 
-func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, indent int) {
+func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, indent int, action plans.Action) {
+	// Dont' show this warning for create or delete
+	if action == plans.Create || action == plans.Delete {
+		return
+	}
+
 	if new.IsMarked() && !old.IsMarked() {
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color("[yellow]# Warning: this attribute value will be marked as sensitive and will\n"))
