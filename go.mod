@@ -146,4 +146,7 @@ require (
 
 replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
+// TK - TEMPORARY UNTIL HCL PR is Merged: https://github.com/hashicorp/hcl/pull/384
+replace github.com/hashicorp/hcl/v2/ext/tryfunc => github.com/aaronsteers/hcl/v2/ext/tryfunc v0.0.0-beta
+
 go 1.14

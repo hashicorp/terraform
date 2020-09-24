@@ -813,6 +813,7 @@ gopkg.in/ini.v1
 # gopkg.in/yaml.v2 v2.2.8
 ## explicit
 gopkg.in/yaml.v2
+# github.com/hashicorp/hcl/v2/ext/tryfunc => github.com/aaronsteers/hcl/v2/ext/tryfunc v0.0.0-beta
 # k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 ## explicit
 k8s.io/api/admissionregistration/v1beta1

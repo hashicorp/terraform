@@ -93,6 +93,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"parseint":         stdlib.ParseIntFunc,
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              stdlib.PowFunc,
+			"raise":            tryfunc.RaiseFunc,
 			"range":            stdlib.RangeFunc,
 			"regex":            stdlib.RegexFunc,
 			"regexall":         stdlib.RegexAllFunc,

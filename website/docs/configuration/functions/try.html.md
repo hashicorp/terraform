@@ -115,3 +115,5 @@ A local value with the name "nonexist" has not been declared.
 
 * [`can`](./can.html), which tries evaluating an expression and returns a
   boolean value indicating whether it succeeded.
+* [`raise`](./raise.html), which throws a custom error as a result of some condition being
+  evaluated.
