@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -527,52 +526,6 @@ func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
 		state.SetResourceProvider(n.Addr, n.ProviderAddr)
 		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
-
-	return nil, nil
-}
-
-// EvalRefreshDependencies is an EvalNode implementation that appends any newly
-// found dependencies to those saved in the state. The existing dependencies
-// are retained, as they may be missing from the config, and will be required
-// for the updates and destroys during the next apply.
-type EvalRefreshDependencies struct {
-	// Prior State
-	State **states.ResourceInstanceObject
-	// Dependencies to write to the new state
-	Dependencies *[]addrs.ConfigResource
-}
-
-func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
-	state := *n.State
-	if state == nil {
-		// no existing state to append
-		return nil, nil
-	}
-
-	// We already have dependencies in state, so we need to trust those for
-	// refresh. We can't write out new dependencies until apply time in case
-	// the configuration has been changed in a manner the conflicts with the
-	// stored dependencies.
-	if len(state.Dependencies) > 0 {
-		*n.Dependencies = state.Dependencies
-		return nil, nil
-	}
-
-	depMap := make(map[string]addrs.ConfigResource)
-	for _, d := range *n.Dependencies {
-		depMap[d.String()] = d
-	}
-
-	deps := make([]addrs.ConfigResource, 0, len(depMap))
-	for _, d := range depMap {
-		deps = append(deps, d)
-	}
-
-	sort.Slice(deps, func(i, j int) bool {
-		return deps[i].String() < deps[j].String()
-	})
-
-	*n.Dependencies = deps
 
 	return nil, nil
 }

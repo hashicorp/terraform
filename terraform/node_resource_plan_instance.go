@@ -141,10 +141,6 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 				ProviderSchema: &providerSchema,
 				Output:         &instanceRefreshState,
 			},
-			&EvalRefreshDependencies{
-				State:        &instanceRefreshState,
-				Dependencies: &n.Dependencies,
-			},
 			&EvalRefresh{
 				Addr:           addr.Resource,
 				ProviderAddr:   n.ResolvedProvider,

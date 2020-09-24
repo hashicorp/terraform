@@ -1582,13 +1582,39 @@ func TestRefresh_updateDependencies(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 			Dependencies: []addrs.ConfigResource{
-				// Existing dependencies should not be removed during refresh
+				// Existing dependencies should be removed when overridden by the config
 				{
 					Module: addrs.RootModule,
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "baz",
+					},
+				},
+			},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "baz",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+			Dependencies: []addrs.ConfigResource{
+				// Existing dependencies should not be removed from orphaned instances
+				{
+					Module: addrs.RootModule,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "bam",
 					},
 				},
 			},
@@ -1621,7 +1647,8 @@ resource "aws_instance" "bar" {
 }
 
 resource "aws_instance" "foo" {
-}`,
+}
+`,
 	})
 
 	p := testProvider("aws")
@@ -1649,12 +1676,15 @@ aws_instance.bar:
 
   Dependencies:
     aws_instance.foo
-aws_instance.foo:
-  ID = foo
+aws_instance.baz:
+  ID = baz
   provider = provider["registry.terraform.io/hashicorp/aws"]
 
   Dependencies:
-    aws_instance.baz
+    aws_instance.bam
+aws_instance.foo:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `)
 
 	checkStateString(t, result, expect)
