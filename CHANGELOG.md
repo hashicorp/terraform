@@ -16,7 +16,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * backend/consul: Fix bug which prevented state locking when path has trailing `/` ([#25842](https://github.com/hashicorp/terraform/issues/25842))
-* build: fix crash with terraform binary on openBSD [#26249]
+* build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249)
 * command/clistate: return an error on a state unlock failure [[#25729](https://github.com/hashicorp/terraform/issues/25729)] 
 * command/taint: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. [GH-26345]
 * configs: Report an error when provider configuration attributes are incorrectly added to a `required_providers` object. ([#26184](https://github.com/hashicorp/terraform/issues/26184))
