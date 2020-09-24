@@ -6,7 +6,7 @@ orbs:
 executors:
   go:
     docker:
-      - image: circleci/golang:1.14
+      - image: circleci/golang:1.15
     environment:
       CONSUL_VERSION: 1.7.2
       GOMAXPROCS: 4
