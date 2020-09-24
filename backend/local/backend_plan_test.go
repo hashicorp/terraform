@@ -678,6 +678,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 		Type:   "local",
 		Config: cfgRaw,
 	}
+	op.PlanRefresh = true
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {

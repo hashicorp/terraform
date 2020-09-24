@@ -42,6 +42,9 @@ type PlanGraphBuilder struct {
 	// Validate will do structural validation of the graph.
 	Validate bool
 
+	// skipRefresh indicates that we should skip refreshing managed resources
+	skipRefresh bool
+
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
 	// the plan behavior.
@@ -196,6 +199,7 @@ func (b *PlanGraphBuilder) init() {
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
+			skipRefresh:          b.skipRefresh,
 		}
 	}
 
