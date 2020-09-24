@@ -1373,10 +1373,15 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 		return nil
 	}
 
+	// Sets with marks mark the whole set as marked,
+	// so when we unmark it, apply those marks to all members
+	// of the set
+	val, marks := val.Unmark()
+
 	ret := make([]cty.Value, 0, val.LengthInt())
 	for it := val.ElementIterator(); it.Next(); {
 		_, value := it.Element()
-		ret = append(ret, value)
+		ret = append(ret, value.WithMarks(marks))
 	}
 	return ret
 }
