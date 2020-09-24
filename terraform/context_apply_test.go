@@ -290,7 +290,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"parent"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.child")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.child.aws_instance.child")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -1187,7 +1187,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -2517,7 +2517,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"b"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.aws_instance.a")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.child.aws_instance.a")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -7133,7 +7133,7 @@ func TestContext2Apply_taintDep(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar","num": "2", "type": "aws_instance", "foo": "baz"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -7185,7 +7185,7 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar","num": "2", "type": "aws_instance", "foo": "baz"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -7431,7 +7431,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"i-abc123"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -11355,7 +11355,7 @@ locals {
 		&states.ResourceInstanceObjectSrc{
 			Status:              states.ObjectReady,
 			AttrsJSON:           []byte(`{"id":"b", "require_new":"old.old"}`),
-			Dependencies:        []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+			Dependencies:        []addrs.ConfigResource{mustConfigResourceAddr("test_instance.a")},
 			CreateBeforeDestroy: true,
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -11366,8 +11366,8 @@ locals {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"c", "require_new":"b"}`),
 			Dependencies: []addrs.ConfigResource{
-				mustResourceAddr("test_instance.a"),
-				mustResourceAddr("test_instance.b"),
+				mustConfigResourceAddr("test_instance.a"),
+				mustConfigResourceAddr("test_instance.b"),
 			},
 			CreateBeforeDestroy: true,
 		},

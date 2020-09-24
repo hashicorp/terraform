@@ -250,12 +250,20 @@ func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
 	return addr
 }
 
-func mustResourceAddr(s string) addrs.ConfigResource {
+func mustConfigResourceAddr(s string) addrs.ConfigResource {
 	addr, diags := addrs.ParseAbsResourceStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
 	return addr.Config()
+}
+
+func mustAbsResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
 }
 
 func mustProviderConfig(s string) addrs.AbsProviderConfig {

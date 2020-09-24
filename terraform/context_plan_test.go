@@ -5221,7 +5221,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5230,7 +5230,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5239,7 +5239,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"baz0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5248,7 +5248,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"baz1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -6236,7 +6236,7 @@ resource "test_instance" "b" {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"b"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_instance.a")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
