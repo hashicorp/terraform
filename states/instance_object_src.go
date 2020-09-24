@@ -49,9 +49,9 @@ type ResourceInstanceObjectSrc struct {
 	// the recommendations in the AttrsJSON documentation above.
 	AttrsFlat map[string]string
 
-	// AttrPaths is an array of paths to mark as sensitive coming out of
+	// AttrSensitivePaths is an array of paths to mark as sensitive coming out of
 	// state, or to save as sensitive paths when saving state
-	AttrPaths []cty.PathValueMarks
+	AttrSensitivePaths []cty.PathValueMarks
 
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
@@ -83,8 +83,8 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 	} else {
 		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
 		// Mark the value with paths if applicable
-		if os.AttrPaths != nil {
-			val = val.MarkWithPaths(os.AttrPaths)
+		if os.AttrSensitivePaths != nil {
+			val = val.MarkWithPaths(os.AttrSensitivePaths)
 		}
 		if err != nil {
 			return nil, err

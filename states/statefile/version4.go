@@ -167,7 +167,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 						Marks: cty.NewValueMarks("sensitive"),
 					})
 				}
-				obj.AttrPaths = pvm
+				obj.AttrSensitivePaths = pvm
 			}
 
 			{
@@ -473,7 +473,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 
 	// Extract paths from path value marks
 	var paths []cty.Path
-	for _, vm := range obj.AttrPaths {
+	for _, vm := range obj.AttrSensitivePaths {
 		paths = append(paths, vm.Path)
 	}
 

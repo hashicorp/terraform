@@ -145,9 +145,9 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 	}
 
 	var attrPaths []cty.PathValueMarks
-	if obj.AttrPaths != nil {
-		attrPaths = make([]cty.PathValueMarks, len(obj.AttrPaths))
-		copy(attrPaths, obj.AttrPaths)
+	if obj.AttrSensitivePaths != nil {
+		attrPaths = make([]cty.PathValueMarks, len(obj.AttrSensitivePaths))
+		copy(attrPaths, obj.AttrSensitivePaths)
 	}
 
 	var private []byte
@@ -170,7 +170,7 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		Private:             private,
 		AttrsFlat:           attrsFlat,
 		AttrsJSON:           attrsJSON,
-		AttrPaths:           attrPaths,
+		AttrSensitivePaths:  attrPaths,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: obj.CreateBeforeDestroy,
 	}

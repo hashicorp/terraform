@@ -112,7 +112,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
-		AttrPaths:           pvm,
+		AttrSensitivePaths:  pvm,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        o.Dependencies,
