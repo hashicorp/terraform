@@ -5,7 +5,7 @@ VERSION?="0.3.44"
 # source files, except the protobuf stubs which are built instead with
 # "make protobuf".
 generate:
-	GOFLAGS=-mod=vendor go generate ./...
+	go generate ./...
 	# go fmt doesn't support -mod=vendor but it still wants to populate the
 	# module cache with everything in go.mod even though formatting requires
 	# no dependencies, and so we're disabling modules mode for this right
