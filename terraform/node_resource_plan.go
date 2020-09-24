@@ -177,20 +177,51 @@ func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable
-func (n *NodePlannableResource) EvalTree() EvalNode {
+// GraphNodeExecutable
+func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) error {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
-		return &EvalNoop{}
+		return nil
 	}
 
-	// this ensures we can reference the resource even if the count is 0
-	return &EvalWriteResourceState{
-		Addr:         n.Addr,
-		Config:       n.Config,
-		ProviderAddr: n.ResolvedProvider,
+	var diags tfdiags.Diagnostics
+	state := ctx.State()
+
+	// We'll record our expansion decision in the shared "expander" object
+	// so that later operations (i.e. DynamicExpand and expression evaluation)
+	// can refer to it. Since this node represents the abstract module, we need
+	// to expand the module here to create all resources.
+	expander := ctx.InstanceExpander()
+
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return diags.Err()
+		}
+
+		state.SetResourceProvider(n.Addr, n.ResolvedProvider)
+		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
+
+	case n.Config.ForEach != nil:
+		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return diags.Err()
+		}
+
+		// This method takes care of all of the business logic of updating this
+		// while ensuring that any existing instances are preserved, etc.
+		state.SetResourceProvider(n.Addr, n.ResolvedProvider)
+		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEach)
+
+	default:
+		state.SetResourceProvider(n.Addr, n.ResolvedProvider)
+		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
 	}
+	return nil
 }
 
 // GraphNodeDestroyerCBD
