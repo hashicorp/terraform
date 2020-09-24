@@ -153,8 +153,8 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			// Sensitive paths
-			if isV4.AttributePaths != nil {
-				paths, pathsDiags := unmarshalPaths([]byte(isV4.AttributePaths))
+			if isV4.AttributeSensitivePaths != nil {
+				paths, pathsDiags := unmarshalPaths([]byte(isV4.AttributeSensitivePaths))
 				diags = diags.Append(pathsDiags)
 				if pathsDiags.HasErrors() {
 					continue
@@ -478,20 +478,20 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	}
 
 	// Marshal paths to JSON
-	attributePaths, pathsDiags := marshalPaths(paths)
+	attributeSensitivePaths, pathsDiags := marshalPaths(paths)
 	diags = diags.Append(pathsDiags)
 
 	return append(isV4s, instanceObjectStateV4{
-		IndexKey:            rawKey,
-		Deposed:             string(deposed),
-		Status:              status,
-		SchemaVersion:       obj.SchemaVersion,
-		AttributesFlat:      obj.AttrsFlat,
-		AttributesRaw:       obj.AttrsJSON,
-		AttributePaths:      attributePaths,
-		PrivateRaw:          privateRaw,
-		Dependencies:        deps,
-		CreateBeforeDestroy: obj.CreateBeforeDestroy,
+		IndexKey:                rawKey,
+		Deposed:                 string(deposed),
+		Status:                  status,
+		SchemaVersion:           obj.SchemaVersion,
+		AttributesFlat:          obj.AttrsFlat,
+		AttributesRaw:           obj.AttrsJSON,
+		AttributeSensitivePaths: attributeSensitivePaths,
+		PrivateRaw:              privateRaw,
+		Dependencies:            deps,
+		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
 	}), diags
 }
 
@@ -535,10 +535,10 @@ type instanceObjectStateV4 struct {
 	Status   string      `json:"status,omitempty"`
 	Deposed  string      `json:"deposed,omitempty"`
 
-	SchemaVersion  uint64            `json:"schema_version"`
-	AttributesRaw  json.RawMessage   `json:"attributes,omitempty"`
-	AttributesFlat map[string]string `json:"attributes_flat,omitempty"`
-	AttributePaths json.RawMessage   `json:"sensitive_attributes,omitempty,"`
+	SchemaVersion           uint64            `json:"schema_version"`
+	AttributesRaw           json.RawMessage   `json:"attributes,omitempty"`
+	AttributesFlat          map[string]string `json:"attributes_flat,omitempty"`
+	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty,"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
