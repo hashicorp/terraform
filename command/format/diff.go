@@ -777,18 +777,12 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
-		// If marked, create unmarked values for comparisons
-		unmarkedOld := old
-		unmarkedNew := new
-		if old.ContainsMarked() {
-			unmarkedOld, _ = old.UnmarkDeep()
-		}
-		if new.ContainsMarked() {
-			unmarkedNew, _ = new.UnmarkDeep()
-		}
+		// Create unmarked values for comparisons
+		unmarkedOld, oldMarks := old.UnmarkDeep()
+		unmarkedNew, newMarks := new.UnmarkDeep()
 		switch {
 		case ty == cty.Bool || ty == cty.Number:
-			if old.ContainsMarked() || new.ContainsMarked() {
+			if len(oldMarks) > 0 || len(newMarks) > 0 {
 				p.buf.WriteString("(sensitive)")
 				return
 			}
@@ -799,7 +793,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
 
-			if old.ContainsMarked() || new.ContainsMarked() {
+			if len(oldMarks) > 0 || len(newMarks) > 0 {
 				p.buf.WriteString("(sensitive)")
 				return
 			}
