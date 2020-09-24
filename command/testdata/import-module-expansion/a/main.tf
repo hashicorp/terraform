@@ -1,0 +1,3 @@
+output "y" {
+  value = "bar"
+}

@@ -872,6 +872,64 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	}
 }
 
+func TestImportModuleExpansion(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-module-expansion"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
+	})
+	defer close()
+
+	// init to install the module
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	ic := &InitCommand{
+		Meta: m,
+	}
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// import
+	ui = new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("import failed; expected success")
+	}
+}
+
 func TestImport_dataResource(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 
