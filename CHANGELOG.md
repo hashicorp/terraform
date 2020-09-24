@@ -2,6 +2,10 @@
 
 UPGRADE NOTES:
 * configs: The `version` argument inside provider configuration blocks has been documented as deprecated since Terraform 0.12. As of 0.14 it will now also generate an explicit deprecation warning. To avoid the warning, use [provider requirements](https://www.terraform.io/docs/configuration/provider-requirements.html) declarations instead. ([#26135](https://github.com/hashicorp/terraform/issues/26135))
+* The official MacOS builds of Terraform now require MacOS 10.12 Sierra or later. [GH-26357]
+* TLS certificate verification for outbound HTTPS requests from Terraform CLI no longer treats the certificate's "common name" as a valid hostname when the certificate lacks any "subject alternative name" entries for the hostname. TLS server certificates must list their hostnames as a "DNS name" in the subject alternative names field. [GH-26357]
+* Outbound HTTPS requests from Terraform CLI now enforce [RFC 8446](https://tools.ietf.org/html/rfc8446)'s client-side downgrade protection checks. This should not significantly affect normal operation, but may result in connection errors in environments where outgoing requests are forced through proxy servers and other "middleboxes", if they have behavior that resembles a downgrade attack. [GH-26357]
+* Terraform's HTTP client code is now slightly stricter than before in HTTP header parsing, but in ways that should not affect typical server implementations: Terraform now trims only _ASCII_ whitespace characters, and does not allow `Transfer-Encoding: identity`. [GH-26357]
 
 ENHANCEMENTS:
 
@@ -12,6 +16,8 @@ ENHANCEMENTS:
 * `terraform console`: Now has distinct rendering of lists, sets, and tuples, and correctly renders objects with `null` attribute values. ([#26189](https://github.com/hashicorp/terraform/issues/26189))
 * `terraform login`: Added support for OAuth2 application scopes. ([#26239](https://github.com/hashicorp/terraform/issues/26239))
 * backend/consul: Split state into chunks when outgrowing the limit of the Consul KV store. This allows storing state larger than the Consul 512KB limit. ([#25856](https://github.com/hashicorp/terraform/issues/25856))
+* On Unix-based operating systems other than MacOS, the `SSL_CERT_DIR` environment variable can now be a colon-separated list of multiple certificate search paths. [GH-26357]
+* On MacOS, Terraform will now use the `Security.framework` API to access the system trust roots, for improved consistency with other MacOS software. [GH-26357]
 
 BUG FIXES:
 
