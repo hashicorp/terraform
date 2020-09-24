@@ -3652,34 +3652,57 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
     }
 `,
 		},
-		"in-place update - before sensitive": {
+		"in-place update - before sensitive, primitive types": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-BEFORE"),
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-BEFORE"),
+				"special":     cty.BoolVal(true),
+				"some_number": cty.NumberIntVal(1),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-AFTER"),
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-AFTER"),
+				"special":     cty.BoolVal(false),
+				"some_number": cty.NumberIntVal(2),
 			}),
 			BeforeValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
 					Marks: cty.NewValueMarks("sensitive"),
-				}},
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+					"id":          {Type: cty.String, Optional: true, Computed: true},
+					"ami":         {Type: cty.String, Optional: true},
+					"special":     {Type: cty.Bool, Optional: true},
+					"some_number": {Type: cty.Number, Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = (sensitive)
-        id  = "i-02ae66f368e8518a9"
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ ami         = (sensitive)
+        id          = "i-02ae66f368e8518a9"
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ some_number = (sensitive)
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ special     = (sensitive)
     }
 `,
 		},
@@ -3714,7 +3737,11 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         id   = "i-02ae66f368e8518a9"
-      ~ tags = (sensitive)
+      ~ tags = {
+          # Warning: this attribute value will be marked as sensitive and will
+          # not display in UI output after applying this change
+          ~ "name" = (sensitive)
+        }
     }
 `,
 		},
@@ -3777,7 +3804,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - ami = (sensitive)
+      - ami = (sensitive) -> null
       - id  = "i-02ae66f368e8518a9" -> null
     }
 `,
