@@ -70,6 +70,23 @@ func TestLongestCommonSubsequence(t *testing.T) {
 			[]cty.Value{cty.UnknownVal(cty.Number)},
 			[]cty.Value{},
 		},
+
+		// marked values
+		{
+			[]cty.Value{cty.NumberIntVal(1).Mark("foo"), cty.NumberIntVal(2).Mark("foo"), cty.NumberIntVal(3)},
+			[]cty.Value{cty.NumberIntVal(1).Mark("foo"), cty.NumberIntVal(2).Mark("foo")},
+			[]cty.Value{cty.NumberIntVal(1).Mark("foo"), cty.NumberIntVal(2).Mark("foo")},
+		},
+		{
+			[]cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2).Mark("foo"), cty.NumberIntVal(3)},
+			[]cty.Value{cty.NumberIntVal(2), cty.NumberIntVal(3)},
+			[]cty.Value{cty.NumberIntVal(3)},
+		},
+		{
+			[]cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2).Mark("foo")},
+			[]cty.Value{cty.NumberIntVal(2)},
+			[]cty.Value{},
+		},
 	}
 
 	for _, test := range tests {
