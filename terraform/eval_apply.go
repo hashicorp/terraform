@@ -105,21 +105,28 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
 
-	// If our config or After value contain any marked values,
+	// If our config, Before or After value contain any marked values,
 	// ensure those are stripped out before sending
 	// this to the provider
 	unmarkedConfigVal := configVal
 	if configVal.ContainsMarked() {
 		unmarkedConfigVal, _ = configVal.UnmarkDeep()
 	}
+
+	unmarkedBefore := change.Before
+	if change.Before.ContainsMarked() {
+		unmarkedBefore, _ = change.Before.UnmarkDeep()
+	}
+
 	unmarkedAfter := change.After
+	var afterPaths []cty.PathValueMarks
 	if change.After.ContainsMarked() {
-		unmarkedAfter, _ = change.After.UnmarkDeep()
+		unmarkedAfter, afterPaths = change.After.UnmarkDeepWithPaths()
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
-		PriorState:     change.Before,
+		PriorState:     unmarkedBefore,
 		Config:         unmarkedConfigVal,
 		PlannedState:   unmarkedAfter,
 		PlannedPrivate: change.Private,
@@ -137,6 +144,11 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// to completion but must be defensive against the new value being
 	// incomplete.
 	newVal := resp.NewState
+
+	// If we have paths to mark, mark those on this new value
+	if len(afterPaths) > 0 {
+		newVal = newVal.MarkWithPaths(afterPaths)
+	}
 
 	if newVal == cty.NilVal {
 		// Providers are supposed to return a partial new value even when errors

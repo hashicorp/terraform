@@ -213,7 +213,14 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, unmarkedConfigVal)
+	unmarkedPriorVal := priorVal
+	if priorVal.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedPriorVal, _ = priorVal.UnmarkDeep()
+	}
+
+	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
 	if !n.Stub {
@@ -244,7 +251,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// we send back this information, we need to process ignore_changes
 	// so that CustomizeDiff will not act on them
 	var ignoreChangeDiags tfdiags.Diagnostics
-	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, proposedNewVal)
+	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, proposedNewVal)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, diags.Err()
@@ -253,7 +260,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
 		Config:           unmarkedConfigVal,
-		PriorState:       priorVal,
+		PriorState:       unmarkedPriorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
 		ProviderMeta:     metaConfigVal,
@@ -274,7 +281,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Add the marks back to the planned new value
-	if configVal.ContainsMarked() {
+	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
@@ -352,7 +359,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				continue
 			}
 
-			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
 			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
 			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
 				// This means the path was invalid in both the prior and new
@@ -384,7 +391,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
 
-			eqV := plannedChangedVal.Equals(priorChangedVal)
+			// Unmark for this value for the equality test. If only sensitivity has changed,
+			// this does not require an Update or Replace
+			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
+			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
 			if !eqV.IsKnown() || eqV.False() {
 				reqRep.Add(path)
 			}
@@ -394,7 +404,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	eqV := plannedNewVal.Equals(priorVal)
+	// Unmark for this test for equality. If only sensitivity has changed,
+	// this does not require an Update or Replace
+	unmarkedPlannedNewVal, _ := plannedNewVal.UnmarkDeep()
+	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
 	var action plans.Action
@@ -432,11 +445,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
 
 		// create a new proposed value from the null state and the config
-		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, configVal)
+		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
 
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Type,
-			Config:           configVal,
+			Config:           unmarkedConfigVal,
 			PriorState:       nullPriorVal,
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     plannedPrivate,
@@ -453,6 +466,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
+
+		if len(unmarkedPaths) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		}
+
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

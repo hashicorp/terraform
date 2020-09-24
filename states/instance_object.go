@@ -98,10 +98,11 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// and raise an error about that.
 	val := cty.UnknownAsNull(o.Value)
 
-	// If it contains marks, dump those now
+	// If it contains marks, save these in state
 	unmarked := val
+	var pvm []cty.PathValueMarks
 	if val.ContainsMarked() {
-		unmarked, _ = val.UnmarkDeep()
+		unmarked, pvm = val.UnmarkDeepWithPaths()
 	}
 	src, err := ctyjson.Marshal(unmarked, ty)
 	if err != nil {
@@ -111,6 +112,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
+		AttrSensitivePaths:  pvm,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        o.Dependencies,

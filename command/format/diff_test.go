@@ -3624,24 +3624,13 @@ func TestResourceChange_nestedMap(t *testing.T) {
 
 func TestResourceChange_sensitiveVariable(t *testing.T) {
 	testCases := map[string]testCase{
-		"in-place update - creation": {
-			Action: plans.Update,
+		"creation": {
+			Action: plans.Create,
 			Mode:   addrs.ManagedResourceMode,
-			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-BEFORE"),
-				"root_block_device": cty.MapValEmpty(cty.Object(map[string]cty.Type{
-					"volume_type": cty.String,
-				})),
-			}),
+			Before: cty.NullVal(cty.EmptyObject),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-AFTER"),
-				"root_block_device": cty.MapVal(map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"volume_type": cty.StringVal("gp2"),
-					}),
-				}),
+				"ami": cty.StringVal("ami-123"),
 			}),
 			AfterValMarks: []cty.PathValueMarks{
 				{
@@ -3655,29 +3644,141 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"id":  {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
 				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingMap,
-					},
+			},
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + ami = (sensitive)
+      + id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"in-place update - before sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami = (sensitive)
         id  = "i-02ae66f368e8518a9"
-
-      + root_block_device "a" {
-          + volume_type = "gp2"
-        }
+    }
+`,
+		},
+		"in-place update - after sensitive, map type": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name": cty.StringVal("anna"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name": cty.StringVal("bob"),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("name")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Optional: true, Computed: true},
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id   = "i-02ae66f368e8518a9"
+      ~ tags = (sensitive)
+    }
+`,
+		},
+		"in-place update - both sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = (sensitive)
+        id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"deletion": {
+			Action: plans.Delete,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				}},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - ami = (sensitive)
+      - id  = "i-02ae66f368e8518a9" -> null
     }
 `,
 		},
