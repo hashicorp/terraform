@@ -3631,6 +3631,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-123"),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000),
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
 				"list_field": cty.ListVal([]cty.Value{
 					cty.StringVal("hello"),
 					cty.StringVal("friends"),
@@ -3646,6 +3654,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -3653,6 +3669,8 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"id":         {Type: cty.String, Optional: true, Computed: true},
 					"ami":        {Type: cty.String, Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
 					"list_field": {Type: cty.List(cty.String), Optional: true},
 				},
 			},
@@ -3665,6 +3683,11 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           + (sensitive),
           + "!",
         ]
+      + map_key    = {
+          + "breakfast" = 800
+          + "dinner"    = (sensitive)
+        }
+      + map_whole  = (sensitive)
     }
 `,
 		},
@@ -3681,6 +3704,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					cty.StringVal("friends"),
 					cty.StringVal("!"),
 				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":          cty.StringVal("i-02ae66f368e8518a9"),
@@ -3691,6 +3722,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					cty.StringVal("hello"),
 					cty.StringVal("friends"),
 					cty.StringVal("."),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(1900),
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("cereal"),
+					"dinner":    cty.StringVal("pizza"),
 				}),
 			}),
 			BeforeValMarks: []cty.PathValueMarks{
@@ -3710,6 +3749,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -3720,6 +3767,8 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"list_field":  {Type: cty.List(cty.String), Optional: true},
 					"special":     {Type: cty.Bool, Optional: true},
 					"some_number": {Type: cty.Number, Optional: true},
+					"map_key":     {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":   {Type: cty.Map(cty.String), Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
@@ -3734,6 +3783,17 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           - (sensitive),
           + ".",
         ]
+      ~ map_key     = {
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change
+          ~ "dinner"    = (sensitive)
+            # (1 unchanged element hidden)
+        }
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ map_whole   = {
+          # This map is (or was) sensitive and will not be displayed
+        }
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change
       ~ some_number = (sensitive)
@@ -3748,24 +3808,32 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("i-02ae66f368e8518a9"),
-				"tags": cty.MapVal(map[string]cty.Value{
-					"name":    cty.StringVal("anna a"),
-					"address": cty.StringVal("123 Main St"),
-				}),
 				"list_field": cty.ListVal([]cty.Value{
 					cty.StringVal("hello"),
 					cty.StringVal("friends"),
 				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("i-02ae66f368e8518a9"),
-				"tags": cty.MapVal(map[string]cty.Value{
-					"name":    cty.StringVal("anna b"),
-					"address": cty.StringVal("123 Main Ave"),
-				}),
 				"list_field": cty.ListVal([]cty.Value{
 					cty.StringVal("goodbye"),
 					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(700),
+					"dinner":    cty.NumberIntVal(2100), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("cereal"),
+					"dinner":    cty.StringVal("pizza"),
 				}),
 			}),
 			AfterValMarks: []cty.PathValueMarks{
@@ -3777,14 +3845,23 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":         {Type: cty.String, Optional: true, Computed: true},
-					"tags":       {Type: cty.Map(cty.String), Optional: true},
 					"list_field": {Type: cty.List(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
@@ -3795,11 +3872,16 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           + (sensitive),
             "friends",
         ]
-      ~ tags       = {
+      ~ map_key    = {
+          ~ "breakfast" = 800 -> 700
           # Warning: this attribute value will be marked as sensitive and will
           # not display in UI output after applying this change
-          ~ "address" = (sensitive)
-          ~ "name"    = "anna a" -> "anna b"
+          ~ "dinner"    = (sensitive)
+        }
+      # Warning: this attribute value will be marked as sensitive and will
+      # not display in UI output after applying this change
+      ~ map_whole  = {
+          # This map is (or was) sensitive and will not be displayed
         }
     }
 `,
@@ -3814,6 +3896,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					cty.StringVal("hello"),
 					cty.StringVal("friends"),
 				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
@@ -3821,6 +3911,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				"list_field": cty.ListVal([]cty.Value{
 					cty.StringVal("goodbye"),
 					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(1800), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("cereal"),
+					"dinner":    cty.StringVal("pizza"),
 				}),
 			}),
 			BeforeValMarks: []cty.PathValueMarks{
@@ -3830,6 +3928,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
 			},
@@ -3842,6 +3948,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -3850,6 +3964,8 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"id":         {Type: cty.String, Optional: true, Computed: true},
 					"ami":        {Type: cty.String, Optional: true},
 					"list_field": {Type: cty.List(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
@@ -3861,6 +3977,13 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           + (sensitive),
             "friends",
         ]
+      ~ map_key    = {
+          ~ "dinner"    = (sensitive)
+            # (1 unchanged element hidden)
+        }
+      ~ map_whole  = {
+          # This map is (or was) sensitive and will not be displayed
+        }
     }
 `,
 		},
@@ -3874,6 +3997,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					cty.StringVal("hello"),
 					cty.StringVal("friends"),
 				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
 			}),
 			After: cty.NullVal(cty.EmptyObject),
 			BeforeValMarks: []cty.PathValueMarks{
@@ -3885,6 +4016,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -3893,6 +4032,8 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"id":         {Type: cty.String, Optional: true, Computed: true},
 					"ami":        {Type: cty.String, Optional: true},
 					"list_field": {Type: cty.List(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
@@ -3903,6 +4044,11 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           - "hello",
           - (sensitive),
         ] -> null
+      - map_key    = {
+          - "breakfast" = 800
+          - "dinner"    = (sensitive)
+        } -> null
+      - map_whole  = (sensitive) -> null
     }
 `,
 		},

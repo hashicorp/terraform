@@ -777,12 +777,9 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
-		// Create unmarked values for comparisons
-		unmarkedOld, oldMarks := old.UnmarkDeep()
-		unmarkedNew, newMarks := new.UnmarkDeep()
 		switch {
 		case ty == cty.Bool || ty == cty.Number:
-			if len(oldMarks) > 0 || len(newMarks) > 0 {
+			if old.IsMarked() || new.IsMarked() {
 				p.buf.WriteString("(sensitive)")
 				return
 			}
@@ -793,7 +790,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
 
-			if len(oldMarks) > 0 || len(newMarks) > 0 {
+			if old.IsMarked() || new.IsMarked() {
 				p.buf.WriteString("(sensitive)")
 				return
 			}
@@ -1079,6 +1076,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			}
 			p.buf.WriteString("\n")
 
+			// If the whole map is marked, we need to show our
+			// sensitive block warning rather than attempt to iterate
+			// through a marked map
+			if old.IsMarked() || new.IsMarked() {
+				p.buf.WriteString(strings.Repeat(" ", indent+2))
+				p.buf.WriteString("# This map is (or was) sensitive and will not be displayed")
+				p.buf.WriteString("\n")
+				p.buf.WriteString(strings.Repeat(" ", indent))
+				p.buf.WriteString("}")
+				return
+			}
+
 			var allKeys []string
 			keyLen := 0
 			for it := old.ElementIterator(); it.Next(); {
@@ -1114,10 +1123,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if new.HasIndex(kV).False() {
 					action = plans.Delete
-				} else if eqV := unmarkedOld.Index(kV).Equals(unmarkedNew.Index(kV)); eqV.IsKnown() && eqV.True() {
-					action = plans.NoOp
-				} else {
-					action = plans.Update
+				}
+
+				// Use unmarked values for equality testing
+				if old.HasIndex(kV).True() && new.HasIndex(kV).True() {
+					unmarkedOld, _ := old.Index(kV).Unmark()
+					unmarkedNew, _ := new.Index(kV).Unmark()
+					eqV := unmarkedOld.Equals(unmarkedNew)
+					if eqV.IsKnown() && eqV.True() {
+						action = plans.NoOp
+					} else {
+						action = plans.Update
+					}
 				}
 
 				if action == plans.NoOp && p.concise {
