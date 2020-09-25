@@ -226,7 +226,7 @@ func (c *PackageCommand) Run(args []string) int {
 						return addZipFile(
 							filepath.Join(linkPath, file.Name()), // the link to this provider binary
 							filepath.Join(relPath, file.Name()),  // the expected directory for the binary
-							info, outZ,
+							file, outZ,
 						)
 					}
 				}
