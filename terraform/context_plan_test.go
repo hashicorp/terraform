@@ -6414,3 +6414,61 @@ resource "test_instance" "a" {
 		t.Fatal("Resource should not have been refreshed")
 	}
 }
+
+func TestContext2Plan_dataInModuleDependsOn(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	readDataSourceB := false
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		cfg := req.Config.AsValueMap()
+		foo := cfg["foo"].AsString()
+
+		cfg["id"] = cty.StringVal("ID")
+		cfg["foo"] = cty.StringVal("new")
+
+		if foo == "b" {
+			readDataSourceB = true
+		}
+
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod_a"
+}
+
+module "b" {
+  source = "./mod_b"
+  depends_on = [module.a]
+}`,
+		"mod_a/main.tf": `
+data "test_data_source" "a" {
+  foo = "a"
+}`,
+		"mod_b/main.tf": `
+data "test_data_source" "b" {
+  foo = "b"
+}`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	// The change to data source a should not prevent data source b from being
+	// read.
+	if !readDataSourceB {
+		t.Fatal("data source b was not read during plan")
+	}
+}

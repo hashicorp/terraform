@@ -7,6 +7,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
@@ -154,6 +155,14 @@ func (n *evalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
 	// configuration.
 	changes := ctx.Changes()
 	for _, d := range n.dependsOn {
+		if d.Resource.Mode == addrs.DataResourceMode {
+			// Data sources have no external side effects, so they pose a need
+			// to delay this read. If they do have a change planned, it must be
+			// because of a dependency on a managed resource, in which case
+			// we'll also encounter it in this list of dependencies.
+			continue
+		}
+
 		for _, change := range changes.GetChangesForConfigResource(d) {
 			if change != nil && change.Action != plans.NoOp {
 				return true
