@@ -3739,6 +3739,12 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"breakfast": cty.StringVal("pizza"),
 					"dinner":    cty.StringVal("pizza"),
 				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+						"another": cty.StringVal("not secret"),
+					}),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":          cty.StringVal("i-02ae66f368e8518a9"),
@@ -3757,6 +3763,12 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				"map_whole": cty.MapVal(map[string]cty.Value{
 					"breakfast": cty.StringVal("cereal"),
 					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("changed"),
+						"another": cty.StringVal("not secret"),
+					}),
 				}),
 			}),
 			BeforeValMarks: []cty.PathValueMarks{
@@ -3784,6 +3796,10 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -3796,6 +3812,17 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"some_number": {Type: cty.Number, Optional: true},
 					"map_key":     {Type: cty.Map(cty.Number), Optional: true},
 					"map_whole":   {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+								"another": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
@@ -3825,6 +3852,13 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change
       ~ special     = (sensitive)
+
+      ~ nested_block {
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change
+          ~ an_attr = (sensitive)
+            # (1 unchanged attribute hidden)
+        }
     }
 `,
 		},
@@ -4026,6 +4060,12 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"breakfast": cty.StringVal("pizza"),
 					"dinner":    cty.StringVal("pizza"),
 				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secret"),
+						"another": cty.StringVal("not secret"),
+					}),
+				}),
 			}),
 			After: cty.NullVal(cty.EmptyObject),
 			BeforeValMarks: []cty.PathValueMarks{
@@ -4045,6 +4085,10 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
 					Marks: cty.NewValueMarks("sensitive"),
 				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
@@ -4055,6 +4099,17 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"list_field": {Type: cty.List(cty.String), Optional: true},
 					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
 					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+								"another": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
@@ -4070,6 +4125,11 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           - "dinner"    = (sensitive)
         } -> null
       - map_whole  = (sensitive) -> null
+
+      - nested_block {
+          - an_attr = (sensitive) -> null
+          - another = (sensitive) -> null
+        }
     }
 `,
 		},
