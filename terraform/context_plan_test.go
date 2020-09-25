@@ -4626,18 +4626,14 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Action != plans.Update {
-		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
-	}
 
 	if ric.Addr.String() != "aws_instance.foo" {
 		t.Fatalf("unexpected resource: %s", ric.Addr)
 	}
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
-		"id":   cty.StringVal("bar"),
-		"ami":  cty.StringVal("ami-abcd1234"),
-		"type": cty.StringVal("aws_instance"),
+		"id":  cty.StringVal("bar"),
+		"ami": cty.StringVal("ami-abcd1234"),
 	}), ric.After)
 }
 
