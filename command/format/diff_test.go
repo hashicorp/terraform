@@ -1,10 +1,13 @@
 package format
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
@@ -203,12 +206,19 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("i-02ae66f368e8518a9"),
 				"more_lines": cty.StringVal(`original
+long
+multi-line
+string
+field
 `),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
 				"more_lines": cty.StringVal(`original
-new line
+extremely long
+multi-line
+string
+field
 `),
 			}),
 			Schema: &configschema.Block{
@@ -224,7 +234,11 @@ new line
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ more_lines = <<~EOT
             original
-          + new line
+          - long
+          + extremely long
+            multi-line
+            string
+            field
         EOT
     }
 `,
@@ -345,6 +359,13 @@ new line
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id       = "blah" -> (known after apply)
+      ~ str      = "before" -> "after"
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id       = "blah" -> (known after apply)
         password = (sensitive value)
       ~ str      = "before" -> "after"
     }
@@ -436,6 +457,65 @@ new line
     }
 `,
 		},
+		"show all identifying attributes even if unchanged": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":  cty.StringVal("ami-BEFORE"),
+				"bar":  cty.StringVal("bar"),
+				"foo":  cty.StringVal("foo"),
+				"name": cty.StringVal("alice"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name": cty.StringVal("bob"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":  cty.StringVal("ami-AFTER"),
+				"bar":  cty.StringVal("bar"),
+				"foo":  cty.StringVal("foo"),
+				"name": cty.StringVal("alice"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name": cty.StringVal("bob"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Optional: true, Computed: true},
+					"ami":  {Type: cty.String, Optional: true},
+					"bar":  {Type: cty.String, Optional: true},
+					"foo":  {Type: cty.String, Optional: true},
+					"name": {Type: cty.String, Optional: true},
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami  = "ami-BEFORE" -> "ami-AFTER"
+        id   = "i-02ae66f368e8518a9"
+        name = "alice"
+        tags = {
+            "name" = "bob"
+        }
+        # (2 unchanged attributes hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami  = "ami-BEFORE" -> "ami-AFTER"
+        bar  = "bar"
+        foo  = "foo"
+        id   = "i-02ae66f368e8518a9"
+        name = "alice"
+        tags = {
+            "name" = "bob"
+        }
+    }
+`,
+		},
 	}
 
 	runTestCases(t, testCases)
@@ -488,7 +568,7 @@ func TestResourceChange_JSON(t *testing.T) {
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.StringVal("i-02ae66f368e8518a9"),
-				"json_field": cty.StringVal(`{"aaa": "value"}`),
+				"json_field": cty.StringVal(`{"aaa": "value","ccc": 5}`),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.UnknownVal(cty.String),
@@ -507,8 +587,22 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ json_field = jsonencode(
           ~ {
+              + bbb = "new_value"
+              - ccc = 5 -> null
+                # (1 unchanged element hidden)
+            }
+        )
+    }
+`,
+
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ {
                 aaa = "value"
               + bbb = "new_value"
+              - ccc = 5 -> null
             }
         )
     }
@@ -640,6 +734,17 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ json_field = jsonencode(
           ~ {
+              + bbb = "new_value"
+                # (1 unchanged element hidden)
+            } # forces replacement
+        )
+    }
+`,
+			VerboseOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ {
                 aaa = "value"
               + bbb = "new_value"
             } # forces replacement
@@ -760,6 +865,18 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ json_field = jsonencode(
           ~ [
+                # (1 unchanged element hidden)
+                "second",
+              - "third",
+            ]
+        )
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ [
                 "first",
                 "second",
               - "third",
@@ -788,6 +905,19 @@ func TestResourceChange_JSON(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ [
+                # (1 unchanged element hidden)
+                "second",
+              + "third",
+            ]
+        )
+    }
+`,
+
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ json_field = jsonencode(
@@ -824,8 +954,8 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ json_field = jsonencode(
           ~ {
-                first  = "111"
               + second = "222"
+                # (1 unchanged element hidden)
             }
         )
     }
@@ -1087,6 +1217,15 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      + list_field = [
+          + "new-element",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       + list_field = [
@@ -1121,6 +1260,15 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+          + "new-element",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
@@ -1137,7 +1285,10 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				"ami": cty.StringVal("ami-STATIC"),
 				"list_field": cty.ListVal([]cty.Value{
 					cty.StringVal("aaaa"),
-					cty.StringVal("cccc"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
+					cty.StringVal("ffff"),
 				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
@@ -1147,6 +1298,9 @@ func TestResourceChange_primitiveList(t *testing.T) {
 					cty.StringVal("aaaa"),
 					cty.StringVal("bbbb"),
 					cty.StringVal("cccc"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
+					cty.StringVal("ffff"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -1160,12 +1314,28 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+            # (1 unchanged element hidden)
+            "bbbb",
+          + "cccc",
+            "dddd",
+            # (2 unchanged elements hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
             "aaaa",
-          + "bbbb",
-            "cccc",
+            "bbbb",
+          + "cccc",
+            "dddd",
+            "eeee",
+            "ffff",
         ]
     }
 `,
@@ -1203,6 +1373,17 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [ # forces replacement
+            "aaaa",
+          + "bbbb",
+            "cccc",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [ # forces replacement
@@ -1223,6 +1404,8 @@ func TestResourceChange_primitiveList(t *testing.T) {
 					cty.StringVal("aaaa"),
 					cty.StringVal("bbbb"),
 					cty.StringVal("cccc"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
 				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
@@ -1230,6 +1413,8 @@ func TestResourceChange_primitiveList(t *testing.T) {
 				"ami": cty.StringVal("ami-STATIC"),
 				"list_field": cty.ListVal([]cty.Value{
 					cty.StringVal("bbbb"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -1243,12 +1428,27 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+          - "aaaa",
+            "bbbb",
+          - "cccc",
+            "dddd",
+            # (1 unchanged element hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
           - "aaaa",
             "bbbb",
           - "cccc",
+            "dddd",
+            "eeee",
         ]
     }
 `,
@@ -1307,6 +1507,17 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+          - "aaaa",
+          - "bbbb",
+          - "cccc",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
@@ -1340,6 +1551,13 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      + list_field = []
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1379,6 +1597,18 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+            "aaaa",
+          - "bbbb",
+          + (known after apply),
+            "cccc",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
@@ -1400,6 +1630,8 @@ func TestResourceChange_primitiveList(t *testing.T) {
 					cty.StringVal("aaaa"),
 					cty.StringVal("bbbb"),
 					cty.StringVal("cccc"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
 				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
@@ -1410,6 +1642,8 @@ func TestResourceChange_primitiveList(t *testing.T) {
 					cty.UnknownVal(cty.String),
 					cty.UnknownVal(cty.String),
 					cty.StringVal("cccc"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -1423,6 +1657,20 @@ func TestResourceChange_primitiveList(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ list_field = [
+            "aaaa",
+          - "bbbb",
+          + (known after apply),
+          + (known after apply),
+            "cccc",
+            # (2 unchanged elements hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami        = "ami-STATIC"
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
@@ -1431,6 +1679,72 @@ func TestResourceChange_primitiveList(t *testing.T) {
           + (known after apply),
           + (known after apply),
             "cccc",
+            "dddd",
+            "eeee",
+        ]
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_primitiveTuple(t *testing.T) {
+	testCases := map[string]testCase{
+		"in-place update": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tuple_field": cty.TupleVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("dddd"),
+					cty.StringVal("eeee"),
+					cty.StringVal("ffff"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tuple_field": cty.TupleVal([]cty.Value{
+					cty.StringVal("aaaa"),
+					cty.StringVal("bbbb"),
+					cty.StringVal("cccc"),
+					cty.StringVal("eeee"),
+					cty.StringVal("ffff"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":          {Type: cty.String, Required: true},
+					"tuple_field": {Type: cty.Tuple([]cty.Type{cty.String, cty.String, cty.String, cty.String, cty.String}), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id          = "i-02ae66f368e8518a9"
+      ~ tuple_field = [
+            # (1 unchanged element hidden)
+            "bbbb",
+          - "dddd",
+          + "cccc",
+            "eeee",
+            # (1 unchanged element hidden)
+        ]
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id          = "i-02ae66f368e8518a9"
+      ~ tuple_field = [
+            "aaaa",
+            "bbbb",
+          - "dddd",
+          + "cccc",
+            "eeee",
+            "ffff",
         ]
     }
 `,
@@ -1467,6 +1781,15 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      + set_field = [
+          + "new-element",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + set_field = [
@@ -1500,6 +1823,15 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          + "new-element",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1539,6 +1871,16 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          + "bbbb",
+            # (2 unchanged elements hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1583,6 +1925,16 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [ # forces replacement
+          + "bbbb",
+            # (2 unchanged elements hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ set_field = [ # forces replacement
@@ -1622,6 +1974,17 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          - "aaaa",
+          - "cccc",
+            # (1 unchanged element hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1685,6 +2048,16 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          - "aaaa",
+          - "bbbb",
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ set_field = [
@@ -1718,6 +2091,13 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      + set_field = []
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + set_field = []
@@ -1750,6 +2130,16 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          - "aaaa",
+          - "bbbb",
+        ] -> (known after apply)
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1789,6 +2179,17 @@ func TestResourceChange_primitiveSet(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ set_field = [
+          - "bbbb",
+          ~ (known after apply),
+            # (1 unchanged element hidden)
+        ]
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1832,6 +2233,15 @@ func TestResourceChange_map(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      + map_field = {
+          + "new-key" = "new-element"
+        }
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + map_field = {
@@ -1865,6 +2275,15 @@ func TestResourceChange_map(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+          + "new-key" = "new-element"
+        }
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1904,6 +2323,16 @@ func TestResourceChange_map(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+          + "b" = "bbbb"
+            # (2 unchanged elements hidden)
+        }
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -1948,6 +2377,16 @@ func TestResourceChange_map(t *testing.T) {
 			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = { # forces replacement
+          + "b" = "bbbb"
+            # (2 unchanged elements hidden)
+        }
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = { # forces replacement
@@ -1987,6 +2426,17 @@ func TestResourceChange_map(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+          - "a" = "aaaa" -> null
+          - "c" = "cccc" -> null
+            # (1 unchanged element hidden)
+        }
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
@@ -2056,6 +2506,16 @@ func TestResourceChange_map(t *testing.T) {
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
+      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ map_field = {
+          ~ "b" = "bbbb" -> (known after apply)
+            # (2 unchanged elements hidden)
+        }
+        # (1 unchanged attribute hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         ami       = "ami-STATIC"
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
@@ -2116,6 +2576,14 @@ func TestResourceChange_nestedList(t *testing.T) {
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
@@ -2279,6 +2747,17 @@ func TestResourceChange_nestedList(t *testing.T) {
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      ~ root_block_device {
+          + new_field   = "new_value"
+            # (1 unchanged attribute hidden)
+        }
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
@@ -2862,6 +3341,17 @@ func TestResourceChange_nestedMap(t *testing.T) {
 
       ~ root_block_device "a" {
           + new_field   = "new_value"
+            # (1 unchanged attribute hidden)
+        }
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      ~ root_block_device "a" {
+          + new_field   = "new_value"
             volume_type = "gp2"
         }
     }
@@ -2922,6 +3412,18 @@ func TestResourceChange_nestedMap(t *testing.T) {
 				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      + root_block_device "b" {
+          + new_field   = "new_value"
+          + volume_type = "gp2"
+        }
+        # (1 unchanged block hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
@@ -2989,6 +3491,17 @@ func TestResourceChange_nestedMap(t *testing.T) {
 				},
 			},
 			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+        id  = "i-02ae66f368e8518a9"
+
+      ~ root_block_device "a" { # forces replacement
+          ~ volume_type = "gp2" -> "different"
+        }
+        # (1 unchanged block hidden)
+    }
+`,
+			VerboseOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
@@ -3109,15 +3622,309 @@ func TestResourceChange_nestedMap(t *testing.T) {
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_sensitiveVariable(t *testing.T) {
+	testCases := map[string]testCase{
+		"creation": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("!"),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + ami        = (sensitive)
+      + id         = "i-02ae66f368e8518a9"
+      + list_field = [
+          + "hello",
+          + (sensitive),
+          + "!",
+        ]
+    }
+`,
+		},
+		"in-place update - before sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-BEFORE"),
+				"special":     cty.BoolVal(true),
+				"some_number": cty.NumberIntVal(1),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("!"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-AFTER"),
+				"special":     cty.BoolVal(false),
+				"some_number": cty.NumberIntVal(2),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("."),
+				}),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":          {Type: cty.String, Optional: true, Computed: true},
+					"ami":         {Type: cty.String, Optional: true},
+					"list_field":  {Type: cty.List(cty.String), Optional: true},
+					"special":     {Type: cty.Bool, Optional: true},
+					"some_number": {Type: cty.Number, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ ami         = (sensitive)
+        id          = "i-02ae66f368e8518a9"
+      ~ list_field  = [
+            # (1 unchanged element hidden)
+            "friends",
+          - (sensitive),
+          + ".",
+        ]
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ some_number = (sensitive)
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ special     = (sensitive)
+    }
+`,
+		},
+		"in-place update - after sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name":    cty.StringVal("anna a"),
+					"address": cty.StringVal("123 Main St"),
+				}),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"name":    cty.StringVal("anna b"),
+					"address": cty.StringVal("123 Main Ave"),
+				}),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("goodbye"),
+					cty.StringVal("friends"),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"tags":       {Type: cty.Map(cty.String), Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id         = "i-02ae66f368e8518a9"
+      ~ list_field = [
+          - "hello",
+          + (sensitive),
+            "friends",
+        ]
+      ~ tags       = {
+          # Warning: this attribute value will be marked as sensitive and will
+          # not display in UI output after applying this change
+          ~ "address" = (sensitive)
+          ~ "name"    = "anna a" -> "anna b"
+        }
+    }
+`,
+		},
+		"in-place update - both sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("goodbye"),
+					cty.StringVal("friends"),
+				}),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami        = (sensitive)
+        id         = "i-02ae66f368e8518a9"
+      ~ list_field = [
+          - (sensitive),
+          + (sensitive),
+            "friends",
+        ]
+    }
+`,
+		},
+		"deletion": {
+			Action: plans.Delete,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+				}),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - ami        = (sensitive) -> null
+      - id         = "i-02ae66f368e8518a9" -> null
+      - list_field = [
+          - "hello",
+          - (sensitive),
+        ] -> null
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
 type testCase struct {
 	Action          plans.Action
 	Mode            addrs.ResourceMode
 	Before          cty.Value
+	BeforeValMarks  []cty.PathValueMarks
+	AfterValMarks   []cty.PathValueMarks
 	After           cty.Value
 	Schema          *configschema.Block
 	RequiredReplace cty.PathSet
 	Tainted         bool
 	ExpectedOutput  string
+
+	// This field and all associated values can be removed if the concise diff
+	// experiment succeeds.
+	VerboseOutput string
 }
 
 func runTestCases(t *testing.T, testCases map[string]testCase) {
@@ -3162,17 +3969,166 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Module:   addrs.RootModule,
 				},
 				ChangeSrc: plans.ChangeSrc{
-					Action: tc.Action,
-					Before: before,
-					After:  after,
+					Action:         tc.Action,
+					Before:         before,
+					After:          after,
+					BeforeValMarks: tc.BeforeValMarks,
+					AfterValMarks:  tc.AfterValMarks,
 				},
 				RequiredReplace: tc.RequiredReplace,
 			}
 
+			experiment.SetEnabled(experiment.X_concise_diff, true)
 			output := ResourceChange(change, tc.Tainted, tc.Schema, color)
 			if output != tc.ExpectedOutput {
-				t.Fatalf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.ExpectedOutput)
+				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.ExpectedOutput)
+				t.Errorf("%s", cmp.Diff(output, tc.ExpectedOutput))
+			}
+
+			// Temporary coverage for verbose diff behaviour. All lines below
+			// in this function can be removed if the concise diff experiment
+			// succeeds.
+			if tc.VerboseOutput == "" {
+				return
+			}
+			experiment.SetEnabled(experiment.X_concise_diff, false)
+			output = ResourceChange(change, tc.Tainted, tc.Schema, color)
+			if output != tc.VerboseOutput {
+				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.VerboseOutput)
+				t.Errorf("%s", cmp.Diff(output, tc.VerboseOutput))
 			}
 		})
 	}
+}
+
+func TestOutputChanges(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+
+	testCases := map[string]struct {
+		changes []*plans.OutputChangeSrc
+		output  string
+	}{
+		"new output value": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.NullVal(cty.DynamicPseudoType),
+					cty.StringVal("bar"),
+					false,
+				),
+			},
+			`
+  + foo = "bar"`,
+		},
+		"removed output": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.StringVal("bar"),
+					cty.NullVal(cty.DynamicPseudoType),
+					false,
+				),
+			},
+			`
+  - foo = "bar" -> null`,
+		},
+		"single string change": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.StringVal("bar"),
+					cty.StringVal("baz"),
+					false,
+				),
+			},
+			`
+  ~ foo = "bar" -> "baz"`,
+		},
+		"element added to list": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"foo",
+					cty.ListVal([]cty.Value{
+						cty.StringVal("alpha"),
+						cty.StringVal("beta"),
+						cty.StringVal("delta"),
+						cty.StringVal("epsilon"),
+					}),
+					cty.ListVal([]cty.Value{
+						cty.StringVal("alpha"),
+						cty.StringVal("beta"),
+						cty.StringVal("gamma"),
+						cty.StringVal("delta"),
+						cty.StringVal("epsilon"),
+					}),
+					false,
+				),
+			},
+			`
+  ~ foo = [
+        # (1 unchanged element hidden)
+        "beta",
+      + "gamma",
+        "delta",
+        # (1 unchanged element hidden)
+    ]`,
+		},
+		"multiple outputs changed, one sensitive": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"a",
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(2),
+					false,
+				),
+				outputChange(
+					"b",
+					cty.StringVal("hunter2"),
+					cty.StringVal("correct-horse-battery-staple"),
+					true,
+				),
+				outputChange(
+					"c",
+					cty.BoolVal(false),
+					cty.BoolVal(true),
+					false,
+				),
+			},
+			`
+  ~ a = 1 -> 2
+  ~ b = (sensitive value)
+  ~ c = false -> true`,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			experiment.SetEnabled(experiment.X_concise_diff, true)
+			output := OutputChanges(tc.changes, color)
+			if output != tc.output {
+				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.output)
+			}
+		})
+	}
+}
+
+func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {
+	addr := addrs.AbsOutputValue{
+		OutputValue: addrs.OutputValue{Name: name},
+	}
+
+	change := &plans.OutputChange{
+		Addr: addr, Change: plans.Change{
+			Before: before,
+			After:  after,
+		},
+		Sensitive: sensitive,
+	}
+
+	changeSrc, err := change.Encode()
+	if err != nil {
+		panic(fmt.Sprintf("failed to encode change for %s: %s", addr, err))
+	}
+
+	return changeSrc
 }

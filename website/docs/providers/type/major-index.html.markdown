@@ -22,6 +22,7 @@ tested by HashiCorp.
 - [Alibaba Cloud](/docs/providers/alicloud/index.html)
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
+- [Azure DevOps](/docs/providers/azuredevops/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
 - [Google Cloud Platform](/docs/providers/google/index.html)
 - [Oracle Cloud Infrastructure](/docs/providers/oci/index.html)

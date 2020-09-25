@@ -10,7 +10,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -64,7 +63,11 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 
 	// Get the state
 	stateStore, err := b.StateMgr(env)
@@ -109,13 +112,17 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
-		c.Ui.Error(
-			"The state file either has no outputs defined, or all the defined\n" +
-				"outputs are empty. Please define an output in your configuration\n" +
-				"with the `output` keyword and run `terraform refresh` for it to\n" +
-				"become available. If you are using interpolation, please verify\n" +
-				"the interpolated value is not empty. You can use the \n" +
-				"`terraform console` command to assist.")
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"No outputs found",
+			"The state file either has no outputs defined, or all the defined "+
+				"outputs are empty. Please define an output in your configuration "+
+				"with the `output` keyword and run `terraform refresh` for it to "+
+				"become available. If you are using interpolation, please verify "+
+				"the interpolated value is not empty. You can use the "+
+				"`terraform console` command to assist.",
+		))
+		c.showDiagnostics(diags)
 		return 0
 	}
 
@@ -187,16 +194,7 @@ func (c *OutputCommand) Run(args []string) int {
 
 		c.Ui.Output(string(jsonOutput))
 	} else {
-		// Our formatter still wants an old-style raw interface{} value, so
-		// for now we'll just shim it.
-		// FIXME: Port the formatter to work with cty.Value directly.
-		legacyVal := hcl2shim.ConfigValueFromHCL2(v)
-		result, err := repl.FormatResult(legacyVal)
-		if err != nil {
-			diags = diags.Append(err)
-			c.showDiagnostics(diags)
-			return 1
-		}
+		result := repl.FormatValue(v, 0)
 		c.Ui.Output(result)
 	}
 

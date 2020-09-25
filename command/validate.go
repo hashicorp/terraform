@@ -110,7 +110,11 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		}
 	}
 
-	opts := c.contextOpts()
+	opts, err := c.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
 	opts.Config = cfg
 	opts.Variables = varValues
 

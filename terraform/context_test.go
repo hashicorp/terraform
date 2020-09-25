@@ -749,7 +749,7 @@ func testProviderSchema(name string) *ProviderSchema {
 // our context tests try to exercise lots of stuff at once and so having them
 // round-trip things through on-disk files is often an important part of
 // fully representing an old bug in a regression test.
-func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) (*ContextOpts, error) {
+func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, error) {
 	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
 	if err != nil {
 		return nil, err
@@ -760,7 +760,7 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.St
 	// to run through any of the codepaths that care about Lineage/Serial/etc
 	// here anyway.
 	stateFile := &statefile.File{
-		State: state,
+		State: plan.State,
 	}
 
 	// To make life a little easier for test authors, we'll populate a simple

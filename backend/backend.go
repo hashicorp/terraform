@@ -211,7 +211,7 @@ type Operation struct {
 	UIOut terraform.UIOutput
 
 	// If LockState is true, the Operation must Lock any
-	// state.Lockers for its duration, and Unlock when complete.
+	// statemgr.Lockers for its duration, and Unlock when complete.
 	LockState bool
 
 	// StateLocker is used to lock the state while providing UI feedback to the

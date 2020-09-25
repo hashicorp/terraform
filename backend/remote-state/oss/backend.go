@@ -30,6 +30,8 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/go-homedir"
+	"net/url"
+	"regexp"
 )
 
 // New creates a new backend for OSS remote state.
@@ -334,6 +336,11 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", TerraformUA, TerraformVersion)))
 
+	proxyUrl := getHttpProxyUrl()
+	if proxyUrl != nil {
+		options = append(options, oss.Proxy(proxyUrl.String()))
+	}
+
 	client, err := oss.New(endpoint, accessKey, secretKey, options...)
 	b.ossClient = client
 	otsEndpoint := d.Get("tablestore_endpoint").(string)
@@ -609,4 +616,21 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 	}
 
 	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
+}
+
+func getHttpProxyUrl() *url.URL {
+	for _, v := range []string{"HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"} {
+		value := strings.Trim(os.Getenv(v), " ")
+		if value != "" {
+			if !regexp.MustCompile(`^http(s)?://`).MatchString(value) {
+				value = fmt.Sprintf("https://%s", value)
+			}
+			proxyUrl, err := url.Parse(value)
+			if err == nil {
+				return proxyUrl
+			}
+			break
+		}
+	}
+	return nil
 }

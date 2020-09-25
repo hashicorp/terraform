@@ -142,7 +142,7 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 
 	addLocalDir("terraform.d/plugins") // our "vendor" directory
 	cliConfigDir, err := cliconfig.ConfigDir()
-	if err != nil {
+	if err == nil {
 		addLocalDir(filepath.Join(cliConfigDir, "plugins"))
 	}
 
@@ -216,7 +216,7 @@ func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocati
 			))
 			return nil, diags
 		}
-		return getproviders.NewHTTPMirrorSource(url), nil
+		return getproviders.NewHTTPMirrorSource(url, services.CredentialsSource()), nil
 
 	default:
 		// We should not get here because the set of cases above should

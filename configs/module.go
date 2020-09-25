@@ -265,7 +265,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate module call",
-				Detail:   fmt.Sprintf("An module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
 				Subject:  &mc.DeclRange,
 			})
 		}
@@ -289,7 +289,15 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		if r.ProviderConfigRef != nil {
 			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
 		} else {
-			r.Provider = m.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
+			// an invalid resource name (for e.g. "null resource" instead of
+			// "null_resource") can cause a panic down the line in addrs:
+			// https://github.com/hashicorp/terraform/issues/25560
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
 		}
 	}
 
@@ -310,7 +318,15 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		if r.ProviderConfigRef != nil {
 			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
 		} else {
-			r.Provider = m.ImpliedProviderForUnqualifiedType(r.Addr().ImpliedProvider())
+			// an invalid data source name (for e.g. "null resource" instead of
+			// "null_resource") can cause a panic down the line in addrs:
+			// https://github.com/hashicorp/terraform/issues/25560
+			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+			if err == nil {
+				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
 		}
 	}
 

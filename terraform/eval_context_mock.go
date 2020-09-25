@@ -126,6 +126,9 @@ type MockEvalContext struct {
 	StateCalled bool
 	StateState  *states.SyncState
 
+	RefreshStateCalled bool
+	RefreshStateState  *states.SyncState
+
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
 }
@@ -198,10 +201,10 @@ func (c *MockEvalContext) SetProviderInput(addr addrs.AbsProviderConfig, vals ma
 	c.SetProviderInputValues = vals
 }
 
-func (c *MockEvalContext) InitProvisioner(n string) (provisioners.Interface, error) {
+func (c *MockEvalContext) InitProvisioner(n string) error {
 	c.InitProvisionerCalled = true
 	c.InitProvisionerName = n
-	return c.InitProvisionerProvisioner, c.InitProvisionerError
+	return c.InitProvisionerError
 }
 
 func (c *MockEvalContext) Provisioner(n string) provisioners.Interface {
@@ -336,6 +339,11 @@ func (c *MockEvalContext) Changes() *plans.ChangesSync {
 func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
 	return c.StateState
+}
+
+func (c *MockEvalContext) RefreshState() *states.SyncState {
+	c.RefreshStateCalled = true
+	return c.RefreshStateState
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

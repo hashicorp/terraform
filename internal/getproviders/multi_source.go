@@ -28,20 +28,21 @@ var _ Source = MultiSource(nil)
 // AvailableVersions retrieves all of the versions of the given provider
 // that are available across all of the underlying selectors, while respecting
 // each selector's matching patterns.
-func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	if len(s) == 0 { // Easy case: there can be no available versions
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// We will return the union of all versions reported by the nested
 	// sources that have matching patterns that accept the given provider.
 	vs := make(map[Version]struct{})
 	var registryError bool
+	var warnings []string
 	for _, selector := range s {
 		if !selector.CanHandleProvider(provider) {
 			continue // doesn't match the given patterns
 		}
-		thisSourceVersions, err := selector.Source.AvailableVersions(provider)
+		thisSourceVersions, warningsResp, err := selector.Source.AvailableVersions(provider)
 		switch err.(type) {
 		case nil:
 		// okay
@@ -51,18 +52,21 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 		case ErrProviderNotFound:
 			continue // ignore, then
 		default:
-			return nil, err
+			return nil, nil, err
 		}
 		for _, v := range thisSourceVersions {
 			vs[v] = struct{}{}
+		}
+		if len(warningsResp) > 0 {
+			warnings = append(warnings, warningsResp...)
 		}
 	}
 
 	if len(vs) == 0 {
 		if registryError {
-			return nil, ErrRegistryProviderNotKnown{provider}
+			return nil, nil, ErrRegistryProviderNotKnown{provider}
 		} else {
-			return nil, ErrProviderNotFound{provider, s.sourcesForProvider(provider)}
+			return nil, nil, ErrProviderNotFound{provider, s.sourcesForProvider(provider)}
 		}
 	}
 	ret := make(VersionList, 0, len(vs))
@@ -71,7 +75,7 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 	}
 	ret.Sort()
 
-	return ret, nil
+	return ret, warnings, nil
 }
 
 // PackageMeta retrieves the package metadata for the requested provider package

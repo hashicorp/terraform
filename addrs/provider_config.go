@@ -279,9 +279,14 @@ func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, t
 		return ret, diags
 	}
 
-	// We always assume legacy-style providers in legacy state
+	// We always assume legacy-style providers in legacy state ...
 	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		ret.Provider = NewLegacyProvider(tt.Name)
+		// ... unless it's the builtin "terraform" provider, a special case.
+		if tt.Name == "terraform" {
+			ret.Provider = NewBuiltInProvider(tt.Name)
+		} else {
+			ret.Provider = NewLegacyProvider(tt.Name)
+		}
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

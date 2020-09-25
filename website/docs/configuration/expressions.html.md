@@ -443,7 +443,7 @@ as results.
 * `a <= b` returns `true` if `a` is less than or equal to `b`, or `false`
   otherwise.
 * `a > b` returns `true` if `a` is greater than `b`, or `false` otherwise.
-* `a >= b` returns `true` if `a` is greater than or equal to `b`, or `false otherwise.
+* `a >= b` returns `true` if `a` is greater than or equal to `b`, or `false` otherwise.
 
 ### Logical Operators
 
@@ -577,6 +577,17 @@ together results that have a common key:
 ```
 {for s in var.list : substr(s, 0, 1) => s... if s != ""}
 ```
+
+For expressions are particularly useful when combined with other language
+features to combine collections together in various ways. For example,
+the following two patterns are commonly used when constructing map values
+to use with [resource `for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+* Transform a multi-level nested structure into a flat list by
+  [using nested `for` expressions with the `flatten` function](./functions/flatten.html#flattening-nested-structures-for-for_each).
+* Produce an exhaustive list of combinations of elements from two or more
+  collections by
+  [using the `setproduct` function inside a `for` expression](./functions/setproduct.html#finding-combinations-for-for_each).
 
 ## Splat Expressions
 

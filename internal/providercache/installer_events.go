@@ -64,9 +64,12 @@ type InstallerEvents struct {
 	//
 	// The Begin, Success, and Failure events will each occur only once per
 	// distinct provider.
+	//
+	// The Warning event is unique to the registry source
 	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints)
 	QueryPackagesSuccess func(provider addrs.Provider, selectedVersion getproviders.Version)
 	QueryPackagesFailure func(provider addrs.Provider, err error)
+	QueryPackagesWarning func(provider addrs.Provider, warn []string)
 
 	// The LinkFromCache... family of events delimit the operation of linking
 	// a selected provider package from the system-wide shared cache into the
@@ -102,6 +105,10 @@ type InstallerEvents struct {
 	FetchPackageBegin   func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
 	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
+
+	// The ProvidersFetched event is called after all fetch operations if at
+	// least one provider was fetched successfully.
+	ProvidersFetched func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult)
 
 	// HashPackageFailure is called if the installer is unable to determine
 	// the hash of the contents of an installed package after installation.

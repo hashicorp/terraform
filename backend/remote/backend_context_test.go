@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -186,6 +187,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 				ConfigDir:    configDir,
 				ConfigLoader: configLoader,
 				Workspace:    backend.DefaultStateName,
+				LockState:    true,
 			}
 
 			v := test.Opts
@@ -205,9 +207,20 @@ func TestRemoteContextWithVars(t *testing.T) {
 				if errStr != test.WantError {
 					t.Fatalf("wrong error\ngot:  %s\nwant: %s", errStr, test.WantError)
 				}
+				// When Context() returns an error, it should unlock the state,
+				// so re-locking it is expected to succeed.
+				stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+				if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+					t.Fatalf("unexpected error locking state: %s", err.Error())
+				}
 			} else {
 				if diags.HasErrors() {
 					t.Fatalf("unexpected error\ngot:  %s\nwant: <no error>", diags.Err().Error())
+				}
+				// When Context() succeeds, this should fail w/ "workspace already locked"
+				stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+				if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err == nil {
+					t.Fatal("unexpected success locking state after Context")
 				}
 			}
 		})

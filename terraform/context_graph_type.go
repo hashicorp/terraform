@@ -8,9 +8,7 @@ package terraform
 type GraphType byte
 
 const (
-	GraphTypeInvalid GraphType = 0
-	GraphTypeLegacy  GraphType = iota
-	GraphTypeRefresh
+	GraphTypeInvalid GraphType = iota
 	GraphTypePlan
 	GraphTypePlanDestroy
 	GraphTypeApply
@@ -25,8 +23,6 @@ var GraphTypeMap = map[string]GraphType{
 	"apply":        GraphTypeApply,
 	"plan":         GraphTypePlan,
 	"plan-destroy": GraphTypePlanDestroy,
-	"refresh":      GraphTypeRefresh,
-	"legacy":       GraphTypeLegacy,
 	"validate":     GraphTypeValidate,
 	"eval":         GraphTypeEval,
 }

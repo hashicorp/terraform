@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -405,6 +406,57 @@ func TestTaint_module(t *testing.T) {
 	}
 
 	testStateOutput(t, statePath, testTaintModuleStr)
+}
+
+func TestTaint_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("taint-check-required-version"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Write the temp state
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": {
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	path := testStateFileDefault(t, state)
+
+	ui := cli.NewMockUi()
+	c := &TaintCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{"test_instance.foo"}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// State is unchanged
+	testStateOutput(t, path, testTaintDefaultStr)
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
+	}
 }
 
 const testTaintStr = `

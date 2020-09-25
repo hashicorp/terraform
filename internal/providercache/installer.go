@@ -41,6 +41,12 @@ type Installer struct {
 	// namespace, which we use for providers that are built in to Terraform
 	// and thus do not need any separate installation step.
 	builtInProviderTypes []string
+
+	// unmanagedProviderTypes is a set of provider addresses that should be
+	// considered implemented, but that Terraform does not manage the
+	// lifecycle for, and therefore does not need to worry about the
+	// installation of.
+	unmanagedProviderTypes map[addrs.Provider]struct{}
 }
 
 // NewInstaller constructs and returns a new installer with the given target
@@ -92,6 +98,16 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 // method.
 func (i *Installer) SetBuiltInProviderTypes(types []string) {
 	i.builtInProviderTypes = types
+}
+
+// SetUnmanagedProviderTypes tells the receiver to consider the providers
+// indicated by the passed addrs.Providers as unmanaged. Terraform does not
+// need to control the lifecycle of these providers, and they are assumed to be
+// running already when Terraform is started. Because these are essentially
+// processes, not binaries, Terraform will not do any work to ensure presence
+// or versioning of these binaries.
+func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{}) {
+	i.unmanagedProviderTypes = types
 }
 
 // EnsureProviderVersions compares the given provider requirements with what
@@ -173,6 +189,10 @@ MightNeedProvider:
 			}
 			continue
 		}
+		if _, ok := i.unmanagedProviderTypes[provider]; ok {
+			// unmanaged providers do not require installation
+			continue
+		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)
 		if mode.forceQueryAllProviders() {
 			// If our mode calls for us to look for newer versions regardless
@@ -217,7 +237,7 @@ NeedProvider:
 		if cb := evts.QueryPackagesBegin; cb != nil {
 			cb(provider, reqs[provider])
 		}
-		available, err := i.source.AvailableVersions(provider)
+		available, warnings, err := i.source.AvailableVersions(provider)
 		if err != nil {
 			// TODO: Consider retrying a few times for certain types of
 			// source errors that seem likely to be transient.
@@ -227,6 +247,11 @@ NeedProvider:
 			}
 			// We will take no further actions for this provider.
 			continue
+		}
+		if len(warnings) > 0 {
+			if cb := evts.QueryPackagesWarning; cb != nil {
+				cb(provider, warnings)
+			}
 		}
 		available.Sort()                           // put the versions in increasing order of precedence
 		for i := len(available) - 1; i >= 0; i-- { // walk backwards to consider newer versions first
@@ -249,7 +274,8 @@ NeedProvider:
 
 	// Step 3: For each provider version we've decided we need to install,
 	// install its package into our target cache (possibly via the global cache).
-	targetPlatform := i.targetDir.targetPlatform // we inherit this to behave correctly in unit tests
+	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
+	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
 	for provider, version := range need {
 		if i.globalCacheDir != nil {
 			// Step 3a: If our global cache already has this version available then
@@ -348,10 +374,16 @@ NeedProvider:
 				continue
 			}
 		}
+		authResults[provider] = authResult
 		selected[provider] = version
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)
 		}
+	}
+
+	// Emit final event for fetching if any were successfully fetched
+	if cb := evts.ProvidersFetched; cb != nil && len(authResults) > 0 {
+		cb(authResults)
 	}
 
 	// We'll remember our selections in a lock file inside the target directory,
@@ -368,6 +400,14 @@ NeedProvider:
 			}
 			continue
 		}
+		if _, err := cached.ExecutableFile(); err != nil {
+			err := fmt.Errorf("provider binary not found: %s", err)
+			errs[provider] = err
+			if cb := evts.HashPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		}
 		hash, err := cached.Hash()
 		if err != nil {
 			errs[provider] = fmt.Errorf("failed to calculate checksum for installed provider %s package: %s", provider, err)
@@ -378,7 +418,7 @@ NeedProvider:
 		}
 		lockEntries[provider] = lockFileEntry{
 			SelectedVersion: version,
-			PackageHash:     hash,
+			PackageHash:     hash.String(),
 		}
 	}
 	err := i.lockFile().Write(lockEntries)
@@ -431,7 +471,13 @@ func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, erro
 			continue
 		}
 
-		ok, err := cached.MatchesHash(entry.PackageHash)
+		hash, err := getproviders.ParseHash(entry.PackageHash)
+		if err != nil {
+			errs[provider] = fmt.Errorf("local cache for %s has invalid hash %q: %s", provider, entry.PackageHash, err)
+			continue
+		}
+
+		ok, err := cached.MatchesHash(hash)
 		if err != nil {
 			errs[provider] = fmt.Errorf("failed to verify checksum for v%s package: %s", entry.SelectedVersion, err)
 			continue

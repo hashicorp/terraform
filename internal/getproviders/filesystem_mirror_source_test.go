@@ -104,7 +104,7 @@ func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
 
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
-	got, err := source.AvailableVersions(nullProvider)
+	got, _, err := source.AvailableVersions(nullProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,6 +139,10 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("incorrect result\n%s", diff)
+		}
+
+		if gotHashes := got.AcceptableHashes(); len(gotHashes) != 0 {
+			t.Errorf("wrong acceptable hashes\ngot:  %#v\nwant: none", gotHashes)
 		}
 	})
 	t.Run("unavailable platform", func(t *testing.T) {

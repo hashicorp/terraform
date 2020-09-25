@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -1003,7 +1002,11 @@ func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
 	}
 
 	// Verify we are now in the default env, or we may not be able to access the new backend
-	if env := m.Workspace(); env != backend.DefaultStateName {
+	env, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env != backend.DefaultStateName {
 		t.Fatal("using non-default env with single-env backend")
 	}
 }
@@ -1795,10 +1798,7 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 		},
 	}
 
-	err := (&state.LocalState{Path: DefaultStateFilename}).WriteState(orig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testStateFileDefault(t, orig)
 
 	m := testMetaBackend(t, nil)
 	m.forceInitCopy = true

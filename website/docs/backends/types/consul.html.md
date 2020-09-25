@@ -19,7 +19,7 @@ This backend supports [state locking](/docs/state/locking.html).
 ```hcl
 terraform {
   backend "consul" {
-    address = "demo.consul.io"
+    address = "consul.example.com"
     scheme  = "https"
     path    = "full/path"
   }

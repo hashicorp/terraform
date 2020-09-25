@@ -14,12 +14,14 @@ type Experiment string
 // identifier so that it can be specified in configuration.
 const (
 	VariableValidation = Experiment("variable_validation")
+	SensitiveVariables = Experiment("sensitive_variables")
 )
 
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
-	registerCurrentExperiment(VariableValidation)
+	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
+	registerCurrentExperiment(SensitiveVariables)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,12 +9,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -148,7 +151,11 @@ command and dealing with them before running this command again.
 		if dir != "." {
 			query = fmt.Sprintf("Would you like to upgrade the module in %s?", dir)
 		}
-		v, err := c.Ui.Ask(query)
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+			Id:          "approve",
+			Query:       query,
+			Description: `Only 'yes' will be accepted to confirm.`,
+		})
 		if err != nil {
 			diags = diags.Append(err)
 			c.showDiagnostics(diags)
@@ -201,6 +208,7 @@ command and dealing with them before running this command again.
 	// Build up a list of required providers, uniquely by local name
 	requiredProviders := make(map[string]*configs.RequiredProvider)
 	rewritePaths := make(map[string]bool)
+	allProviderConstraints := make(map[string]getproviders.VersionConstraints)
 
 	// Step 1: copy all explicit provider requirements across
 	for path, file := range files {
@@ -226,6 +234,24 @@ command and dealing with them before running this command again.
 						Requirement: rp.Requirement,
 						DeclRange:   rp.DeclRange,
 					}
+
+					// Parse and store version constraints for later use when
+					// processing the provider redirect
+					constraints, err := getproviders.ParseVersionConstraints(rp.Requirement.Required.String())
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid version constraint",
+							// The errors returned by ParseVersionConstraint
+							// already include the section of input that was
+							// incorrect, so we don't need to
+							// include that here.
+							Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+							Subject: rp.Requirement.DeclRange.Ptr(),
+						})
+					} else {
+						allProviderConstraints[rp.Name] = append(allProviderConstraints[rp.Name], constraints...)
+					}
 				}
 			}
 		}
@@ -234,6 +260,11 @@ command and dealing with them before running this command again.
 	for _, file := range files {
 		// Step 2: add missing provider requirements from provider blocks
 		for _, p := range file.ProviderConfigs {
+			// Skip internal providers
+			if p.Name == "terraform" {
+				continue
+			}
+
 			// If no explicit provider configuration exists for the
 			// provider configuration's local name, add one with a legacy
 			// provider address.
@@ -241,6 +272,23 @@ command and dealing with them before running this command again.
 				requiredProviders[p.Name] = &configs.RequiredProvider{
 					Name: p.Name,
 				}
+			}
+			// Parse and store version constraints for later use when
+			// processing the provider redirect
+			constraints, err := getproviders.ParseVersionConstraints(p.Version.Required.String())
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					// The errors returned by ParseVersionConstraint
+					// already include the section of input that was
+					// incorrect, so we don't need to
+					// include that here.
+					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+					Subject: p.Version.DeclRange.Ptr(),
+				})
+			} else {
+				allProviderConstraints[p.Name] = append(allProviderConstraints[p.Name], constraints...)
 			}
 		}
 
@@ -260,6 +308,11 @@ command and dealing with them before running this command again.
 					localName = r.Addr().ImpliedProvider()
 				}
 
+				// Skip internal providers
+				if localName == "terraform" {
+					continue
+				}
+
 				// If no explicit provider configuration exists for this local
 				// name, add one with a legacy provider address.
 				if _, exist := requiredProviders[localName]; !exist {
@@ -275,7 +328,7 @@ command and dealing with them before running this command again.
 	// stated in the config.  If there are any providers, attempt to detect
 	// their sources, and rewrite the config.
 	if len(requiredProviders) > 0 {
-		detectDiags := c.detectProviderSources(requiredProviders)
+		detectDiags := c.detectProviderSources(requiredProviders, allProviderConstraints)
 		diags = diags.Append(detectDiags)
 		if diags.HasErrors() {
 			c.Ui.Error("Unable to detect sources for providers")
@@ -388,7 +441,18 @@ command and dealing with them before running this command again.
 			} else {
 				attributesObject = cty.EmptyObjectVal
 			}
-			body.SetAttributeValue(localName, attributesObject)
+			// If this block already has an entry for this local name, we only
+			// want to replace it if it's semantically different
+			if existing := body.GetAttribute(localName); existing != nil {
+				bytes := existing.Expr().BuildTokens(nil).Bytes()
+				expr, _ := hclsyntax.ParseExpression(bytes, "", hcl.InitialPos)
+				value, _ := expr.Value(nil)
+				if !attributesObject.RawEquals(value) {
+					body.SetAttributeValue(localName, attributesObject)
+				}
+			} else {
+				body.SetAttributeValue(localName, attributesObject)
+			}
 
 			// If we don't have a source attribute, manually construct a commented
 			// block explaining what to do
@@ -557,10 +621,11 @@ necessary adjustments, and then commit.
 }
 
 // For providers which need a source attribute, detect the source
-func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map[string]*configs.RequiredProvider) tfdiags.Diagnostics {
+func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map[string]*configs.RequiredProvider, allProviderConstraints map[string]getproviders.VersionConstraints) tfdiags.Diagnostics {
 	source := c.providerInstallSource()
 	var diags tfdiags.Diagnostics
 
+providers:
 	for name, rp := range requiredProviders {
 		// If there's already an explicit source, skip it
 		if rp.Source != "" {
@@ -572,9 +637,70 @@ func (c *ZeroThirteenUpgradeCommand) detectProviderSources(requiredProviders map
 		// parse process, because we know that without an explicit source it is
 		// not explicitly specified.
 		addr := addrs.NewLegacyProvider(name)
-		p, err := getproviders.LookupLegacyProvider(addr, source)
+		p, moved, err := getproviders.LookupLegacyProvider(addr, source)
 		if err == nil {
 			rp.Type = p
+
+			if !moved.IsZero() {
+				constraints, ok := allProviderConstraints[name]
+				// If there's no version constraint, always use the redirect
+				// target as there should be at least one version we can
+				// install
+				if !ok {
+					rp.Type = moved
+					continue providers
+				}
+
+				// Check that the redirect target has a version meeting our
+				// constraints
+				acceptable := versions.MeetingConstraints(constraints)
+				available, _, err := source.AvailableVersions(moved)
+				// If something goes wrong with the registry lookup here, fall
+				// back to the non-redirect provider
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
+						"Failed to query available provider packages",
+						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+							moved.ForDisplay(), err),
+					))
+					continue providers
+				}
+
+				// Walk backwards to consider newer versions first
+				for i := len(available) - 1; i >= 0; i-- {
+					if acceptable.Has(available[i]) {
+						// Success! Provider redirect target has a version
+						// meeting our constraints, so we can use it
+						rp.Type = moved
+						continue providers
+					}
+				}
+
+				// Find the last version available at the old location
+				oldAvailable, _, err := source.AvailableVersions(p)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
+						"Failed to query available provider packages",
+						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+							p.ForDisplay(), err),
+					))
+					continue providers
+				}
+				lastAvailable := oldAvailable[len(oldAvailable)-1]
+
+				// If we fall through here, no versions at the target meet our
+				// version constraints, so warn the user
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Provider has moved",
+					fmt.Sprintf(
+						"Provider %q has moved to %q. No action is required to continue using %q (%s), but if you want to upgrade beyond version %s, you must also update the source.",
+						moved.Type, moved.ForDisplay(), p.ForDisplay(),
+						getproviders.VersionConstraintsString(constraints), lastAvailable),
+				))
+			}
 		} else {
 			// Setting the provider address to a zero value struct
 			// indicates that there is no known FQN for this provider,
@@ -685,10 +811,20 @@ func noSourceDetectedComment(name string) hclwrite.Tokens {
 
 func (c *ZeroThirteenUpgradeCommand) Help() string {
 	helpText := `
-Usage: terraform 0.13upgrade [module-dir]
+Usage: terraform 0.13upgrade [options] [module-dir]
 
   Updates module configuration files to add provider source attributes and
   merge multiple required_providers blocks into one.
+
+  By default, 0.13upgrade rewrites the files in the current working directory.
+  However, a path to a different directory can be provided. The command will
+  prompt for confirmation interactively unless the -yes option is given.
+
+Options:
+
+  -yes        Skip the initial introduction messages and interactive
+              confirmation. This can be used to run this command in
+              batch from a script.
 `
 	return strings.TrimSpace(helpText)
 }

@@ -83,7 +83,11 @@ func (c *ProvidersCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	s, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
@@ -94,22 +98,31 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	reqs, reqDiags := config.ProviderRequirements()
-	if reqDiags.HasErrors() {
-		c.showDiagnostics(configDiags)
+	reqs, reqDiags := config.ProviderRequirementsByModule()
+	diags = diags.Append(reqDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	state := s.State()
+	var stateReqs getproviders.Requirements
 	if state != nil {
-		stateReqs := state.ProviderRequirements()
-		reqs = reqs.Merge(stateReqs)
+		stateReqs = state.ProviderRequirements()
 	}
 
 	printRoot := treeprint.New()
-	providersCommandPopulateTreeNode(printRoot, reqs)
+	c.populateTreeNode(printRoot, reqs)
 
+	c.Ui.Output("\nProviders required by configuration:")
 	c.Ui.Output(printRoot.String())
+
+	if len(stateReqs) > 0 {
+		c.Ui.Output("Providers required by state:\n")
+		for fqn := range stateReqs {
+			c.Ui.Output(fmt.Sprintf("    provider[%s]\n", fqn.String()))
+		}
+	}
 
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
@@ -118,22 +131,27 @@ func (c *ProvidersCommand) Run(args []string) int {
 	return 0
 }
 
-func providersCommandPopulateTreeNode(node treeprint.Tree, deps getproviders.Requirements) {
-	for fqn, dep := range deps {
+func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.ModuleRequirements) {
+	for fqn, dep := range node.Requirements {
 		versionsStr := getproviders.VersionConstraintsString(dep)
 		if versionsStr != "" {
 			versionsStr = " " + versionsStr
 		}
-		node.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
+		tree.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
+	}
+	for name, childNode := range node.Children {
+		branch := tree.AddBranch(fmt.Sprintf("module.%s", name))
+		c.populateTreeNode(branch, childNode)
 	}
 }
 
 const providersCommandHelp = `
 Usage: terraform providers [dir]
 
-  Prints out a list of providers required by the configuration and state.
+  Prints out a tree of modules in the referenced configuration annotated with
+  their provider requirements.
 
-  This provides an overview of all of the provider requirements as an aid to
-  understanding why particular provider plugins are needed and why particular
-  versions are selected.
+  This provides an overview of all of the provider requirements across all
+  referenced modules, as an aid to understanding why particular provider
+  plugins are needed and why particular versions are selected.
 `

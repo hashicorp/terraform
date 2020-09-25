@@ -100,7 +100,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				if !lineRange.Overlaps(snippetRange) {
 					continue
 				}
-				if lineRange.Overlaps(highlightRange) {
+				if !lineRange.Overlap(highlightRange).Empty() {
 					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
 					before := beforeRange.SliceBytes(src)
 					highlighted := highlightedRange.SliceBytes(src)
@@ -175,11 +175,17 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	}
 
 	if desc.Detail != "" {
-		detail := desc.Detail
 		if width != 0 {
-			detail = wordwrap.WrapString(detail, uint(width))
+			lines := strings.Split(desc.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(line, uint(width))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", desc.Detail)
 		}
-		fmt.Fprintf(&buf, "%s\n", detail)
 	}
 
 	return buf.String()
@@ -295,6 +301,10 @@ func compactValueStr(val cty.Value) string {
 	// This is a specialized subset of value rendering tailored to producing
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
+
+	if val.ContainsMarked() {
+		return "(sensitive value)"
+	}
 
 	ty := val.Type()
 	switch {

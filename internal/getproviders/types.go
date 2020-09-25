@@ -32,6 +32,9 @@ type VersionSet = versions.Set
 // define the membership of a VersionSet by exclusion.
 type VersionConstraints = constraints.IntersectionSpec
 
+// Warnings represents a list of warnings returned by a Registry source.
+type Warnings = []string
+
 // Requirements gathers together requirements for many different providers
 // into a single data structure, as a convenient way to represent the full
 // set of requirements for a particular configuration or state or both.
@@ -230,6 +233,50 @@ func (m PackageMeta) UnpackedDirectoryPath(baseDir string) string {
 	return UnpackedDirectoryPathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
 }
 
+// PackedFilePath determines the path under the given base
+// directory where SearchLocalDirectory or the FilesystemMirrorSource would
+// expect to find packed copy (a .zip archive) of the receiving PackageMeta.
+//
+// The result always uses forward slashes as path separator, even on Windows,
+// to produce a consistent result on all platforms. Windows accepts both
+// direction of slash as long as each individual path string is self-consistent.
+func (m PackageMeta) PackedFilePath(baseDir string) string {
+	return PackedFilePathForPackage(baseDir, m.Provider, m.Version, m.TargetPlatform)
+}
+
+// AcceptableHashes returns a set of hashes that could be recorded for
+// comparison to future results for the same provider version, to implement a
+// "trust on first use" scheme.
+//
+// The AcceptableHashes result is a platform-agnostic set of hashes, with the
+// intent that in most cases it will be used as an additional cross-check in
+// addition to a platform-specific hash check made during installation. However,
+// there are some situations (such as verifying an already-installed package
+// that's on local disk) where Terraform would check only against the results
+// of this function, meaning that it would in principle accept another
+// platform's package as a substitute for the correct platform. That's a
+// pragmatic compromise to allow lock files derived from the result of this
+// method to be portable across platforms.
+//
+// Callers of this method should typically also verify the package using the
+// object in the Authentication field, and consider how much trust to give
+// the result of this method depending on the authentication result: an
+// unauthenticated result or one that only verified a checksum could be
+// considered less trustworthy than one that checked the package against
+// a signature provided by the origin registry.
+//
+// The AcceptableHashes result is actually provided by the object in the
+// Authentication field. AcceptableHashes therefore returns an empty result
+// for a PackageMeta that has no authentication object, or has one that does
+// not make use of hashes.
+func (m PackageMeta) AcceptableHashes() []Hash {
+	auth, ok := m.Authentication.(PackageAuthenticationHashes)
+	if !ok {
+		return nil
+	}
+	return auth.AcceptableHashes()
+}
+
 // PackageLocation represents a location where a provider distribution package
 // can be obtained. A value of this type contains one of the following
 // concrete types: PackageLocalArchive, PackageLocalDir, or PackageHTTPURL.
@@ -332,7 +379,7 @@ func (l PackageMetaList) FilterProviderPlatformExactVersion(provider addrs.Provi
 	return ret
 }
 
-// VersionConstraintsString returns a UI-oriented string representation of
+// VersionConstraintsString returns a canonical string representation of
 // a VersionConstraints value.
 func VersionConstraintsString(spec VersionConstraints) string {
 	// (we have our own function for this because the upstream versions
@@ -341,6 +388,12 @@ func VersionConstraintsString(spec VersionConstraints) string {
 	// function to do this later, but having this in here avoids blocking on
 	// that and this is the sort of thing that is unlikely to need ongoing
 	// maintenance because the version constraint syntax is unlikely to change.)
+	//
+	// ParseVersionConstraints allows some variations for convenience, but the
+	// return value from this function serves as the normalized form of a
+	// particular version constraint, which is the form we require in dependency
+	// lock files. Therefore the canonical forms produced here are a compatibility
+	// constraint for the dependency lock file parser.
 
 	var b strings.Builder
 	for i, sel := range spec {
@@ -371,7 +424,17 @@ func VersionConstraintsString(spec VersionConstraints) string {
 
 		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
 			// The minor-pessimistic syntax uses only two version components.
-			fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+			if sel.Boundary.Minor.Unconstrained {
+				// The parser allows writing ~> 2, which ends up being
+				// represented in memory as ~> 2.* because the minor
+				// version is unconstrained, but that's not really any
+				// different than saying 2.0 and so we'll prefer that in
+				// our serialization in order to be clearer about how we
+				// understood the version constraint.
+				fmt.Fprintf(&b, "%s.0", sel.Boundary.Major)
+			} else {
+				fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
+			}
 		} else {
 			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
 		}

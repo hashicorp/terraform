@@ -63,6 +63,11 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 		builtinProviderTypes = append(builtinProviderTypes, ty)
 	}
 	inst.SetBuiltInProviderTypes(builtinProviderTypes)
+	unmanagedProviderTypes := make(map[addrs.Provider]struct{}, len(m.UnmanagedProviders))
+	for ty := range m.UnmanagedProviders {
+		unmanagedProviderTypes[ty] = struct{}{}
+	}
+	inst.SetUnmanagedProviderTypes(unmanagedProviderTypes)
 	return inst
 }
 
@@ -172,9 +177,12 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	// and they'll just be ignored if not used.
 	internalFactories := m.internalProviders()
 
-	factories := make(map[addrs.Provider]providers.Factory, len(selected)+len(internalFactories))
+	factories := make(map[addrs.Provider]providers.Factory, len(selected)+len(internalFactories)+len(m.UnmanagedProviders))
 	for name, factory := range internalFactories {
 		factories[addrs.NewBuiltInProvider(name)] = factory
+	}
+	for provider, reattach := range m.UnmanagedProviders {
+		factories[provider] = unmanagedProviderFactory(provider, reattach)
 	}
 	for provider, cached := range selected {
 		factories[provider] = providerFactory(cached)
@@ -201,15 +209,21 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 			Output: os.Stderr,
 		})
 
+		execFile, err := meta.ExecutableFile()
+		if err != nil {
+			return nil, err
+		}
+
 		config := &plugin.ClientConfig{
-			Cmd:              exec.Command(meta.ExecutableFile),
 			HandshakeConfig:  tfplugin.Handshake,
-			VersionedPlugins: tfplugin.VersionedPlugins,
-			Managed:          true,
 			Logger:           logger,
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+			Managed:          true,
+			Cmd:              exec.Command(execFile),
 			AutoMTLS:         enableProviderAutoMTLS,
+			VersionedPlugins: tfplugin.VersionedPlugins,
 		}
+
 		client := plugin.NewClient(config)
 		rpcClient, err := client.Client()
 		if err != nil {
@@ -224,6 +238,51 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 		// store the client so that the plugin can kill the child process
 		p := raw.(*tfplugin.GRPCProvider)
 		p.PluginClient = client
+
+		return p, nil
+	}
+}
+
+// unmanagedProviderFactory produces a provider factory that uses the passed
+// reattach information to connect to go-plugin processes that are already
+// running, and implements providers.Interface against it.
+func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.ReattachConfig) providers.Factory {
+	return func() (providers.Interface, error) {
+		logger := hclog.New(&hclog.LoggerOptions{
+			Name:   "unmanaged-plugin",
+			Level:  hclog.Trace,
+			Output: os.Stderr,
+		})
+
+		config := &plugin.ClientConfig{
+			HandshakeConfig:  tfplugin.Handshake,
+			Logger:           logger,
+			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+			Managed:          false,
+			Reattach:         reattach,
+		}
+		// TODO: we probably shouldn't hardcode the protocol version
+		// here, but it'll do for now, because only one protocol
+		// version is supported. Eventually, we'll probably want to
+		// sneak it into the JSON ReattachConfigs.
+		if plugins, ok := tfplugin.VersionedPlugins[5]; !ok {
+			return nil, fmt.Errorf("no supported plugins for protocol 5")
+		} else {
+			config.Plugins = plugins
+		}
+
+		client := plugin.NewClient(config)
+		rpcClient, err := client.Client()
+		if err != nil {
+			return nil, err
+		}
+
+		raw, err := rpcClient.Dispense(tfplugin.ProviderPluginName)
+		if err != nil {
+			return nil, err
+		}
+
+		p := raw.(*tfplugin.GRPCProvider)
 		return p, nil
 	}
 }

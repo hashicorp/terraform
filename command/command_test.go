@@ -19,6 +19,9 @@ import (
 	"syscall"
 	"testing"
 
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/registry"
 
@@ -463,9 +466,11 @@ func testStateOutput(t *testing.T, path string, expected string) {
 
 func testProvider() *terraform.MockProvider {
 	p := new(terraform.MockProvider)
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
-		PlannedState: cty.EmptyObjectVal,
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return resp
 	}
+
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{
 			NewState: req.PriorState,
@@ -537,7 +542,7 @@ func testChdir(t *testing.T, new string) func() {
 }
 
 // testCwd is used to change the current working directory
-// into a test directory that should be remoted after
+// into a test directory that should be removed after
 func testCwd(t *testing.T) (string, string) {
 	t.Helper()
 
@@ -821,7 +826,7 @@ func testLockState(sourceDir, path string) (func(), error) {
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
 
-	cmd := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source)
+	cmd := exec.Command("go", "build", "-o", lockBin, source)
 	cmd.Dir = filepath.Dir(sourceDir)
 
 	out, err := cmd.CombinedOutput()
@@ -882,4 +887,104 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 		panic(diags.Err())
 	}
 	return addr.Config()
+}
+
+// This map from provider type name to namespace is used by the fake registry
+// when called via LookupLegacyProvider. Providers not in this map will return
+// a 404 Not Found error.
+var legacyProviderNamespaces = map[string]string{
+	"foo": "hashicorp",
+	"bar": "hashicorp",
+	"baz": "terraform-providers",
+	"qux": "hashicorp",
+}
+
+// This map is used to mock the provider redirect feature.
+var movedProviderNamespaces = map[string]string{
+	"qux": "acme",
+}
+
+// testServices starts up a local HTTP server running a fake provider registry
+// service which responds only to discovery requests and legacy provider lookup
+// API calls.
+//
+// The final return value is a function to call at the end of a test function
+// to shut down the test server. After you call that function, the discovery
+// object becomes useless.
+func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
+	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
+
+	services = disco.New()
+	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
+		"providers.v1": server.URL + "/providers/v1/",
+	})
+
+	return services, func() {
+		server.Close()
+	}
+}
+
+// testRegistrySource is a wrapper around testServices that uses the created
+// discovery object to produce a Source instance that is ready to use with the
+// fake registry services.
+//
+// As with testServices, the final return value is a function to call at the end
+// of your test in order to shut down the test server.
+func testRegistrySource(t *testing.T) (source *getproviders.RegistrySource, cleanup func()) {
+	services, close := testServices(t)
+	source = getproviders.NewRegistrySource(services)
+	return source, close
+}
+
+func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
+	path := req.URL.EscapedPath()
+
+	if !strings.HasPrefix(path, "/providers/v1/") {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`not a provider registry endpoint`))
+		return
+	}
+
+	pathParts := strings.Split(path, "/")[3:]
+
+	if len(pathParts) != 3 {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`unrecognized path scheme`))
+		return
+	}
+
+	if pathParts[2] != "versions" {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`this registry only supports legacy namespace lookup requests`))
+		return
+	}
+
+	name := pathParts[1]
+
+	// Legacy lookup
+	if pathParts[0] == "-" {
+		if namespace, ok := legacyProviderNamespaces[name]; ok {
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			if movedNamespace, ok := movedProviderNamespaces[name]; ok {
+				resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","moved_to":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name, movedNamespace, name)))
+			} else {
+				resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name)))
+			}
+		} else {
+			resp.WriteHeader(404)
+			resp.Write([]byte(`provider not found`))
+		}
+		return
+	}
+
+	// Also return versions for redirect target
+	if namespace, ok := movedProviderNamespaces[name]; ok && pathParts[0] == namespace {
+		resp.Header().Set("Content-Type", "application/json")
+		resp.WriteHeader(200)
+		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name)))
+	} else {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`provider not found`))
+	}
 }

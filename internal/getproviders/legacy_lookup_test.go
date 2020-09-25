@@ -11,7 +11,7 @@ func TestLookupLegacyProvider(t *testing.T) {
 	source, _, close := testRegistrySource(t)
 	defer close()
 
-	got, err := LookupLegacyProvider(
+	got, gotMoved, err := LookupLegacyProvider(
 		addrs.NewLegacyProvider("legacy"),
 		source,
 	)
@@ -27,13 +27,46 @@ func TestLookupLegacyProvider(t *testing.T) {
 	if got != want {
 		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 	}
+	if !gotMoved.IsZero() {
+		t.Errorf("wrong moved result\ngot:  %#v\nwant: %#v", gotMoved, addrs.Provider{})
+	}
+}
+
+func TestLookupLegacyProvider_moved(t *testing.T) {
+	source, _, close := testRegistrySource(t)
+	defer close()
+
+	got, gotMoved, err := LookupLegacyProvider(
+		addrs.NewLegacyProvider("moved"),
+		source,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	want := addrs.Provider{
+		Hostname:  defaultRegistryHost,
+		Namespace: "hashicorp",
+		Type:      "moved",
+	}
+	wantMoved := addrs.Provider{
+		Hostname:  defaultRegistryHost,
+		Namespace: "acme",
+		Type:      "moved",
+	}
+	if got != want {
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+	if gotMoved != wantMoved {
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", gotMoved, wantMoved)
+	}
 }
 
 func TestLookupLegacyProvider_invalidResponse(t *testing.T) {
 	source, _, close := testRegistrySource(t)
 	defer close()
 
-	got, err := LookupLegacyProvider(
+	got, _, err := LookupLegacyProvider(
 		addrs.NewLegacyProvider("invalid"),
 		source,
 	)
@@ -50,7 +83,7 @@ func TestLookupLegacyProvider_unexpectedTypeChange(t *testing.T) {
 	source, _, close := testRegistrySource(t)
 	defer close()
 
-	got, err := LookupLegacyProvider(
+	got, _, err := LookupLegacyProvider(
 		addrs.NewLegacyProvider("changetype"),
 		source,
 	)

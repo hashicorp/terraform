@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -305,8 +304,8 @@ func TestApply_defaultState(t *testing.T) {
 	}
 
 	// create an existing state file
-	localState := &state.LocalState{Path: statePath}
-	if err := localState.WriteState(terraform.NewState()); err != nil {
+	localState := statemgr.NewFilesystem(statePath)
+	if err := localState.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1108,7 +1107,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "notsensitive = Hello world") {
+	if !strings.Contains(output, "notsensitive = \"Hello world\"") {
 		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
 	}
 	if !strings.Contains(output, "sensitive = <sensitive>") {

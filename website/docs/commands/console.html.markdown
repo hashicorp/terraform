@@ -14,7 +14,7 @@ evaluating [expressions](/docs/configuration/expressions.html).
 
 ## Usage
 
-Usage: `terraform console [options] [dir]`
+Usage: `terraform console [options]`
 
 This command provides an interactive command-line console for evaluating and
 experimenting with [expressions](/docs/configuration/expressions.html).
@@ -25,9 +25,6 @@ and for interacting with any values currently saved in
 If the current state is empty or has not yet been created, the console can be
 used to experiment with the expression syntax and
 [built-in functions](/docs/configuration/functions.html).
-
-The `dir` argument specifies the directory of the root module to use.
-If a path is not specified, the current working directory is used.
 
 The supported options are:
 

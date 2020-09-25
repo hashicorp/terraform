@@ -131,3 +131,24 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 		t.Fatalf("bad %v", conf)
 	}
 }
+
+func TestProvisioner_connInfoEmptyHostname(t *testing.T) {
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":        "ssh",
+				"user":        "root",
+				"password":    "supersecret",
+				"private_key": "someprivatekeycontents",
+				"host":        "",
+				"port":        "22",
+				"timeout":     "30s",
+			},
+		},
+	}
+
+	_, err := parseConnectionInfo(r)
+	if err == nil {
+		t.Fatalf("bad: should not allow empty host")
+	}
+}

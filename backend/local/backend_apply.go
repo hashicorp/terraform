@@ -56,24 +56,30 @@ func (b *Local) opApply(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
 
-	// Setup the state
+	// Before we do anything else we'll take a snapshot of the prior state
+	// so we can use it for some fixups to our detection of whether the plan
+	// includes externally-visible side-effects that need to be applied.
+	// (We should be able to remove this once we complete the planned work
+	// described in the comment for func planHasSideEffects in backend_plan.go .)
+	// We go directly to the state manager here because the state inside
+	// tfCtx was already implicitly changed by a validation walk inside
+	// the b.context method.
+	priorState := opState.State().DeepCopy()
+
 	runningOp.State = tfCtx.State()
 
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
-		// If we're refreshing before apply, perform that
-		if op.PlanRefresh {
-			log.Printf("[INFO] backend/local: apply calling Refresh")
-			_, refreshDiags := tfCtx.Refresh()
-			diags = diags.Append(refreshDiags)
-			if diags.HasErrors() {
-				runningOp.Result = backend.OperationFailure
-				b.ShowDiagnostics(diags)
-				return
-			}
-		}
-
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, planDiags := tfCtx.Plan()
@@ -83,7 +89,7 @@ func (b *Local) opApply(
 			return
 		}
 
-		trivialPlan := plan.Changes.Empty()
+		trivialPlan := !planHasSideEffects(priorState, plan.Changes)
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
 		if mustConfirm {
@@ -108,7 +114,7 @@ func (b *Local) opApply(
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(plan, runningOp.State, tfCtx.Schemas())
+				b.renderPlan(plan, runningOp.State, priorState, tfCtx.Schemas())
 				b.CLI.Output("")
 			}
 

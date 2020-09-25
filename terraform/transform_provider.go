@@ -460,9 +460,9 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeCloseProvider) EvalTree() EvalNode {
-	return CloseProviderEvalTree(n.Addr)
+// GraphNodeExecutable impl.
+func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) error {
+	return ctx.CloseProvider(n.Addr)
 }
 
 // GraphNodeDependable impl.
@@ -486,13 +486,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dag.Do
 			"shape": "diamond",
 		},
 	}
-}
-
-// RemovableIfNotTargeted
-func (n *graphNodeCloseProvider) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 // graphNodeProxyProvider is a GraphNodeProvider implementation that is used to

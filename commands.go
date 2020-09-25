@@ -6,9 +6,11 @@ import (
 
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/go-plugin"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/webbrowser"
@@ -38,7 +40,7 @@ const (
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source) {
+func initCommands(originalWorkingDir string, config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source, unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -62,6 +64,8 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
+		OriginalWorkingDir: originalWorkingDir,
+
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
 		PluginOverrides:  &PluginOverrides,
@@ -76,7 +80,8 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		PluginCacheDir:      config.PluginCacheDir,
 		OverrideDataDir:     dataDir,
 
-		ShutdownCh: makeShutdownCh(),
+		ShutdownCh:         makeShutdownCh(),
+		UnmanagedProviders: unmanagedProviders,
 	}
 
 	// The command list is included in the terraform -help
@@ -215,6 +220,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		"providers mirror": func() (cli.Command, error) {
+			return &command.ProvidersMirrorCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"providers schema": func() (cli.Command, error) {
 			return &command.ProvidersSchemaCommand{
 				Meta: meta,
@@ -308,7 +319,7 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		//-----------------------------------------------------------
 
 		"0.12upgrade": func() (cli.Command, error) {
-			return &command.ZeroThirteenUpgradeCommand{
+			return &command.ZeroTwelveUpgradeCommand{
 				Meta: meta,
 			}, nil
 		},

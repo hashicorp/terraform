@@ -4,6 +4,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // RequiredProvider represents a declaration of a dependency on a particular
@@ -55,42 +56,75 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 				vc := VersionConstraint{
 					DeclRange: attr.Range,
 				}
-				constraintStr := expr.GetAttr("version").AsString()
-				constraints, err := version.NewConstraint(constraintStr)
-				if err != nil {
-					// NewConstraint doesn't return user-friendly errors, so we'll just
-					// ignore the provided error and produce our own generic one.
+				constraint := expr.GetAttr("version")
+				if !constraint.Type().Equals(cty.String) || constraint.IsNull() {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid version constraint",
-						Detail:   "This string does not use correct version constraint syntax.",
+						Detail:   "Version must be specified as a string.",
 						Subject:  attr.Expr.Range().Ptr(),
 					})
 				} else {
-					vc.Required = constraints
-					rp.Requirement = vc
+					constraintStr := constraint.AsString()
+					constraints, err := version.NewConstraint(constraintStr)
+					if err != nil {
+						// NewConstraint doesn't return user-friendly errors, so we'll just
+						// ignore the provided error and produce our own generic one.
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid version constraint",
+							Detail:   "This string does not use correct version constraint syntax.",
+							Subject:  attr.Expr.Range().Ptr(),
+						})
+					} else {
+						vc.Required = constraints
+						rp.Requirement = vc
+					}
 				}
 			}
 			if expr.Type().HasAttribute("source") {
-				rp.Source = expr.GetAttr("source").AsString()
-
-				fqn, sourceDiags := addrs.ParseProviderSourceString(rp.Source)
-
-				if sourceDiags.HasErrors() {
-					hclDiags := sourceDiags.ToHCL()
-					// The diagnostics from ParseProviderSourceString don't contain
-					// source location information because it has no context to compute
-					// them from, and so we'll add those in quickly here before we
-					// return.
-					for _, diag := range hclDiags {
-						if diag.Subject == nil {
-							diag.Subject = attr.Expr.Range().Ptr()
-						}
-					}
-					diags = append(diags, hclDiags...)
+				source := expr.GetAttr("source")
+				if !source.Type().Equals(cty.String) || source.IsNull() {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid source",
+						Detail:   "Source must be specified as a string.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
 				} else {
-					rp.Type = fqn
+					rp.Source = source.AsString()
+
+					fqn, sourceDiags := addrs.ParseProviderSourceString(rp.Source)
+
+					if sourceDiags.HasErrors() {
+						hclDiags := sourceDiags.ToHCL()
+						// The diagnostics from ParseProviderSourceString don't contain
+						// source location information because it has no context to compute
+						// them from, and so we'll add those in quickly here before we
+						// return.
+						for _, diag := range hclDiags {
+							if diag.Subject == nil {
+								diag.Subject = attr.Expr.Range().Ptr()
+							}
+						}
+						diags = append(diags, hclDiags...)
+					} else {
+						rp.Type = fqn
+					}
 				}
+			}
+			attrTypes := expr.Type().AttributeTypes()
+			for name := range attrTypes {
+				if name == "version" || name == "source" {
+					continue
+				}
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid required_providers object",
+					Detail:   `required_providers objects can only contain "version" and "source" attributes. To configure a provider, use a "provider" block.`,
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+				break
 			}
 
 		default:

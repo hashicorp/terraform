@@ -31,7 +31,9 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				VersionList{MustParseVersion("5.0")},
 				platform2,
 			),
-		})
+		},
+			nil,
+		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
@@ -51,7 +53,9 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
-		})
+		},
+			nil,
+		)
 		multi := MultiSource{
 			{Source: s1},
 			{Source: s2},
@@ -59,7 +63,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		// AvailableVersions produces the union of all versions available
 		// across all of the sources.
-		got, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -72,7 +76,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -96,7 +100,9 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
-		})
+		},
+			nil,
+		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
 				addrs.NewDefaultProvider("foo"),
@@ -110,7 +116,9 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
-		})
+		},
+			nil,
+		)
 		multi := MultiSource{
 			{
 				Source:  s1,
@@ -122,7 +130,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			},
 		}
 
-		got, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -134,7 +142,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		got, err = multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
+		got, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -146,21 +154,21 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
 	})
 
 	t.Run("provider not found", func(t *testing.T) {
-		s1 := NewMockSource(nil)
-		s2 := NewMockSource(nil)
+		s1 := NewMockSource(nil, nil)
+		s2 := NewMockSource(nil, nil)
 		multi := MultiSource{
 			{Source: s1},
 			{Source: s2},
 		}
 
-		_, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		_, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
 		if err == nil {
 			t.Fatal("expected error, got success")
 		}
@@ -171,6 +179,57 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Fatalf("wrong error.\ngot:  %s\nwant: %s\n", err, wantErr)
 		}
 
+	})
+
+	t.Run("merging with warnings", func(t *testing.T) {
+		platform1 := Platform{OS: "amigaos", Arch: "m68k"}
+		platform2 := Platform{OS: "aros", Arch: "arm"}
+		s1 := NewMockSource([]PackageMeta{
+			FakePackageMeta(
+				addrs.NewDefaultProvider("bar"),
+				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
+				platform2,
+			),
+		},
+			map[addrs.Provider]Warnings{
+				addrs.NewDefaultProvider("bar"): {"WARNING!"},
+			},
+		)
+		s2 := NewMockSource([]PackageMeta{
+			FakePackageMeta(
+				addrs.NewDefaultProvider("bar"),
+				MustParseVersion("1.0.0"),
+				VersionList{MustParseVersion("5.0")},
+				platform1,
+			),
+		},
+			nil,
+		)
+		multi := MultiSource{
+			{Source: s1},
+			{Source: s2},
+		}
+
+		// AvailableVersions produces the union of all versions available
+		// across all of the sources.
+		got, warns, err := multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		want := VersionList{
+			MustParseVersion("1.0.0"),
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+
+		if len(warns) != 1 {
+			t.Fatalf("wrong number of warnings. Got %d, wanted 1", len(warns))
+		}
+		if warns[0] != "WARNING!" {
+			t.Fatalf("wrong warnings. Got %s, wanted \"WARNING!\"", warns[0])
+		}
 	})
 }
 
@@ -214,7 +273,9 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 			VersionList{MustParseVersion("5.0")},
 			platform2,
 		)),
-	})
+	},
+		nil,
+	)
 	s2 := NewMockSource([]PackageMeta{
 		inBothS2,
 		onlyInS2,
@@ -224,7 +285,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 			VersionList{MustParseVersion("5.0")},
 			platform1,
 		)),
-	})
+	}, nil)
 	multi := MultiSource{
 		{Source: s1},
 		{Source: s2},
@@ -297,7 +358,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 }
 
 func TestMultiSourceSelector(t *testing.T) {
-	emptySource := NewMockSource(nil)
+	emptySource := NewMockSource(nil, nil)
 
 	tests := map[string]struct {
 		Selector  MultiSourceSelector

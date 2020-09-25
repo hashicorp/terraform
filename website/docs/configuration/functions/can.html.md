@@ -30,7 +30,7 @@ For example:
 variable "timestamp" {
   type        = string
 
-  validation { # NOTE: custom validation is currently an opt-in experiment (see link above)
+  validation {
     # formatdate fails if the second argument is not a valid timestamp
     condition     = can(formatdate("", var.timestamp))
     error_message = "The timestamp argument requires a valid RFC 3339 timestamp."

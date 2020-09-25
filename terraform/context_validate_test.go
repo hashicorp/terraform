@@ -40,6 +40,30 @@ func TestContext2Validate_badCount(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_badResource_reference(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
+
+	m := testModule(t, "validate-bad-resource-count")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+}
+
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
@@ -1371,14 +1395,6 @@ func TestContext2Validate_variableCustomValidationsRoot(t *testing.T) {
 	// altogether. (Root module variables are never known during validation.)
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-# This feature is currently experimental.
-# (If you're currently cleaning up after concluding the experiment,
-# remember to also clean up similar references in the configs package
-# under "invalid-files" and "invalid-modules".)
-terraform {
-  experiments = [variable_validation]
-}
-
 variable "test" {
   type = string
 
@@ -1534,5 +1550,165 @@ resource "aws_instance" "foo" {
 	}
 	if got, want := diags.Err().Error(), `Invalid for_each argument`; strings.Index(got, want) == -1 {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_expandMultipleNestedModules(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "modA" {
+  for_each = {
+    first = "m"
+	second = "n"
+  }
+  source = "./modA"
+}
+`,
+		"modA/main.tf": `
+locals {
+  m = {
+    first = "m"
+	second = "n"
+  }
+}
+
+module "modB" {
+  for_each = local.m
+  source = "./modB"
+  y = each.value
+}
+
+module "modC" {
+  for_each = local.m
+  source = "./modC"
+  x = module.modB[each.key].out
+  y = module.modB[each.key].out
+}
+
+`,
+		"modA/modB/main.tf": `
+variable "y" {
+  type = string
+}
+
+resource "aws_instance" "foo" {
+  foo = var.y
+}
+
+output "out" {
+  value = aws_instance.foo.id
+}
+`,
+		"modA/modC/main.tf": `
+variable "x" {
+  type = string
+}
+
+variable "y" {
+  type = string
+}
+
+resource "aws_instance" "foo" {
+  foo = var.x
+}
+
+output "out" {
+  value = var.y
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_invalidModuleDependsOn(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+  depends_on = [resource_foo.bar.baz]
+}
+
+module "mod2" {
+  source = "./mod"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+		"mod/main.tf": `
+output "out" {
+  value = "foo"
+}
+`,
+	})
+
+	diags := testContext2(t, &ContextOpts{
+		Config: m,
+	}).Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("wanted 2 diagnostic errors, got %q", diags)
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
+	}
+}
+
+func TestContext2Validate_invalidOutputDependsOn(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+}
+
+output "out" {
+  value = "bar"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+		"mod/main.tf": `
+output "out" {
+  value = "bar"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+	})
+
+	diags := testContext2(t, &ContextOpts{
+		Config: m,
+	}).Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("wanted 2 diagnostic errors, got %q", diags)
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
 	}
 }

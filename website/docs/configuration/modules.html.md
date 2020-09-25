@@ -12,6 +12,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Modules](../configuration-0-11/modules.html).
 
+> For a hands-on tutorial, try the [Organize Configuration with Modules](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 A _module_ is a container for multiple resources that are used together.
 
 Every Terraform configuration has at least one module, known as its
@@ -28,10 +30,8 @@ This page describes how to call one module from another. Other pages in this
 section of the documentation describe the different elements that make up
 modules, and there is further information about how modules can be used,
 created, and published in [the dedicated _Modules_
-section](/docs/modules/index.html). You can also learn more about how to use and
-create modules with our hands-on [modules track on
-learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
- 
+section](/docs/modules/index.html).
+
 ## Calling a Child Module
 
 To _call_ a module means to include the contents of that module into the
@@ -61,7 +61,7 @@ and used for its own purposes; we will discuss those throughout the rest of
 this section.
 
 All modules require a `source` argument, which is a meta-argument defined by
-Terraform CLI. Its value is either the path to a local directory of the
+Terraform. Its value is either the path to a local directory containing the
 module's configuration files, or a remote module source that Terraform should
 download and use. This value must be a literal string with no template
 sequences; arbitrary expressions are not allowed. For more information on
@@ -98,10 +98,72 @@ resource "aws_elb" "example" {
 For more information about referring to named values, see
 [Expressions](./expressions.html).
 
+## Transferring Resource State Into Modules
+
+When refactoring an existing configuration to split code into child modules,
+moving resource blocks between modules causes Terraform to see the new location
+as an entirely different resource from the old. Always check the execution plan
+after moving code across modules to ensure that no resources are deleted by
+surprise.
+
+If you want to make sure an existing resource is preserved, use
+[the `terraform state mv` command](/docs/commands/state/mv.html) to inform
+Terraform that it has moved to a different module.
+
+When passing resource addresses to `terraform state mv`, resources within child
+modules must be prefixed with `module.<MODULE NAME>.`. If a module was called
+with `count` or `for_each` ([see below][inpage-multiple]), its resource
+addresses must be prefixed with `module.<MODULE NAME>[<INDEX>].` instead, where
+`<INDEX>` matches the `count.index` or `each.key` value of a particular module
+instance.
+
+Full resource addresses for module contents are used within the UI and on the
+command line, but cannot be used within a Terraform configuration. Only
+[outputs](./outputs.html) from a module can be referenced from
+elsewhere in your configuration.
+
+## Other Meta-arguments
+
+Along with the `source` meta-argument described above, module blocks have
+some optional meta-arguments that have special meaning across all modules,
+described in more detail below:
+
+- `version` - A [version constraint string](./version-constraints.html)
+  that specifies acceptable versions of the module. Described in detail under
+  [Module Versions][inpage-versions] below.
+
+- `count` and `for_each` - Both of these arguments create multiple instances of a
+  module from a single `module` block. Described in detail under
+  [Multiple Instances of a Module][inpage-multiple] below.
+
+- `providers` - A map whose keys are provider configuration names
+  that are expected by child module and whose values are the corresponding
+  provider configurations in the calling module. This allows
+  [provider configurations to be passed explicitly to child modules](#passing-providers-explicitly).
+  If not specified, the child module inherits all of the default (un-aliased)
+  provider configurations from the calling module. Described in detail under
+  [Providers Within Modules][inpage-providers]
+
+- `depends_on` - Creates explicit dependencies between the entire
+  module and the listed targets. This will delay the final evaluation of the
+  module, and any sub-modules, until after the dependencies have been applied.
+  Modules have the same dependency resolution behavior
+  [as defined for managed resources](./resources.html#resource-dependencies).
+
+In addition to the above, the `lifecycle` argument is not currently used by
+Terraform but is reserved for planned future features.
+
+Since modules are a complex feature in their own right, further detail
+about how modules can be used, created, and published is included in
+[the dedicated section on modules](/docs/modules/index.html).
+
 ## Module Versions
 
-We recommend explicitly constraining the acceptable version numbers for
-each external module to avoid unexpected or unwanted changes.
+[inpage-versions]: #module-versions
+
+When using modules installed from a module registry, we recommend explicitly
+constraining the acceptable version numbers to avoid unexpected or unwanted
+changes.
 
 Use the `version` attribute in the `module` block to specify versions:
 
@@ -114,113 +176,168 @@ module "consul" {
 }
 ```
 
-The `version` attribute value may either be a single explicit version or
-a version constraint expression. Constraint expressions use the following
-syntax to specify a _range_ of versions that are acceptable:
-
-* `>= 1.2.0`: version 1.2.0 or newer
-* `<= 1.2.0`: version 1.2.0 or older
-* `~> 1.2.0`: any non-beta version `>= 1.2.0` and `< 1.3.0`, e.g. `1.2.X`
-* `~> 1.2`: any non-beta version `>= 1.2.0` and `< 2.0.0`, e.g. `1.X.Y`
-* `>= 1.0.0, <= 2.0.0`: any version between 1.0.0 and 2.0.0 inclusive
-
-When depending on third-party modules, references to specific versions are
-recommended since this ensures that updates only happen when convenient to you.
-
-For modules maintained within your organization, a version range strategy
-may be appropriate if a semantic versioning methodology is used consistently
-or if there is a well-defined release process that avoids unwanted updates.
+The `version` attribute accepts a [version constraint string](./version-constraints.html).
+Terraform will use the newest installed version of the module that meets the
+constraint; if no acceptable versions are installed, it will download the newest
+version that meets the constraint.
 
 Version constraints are supported only for modules installed from a module
-registry, such as the [Terraform Registry](https://registry.terraform.io/) or
-[Terraform Cloud's private module registry](/docs/cloud/registry/index.html).
+registry, such as the public [Terraform Registry](https://registry.terraform.io/)
+or [Terraform Cloud's private module registry](/docs/cloud/registry/index.html).
 Other module sources can provide their own versioning mechanisms within the
 source string itself, or might not support versions at all. In particular,
 modules sourced from local file paths do not support `version`; since
 they're loaded from the same source repository, they always share the same
 version as their caller.
 
-## Other Meta-arguments
+## Multiple Instances of a Module
 
-Along with the `source` meta-argument described above, module blocks have
-some more meta-arguments that have special meaning across all modules,
-described in more detail in other sections:
+[inpage-multiple]: #multiple-instances-of-a-module
 
-* `version` - (Optional) A [version constraint](#module-versions)
-  string that specifies which versions of the referenced module are acceptable.
-  The newest version matching the constraint will be used. `version` is supported
-  only for modules retrieved from module registries.
+-> **Note:** Module support for the `for_each` and `count` meta-arguments was
+added in Terraform 0.13. Previous versions can only use these arguments with
+individual resources.
 
-* `providers` - (Optional) A map whose keys are provider configuration names
-  that are expected by child module and whose values are corresponding
-  provider names in the calling module. This allows
-  [provider configurations to be passed explicitly to child modules](#passing-providers-explicitly).
-  If not specified, the child module inherits all of the default (un-aliased)
-  provider configurations from the calling module.
+Use the `for_each` or the `count` argument to create multiple instances of a
+module from a single `module` block. These arguments have the same syntax and
+type constraints as
+[`for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+and
+[`count`](./resources.html#count-multiple-resource-instances-by-count)
+when used with resources.
 
-In addition to the above, the argument names `depends_on` and
-`lifecycle` are not currently used by Terraform but are reserved for planned
-future features.
+```hcl
+# my_buckets.tf
+module "bucket" {
+  for_each = toset(["assets", "media"])
+  source   = "./publish_bucket"
+  name     = "${each.key}_bucket"
+}
+```
 
-Since modules are a complex feature in their own right, further detail
-about how modules can be used, created, and published is included in
-[the dedicated section on modules](/docs/modules/index.html).
+```hcl
+# publish_bucket/bucket-and-cloudfront.tf
+variable "name" {} # this is the input parameter of the module
 
-## Providers within Modules
+resource "aws_s3_bucket" "example" {
+  # Because var.name includes each.key in the calling
+  # module block, its value will be different for
+  # each instance of this module.
+  bucket = var.name
+
+  # ...
+}
+
+resource "aws_iam_user" "deploy_user" {
+  # ...
+}
+```
+
+This example defines a local child module in the `./publish_bucket`
+subdirectory. That module has configuration to create an S3 bucket. The module
+wraps the bucket and all the other implementation details required to configure
+a bucket.
+
+We declare multiple module instances by using the `for_each` attribute,
+which accepts a map (with string keys) or a set of strings as its value. Additionally,
+we use the special `each.key` value in our module block, because the
+[`each`](/docs/configuration/resources.html#the-each-object) object is available when
+we have declared `for_each` on the module block. When using the `count` argument, the
+[`count`](/docs/configuration/resources.html#the-count-object) object is available.
+
+Resources from child modules are prefixed with `module.module_name[module index]`
+when displayed in plan output and elsewhere in the UI. For a module with without
+`count` or `for_each`, the address will not contain the module index as the module's
+name suffices to reference the module.
+
+In our example, the `./publish_bucket` module contains `aws_s3_bucket.example`, and so the two
+instances of this module produce S3 bucket resources with [resource addresses](/docs/internals/resource-addressing.html) of `module.bucket["assets"].aws_s3_bucket.example`
+and `module.bucket["media"].aws_s3_bucket.example` respectively.
+
+## Providers Within Modules
+
+[inpage-providers]: #providers-within-modules
 
 In a configuration with multiple modules, there are some special considerations
 for how resources are associated with provider configurations.
 
-While in principle `provider` blocks can appear in any module, it is recommended
-that they be placed only in the _root_ module of a configuration, since this
-approach allows users to configure providers just once and re-use them across
-all descendent modules.
-
 Each resource in the configuration must be associated with one provider
-configuration, which may either be within the same module as the resource
-or be passed from the parent module. Providers can be passed down to descendent
-modules in two ways: either _implicitly_ through inheritance, or _explicitly_
-via the `providers` argument within a `module` block. These two options are
-discussed in more detail in the following sections.
+configuration. Provider configurations, unlike most other concepts in
+Terraform, are global to an entire Terraform configuration and can be shared
+across module boundaries. Provider configurations can be defined only in a
+root Terraform module.
 
-In all cases it is recommended to keep explicit provider configurations only in
-the root module and pass them (whether implicitly or explicitly) down to
-descendent modules. This avoids the provider configurations from being "lost"
-when descendent modules are removed from the configuration. It also allows
-the user of a configuration to determine which providers require credentials
-by inspecting only the root module.
+Providers can be passed down to descendent modules in two ways: either
+_implicitly_ through inheritance, or _explicitly_ via the `providers` argument
+within a `module` block. These two options are discussed in more detail in the
+following sections.
+
+A module intended to be called by one or more other modules must not contain
+any `provider` blocks, with the exception of the special
+"proxy provider blocks" discussed under
+_[Passing Providers Explicitly](#passing-providers-explicitly)_
+below.
+
+For backward compatibility with configurations targeting Terraform v0.10 and
+earlier Terraform does not produce an error for a `provider` block in a shared
+module if the `module` block only uses features available in Terraform v0.10,
+but that is a legacy usage pattern that is no longer recommended. A legacy
+module containing its own provider configurations is not compatible with the
+`for_each`, `count`, and `depends_on` arguments that were introduced in
+Terraform v0.13. For more information, see
+[Legacy Shared Modules with Provider Configurations](#legacy-shared-modules-with-provider-configurations).
 
 Provider configurations are used for all operations on associated resources,
 including destroying remote objects and refreshing state. Terraform retains, as
 part of its state, a reference to the provider configuration that was most
 recently used to apply changes to each resource. When a `resource` block is
-removed from the configuration, this record in the state is used to locate the
-appropriate configuration because the resource's `provider` argument (if any)
-is no longer present in the configuration.
+removed from the configuration, this record in the state will be used to locate
+the appropriate configuration because the resource's `provider` argument
+(if any) will no longer be present in the configuration.
 
-As a consequence, it is required that all resources created for a particular
-provider configuration must be destroyed before that provider configuration is
-removed, unless the related resources are re-configured to use a different
-provider configuration first.
+As a consequence, you must ensure that all resources that belong to a
+particular provider configuration are destroyed before you can remove that
+provider configuration's block from your configuration. If Terraform finds
+a resource instance tracked in the state whose provider configuration block is
+no longer available then it will return an error during planning, prompting you
+to reintroduce the provider configuration.
 
 ### Provider Version Constraints in Modules
 
+Although provider _configurations_ are shared between modules, each module must
+declare its own [provider requirements](provider-requirements.html), so that
+Terraform can ensure that there is a single version of the provider that is
+compatible with all modules in the configuration and to specify the
+[source address](provider-requirements.html#source-addresses) that serves as
+the global (module-agnostic) identifier for a provider.
+
 To declare that a module requires particular versions of a specific provider,
-use a [`required_providers`](terraform.html#specifying-required-provider-versions)
-block inside a `terraform` block:
+use a `required_providers` block inside a `terraform` block:
 
 ```hcl
 terraform {
   required_providers {
-    aws = ">= 2.7.0"
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.7.0"
+    }
   }
 }
 ```
 
-Shared modules should constrain only the minimum allowed version, using a `>=`
-constraint. This specifies the minimum version the provider is compatible
-with while allowing users to upgrade to newer provider versions without
-altering the module source code.
+A provider requirement says, for example, "This module requires version v2.7.0
+of the provider `hashicorp/aws` and will refer to it as `aws`." It doesn't,
+however, specify any of the configuration settings that determine what remote
+endpoints the provider will access, such as an AWS region; configuration
+settings come from provider _configurations_, and a particular overall Terraform
+configuration can potentially have
+[several different configurations for the same provider](providers.html#alias-multiple-provider-instances).
+
+If you are writing a shared Terraform module, constrain only the minimum
+required provider version using a `>=` constraint. This should specify the
+minimum version containing the features your module relies on, and thus allow a
+user of your module to potentially select a newer provider version if other
+features are needed by other parts of their overall configuration.
 
 ### Implicit Provider Inheritance
 
@@ -252,20 +369,22 @@ resource "aws_s3_bucket" "example" {
 }
 ```
 
-This approach is recommended in the common case where only a single
-configuration is needed for each provider across the entire configuration.
+We recommend using this approach when a single configuration for each provider
+is sufficient for an entire configuration.
 
-In more complex situations there may be [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](provider-requirements.html). This is especially important for non-HashiCorp providers.
+
+In more complex situations there may be
+[multiple provider configurations](/docs/configuration/providers.html#alias-multiple-provider-configurations),
 or a child module may need to use different provider settings than
-its parent. For such situations, it's necessary to pass providers explicitly
-as we will see in the next section.
+its parent. For such situations, you must pass providers explicitly.
 
 ### Passing Providers Explicitly
 
 When child modules each need a different configuration of a particular
 provider, or where the child module requires a different provider configuration
-than its parent, the `providers` argument within a `module` block can be
-used to define explicitly which provider configs are made available to the
+than its parent, you can use the `providers` argument within a `module` block
+to explicitly define which provider configurations are available to the
 child module. For example:
 
 ```hcl
@@ -275,28 +394,31 @@ provider "aws" {
   region = "us-west-1"
 }
 
-# A non-default, or "aliased" configuration is also defined for a different
-# region.
+# An alternate configuration is also defined for a different
+# region, using the alias "usw2".
 provider "aws" {
   alias  = "usw2"
   region = "us-west-2"
 }
 
-# An example child module is instantiated with the _aliased_ configuration,
+# An example child module is instantiated with the alternate configuration,
 # so any AWS resources it defines will use the us-west-2 region.
 module "example" {
   source    = "./example"
   providers = {
-    aws = "aws.usw2"
+    aws = aws.usw2
   }
 }
 ```
 
 The `providers` argument within a `module` block is similar to
-the `provider` argument within a resource as described for
-[multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
-but is a map rather than a single string because a module may contain resources
-from many different providers.
+[the `provider` argument](resources.html#provider-selecting-a-non-default-provider-configuration)
+within a resource, but is a map rather than a single string because a module may
+contain resources from many different providers.
+
+The keys of the `providers` map are provider configuration names as expected by
+the child module, and the values are the names of corresponding configurations
+in the _current_ module.
 
 Once the `providers` argument is used in a `module` block, it overrides all of
 the default inheritance behavior, so it is necessary to enumerate mappings
@@ -324,18 +446,15 @@ provider "aws" {
 module "tunnel" {
   source    = "./tunnel"
   providers = {
-    aws.src = "aws.usw1"
-    aws.dst = "aws.usw2"
+    aws.src = aws.usw1
+    aws.dst = aws.usw2
   }
 }
 ```
 
-In the `providers` map, the keys are provider names as expected by the child
-module, while the values are the names of corresponding configurations in
-the _current_ module. The subdirectory `./tunnel` must then contain
-_proxy configuration blocks_ like the following, to declare that it
-requires configurations to be passed with these from the `providers` block in
-the parent's `module` block:
+The subdirectory `./tunnel` must then contain _proxy configuration blocks_ like
+the following, to declare that it requires its calling module to pass
+configurations with these names in its `providers` argument:
 
 ```hcl
 provider "aws" {
@@ -348,89 +467,57 @@ provider "aws" {
 ```
 
 Each resource should then have its own `provider` attribute set to either
-`"aws.src"` or `"aws.dst"` to choose which of the two provider instances to use.
+`aws.src` or `aws.dst` to choose which of the two provider configurations to
+use.
 
 ### Proxy Configuration Blocks
 
-A proxy configuration block is one that is either completely empty or that
-contains only the `alias` argument. It serves as a placeholder for
-provider configurations passed between modules. Although an empty proxy
-configuration block is valid, it is not necessary: proxy configuration blocks
-are needed only to establish which _alias_ provider configurations a child
-module is expecting.
+A proxy configuration block is one that contains only the `alias` argument. It
+serves as a placeholder for provider configurations passed between modules, and
+declares that a module expects to be explicitly passed an additional (aliased)
+provider configuration.
 
-A proxy configuration block must not include the `version` argument. To specify
-version constraints for a particular child module without creating a local
-module configuration, use the [`required_providers`](/docs/configuration/terraform.html#specifying-required-provider-versions)
-setting inside a `terraform` block.
+-> **Note:** Although a completely empty proxy configuration block is also
+valid, it is not necessary: proxy configuration blocks are needed only to
+establish which _aliased_ provider configurations a child module expects.
+Don't use a proxy configuration block if a module only needs a single default
+provider configuration, and don't use proxy configuration blocks only to imply
+[provider requirements](./provider-requirements.html).
 
-## Multiple Instances of a Module
+## Legacy Shared Modules with Provider Configurations
 
-Use the `count` or `for_each` arguments to create multiple instances of a module.
-These arguments have the same syntax and type constraints as
-[`count`](./resources.html#count-multiple-resource-instances-by-count) and
-[`for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
-as defined for managed resources.
+In Terraform v0.10 and earlier there was no explicit way to use different
+configurations of a provider in different modules in the same configuration,
+and so module authors commonly worked around this by writing `provider` blocks
+directly inside their modules, making the module have its own separate
+provider configurations separate from those declared in the root module.
 
-```hcl
-# my_buckets.tf
-module "bucket" {
-  for_each = toset(["assets", "media"])
-  source   = "./publish_bucket"
-  name     = "${each.key}_bucket"
-}
-```
+However, that pattern had a significant drawback: because a provider
+configuration is required to destroy the remote object associated with a
+resource instance as well as to create or update it, a provider configuration
+must always stay present in the overall Terraform configuration for longer
+than all of the resources it manages. If a particular module includes
+both resources and the provider configurations for those resources then
+removing the module from its caller would violate that constraint: both the
+resources and their associated providers would, in effect, be removed
+simultaneously.
 
-```hcl
-# publish_bucket/bucket-and-cloudfront.tf
-variable "name" {} # this is the input parameter of the module
+Terraform v0.11 introduced the mechanisms described in earlier sections to
+allow passing provider configurations between modules in a structured way, and
+thus we explicitly recommended against writing a child module with its own
+provider configuration blocks. However, that legacy pattern continued to work
+for compatibility purposes -- though with the same drawback -- until Terraform
+v0.13.
 
-resource "aws_s3_bucket" "example" {
-  # ...
-}
+Terraform v0.13 introduced the possibility for a module itself to use the
+`for_each`, `count`, and `depends_on` arguments, but the implementation of
+those unfortunately conflicted with the support for the legacy pattern.
 
-resource "aws_iam_user" "deploy_user" {
-  # ...
-}
-```
-
-This example defines a local child module in the `./publish_bucket`
-subdirectory. That module has configuration to create an S3 bucket. The module
-wraps the bucket and all the other implementation details required to configure
-a bucket.
-
-We declare multiple module instances by using the `for_each` attribute,
-which accepts a map (with string keys) or a set of strings as its value. Additionally,
-we use the `each.key` in our module block, because the
-[`each`](/docs/configuration/resources.html#the-each-object) object is available when
-we have declared `for_each` on the module block. When using the `count` argument, the
-[`count`](/docs/configuration/resources.html#the-count-object) object is available.
-
-Resources from child modules are prefixed with `module.module_name[module index]`
-when displayed in plan output and elsewhere in the UI. For a module with without
-`count` or `for_each`, the address will not contain the module index as the module's
-name suffices to reference the module.
-
-In our example, the `./publish_bucket` module contains `aws_s3_bucket.example`, and so the two
-instances of this module produce S3 bucket resources with [resource addresses](/docs/internals/resource-addressing.html) of `module.bucket["assets"].aws_s3_bucket.example`
-and `module.bucket["media"].aws_s3_bucket.example` respectively. These full addresses
-are used within the UI and on the command line, but only [outputs](docs/configuration/outputs.html)
-from a module can be referenced from elsewhere in your configuration.
-
-When refactoring an existing configuration to introduce modules, moving
-resource blocks between modules causes Terraform to see the new location
-as an entirely separate resource to the old. Always check the execution plan
-after performing such actions to ensure that no resources are surprisingly
-deleted.
-
-### Limitations when using module expansion
-
-Modules using `count` or `for_each` cannot include configured `provider` blocks within the module.
-Only [proxy configuration blocks](#proxy-configuration-blocks) are allowed.
-
-If a module contains proxy configuration blocks, the calling module block must be have the
-corresponding providers passed to the `providers` argument. If you attempt to use `count` or
-`for_each` with a module that does not satify this requirement, you will see an error:
+To retain the backward compatibility as much as possible, Terraform v0.13
+continues to support the legacy pattern for module blocks that do not use these
+new features, but a module with its own provider configurations is not
+compatible with `for_each`, `count`, or `depends_on`. Terraform will produce an
+error if you attempt to combine these features. For example:
 
 ```
 Error: Module does not support count
@@ -446,10 +533,23 @@ its provider configurations from the calling module, by using the "providers"
 argument in the calling module block.
 ```
 
-Assuming the child module only has proxy configuration blocks, the calling
-module block could be adjusted like so to remove this error:
+To make a module compatible with the new features, you must either remove all
+of the `provider` blocks from its definition or, if you need multiple
+configurations for the same provider, replace them with
+_proxy configuration blocks_ as described in
+[Passing Providers Explicitly](#passing-providers-explicitly).
 
-```
+If the new version of the module uses proxy configuration blocks, or if the
+calling module needs the child module to use different provider configurations
+than its own default provider configurations, the calling module must then
+include an explicit `providers` argument to describe which provider
+configurations the child module will use:
+
+```hcl
+provider "aws" {
+  region = "us-west-1"
+}
+
 provider "aws" {
   region = "us-east-1"
   alias  = "east"
@@ -458,24 +558,24 @@ provider "aws" {
 module "child" {
   count = 2
   providers = {
+    # By default, the child module would use the
+    # default (unaliased) AWS provider configuration
+    # using us-west-1, but this will override it
+    # to use the additional "east" configuration
+    # for its resources instead.
     aws = aws.east
   }
 }
 ```
 
-Note how we are now [passing the providers](#passing-providers-explicitly) to the child module.
+Since the association between resources and provider configurations is
+static, module calls using `for_each` or `count` cannot pass different
+provider configurations to different instances. If you need different
+instances of your module to use different provider configurations then you
+must use a separate `module` block for each distinct set of provider
+configurations:
 
-In addition, modules using `count` or `for_each` cannot pass different sets of providers
-to different instances. For example, you cannot interpolate variables in the `providers`
-block on a module.
-
-This is because when a module instance is destroyed (such as a key-value being removed from the
-`for_each` map), the appropriate provider must be available in order to perform the destroy.
-You can pass different sets of providers to different module instances by using multiple `module` blocks:
-
-```
-# my_buckets.tf
-
+```hcl
 provider "aws" {
   alias  = "usw1"
   region = "us-west-1"
@@ -505,25 +605,19 @@ provider "google" {
 module "bucket_w1" {
   source    = "./publish_bucket"
   providers = {
-    aws.src    = "aws.usw1"
-    google.src = "google.usw2"
+    aws.src    = aws.usw1
+    google.src = google.usw2
   }
 }
 
 module "bucket_w2" {
   source    = "./publish_bucket"
   providers = {
-    aws.src    = "aws.usw2"
-    google.src = "google.usw2"
+    aws.src    = aws.usw2
+    google.src = google.usw2
   }
 }
 ```
-
-Each module block may optionally have different providers passed to it
-using the [`providers`](/docs/configuration/modules.html#passing-providers-explicitly)
-argument. This can be useful in situations where, for example, a duplicated set of
-resources must be created across several regions or datacenters.
-
 
 ## Tainting resources within a module
 
@@ -531,7 +625,7 @@ The [taint command](/docs/commands/taint.html) can be used to _taint_ specific
 resources within a module:
 
 ```shell
-$ terraform taint -module=salt_master aws_instance.salt_master
+$ terraform taint module.salt_master.aws_instance.salt_master
 ```
 
 It is not possible to taint an entire module. Instead, each resource within

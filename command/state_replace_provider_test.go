@@ -75,7 +75,7 @@ func TestStateReplaceProvider(t *testing.T) {
 
 		inputBuf := &bytes.Buffer{}
 		ui.InputReader = inputBuf
-		inputBuf.WriteString("yes")
+		inputBuf.WriteString("yes\n")
 
 		args := []string{
 			"-state", statePath,
@@ -143,7 +143,7 @@ func TestStateReplaceProvider(t *testing.T) {
 
 		inputBuf := &bytes.Buffer{}
 		ui.InputReader = inputBuf
-		inputBuf.WriteString("no")
+		inputBuf.WriteString("no\n")
 
 		args := []string{
 			"-state", statePath,

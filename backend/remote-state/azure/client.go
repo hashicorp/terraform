@@ -5,11 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -24,6 +27,7 @@ type RemoteClient struct {
 	containerName      string
 	keyName            string
 	leaseID            string
+	snapshot           bool
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -67,6 +71,18 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	ctx := context.TODO()
+
+	if c.snapshot {
+		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
+
+		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
+		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.accountName, c.containerName, c.keyName, snapshotInput); err != nil {
+			return fmt.Errorf("error snapshotting Blob %q (Container %q / Account %q): %+v", c.keyName, c.containerName, c.accountName, err)
+		}
+
+		log.Print("[DEBUG] Created blob snapshot")
+	}
+
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
 	if err != nil {
 		if blob.StatusCode != 404 {
@@ -100,7 +116,7 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	stateName := fmt.Sprintf("%s/%s", c.containerName, c.keyName)
 	info.Path = stateName
 
@@ -119,7 +135,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			err = multierror.Append(err, infoErr)
 		}
 
-		return &state.LockError{
+		return &statemgr.LockError{
 			Err:  err,
 			Info: lockInfo,
 		}
@@ -171,7 +187,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	options := blobs.GetPropertiesInput{}
 	if c.leaseID != "" {
 		options.LeaseID = &c.leaseID
@@ -193,7 +209,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		return nil, err
 	}
 
-	lockInfo := &state.LockInfo{}
+	lockInfo := &statemgr.LockInfo{}
 	err = json.Unmarshal(data, lockInfo)
 	if err != nil {
 		return nil, err
@@ -203,7 +219,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 }
 
 // writes info to blob meta data, deletes metadata entry if info is nil
-func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
+func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
 	ctx := context.TODO()
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
 	if err != nil {
@@ -230,7 +246,7 @@ func (c *RemoteClient) writeLockInfo(info *state.LockInfo) error {
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 
 	lockInfo, err := c.getLockInfo()
 	if err != nil {

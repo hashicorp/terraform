@@ -99,3 +99,23 @@ func TestSetFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestSetCopy(t *testing.T) {
+	a := make(Set)
+	a.Add(1)
+	a.Add(2)
+
+	b := a.Copy()
+	b.Add(3)
+
+	diff := b.Difference(a)
+
+	if diff.Len() != 1 {
+		t.Fatalf("expected single diff value, got %#v", diff)
+	}
+
+	if !diff.Include(3) {
+		t.Fatalf("diff does not contain 3, got %#v", diff)
+	}
+
+}

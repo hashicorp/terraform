@@ -250,12 +250,20 @@ func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
 	return addr
 }
 
-func mustResourceAddr(s string) addrs.ConfigResource {
+func mustConfigResourceAddr(s string) addrs.ConfigResource {
 	addr, diags := addrs.ParseAbsResourceStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
 	return addr.Config()
+}
+
+func mustAbsResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
 }
 
 func mustProviderConfig(s string) addrs.AbsProviderConfig {
@@ -441,12 +449,6 @@ const testTerraformApplyEmptyModuleStr = `
 Outputs:
 
 end = XXXX
-
-module.child:
-<no state>
-Outputs:
-
-aws_route53_zone_id = XXXX
 `
 
 const testTerraformApplyDependsCreateBeforeStr = `
@@ -661,12 +663,6 @@ aws_instance.bar:
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = true
   type = aws_instance
-
-module.child:
-  <no state>
-  Outputs:
-
-  leader = true
 `
 
 const testTerraformApplyModuleDestroyOrderStr = `

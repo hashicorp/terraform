@@ -11,8 +11,8 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/state/remote"
 	statespkg "github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
 )
 
 func TestMain(m *testing.M) {

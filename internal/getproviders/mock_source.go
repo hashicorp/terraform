@@ -20,6 +20,7 @@ import (
 // This should not be used outside of unit test code.
 type MockSource struct {
 	packages []PackageMeta
+	warnings map[addrs.Provider]Warnings
 	calls    [][]interface{}
 }
 
@@ -31,16 +32,17 @@ var _ Source = (*MockSource)(nil)
 // exist on disk or over the network, unless the calling test is planning to
 // use (directly or indirectly) the results for further provider installation
 // actions.
-func NewMockSource(packages []PackageMeta) *MockSource {
+func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *MockSource {
 	return &MockSource{
 		packages: packages,
+		warnings: warns,
 	}
 }
 
 // AvailableVersions returns all of the versions of the given provider that
 // are available in the fixed set of packages that were passed to
 // NewMockSource when creating the receiving source.
-func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	s.calls = append(s.calls, []interface{}{"AvailableVersions", provider})
 	var ret VersionList
 	for _, pkg := range s.packages {
@@ -48,13 +50,19 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 			ret = append(ret, pkg.Version)
 		}
 	}
+	var warns []string
+	if s.warnings != nil {
+		if warnings, ok := s.warnings[provider]; ok {
+			warns = warnings
+		}
+	}
 	if len(ret) == 0 {
 		// In this case, we'll behave like a registry that doesn't know about
 		// this provider at all, rather than just returning an empty result.
-		return nil, ErrRegistryProviderNotKnown{provider}
+		return nil, warns, ErrRegistryProviderNotKnown{provider}
 	}
 	ret.Sort()
-	return ret, nil
+	return ret, warns, nil
 }
 
 // PackageMeta returns the first package from the list given to NewMockSource
@@ -135,13 +143,15 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 // to a temporary archive file that could actually be installed in principle.
 //
 // Installing it will not produce a working provider though: just a fake file
-// posing as an executable.
+// posing as an executable. The filename for the executable defaults to the
+// standard terraform-provider-NAME_X.Y.Z format, but can be overridden with
+// the execFilename argument.
 //
 // It's the caller's responsibility to call the close callback returned
 // alongside the result in order to clean up the temporary file. The caller
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
-func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) (PackageMeta, func(), error) {
+func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, func(), error) {
 	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
@@ -154,10 +164,12 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		os.Remove(f.Name())
 	}
 
-	execFilename := fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
-	if target.OS == "windows" {
-		// For a little more (technically unnecessary) realism...
-		execFilename += ".exe"
+	if execFilename == "" {
+		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
+		if target.OS == "windows" {
+			// For a little more (technically unnecessary) realism...
+			execFilename += ".exe"
+		}
 	}
 
 	zw := zip.NewWriter(f)
@@ -194,7 +206,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
 
-		Authentication: NewArchiveChecksumAuthentication(checksum),
+		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
 	return meta, close, nil
 }

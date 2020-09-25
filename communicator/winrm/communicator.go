@@ -35,6 +35,7 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 		Port:     connInfo.Port,
 		HTTPS:    connInfo.HTTPS,
 		Insecure: connInfo.Insecure,
+		Timeout:  connInfo.TimeoutVal,
 	}
 	if len(connInfo.CACert) > 0 {
 		endpoint.CACert = []byte(connInfo.CACert)

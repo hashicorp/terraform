@@ -290,6 +290,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 }
 
 func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.DataResourceMode,
 		Type:      block.Labels[0],
@@ -298,7 +299,13 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		TypeRange: block.LabelRanges[0],
 	}
 
-	content, remain, diags := block.Body.PartialContent(dataBlockSchema)
+	// Produce deprecation messages for any pre-0.12-style
+	// single-interpolation-only expressions.
+	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
+	diags = append(diags, moreDiags...)
+
+	content, remain, moreDiags := block.Body.PartialContent(dataBlockSchema)
+	diags = append(diags, moreDiags...)
 	r.Config = remain
 
 	if !hclsyntax.ValidIdentifier(r.Type) {
@@ -422,6 +429,9 @@ func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConf
 	name := traversal.RootName()
 	nameDiags := checkProviderNameNormalized(name, traversal[0].SourceRange())
 	diags = append(diags, nameDiags...)
+	if diags.HasErrors() {
+		return nil, diags
+	}
 
 	ret := &ProviderConfigRef{
 		Name:      name,

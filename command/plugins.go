@@ -25,7 +25,7 @@ import (
 //
 // The provider-related functions live primarily in meta_providers.go, and
 // lean on some different underlying mechanisms in order to support automatic
-// installation and a heirarchical addressing namespace, neither of which
+// installation and a hierarchical addressing namespace, neither of which
 // are supported for other plugin types.
 
 // store the user-supplied path for plugin discovery

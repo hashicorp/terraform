@@ -1,11 +1,7 @@
 package command
 
 import (
-	"bytes"
-	"fmt"
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
@@ -13,21 +9,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/mitchellh/cli"
 )
-
-// This map from provider type name to namespace is used by the fake registry
-// when called via LookupLegacyProvider. Providers not in this map will return
-// a 404 Not Found error.
-var legacyProviderNamespaces = map[string]string{
-	"foo": "hashicorp",
-	"bar": "hashicorp",
-	"baz": "terraform-providers",
-}
 
 func verifyExpectedFiles(t *testing.T, expectedPath string) {
 	// Compare output and expected file trees
@@ -73,7 +57,7 @@ func verifyExpectedFiles(t *testing.T, expectedPath string) {
 			t.Fatalf("failed to read expected %s: %s", filePath, err)
 		}
 
-		if diff := cmp.Diff(expected, output); diff != "" {
+		if diff := cmp.Diff(string(expected), string(output)); diff != "" {
 			t.Fatalf("expected and output file for %s do not match\n%s", filePath, diff)
 		}
 	}
@@ -97,6 +81,8 @@ func TestZeroThirteenUpgrade_success(t *testing.T) {
 		"multiple files":        "013upgrade-multiple-files",
 		"existing versions.tf":  "013upgrade-existing-versions-tf",
 		"skipped files":         "013upgrade-skipped-files",
+		"provider redirect":     "013upgrade-provider-redirect",
+		"version unavailable":   "013upgrade-provider-redirect-version-unavailable",
 	}
 	for name, testPath := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -230,10 +216,10 @@ func TestZeroThirteenUpgrade_confirm(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// Ask input
+	defer testInteractiveInput(t, []string{"yes"})()
+
 	ui := new(cli.MockUi)
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("yes")
 	c := &ZeroThirteenUpgradeCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -259,10 +245,10 @@ func TestZeroThirteenUpgrade_cancel(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// Ask input
+	defer testInteractiveInput(t, []string{"no"})()
+
 	ui := new(cli.MockUi)
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("no")
 	c := &ZeroThirteenUpgradeCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -378,70 +364,5 @@ func TestZeroThirteenUpgrade_empty(t *testing.T) {
 	errMsg := ui.ErrorWriter.String()
 	if !strings.Contains(errMsg, "Not a module directory") {
 		t.Fatal("unexpected error:", errMsg)
-	}
-}
-
-// testServices starts up a local HTTP server running a fake provider registry
-// service which responds only to discovery requests and legacy provider lookup
-// API calls.
-//
-// The final return value is a function to call at the end of a test function
-// to shut down the test server. After you call that function, the discovery
-// object becomes useless.
-func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
-	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
-
-	services = disco.New()
-	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
-		"providers.v1": server.URL + "/providers/v1/",
-	})
-
-	return services, func() {
-		server.Close()
-	}
-}
-
-// testRegistrySource is a wrapper around testServices that uses the created
-// discovery object to produce a Source instance that is ready to use with the
-// fake registry services.
-//
-// As with testServices, the final return value is a function to call at the end
-// of your test in order to shut down the test server.
-func testRegistrySource(t *testing.T) (source *getproviders.RegistrySource, cleanup func()) {
-	services, close := testServices(t)
-	source = getproviders.NewRegistrySource(services)
-	return source, close
-}
-
-func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
-	path := req.URL.EscapedPath()
-
-	if !strings.HasPrefix(path, "/providers/v1/") {
-		resp.WriteHeader(404)
-		resp.Write([]byte(`not a provider registry endpoint`))
-		return
-	}
-
-	pathParts := strings.Split(path, "/")[3:]
-
-	if len(pathParts) != 3 {
-		resp.WriteHeader(404)
-		resp.Write([]byte(`unrecognized path scheme`))
-		return
-	}
-
-	if pathParts[0] != "-" || pathParts[2] != "versions" {
-		resp.WriteHeader(404)
-		resp.Write([]byte(`this registry only supports legacy namespace lookup requests`))
-	}
-
-	name := pathParts[1]
-	if namespace, ok := legacyProviderNamespaces[name]; ok {
-		resp.Header().Set("Content-Type", "application/json")
-		resp.WriteHeader(200)
-		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s"}`, namespace, name)))
-	} else {
-		resp.WriteHeader(404)
-		resp.Write([]byte(`provider not found`))
 	}
 }

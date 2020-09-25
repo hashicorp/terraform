@@ -48,6 +48,14 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 
 	forEachVal, forEachDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
 	diags = diags.Append(forEachDiags)
+	if forEachVal.ContainsMarked() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid for_each argument",
+			Detail:   "Sensitive variable, or values derived from sensitive variables, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
 	if diags.HasErrors() {
 		return nullMap, diags
 	}
@@ -83,6 +91,12 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 	}
 
 	if ty.IsSetType() {
+		// since we can't use a set values that are unknown, we treat the
+		// entire set as unknown
+		if !forEachVal.IsWhollyKnown() {
+			return cty.UnknownVal(ty), diags
+		}
+
 		if ty.ElementType() != cty.String {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -91,12 +105,6 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 				Subject:  expr.Range().Ptr(),
 			})
 			return cty.NullVal(ty), diags
-		}
-
-		// since we can't use a set values that are unknown, we treat the
-		// entire set as unknown
-		if !forEachVal.IsWhollyKnown() {
-			return cty.UnknownVal(ty), diags
 		}
 
 		// A set of strings may contain null, which makes it impossible to

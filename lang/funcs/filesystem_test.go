@@ -77,7 +77,7 @@ func TestTemplateFile(t *testing.T) {
 			cty.StringVal("testdata/missing"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			`no file exists at testdata/missing`,
+			`no file exists at testdata/missing; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
 		},
 		{
 			cty.StringVal("testdata/hello.tmpl"),

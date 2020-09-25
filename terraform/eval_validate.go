@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
@@ -64,53 +63,9 @@ RETURN:
 	return nil, diags.NonFatalErr()
 }
 
-// EvalValidateProvider is an EvalNode implementation that validates
-// a provider configuration.
-type EvalValidateProvider struct {
-	Addr     addrs.AbsProviderConfig
-	Provider *providers.Interface
-	Config   *configs.Provider
-}
-
-func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
-	var diags tfdiags.Diagnostics
-	provider := *n.Provider
-
-	configBody := buildProviderConfig(ctx, n.Addr, n.Config)
-
-	resp := provider.GetSchema()
-	diags = diags.Append(resp.Diagnostics)
-	if diags.HasErrors() {
-		return nil, diags.NonFatalErr()
-	}
-
-	configSchema := resp.Provider.Block
-	if configSchema == nil {
-		// Should never happen in real code, but often comes up in tests where
-		// mock schemas are being used that tend to be incomplete.
-		log.Printf("[WARN] EvalValidateProvider: no config schema is available for %s, so using empty schema", n.Addr)
-		configSchema = &configschema.Block{}
-	}
-
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
-	diags = diags.Append(evalDiags)
-	if evalDiags.HasErrors() {
-		return nil, diags.NonFatalErr()
-	}
-
-	req := providers.PrepareProviderConfigRequest{
-		Config: configVal,
-	}
-
-	validateResp := provider.PrepareProviderConfig(req)
-	diags = diags.Append(validateResp.Diagnostics)
-
-	return nil, diags.NonFatalErr()
-}
-
-// EvalValidateProvisioner is an EvalNode implementation that validates
-// the configuration of a provisioner belonging to a resource. The provisioner
-// config is expected to contain the merged connection configurations.
+// EvalValidateProvisioner validates the configuration of a provisioner
+// belonging to a resource. The provisioner config is expected to contain the
+// merged connection configurations.
 type EvalValidateProvisioner struct {
 	ResourceAddr       addrs.Resource
 	Provisioner        *provisioners.Interface
@@ -120,43 +75,38 @@ type EvalValidateProvisioner struct {
 	ResourceHasForEach bool
 }
 
-func (n *EvalValidateProvisioner) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalValidateProvisioner) Validate(ctx EvalContext) error {
 	provisioner := *n.Provisioner
 	config := *n.Config
 	schema := *n.Schema
 
 	var diags tfdiags.Diagnostics
 
-	{
-		// Validate the provisioner's own config first
-
-		configVal, _, configDiags := n.evaluateBlock(ctx, config.Config, schema)
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return nil, diags.Err()
-		}
-
-		if configVal == cty.NilVal {
-			// Should never happen for a well-behaved EvaluateBlock implementation
-			return nil, fmt.Errorf("EvaluateBlock returned nil value")
-		}
-
-		req := provisioners.ValidateProvisionerConfigRequest{
-			Config: configVal,
-		}
-
-		resp := provisioner.ValidateProvisionerConfig(req)
-		diags = diags.Append(resp.Diagnostics)
+	// Validate the provisioner's own config first
+	configVal, _, configDiags := n.evaluateBlock(ctx, config.Config, schema)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return diags.Err()
 	}
 
-	{
-		// Now validate the connection config, which contains the merged bodies
-		// of the resource and provisioner connection blocks.
-		connDiags := n.validateConnConfig(ctx, config.Connection, n.ResourceAddr)
-		diags = diags.Append(connDiags)
+	if configVal == cty.NilVal {
+		// Should never happen for a well-behaved EvaluateBlock implementation
+		return fmt.Errorf("EvaluateBlock returned nil value")
 	}
 
-	return nil, diags.NonFatalErr()
+	req := provisioners.ValidateProvisionerConfigRequest{
+		Config: configVal,
+	}
+
+	resp := provisioner.ValidateProvisionerConfig(req)
+	diags = diags.Append(resp.Diagnostics)
+
+	// Now validate the connection config, which contains the merged bodies
+	// of the resource and provisioner connection blocks.
+	connDiags := n.validateConnConfig(ctx, config.Connection, n.ResourceAddr)
+	diags = diags.Append(connDiags)
+
+	return diags.NonFatalErr()
 }
 
 func (n *EvalValidateProvisioner) validateConnConfig(ctx EvalContext, config *configs.Connection, self addrs.Referenceable) tfdiags.Diagnostics {
@@ -342,8 +292,7 @@ func ConnectionBlockSupersetSchema() *configschema.Block {
 	return connectionBlockSupersetSchema
 }
 
-// EvalValidateResource is an EvalNode implementation that validates
-// the configuration of a resource.
+// EvalValidateResource validates the configuration of a resource.
 type EvalValidateResource struct {
 	Addr           addrs.Resource
 	Provider       *providers.Interface
@@ -363,9 +312,9 @@ type EvalValidateResource struct {
 	ConfigVal *cty.Value
 }
 
-func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return nil, fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr)
+		return fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr)
 	}
 
 	var diags tfdiags.Diagnostics
@@ -401,29 +350,7 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 		diags = diags.Append(forEachDiags)
 	}
 
-	for _, traversal := range n.Config.DependsOn {
-		ref, refDiags := addrs.ParseRef(traversal)
-		diags = diags.Append(refDiags)
-		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid depends_on reference",
-				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
-				Subject:  ref.Remaining.SourceRange().Ptr(),
-			})
-		}
-
-		// The ref must also refer to something that exists. To test that,
-		// we'll just eval it and count on the fact that our evaluator will
-		// detect references to non-existent objects.
-		if !diags.HasErrors() {
-			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
-			if scope != nil { // sometimes nil in tests, due to incomplete mocks
-				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
-				diags = diags.Append(refDiags)
-			}
-		}
-	}
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
 	// Validate the provider_meta block for the provider this resource
 	// belongs to, if there is one.
@@ -472,13 +399,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.", cfg.ProviderConfigAddr(), cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
-			return nil, diags.Err()
+			return diags.Err()
 		}
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
-			return nil, diags.Err()
+			return diags.Err()
 		}
 
 		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
@@ -509,13 +436,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 				Detail:   fmt.Sprintf("The provider %s does not support data source %q.", cfg.ProviderConfigAddr(), cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
-			return nil, diags.Err()
+			return diags.Err()
 		}
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
-			return nil, diags.Err()
+			return diags.Err()
 		}
 
 		req := providers.ValidateDataSourceConfigRequest{
@@ -530,13 +457,13 @@ func (n *EvalValidateResource) Eval(ctx EvalContext) (interface{}, error) {
 	if n.IgnoreWarnings {
 		// If we _only_ have warnings then we'll return nil.
 		if diags.HasErrors() {
-			return nil, diags.NonFatalErr()
+			return diags.NonFatalErr()
 		}
-		return nil, nil
+		return nil
 	} else {
 		// We'll return an error if there are any diagnostics at all, even if
 		// some of them are warnings.
-		return nil, diags.NonFatalErr()
+		return diags.NonFatalErr()
 	}
 }
 
@@ -620,5 +547,32 @@ func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Express
 		diags = diags.Append(forEachDiags)
 	}
 
+	return diags
+}
+
+func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiags.Diagnostics) {
+	for _, traversal := range dependsOn {
+		ref, refDiags := addrs.ParseRef(traversal)
+		diags = diags.Append(refDiags)
+		if !refDiags.HasErrors() && len(ref.Remaining) != 0 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid depends_on reference",
+				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
+				Subject:  ref.Remaining.SourceRange().Ptr(),
+			})
+		}
+
+		// The ref must also refer to something that exists. To test that,
+		// we'll just eval it and count on the fact that our evaluator will
+		// detect references to non-existent objects.
+		if !diags.HasErrors() {
+			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			if scope != nil { // sometimes nil in tests, due to incomplete mocks
+				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
+				diags = diags.Append(refDiags)
+			}
+		}
+	}
 	return diags
 }

@@ -8,14 +8,14 @@ import (
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 type remoteClient struct {
 	client         *tfe.Client
-	lockInfo       *state.LockInfo
+	lockInfo       *statemgr.LockInfo
 	organization   string
 	runID          string
 	stateUploadErr bool
@@ -106,10 +106,10 @@ func (r *remoteClient) EnableForcePush() {
 }
 
 // Lock the remote state.
-func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
+func (r *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.Background()
 
-	lockErr := &state.LockError{Info: r.lockInfo}
+	lockErr := &statemgr.LockError{Info: r.lockInfo}
 
 	// Lock the workspace.
 	_, err := r.client.Workspaces.Lock(ctx, r.workspace.ID, tfe.WorkspaceLockOptions{
@@ -139,7 +139,7 @@ func (r *remoteClient) Unlock(id string) error {
 		return nil
 	}
 
-	lockErr := &state.LockError{Info: r.lockInfo}
+	lockErr := &statemgr.LockError{Info: r.lockInfo}
 
 	// With lock info this should be treated as a normal unlock.
 	if r.lockInfo != nil {

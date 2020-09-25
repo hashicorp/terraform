@@ -28,12 +28,17 @@ func AssertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Value, path cty.Path) []error {
 	var errs []error
+	var atRoot string
+	if len(path) == 0 {
+		atRoot = "Root resource "
+	}
+
 	if planned.IsNull() && !actual.IsNull() {
-		errs = append(errs, path.NewErrorf("was absent, but now present"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas absent, but now present", atRoot)))
 		return errs
 	}
 	if actual.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf("was present, but now absent"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas present, but now absent", atRoot)))
 		return errs
 	}
 	if planned.IsNull() {
@@ -46,7 +51,17 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
-		moreErrs := assertValueCompatible(plannedV, actualV, path)
+		// If our value is marked, unmark it here before
+		// checking value assertions
+		unmarkedActualV := actualV
+		if actualV.ContainsMarked() {
+			unmarkedActualV, _ = actualV.UnmarkDeep()
+		}
+		unmarkedPlannedV := plannedV
+		if plannedV.ContainsMarked() {
+			unmarkedPlannedV, _ = actualV.UnmarkDeep()
+		}
+		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
 		if attrS.Sensitive {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
@@ -163,12 +178,6 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				continue
 			}
 
-			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
-				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
-				return len(errs) == 0
-			})
-			errs = append(errs, setErrs...)
-
 			if maybeUnknownBlocks {
 				// When unknown blocks are present the final number of blocks
 				// may be different, either because the unknown set values
@@ -178,6 +187,12 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				// negatives.
 				continue
 			}
+
+			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
+				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
 
 			// There can be fewer elements in a set after its elements are all
 			// known (values that turn out to be equal will coalesce) but the

@@ -1,8 +1,3 @@
-
-terraform {
-  experiments = [variable_validation]
-}
-
 variable "validation" {
   validation {
     condition     = var.validation != 4

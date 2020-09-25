@@ -10,8 +10,8 @@ import (
 	"path"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	tritonErrors "github.com/joyent/triton-go/errors"
 	"github.com/joyent/triton-go/storage"
 )
@@ -86,7 +86,7 @@ func (c *RemoteClient) Delete() error {
 	return err
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	//At Joyent, we want to make sure that the State directory exists before we interact with it
 	//We don't expect users to have to create it in advance
 	//The order of operations of Backend State as follows:
@@ -103,7 +103,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	}
 
 	//firstly we want to check that a lock doesn't already exist
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
 		if !tritonErrors.IsResourceNotFound(err) {
@@ -113,7 +113,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	}
 
 	if lockInfo != nil {
-		lockErr := &state.LockError{
+		lockErr := &statemgr.LockError{
 			Err:  fmt.Errorf("A lock is already acquired"),
 			Info: lockInfo,
 		}
@@ -154,7 +154,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
@@ -175,7 +175,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	return err
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	output, err := c.storageClient.Objects().Get(context.Background(), &storage.GetObjectInput{
 		ObjectPath: path.Join(mantaDefaultRootStore, c.directoryName, lockFileName),
 	})
@@ -190,7 +190,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		return nil, fmt.Errorf("Failed to read lock info: %s", err)
 	}
 
-	lockInfo := &state.LockInfo{}
+	lockInfo := &statemgr.LockInfo{}
 	err = json.Unmarshal(buf.Bytes(), lockInfo)
 	if err != nil {
 		return nil, err

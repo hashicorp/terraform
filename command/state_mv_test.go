@@ -1196,6 +1196,62 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	testStateOutput(t, statePath, testStateMvOriginal_backend)
 }
 
+// This test covers moving the only resource in a module to a new address in
+// that module, which triggers the maybePruneModule functionality. This caused
+// a panic report: https://github.com/hashicorp/terraform/issues/25520
+func TestStateMv_onlyResourceInModule(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance.Child("foo", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	statePath := testStateFile(t, state)
+	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_original)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"module.foo.test_instance.foo",
+		"module.foo.test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_output)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvOnlyResourceInModule_original)
+}
+
 const testStateMvOutputOriginal = `
 test_instance.baz:
   ID = foo
@@ -1512,4 +1568,24 @@ test_instance.baz:
   provider = provider["registry.terraform.io/-/test"]
   bar = value
   foo = value
+`
+
+const testStateMvOnlyResourceInModule_original = `
+<no state>
+module.foo:
+  test_instance.foo.0:
+    ID = bar
+    provider = provider["registry.terraform.io/-/test"]
+    bar = value
+    foo = value
+`
+
+const testStateMvOnlyResourceInModule_output = `
+<no state>
+module.foo:
+  test_instance.bar.0:
+    ID = bar
+    provider = provider["registry.terraform.io/-/test"]
+    bar = value
+    foo = value
 `

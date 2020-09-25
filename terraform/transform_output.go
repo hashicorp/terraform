@@ -53,14 +53,14 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	return nil
 }
 
-// DestroyOutputTransformer is a GraphTransformer that adds nodes to delete
+// destroyRootOutputTransformer is a GraphTransformer that adds nodes to delete
 // outputs during destroy. We need to do this to ensure that no stale outputs
 // are ever left in the state.
-type DestroyOutputTransformer struct {
+type destroyRootOutputTransformer struct {
 	Destroy bool
 }
 
-func (t *DestroyOutputTransformer) Transform(g *Graph) error {
+func (t *destroyRootOutputTransformer) Transform(g *Graph) error {
 	// Only clean root outputs on a full destroy
 	if !t.Destroy {
 		return nil
@@ -86,18 +86,16 @@ func (t *DestroyOutputTransformer) Transform(g *Graph) error {
 		log.Printf("[TRACE] creating %s", node.Name())
 		g.Add(node)
 
-		deps, err := g.Descendents(v)
-		if err != nil {
-			return err
-		}
-
-		// the destroy node must depend on the eval node
-		deps.Add(v)
+		deps := g.UpEdges(v)
 
 		for _, d := range deps {
 			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
 			g.Connect(dag.BasicEdge(node, d))
 		}
+
+		// We no longer need the expand node, since we intend to remove this
+		// output from the state.
+		g.Remove(v)
 	}
 	return nil
 }

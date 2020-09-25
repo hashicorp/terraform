@@ -9,13 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -54,7 +55,7 @@ type RemoteClient struct {
 	consulLock *consulapi.Lock
 	lockCh     <-chan struct{}
 
-	info *state.LockInfo
+	info *statemgr.LockInfo
 
 	// cancel our goroutine which is monitoring the lock to automatically
 	// reacquire it when possible.
@@ -71,7 +72,9 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	pair, _, err := c.Client.KV().Get(c.Path, nil)
+	kv := c.Client.KV()
+
+	chunked, hash, chunks, pair, err := c.chunkedMode()
 	if err != nil {
 		return nil, err
 	}
@@ -81,17 +84,36 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 
 	c.modifyIndex = pair.ModifyIndex
 
-	payload := pair.Value
+	var payload []byte
+	if chunked {
+		for _, c := range chunks {
+			pair, _, err := kv.Get(c, nil)
+			if err != nil {
+				return nil, err
+			}
+			if pair == nil {
+				return nil, fmt.Errorf("Key %q could not be found", c)
+			}
+			payload = append(payload, pair.Value[:]...)
+		}
+	} else {
+		payload = pair.Value
+	}
+
 	// If the payload starts with 0x1f, it's gzip, not json
-	if len(pair.Value) >= 1 && pair.Value[0] == '\x1f' {
-		if data, err := uncompressState(pair.Value); err == nil {
-			payload = data
-		} else {
+	if len(payload) >= 1 && payload[0] == '\x1f' {
+		payload, err = uncompressState(payload)
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	md5 := md5.Sum(pair.Value)
+	md5 := md5.Sum(payload)
+
+	if hash != "" && fmt.Sprintf("%x", md5) != hash {
+		return nil, fmt.Errorf("The remote state does not match the expected hash")
+	}
+
 	return &remote.Payload{
 		Data: payload,
 		MD5:  md5[:],
@@ -99,8 +121,64 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	// The state can be stored in 4 different ways, based on the payload size
+	// and whether the user enabled gzip:
+	//  - single entry mode with plain JSON: a single JSON is stored at
+	//	  "tfstate/my_project"
+	//  - single entry mode gzip: the JSON payload is first gziped and stored at
+	//    "tfstate/my_project"
+	//  - chunked mode with plain JSON: the JSON payload is split in pieces and
+	//    stored like so:
+	//       - "tfstate/my_project" -> a JSON payload that contains the path of
+	//         the chunks and an MD5 sum like so:
+	//              {
+	//              	"current-hash": "abcdef1234",
+	//              	"chunks": [
+	//              		"tfstate/my_project/tfstate.abcdef1234/0",
+	//              		"tfstate/my_project/tfstate.abcdef1234/1",
+	//              		"tfstate/my_project/tfstate.abcdef1234/2",
+	//              	]
+	//              }
+	//       - "tfstate/my_project/tfstate.abcdef1234/0" -> The first chunk
+	//       - "tfstate/my_project/tfstate.abcdef1234/1" -> The next one
+	//       - ...
+	//  - chunked mode with gzip: the same system but we gziped the JSON payload
+	//    before splitting it in chunks
+	//
+	// When overwritting the current state, we need to clean the old chunks if
+	// we were in chunked mode (no matter whether we need to use chunks for the
+	// new one). To do so based on the 4 possibilities above we look at the
+	// value at "tfstate/my_project" and if it is:
+	//  - absent then it's a new state and there will be nothing to cleanup,
+	//  - not a JSON payload we were in single entry mode with gzip so there will
+	// 	  be nothing to cleanup
+	//  - a JSON payload, then we were either single entry mode with plain JSON
+	//    or in chunked mode. To differentiate between the two we look whether a
+	//    "current-hash" key is present in the payload. If we find one we were
+	//    in chunked mode and we will need to remove the old chunks (whether or
+	//    not we were using gzip does not matter in that case).
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	kv := c.Client.KV()
+
+	// First we determine what mode we were using and to prepare the cleanup
+	chunked, hash, _, _, err := c.chunkedMode()
+	if err != nil {
+		return err
+	}
+	cleanupOldChunks := func() {}
+	if chunked {
+		cleanupOldChunks = func() {
+			// We ignore all errors that can happen here because we already
+			// saved the new state and there is no way to return a warning to
+			// the user. We may end up with dangling chunks but there is no way
+			// to be sure we won't.
+			path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%s/", hash)
+			kv.DeleteTree(path, nil)
+		}
+	}
 
 	payload := data
 	if c.GZip {
@@ -111,8 +189,6 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 	}
 
-	kv := c.Client.KV()
-
 	// default to doing a CAS
 	verb := consulapi.KVCAS
 
@@ -122,9 +198,44 @@ func (c *RemoteClient) Put(data []byte) error {
 		verb = consulapi.KVSet
 	}
 
+	// If the payload is too large we first write the chunks and replace it
+	// 524288 is the default value, we just hope the user did not set a smaller
+	// one but there is really no reason for them to do so, if they changed it
+	// it is certainly to set a larger value.
+	limit := 524288
+	if len(payload) > limit {
+		md5 := md5.Sum(data)
+		chunks := split(payload, limit)
+		chunkPaths := make([]string, 0)
+
+		// First we write the new chunks
+		for i, p := range chunks {
+			path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%x/%d", md5, i)
+			chunkPaths = append(chunkPaths, path)
+			_, err := kv.Put(&consulapi.KVPair{
+				Key:   path,
+				Value: p,
+			}, nil)
+
+			if err != nil {
+				return err
+			}
+		}
+
+		// We update the link to point to the new chunks
+		payload, err = json.Marshal(map[string]interface{}{
+			"current-hash": fmt.Sprintf("%x", md5),
+			"chunks":       chunkPaths,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	var txOps consulapi.KVTxnOps
 	// KV.Put doesn't return the new index, so we use a single operation
 	// transaction to get the new index with a single request.
-	txOps := consulapi.KVTxnOps{
+	txOps = consulapi.KVTxnOps{
 		&consulapi.KVTxnOp{
 			Verb:  verb,
 			Key:   c.Path,
@@ -137,7 +248,6 @@ func (c *RemoteClient) Put(data []byte) error {
 	if err != nil {
 		return err
 	}
-
 	// transaction was rolled back
 	if !ok {
 		return fmt.Errorf("consul CAS failed with transaction errors: %v", resp.Errors)
@@ -149,6 +259,10 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	c.modifyIndex = resp.Results[0].ModifyIndex
+
+	// We remove all the old chunks
+	cleanupOldChunks()
+
 	return nil
 }
 
@@ -157,25 +271,44 @@ func (c *RemoteClient) Delete() error {
 	defer c.mu.Unlock()
 
 	kv := c.Client.KV()
-	_, err := kv.Delete(c.Path, nil)
+
+	chunked, hash, _, _, err := c.chunkedMode()
+	if err != nil {
+		return err
+	}
+
+	_, err = kv.Delete(c.Path, nil)
+
+	// If there were chunks we need to remove them
+	if chunked {
+		path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%s/", hash)
+		kv.DeleteTree(path, nil)
+	}
+
 	return err
 }
 
-func (c *RemoteClient) putLockInfo(info *state.LockInfo) error {
+func (c *RemoteClient) lockPath() string {
+	// we sanitize the path for the lock as Consul does not like having
+	// two consecutive slashes for the lock path
+	return strings.TrimRight(c.Path, "/")
+}
+
+func (c *RemoteClient) putLockInfo(info *statemgr.LockInfo) error {
 	info.Path = c.Path
 	info.Created = time.Now().UTC()
 
 	kv := c.Client.KV()
 	_, err := kv.Put(&consulapi.KVPair{
-		Key:   c.Path + lockInfoSuffix,
+		Key:   c.lockPath() + lockInfoSuffix,
 		Value: info.Marshal(),
 	}, nil)
 
 	return err
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
-	path := c.Path + lockInfoSuffix
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
+	path := c.lockPath() + lockInfoSuffix
 	pair, _, err := c.Client.KV().Get(path, nil)
 	if err != nil {
 		return nil, err
@@ -184,7 +317,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		return nil, nil
 	}
 
-	li := &state.LockInfo{}
+	li := &statemgr.LockInfo{}
 	err = json.Unmarshal(pair.Value, li)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling lock info: %s", err)
@@ -193,7 +326,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	return li, nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -234,7 +367,7 @@ func (c *RemoteClient) lock() (string, error) {
 	c.info.Info = "consul session: " + lockSession
 
 	opts := &consulapi.LockOptions{
-		Key:     c.Path + lockSuffix,
+		Key:     c.lockPath() + lockSuffix,
 		Session: lockSession,
 
 		// only wait briefly, so terraform has the choice to fail fast or
@@ -260,7 +393,7 @@ func (c *RemoteClient) lock() (string, error) {
 		return "", err
 	}
 
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 
 	lockCh, err := c.consulLock.Lock(make(chan struct{}))
 	if err != nil {
@@ -419,7 +552,7 @@ func (c *RemoteClient) unlock(id string) error {
 
 	var errs error
 
-	if _, err := kv.Delete(c.Path+lockInfoSuffix, nil); err != nil {
+	if _, err := kv.Delete(c.lockPath()+lockInfoSuffix, nil); err != nil {
 		errs = multierror.Append(errs, err)
 	}
 
@@ -465,4 +598,43 @@ func uncompressState(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return b.Bytes(), nil
+}
+
+func split(payload []byte, limit int) [][]byte {
+	var chunk []byte
+	chunks := make([][]byte, 0, len(payload)/limit+1)
+	for len(payload) >= limit {
+		chunk, payload = payload[:limit], payload[limit:]
+		chunks = append(chunks, chunk)
+	}
+	if len(payload) > 0 {
+		chunks = append(chunks, payload[:])
+	}
+	return chunks
+}
+
+func (c *RemoteClient) chunkedMode() (bool, string, []string, *consulapi.KVPair, error) {
+	kv := c.Client.KV()
+	pair, _, err := kv.Get(c.Path, nil)
+	if err != nil {
+		return false, "", nil, pair, err
+	}
+	if pair != nil {
+		var d map[string]interface{}
+		err = json.Unmarshal(pair.Value, &d)
+		// If there is an error when unmarshaling the payload, the state has
+		// probably been gziped in single entry mode.
+		if err == nil {
+			// If we find the "current-hash" key we were in chunked mode
+			hash, ok := d["current-hash"]
+			if ok {
+				chunks := make([]string, 0)
+				for _, c := range d["chunks"].([]interface{}) {
+					chunks = append(chunks, c.(string))
+				}
+				return true, hash.(string), chunks, pair, nil
+			}
+		}
+	}
+	return false, "", nil, pair, nil
 }

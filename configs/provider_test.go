@@ -21,6 +21,8 @@ func TestProviderReservedNames(t *testing.T) {
 	_, diags := parser.LoadConfigFile("config.tf")
 
 	assertExactDiagnostics(t, diags, []string{
+		//TODO: This deprecation warning will be removed in terraform v0.15.
+		`config.tf:4,13-20: Version constraints inside provider configuration blocks are deprecated; Terraform 0.13 and earlier allowed provider version constraints inside the provider configuration block, but that is now deprecated and will be removed in a future version of Terraform. To silence this warning, move the provider version constraint into the required_providers block.`,
 		`config.tf:10,3-8: Reserved argument name in provider block; The provider argument name "count" is reserved for use by Terraform in a future version.`,
 		`config.tf:11,3-13: Reserved argument name in provider block; The provider argument name "depends_on" is reserved for use by Terraform in a future version.`,
 		`config.tf:12,3-11: Reserved argument name in provider block; The provider argument name "for_each" is reserved for use by Terraform in a future version.`,

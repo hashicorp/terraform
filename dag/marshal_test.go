@@ -32,6 +32,21 @@ func TestGraphDot_basic(t *testing.T) {
 	}
 }
 
+func TestGraphDot_quoted(t *testing.T) {
+	var g Graph
+	quoted := `name["with-quotes"]`
+	other := `other`
+	g.Add(quoted)
+	g.Add(other)
+	g.Connect(BasicEdge(quoted, other))
+
+	actual := strings.TrimSpace(string(g.Dot(nil)))
+	expected := strings.TrimSpace(testGraphDotQuotedStr)
+	if actual != expected {
+		t.Fatalf("\ngot:   %q\nwanted %q\n", actual, expected)
+	}
+}
+
 func TestGraphDot_attrs(t *testing.T) {
 	var g Graph
 	g.Add(&testGraphNodeDotter{
@@ -52,6 +67,14 @@ type testGraphNodeDotter struct{ Result *DotNode }
 
 func (n *testGraphNodeDotter) Name() string                      { return n.Result.Name }
 func (n *testGraphNodeDotter) DotNode(string, *DotOpts) *DotNode { return n.Result }
+
+const testGraphDotQuotedStr = `digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] name[\"with-quotes\"]" -> "[root] other"
+	}
+}`
 
 const testGraphDotBasicStr = `digraph {
 	compound = "true"

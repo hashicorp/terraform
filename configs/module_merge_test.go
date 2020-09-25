@@ -109,6 +109,32 @@ func TestModuleOverrideModule(t *testing.T) {
 				Byte:   17,
 			},
 		},
+		Providers: []PassedProviderConfig{
+			{
+				InChild: &ProviderConfigRef{
+					Name: "test",
+					NameRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 5, Byte: 97},
+						End:      hcl.Pos{Line: 7, Column: 9, Byte: 101},
+					},
+				},
+				InParent: &ProviderConfigRef{
+					Name: "test",
+					NameRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 104},
+						End:      hcl.Pos{Line: 7, Column: 16, Byte: 108},
+					},
+					Alias: "b_override",
+					AliasRange: &hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 16, Byte: 108},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 119},
+					},
+				},
+			},
+		},
 	}
 
 	// We're going to extract and nil out our hcl.Body here because DeepEqual

@@ -40,9 +40,6 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Destroy, if true, represents a pure destroy operation
 	Destroy bool
 
@@ -160,35 +157,44 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Schemas: b.Schemas,
 		},
 
-		// Create a destroy node for outputs to remove them from the state.
-		&DestroyOutputTransformer{Destroy: b.Destroy},
+		// Create a destroy node for root outputs to remove them from the
+		// state.  This does nothing unless invoked via the destroy command
+		// directly.  A destroy is identical to a normal apply, except for the
+		// fact that we also have configuration to evaluate. While the rest of
+		// the unused nodes can be programmatically pruned (via
+		// pruneUnusedNodesTransformer), root module outputs always have an
+		// implied dependency on remote state. This means that if they exist in
+		// the configuration, the only signal to remove them is via the destroy
+		// command itself.
+		&destroyRootOutputTransformer{Destroy: b.Destroy},
 
-		// Prune unreferenced values, which may have interpolations that can't
-		// be resolved.
-		&PruneUnusedValuesTransformer{
-			Destroy: b.Destroy,
-		},
+		// We need to remove configuration nodes that are not used at all, as
+		// they may not be able to evaluate, especially during destroy.
+		// These include variables, locals, and instance expanders.
+		&pruneUnusedNodesTransformer{},
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{
 			Config: b.Config,
 		},
 
-		// Target
-		&TargetsTransformer{Targets: b.Targets},
-
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
+		// Add destroy node reference edges where needed, until we can fix
+		// full-destroy evaluation.
+		&applyDestroyNodeReferenceFixupTransformer{},
+
 		// close the root module
 		&CloseRootModuleTransformer{},
-	}
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps

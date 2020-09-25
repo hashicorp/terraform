@@ -97,14 +97,15 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	newState["backend"] = d.GetAttr("backend")
 	newState["config"] = d.GetAttr("config")
 
-	workspaceName := backend.DefaultStateName
+	workspaceVal := d.GetAttr("workspace")
+	// This attribute is not computed, so we always have to store the state
+	// value, even if we implicitly use a default.
+	newState["workspace"] = workspaceVal
 
-	if workspaceVal := d.GetAttr("workspace"); !workspaceVal.IsNull() {
-		newState["workspace"] = workspaceVal
+	workspaceName := backend.DefaultStateName
+	if !workspaceVal.IsNull() {
 		workspaceName = workspaceVal.AsString()
 	}
-
-	newState["workspace"] = cty.StringVal(workspaceName)
 
 	state, err := b.StateMgr(workspaceName)
 	if err != nil {

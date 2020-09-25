@@ -52,6 +52,15 @@ type evalReadData struct {
 	// - If planned action is plans.Update, it indicates that the data source
 	// was read, and the result needs to be stored in state during apply.
 	OutputChange **plans.ResourceInstanceChange
+
+	// dependsOn stores the list of transitive resource addresses that any
+	// configuration depends_on references may resolve to. This is used to
+	// determine if there are any changes that will force this data sources to
+	// be deferred to apply.
+	dependsOn []addrs.ConfigResource
+	// forceDependsOn indicates that resources may be missing from dependsOn,
+	// but the parent module may have depends_on configured.
+	forceDependsOn bool
 }
 
 // readDataSource handles everything needed to call ReadDataSource on the provider.
@@ -235,7 +244,7 @@ func (n *evalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	// refresh, that we can read this resource. If there are dependency updates
 	// in the config, they we be discovered in plan and the data source will be
 	// read again.
-	if !configKnown || (priorVal.IsNull() && len(n.Config.DependsOn) > 0) {
+	if !configKnown || (priorVal.IsNull() && n.forcePlanRead()) {
 		if configKnown {
 			log.Printf("[TRACE] evalReadDataRefresh: %s configuration is fully known, but we're forcing a read plan to be created", absAddr)
 		} else {
@@ -290,4 +299,11 @@ func (n *evalReadDataRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	return nil, diags.ErrWithWarnings()
+}
+
+// forcePlanRead determines if we need to override the usual behavior of
+// immediately reading from the data source where possible, instead forcing us
+// to generate a plan.
+func (n *evalReadDataRefresh) forcePlanRead() bool {
+	return len(n.Config.DependsOn) > 0 || len(n.dependsOn) > 0 || n.forceDependsOn
 }

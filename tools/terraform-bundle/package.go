@@ -75,6 +75,10 @@ func (c *PackageCommand) Run(args []string) int {
 	}
 	// symlinked tmp directories can cause odd behaviors.
 	workDir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		c.ui.Error(fmt.Sprintf("Error evaulating symlinks: %s", err))
+		return 1
+	}
 	defer os.RemoveAll(workDir)
 
 	c.ui.Info(fmt.Sprintf("Fetching Terraform %s core package...", config.Terraform.Version))

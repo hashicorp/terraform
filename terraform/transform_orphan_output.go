@@ -51,7 +51,7 @@ func (t *OrphanOutputTransformer) transform(g *Graph, ms *states.Module) error {
 			continue
 		}
 
-		g.Add(&NodeOutputOrphan{
+		g.Add(&NodeDestroyableOutput{
 			Addr: addrs.OutputValue{Name: name}.Absolute(moduleAddr),
 		})
 	}

@@ -80,6 +80,13 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Refresh!
 	priorVal := state.Value
+
+	// Unmarked before sending to provider
+	var priorPaths []cty.PathValueMarks
+	if priorVal.ContainsMarked() {
+		priorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
+	}
+
 	req := providers.ReadResourceRequest{
 		TypeName:     n.Addr.Resource.Type,
 		PriorState:   priorVal,
@@ -127,6 +134,11 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// Mark the value if necessary
+	if len(priorPaths) > 0 {
+		newState.Value = newState.Value.MarkWithPaths(priorPaths)
 	}
 
 	if n.Output != nil {

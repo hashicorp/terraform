@@ -61,8 +61,9 @@ type NodeAbstractResource struct {
 	// Set from GraphNodeTargetable
 	Targets []addrs.Targetable
 
-	// Set from GraphNodeDependsOn
-	dependsOn []addrs.ConfigResource
+	// Set from AttachResourceDependencies
+	dependsOn      []addrs.ConfigResource
+	forceDependsOn bool
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
@@ -100,11 +101,14 @@ type NodeAbstractResourceInstance struct {
 	NodeAbstractResource
 	Addr addrs.AbsResourceInstance
 
-	// The fields below will be automatically set using the Attach
-	// interfaces if you're running those transforms, but also be explicitly
-	// set if you already have that information.
-	ResourceState *states.Resource
-	Dependencies  []addrs.ConfigResource
+	// These are set via the AttachState method.
+	instanceState *states.ResourceInstance
+	// storedProviderConfig is the provider address retrieved from the
+	// state, but since it is only stored in the whole Resource rather than the
+	// ResourceInstance, we extract it out here.
+	storedProviderConfig addrs.AbsProviderConfig
+
+	Dependencies []addrs.ConfigResource
 }
 
 var (
@@ -183,7 +187,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		result = append(result, n.DependsOn()...)
 
 		if n.Schema == nil {
-			// Should never happens, but we'll log if it does so that we can
+			// Should never happen, but we'll log if it does so that we can
 			// see this easily when debugging.
 			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
@@ -192,7 +196,12 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		result = append(result, refs...)
 		refs, _ = lang.ReferencesInExpr(c.ForEach)
 		result = append(result, refs...)
-		refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+
+		// ReferencesInBlock() requires a schema
+		if n.Schema != nil {
+			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+		}
+
 		result = append(result, refs...)
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
@@ -281,11 +290,9 @@ func dottedInstanceAddr(tr addrs.ResourceInstance) string {
 
 // StateDependencies returns the dependencies saved in the state.
 func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResource {
-	if rs := n.ResourceState; rs != nil {
-		if s := rs.Instance(n.Addr.Resource.Key); s != nil {
-			if s.Current != nil {
-				return s.Current.Dependencies
-			}
+	if s := n.instanceState; s != nil {
+		if s.Current != nil {
+			return s.Current.Dependencies
 		}
 	}
 
@@ -333,12 +340,12 @@ func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool)
 		}, false
 	}
 
-	// If we have state, then we will use the provider from there
-	if n.ResourceState != nil {
+	// See if we have a valid provider config from the state.
+	if n.storedProviderConfig.Provider.Type != "" {
 		// An address from the state must match exactly, since we must ensure
 		// we refresh/destroy a resource with the same provider configuration
 		// that created it.
-		return n.ResourceState.ProviderConfig, true
+		return n.storedProviderConfig, true
 	}
 
 	// No provider configuration found; return a default address
@@ -353,7 +360,7 @@ func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
 	}
-	return addrs.NewDefaultProvider(n.Addr.Resource.ContainingResource().ImpliedProvider())
+	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ContainingResource().ImpliedProvider())
 }
 
 // GraphNodeProvisionerConsumer
@@ -397,13 +404,19 @@ func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 }
 
 // graphNodeAttachResourceDependencies
-func (n *NodeAbstractResource) AttachResourceDependencies(deps []addrs.ConfigResource) {
+func (n *NodeAbstractResource) AttachResourceDependencies(deps []addrs.ConfigResource, force bool) {
 	n.dependsOn = deps
+	n.forceDependsOn = force
 }
 
 // GraphNodeAttachResourceState
 func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
-	n.ResourceState = s
+	if s == nil {
+		log.Printf("[WARN] attaching nil state to %s", n.Addr)
+		return
+	}
+	n.instanceState = s.Instance(n.Addr.Resource.Key)
+	n.storedProviderConfig = s.ProviderConfig
 }
 
 // GraphNodeAttachResourceConfig
@@ -431,4 +444,38 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 			"shape": "box",
 		},
 	}
+}
+
+// graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
+// annoyingly-task-specific helper function that returns true if and only if
+// the following conditions hold:
+// - Both of the given vertices represent specific resource instances, as
+//   opposed to unexpanded resources or any other non-resource-related object.
+// - The module instance addresses for both of the resource instances belong
+//   to the same static module.
+// - The module instance addresses for both of the resource instances are
+//   not equal, indicating that they belong to different instances of the
+//   same module.
+//
+// This result can be used as a way to compensate for the effects of
+// conservative analyses passes in our graph builders which make their
+// decisions based only on unexpanded addresses, often so that they can behave
+// correctly for interactions between expanded and not-yet-expanded objects.
+//
+// Callers of this helper function will typically skip adding an edge between
+// the two given nodes if this function returns true.
+func graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(a, b dag.Vertex) bool {
+	aRI, aOK := a.(GraphNodeResourceInstance)
+	bRI, bOK := b.(GraphNodeResourceInstance)
+	if !(aOK && bOK) {
+		return false
+	}
+	aModInst := aRI.ResourceInstanceAddr().Module
+	bModInst := bRI.ResourceInstanceAddr().Module
+	aMod := aModInst.Module()
+	bMod := bModInst.Module()
+	if !aMod.Equal(bMod) {
+		return false
+	}
+	return !aModInst.Equal(bModInst)
 }

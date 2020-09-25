@@ -52,6 +52,7 @@ func TestContext2Refresh(t *testing.T) {
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: readState,
 	}
+	p.DiffFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -118,6 +119,10 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 			NewState: readStateVal,
 		}
 	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return resp
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -153,18 +158,15 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-data-module-var")
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-	})
-
-	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
-		NewState: cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("foo"),
-		}),
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		obj := req.ProposedNewState.AsValueMap()
+		obj["id"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(obj)
+		return resp
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return resp
 	}
 
 	p.GetSchemaReturn = &ProviderSchema{
@@ -190,10 +192,21 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 						Type:     cty.String,
 						Optional: true,
 					},
+					"output": {
+						Type:     cty.String,
+						Computed: true,
+					},
 				},
 			},
 		},
 	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -269,6 +282,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -347,6 +361,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -433,6 +448,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -464,6 +480,7 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 			},
 		},
 	}
+	p.DiffFn = testDiffFn
 
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
@@ -500,6 +517,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
 	}
+	p.DiffFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -529,6 +547,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 			"id": cty.StringVal("foo"),
 		}),
 	}
+	p.DiffFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -542,6 +561,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 func TestContext2Refresh_hook(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
+	p.DiffFn = testDiffFn
 	m := testModule(t, "refresh-basic")
 
 	state := states.NewState()
@@ -603,6 +623,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 			NewState: new,
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -628,6 +649,7 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 					"foo": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"compute": {
 						Type:     cty.String,
@@ -683,6 +705,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 			"id": cty.StringVal("foo"),
 		}),
 	}
+	p.DiffFn = testDiffFn
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
@@ -702,12 +725,13 @@ func TestContext2Refresh_output(t *testing.T) {
 					},
 					"foo": {
 						Type:     cty.String,
-						Computed: true,
+						Optional: true,
 					},
 				},
 			},
 		},
 	}
+	p.DiffFn = testDiffFn
 
 	m := testModule(t, "refresh-output")
 
@@ -815,6 +839,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 	}
 
 	p.ReadResourceFn = nil
+	p.DiffFn = testDiffFn
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: readStateVal,
 	}
@@ -843,31 +868,30 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 	p := testProvider("test")
 	m := testModule(t, "refresh-data-count")
 
-	// This test is verifying that a data resource count can refer to a
-	// resource attribute that can't be known yet during refresh (because
-	// the resource in question isn't in the state at all). In that case,
-	// we skip the data resource during refresh and process it during the
-	// subsequent plan step instead.
-	//
-	// Normally it's an error for "count" to be computed, but during the
-	// refresh step we allow it because we _expect_ to be working with an
-	// incomplete picture of the world sometimes, particularly when we're
-	// creating object for the first time against an empty state.
-	//
-	// For more information, see:
-	//    https://github.com/hashicorp/terraform/issues/21047
-
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		m := req.ProposedNewState.AsValueMap()
+		m["things"] = cty.ListVal([]cty.Value{cty.StringVal("foo")})
+		resp.PlannedState = cty.ObjectVal(m)
+		return resp
+	}
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test": {
 				Attributes: map[string]*configschema.Attribute{
-					"things": {Type: cty.List(cty.String), Optional: true},
+					"id":     {Type: cty.String, Computed: true},
+					"things": {Type: cty.List(cty.String), Computed: true},
 				},
 			},
 		},
 		DataSources: map[string]*configschema.Block{
 			"test": {},
 		},
+	}
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: req.Config,
+		}
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -878,38 +902,7 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 	})
 
 	s, diags := ctx.Refresh()
-	if p.ReadResourceCalled {
-		// The managed resource doesn't exist in the state yet, so there's
-		// nothing to refresh.
-		t.Errorf("ReadResource was called, but should not have been")
-	}
-	if p.ReadDataSourceCalled {
-		// The data resource should've been skipped because its count cannot
-		// be determined yet.
-		t.Errorf("ReadDataSource was called, but should not have been")
-	}
 
-	if diags.HasErrors() {
-		t.Fatalf("refresh errors: %s", diags.Err())
-	}
-
-	checkStateString(t, s, `<no state>`)
-}
-
-func TestContext2Refresh_dataOrphan(t *testing.T) {
-	p := testProvider("null")
-	state := states.NewState()
-	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "data.null_data_source.bar", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/null"]`)
-
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
-		},
-		State: state,
-	})
-
-	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -955,6 +948,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 			State: readStateVal,
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1020,6 +1014,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 			State: cty.ObjectVal(m),
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1057,6 +1052,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 			NewState: cty.ObjectVal(m),
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1144,6 +1140,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 	}
 
 	p.ReadResourceFn = nil
+	p.DiffFn = testDiffFn
 	p.ReadResourceResponse = providers.ReadResourceResponse{
 		NewState: readStateVal,
 	}
@@ -1197,6 +1194,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
+	p.DiffFn = testDiffFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1266,6 +1264,7 @@ func TestContext2Validate(t *testing.T) {
 			},
 		},
 	}
+	p.DiffFn = testDiffFn
 
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
@@ -1278,47 +1277,6 @@ func TestContext2Validate(t *testing.T) {
 	diags := c.Validate()
 	if len(diags) != 0 {
 		t.Fatalf("unexpected error: %#v", diags.ErrWithWarnings())
-	}
-}
-
-// TestContext2Refresh_noDiffHookOnScaleOut tests to make sure that
-// pre/post-diff hooks are not called when running EvalDiff on scale-out nodes
-// (nodes with no state). The effect here is to make sure that the diffs -
-// which only exist for interpolation of parallel resources or data sources -
-// do not end up being counted in the UI.
-func TestContext2Refresh_noDiffHookOnScaleOut(t *testing.T) {
-	h := new(MockHook)
-	p := testProvider("aws")
-	m := testModule(t, "refresh-resource-scale-inout")
-
-	// Refresh creates a partial plan for any instances that don't have
-	// remote objects yet, to get stub values for interpolation. Therefore
-	// we need to make DiffFn available to let that complete.
-	p.DiffFn = testDiffFn
-
-	state := states.NewState()
-	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.foo[0]", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.foo[1]", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Hooks:  []Hook{h},
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		State: state,
-	})
-
-	_, diags := ctx.Refresh()
-	if diags.HasErrors() {
-		t.Fatalf("refresh errors: %s", diags.Err())
-	}
-	if h.PreDiffCalled {
-		t.Fatal("PreDiff should not have been called")
-	}
-	if h.PostDiffCalled {
-		t.Fatal("PostDiff should not have been called")
 	}
 }
 
@@ -1357,7 +1315,7 @@ aws_instance.bar:
 }
 
 func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
-	m := testModule(t, "empty")
+	m := testModule(t, "refresh-schema-upgrade")
 	p := testProvider("test")
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -1379,6 +1337,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 			"name": cty.StringVal("foo"),
 		}),
 	}
+	p.DiffFn = testDiffFn
 
 	s := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1443,7 +1402,7 @@ test_thing.bar:
 }
 
 func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
-	m := testModule(t, "empty")
+	m := testModule(t, "refresh-schema-upgrade")
 	p := testProvider("test")
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -1465,6 +1424,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 			"name": cty.StringVal("foo"),
 		}),
 	}
+	p.DiffFn = testDiffFn
 
 	s := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1542,6 +1502,7 @@ data "aws_data_source" "foo" {
 		resp.State = req.Config
 		return
 	}
+	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1621,13 +1582,39 @@ func TestRefresh_updateDependencies(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 			Dependencies: []addrs.ConfigResource{
-				// Existing dependencies should not be removed during refresh
+				// Existing dependencies should be removed when overridden by the config
 				{
 					Module: addrs.RootModule,
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "baz",
+					},
+				},
+			},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "baz",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+			Dependencies: []addrs.ConfigResource{
+				// Existing dependencies should not be removed from orphaned instances
+				{
+					Module: addrs.RootModule,
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "bam",
 					},
 				},
 			},
@@ -1660,7 +1647,8 @@ resource "aws_instance" "bar" {
 }
 
 resource "aws_instance" "foo" {
-}`,
+}
+`,
 	})
 
 	p := testProvider("aws")
@@ -1688,13 +1676,69 @@ aws_instance.bar:
 
   Dependencies:
     aws_instance.foo
-aws_instance.foo:
-  ID = foo
+aws_instance.baz:
+  ID = baz
   provider = provider["registry.terraform.io/hashicorp/aws"]
 
   Dependencies:
-    aws_instance.baz
+    aws_instance.bam
+aws_instance.foo:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `)
 
 	checkStateString(t, result, expect)
+}
+
+// verify that create_before_destroy is updated in the state during refresh
+func TestRefresh_updateLifecycle(t *testing.T) {
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "bar",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "bar" {
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	state, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	r := state.ResourceInstance(mustResourceInstanceAddr("aws_instance.bar"))
+	if !r.Current.CreateBeforeDestroy {
+		t.Fatal("create_before_destroy not updated in instance state")
+	}
 }

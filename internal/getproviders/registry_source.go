@@ -32,40 +32,39 @@ func NewRegistrySource(services *disco.Disco) *RegistrySource {
 // ErrHostNoProviders, ErrHostUnreachable, ErrUnauthenticated,
 // ErrProviderNotKnown, or ErrQueryFailed. Callers must be defensive and
 // expect errors of other types too, to allow for future expansion.
-func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
 	client, err := s.registryClient(provider.Hostname)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	versionProtosMap, err := client.ProviderVersions(provider)
+	versionsResponse, warnings, err := client.ProviderVersions(provider)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if len(versionProtosMap) == 0 {
-		return nil, nil
+	if len(versionsResponse) == 0 {
+		return nil, warnings, nil
 	}
 
-	// We ignore everything except the version numbers here because our goal
-	// is to find out which versions are available _at all_. Which ones are
-	// compatible with the current Terraform becomes relevant only once we've
-	// selected one, at which point we'll return an error if the selected one
-	// is incompatible.
+	// We ignore protocols here because our goal is to find out which versions
+	// are available _at all_. Which ones are compatible with the current
+	// Terraform becomes relevant only once we've selected one, at which point
+	// we'll return an error if the selected one is incompatible.
 	//
 	// We intentionally produce an error on incompatibility, rather than
 	// silently ignoring an incompatible version, in order to give the user
 	// explicit feedback about why their selection wasn't valid and allow them
 	// to decide whether to fix that by changing the selection or by some other
 	// action such as upgrading Terraform, using a different OS to run
-	// Terraform, etc. Changes that affect compatibility are considered
-	// breaking changes from a provider API standpoint, so provider teams
-	// should change compatibility only in new major versions.
-	ret := make(VersionList, 0, len(versionProtosMap))
-	for str := range versionProtosMap {
+	// Terraform, etc. Changes that affect compatibility are considered breaking
+	// changes from a provider API standpoint, so provider teams should change
+	// compatibility only in new major versions.
+	ret := make(VersionList, 0, len(versionsResponse))
+	for str := range versionsResponse {
 		v, err := ParseVersion(str)
 		if err != nil {
-			return nil, ErrQueryFailed{
+			return nil, nil, ErrQueryFailed{
 				Provider: provider,
 				Wrapped:  fmt.Errorf("registry response includes invalid version string %q: %s", str, err),
 			}
@@ -73,7 +72,7 @@ func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList
 		ret = append(ret, v)
 	}
 	ret.Sort() // lowest precedence first, preserving order when equal precedence
-	return ret, nil
+	return ret, warnings, nil
 }
 
 // PackageMeta returns metadata about the location and capabilities of
@@ -119,10 +118,10 @@ func (s *RegistrySource) PackageMeta(provider addrs.Provider, version Version, t
 // in older configurations. New configurations should be written so as not to
 // depend on it, and this fallback mechanism will likely be removed altogether
 // in a future Terraform version.
-func (s *RegistrySource) LookupLegacyProviderNamespace(hostname svchost.Hostname, typeName string) (string, error) {
+func (s *RegistrySource) LookupLegacyProviderNamespace(hostname svchost.Hostname, typeName string) (string, string, error) {
 	client, err := s.registryClient(hostname)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	return client.LegacyProviderDefaultNamespace(typeName)
 }
