@@ -87,6 +87,21 @@ func TestLongestCommonSubsequence(t *testing.T) {
 			[]cty.Value{cty.NumberIntVal(2)},
 			[]cty.Value{},
 		},
+		{
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
+			},
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
+				cty.MapVal(map[string]cty.Value{"c": cty.StringVal("z")}),
+			},
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
+			},
+		},
 	}
 
 	for _, test := range tests {
