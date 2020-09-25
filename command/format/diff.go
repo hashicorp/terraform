@@ -1315,17 +1315,17 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 
 	if new.IsMarked() && !old.IsMarked() {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("[yellow]# Warning: this attribute value will be marked as sensitive and will\n"))
+		p.buf.WriteString(p.color.Color("# [yellow]Warning:[reset] this attribute value will be marked as sensitive and will\n"))
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("[yellow]# not display in UI output after applying this change[reset]\n"))
+		p.buf.WriteString(p.color.Color("# not display in UI output after applying this change\n"))
 	}
 
 	// Note if changing this attribute will change its sensitivity
 	if old.IsMarked() && !new.IsMarked() {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("[yellow]# Warning: this attribute value will no longer be marked as sensitive\n"))
+		p.buf.WriteString(p.color.Color("# [yellow]Warning:[reset] this attribute value will no longer be marked as sensitive\n"))
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("[yellow]# after applying this change[reset]\n"))
+		p.buf.WriteString(p.color.Color("# after applying this change\n"))
 	}
 }
 
