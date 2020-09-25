@@ -11995,3 +11995,66 @@ resource "test_resource" "foo" {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 }
+
+func TestContext2Apply_variableSensitivityPropagation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+	experiments = [sensitive_variables]
+}
+
+variable "sensitive_map" {
+	type = map(string)
+	default = {
+		"x" = "foo"
+	}
+	sensitive = true
+}
+
+resource "test_resource" "foo" {
+	value = var.sensitive_map.x
+}`,
+	})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
+		if len(pvms) != 1 {
+			t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
+		}
+		pvm := pvms[0]
+		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
+			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
+		}
+		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
+		}
+	}
+
+	addr := mustResourceInstanceAddr("test_resource.foo")
+
+	fooChangeSrc := plan.Changes.ResourceInstance(addr)
+	verifySensitiveValue(fooChangeSrc.AfterValMarks)
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+
+	fooState := state.ResourceInstance(addr)
+	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
+}
