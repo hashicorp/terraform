@@ -176,7 +176,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 		return diags
 	}
 
-	result := hclwrite.Format(src)
+	result := c.formatSourceCode(src)
 
 	if !bytes.Equal(src, result) {
 		// Something was changed
@@ -264,6 +264,12 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 	}
 
 	return diags
+}
+
+// formatSourceCode is the formatting logic itself, applied to each file that
+// is selected (directly or indirectly) on the command line.
+func (c *FmtCommand) formatSourceCode(src []byte) []byte {
+	return hclwrite.Format(src)
 }
 
 func (c *FmtCommand) Help() string {
