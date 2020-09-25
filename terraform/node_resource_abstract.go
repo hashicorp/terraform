@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -444,6 +445,55 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 			"shape": "box",
 		},
 	}
+}
+
+// WriteResourceState ensures that a suitable resource-level state record is
+// present in the state, if that's required for the "each mode" of that
+// resource.
+//å
+// This is important primarily for the situation where count = 0, since this
+// eval is the only change we get to set the resource "each mode" to list
+// in that case, allowing expression evaluation to see it as a zero-element list
+// rather than as not set at all.
+func (n *NodeAbstractResource) WriteResourceState(ctx EvalContext, addr addrs.AbsResource) error {
+	var diags tfdiags.Diagnostics
+	state := ctx.State()
+
+	// We'll record our expansion decision in the shared "expander" object
+	// so that later operations (i.e. DynamicExpand and expression evaluation)
+	// can refer to it. Since this node represents the abstract module, we need
+	// to expand the module here to create all resources.
+	expander := ctx.InstanceExpander()
+
+	switch {
+	case n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return diags.Err()
+		}
+
+		state.SetResourceProvider(addr, n.ResolvedProvider)
+		expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
+
+	case n.Config.ForEach != nil:
+		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return diags.Err()
+		}
+
+		// This method takes care of all of the business logic of updating this
+		// while ensuring that any existing instances are preserved, etc.
+		state.SetResourceProvider(addr, n.ResolvedProvider)
+		expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
+
+	default:
+		state.SetResourceProvider(addr, n.ResolvedProvider)
+		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
+	}
+
+	return nil
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
