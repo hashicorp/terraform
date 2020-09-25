@@ -57,12 +57,7 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 		return err
 	}
 
-	checkPreventDestroy := &EvalCheckPreventDestroy{
-		Addr:   addr.Resource,
-		Config: n.Config,
-		Change: &change,
-	}
-	_, err = checkPreventDestroy.Eval(ctx)
+	err = n.CheckPreventDestroy(addr, change)
 	if err != nil {
 		return err
 	}
@@ -76,6 +71,7 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	if err != nil {
 		return err
 	}
+
 	writeState := &EvalWriteState{
 		Addr:           addr.Resource,
 		ProviderAddr:   n.ResolvedProvider,
