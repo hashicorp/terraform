@@ -35,19 +35,12 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
 	}
 
-	//EvalReadState
-	readState := &EvalReadState{
-		Addr:           addr.Resource,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-		Output:         &state,
-	}
-	_, err = readState.Eval(ctx)
+	state, err = n.ReadResourceInstanceState(ctx, addr)
 	if err != nil {
 		return err
 	}
