@@ -1,61 +1,142 @@
 package terraform
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestNodeApplyableOutputExecute(t *testing.T) {
+func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
+	ctx := new(MockEvalContext)
+	ctx.StateState = states.NewState().SyncWrapper()
+	ctx.RefreshStateState = states.NewState().SyncWrapper()
+
+	config := &configs.Output{Name: "map-output"}
+	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
+	node := &NodeApplyableOutput{Config: config, Addr: addr}
+	val := cty.MapVal(map[string]cty.Value{
+		"a": cty.StringVal("b"),
+	})
+	ctx.EvaluateExprResult = val
+
+	err := node.Execute(ctx, walkApply)
+	if err != nil {
+		t.Fatalf("unexpected execute error: %s", err)
+	}
+
+	outputVal := ctx.StateState.OutputValue(addr)
+	if got, want := outputVal.Value, val; !got.RawEquals(want) {
+		t.Errorf("wrong output value in state\n got: %#v\nwant: %#v", got, want)
+	}
+
+	if !ctx.RefreshStateCalled {
+		t.Fatal("should have called RefreshState, but didn't")
+	}
+	refreshOutputVal := ctx.RefreshStateState.OutputValue(addr)
+	if got, want := refreshOutputVal.Value, val; !got.RawEquals(want) {
+		t.Fatalf("wrong output value in refresh state\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestNodeApplyableOutputExecute_noState(t *testing.T) {
+	ctx := new(MockEvalContext)
+
+	config := &configs.Output{Name: "map-output"}
+	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
+	node := &NodeApplyableOutput{Config: config, Addr: addr}
+	val := cty.MapVal(map[string]cty.Value{
+		"a": cty.StringVal("b"),
+	})
+	ctx.EvaluateExprResult = val
+
+	err := node.Execute(ctx, walkApply)
+	if err != nil {
+		t.Fatalf("unexpected execute error: %s", err)
+	}
+}
+
+func TestNodeApplyableOutputExecute_invalidDependsOn(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
 
-	cases := []struct {
-		name string
-		val  cty.Value
-		err  bool
-	}{
-		{
-			// Eval should recognize a single map in a slice, and collapse it
-			// into the map value
-			"single-map",
-			cty.MapVal(map[string]cty.Value{
-				"a": cty.StringVal("b"),
-			}),
-			false,
-		},
-		{
-			// we can't apply a multi-valued map to a variable, so this should error
-			"multi-map",
-			cty.ListVal([]cty.Value{
-				cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("b"),
-				}),
-				cty.MapVal(map[string]cty.Value{
-					"c": cty.StringVal("d"),
-				}),
-			}),
-			true,
+	config := &configs.Output{
+		Name: "map-output",
+		DependsOn: []hcl.Traversal{
+			{
+				hcl.TraverseRoot{Name: "test_instance"},
+				hcl.TraverseAttr{Name: "foo"},
+				hcl.TraverseAttr{Name: "bar"},
+			},
 		},
 	}
+	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
+	node := &NodeApplyableOutput{Config: config, Addr: addr}
+	val := cty.MapVal(map[string]cty.Value{
+		"a": cty.StringVal("b"),
+	})
+	ctx.EvaluateExprResult = val
 
-	for _, tc := range cases {
-		node := &NodeApplyableOutput{
-			Config: &configs.Output{},
-			Addr:   addrs.OutputValue{Name: tc.name}.Absolute(addrs.RootModuleInstance),
-		}
-		ctx.EvaluateExprResult = tc.val
-		t.Run(tc.name, func(t *testing.T) {
-			err := node.Execute(ctx, walkApply)
-			if err != nil && !tc.err {
-				t.Fatal(err)
-			}
-		})
+	err := node.Execute(ctx, walkApply)
+	if err == nil {
+		t.Fatal("expected execute error, but there was none")
+	}
+	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+		t.Errorf("expected error to include %q, but was: %s", want, got)
+	}
+}
+
+func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
+	ctx := new(MockEvalContext)
+	ctx.StateState = states.NewState().SyncWrapper()
+
+	config := &configs.Output{Name: "map-output"}
+	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
+	node := &NodeApplyableOutput{Config: config, Addr: addr}
+	val := cty.MapVal(map[string]cty.Value{
+		"a": cty.StringVal("b").Mark("sensitive"),
+	})
+	ctx.EvaluateExprResult = val
+
+	err := node.Execute(ctx, walkApply)
+	if err == nil {
+		t.Fatal("expected execute error, but there was none")
+	}
+	if got, want := err.Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
+		t.Errorf("expected error to include %q, but was: %s", want, got)
+	}
+}
+
+func TestNodeApplyableOutputExecute_sensitiveValueAndOutput(t *testing.T) {
+	ctx := new(MockEvalContext)
+	ctx.StateState = states.NewState().SyncWrapper()
+
+	config := &configs.Output{
+		Name:      "map-output",
+		Sensitive: true,
+	}
+	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
+	node := &NodeApplyableOutput{Config: config, Addr: addr}
+	val := cty.MapVal(map[string]cty.Value{
+		"a": cty.StringVal("b").Mark("sensitive"),
+	})
+	ctx.EvaluateExprResult = val
+
+	err := node.Execute(ctx, walkApply)
+	if err != nil {
+		t.Fatalf("unexpected execute error: %s", err)
 	}
 
+	// Unmarked value should be stored in state
+	outputVal := ctx.StateState.OutputValue(addr)
+	want, _ := val.UnmarkDeep()
+	if got := outputVal.Value; !got.RawEquals(want) {
+		t.Errorf("wrong output value in state\n got: %#v\nwant: %#v", got, want)
+	}
 }
 
 func TestNodeDestroyableOutputExecute(t *testing.T) {

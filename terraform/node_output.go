@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
@@ -210,6 +211,18 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
 		// depends_on expressions here too
 		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
+		// Ensure that non-sensitive outputs don't include sensitive values
+		_, marks := val.UnmarkDeep()
+		_, hasSensitive := marks["sensitive"]
+		if !n.Config.Sensitive && hasSensitive {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Output refers to sensitive values",
+				Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		}
+
 		state := ctx.State()
 		if state == nil {
 			return nil
@@ -307,7 +320,8 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// out here and then we'll save the real unknown value in the planned
 		// changeset below, if we have one on this graph walk.
 		log.Printf("[TRACE] EvalWriteOutput: Saving value for %s in state", n.Addr)
-		stateVal := cty.UnknownAsNull(val)
+		unmarkedVal, _ := val.UnmarkDeep()
+		stateVal := cty.UnknownAsNull(unmarkedVal)
 		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
 	} else {
 		log.Printf("[TRACE] EvalWriteOutput: Removing %s from state (it is now null)", n.Addr)
