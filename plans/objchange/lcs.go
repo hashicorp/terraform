@@ -26,7 +26,12 @@ func LongestCommonSubsequence(xs, ys []cty.Value) []cty.Value {
 
 	for y := 0; y < len(ys); y++ {
 		for x := 0; x < len(xs); x++ {
-			eqV := xs[x].Equals(ys[y])
+			unmarkedX, xMarks := xs[x].UnmarkDeep()
+			unmarkedY, yMarks := ys[y].UnmarkDeep()
+			eqV := unmarkedX.Equals(unmarkedY)
+			if len(xMarks) != len(yMarks) {
+				eqV = cty.False
+			}
 			eq := false
 			if eqV.IsKnown() && eqV.True() {
 				eq = true

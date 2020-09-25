@@ -70,6 +70,38 @@ func TestLongestCommonSubsequence(t *testing.T) {
 			[]cty.Value{cty.UnknownVal(cty.Number)},
 			[]cty.Value{},
 		},
+
+		// marked values
+		{
+			[]cty.Value{cty.NumberIntVal(1).Mark("foo"), cty.NumberIntVal(2).Mark("foo"), cty.NumberIntVal(3)},
+			[]cty.Value{cty.NumberIntVal(1).Mark("foo"), cty.NumberIntVal(2).Mark("foo")},
+			[]cty.Value{cty.NumberIntVal(1).Mark("foo"), cty.NumberIntVal(2).Mark("foo")},
+		},
+		{
+			[]cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2).Mark("foo"), cty.NumberIntVal(3)},
+			[]cty.Value{cty.NumberIntVal(2), cty.NumberIntVal(3)},
+			[]cty.Value{cty.NumberIntVal(3)},
+		},
+		{
+			[]cty.Value{cty.NumberIntVal(1), cty.NumberIntVal(2).Mark("foo")},
+			[]cty.Value{cty.NumberIntVal(2)},
+			[]cty.Value{},
+		},
+		{
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
+			},
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
+				cty.MapVal(map[string]cty.Value{"c": cty.StringVal("z")}),
+			},
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
+			},
+		},
 	}
 
 	for _, test := range tests {
