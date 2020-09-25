@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -450,7 +452,7 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 // WriteResourceState ensures that a suitable resource-level state record is
 // present in the state, if that's required for the "each mode" of that
 // resource.
-//å
+//
 // This is important primarily for the situation where count = 0, since this
 // eval is the only change we get to set the resource "each mode" to list
 // in that case, allowing expression evaluation to see it as a zero-element list
@@ -536,6 +538,31 @@ func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr a
 	}
 
 	return obj, nil
+}
+
+// CheckPreventDestroy returns an error if a resource has PreventDestroy
+// configured and the diff would destroy the resource.
+func (n *NodeAbstractResource) CheckPreventDestroy(addr addrs.AbsResourceInstance, change *plans.ResourceInstanceChange) error {
+	if change == nil || n.Config == nil || n.Config.Managed == nil {
+		return nil
+	}
+	preventDestroy := n.Config.Managed.PreventDestroy
+
+	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Instance cannot be destroyed",
+			Detail: fmt.Sprintf(
+				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target flag.",
+				addr,
+			),
+			Subject: &n.Config.DeclRange,
+		})
+		return diags.Err()
+	}
+
+	return nil
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
