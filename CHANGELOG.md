@@ -9,6 +9,7 @@ BUG FIXES:
 
 * command: Include schemas from required but unused providers in the output of `terraform providers schema`. This allows development tools such as the Terraform language server to offer autocompletion for the first resource for a given provider. [GH-26318]
 * core: create_before_destroy status is now updated in the state during refresh [GH-26343]
+* core: data sources using `depends_on`, either directly or through their modules, are no longer are forced to wait until apply by other planned data source reads [GH-26375]
 
 ## 0.13.3 (September 16, 2020)
 
