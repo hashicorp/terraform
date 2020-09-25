@@ -176,7 +176,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 		return diags
 	}
 
-	result := c.formatSourceCode(src)
+	result := c.formatSourceCode(src, path)
 
 	if !bytes.Equal(src, result) {
 		// Something was changed
@@ -268,8 +268,16 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 
 // formatSourceCode is the formatting logic itself, applied to each file that
 // is selected (directly or indirectly) on the command line.
-func (c *FmtCommand) formatSourceCode(src []byte) []byte {
-	return hclwrite.Format(src)
+func (c *FmtCommand) formatSourceCode(src []byte, filename string) []byte {
+	f, diags := hclwrite.ParseConfig(src, filename, hcl.InitialPos)
+	if diags.HasErrors() {
+		// It would be weird to get here because the caller should already have
+		// checked for syntax errors and returned them. We'll just do nothing
+		// in this case, returning the input exactly as given.
+		return src
+	}
+
+	return f.Bytes()
 }
 
 func (c *FmtCommand) Help() string {
