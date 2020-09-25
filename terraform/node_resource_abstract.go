@@ -496,6 +496,48 @@ func (n *NodeAbstractResource) WriteResourceState(ctx EvalContext, addr addrs.Ab
 	return nil
 }
 
+func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+
+	if provider == nil {
+		panic("ReadResourceInstanceState used with no Provider object")
+	}
+	if providerSchema == nil {
+		panic("ReadResourceInstanceState used with no ProviderSchema object")
+	}
+
+	log.Printf("[TRACE] ReadResourceInstanceState: reading state for %s", addr)
+
+	src := ctx.State().ResourceInstanceObject(addr, states.CurrentGen)
+	if src == nil {
+		// Presumably we only have deposed objects, then.
+		log.Printf("[TRACE] ReadResourceInstanceState: no state present for %s", addr)
+		return nil, nil
+	}
+
+	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr)
+	}
+	var diags tfdiags.Diagnostics
+	src, diags = UpgradeResourceState(addr, provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
+	}
+
+	obj, err := src.Decode(schema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
 // annoyingly-task-specific helper function that returns true if and only if
 // the following conditions hold:

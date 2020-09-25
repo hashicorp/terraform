@@ -170,13 +170,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			return EvalEarlyExitError{}
 		}
 
-		evalReadState := &EvalReadState{
-			Addr:           addr.Resource,
-			Output:         &state,
-			Provider:       &provider,
-			ProviderSchema: &providerSchema,
-		}
-		_, err = evalReadState.Eval(ctx)
+		state, err = n.ReadResourceInstanceState(ctx, addr)
 		if err != nil {
 			return err
 		}
