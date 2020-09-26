@@ -117,7 +117,6 @@ type EvalDiff struct {
 	CreateBeforeDestroy bool
 
 	OutputChange **plans.ResourceInstanceChange
-	OutputValue  *cty.Value
 	OutputState  **states.ResourceInstanceObject
 
 	Stub bool
@@ -153,7 +152,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
@@ -207,8 +206,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// the proposed value, the proposed value itself, and the config presented
 	// to the provider in the PlanResourceChange request all agree on the
 	// starting values.
-	var ignoreChangeDiags tfdiags.Diagnostics
-	configVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, configVal)
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, diags.Err()
@@ -217,12 +215,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// Create an unmarked version of our config val, defaulting
 	// to the configVal so we don't do the work of unmarking unless
 	// necessary
-	unmarkedConfigVal := configVal
+	unmarkedConfigVal := configValIgnored
 	var unmarkedPaths []cty.PathValueMarks
-	if configVal.ContainsMarked() {
+	if configValIgnored.ContainsMarked() {
 		// store the marked values so we can re-mark them later after
 		// we've sent things over the wire.
-		unmarkedConfigVal, unmarkedPaths = configVal.UnmarkDeepWithPaths()
+		unmarkedConfigVal, unmarkedPaths = configValIgnored.UnmarkDeepWithPaths()
 	}
 
 	unmarkedPriorVal := priorVal
@@ -304,7 +302,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	if errs := objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, priorVal, configValIgnored, plannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
@@ -435,6 +433,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// able to predict new values for any of these computed attributes.
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
 
+		// Since there is no prior state to compare after replacement, we need
+		// a new unmarked config from our original with no ignored values.
+		unmarkedConfigVal := origConfigVal
+		if origConfigVal.ContainsMarked() {
+			unmarkedConfigVal, _ = origConfigVal.UnmarkDeep()
+		}
+
 		// create a new proposed value from the null state and the config
 		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
 
@@ -530,10 +535,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			},
 			RequiredReplace: reqRep,
 		}
-	}
-
-	if n.OutputValue != nil {
-		*n.OutputValue = configVal
 	}
 
 	// Update the state if we care
