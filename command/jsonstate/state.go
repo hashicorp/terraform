@@ -147,8 +147,11 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 }
 
 func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.Schemas) error {
-	var sv stateValues
-	var err error
+	var (
+		sv   stateValues
+		err  error
+		tree *node
+	)
 
 	// only marshal the root module outputs
 	sv.Outputs, err = marshalOutputs(s.RootModule().OutputValues)
@@ -156,8 +159,13 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 		return err
 	}
 
-	// use the state and module map to build up the module structure
-	sv.RootModule, err = marshalRootModule(s, schemas)
+	tree, err = buildModulesTree(s)
+	if err != nil {
+		return err
+	}
+
+	// use the state and modules tree to build up the module structure
+	sv.RootModule, err = marshalModule(s, schemas, tree)
 	if err != nil {
 		return err
 	}
@@ -186,64 +194,26 @@ func marshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, 
 	return ret, nil
 }
 
-func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, error) {
+func marshalModule(s *states.State, schemas *terraform.Schemas, n *node) (module, error) {
 	var ret module
 	var err error
 
-	ret.Address = ""
-	ret.Resources, err = marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
+	ret.Address = n.addr.String()
+	ret.Resources, err = marshalResources(n.module.Resources, n.addr, schemas)
 	if err != nil {
 		return ret, err
 	}
-
-	// build a map of module -> [child module addresses]
-	moduleMap := make(map[string][]addrs.ModuleInstance)
-	for _, mod := range s.Modules {
-		if mod.Addr.IsRoot() {
-			continue
-		} else {
-			parent := mod.Addr.Parent().String()
-			moduleMap[parent] = append(moduleMap[parent], mod.Addr)
-		}
-	}
-
-	// use the state and module map to build up the module structure
-	ret.ChildModules, err = marshalModules(s, schemas, moduleMap[""], moduleMap)
-	return ret, err
-}
-
-// marshalModules is an ungainly recursive function to build a module structure
-// out of terraform state.
-func marshalModules(
-	s *states.State,
-	schemas *terraform.Schemas,
-	modules []addrs.ModuleInstance,
-	moduleMap map[string][]addrs.ModuleInstance,
-) ([]module, error) {
-	var ret []module
-	for _, child := range modules {
-		stateMod := s.Module(child)
-		// cm for child module, naming things is hard.
-		cm := module{Address: stateMod.Addr.String()}
-		rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
+	for _, child := range n.children {
+		childModule, err := marshalModule(s, schemas, child)
 		if err != nil {
-			return nil, err
+			return ret, err
 		}
-		cm.Resources = rs
-		if moduleMap[child.String()] != nil {
-			moreChildModules, err := marshalModules(s, schemas, moduleMap[child.String()], moduleMap)
-			if err != nil {
-				return nil, err
-			}
-			cm.ChildModules = moreChildModules
-		}
-
-		ret = append(ret, cm)
+		ret.ChildModules = append(ret.ChildModules, childModule)
 	}
 
 	// sort the child modules by address for consistency.
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Address < ret[j].Address
+	sort.Slice(ret.ChildModules, func(i, j int) bool {
+		return ret.ChildModules[i].Address < ret.ChildModules[j].Address
 	})
 
 	return ret, nil
