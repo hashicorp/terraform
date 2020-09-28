@@ -793,7 +793,6 @@ func (n *EvalReduceDiff) Eval(ctx EvalContext) (interface{}, error) {
 // change for a particular resource instance object.
 type EvalReadDiff struct {
 	Addr           addrs.ResourceInstance
-	DeposedKey     states.DeposedKey
 	ProviderSchema **ProviderSchema
 	Change         **plans.ResourceInstanceChange
 }
@@ -810,9 +809,6 @@ func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	gen := states.CurrentGen
-	if n.DeposedKey != states.NotDeposed {
-		gen = n.DeposedKey
-	}
 	csrc := changes.GetResourceInstanceChange(addr, gen)
 	if csrc == nil {
 		log.Printf("[TRACE] EvalReadDiff: No planned change recorded for %s", addr)
