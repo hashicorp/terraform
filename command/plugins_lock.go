@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 )
 
@@ -61,26 +60,4 @@ func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 	}
 
 	return digests
-}
-
-// Write persists lock information to disk, where it will be retrieved by
-// future calls to Read. This entirely replaces any previous lock information,
-// so the given map must be comprehensive.
-func (pf *pluginSHA256LockFile) Write(digests map[string][]byte) error {
-	strDigests := map[string]string{}
-	for name, digest := range digests {
-		strDigests[name] = fmt.Sprintf("%x", digest)
-	}
-
-	buf, err := json.MarshalIndent(strDigests, "", "  ")
-	if err != nil {
-		// should never happen
-		return fmt.Errorf("failed to serialize plugin lock as JSON: %s", err)
-	}
-
-	os.MkdirAll(
-		filepath.Dir(pf.Filename), os.ModePerm,
-	) // ignore error since WriteFile below will generate a better one anyway
-
-	return ioutil.WriteFile(pf.Filename, buf, os.ModePerm)
 }
