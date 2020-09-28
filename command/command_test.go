@@ -389,9 +389,9 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	return DefaultStateFilename
 }
 
-// testStateFileWorkspaceDefault writes the state out to the default workspace statefile
-// in the cwd. Use `testCwd` to change into a temp cwd.
-func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *terraform.State) string {
+// testStateFileWorkspaceDefault writes the state out to the default statefile
+// for the given workspace in the cwd. Use `testCwd` to change into a temp cwd.
+func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.State) string {
 	t.Helper()
 
 	workspaceDir := filepath.Join(backendLocal.DefaultWorkspaceDir, workspace)
@@ -400,18 +400,18 @@ func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *terraform.
 		t.Fatalf("err: %s", err)
 	}
 
-	workspaceDefault := filepath.Join(workspaceDir, DefaultStateFilename)
-	f, err := os.Create(workspaceDefault)
+	path := filepath.Join(workspaceDir, DefaultStateFilename)
+	f, err := os.Create(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := writeStateForTesting(s, f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	return workspaceDefault
+	return path
 }
 
 // testStateFileRemote writes the state out to the remote statefile

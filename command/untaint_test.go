@@ -271,23 +271,23 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	defer testFixCwd(t, tmp, cwd)
 
 	// Write the temp state
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-				},
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
 			},
-		},
-	}
-
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
 	testWorkspace := "development"
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
@@ -308,7 +308,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	testStateOutput(t, path, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/-/test"]
 	`))
 }
 
