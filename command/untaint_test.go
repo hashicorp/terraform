@@ -265,6 +265,53 @@ test_instance.foo:
 	`))
 }
 
+func TestUntaint_defaultWorkspaceState(t *testing.T) {
+	// Get a temp cwd
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	// Write the temp state
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectTainted,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	testWorkspace := "development"
+	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
+
+	ui := new(cli.MockUi)
+	meta := Meta{Ui: ui}
+	meta.SetWorkspace(testWorkspace)
+	c := &UntaintCommand{
+		Meta: meta,
+	}
+
+	args := []string{
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, path, strings.TrimSpace(`
+test_instance.foo:
+  ID = bar
+  provider = provider["registry.terraform.io/-/test"]
+	`))
+}
+
 func TestUntaint_missing(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
