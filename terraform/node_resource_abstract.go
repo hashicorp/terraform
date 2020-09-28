@@ -565,6 +565,35 @@ func (n *NodeAbstractResource) CheckPreventDestroy(addr addrs.AbsResourceInstanc
 	return nil
 }
 
+// ReadDiff returns the planned change for a particular resource instance
+// object.
+func (n *NodeAbstractResourceInstance) ReadDiff(ctx EvalContext, providerSchema *ProviderSchema) (*plans.ResourceInstanceChange, error) {
+	changes := ctx.Changes()
+	addr := n.ResourceInstanceAddr()
+
+	schema, _ := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return nil, fmt.Errorf("provider does not support resource type %q", addr.Resource.Resource.Type)
+	}
+
+	gen := states.CurrentGen
+	csrc := changes.GetResourceInstanceChange(addr, gen)
+	if csrc == nil {
+		log.Printf("[TRACE] EvalReadDiff: No planned change recorded for %s", n.Addr)
+		return nil, nil
+	}
+
+	change, err := csrc.Decode(schema.ImpliedType())
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode planned changes for %s: %s", n.Addr, err)
+	}
+
+	log.Printf("[TRACE] EvalReadDiff: Read %s change from plan for %s", change.Action, n.Addr)
+
+	return change, nil
+}
+
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
 // annoyingly-task-specific helper function that returns true if and only if
 // the following conditions hold:
