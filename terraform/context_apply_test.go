@@ -11995,3 +11995,57 @@ resource "test_resource" "foo" {
 		t.Fatalf("wrong number of sensitive paths, expected 0, got, %v", len(fooState2.Current.AttrSensitivePaths))
 	}
 }
+
+func TestContext2Apply_moduleVariableOptionalAttributes(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [module_variable_optional_attrs]
+}
+
+variable "in" {
+  type = object({
+	required = string
+	optional = optional(string)
+  })
+}
+
+output "out" {
+  value = var.in
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Variables: InputValues{
+			"in": &InputValue{
+				Value: cty.MapVal(map[string]cty.Value{
+					"required": cty.StringVal("boop"),
+				}),
+				SourceType: ValueFromCaller,
+			},
+		},
+		Config: m,
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	want := cty.ObjectVal(map[string]cty.Value{
+		"required": cty.StringVal("boop"),
+
+		// Because "optional" was marked as optional, it got silently filled
+		// in as a null value of string type rather than returning an error.
+		"optional": cty.NullVal(cty.String),
+	})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
