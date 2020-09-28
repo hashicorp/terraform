@@ -1,4 +1,7 @@
-## (Unreleased)
+## 0.14.0
+
+BUG FIXES: 
+* fix packaging for custom plugins ([#26394](https://github.com/hashicorp/terraform/pull/26394))
 
 ## 0.13.0 (August 10, 2020)
 
