@@ -613,6 +613,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			))
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
+			const summaryIncompatible = "Incompatible provider version"
 			switch err := err.(type) {
 			case getproviders.ErrProtocolNotSupported:
 				closestAvailable := err.Suggestion
@@ -620,13 +621,13 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				case closestAvailable == getproviders.UnspecifiedVersion:
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Incompatible provider version",
+						summaryIncompatible,
 						fmt.Sprintf(errProviderVersionIncompatible, provider.String()),
 					))
 				case version.GreaterThan(closestAvailable):
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Incompatible provider version",
+						summaryIncompatible,
 						fmt.Sprintf(providerProtocolTooNew, provider.ForDisplay(),
 							version, tfversion.String(), closestAvailable, closestAvailable,
 							getproviders.VersionConstraintsString(reqs[provider]),
@@ -635,18 +636,54 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				default: // version is less than closestAvailable
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
-						"Incompatible provider version",
+						summaryIncompatible,
 						fmt.Sprintf(providerProtocolTooOld, provider.ForDisplay(),
 							version, tfversion.String(), closestAvailable, closestAvailable,
 							getproviders.VersionConstraintsString(reqs[provider]),
 						),
 					))
 				}
+			case getproviders.ErrPlatformNotSupported:
+				switch {
+				case err.MirrorURL != nil:
+					// If we're installing from a mirror then it may just be
+					// the mirror lacking the package, rather than it being
+					// unavailable from upstream.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(
+							"Your chosen provider mirror at %s does not have a %s v%s package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so this provider might not support your current platform. Alternatively, the mirror itself might have only a subset of the plugin packages available in the origin registry, at %s.",
+							err.MirrorURL, err.Provider, err.Version, err.Platform,
+							err.Provider.Hostname,
+						),
+					))
+				default:
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						summaryIncompatible,
+						fmt.Sprintf(
+							"Provider %s v%s does not have a package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.",
+							err.Provider, err.Version, err.Platform,
+						),
+					))
+				}
+
 			case getproviders.ErrRequestCanceled:
 				// We don't attribute cancellation to any particular operation,
 				// but rather just emit a single general message about it at
 				// the end, by checking ctx.Err().
+
 			default:
+				// We can potentially end up in here under cancellation too,
+				// in spite of our getproviders.ErrRequestCanceled case above,
+				// because not all of the outgoing requests we do under the
+				// "fetch package" banner are source metadata requests.
+				// In that case we will emit a redundant error here about
+				// the request being cancelled, but we'll still detect it
+				// as a cancellation after the installer returns and do the
+				// normal cancellation handling.
+
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to install provider",
