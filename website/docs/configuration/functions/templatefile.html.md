@@ -51,7 +51,7 @@ to render templates while respecting resource dependencies.
 
 ### Lists
 
-Given a template file `backends.tmpl` with the following content:
+Given a template file `backends.tpl` with the following content:
 
 ```
 %{ for addr in ip_addrs ~}
@@ -62,7 +62,7 @@ backend ${addr}:${port}
 The `templatefile` function renders the template:
 
 ```
-> templatefile("${path.module}/backends.tmpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
+> templatefile("${path.module}/backends.tpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
 
