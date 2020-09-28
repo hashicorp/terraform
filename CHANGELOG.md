@@ -26,6 +26,7 @@ BUG FIXES:
 * build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249)
 * command/clistate: return an error on a state unlock failure [[#25729](https://github.com/hashicorp/terraform/issues/25729)] 
 * command/taint: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. [GH-26345]
+* command/taint, untaint: Fix issue when using `taint` (and `untaint`) with workspaces where statefile was not found. [GH-22467]
 * configs: Report an error when provider configuration attributes are incorrectly added to a `required_providers` object. ([#26184](https://github.com/hashicorp/terraform/issues/26184))
 * core: Errors with data sources reading old data during refresh, failing to refresh, and not appearing to wait on resource dependencies are fixed by updates to the data source lifecycle and the merging of refresh and plan ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * lang/funcs: fix panic when element() is called with a negative offset ([#26079](https://github.com/hashicorp/terraform/issues/26079))
