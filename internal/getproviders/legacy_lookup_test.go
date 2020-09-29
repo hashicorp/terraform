@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ func TestLookupLegacyProvider(t *testing.T) {
 	defer close()
 
 	got, gotMoved, err := LookupLegacyProvider(
+		context.Background(),
 		addrs.NewLegacyProvider("legacy"),
 		source,
 	)
@@ -37,6 +39,7 @@ func TestLookupLegacyProvider_moved(t *testing.T) {
 	defer close()
 
 	got, gotMoved, err := LookupLegacyProvider(
+		context.Background(),
 		addrs.NewLegacyProvider("moved"),
 		source,
 	)
@@ -67,6 +70,7 @@ func TestLookupLegacyProvider_invalidResponse(t *testing.T) {
 	defer close()
 
 	got, _, err := LookupLegacyProvider(
+		context.Background(),
 		addrs.NewLegacyProvider("invalid"),
 		source,
 	)
@@ -84,6 +88,7 @@ func TestLookupLegacyProvider_unexpectedTypeChange(t *testing.T) {
 	defer close()
 
 	got, _, err := LookupLegacyProvider(
+		context.Background(),
 		addrs.NewLegacyProvider("changetype"),
 		source,
 	)

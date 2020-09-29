@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -41,7 +42,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 	tosPlatform := Platform{OS: "tos", Arch: "m68k"}
 
 	t.Run("AvailableVersions for provider that exists", func(t *testing.T) {
-		got, _, err := source.AvailableVersions(existingProvider)
+		got, _, err := source.AvailableVersions(context.Background(), existingProvider)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -55,7 +56,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions for provider that doesn't exist", func(t *testing.T) {
-		_, _, err := source.AvailableVersions(missingProvider)
+		_, _, err := source.AvailableVersions(context.Background(), missingProvider)
 		switch err := err.(type) {
 		case ErrProviderNotFound:
 			if got, want := err.Provider, missingProvider; got != want {
@@ -67,7 +68,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 	})
 	t.Run("AvailableVersions without required credentials", func(t *testing.T) {
 		unauthSource := newHTTPMirrorSourceWithHTTPClient(baseURL, nil, httpClient)
-		_, _, err := unauthSource.AvailableVersions(existingProvider)
+		_, _, err := unauthSource.AvailableVersions(context.Background(), existingProvider)
 		switch err := err.(type) {
 		case ErrUnauthorized:
 			if got, want := string(err.Hostname), baseURL.Host; got != want {
@@ -78,7 +79,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions when the response is a server error", func(t *testing.T) {
-		_, _, err := source.AvailableVersions(failingProvider)
+		_, _, err := source.AvailableVersions(context.Background(), failingProvider)
 		switch err := err.(type) {
 		case ErrQueryFailed:
 			if got, want := err.Provider, failingProvider; got != want {
@@ -92,7 +93,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions for provider that redirects", func(t *testing.T) {
-		got, _, err := source.AvailableVersions(redirectingProvider)
+		got, _, err := source.AvailableVersions(context.Background(), redirectingProvider)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -104,14 +105,14 @@ func TestHTTPMirrorSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions for provider that redirects too much", func(t *testing.T) {
-		_, _, err := source.AvailableVersions(redirectLoopProvider)
+		_, _, err := source.AvailableVersions(context.Background(), redirectLoopProvider)
 		if err == nil {
 			t.Fatalf("succeeded; expected error")
 		}
 	})
 	t.Run("PackageMeta for a version that exists and has a hash", func(t *testing.T) {
 		version := MustParseVersion("1.0.0")
-		got, err := source.PackageMeta(existingProvider, version, tosPlatform)
+		got, err := source.PackageMeta(context.Background(), existingProvider, version, tosPlatform)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -140,7 +141,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 	})
 	t.Run("PackageMeta for a version that exists and has no hash", func(t *testing.T) {
 		version := MustParseVersion("1.0.1")
-		got, err := source.PackageMeta(existingProvider, version, tosPlatform)
+		got, err := source.PackageMeta(context.Background(), existingProvider, version, tosPlatform)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -159,7 +160,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 	})
 	t.Run("PackageMeta for a version that exists but has no archives", func(t *testing.T) {
 		version := MustParseVersion("1.0.2-beta.1")
-		_, err := source.PackageMeta(existingProvider, version, tosPlatform)
+		_, err := source.PackageMeta(context.Background(), existingProvider, version, tosPlatform)
 		switch err := err.(type) {
 		case ErrPlatformNotSupported:
 			if got, want := err.Provider, existingProvider; got != want {
@@ -177,7 +178,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 	})
 	t.Run("PackageMeta with redirect to a version that exists", func(t *testing.T) {
 		version := MustParseVersion("1.0.0")
-		got, err := source.PackageMeta(redirectingProvider, version, tosPlatform)
+		got, err := source.PackageMeta(context.Background(), redirectingProvider, version, tosPlatform)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -198,7 +199,7 @@ func TestHTTPMirrorSource(t *testing.T) {
 	})
 	t.Run("PackageMeta when the response is a server error", func(t *testing.T) {
 		version := MustParseVersion("1.0.0")
-		_, err := source.PackageMeta(failingProvider, version, tosPlatform)
+		_, err := source.PackageMeta(context.Background(), failingProvider, version, tosPlatform)
 		switch err := err.(type) {
 		case ErrQueryFailed:
 			if got, want := err.Provider, failingProvider; got != want {

@@ -113,6 +113,8 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	//   infrequently to update a mirror, so it doesn't need to optimize away
 	//   fetches of packages that might already be present.
 
+	ctx, cancel := c.InterruptibleContext()
+	defer cancel()
 	for provider, constraints := range reqs {
 		if provider.IsBuiltIn() {
 			c.Ui.Output(fmt.Sprintf("- Skipping %s because it is built in to Terraform CLI", provider.ForDisplay()))
@@ -123,7 +125,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		// First we'll look for the latest version that matches the given
 		// constraint, which we'll then try to mirror for each target platform.
 		acceptable := versions.MeetingConstraints(constraints)
-		avail, _, err := source.AvailableVersions(provider)
+		avail, _, err := source.AvailableVersions(ctx, provider)
 		candidates := avail.Filter(acceptable)
 		if err == nil && len(candidates) == 0 {
 			err = fmt.Errorf("no releases match the given constraints %s", constraintsStr)
@@ -144,7 +146,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		}
 		for _, platform := range platforms {
 			c.Ui.Output(fmt.Sprintf("  - Downloading package for %s...", platform.String()))
-			meta, err := source.PackageMeta(provider, selected, platform)
+			meta, err := source.PackageMeta(ctx, provider, selected, platform)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

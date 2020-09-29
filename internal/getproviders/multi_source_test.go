@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -63,7 +64,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		// AvailableVersions produces the union of all versions available
 		// across all of the sources.
-		got, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -76,7 +77,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -130,7 +131,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			},
 		}
 
-		got, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -142,7 +143,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		got, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
+		got, _, err = multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("bar"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -154,7 +155,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, _, err = multi.AvailableVersions(addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -168,7 +169,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			{Source: s2},
 		}
 
-		_, _, err := multi.AvailableVersions(addrs.NewDefaultProvider("foo"))
+		_, _, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("foo"))
 		if err == nil {
 			t.Fatal("expected error, got success")
 		}
@@ -213,7 +214,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		// AvailableVersions produces the union of all versions available
 		// across all of the sources.
-		got, warns, err := multi.AvailableVersions(addrs.NewDefaultProvider("bar"))
+		got, warns, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("bar"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -293,6 +294,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 
 	t.Run("only in s1", func(t *testing.T) {
 		got, err := multi.PackageMeta(
+			context.Background(),
 			addrs.NewDefaultProvider("foo"),
 			MustParseVersion("1.0.0"),
 			platform2,
@@ -307,6 +309,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	})
 	t.Run("only in s2", func(t *testing.T) {
 		got, err := multi.PackageMeta(
+			context.Background(),
 			addrs.NewDefaultProvider("foo"),
 			MustParseVersion("1.2.0"),
 			platform1,
@@ -321,6 +324,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	})
 	t.Run("in both", func(t *testing.T) {
 		got, err := multi.PackageMeta(
+			context.Background(),
 			addrs.NewDefaultProvider("foo"),
 			MustParseVersion("1.0.0"),
 			platform1,
@@ -342,6 +346,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	})
 	t.Run("in neither", func(t *testing.T) {
 		_, err := multi.PackageMeta(
+			context.Background(),
 			addrs.NewDefaultProvider("nonexist"),
 			MustParseVersion("1.0.0"),
 			platform1,

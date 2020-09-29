@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -82,7 +83,7 @@ func newHTTPMirrorSourceWithHTTPClient(baseURL *url.URL, creds svcauth.Credentia
 
 // AvailableVersions retrieves the available versions for the given provider
 // from the object's underlying HTTP mirror service.
-func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+func (s *HTTPMirrorSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	log.Printf("[DEBUG] Querying available versions of provider %s at network mirror %s", provider.String(), s.baseURL.String())
 
 	endpointPath := path.Join(
@@ -92,7 +93,7 @@ func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionLi
 		"index.json",
 	)
 
-	statusCode, body, finalURL, err := s.get(endpointPath)
+	statusCode, body, finalURL, err := s.get(ctx, endpointPath)
 	defer func() {
 		if body != nil {
 			body.Close()
@@ -146,7 +147,7 @@ func (s *HTTPMirrorSource) AvailableVersions(provider addrs.Provider) (VersionLi
 
 // PackageMeta retrieves metadata for the requested provider package
 // from the object's underlying HTTP mirror service.
-func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *HTTPMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	log.Printf("[DEBUG] Finding package URL for %s v%s on %s via network mirror %s", provider.String(), version.String(), target.String(), s.baseURL.String())
 
 	endpointPath := path.Join(
@@ -156,7 +157,7 @@ func (s *HTTPMirrorSource) PackageMeta(provider addrs.Provider, version Version,
 		version.String()+".json",
 	)
 
-	statusCode, body, finalURL, err := s.get(endpointPath)
+	statusCode, body, finalURL, err := s.get(ctx, endpointPath)
 	defer func() {
 		if body != nil {
 			body.Close()
@@ -287,7 +288,7 @@ func (s *HTTPMirrorSource) mirrorHostCredentials() (svcauth.HostCredentials, err
 //
 // If the "finalURL" return value is not empty then it's the URL that actually
 // produced the returned response, possibly after following some redirects.
-func (s *HTTPMirrorSource) get(relativePath string) (statusCode int, body io.ReadCloser, finalURL *url.URL, error error) {
+func (s *HTTPMirrorSource) get(ctx context.Context, relativePath string) (statusCode int, body io.ReadCloser, finalURL *url.URL, error error) {
 	endpointPath, err := url.Parse(relativePath)
 	if err != nil {
 		// Should never happen because the caller should validate all of the
@@ -300,6 +301,7 @@ func (s *HTTPMirrorSource) get(relativePath string) (statusCode int, body io.Rea
 	if err != nil {
 		return 0, nil, endpointURL, err
 	}
+	req = req.WithContext(ctx)
 	req.Request.Header.Set(terraformVersionHeader, version.String())
 	creds, err := s.mirrorHostCredentials()
 	if err != nil {
@@ -361,6 +363,11 @@ func (s *HTTPMirrorSource) get(relativePath string) (statusCode int, body io.Rea
 }
 
 func (s *HTTPMirrorSource) errQueryFailed(provider addrs.Provider, err error) error {
+	if err == context.Canceled {
+		// This one has a special error type so that callers can
+		// handle it in a different way.
+		return ErrRequestCanceled{}
+	}
 	return ErrQueryFailed{
 		Provider:  provider,
 		Wrapped:   err,
