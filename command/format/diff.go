@@ -338,7 +338,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 
 	p.buf.WriteString("\n")
 
-	p.writeSensitivityWarning(old, new, indent, action)
+	p.writeSensitivityWarning(old, new, indent, action, false)
 
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
@@ -375,6 +375,49 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	if old.IsNull() && new.IsNull() {
 		// Nothing to do if both old and new is null
 		return skippedBlocks
+	}
+
+	// If either the old or the new value is marked,
+	// Display a special diff because it is irrelevant
+	// to list all obfuscated attributes as (sensitive)
+	if old.IsMarked() || new.IsMarked() {
+		unmarkedOld, _ := old.Unmark()
+		unmarkedNew, _ := new.Unmark()
+		eqV := unmarkedNew.Equals(unmarkedOld)
+		var action plans.Action
+		switch {
+		case old.IsNull():
+			action = plans.Create
+		case new.IsNull():
+			action = plans.Delete
+		case !new.IsWhollyKnown() || !old.IsWhollyKnown():
+			// "old" should actually always be known due to our contract
+			// that old values must never be unknown, but we'll allow it
+			// anyway to be robust.
+			action = plans.Update
+		case !eqV.IsKnown() || !eqV.True():
+			action = plans.Update
+		}
+
+		if blankBefore {
+			p.buf.WriteRune('\n')
+		}
+
+		// New line before warning printing
+		p.buf.WriteRune('\n')
+		p.writeSensitivityWarning(old, new, indent, action, true)
+		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.writeActionSymbol(action)
+		fmt.Fprintf(p.buf, "%s {", name)
+		p.buf.WriteRune('\n')
+		p.buf.WriteString(strings.Repeat(" ", indent+4))
+		p.buf.WriteString("# At least one attribute in this block is (or was) sensitive,\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+4))
+		p.buf.WriteString("# so its contents will not be displayed.")
+		p.buf.WriteRune('\n')
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString("}")
+		return 0
 	}
 
 	// Where old/new are collections representing a nesting mode other than
@@ -1129,7 +1172,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				oldV := old.Index(kV)
 				newV := new.Index(kV)
-				p.writeSensitivityWarning(oldV, newV, indent+2, action)
+				p.writeSensitivityWarning(oldV, newV, indent+2, action, false)
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
@@ -1307,15 +1350,21 @@ func (p *blockBodyDiffPrinter) writeActionSymbol(action plans.Action) {
 	}
 }
 
-func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, indent int, action plans.Action) {
+func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, indent int, action plans.Action, isBlock bool) {
 	// Dont' show this warning for create or delete
 	if action == plans.Create || action == plans.Delete {
 		return
 	}
 
+	// Customize the warning based on if it is an attribute or block
+	diffType := "attribute value"
+	if isBlock {
+		diffType = "block"
+	}
+
 	if new.IsMarked() && !old.IsMarked() {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("# [yellow]Warning:[reset] this attribute value will be marked as sensitive and will\n"))
+		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color("# not display in UI output after applying this change\n"))
 	}
@@ -1323,7 +1372,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 	// Note if changing this attribute will change its sensitivity
 	if old.IsMarked() && !new.IsMarked() {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("# [yellow]Warning:[reset] this attribute value will no longer be marked as sensitive\n"))
+		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color("# after applying this change\n"))
 	}
@@ -1373,15 +1422,10 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 		return nil
 	}
 
-	// Sets with marks mark the whole set as marked,
-	// so when we unmark it, apply those marks to all members
-	// of the set
-	val, marks := val.Unmark()
-
 	ret := make([]cty.Value, 0, val.LengthInt())
 	for it := val.ElementIterator(); it.Next(); {
 		_, value := it.Element()
-		ret = append(ret, value.WithMarks(marks))
+		ret = append(ret, value)
 	}
 	return ret
 }
