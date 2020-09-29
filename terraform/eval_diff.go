@@ -607,38 +607,127 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 		ignoreChangesPath[i] = path
 	}
 
-	var diags tfdiags.Diagnostics
-	ret, _ := cty.Transform(config, func(path cty.Path, v cty.Value) (cty.Value, error) {
-		// First we must see if this is a path that's being ignored at all.
-		// We're looking for an exact match here because this walk will visit
-		// leaf values first and then their containers, and we want to do
-		// the "ignore" transform once we reach the point indicated, throwing
-		// away any deeper values we already produced at that point.
-		var ignoreTraversal hcl.Traversal
-		for i, candidate := range ignoreChangesPath {
-			if path.Equals(candidate) {
-				ignoreTraversal = ignoreChanges[i]
+	type ignoreChange struct {
+		// Path is the full path, minus any trailing map index
+		path cty.Path
+		// Value is the value we are to retain at the above path. If there is a
+		// key value, this must be a map and the desired value will be at the
+		// key index.
+		value cty.Value
+		// Key is the index key if the ignored path ends in a map index.
+		key cty.Value
+	}
+	var ignoredValues []ignoreChange
+
+	// Find the actual changes first and store them in the ignoreChange struct.
+	// If the change was to a map value, and the key doesn't exist in the
+	// config, it would never be visited in the transform walk.
+	for _, icPath := range ignoreChangesPath {
+		key := cty.NullVal(cty.String)
+		// check for a map index, since maps are the only structure where we
+		// could have invalid path steps.
+		last, ok := icPath[len(icPath)-1].(cty.IndexStep)
+		if ok {
+			if last.Key.Type() == cty.String {
+				icPath = icPath[:len(icPath)-1]
+				key = last.Key
 			}
 		}
-		if ignoreTraversal == nil {
-			return v, nil
+
+		// The structure should have been validated already, and we already
+		// trimmed the trailing map index. Any other intermediate index error
+		// means we wouldn't be able to apply the value below, so no need to
+		// record this.
+		p, err := icPath.Apply(prior)
+		if err != nil {
+			continue
+		}
+		c, err := icPath.Apply(config)
+		if err != nil {
+			continue
 		}
 
-		// If we're able to follow the same path through the prior value,
-		// we'll take the value there instead, effectively undoing the
-		// change that was planned.
-		priorV, diags := hcl.ApplyPath(prior, path, nil)
-		if diags.HasErrors() {
-			// We just ignore the errors and move on here, since we assume it's
-			// just because the prior value was a slightly-different shape.
-			// It could potentially also be that the traversal doesn't match
-			// the schema, but we should've caught that during the validate
-			// walk if so.
-			return v, nil
+		// If this is a map, it is checking the entire map value for equality
+		// rather than the individual key. This means that the change is stored
+		// here even if our ignored key doesn't change. That is OK since it
+		// won't cause any changes in the transformation, but allows us to skip
+		// breaking up the maps and checking for key existence here too.
+		eq := p.Equals(c)
+		if eq.IsKnown() && eq.False() {
+			// there a change to ignore at this path, store the prior value
+			ignoredValues = append(ignoredValues, ignoreChange{icPath, p, key})
 		}
-		return priorV, nil
+	}
+
+	if len(ignoredValues) == 0 {
+		return config, nil
+	}
+
+	ret, _ := cty.Transform(config, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		for _, ignored := range ignoredValues {
+			if !path.Equals(ignored.path) {
+				return v, nil
+			}
+
+			// no index, so we can return the entire value
+			if ignored.key.IsNull() {
+				return ignored.value, nil
+			}
+
+			// we have an index key, so make sure we have a map
+			if !v.Type().IsMapType() {
+				// we'll let other validation catch any type mismatch
+				return v, nil
+			}
+
+			// Now we know we are ignoring a specific index of this map, so get
+			// the config map and modify, add, or remove the desired key.
+			var configMap map[string]cty.Value
+			var priorMap map[string]cty.Value
+
+			if !v.IsNull() {
+				if !v.IsKnown() {
+					// if the entire map is not known, we can't ignore any
+					// specific keys yet.
+					continue
+				}
+				configMap = v.AsValueMap()
+			}
+			if configMap == nil {
+				configMap = map[string]cty.Value{}
+			}
+
+			// We also need to create a prior map, so we can check for
+			// existence while getting the value. Value.Index will always
+			// return null.
+			if !ignored.value.IsNull() {
+				priorMap = ignored.value.AsValueMap()
+			}
+			if priorMap == nil {
+				priorMap = map[string]cty.Value{}
+			}
+
+			key := ignored.key.AsString()
+			priorElem, keep := priorMap[key]
+
+			switch {
+			case !keep:
+				// this didn't exist in the old map value, so we're keeping the
+				// "absence" of the key by removing it from the config
+				delete(configMap, key)
+			default:
+				configMap[key] = priorElem
+			}
+
+			if len(configMap) == 0 {
+				return cty.MapValEmpty(v.Type().ElementType()), nil
+			}
+
+			return cty.MapVal(configMap), nil
+		}
+		return v, nil
 	})
-	return ret, diags
+	return ret, nil
 }
 
 // a group of key-*ResourceAttrDiff pairs from the same flatmapped container
