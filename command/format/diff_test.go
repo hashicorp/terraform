@@ -4025,7 +4025,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				}),
 				"nested_block_map": cty.MapVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
-						"an_attr": cty.StringVal("changed"),
+						"an_attr": cty.UnknownVal(cty.String),
 					}),
 				}),
 			}),
