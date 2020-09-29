@@ -103,6 +103,45 @@ func TestMultiEnvDefaultFunc(t *testing.T) {
 	}
 }
 
+func TestJsonEnvDefaultFunc(t *testing.T) {
+	key := "TF_TEST_JSON_ENV_DEFAULT_FUNC"
+	defer os.Unsetenv(key)
+
+	def := map[string]interface{} {"foo": "default"}
+	f := JsonEnvDefaultFunc(key, def)
+	if err := os.Setenv(key, "{\"foo\":\"bar\"}"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actualAbs, err := f()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	actual, ok := actualAbs.(map[string]interface{})
+	if !ok {
+		t.Fatalf("bad: %#v", actualAbs)
+	}
+	if actual["foo"] != "bar" {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actualAbs, err = f()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	actual, ok = actualAbs.(map[string]interface{})
+	if !ok {
+		t.Fatalf("bad: %#v", actualAbs)
+	}
+	if actual["foo"] != "default" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestValueType_Zero(t *testing.T) {
 	cases := []struct {
 		Type  ValueType

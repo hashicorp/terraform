@@ -13,6 +13,7 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -295,6 +296,23 @@ func MultiEnvDefaultFunc(ks []string, dv interface{}) SchemaDefaultFunc {
 				return v, nil
 			}
 		}
+		return dv, nil
+	}
+}
+
+// JsonEnvDefaultFunc is a helper function that parses the given environment
+// variable as a JSON object, or returns the default value otherwise.
+func JsonEnvDefaultFunc(k string, dv interface{}) SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if valStr := os.Getenv(k); valStr != "" {
+			var valObj map[string]interface{}
+			err := json.Unmarshal([]byte(valStr), &valObj)
+			if err != nil {
+				return nil, err
+			}
+			return valObj, nil
+		}
+
 		return dv, nil
 	}
 }
