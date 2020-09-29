@@ -117,7 +117,6 @@ type EvalDiff struct {
 	CreateBeforeDestroy bool
 
 	OutputChange **plans.ResourceInstanceChange
-	OutputValue  *cty.Value
 	OutputState  **states.ResourceInstanceObject
 
 	Stub bool
@@ -153,21 +152,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
-	}
-
-	// Create an unmarked version of our config val, defaulting
-	// to the configVal so we don't do the work of unmarking unless
-	// necessary
-	unmarkedConfigVal := configVal
-	var unmarkedPaths []cty.PathValueMarks
-	if configVal.ContainsMarked() {
-		// store the marked values so we can re-mark them later after
-		// we've sent things over the wire.
-		unmarkedConfigVal, unmarkedPaths = configVal.UnmarkDeepWithPaths()
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -213,6 +201,28 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
+	// ignore_changes is meant to only apply to the configuration, so it must
+	// be applied before we generate a plan. This ensures the config used for
+	// the proposed value, the proposed value itself, and the config presented
+	// to the provider in the PlanResourceChange request all agree on the
+	// starting values.
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	// Create an unmarked version of our config val, defaulting
+	// to the configVal so we don't do the work of unmarking unless
+	// necessary
+	unmarkedConfigVal := configValIgnored
+	var unmarkedPaths []cty.PathValueMarks
+	if configValIgnored.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedConfigVal, unmarkedPaths = configValIgnored.UnmarkDeepWithPaths()
+	}
+
 	unmarkedPriorVal := priorVal
 	if priorVal.ContainsMarked() {
 		// store the marked values so we can re-mark them later after
@@ -244,17 +254,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	)
 	if validateResp.Diagnostics.HasErrors() {
 		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
-	}
-
-	// The provider gets an opportunity to customize the proposed new value,
-	// which in turn produces the _planned_ new value. But before
-	// we send back this information, we need to process ignore_changes
-	// so that CustomizeDiff will not act on them
-	var ignoreChangeDiags tfdiags.Diagnostics
-	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, proposedNewVal)
-	diags = diags.Append(ignoreChangeDiags)
-	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
 	}
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -303,7 +302,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	if errs := objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, priorVal, configValIgnored, plannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
@@ -332,16 +331,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			}
 			return nil, diags.Err()
 		}
-	}
-
-	// TODO: We should be able to remove this repeat of processing ignored changes
-	// after the plan, which helps providers relying on old behavior "just work"
-	// in the next major version, such that we can be stricter about ignore_changes
-	// values
-	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
-	diags = diags.Append(ignoreChangeDiags)
-	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
 	}
 
 	// The provider produces a list of paths to attributes whose changes mean
@@ -444,6 +433,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// able to predict new values for any of these computed attributes.
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
 
+		// Since there is no prior state to compare after replacement, we need
+		// a new unmarked config from our original with no ignored values.
+		unmarkedConfigVal := origConfigVal
+		if origConfigVal.ContainsMarked() {
+			unmarkedConfigVal, _ = origConfigVal.UnmarkDeep()
+		}
+
 		// create a new proposed value from the null state and the config
 		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
 
@@ -541,10 +537,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	if n.OutputValue != nil {
-		*n.OutputValue = configVal
-	}
-
 	// Update the state if we care
 	if n.OutputState != nil {
 		*n.OutputState = &states.ResourceInstanceObject{
@@ -563,32 +555,32 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-func (n *EvalDiff) processIgnoreChanges(prior, proposed cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func (n *EvalDiff) processIgnoreChanges(prior, config cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	// ignore_changes only applies when an object already exists, since we
 	// can't ignore changes to a thing we've not created yet.
 	if prior.IsNull() {
-		return proposed, nil
+		return config, nil
 	}
 
 	ignoreChanges := n.Config.Managed.IgnoreChanges
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
 	if len(ignoreChanges) == 0 && !ignoreAll {
-		return proposed, nil
+		return config, nil
 	}
 	if ignoreAll {
 		return prior, nil
 	}
-	if prior.IsNull() || proposed.IsNull() {
+	if prior.IsNull() || config.IsNull() {
 		// Ignore changes doesn't apply when we're creating for the first time.
 		// Proposed should never be null here, but if it is then we'll just let it be.
-		return proposed, nil
+		return config, nil
 	}
 
-	return processIgnoreChangesIndividual(prior, proposed, ignoreChanges)
+	return processIgnoreChangesIndividual(prior, config, ignoreChanges)
 }
 
-func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []hcl.Traversal) (cty.Value, tfdiags.Diagnostics) {
+func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl.Traversal) (cty.Value, tfdiags.Diagnostics) {
 	// When we walk below we will be using cty.Path values for comparison, so
 	// we'll convert our traversals here so we can compare more easily.
 	ignoreChangesPath := make([]cty.Path, len(ignoreChanges))
@@ -616,7 +608,7 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 	}
 
 	var diags tfdiags.Diagnostics
-	ret, _ := cty.Transform(proposed, func(path cty.Path, v cty.Value) (cty.Value, error) {
+	ret, _ := cty.Transform(config, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		// First we must see if this is a path that's being ignored at all.
 		// We're looking for an exact match here because this walk will visit
 		// leaf values first and then their containers, and we want to do
