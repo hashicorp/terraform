@@ -288,9 +288,9 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
+	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
 	diags = diags.Append(providerDiags)
-	if providerDiags.HasErrors() {
+	if providersAbort || providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -419,13 +419,13 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output, abort bool, diags tfdiags.Diagnostics) {
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
 	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return false, diags
+		return false, true, diags
 	}
 	stateReqs := make(getproviders.Requirements, 0)
 	if state != nil {
@@ -574,6 +574,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					))
 				}
 
+			case getproviders.ErrRequestCanceled:
+				// We don't attribute cancellation to any particular operation,
+				// but rather just emit a single general message about it at
+				// the end, by checking ctx.Err().
+
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -637,6 +642,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 						),
 					))
 				}
+			case getproviders.ErrRequestCanceled:
+				// We don't attribute cancellation to any particular operation,
+				// but rather just emit a single general message about it at
+				// the end, by checking ctx.Err().
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -688,10 +697,16 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	if upgrade {
 		mode = providercache.InstallUpgrades
 	}
-	// TODO: Use a context that will be cancelled when the Terraform
-	// process receives SIGINT.
-	ctx := evts.OnContext(context.TODO())
+	// Installation can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext()
+	defer done()
+	ctx = evts.OnContext(ctx)
 	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
+	if ctx.Err() == context.Canceled {
+		c.showDiagnostics(diags)
+		c.Ui.Error("Provider installation was canceled by an interrupt signal.")
+		return true, true, diags
+	}
 	if err != nil {
 		// Build a map of provider address to modules using the provider,
 		// so that we can later show diagnostics about affected modules
@@ -707,7 +722,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		source := c.providerInstallSource()
 		for provider, fetchErr := range missingProviderErrors {
 			addr := addrs.NewLegacyProvider(provider.Type)
-			p, redirect, err := getproviders.LookupLegacyProvider(addr, source)
+			p, redirect, err := getproviders.LookupLegacyProvider(ctx, addr, source)
 			if err == nil {
 				if redirect.IsZero() {
 					foundProviders[provider] = p
@@ -718,7 +733,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to install provider",
-					fmt.Sprintf("Error while installing %s: %s", provider.ForDisplay(), fetchErr),
+					fmt.Sprintf("Error while installing %s: %s.", provider.ForDisplay(), fetchErr),
 				))
 			}
 		}
@@ -837,7 +852,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			diags = diags.Append(err)
 		}
 
-		return true, diags
+		return true, true, diags
 	}
 
 	// If any providers have "floating" versions (completely unconstrained)
@@ -864,7 +879,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		}
 	}
 
-	return true, diags
+	return true, false, diags
 }
 
 func (c *InitCommand) populateProviderToReqs(reqs map[addrs.Provider][]*configs.ModuleRequirements, node *configs.ModuleRequirements) {

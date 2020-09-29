@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -340,7 +341,7 @@ func TestProviderVersions(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gotVersions, _, err := client.ProviderVersions(test.provider)
+			gotVersions, _, err := client.ProviderVersions(context.Background(), test.provider)
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -419,7 +420,7 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			got, err := client.findClosestProtocolCompatibleVersion(test.provider, test.version)
+			got, err := client.findClosestProtocolCompatibleVersion(context.Background(), test.provider, test.version)
 
 			if err != nil {
 				if test.wantErr == "" {

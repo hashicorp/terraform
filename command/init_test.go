@@ -1298,6 +1298,54 @@ func TestInit_providerSource(t *testing.T) {
 	}
 }
 
+func TestInit_cancel(t *testing.T) {
+	// This test runs `terraform init` as if SIGINT (or similar on other
+	// platforms) were sent to it, testing that it is interruptible.
+
+	td := tempDir(t)
+	configDirName := "init-required-providers"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, closeSrc := newMockProviderSource(t, map[string][]string{
+		"test":      []string{"1.2.3", "1.2.4"},
+		"test-beta": []string{"1.2.4"},
+		"source":    []string{"1.2.2", "1.2.3", "1.2.1"},
+	})
+	defer closeSrc()
+
+	// our shutdown channel is pre-closed so init will exit as soon as it
+	// starts a cancelable portion of the process.
+	shutdownCh := make(chan struct{})
+	close(shutdownCh)
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		ProviderSource:   providerSource,
+		ShutdownCh:       shutdownCh,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{configDirName}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("succeeded; wanted error")
+	}
+	// Currently the first operation that is cancelable is provider
+	// installation, so our error message comes from there. If we
+	// make the earlier steps cancelable in future then it'd be
+	// expected for this particular message to change.
+	if got, want := ui.ErrorWriter.String(), `Provider installation was canceled by an interrupt signal`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
+	}
+}
+
 func TestInit_getUpgradePlugins(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

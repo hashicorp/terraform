@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -56,7 +57,7 @@ func NewMemoizeSource(underlying Source) *MemoizeSource {
 // AvailableVersions requests the available versions from the underlying source
 // and caches them before returning them, or on subsequent calls returns the
 // result directly from the cache.
-func (s *MemoizeSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+func (s *MemoizeSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -64,7 +65,7 @@ func (s *MemoizeSource) AvailableVersions(provider addrs.Provider) (VersionList,
 		return existing.VersionList, nil, existing.Err
 	}
 
-	ret, warnings, err := s.underlying.AvailableVersions(provider)
+	ret, warnings, err := s.underlying.AvailableVersions(ctx, provider)
 	s.availableVersions[provider] = memoizeAvailableVersionsRet{
 		VersionList: ret,
 		Err:         err,
@@ -76,7 +77,7 @@ func (s *MemoizeSource) AvailableVersions(provider addrs.Provider) (VersionList,
 // PackageMeta requests package metadata from the underlying source and caches
 // the result before returning it, or on subsequent calls returns the result
 // directly from the cache.
-func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *MemoizeSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -89,7 +90,7 @@ func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, ta
 		return existing.PackageMeta, existing.Err
 	}
 
-	ret, err := s.underlying.PackageMeta(provider, version, target)
+	ret, err := s.underlying.PackageMeta(ctx, provider, version, target)
 	s.packageMetas[key] = memoizePackageMetaRet{
 		PackageMeta: ret,
 		Err:         err,

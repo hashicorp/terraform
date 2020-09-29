@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -104,7 +105,7 @@ func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
 
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
-	got, _, err := source.AvailableVersions(nullProvider)
+	got, _, err := source.AvailableVersions(context.Background(), nullProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +124,10 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 	t.Run("available platform", func(t *testing.T) {
 		source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
 		got, err := source.PackageMeta(
-			nullProvider, versions.MustParseVersion("2.0.0"), Platform{"linux", "amd64"},
+			context.Background(),
+			nullProvider,
+			versions.MustParseVersion("2.0.0"),
+			Platform{"linux", "amd64"},
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -150,7 +154,10 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 		// We'll request a version that does exist in the fixture directory,
 		// but for a platform that isn't supported.
 		_, err := source.PackageMeta(
-			nullProvider, versions.MustParseVersion("2.0.0"), Platform{"nonexist", "nonexist"},
+			context.Background(),
+			nullProvider,
+			versions.MustParseVersion("2.0.0"),
+			Platform{"nonexist", "nonexist"},
 		)
 
 		if err == nil {

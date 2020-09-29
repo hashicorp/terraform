@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -25,7 +26,7 @@ import (
 // configurations that don't include explicit provider source addresses. New
 // configurations should not rely on it, and this fallback mechanism is
 // likely to be removed altogether in a future Terraform version.
-func LookupLegacyProvider(addr addrs.Provider, source Source) (addrs.Provider, addrs.Provider, error) {
+func LookupLegacyProvider(ctx context.Context, addr addrs.Provider, source Source) (addrs.Provider, addrs.Provider, error) {
 	if addr.Namespace != "-" {
 		return addr, addrs.Provider{}, nil
 	}
@@ -48,7 +49,7 @@ func LookupLegacyProvider(addr addrs.Provider, source Source) (addrs.Provider, a
 		return addrs.Provider{}, addrs.Provider{}, fmt.Errorf("unqualified provider type %q cannot be resolved because direct installation from %s is disabled in the CLI configuration; declare an explicit provider namespace for this provider", addr.Type, addr.Hostname)
 	}
 
-	defaultNamespace, redirectNamespace, err := regSource.LookupLegacyProviderNamespace(addr.Hostname, addr.Type)
+	defaultNamespace, redirectNamespace, err := regSource.LookupLegacyProviderNamespace(ctx, addr.Hostname, addr.Type)
 	if err != nil {
 		return addrs.Provider{}, addrs.Provider{}, err
 	}

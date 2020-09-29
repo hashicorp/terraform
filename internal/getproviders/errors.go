@@ -210,6 +210,19 @@ func (err ErrQueryFailed) Unwrap() error {
 	return err.Wrapped
 }
 
+// ErrRequestCancelled is an error type used to indicate that an operation
+// failed due to being cancelled via the given context.Context object.
+//
+// This error type doesn't include information about what was cancelled,
+// because the expected treatment of this error type is to quickly abort and
+// exit with minimal ceremony.
+type ErrRequestCanceled struct {
+}
+
+func (err ErrRequestCanceled) Error() string {
+	return "request canceled"
+}
+
 // ErrIsNotExist returns true if and only if the given error is one of the
 // errors from this package that represents an affirmative response that a
 // requested object does not exist.

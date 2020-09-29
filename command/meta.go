@@ -289,6 +289,33 @@ func (m *Meta) StdinPiped() bool {
 	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
+// InterruptibleContext returns a context.Context that will be cancelled
+// if the process is interrupted by a platform-specific interrupt signal.
+//
+// As usual with cancelable contexts, the caller must always call the given
+// cancel function once all operations are complete in order to make sure
+// that the context resources will still be freed even if there is no
+// interruption.
+func (m *Meta) InterruptibleContext() (context.Context, context.CancelFunc) {
+	base := context.Background()
+	if m.ShutdownCh == nil {
+		// If we're running in a unit testing context without a shutdown
+		// channel populated then we'll return an uncancelable channel.
+		return base, func() {}
+	}
+
+	ctx, cancel := context.WithCancel(base)
+	go func() {
+		select {
+		case <-m.ShutdownCh:
+			cancel()
+		case <-ctx.Done():
+			// finished without being interrupted
+		}
+	}()
+	return ctx, cancel
+}
+
 // RunOperation executes the given operation on the given backend, blocking
 // until that operation completes or is interrupted, and then returns
 // the RunningOperation object representing the completed or

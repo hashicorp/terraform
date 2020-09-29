@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -97,7 +98,7 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 // 404 Not Found to indicate that the namespace or provider type are not known,
 // ErrUnauthorized if the registry responds with 401 or 403 status codes, or
 // ErrQueryFailed for any other protocol or operational problem.
-func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]string, []string, error) {
+func (c *registryClient) ProviderVersions(ctx context.Context, addr addrs.Provider) (map[string][]string, []string, error) {
 	endpointPath, err := url.Parse(path.Join(addr.Namespace, addr.Type, "versions"))
 	if err != nil {
 		// Should never happen because we're constructing this from
@@ -109,6 +110,7 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 	if err != nil {
 		return nil, nil, err
 	}
+	req = req.WithContext(ctx)
 	c.addHeadersToRequest(req.Request)
 
 	resp, err := c.httpClient.Do(req)
@@ -170,7 +172,7 @@ func (c *registryClient) ProviderVersions(addr addrs.Provider) (map[string][]str
 //     supported by this version of terraform.
 //   - ErrUnauthorized if the registry responds with 401 or 403 status codes
 //   - ErrQueryFailed for any other operational problem.
-func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	endpointPath, err := url.Parse(path.Join(
 		provider.Namespace,
 		provider.Type,
@@ -190,6 +192,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 	if err != nil {
 		return PackageMeta{}, err
 	}
+	req = req.WithContext(ctx)
 	c.addHeadersToRequest(req.Request)
 
 	resp, err := c.httpClient.Do(req)
@@ -266,7 +269,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 		if match == false {
 			// If the protocol version is not supported, try to find the closest
 			// matching version.
-			closest, err := c.findClosestProtocolCompatibleVersion(provider, version)
+			closest, err := c.findClosestProtocolCompatibleVersion(ctx, provider, version)
 			if err != nil {
 				return PackageMeta{}, err
 			}
@@ -363,9 +366,9 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 }
 
 // findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
-func (c *registryClient) findClosestProtocolCompatibleVersion(provider addrs.Provider, version Version) (Version, error) {
+func (c *registryClient) findClosestProtocolCompatibleVersion(ctx context.Context, provider addrs.Provider, version Version) (Version, error) {
 	var match Version
-	available, _, err := c.ProviderVersions(provider)
+	available, _, err := c.ProviderVersions(ctx, provider)
 	if err != nil {
 		return UnspecifiedVersion, err
 	}
@@ -412,7 +415,7 @@ FindMatch:
 // This method exists only to allow compatibility with unqualified names
 // in older configurations. New configurations should be written so as not to
 // depend on it.
-func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string, string, error) {
+func (c *registryClient) LegacyProviderDefaultNamespace(ctx context.Context, typeName string) (string, string, error) {
 	endpointPath, err := url.Parse(path.Join("-", typeName, "versions"))
 	if err != nil {
 		// Should never happen because we're constructing this from
@@ -425,6 +428,7 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 	if err != nil {
 		return "", "", err
 	}
+	req = req.WithContext(ctx)
 	c.addHeadersToRequest(req.Request)
 
 	// This is just to give us something to return in error messages. It's
@@ -493,6 +497,11 @@ func (c *registryClient) addHeadersToRequest(req *http.Request) {
 }
 
 func (c *registryClient) errQueryFailed(provider addrs.Provider, err error) error {
+	if err == context.Canceled {
+		// This one has a special error type so that callers can
+		// handle it in a different way.
+		return ErrRequestCanceled{}
+	}
 	return ErrQueryFailed{
 		Provider: provider,
 		Wrapped:  err,

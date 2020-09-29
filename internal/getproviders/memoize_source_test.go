@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,7 +21,7 @@ func TestMemoizeSource(t *testing.T) {
 		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
-		got, _, err := source.AvailableVersions(provider)
+		got, _, err := source.AvailableVersions(context.Background(), provider)
 		want := VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -29,7 +30,7 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("wrong result from first call to AvailableVersions\n%s", diff)
 		}
 
-		got, _, err = source.AvailableVersions(provider)
+		got, _, err = source.AvailableVersions(context.Background(), provider)
 		want = VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -38,12 +39,12 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("wrong result from second call to AvailableVersions\n%s", diff)
 		}
 
-		_, _, err = source.AvailableVersions(nonexistProvider)
+		_, _, err = source.AvailableVersions(context.Background(), nonexistProvider)
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type from nonexist call:\ngot:  %T\nwant: %T", err, want)
 		}
 
-		got, _, err = source.AvailableVersions(provider)
+		got, _, err = source.AvailableVersions(context.Background(), provider)
 		want = VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -70,7 +71,7 @@ func TestMemoizeSource(t *testing.T) {
 		mock := NewMockSource([]PackageMeta{meta}, map[addrs.Provider]Warnings{warnProvider: {"WARNING!"}})
 		source := NewMemoizeSource(mock)
 
-		got, warns, err := source.AvailableVersions(warnProvider)
+		got, warns, err := source.AvailableVersions(context.Background(), warnProvider)
 		want := VersionList{version}
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -90,7 +91,7 @@ func TestMemoizeSource(t *testing.T) {
 		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
-		got, err := source.PackageMeta(provider, version, platform)
+		got, err := source.PackageMeta(context.Background(), provider, version, platform)
 		want := meta
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -99,7 +100,7 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("wrong result from first call to PackageMeta\n%s", diff)
 		}
 
-		got, err = source.PackageMeta(provider, version, platform)
+		got, err = source.PackageMeta(context.Background(), provider, version, platform)
 		want = meta
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -108,16 +109,16 @@ func TestMemoizeSource(t *testing.T) {
 			t.Fatalf("wrong result from second call to PackageMeta\n%s", diff)
 		}
 
-		_, err = source.PackageMeta(nonexistProvider, version, platform)
+		_, err = source.PackageMeta(context.Background(), nonexistProvider, version, platform)
 		if want, ok := err.(ErrPlatformNotSupported); !ok {
 			t.Fatalf("wrong error type from nonexist provider call:\ngot:  %T\nwant: %T", err, want)
 		}
-		_, err = source.PackageMeta(provider, version, nonexistPlatform)
+		_, err = source.PackageMeta(context.Background(), provider, version, nonexistPlatform)
 		if want, ok := err.(ErrPlatformNotSupported); !ok {
 			t.Fatalf("wrong error type from nonexist platform call:\ngot:  %T\nwant: %T", err, want)
 		}
 
-		got, err = source.PackageMeta(provider, version, platform)
+		got, err = source.PackageMeta(context.Background(), provider, version, platform)
 		want = meta
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -143,11 +144,11 @@ func TestMemoizeSource(t *testing.T) {
 		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
-		_, _, err := source.AvailableVersions(nonexistProvider)
+		_, _, err := source.AvailableVersions(context.Background(), nonexistProvider)
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type from first call:\ngot:  %T\nwant: %T", err, want)
 		}
-		_, _, err = source.AvailableVersions(nonexistProvider)
+		_, _, err = source.AvailableVersions(context.Background(), nonexistProvider)
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type from second call:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -165,11 +166,11 @@ func TestMemoizeSource(t *testing.T) {
 		mock := NewMockSource([]PackageMeta{meta}, nil)
 		source := NewMemoizeSource(mock)
 
-		_, err := source.PackageMeta(nonexistProvider, version, platform)
+		_, err := source.PackageMeta(context.Background(), nonexistProvider, version, platform)
 		if want, ok := err.(ErrPlatformNotSupported); !ok {
 			t.Fatalf("wrong error type from first call:\ngot:  %T\nwant: %T", err, want)
 		}
-		_, err = source.PackageMeta(nonexistProvider, version, platform)
+		_, err = source.PackageMeta(context.Background(), nonexistProvider, version, platform)
 		if want, ok := err.(ErrPlatformNotSupported); !ok {
 			t.Fatalf("wrong error type from second call:\ngot:  %T\nwant: %T", err, want)
 		}

@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -32,13 +33,13 @@ func NewRegistrySource(services *disco.Disco) *RegistrySource {
 // ErrHostNoProviders, ErrHostUnreachable, ErrUnauthenticated,
 // ErrProviderNotKnown, or ErrQueryFailed. Callers must be defensive and
 // expect errors of other types too, to allow for future expansion.
-func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+func (s *RegistrySource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	client, err := s.registryClient(provider.Hostname)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	versionsResponse, warnings, err := client.ProviderVersions(provider)
+	versionsResponse, warnings, err := client.ProviderVersions(ctx, provider)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,13 +95,13 @@ func (s *RegistrySource) AvailableVersions(provider addrs.Provider) (VersionList
 // ErrHostNoProviders, ErrHostUnreachable, ErrUnauthenticated,
 // ErrPlatformNotSupported, or ErrQueryFailed. Callers must be defensive and
 // expect errors of other types too, to allow for future expansion.
-func (s *RegistrySource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *RegistrySource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	client, err := s.registryClient(provider.Hostname)
 	if err != nil {
 		return PackageMeta{}, err
 	}
 
-	return client.PackageMeta(provider, version, target)
+	return client.PackageMeta(ctx, provider, version, target)
 }
 
 // LookupLegacyProviderNamespace is a special method available only on
@@ -118,12 +119,12 @@ func (s *RegistrySource) PackageMeta(provider addrs.Provider, version Version, t
 // in older configurations. New configurations should be written so as not to
 // depend on it, and this fallback mechanism will likely be removed altogether
 // in a future Terraform version.
-func (s *RegistrySource) LookupLegacyProviderNamespace(hostname svchost.Hostname, typeName string) (string, string, error) {
+func (s *RegistrySource) LookupLegacyProviderNamespace(ctx context.Context, hostname svchost.Hostname, typeName string) (string, string, error) {
 	client, err := s.registryClient(hostname)
 	if err != nil {
 		return "", "", err
 	}
-	return client.LegacyProviderDefaultNamespace(typeName)
+	return client.LegacyProviderDefaultNamespace(ctx, typeName)
 }
 
 func (s *RegistrySource) registryClient(hostname svchost.Hostname) (*registryClient, error) {

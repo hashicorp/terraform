@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -59,7 +60,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.provider, func(t *testing.T) {
 			provider := addrs.MustParseProviderSourceString(test.provider)
-			gotVersions, _, err := source.AvailableVersions(provider)
+			gotVersions, _, err := source.AvailableVersions(context.Background(), provider)
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -95,7 +96,7 @@ func TestSourceAvailableVersions_warnings(t *testing.T) {
 	defer close()
 
 	provider := addrs.MustParseProviderSourceString("example.com/weaksauce/no-versions")
-	_, warnings, err := source.AvailableVersions(provider)
+	_, warnings, err := source.AvailableVersions(context.Background(), provider)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -209,7 +210,7 @@ func TestSourcePackageMeta(t *testing.T) {
 
 			version := versions.MustParseVersion(test.version)
 
-			got, err := source.PackageMeta(providerAddr, version, Platform{test.os, test.arch})
+			got, err := source.PackageMeta(context.Background(), providerAddr, version, Platform{test.os, test.arch})
 
 			if err != nil {
 				if test.wantErr == "" {
