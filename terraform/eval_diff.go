@@ -789,45 +789,6 @@ func (n *EvalReduceDiff) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-// EvalReadDiff is an EvalNode implementation that retrieves the planned
-// change for a particular resource instance object.
-type EvalReadDiff struct {
-	Addr           addrs.ResourceInstance
-	ProviderSchema **ProviderSchema
-	Change         **plans.ResourceInstanceChange
-}
-
-func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
-	providerSchema := *n.ProviderSchema
-	changes := ctx.Changes()
-	addr := n.Addr.Absolute(ctx.Path())
-
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
-	}
-
-	gen := states.CurrentGen
-	csrc := changes.GetResourceInstanceChange(addr, gen)
-	if csrc == nil {
-		log.Printf("[TRACE] EvalReadDiff: No planned change recorded for %s", addr)
-		return nil, nil
-	}
-
-	change, err := csrc.Decode(schema.ImpliedType())
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode planned changes for %s: %s", addr, err)
-	}
-	if n.Change != nil {
-		*n.Change = change
-	}
-
-	log.Printf("[TRACE] EvalReadDiff: Read %s change from plan for %s", change.Action, addr)
-
-	return nil, nil
-}
-
 // EvalWriteDiff is an EvalNode implementation that saves a planned change
 // for an instance object into the set of global planned changes.
 type EvalWriteDiff struct {
