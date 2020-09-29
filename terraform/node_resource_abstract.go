@@ -498,6 +498,8 @@ func (n *NodeAbstractResource) WriteResourceState(ctx EvalContext, addr addrs.Ab
 	return nil
 }
 
+// ReadResourceInstanceState reads the current object for a specific instance in
+// the state.
 func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 
@@ -540,31 +542,6 @@ func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr a
 	return obj, nil
 }
 
-// CheckPreventDestroy returns an error if a resource has PreventDestroy
-// configured and the diff would destroy the resource.
-func (n *NodeAbstractResource) CheckPreventDestroy(addr addrs.AbsResourceInstance, change *plans.ResourceInstanceChange) error {
-	if change == nil || n.Config == nil || n.Config.Managed == nil {
-		return nil
-	}
-	preventDestroy := n.Config.Managed.PreventDestroy
-
-	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Instance cannot be destroyed",
-			Detail: fmt.Sprintf(
-				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target flag.",
-				addr,
-			),
-			Subject: &n.Config.DeclRange,
-		})
-		return diags.Err()
-	}
-
-	return nil
-}
-
 // ReadDiff returns the planned change for a particular resource instance
 // object.
 func (n *NodeAbstractResourceInstance) ReadDiff(ctx EvalContext, providerSchema *ProviderSchema) (*plans.ResourceInstanceChange, error) {
@@ -592,6 +569,30 @@ func (n *NodeAbstractResourceInstance) ReadDiff(ctx EvalContext, providerSchema 
 	log.Printf("[TRACE] EvalReadDiff: Read %s change from plan for %s", change.Action, n.Addr)
 
 	return change, nil
+}
+
+func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) error {
+	if change == nil || n.Config == nil || n.Config.Managed == nil {
+		return nil
+	}
+
+	preventDestroy := n.Config.Managed.PreventDestroy
+
+	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Instance cannot be destroyed",
+			Detail: fmt.Sprintf(
+				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target flag.",
+				n.Addr.String(),
+			),
+			Subject: &n.Config.DeclRange,
+		})
+		return diags.Err()
+	}
+
+	return nil
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
