@@ -39,6 +39,17 @@ type Meta struct {
 	// command with a Meta field. These are expected to be set externally
 	// (not from within the command itself).
 
+	// OriginalWorkingDir, if set, is the actual working directory where
+	// Terraform was run from. This might not be the _actual_ current working
+	// directory, because users can add the -chdir=... option to the beginning
+	// of their command line to ask Terraform to switch.
+	//
+	// Most things should just use the current working directory in order to
+	// respect the user's override, but we retain this for exceptional
+	// situations where we need to refer back to the original working directory
+	// for some reason.
+	OriginalWorkingDir string
+
 	Color            bool             // True if output should be colored
 	GlobalPluginDirs []string         // Additional paths to search for plugins
 	PluginOverrides  *PluginOverrides // legacy overrides from .terraformrc file
@@ -341,7 +352,12 @@ const (
 
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
-func (m *Meta) contextOpts() *terraform.ContextOpts {
+func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
+	workspace, err := m.Workspace()
+	if err != nil {
+		return nil, err
+	}
+
 	var opts terraform.ContextOpts
 	opts.Hooks = []terraform.Hook{m.uiHook()}
 	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
@@ -379,10 +395,11 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	}
 
 	opts.Meta = &terraform.ContextMeta{
-		Env: m.Workspace(),
+		Env:                workspace,
+		OriginalWorkingDir: m.OriginalWorkingDir,
 	}
 
-	return &opts
+	return &opts, nil
 }
 
 // defaultFlagSet creates a default flag set for commands.
@@ -435,14 +452,18 @@ func (m *Meta) process(args []string) []string {
 
 	// Set colorization
 	m.color = m.Color
-	for i, v := range args {
+	i := 0 // output index
+	for _, v := range args {
 		if v == "-no-color" {
 			m.color = false
 			m.Color = false
-			args = append(args[:i], args[i+1:]...)
-			break
+		} else {
+			// copy and increment index
+			args[i] = v
+			i++
 		}
 	}
+	args = args[:i]
 
 	// Set the UI
 	m.oldUi = m.Ui
@@ -599,11 +620,16 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
+var invalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
+
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
-func (m *Meta) Workspace() string {
-	current, _ := m.WorkspaceOverridden()
-	return current
+func (m *Meta) Workspace() (string, error) {
+	current, overridden := m.WorkspaceOverridden()
+	if overridden && !validWorkspaceName(current) {
+		return "", invalidWorkspaceNameEnvVar
+	}
+	return current, nil
 }
 
 // WorkspaceOverridden returns the name of the currently configured workspace,

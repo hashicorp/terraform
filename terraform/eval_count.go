@@ -117,8 +117,12 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 // or this function will block forever awaiting the lock.
 func fixResourceCountSetTransition(ctx EvalContext, addr addrs.ConfigResource, countEnabled bool) {
 	state := ctx.State()
-	changed := state.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled)
-	if changed {
+	if state.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled) {
+		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
+	}
+
+	refreshState := ctx.RefreshState()
+	if refreshState != nil && refreshState.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled) {
 		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
 	}
 }

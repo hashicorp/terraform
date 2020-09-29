@@ -118,10 +118,10 @@ func (s *RegistrySource) PackageMeta(provider addrs.Provider, version Version, t
 // in older configurations. New configurations should be written so as not to
 // depend on it, and this fallback mechanism will likely be removed altogether
 // in a future Terraform version.
-func (s *RegistrySource) LookupLegacyProviderNamespace(hostname svchost.Hostname, typeName string) (string, error) {
+func (s *RegistrySource) LookupLegacyProviderNamespace(hostname svchost.Hostname, typeName string) (string, string, error) {
 	client, err := s.registryClient(hostname)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	return client.LegacyProviderDefaultNamespace(typeName)
 }

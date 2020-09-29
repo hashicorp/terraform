@@ -3,6 +3,7 @@ behavior "remove_labels_on_reply" "remove_stale" {
   only_non_maintainers = true
 }
 
+/*
 poll "label_issue_migrater" "provider_migrater" {
   schedule                = "0 20 * * * *"
   new_owner               = env.PROVIDERS_OWNER
@@ -23,6 +24,7 @@ poll "label_issue_migrater" "provider_migrater" {
     EOF
   migrated_comment = "This issue has been automatically migrated to ${var.repository}#${var.issue_number} because it looks like an issue with that provider. If you believe this is _not_ an issue with the provider, please reply to ${var.repository}#${var.issue_number}."
 }
+*/
 
 poll "closed_issue_locker" "locker" {
   schedule                      = "0 50 1 * * *"

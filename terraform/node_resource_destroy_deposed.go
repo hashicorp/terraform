@@ -73,46 +73,6 @@ func (n *NodePlanDeposedResourceInstanceObject) EvalTree() EvalNode {
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
-	// During the refresh walk we will ensure that our record of the deposed
-	// object is up-to-date. If it was already deleted outside of Terraform
-	// then this will remove it from state and thus avoid us planning a
-	// destroy for it during the subsequent plan walk.
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalGetProvider{
-					Addr:   n.ResolvedProvider,
-					Output: &provider,
-					Schema: &providerSchema,
-				},
-				&EvalReadStateDeposed{
-					Addr:           addr.Resource,
-					Provider:       &provider,
-					ProviderSchema: &providerSchema,
-					Key:            n.DeposedKey,
-					Output:         &state,
-				},
-				&EvalRefresh{
-					Addr:           addr.Resource,
-					ProviderAddr:   n.ResolvedProvider,
-					Provider:       &provider,
-					ProviderMetas:  n.ProviderMetas,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-					Output:         &state,
-				},
-				&EvalWriteStateDeposed{
-					Addr:           addr.Resource,
-					Key:            n.DeposedKey,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-				},
-			},
-		},
-	})
-
 	// During the plan walk we always produce a planned destroy change, because
 	// destroying is the only supported action for deposed objects.
 	var change *plans.ResourceInstanceChange

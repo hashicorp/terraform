@@ -21,7 +21,6 @@ import (
 type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
-	destroyNode      GraphNodeDestroyerCBD
 	graphNodeDeposer // implementation of GraphNodeDeposerConfig
 
 	// If this node is forced to be CreateBeforeDestroy, we need to record that
@@ -39,13 +38,7 @@ var (
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
 
-// GraphNodeAttachDestroyer
-func (n *NodeApplyableResourceInstance) AttachDestroyNode(d GraphNodeDestroyerCBD) {
-	n.destroyNode = d
-}
-
-// CreateBeforeDestroy checks this nodes config status and the status af any
-// companion destroy node for CreateBeforeDestroy.
+// CreateBeforeDestroy returns this node's CreateBeforeDestroy status.
 func (n *NodeApplyableResourceInstance) CreateBeforeDestroy() bool {
 	if n.ForceCreateBeforeDestroy {
 		return n.ForceCreateBeforeDestroy
@@ -53,10 +46,6 @@ func (n *NodeApplyableResourceInstance) CreateBeforeDestroy() bool {
 
 	if n.Config != nil && n.Config.Managed != nil {
 		return n.Config.Managed.CreateBeforeDestroy
-	}
-
-	if n.destroyNode != nil {
-		return n.destroyNode.CreateBeforeDestroy()
 	}
 
 	return false
@@ -263,10 +252,15 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 					destroy := false
 					if diffApply != nil {
 						destroy = (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
+
+						// Get the stored action for CBD if we have a plan already
+						createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete
 					}
+
 					if destroy && n.CreateBeforeDestroy() {
 						createBeforeDestroyEnabled = true
 					}
+
 					return createBeforeDestroyEnabled, nil
 				},
 				Then: &EvalDeposeState{

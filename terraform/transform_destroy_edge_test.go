@@ -29,7 +29,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -73,7 +73,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -83,8 +83,8 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"C","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{
-				mustResourceAddr("test_object.A"),
-				mustResourceAddr("test_object.B"),
+				mustConfigResourceAddr("test_object.A"),
+				mustConfigResourceAddr("test_object.B"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -139,7 +139,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"a"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.b")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.child.test_object.b")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -195,7 +195,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"b","test_string":"x"}`),
 				Dependencies: []addrs.ConfigResource{
-					mustResourceAddr("module.child.test_object.a"),
+					mustConfigResourceAddr("module.child.test_object.a"),
 				},
 			},
 			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -206,8 +206,8 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"c","test_string":"x"}`),
 				Dependencies: []addrs.ConfigResource{
-					mustResourceAddr("module.child.test_object.a"),
-					mustResourceAddr("module.child.test_object.b"),
+					mustConfigResourceAddr("module.child.test_object.a"),
+					mustConfigResourceAddr("module.child.test_object.b"),
 				},
 			},
 			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),

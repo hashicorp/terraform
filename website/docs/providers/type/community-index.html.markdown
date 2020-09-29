@@ -153,7 +153,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Outlook](https://github.com/magodo/terraform-provider-outlook)
 - [oVirt](https://github.com/oVirt/terraform-provider-ovirt)
 - [Pass](https://github.com/camptocamp/terraform-provider-pass)
-- [PHPIPAM](https://github.com/lord-kyron/terraform-provider-phpipaim)
+- [PHPIPAM](https://github.com/lord-kyron/terraform-provider-phpipam)
 - [PingAccess](https://github.com/iwarapter/terraform-provider-pingaccess)
 - [Pingdom](https://github.com/russellcardullo/terraform-provider-pingdom)
 - [Pivotal Tracker](https://github.com/xchapter7x/terraform-provider-pivotaltracker)

@@ -36,9 +36,15 @@ Usage: `terraform providers mirror [options] <target-dir>`
 
 A single target directory is required. Terraform will create under that
 directory the path structure that is expected for filesystem-based provider
-plugin mirrors, populating it both with `.zip` files containing the plugins
-themselves and `.json` index files that describe what is available in the
-directory.
+plugin mirrors, populating it with `.zip` files containing the plugins
+themselves.
+
+Terraform will also generate various `.json` index files which contain suitable
+responses to implement
+[the network mirror protocol](/docs/internals/provider-network-mirror-protocol.html),
+if you upload the resulting directory to a static website host. Terraform
+ignores those index files when using the directory as a filesystem mirror,
+because the directory entries themselves are authoritative in that case.
 
 This command supports the following additional option:
 
@@ -47,7 +53,7 @@ This command supports the following additional option:
   where you run this command. Use this flag multiple times to include packages
   for multiple target systems.
 
-  Target platform names names consist of an operating system and a CPU
+  Target platform names consist of an operating system and a CPU
   architecture. For example, `linux_amd64` selects the Linux operating system
   running on an AMD64 or x86_64 CPU.
 

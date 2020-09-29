@@ -2,8 +2,8 @@ module github.com/hashicorp/terraform
 
 require (
 	cloud.google.com/go v0.45.1
-	github.com/Azure/azure-sdk-for-go v40.3.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.10.0
+	github.com/Azure/azure-sdk-for-go v45.0.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.11.3
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
@@ -14,7 +14,7 @@ require (
 	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
-	github.com/apparentlymart/go-userdirs v0.0.0-20190512014041-4a23807e62b9
+	github.com/apparentlymart/go-userdirs v0.0.0-20200915174352-b0c018a67c13
 	github.com/apparentlymart/go-versions v1.0.0
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
@@ -22,7 +22,6 @@ require (
 	github.com/aws/aws-sdk-go v1.31.9
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/bmatcuk/doublestar v1.1.5
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -51,10 +50,10 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
-	github.com/hashicorp/aws-sdk-go-base v0.5.0
+	github.com/hashicorp/aws-sdk-go-base v0.6.0
 	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
 	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/go-azure-helpers v0.10.0
+	github.com/hashicorp/go-azure-helpers v0.12.0
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-getter v1.4.2-0.20200106182914-9813cbd4eb02
@@ -70,12 +69,11 @@ require (
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl/v2 v2.6.0
-	github.com/hashicorp/hil v0.0.0-20190212112733-ab17b08d6590
+	github.com/hashicorp/hcl/v2 v2.6.1-0.20200925151948-a0de289809fb
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
-	github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
+	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 	github.com/hashicorp/vault v0.10.4
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
@@ -94,14 +92,13 @@ require (
 	github.com/mattn/go-isatty v0.0.5
 	github.com/mattn/go-shellwords v1.0.4
 	github.com/miekg/dns v1.0.8 // indirect
-	github.com/mitchellh/cli v1.0.0
+	github.com/mitchellh/cli v1.1.0
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-linereader v0.0.0-20190213213312-1b945b3263eb
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/mitchellh/gox v1.0.1
-	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/mitchellh/prefixedio v0.0.0-20190213213902-5733675afd51
@@ -121,18 +118,17 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
-	github.com/tombuildsstuff/giovanni v0.10.1
+	github.com/tombuildsstuff/giovanni v0.12.0
 	github.com/ugorji/go v0.0.0-20180813092308-00b869d2f4a5 // indirect
-	github.com/vmihailenco/msgpack v4.0.1+incompatible // indirect
 	github.com/xanzy/ssh-agent v0.2.1
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.5.1
+	github.com/zclconf/go-cty v1.6.2-0.20200923201117-36785d4dc4ac
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/mod v0.2.0
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
@@ -148,15 +144,6 @@ require (
 	k8s.io/utils v0.0.0-20200411171748-3d5a2fe318e4
 )
 
-replace (
-	github.com/Azure/go-autorest v11.1.2+incompatible => github.com/Azure/go-autorest v12.1.0+incompatible
-	k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
-)
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
 go 1.14
-
-replace github.com/Azure/go-autorest => github.com/tombuildsstuff/go-autorest v14.0.1-0.20200416184303-d4e299a3c04a+incompatible
-
-replace github.com/Azure/go-autorest/autorest => github.com/tombuildsstuff/go-autorest/autorest v0.10.1-0.20200416184303-d4e299a3c04a
-
-replace github.com/Azure/go-autorest/autorest/azure/auth => github.com/tombuildsstuff/go-autorest/autorest/azure/auth v0.4.3-0.20200416184303-d4e299a3c04a

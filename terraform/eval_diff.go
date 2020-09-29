@@ -59,6 +59,18 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 			// all of the unknown values, since the final values might actually
 			// match what was there before after all.
 			log.Printf("[DEBUG] After incorporating new values learned so far during apply, %s change has become NoOp", absAddr)
+
+		case (plannedChange.Action == plans.CreateThenDelete && actualChange.Action == plans.DeleteThenCreate) ||
+			(plannedChange.Action == plans.DeleteThenCreate && actualChange.Action == plans.CreateThenDelete):
+			// If the order of replacement changed, then that is a bug in terraform
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Terraform produced inconsistent final plan",
+				fmt.Sprintf(
+					"When expanding the plan for %s to include new values learned so far during apply, the planned action changed from %s to %s.\n\nThis is a bug in Terraform and should be reported.",
+					absAddr, plannedChange.Action, actualChange.Action,
+				),
+			))
 		default:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -118,6 +130,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 	providerSchema := *n.ProviderSchema
 
+	createBeforeDestroy := n.CreateBeforeDestroy
+	if n.PreviousDiff != nil {
+		// If we already planned the action, we stick to that plan
+		createBeforeDestroy = (*n.PreviousDiff).Action == plans.CreateThenDelete
+	}
+
 	if providerSchema == nil {
 		return nil, fmt.Errorf("provider schema is unavailable for %s", n.Addr)
 	}
@@ -139,6 +157,17 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	// Create an unmarked version of our config val, defaulting
+	// to the configVal so we don't do the work of unmarking unless
+	// necessary
+	unmarkedConfigVal := configVal
+	var unmarkedPaths []cty.PathValueMarks
+	if configVal.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedConfigVal, unmarkedPaths = configVal.UnmarkDeepWithPaths()
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -184,7 +213,14 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+	unmarkedPriorVal := priorVal
+	if priorVal.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedPriorVal, _ = priorVal.UnmarkDeep()
+	}
+
+	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
 	if !n.Stub {
@@ -203,7 +239,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	validateResp := provider.ValidateResourceTypeConfig(
 		providers.ValidateResourceTypeConfigRequest{
 			TypeName: n.Addr.Resource.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		},
 	)
 	if validateResp.Diagnostics.HasErrors() {
@@ -215,7 +251,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// we send back this information, we need to process ignore_changes
 	// so that CustomizeDiff will not act on them
 	var ignoreChangeDiags tfdiags.Diagnostics
-	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, proposedNewVal)
+	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, proposedNewVal)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, diags.Err()
@@ -223,8 +259,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
-		Config:           configVal,
-		PriorState:       priorVal,
+		Config:           unmarkedConfigVal,
+		PriorState:       unmarkedPriorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
 		ProviderMeta:     metaConfigVal,
@@ -242,6 +278,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// is always a bug in the client-side stub. This is more likely caused
 		// by an incompletely-configured mock provider in tests, though.
 		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", absAddr.String()))
+	}
+
+	// Add the marks back to the planned new value
+	if len(unmarkedPaths) > 0 {
+		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	// We allow the planned new value to disagree with configuration _values_
@@ -318,7 +359,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				continue
 			}
 
-			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
 			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
 			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
 				// This means the path was invalid in both the prior and new
@@ -350,7 +391,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
 
-			eqV := plannedChangedVal.Equals(priorChangedVal)
+			// Unmark for this value for the equality test. If only sensitivity has changed,
+			// this does not require an Update or Replace
+			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
+			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
 			if !eqV.IsKnown() || eqV.False() {
 				reqRep.Add(path)
 			}
@@ -360,7 +404,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	eqV := plannedNewVal.Equals(priorVal)
+	// Unmark for this test for equality. If only sensitivity has changed,
+	// this does not require an Update or Replace
+	unmarkedPlannedNewVal, _ := plannedNewVal.UnmarkDeep()
+	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
 	var action plans.Action
@@ -372,7 +419,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	case !reqRep.Empty():
 		// If there are any "requires replace" paths left _after our filtering
 		// above_ then this is a replace action.
-		if n.CreateBeforeDestroy {
+		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {
 			action = plans.DeleteThenCreate
@@ -398,11 +445,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
 
 		// create a new proposed value from the null state and the config
-		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, configVal)
+		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
 
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Type,
-			Config:           configVal,
+			Config:           unmarkedConfigVal,
 			PriorState:       nullPriorVal,
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     plannedPrivate,
@@ -419,6 +466,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
+
+		if len(unmarkedPaths) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		}
+
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -438,7 +490,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// as a replace change, even though so far we've been treating it as a
 	// create.
 	if action == plans.Create && priorValTainted != cty.NilVal {
-		if n.CreateBeforeDestroy {
+		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {
 			action = plans.DeleteThenCreate
@@ -480,7 +532,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			Change: plans.Change{
 				Action: action,
 				Before: priorVal,
-				After:  plannedNewVal,
+				// Pass the marked planned value through in our change
+				// to propogate through evaluation.
+				// Marks will be removed when encoding.
+				After: plannedNewVal,
 			},
 			RequiredReplace: reqRep,
 		}

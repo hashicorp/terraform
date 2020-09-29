@@ -4,7 +4,7 @@
 # Remote-state backend                  # Maintainer
 /backend/remote-state/artifactory       Unmaintained
 /backend/remote-state/azure             @hashicorp/terraform-azure
-/backend/remote-state/consul            @hashicorp/consul
+/backend/remote-state/consul            @hashicorp/consul @remilapeyre
 /backend/remote-state/cos               @likexian
 /backend/remote-state/etcdv2            Unmaintained
 /backend/remote-state/etcdv3            @bmcustodio
@@ -12,7 +12,7 @@
 /backend/remote-state/http              @hashicorp/terraform-core
 /backend/remote-state/manta             Unmaintained
 /backend/remote-state/oss               @xiaozhu36
-/backend/remote-state/pg                Unmaintained
+/backend/remote-state/pg                @remilapeyre
 /backend/remote-state/s3                @hashicorp/terraform-aws
 /backend/remote-state/swift             Unmaintained
 /backend/remote-state/kubernetes        @jrhouston @alexsomesan 

@@ -69,6 +69,12 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["version"]; exists {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Version constraints inside provider configuration blocks are deprecated",
+			Detail:   "Terraform 0.13 and earlier allowed provider version constraints inside the provider configuration block, but that is now deprecated and will be removed in a future version of Terraform. To silence this warning, move the provider version constraint into the required_providers block.",
+			Subject:  attr.Expr.Range().Ptr(),
+		})
 		var versionDiags hcl.Diagnostics
 		provider.Version, versionDiags = decodeVersionConstraint(attr)
 		diags = append(diags, versionDiags...)

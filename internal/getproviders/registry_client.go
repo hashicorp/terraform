@@ -275,6 +275,10 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 		}
 	}
 
+	if body.OS != target.OS || body.Arch != target.Arch {
+		return PackageMeta{}, fmt.Errorf("registry response to request for %s archive has incorrect target %s", target, Platform{body.OS, body.Arch})
+	}
+
 	downloadURL, err := url.Parse(body.DownloadURL)
 	if err != nil {
 		return PackageMeta{}, fmt.Errorf("registry response includes invalid download URL: %s", err)
@@ -351,7 +355,7 @@ func (c *registryClient) PackageMeta(provider addrs.Provider, version Version, t
 
 	ret.Authentication = PackageAuthenticationAll(
 		NewMatchingChecksumAuthentication(document, body.Filename, checksum),
-		NewArchiveChecksumAuthentication(checksum),
+		NewArchiveChecksumAuthentication(ret.TargetPlatform, checksum),
 		NewSignatureAuthentication(document, signature, keys),
 	)
 
@@ -408,18 +412,18 @@ FindMatch:
 // This method exists only to allow compatibility with unqualified names
 // in older configurations. New configurations should be written so as not to
 // depend on it.
-func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string, error) {
+func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string, string, error) {
 	endpointPath, err := url.Parse(path.Join("-", typeName, "versions"))
 	if err != nil {
 		// Should never happen because we're constructing this from
 		// already-validated components.
-		return "", err
+		return "", "", err
 	}
 	endpointURL := c.baseURL.ResolveReference(endpointPath)
 
 	req, err := retryablehttp.NewRequest("GET", endpointURL.String(), nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	c.addHeadersToRequest(req.Request)
 
@@ -429,7 +433,7 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", c.errQueryFailed(placeholderProviderAddr, err)
+		return "", "", c.errQueryFailed(placeholderProviderAddr, err)
 	}
 	defer resp.Body.Close()
 
@@ -437,35 +441,48 @@ func (c *registryClient) LegacyProviderDefaultNamespace(typeName string) (string
 	case http.StatusOK:
 		// Great!
 	case http.StatusNotFound:
-		return "", ErrProviderNotFound{
+		return "", "", ErrProviderNotFound{
 			Provider: placeholderProviderAddr,
 		}
 	case http.StatusUnauthorized, http.StatusForbidden:
-		return "", c.errUnauthorized(placeholderProviderAddr.Hostname)
+		return "", "", c.errUnauthorized(placeholderProviderAddr.Hostname)
 	default:
-		return "", c.errQueryFailed(placeholderProviderAddr, errors.New(resp.Status))
+		return "", "", c.errQueryFailed(placeholderProviderAddr, errors.New(resp.Status))
 	}
 
 	type ResponseBody struct {
-		Id string
+		Id      string `json:"id"`
+		MovedTo string `json:"moved_to"`
 	}
 	var body ResponseBody
 
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(&body); err != nil {
-		return "", c.errQueryFailed(placeholderProviderAddr, err)
+		return "", "", c.errQueryFailed(placeholderProviderAddr, err)
 	}
 
 	provider, diags := addrs.ParseProviderSourceString(body.Id)
 	if diags.HasErrors() {
-		return "", fmt.Errorf("Error parsing provider ID from Registry: %s", diags.Err())
+		return "", "", fmt.Errorf("Error parsing provider ID from Registry: %s", diags.Err())
 	}
 
 	if provider.Type != typeName {
-		return "", fmt.Errorf("Registry returned provider with type %q, expected %q", provider.Type, typeName)
+		return "", "", fmt.Errorf("Registry returned provider with type %q, expected %q", provider.Type, typeName)
 	}
 
-	return provider.Namespace, nil
+	var movedTo addrs.Provider
+	if body.MovedTo != "" {
+		movedTo, diags = addrs.ParseProviderSourceString(body.MovedTo)
+		if diags.HasErrors() {
+			return "", "", fmt.Errorf("Error parsing provider ID from Registry: %s", diags.Err())
+		}
+
+		if movedTo.Type != typeName {
+			return "", "", fmt.Errorf("Registry returned provider with type %q, expected %q", movedTo.Type, typeName)
+		}
+	}
+
+	return provider.Namespace, movedTo.Namespace, nil
 }
 
 func (c *registryClient) addHeadersToRequest(req *http.Request) {

@@ -20,7 +20,11 @@ func (c *WorkspaceShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	workspace := c.Workspace()
+	workspace, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	c.Ui.Output(workspace)
 
 	return 0

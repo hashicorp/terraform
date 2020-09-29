@@ -1879,22 +1879,11 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	diags := ctx.Validate()
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Refresh() // data resource is read in this step
+	_, diags = ctx.Plan()
 	assertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource was not called on provider during refresh; should've been called")
-	}
-	p.ReadDataSourceCalled = false // reset for next call
-
-	t.Logf("state after refresh:\n%s", state)
-
-	_, diags = ctx.Plan() // should do nothing with data resource in this step, since it was already read
-	assertNoErrors(t, diags)
-
-	if p.ReadDataSourceCalled {
-		// there was no config change to read during plan
-		t.Fatalf("ReadDataSource should not have been called")
+		t.Fatalf("ReadDataSource was not called on provider during plan; should've been called")
 	}
 }
 
@@ -2829,7 +2818,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 		}
 	}
 
-	expectedState := `aws_instance.foo.0:
+	expectedState := `aws_instance.foo:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = foo
@@ -4068,7 +4057,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
-			State: state,
+			State: state.DeepCopy(),
 		})
 
 		plan, diags := ctx.Plan()
@@ -4092,7 +4081,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			switch i := ric.Addr.String(); i {
 			case "aws_instance.foo[0]":
 				if res.Action != plans.DeleteThenCreate {
-					t.Fatalf("resource %s should be replaced", i)
+					t.Fatalf("resource %s should be replaced, not %s", i, res.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"id": cty.StringVal("bar"),
@@ -5007,11 +4996,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		},
 	})
 
-	// We're skipping ctx.Refresh here, which simulates what happens when
-	// running "terraform plan -refresh=false". As a result, we don't get our
-	// usual opportunity to read the data source during the refresh step and
-	// thus the plan call below is forced to produce a deferred read action.
-
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
@@ -5052,22 +5036,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					"num":      cty.StringVal("2"),
 					"computed": cty.StringVal("data_id"),
 				}), ric.After)
-			case "data.aws_vpc.bar[0]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id":  cty.StringVal("data_id"),
-					"foo": cty.StringVal("0"),
-				}), ric.After)
-			case "data.aws_vpc.bar[1]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id":  cty.StringVal("data_id"),
-					"foo": cty.StringVal("1"),
-				}), ric.After)
 			default:
 				t.Fatal("unknown instance:", i)
 			}
@@ -5077,8 +5045,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	wantAddrs := map[string]struct{}{
 		"aws_instance.foo[0]": struct{}{},
 		"aws_instance.foo[1]": struct{}{},
-		"data.aws_vpc.bar[0]": struct{}{},
-		"data.aws_vpc.bar[1]": struct{}{},
 	}
 	if !cmp.Equal(seenAddrs, wantAddrs) {
 		t.Errorf("incorrect addresses in changeset:\n%s", cmp.Diff(wantAddrs, seenAddrs))
@@ -5255,7 +5221,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5264,7 +5230,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5273,7 +5239,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"baz0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5282,7 +5248,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"baz1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5623,6 +5589,128 @@ resource "aws_instance" "foo" {
 		// Should get this error:
 		// Unsupported attribute: This object does not have an attribute named "missing"
 		t.Fatal("succeeded; want errors")
+	}
+}
+
+func TestContext2Plan_variableSensitivity(t *testing.T) {
+	m := testModule(t, "plan-variable-sensitivity")
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo": cty.StringVal("foo"),
+			}), ric.After)
+			if len(res.ChangeSrc.BeforeValMarks) != 0 {
+				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
+			}
+			if len(res.ChangeSrc.AfterValMarks) != 1 {
+				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+				continue
+			}
+			pvm := res.ChangeSrc.AfterValMarks[0]
+			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
+				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			}
+			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+}
+
+func TestContext2Plan_variableSensitivityModule(t *testing.T) {
+	m := testModule(t, "plan-variable-sensitivity-module")
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.child.aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo": cty.StringVal("foo"),
+			}), ric.After)
+			if len(res.ChangeSrc.BeforeValMarks) != 0 {
+				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
+			}
+			if len(res.ChangeSrc.AfterValMarks) != 1 {
+				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+				continue
+			}
+			pvm := res.ChangeSrc.AfterValMarks[0]
+			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
+				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			}
+			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -6148,7 +6236,7 @@ resource "test_instance" "b" {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"b"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_instance.a")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -6209,5 +6297,178 @@ func TestContext2Plan_targetedModuleInstance(t *testing.T) {
 		default:
 			t.Fatal("unknown instance:", i)
 		}
+	}
+}
+
+func TestContext2Plan_dataRefreshedInPlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "d" {
+}
+`})
+
+	p := testProvider("test")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("this"),
+			"foo": cty.NullVal(cty.String),
+		}),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	d := plan.State.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.d"))
+	if d == nil || d.Current == nil {
+		t.Fatal("data.test_data_source.d not found in state:", plan.State)
+	}
+
+	if d.Current.Status != states.ObjectReady {
+		t.Fatal("expected data.test_data_source.d to be fully read in refreshed state, got status", d.Current.Status)
+	}
+}
+
+func TestContext2Plan_dataReferencesResource(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source should not be read"))
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+	x = "value"
+}
+
+resource "test_resource" "a" {
+	value = local.x
+}
+
+// test_resource.a.value can be resolved during plan, but the reference implies
+// that the data source should wait until the resource is created.
+data "test_data_source" "d" {
+	foo = test_resource.a.value
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Plan_skipRefresh(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State:       state,
+		SkipRefresh: true,
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if p.ReadResourceCalled {
+		t.Fatal("Resource should not have been refreshed")
+	}
+}
+
+func TestContext2Plan_dataInModuleDependsOn(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	readDataSourceB := false
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		cfg := req.Config.AsValueMap()
+		foo := cfg["foo"].AsString()
+
+		cfg["id"] = cty.StringVal("ID")
+		cfg["foo"] = cty.StringVal("new")
+
+		if foo == "b" {
+			readDataSourceB = true
+		}
+
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod_a"
+}
+
+module "b" {
+  source = "./mod_b"
+  depends_on = [module.a]
+}`,
+		"mod_a/main.tf": `
+data "test_data_source" "a" {
+  foo = "a"
+}`,
+		"mod_b/main.tf": `
+data "test_data_source" "b" {
+  foo = "b"
+}`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	// The change to data source a should not prevent data source b from being
+	// read.
+	if !readDataSourceB {
+		t.Fatal("data source b was not read during plan")
 	}
 }

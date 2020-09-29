@@ -96,10 +96,6 @@ func TestPlan_plan(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("wrong exit status %d; want 1\nstderr: %s", code, ui.ErrorWriter.String())
 	}
-
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not have been called")
-	}
 }
 
 func TestPlan_destroy(t *testing.T) {
@@ -140,10 +136,6 @@ func TestPlan_destroy(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should have been called")
 	}
 
 	plan := testReadPlan(t, outPath)
@@ -560,15 +552,15 @@ func TestPlan_varsUnset(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
 	// The plan command will prompt for interactive input of var.foo.
 	// We'll answer "bar" to that prompt, which should then allow this
 	// configuration to apply even though var.foo doesn't have a
 	// default value and there are no -var arguments on our command line.
-	defaultInputReader = bytes.NewBufferString("bar\n")
+
+	// This will (helpfully) panic if more than one variable is requested during plan:
+	// https://github.com/hashicorp/terraform/issues/26027
+	close := testInteractiveInput(t, []string{"bar"})
+	defer close()
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
@@ -581,6 +573,64 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	args := []string{
 		testFixturePath("plan-vars"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+// This test adds a required argument to the test provider to validate
+// processing of user input:
+// https://github.com/hashicorp/terraform/issues/26035
+func TestPlan_providerArgumentUnset(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// The plan command will prompt for interactive input of provider.test.region
+	defaultInputReader = bytes.NewBufferString("us-east-1\n")
+
+	p := planFixtureProvider()
+	// override the planFixtureProvider schema to include a required provider argument
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"region": {Type: cty.String, Required: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true, Computed: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network_interface": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"device_index": {Type: cty.String, Optional: true},
+								"description":  {Type: cty.String, Optional: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())

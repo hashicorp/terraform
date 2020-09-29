@@ -15,7 +15,7 @@ Stores the state as a Blob with the given Key within the Blob Container within [
 
 ## Example Configuration
 
-When authenticating using the Azure CLI or a Service Principal:
+When authenticating using the Azure CLI or a Service Principal (either with a Client Certificate or a Client Secret):
 
 ```hcl
 terraform {
@@ -37,8 +37,8 @@ terraform {
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
     use_msi              = true
-    subscription_id  = "00000000-0000-0000-0000-000000000000"
-    tenant_id        = "00000000-0000-0000-0000-000000000000"
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
   }
 }
 ```
@@ -79,7 +79,7 @@ terraform {
 
 ## Data Source Configuration
 
-When authenticating using a Service Principal:
+When authenticating using a Service Principall (either with a Client Certificate or a Client Secret):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -154,11 +154,11 @@ The following configuration options are supported:
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
 
-* `snapshot` - (Optional) Should the Blob used to store the Terraform Statefile be snapshotted before use? Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
-
 * `endpoint` - (Optional) The Custom Endpoint for Azure Resource Manager. This can also be sourced from the `ARM_ENDPOINT` environment variable.
 
 ~> **NOTE:** An `endpoint` should only be configured when using Azure Stack.
+
+* `snapshot` - (Optional) Should the Blob used to store the Terraform Statefile be snapshotted before use? Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
 
 ---
 
@@ -186,7 +186,23 @@ When authenticating using the Storage Account's Access Key - the following field
 
 ---
 
-When authenticating using a Service Principal - the following fields are also supported:
+When authenticating using a Service Principal with a Client Certificate - the following fields are also supported:
+
+* `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
+
+* `client_id` - (Optional) The Client ID of the Service Principal. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
+
+* `client_certificate_password` - (Optional) The password associated with the Client Certificate specified in `client_certificate_path`. This can also be sourced from the `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
+
+* `client_certificate_path` - (Optional) The path to the PFX file used as the Client Certificate when authenticating as a Service Principal. This can also be sourced from the `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
+
+* `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+
+* `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+
+---
+
+When authenticating using a Service Principal with a Client Secret - the following fields are also supported:
 
 * `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
 

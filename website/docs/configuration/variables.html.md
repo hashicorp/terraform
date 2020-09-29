@@ -22,6 +22,13 @@ set their values using CLI options and environment variables.
 When you declare them in [child modules](./modules.html),
 the calling module should pass values in the `module` block.
 
+If you're familiar with traditional programming languages, it can be useful to
+compare Terraform modules to function definitions:
+
+- Input variables are like function arguments.
+- [Output values](./outputs.html) are like function return values.
+- [Local values](./locals.html) are like a function's temporary local variables.
+
 Input variable usage is introduced in the Getting Started guide section
 [_Input Variables_](https://learn.hashicorp.com/terraform/getting-started/variables).
 
@@ -100,6 +107,9 @@ Within the module that declared a variable, its value can be accessed from
 within [expressions](./expressions.html) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
+-> **Note:** Input variables are _created_ by a `variable` block, but you
+_reference_ them as attributes on an object named `var`.
+
 ```hcl
 resource "aws_instance" "example" {
   instance_type = "t2.micro"
@@ -107,7 +117,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-The value assigned to a variable can be accessed only from expressions within
+The value assigned to a variable can only be accessed in expressions within
 the module where it was declared.
 
 ## Type Constraints

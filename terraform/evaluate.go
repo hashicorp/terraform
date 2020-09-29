@@ -292,6 +292,10 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		val = cty.UnknownVal(wantType)
 	}
 
+	if config.Sensitive {
+		val = val.Mark("sensitive")
+	}
+
 	return val, diags
 }
 
@@ -553,7 +557,29 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 	switch addr.Name {
 
 	case "cwd":
-		wd, err := os.Getwd()
+		var err error
+		var wd string
+		if d.Evaluator.Meta != nil {
+			// Meta is always non-nil in the normal case, but some test cases
+			// are not so realistic.
+			wd = d.Evaluator.Meta.OriginalWorkingDir
+		}
+		if wd == "" {
+			wd, err = os.Getwd()
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Failed to get working directory`,
+					Detail:   fmt.Sprintf(`The value for path.cwd cannot be determined due to a system error: %s`, err),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return cty.DynamicVal, diags
+			}
+		}
+		// The current working directory should always be absolute, whether we
+		// just looked it up or whether we were relying on ContextMeta's
+		// (possibly non-normalized) path.
+		wd, err = filepath.Abs(wd)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -563,6 +589,7 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 			})
 			return cty.DynamicVal, diags
 		}
+
 		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
@@ -621,36 +648,31 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	if rs == nil {
 		switch d.Operation {
-		case walkPlan:
-			// During plan as we evaluate each removed instance they are removed
-			// from the temporary working state. Since we know there there are
-			// no instances, and resources might be referenced in a context
-			// that needs to be known during plan, return an empty container of
-			// the expected type.
+		case walkPlan, walkApply:
+			// During plan and apply as we evaluate each removed instance they
+			// are removed from the working state. Since we know there are no
+			// instances, return an empty container of the expected type.
 			switch {
 			case config.Count != nil:
 				return cty.EmptyTupleVal, diags
 			case config.ForEach != nil:
 				return cty.EmptyObjectVal, diags
 			default:
-				// FIXME: try to prove this path should not be reached during plan.
-				//
-				// while we can reference an expanded resource with 0
+				// While we can reference an expanded resource with 0
 				// instances, we cannot reference instances that do not exist.
-				// Since we haven't ensured that all instances exist in all
-				// cases (this path only ever returned unknown), only log this as
-				// an error for now, and continue to return a DynamicVal
+				// Due to the fact that we may have direct references to
+				// instances that may end up in a root output during destroy
+				// (since a planned destroy cannot yet remove root outputs), we
+				// need to return a dynamic value here to allow evaluation to
+				// continue.
 				log.Printf("[ERROR] unknown instance %q referenced during plan", addr.Absolute(d.ModulePath))
 				return cty.DynamicVal, diags
 			}
 
 		default:
-			// we must return DynamicVal so that both interpretations
-			// can proceed without generating errors, and we'll deal with this
-			// in a later step where more information is gathered.
-			// (In practice we should only end up here during the validate walk,
+			// We should only end up here during the validate walk,
 			// since later walks should have at least partial states populated
-			// for all resources in the configuration.)
+			// for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
 	}

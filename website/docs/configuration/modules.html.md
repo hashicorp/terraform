@@ -132,7 +132,7 @@ described in more detail below:
   that specifies acceptable versions of the module. Described in detail under
   [Module Versions][inpage-versions] below.
 
-- `count` and `foreach` - Both of these arguments create multiple instances of a
+- `count` and `for_each` - Both of these arguments create multiple instances of a
   module from a single `module` block. Described in detail under
   [Multiple Instances of a Module][inpage-multiple] below.
 
@@ -372,6 +372,8 @@ resource "aws_s3_bucket" "example" {
 We recommend using this approach when a single configuration for each provider
 is sufficient for an entire configuration.
 
+~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](provider-requirements.html). This is especially important for non-HashiCorp providers.
+
 In more complex situations there may be
 [multiple provider configurations](/docs/configuration/providers.html#alias-multiple-provider-configurations),
 or a child module may need to use different provider settings than
@@ -404,7 +406,7 @@ provider "aws" {
 module "example" {
   source    = "./example"
   providers = {
-    aws = "aws.usw2"
+    aws = aws.usw2
   }
 }
 ```
@@ -603,16 +605,16 @@ provider "google" {
 module "bucket_w1" {
   source    = "./publish_bucket"
   providers = {
-    aws.src    = "aws.usw1"
-    google.src = "google.usw2"
+    aws.src    = aws.usw1
+    google.src = google.usw2
   }
 }
 
 module "bucket_w2" {
   source    = "./publish_bucket"
   providers = {
-    aws.src    = "aws.usw2"
-    google.src = "google.usw2"
+    aws.src    = aws.usw2
+    google.src = google.usw2
   }
 }
 ```

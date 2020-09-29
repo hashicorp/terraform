@@ -32,7 +32,7 @@ resource "aws_subnet" "example" {
 }
 ```
 
-When we introduce `module` blocks, our configuration becomes heirarchical
+When we introduce `module` blocks, our configuration becomes hierarchical
 rather than flat: each module contains its own set of resources, and possibly
 its own child modules, which can potentially create a deep, complex tree of
 resource configurations.

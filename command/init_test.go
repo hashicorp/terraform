@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -355,8 +356,8 @@ func TestInit_backendConfigFile(t *testing.T) {
 		}
 	})
 
-	// the backend config file must be a set of key-value pairs and not a full backend {} block
-	t.Run("invalid-config-file", func(t *testing.T) {
+	// the backend config file must not be a full terraform block
+	t.Run("full-backend-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
 		c := &InitCommand{
 			Meta: Meta{
@@ -368,8 +369,89 @@ func TestInit_backendConfigFile(t *testing.T) {
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("expected error, got success\n")
 		}
-		if !strings.Contains(ui.ErrorWriter.String(), "Invalid backend configuration file") {
+		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported block type") {
 			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+
+	// the backend config file must match the schema for the backend
+	t.Run("invalid-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "invalid.config"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported argument") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+
+	// missing file is an error
+	t.Run("missing-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config", "missing.config"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected error, got success\n")
+		}
+		if !strings.Contains(ui.ErrorWriter.String(), "Failed to read file") {
+			t.Fatalf("wrong error: %s", ui.ErrorWriter)
+		}
+	})
+
+	// blank filename clears the backend config
+	t.Run("blank-config-file", func(t *testing.T) {
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		args := []string{"-backend-config="}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		// Read our saved backend config and verify the backend config is empty
+		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":null,"workspace_dir":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	// simulate the local backend having a required field which is not
+	// specified in the override file
+	t.Run("required-argument", func(t *testing.T) {
+		c := &InitCommand{}
+		schema := &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"path": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"workspace_dir": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		}
+		flagConfigExtra := newRawFlags("-backend-config")
+		flagConfigExtra.Set("input.config")
+		_, diags := c.backendConfigOverrideBody(flagConfigExtra, schema)
+		if len(diags) != 0 {
+			t.Errorf("expected no diags, got: %s", diags.Err())
 		}
 	})
 }
@@ -944,6 +1026,52 @@ func TestInit_getProviderSource(t *testing.T) {
 	}
 }
 
+func TestInit_getProviderLegacyFromState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-get-provider-legacy-from-state"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	overrides := metaOverridesForProvider(testProvider())
+	ui := new(cli.MockUi)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"acme/alpha": {"1.2.3"},
+	})
+	defer close()
+	m := Meta{
+		testingOverrides: overrides,
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// Expect this diagnostic output
+	wants := []string{
+		"Found unresolvable legacy provider references in state",
+		"terraform state replace-provider registry.terraform.io/-/alpha registry.terraform.io/acme/alpha",
+	}
+	got := ui.ErrorWriter.String()
+	for _, want := range wants {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected output to contain %q, got:\n\n%s", want, got)
+		}
+	}
+
+	// Should still install the alpha provider
+	exactPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/acme/alpha/1.2.3/%s", getproviders.CurrentPlatform)
+	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
+		t.Fatal("provider 'alpha' not downloaded")
+	}
+}
+
 func TestInit_getProviderInvalidPackage(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -1342,6 +1470,13 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	args := []string{}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
 	}
 }
 

@@ -264,7 +264,12 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		sMgr, err := back.StateMgr(c.Workspace())
+		workspace, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		sMgr, err := back.StateMgr(workspace)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
 			return 1
@@ -422,8 +427,9 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	if moreDiags.HasErrors() {
 		return false, diags
 	}
+	stateReqs := make(getproviders.Requirements, 0)
 	if state != nil {
-		stateReqs := state.ProviderRequirements()
+		stateReqs = state.ProviderRequirements()
 		reqs = reqs.Merge(stateReqs)
 	}
 
@@ -450,6 +456,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// later analysis, to provide more useful diagnostics if the providers
 	// appear to have been re-namespaced.
 	missingProviderErrors := make(map[addrs.Provider]error)
+
+	// Legacy provider addresses required by source probably refer to in-house
+	// providers. Capture these for later analysis also, to suggest how to use
+	// the state replace-provider command to fix this problem.
+	stateLegacyProviderErrors := make(map[addrs.Provider]error)
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -504,13 +515,19 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					),
 				))
 			case getproviders.ErrRegistryProviderNotKnown:
-				// Default providers may have no explicit source, and the 404
-				// error could be caused by re-namespacing. Add the provider
-				// and error to a map to later check for this case. We don't
-				// run the check here to keep this event callback simple.
 				if provider.IsDefault() {
+					// Default providers may have no explicit source, and the 404
+					// error could be caused by re-namespacing. Add the provider
+					// and error to a map to later check for this case. We don't
+					// run the check here to keep this event callback simple.
 					missingProviderErrors[provider] = err
+				} else if _, ok := stateReqs[provider]; ok && provider.IsLegacy() {
+					// Legacy provider, from state, not found from any source:
+					// probably an in-house provider. Record this here to
+					// faciliate a useful suggestion later.
+					stateLegacyProviderErrors[provider] = err
 				} else {
+					// Otherwise maybe this provider really doesn't exist? Shrug!
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to query available provider packages",
@@ -690,9 +707,13 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		source := c.providerInstallSource()
 		for provider, fetchErr := range missingProviderErrors {
 			addr := addrs.NewLegacyProvider(provider.Type)
-			p, err := getproviders.LookupLegacyProvider(addr, source)
+			p, redirect, err := getproviders.LookupLegacyProvider(addr, source)
 			if err == nil {
-				foundProviders[provider] = p
+				if redirect.IsZero() {
+					foundProviders[provider] = p
+				} else {
+					foundProviders[provider] = redirect
+				}
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -758,6 +779,53 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to install providers",
+				detail.String(),
+			))
+		}
+
+		// Legacy providers required by state which could not be installed are
+		// probably in-house providers. If the user has completed the necessary
+		// steps to make their custom provider available for installation, then
+		// there should be a provider with the same type selected after the
+		// installation process completed.
+		//
+		// If we detect this specific situation, we can confidently suggest
+		// that the next step is to run the state replace-provider command to
+		// update state. We build a map of provider replacements here to ensure
+		// that we're as concise as possible with the diagnostic.
+		stateReplaceProviders := make(map[addrs.Provider]addrs.Provider)
+		for provider, fetchErr := range stateLegacyProviderErrors {
+			var sameType []addrs.Provider
+			for p := range selected {
+				if p.Type == provider.Type {
+					sameType = append(sameType, p)
+				}
+			}
+			if len(sameType) == 1 {
+				stateReplaceProviders[provider] = sameType[0]
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s: %s", provider.ForDisplay(), fetchErr),
+				))
+			}
+		}
+		if len(stateReplaceProviders) > 0 {
+			var detail strings.Builder
+			command := "command"
+			if len(stateReplaceProviders) > 1 {
+				command = "commands"
+			}
+
+			fmt.Fprintf(&detail, "Found unresolvable legacy provider references in state. It looks like these refer to in-house providers. You can update the resources in state with the following %s:\n", command)
+			for legacy, replacement := range stateReplaceProviders {
+				fmt.Fprintf(&detail, "\n    terraform state replace-provider %s %s", legacy, replacement)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to install legacy providers required by state",
 				detail.String(),
 			))
 		}
@@ -856,16 +924,34 @@ func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configsc
 			// The value is interpreted as a filename.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
-			// Verify that the file contains only key-values pairs, and not a
-			// full backend config block. JustAttributes() will return an error
-			// if blocks are found
-			_, attrDiags := newBody.JustAttributes()
-			if attrDiags.HasErrors() {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid backend configuration file",
-					fmt.Sprintf("The backend configuration file %q given on the command line must contain key-value pairs only, and not configuration blocks.", item.Value),
-				))
+			if fileDiags.HasErrors() {
+				continue
+			}
+			// Generate an HCL body schema for the backend block.
+			var bodySchema hcl.BodySchema
+			for name := range schema.Attributes {
+				// We intentionally ignore the `Required` attribute here
+				// because backend config override files can be partial. The
+				// goal is to make sure we're not loading a file with
+				// extraneous attributes or blocks.
+				bodySchema.Attributes = append(bodySchema.Attributes, hcl.AttributeSchema{
+					Name: name,
+				})
+			}
+			for name, block := range schema.BlockTypes {
+				var labelNames []string
+				if block.Nesting == configschema.NestingMap {
+					labelNames = append(labelNames, "key")
+				}
+				bodySchema.Blocks = append(bodySchema.Blocks, hcl.BlockHeaderSchema{
+					Type:       name,
+					LabelNames: labelNames,
+				})
+			}
+			// Verify that the file body matches the expected backend schema.
+			_, schemaDiags := newBody.Content(&bodySchema)
+			diags = diags.Append(schemaDiags)
+			if schemaDiags.HasErrors() {
 				continue
 			}
 			flushVals() // deal with any accumulated individual values first

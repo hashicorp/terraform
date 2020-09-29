@@ -32,7 +32,7 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 	// website/source/docs/commands/index.html.markdown; if you
 	// change this then consider updating that to match.
 	helpText := fmt.Sprintf(`
-Usage: terraform [-version] [-help] <command> [args]
+Usage: terraform [global options] <subcommand> [args]
 
 The available commands for execution are listed below.
 The most common, useful commands are shown first, followed by
@@ -44,6 +44,13 @@ Common commands:
 %s
 All other commands:
 %s
+
+Global options (use these before the subcommand, if any):
+    -chdir=DIR         Switch to a different working directory before executing
+                       the given subcommand.
+    -help              Show this help output, or the help for a specified
+                       subcommand.
+    -version           An alias for the "version" subcommand.
 `, listCommands(porcelain, maxKeyLen), listCommands(plumbing, maxKeyLen))
 
 	return strings.TrimSpace(helpText)

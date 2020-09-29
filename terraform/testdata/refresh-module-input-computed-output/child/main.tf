@@ -1,11 +1,11 @@
 variable "input" {
-    type = list(string)
+    type = string
 }
 
 resource "aws_instance" "foo" {
-    foo = "${var.input}"
+    foo = var.input
 }
 
 output "foo" {
-    value = "${aws_instance.foo.foo}"
+    value = aws_instance.foo.foo
 }

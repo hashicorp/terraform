@@ -22,7 +22,7 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ GraphNodeEvalable         = (*nodeExpandModule)(nil)
+	_ GraphNodeExecutable       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
 	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
@@ -98,13 +98,38 @@ func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Mod
 	return n.Addr, n.Addr.Parent()
 }
 
-// GraphNodeEvalable
-func (n *nodeExpandModule) EvalTree() EvalNode {
-	return &evalPrepareModuleExpansion{
-		Addr:       n.Addr,
-		Config:     n.Config,
-		ModuleCall: n.ModuleCall,
+// GraphNodeExecutable
+func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) error {
+	expander := ctx.InstanceExpander()
+	_, call := n.Addr.Call()
+
+	// nodeExpandModule itself does not have visibility into how its ancestors
+	// were expanded, so we use the expander here to provide all possible paths
+	// to our module, and register module instances with each of them.
+	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+		ctx = ctx.WithPath(module)
+		switch {
+		case n.ModuleCall.Count != nil:
+			count, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			if diags.HasErrors() {
+				return diags.Err()
+			}
+			expander.SetModuleCount(module, call, count)
+
+		case n.ModuleCall.ForEach != nil:
+			forEach, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			if diags.HasErrors() {
+				return diags.Err()
+			}
+			expander.SetModuleForEach(module, call, forEach)
+
+		default:
+			expander.SetModuleSingle(module, call)
+		}
 	}
+
+	return nil
+
 }
 
 // nodeCloseModule represents an expanded module during apply, and is visited
@@ -145,88 +170,33 @@ func (n *nodeCloseModule) Name() string {
 	return n.Addr.String() + " (close)"
 }
 
-func (n *nodeCloseModule) EvalTree() EvalNode {
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalOpFilter{
-				Ops: []walkOperation{walkApply, walkDestroy},
-				Node: &evalCloseModule{
-					Addr: n.Addr,
-				},
-			},
-		},
-	}
-}
+func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) error {
+	switch op {
+	case walkApply, walkDestroy:
+		state := ctx.State().Lock()
+		defer ctx.State().Unlock()
 
-type evalCloseModule struct {
-	Addr addrs.Module
-}
+		for modKey, mod := range state.Modules {
+			if !n.Addr.Equal(mod.Addr.Module()) {
+				continue
+			}
 
-func (n *evalCloseModule) Eval(ctx EvalContext) (interface{}, error) {
-	// We need the full, locked state, because SyncState does not provide a way to
-	// transact over multiple module instances at the moment.
-	state := ctx.State().Lock()
-	defer ctx.State().Unlock()
+			// clean out any empty resources
+			for resKey, res := range mod.Resources {
+				if len(res.Instances) == 0 {
+					delete(mod.Resources, resKey)
+				}
+			}
 
-	for modKey, mod := range state.Modules {
-		if !n.Addr.Equal(mod.Addr.Module()) {
-			continue
-		}
-
-		// clean out any empty resources
-		for resKey, res := range mod.Resources {
-			if len(res.Instances) == 0 {
-				delete(mod.Resources, resKey)
+			// empty child modules are always removed
+			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() {
+				delete(state.Modules, modKey)
 			}
 		}
-
-		// empty child modules are always removed
-		if len(mod.Resources) == 0 && !mod.Addr.IsRoot() {
-			delete(state.Modules, modKey)
-		}
+		return nil
+	default:
+		return nil
 	}
-	return nil, nil
-}
-
-// evalPrepareModuleExpansion is an EvalNode implementation
-// that sets the count or for_each on the instance expander
-type evalPrepareModuleExpansion struct {
-	Addr       addrs.Module
-	Config     *configs.Module
-	ModuleCall *configs.ModuleCall
-}
-
-func (n *evalPrepareModuleExpansion) Eval(ctx EvalContext) (interface{}, error) {
-	expander := ctx.InstanceExpander()
-	_, call := n.Addr.Call()
-
-	// nodeExpandModule itself does not have visibility into how its ancestors
-	// were expanded, so we use the expander here to provide all possible paths
-	// to our module, and register module instances with each of them.
-	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
-		ctx = ctx.WithPath(module)
-
-		switch {
-		case n.ModuleCall.Count != nil:
-			count, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
-			expander.SetModuleCount(module, call, count)
-
-		case n.ModuleCall.ForEach != nil:
-			forEach, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
-			expander.SetModuleForEach(module, call, forEach)
-
-		default:
-			expander.SetModuleSingle(module, call)
-		}
-	}
-
-	return nil, nil
 }
 
 // nodeValidateModule wraps a nodeExpand module for validation, ensuring that
@@ -237,21 +207,7 @@ type nodeValidateModule struct {
 }
 
 // GraphNodeEvalable
-func (n *nodeValidateModule) EvalTree() EvalNode {
-	return &evalValidateModule{
-		Addr:       n.Addr,
-		Config:     n.Config,
-		ModuleCall: n.ModuleCall,
-	}
-}
-
-type evalValidateModule struct {
-	Addr       addrs.Module
-	Config     *configs.Module
-	ModuleCall *configs.ModuleCall
-}
-
-func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
+func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) error {
 	_, call := n.Addr.Call()
 	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
@@ -283,8 +239,8 @@ func (n *evalValidateModule) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if diags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
+		return diags.ErrWithWarnings()
 	}
 
-	return nil, nil
+	return nil
 }

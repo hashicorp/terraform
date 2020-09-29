@@ -348,6 +348,11 @@ module "vpc" {
 }
 ```
 
+-> **Note:** If the content of the archive file is a directory, you will need to
+include that directory in the module source. Read the section on 
+[Modules in Package Sub-directories](#modules-in-package-sub-directories) for more
+information.
+
 ## S3 Bucket
 
 You can use archives stored in S3 as module sources using the special `s3::`

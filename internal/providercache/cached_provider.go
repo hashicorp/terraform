@@ -43,7 +43,7 @@ func (cp *CachedProvider) PackageLocation() getproviders.PackageLocalDir {
 // If you need a specific version of hash rather than just whichever one is
 // current default, call that version's corresponding method (e.g. HashV1)
 // directly instead.
-func (cp *CachedProvider) Hash() (string, error) {
+func (cp *CachedProvider) Hash() (getproviders.Hash, error) {
 	return getproviders.PackageHash(cp.PackageLocation())
 }
 
@@ -54,7 +54,7 @@ func (cp *CachedProvider) Hash() (string, error) {
 //
 // MatchesHash may accept hashes in a number of different formats. Over time
 // the set of supported formats may grow and shrink.
-func (cp *CachedProvider) MatchesHash(want string) (bool, error) {
+func (cp *CachedProvider) MatchesHash(want getproviders.Hash) (bool, error) {
 	return getproviders.PackageMatchesHash(cp.PackageLocation(), want)
 }
 
@@ -69,7 +69,7 @@ func (cp *CachedProvider) MatchesHash(want string) (bool, error) {
 // being added (in a backward-compatible way) in future. The result from
 // HashV1 always begins with the prefix "h1:" so that callers can distinguish
 // the results of potentially multiple different hash algorithms in future.
-func (cp *CachedProvider) HashV1() (string, error) {
+func (cp *CachedProvider) HashV1() (getproviders.Hash, error) {
 	return getproviders.PackageHashV1(cp.PackageLocation())
 }
 

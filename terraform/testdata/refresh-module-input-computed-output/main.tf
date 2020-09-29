@@ -1,5 +1,5 @@
 module "child" {
-    input = "${aws_instance.bar.foo}"
+    input = aws_instance.bar.foo
     source = "./child"
 }
 

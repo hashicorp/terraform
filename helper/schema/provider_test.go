@@ -341,7 +341,7 @@ func TestProviderDiff_timeoutInvalidValue(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected provider.Diff to fail with invalid timeout value")
 	}
-	expectedErrMsg := "time: invalid duration invalid"
+	expectedErrMsg := `time: invalid duration "invalid"`
 	if !strings.Contains(err.Error(), expectedErrMsg) {
 		t.Fatalf("Unexpected error message: %q\nExpected message to contain %q",
 			err.Error(),

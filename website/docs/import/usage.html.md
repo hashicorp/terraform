@@ -85,5 +85,7 @@ not done, Terraform will plan to destroy the imported objects on the next run.
 If you want to rename or otherwise move the imported resources, the
 [state management commands](/docs/commands/state/index.html) can be used.
 
-You can also follow the [Terraform Import guide](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) on HashiCorp learn for a hands-on
+## Hands-On Tutorial
+
+You can also follow the [Terraform Import tutorial](https://learn.hashicorp.com/tutorials/terraform/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) on HashiCorp learn for a hands-on
 introduction to using the `terraform import` command.

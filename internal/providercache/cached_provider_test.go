@@ -18,7 +18,7 @@ func TestCachedProviderHash(t *testing.T) {
 		PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/darwin_amd64",
 	}
 
-	want := "h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g="
+	want := getproviders.MustParseHash("h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g=")
 	got, err := cp.Hash()
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)

@@ -46,9 +46,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
 		}()
 
-		walker.EnterVertex(v)
-		defer walker.ExitVertex(v, diags)
-
 		// vertexCtx is the context that we use when evaluating. This
 		// is normally the context of our graph but can be overridden
 		// with a GraphNodeModuleInstance impl.
@@ -56,6 +53,21 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		if pn, ok := v.(GraphNodeModuleInstance); ok {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
+		}
+
+		// If the node is exec-able, then execute it.
+		if ev, ok := v.(GraphNodeExecutable); ok {
+			// A node must not be both Evalable and Executable. This will be
+			// removed when GraphNodeEvalable is fully removed.
+			if _, ok := v.(GraphNodeEvalable); ok {
+				panic(fmt.Sprintf(
+					"%T implements both GraphNodeEvalable and GraphNodeExecutable", v,
+				))
+			}
+			diags = diags.Append(walker.Execute(vertexCtx, ev))
+			if diags.HasErrors() {
+				return
+			}
 		}
 
 		// If the node is eval-able, then evaluate it.

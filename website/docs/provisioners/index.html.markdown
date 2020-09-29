@@ -77,6 +77,8 @@ process in various ways data passed via the means described above, allowing
 you to run arbitrary scripts and do basic system configuration immediately
 during the boot process and without the need to access the machine over SSH.
 
+> For a hands-on tutorial about deploying cloud-init scripts in Terraform, try the [Provision Infrastructure with cloud-init](https://learn.hashicorp.com/tutorials/terraform/cloud-init?in=terraform/provision?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+
 If you are building custom machine images, you can make use of the "user data"
 or "metadata" passed by the above means in whatever way makes sense to your
 application, by referring to your vendor's documentation on how to access the

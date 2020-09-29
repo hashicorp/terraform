@@ -289,12 +289,9 @@ Terraform will perform the following actions:
 
   # test_instance.foo is tainted, so must be replaced
 -/+ resource "test_instance" "foo" {
-        ami = "bar"
+        # (1 unchanged attribute hidden)
 
-        network_interface {
-            description  = "Main network interface"
-            device_index = 0
-        }
+        # (1 unchanged block hidden)
     }
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
@@ -360,8 +357,8 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	if run.Result != backend.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 	if run.PlanEmpty {
 		t.Fatal("plan should not be empty")
@@ -468,12 +465,9 @@ Terraform will perform the following actions:
 
   # test_instance.foo is tainted, so must be replaced
 +/- resource "test_instance" "foo" {
-        ami = "bar"
+        # (1 unchanged attribute hidden)
 
-        network_interface {
-            description  = "Main network interface"
-            device_index = 0
-        }
+        # (1 unchanged block hidden)
     }
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
@@ -484,6 +478,12 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
+	// since there is no longer a separate Refresh walk, `-refresh=false
+	// doesn't do anything.
+	// FIXME: determine if we need a refresh option for the new plan, or remove
+	// this test
+	t.Skip()
+
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
@@ -549,8 +549,8 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
 	if run.PlanEmpty {
@@ -605,12 +605,12 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
-	if !p.ReadDataSourceCalled {
-		t.Fatal("ReadDataSourceCalled should be called")
+	if p.ReadDataSourceCalled {
+		t.Fatal("ReadDataSourceCalled should not be called")
 	}
 
 	if run.PlanEmpty {
@@ -627,7 +627,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	// Data source should not be rendered in the output
 	expectedOutput := `Terraform will perform the following actions:
 
-  # test_instance.foo will be destroyed
+  # test_instance.foo[0] will be destroyed
   - resource "test_instance" "foo" {
       - ami = "bar" -> null
 
@@ -641,7 +641,7 @@ Plan: 0 to add, 0 to change, 1 to destroy.`
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, expectedOutput) {
-		t.Fatalf("Unexpected output (expected no data source):\n%s", output)
+		t.Fatalf("Unexpected output:\n%s", output)
 	}
 }
 
@@ -678,6 +678,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 		Type:   "local",
 		Config: cfgRaw,
 	}
+	op.PlanRefresh = true
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -830,7 +831,7 @@ func testPlanState_tainted() *states.State {
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
 			Name: "foo",
-		}.Instance(addrs.IntKey(0)),
+		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
 			Status: states.ObjectTainted,
 			AttrsJSON: []byte(`{

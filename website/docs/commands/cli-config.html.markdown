@@ -238,6 +238,21 @@ The following are the two supported installation method types:
     You can include multiple `filesystem_mirror` blocks in order to specify
     several different directories to search.
 
+* `network_mirror`: consult a particular HTTPS server for copies of providers,
+  regardless of which registry host they belong to. This method requires the
+  additional argument `url` to indicate the mirror base URL, which should
+  use the `https:` scheme and end with a trailing slash.
+
+    Terraform expects the given URL to be a base URL for an implementation of
+    [the provider network mirror protocol](/docs/internals/provider-network-mirror-protocol.html),
+    which is designed to be relatively easy to implement using typical static
+    website hosting mechanisms.
+
+~> **Warning:** Don't configure `network_mirror` URLs that you do not trust.
+Provider mirror servers are subject to TLS certificate checks to verify
+identity, but a network mirror with a TLS certificate can potentially serve
+modified copies of upstream providers with malicious content.
+
 Terraform will try all of the specified methods whose include and exclude
 patterns match a given provider, and select the newest version available across
 all of those methods that matches the version constraint given in each
@@ -256,18 +271,21 @@ method.
 The set of directories Terraform can select as filesystem mirrors depends on
 the operating system where you are running Terraform:
 
-* **Windows:** `%APPDATA%/HashiCorp/Terraform/plugins`
-* **Mac OS X:** `~/Library/Application Support/io.terraform/plugins` and
+* **Windows:** `%APPDATA%/terraform.d/plugins` and `%APPDATA%/HashiCorp/Terraform/plugins`
+* **Mac OS X:** `$HOME/.terraform.d/plugins/`,
+  `~/Library/Application Support/io.terraform/plugins`, and
   `/Library/Application Support/io.terraform/plugins`
-* **Linux and other Unix-like systems**: Terraform implements the
+* **Linux and other Unix-like systems**:`$HOME/.terraform.d/plugins/`, and
   [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-  specification and appends `terraform/plugins` to all of the specified
-  data directories. Without any XDG environment variables set, Terraform
-  will use `~/.local/share/terraform/plugins`,
+  data directories as configured, after appending `terraform/plugins`.
+  Without any XDG environment variables set, Terraform will use
+  `~/.local/share/terraform/plugins`,
   `/usr/local/share/terraform/plugins`, and `/usr/share/terraform/plugins`.
 
 Terraform will create an implied `filesystem_mirror` method block for each of
 the directories indicated above that exists when Terraform starts up.
+In addition, if a `terraform.d/plugins` directory exists in the current working
+directory, it will be added as a filesystem mirror.
 
 In addition to the zero or more implied `filesystem_mirror` blocks, Terraform
 also creates an implied `direct` block. Terraform will scan all of the

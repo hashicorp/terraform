@@ -135,7 +135,12 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 		var backendForPlan plans.Backend
 		backendForPlan.Type = backendPseudoState.Type
-		backendForPlan.Workspace = c.Workspace()
+		workspace, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		backendForPlan.Workspace = workspace
 
 		// Configuration is a little more awkward to handle here because it's
 		// stored in state as raw JSON but we need it as a plans.DynamicValue

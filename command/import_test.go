@@ -802,6 +802,76 @@ func TestImportModuleVarFile(t *testing.T) {
 	}
 }
 
+// This test covers an edge case where a module with a complex input variable
+// of nested objects has an invalid default which is overridden by the calling
+// context, and is used in locals. If we don't evaluate module call variables
+// for the import walk, this results in an error.
+//
+// The specific example has a variable "foo" which is a nested object:
+//
+//   foo = { bar = { baz = true } }
+//
+// This is used as foo = var.foo in the call to the child module, which then
+// uses the traversal foo.bar.baz in a local. A default value in the child
+// module of {} causes this local evaluation to error, breaking import.
+func TestImportModuleInputVariableEvaluation(t *testing.T) {
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("import-module-input-variable"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
+	})
+	defer close()
+
+	// init to install the module
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	ic := &InitCommand{
+		Meta: m,
+	}
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// import
+	ui = new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+	args := []string{
+		"-state", statePath,
+		"module.child.test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("import failed; expected success")
+	}
+}
+
 func TestImport_dataResource(t *testing.T) {
 	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
 

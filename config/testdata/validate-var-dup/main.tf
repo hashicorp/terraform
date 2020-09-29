@@ -1,2 +1,0 @@
-variable "foo" {}
-variable "foo" {}

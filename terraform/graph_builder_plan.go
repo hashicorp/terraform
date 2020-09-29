@@ -39,11 +39,11 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
+
+	// skipRefresh indicates that we should skip refreshing managed resources
+	skipRefresh bool
 
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
@@ -149,6 +149,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
 
 		// Make sure data sources are aware of any depends_on from the
 		// configuration
@@ -174,12 +175,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close the root module
 		&CloseRootModuleTransformer{},
-	}
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
 		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps
@@ -200,6 +199,7 @@ func (b *PlanGraphBuilder) init() {
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
+			skipRefresh:          b.skipRefresh,
 		}
 	}
 

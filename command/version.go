@@ -53,6 +53,7 @@ Options:
 
 func (c *VersionCommand) Run(args []string) int {
 	var outdated bool
+	var latest string
 	var versionString bytes.Buffer
 	args = c.Meta.process(args)
 	var jsonOutput bool
@@ -113,13 +114,7 @@ func (c *VersionCommand) Run(args []string) int {
 		}
 		if info.Outdated {
 			outdated = true
-			if !jsonOutput {
-				c.Ui.Output(fmt.Sprintf(
-					"\nYour version of Terraform is out of date! The latest version\n"+
-						"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
-					info.Latest))
-			}
-
+			latest = info.Latest
 		}
 	}
 
@@ -158,6 +153,12 @@ func (c *VersionCommand) Run(args []string) int {
 			for _, str := range pluginVersions {
 				c.Ui.Output(str)
 			}
+		}
+		if outdated {
+			c.Ui.Output(fmt.Sprintf(
+				"\nYour version of Terraform is out of date! The latest version\n"+
+					"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
+				latest))
 		}
 
 	}

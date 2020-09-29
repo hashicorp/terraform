@@ -22,8 +22,7 @@ most likely expect.
 To view a list of the available commands at any time, just run terraform with no arguments:
 
 ```text
-$ terraform
-Usage: terraform [-version] [-help] <command> [args]
+Usage: terraform [global options] <subcommand> [args]
 
 The available commands for execution are listed below.
 The most common, useful commands are shown first, followed by
@@ -41,6 +40,8 @@ Common commands:
     graph              Create a visual graph of Terraform resources
     import             Import existing infrastructure into Terraform
     init               Initialize a Terraform working directory
+    login              Obtain and save credentials for a remote host
+    logout             Remove locally-stored credentials for a remote host
     output             Read an output from a state file
     plan               Generate and show an execution plan
     providers          Prints a tree of the providers used in the configuration
@@ -53,18 +54,24 @@ Common commands:
     workspace          Workspace management
 
 All other commands:
-    0.12upgrade        Rewrites pre-0.12 module source code for v0.12
     debug              Debug output management (experimental)
     force-unlock       Manually unlock the terraform state
-    push               Obsolete command for Terraform Enterprise legacy (v1)
     state              Advanced state management
+
+
+Global options (use these before the subcommand, if any):
+    -chdir=DIR         Switch to a different working directory before executing
+                       the given subcommand.
+    -help              Show this help output, or the help for a specified
+                       subcommand.
+    -version           An alias for the "version" subcommand.
 ```
 
-To get help for any specific command, pass the -h flag to the relevant subcommand. For example,
-to see help about the graph subcommand:
+To get help for any specific command, use the -help option to the relevant
+subcommand. For example, to see help about the graph subcommand:
 
 ```text
-$ terraform graph -h
+$ terraform graph -help
 Usage: terraform graph [options] PATH
 
   Outputs the visual graph of Terraform resources. If the path given is
@@ -76,6 +83,39 @@ Usage: terraform graph [options] PATH
   read this format is GraphViz, but many web services are also available
   to read this format.
 ```
+
+## Switching working directory with `-chdir`
+
+The usual way to run Terraform is to first switch to the directory containing
+the `.tf` files for your root module (for example, using the `cd` command), so
+that Terraform will find those files automatically without any extra arguments.
+
+In some cases though — particularly when wrapping Terraform in automation
+scripts — it can be convenient to run Terraform from a different directory than
+the root module directory. To allow that, Terraform supports a global option
+`-chdir=...` which you can include before the name of the subcommand you intend
+to run:
+
+```
+terraform -chdir=environments/production apply
+```
+
+The `chdir` option instructs Terraform to change its working directory to the
+given directory before running the given subcommand. This means that any files
+that Terraform would normally read or write in the current working directory
+will be read or written in the given directory instead.
+
+There are two exceptions where Terraform will use the original working directory
+even when you specify `-chdir=...`:
+
+* Settings in the [CLI Configuration](cli-config.html) are not for a specific
+  subcommand and Terraform processes them before acting on the `-chdir`
+  option.
+
+* In case you need to use files from the original working directory as part
+  of your configuration, a reference to `path.cwd` in the configuration will
+  produce the original working directory instead of the overridden working
+  directory. Use `path.root` to get the root module directory.
 
 ## Shell Tab-completion
 

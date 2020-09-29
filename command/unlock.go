@@ -65,7 +65,11 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

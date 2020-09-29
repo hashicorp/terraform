@@ -94,7 +94,7 @@ func TestCBDEdgeTransformer(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -165,8 +165,8 @@ func TestCBDEdgeTransformerMulti(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"C","test_list":["x"]}`),
 			Dependencies: []addrs.ConfigResource{
-				mustResourceAddr("test_object.A"),
-				mustResourceAddr("test_object.B"),
+				mustConfigResourceAddr("test_object.A"),
+				mustConfigResourceAddr("test_object.B"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -234,7 +234,7 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -243,7 +243,7 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -320,7 +320,7 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -329,7 +329,7 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)

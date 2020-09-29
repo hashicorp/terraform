@@ -83,9 +83,12 @@ If the credentials helper is able to provide credentials for the given host
 then it must print a JSON credentials object to its stdout stream and then
 exit with status code zero to indicate success.
 
-If it is unable to provide the requested credentials for any reason, it must
-print an end-user-oriented plain text error message to its stderr stream and
-then exit with a _non-zero_ status code.
+If the credentials helper definitively has no credentials for the given host,
+then it must print an empty JSON object to stdout and exit with status zero.
+
+If the credentials helper is unable to provide the requested credentials for
+any other reason, it must print an end-user-oriented plain text error message
+to its stderr stream and then exit with a _non-zero_ status code.
 
 ## `store`: store new credentials for the given hostname
 

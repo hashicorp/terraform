@@ -102,7 +102,7 @@ was added in Terraform v0.13. Previous versions of Terraform used a version
 constraint string instead of an object (like `mycloud = "~> 1.0"`), and had no
 way to specify provider source addresses. If you want to write a module that
 works with both Terraform v0.12 and v0.13, see [v0.12-Compatible Provider
-Requirements](#v012-compatible-provider-requirements) below.
+Requirements](#v0-12-compatible-provider-requirements) below.
 
 ## Names and Addresses
 
@@ -183,7 +183,15 @@ For example,
 [the official HTTP provider](https://registry.terraform.io/providers/hashicorp/http)
 belongs to the `hashicorp` namespace on `registry.terraform.io`, so its
 source address is `registry.terraform.io/hashicorp/http` or, more commonly, just
-`hashicorp/http`.
+`hashicorp/http`. 
+
+The source address with all three components given explicitly is called the
+provider's _fully-qualified address_. You will see fully-qualified address in
+various outputs, like error messages, but in most cases a simplified display
+version is used. This display version omits the source host when it is the
+public registry, so you may see the shortened version `"hashicorp/random"` instead
+of `"registry.terraform.io/hashicorp/random"`.
+
 
 -> **Note:** If you omit the `source` argument when requiring a provider,
 Terraform uses an implied source address of
@@ -242,11 +250,11 @@ avoiding typing.
 
 ## Version Constraints
 
-A [source address](#source-addresses) uniquely identifies a particular
-provider, but each provider can have one or more distinct _versions_, allowing
-the functionality of the provider to evolve over time. Each provider dependency
-you declare should have a [version constraint](./version-constraints.html)
-given in the `version` argument.
+Each provider plugin has its own set of available versions, allowing the
+functionality of the provider to evolve over time. Each provider dependency you
+declare should have a [version constraint](./version-constraints.html) given in
+the `version` argument so Terraform can select a single version per provider
+that all modules are compatible with.
 
 The `version` argument is optional; if omitted, Terraform will accept any
 version of the provider as compatible. However, we strongly recommend specifying

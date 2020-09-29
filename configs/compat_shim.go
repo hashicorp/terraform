@@ -142,23 +142,27 @@ func warnForDeprecatedInterpolationsInBody(body hcl.Body) hcl.Diagnostics {
 }
 
 func warnForDeprecatedInterpolationsInExpr(expr hcl.Expression) hcl.Diagnostics {
-	var diags hcl.Diagnostics
-
-	if _, ok := expr.(*hclsyntax.TemplateWrapExpr); !ok {
-		// We're only interested in TemplateWrapExpr, because that's how
-		// the HCL native syntax parser represents the case of a template
-		// that consists entirely of a single interpolation expression, which
-		// is therefore subject to the special case of passing through the
-		// inner value without conversion to string.
-		return diags
+	node, ok := expr.(hclsyntax.Node)
+	if !ok {
+		return nil
 	}
 
-	diags = append(diags, &hcl.Diagnostic{
-		Severity: hcl.DiagWarning,
-		Summary:  "Interpolation-only expressions are deprecated",
-		Detail:   "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated. To silence this warning, remove the \"${ sequence from the start and the }\" sequence from the end of this expression, leaving just the inner expression.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
-		Subject:  expr.Range().Ptr(),
-	})
+	return hclsyntax.VisitAll(node, func(n hclsyntax.Node) hcl.Diagnostics {
+		e, ok := n.(*hclsyntax.TemplateWrapExpr)
+		if !ok {
+			// We're only interested in TemplateWrapExpr, because that's how
+			// the HCL native syntax parser represents the case of a template
+			// that consists entirely of a single interpolation expression, which
+			// is therefore subject to the special case of passing through the
+			// inner value without conversion to string.
+			return nil
+		}
 
-	return diags
+		return hcl.Diagnostics{&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Interpolation-only expressions are deprecated",
+			Detail:   "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated. To silence this warning, remove the \"${ sequence from the start and the }\" sequence from the end of this expression, leaving just the inner expression.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
+			Subject:  e.Range().Ptr(),
+		}}
+	})
 }

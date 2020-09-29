@@ -44,6 +44,22 @@ We have a list of [recommend OS / architecture combinations](/docs/registry/prov
 
 ~> **Important:** Avoid modifying or replacing an already-released version of a provider, as this will cause checksum errors for users when attempting to download the plugin. Instead, if changes are necessary, please release as a new version.
 
+#### GitHub Actions (Preferred)
+
+[GitHub Actions](https://docs.github.com/en/actions) allow you to execute workflows when events on your repository occur. You can use this to publish provider releases to the Terraform Registry whenever a new version tag is created on your repository.
+
+To use GitHub Actions to publish new provider releases to the Terraform Registry:
+
+1. Create and export a signing key that you plan on using to sign your provider releases. See [Preparing and Adding a Signing Key](#preparing-and-adding-a-signing-key) for more information.
+1. Copy the [GoReleaser configuration from the terraform-provider-scaffolding repository](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml) to the root of your repository.
+1. Copy the [GitHub Actions workflow from the terraform-provider-scaffolding repository](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.github/workflows/release.yml) to `.github/workflows/release.yml` in your repository.
+1. Go to *Settings > Secrets* in your repository, and add the following secrets:
+  * `GPG_PRIVATE_KEY` - Your ASCII-armored GPG private key. You can export this with `gpg --armor --export-secret-keys [key ID or email]`.
+  * `PASSPHRASE` - The passphrase for your GPG private key.
+1. Push a new valid version tag (e.g. `v1.2.3`) to test that the GitHub Actions releaser is working.
+
+Once a release is created, you can move on to [Publishing to the Registry](#publishing-to-the-registry).
+
 #### Using GoReleaser locally
 
 GoReleaser is a tool for building Go projects for multiple platforms, creating a checksums file, and signing the release. It can also upload your release to GitHub Releases.
@@ -51,7 +67,7 @@ GoReleaser is a tool for building Go projects for multiple platforms, creating a
 1. Install [GoReleaser](https://goreleaser.com) using the [installation instructions](https://goreleaser.com/install/).
 1. Copy the [.goreleaser.yml file](https://github.com/hashicorp/terraform-provider-scaffolding/blob/master/.goreleaser.yml) from the [hashicorp/terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding) repository.
 1. Cache the password for your GPG private key with `gpg --armor --detach-sign` (see note below).
-1. Set your `GITHUB_TOKEN` to a [Personal Access Token](https://github.com/settings/tokens) that has the **public_repo** scope.
+1. Set your `GITHUB_TOKEN` to a [Personal Access Token](https://github.com/settings/tokens/new?scopes=public_repo) that has the **public_repo** scope.
 1. Tag your version with `git tag v1.2.3`.
 1. Build, sign, and upload your release with `goreleaser release --rm-dist`.
 
@@ -84,19 +100,15 @@ Before publishing a provider, you must first sign in to the Terraform Registry w
 
 All provider releases are required to be signed, thus you must provide HashiCorp with the public key for the GPG keypair that you will be signing releases with. The Terraform Registry will validate that the release is signed with this key when publishing each version, and Terraform will verify this during `terraform init`.
 
-To export your public key in ASCII-armor format, use the following command:
+- Generate a GPG key to be used when signing releases (See [GitHub's detailed instructions](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-gpg-key) for help with this step, but you do not need to add the key to GitHub)
+- Export your public key in ASCII-armor format using the following command, substituting the GPG key ID created in the step above:
 
 ```console
 $ gpg --armor --export "{Key ID or email address}"
 ```
 
-#### Individuals
+The ASCII-armored public key to the Terraform Registry by going to [User Settings > Signing Keys](https://registry.terraform.io/settings/gpg-keys). You can add keys for your personal namespace, or any organization which you are an admin of.
 
-If you would like to publish a provider under your username (not a GitHub organization), you can add your GPG key to the Terraform Registry by visiting [User Settings > Signing Keys](https://registry.terraform.io/settings/gpg-keys).
-
-#### Organizations
-
-In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. You can email it to terraform-registry@hashicorp.com, or your HashiCorp contact person (if you have one).
 
 ### Publishing Your Provider
 
@@ -105,3 +117,7 @@ In the top-right navigation, select [Publish > Provider](https://registry.terraf
 #### Terms of Use
 
 Anything published to the Terraform Registry is subject to our terms of use. A copy of the terms are available for viewing at https://registry.terraform.io/terms
+
+### Support
+
+If you experience issues publishing your provider to the Terraform Registry, please contact us at [terraform-registry@hashicorp.com](mailto:terraform-registry@hashicorp.com).

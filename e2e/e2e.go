@@ -37,6 +37,11 @@ func NewBinary(binaryPath, workingDir string) *binary {
 		panic(err)
 	}
 
+	tmpDir, err = filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		panic(err)
+	}
+
 	// For our purposes here we do a very simplistic file copy that doesn't
 	// attempt to preserve file permissions, attributes, alternate data
 	// streams, etc. Since we only have to deal with our own fixtures in
@@ -180,7 +185,13 @@ func (b *binary) FileExists(path ...string) bool {
 // LocalState is a helper for easily reading the local backend's state file
 // terraform.tfstate from the working directory.
 func (b *binary) LocalState() (*states.State, error) {
-	f, err := b.OpenFile("terraform.tfstate")
+	return b.StateFromFile("terraform.tfstate")
+}
+
+// StateFromFile is a helper for easily reading a state snapshot from a file
+// on disk relative to the working directory.
+func (b *binary) StateFromFile(filename string) (*states.State, error) {
+	f, err := b.OpenFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +265,6 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 
 	cmd := exec.Command(
 		"go", "build",
-		"-mod=vendor",
 		"-o", tmpFilename,
 		pkgPath,
 	)

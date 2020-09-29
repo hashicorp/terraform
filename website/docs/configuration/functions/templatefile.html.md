@@ -49,7 +49,9 @@ to render templates while respecting resource dependencies.
 
 ## Examples
 
-Given a template file `backends.tmpl` with the following content:
+### Lists
+
+Given a template file `backends.tpl` with the following content:
 
 ```
 %{ for addr in ip_addrs ~}
@@ -60,10 +62,38 @@ backend ${addr}:${port}
 The `templatefile` function renders the template:
 
 ```
-> templatefile("${path.module}/backends.tmpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
+> templatefile("${path.module}/backends.tpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
 
+```
+
+### Maps
+
+Given a template file `config.tmpl` with the following content:
+
+```
+%{ for config_key, config_value in config }
+set ${config_key} = ${config_value}
+%{ endfor ~}
+```
+
+The `templatefile` function renders the template:
+
+```
+> templatefile(
+               "${path.module}/backends.tmpl", 
+               { 
+                 config = {
+                   "x"   = "y"
+                   "foo" = "bar"
+                   "key" = "value"
+                 }
+               }
+              )
+set foo = bar
+set key = value
+set x = y
 ```
 
 ### Generating JSON or YAML from a template

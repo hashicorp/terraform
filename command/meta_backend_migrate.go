@@ -180,7 +180,10 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	log.Printf("[TRACE] backendMigrateState: target backend type %q does not support named workspaces", opts.TwoType)
 
-	currentEnv := m.Workspace()
+	currentEnv, err := m.Workspace()
+	if err != nil {
+		return err
+	}
 
 	migrate := opts.force
 	if !migrate {
@@ -261,9 +264,12 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 				return nil, err
 			}
 
+			// Ignore invalid workspace name as it is irrelevant in this context.
+			workspace, _ := m.Workspace()
+
 			// If the currently selected workspace is the default workspace, then set
 			// the named workspace as the new selected workspace.
-			if m.Workspace() == backend.DefaultStateName {
+			if workspace == backend.DefaultStateName {
 				if err := m.SetWorkspace(opts.twoEnv); err != nil {
 					return nil, fmt.Errorf("Failed to set new workspace: %s", err)
 				}

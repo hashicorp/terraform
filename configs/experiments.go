@@ -138,6 +138,17 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 			}
 		}
 	*/
-
+	if !m.ActiveExperiments.Has(experiments.SensitiveVariables) {
+		for _, v := range m.Variables {
+			if v.Sensitive {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Variable sensitivity is experimental",
+					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding sensitive_variables to the list of active experiments.",
+					Subject:  v.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
 	return diags
 }
