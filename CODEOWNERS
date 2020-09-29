@@ -18,11 +18,11 @@
 /backend/remote-state/kubernetes        @jrhouston @alexsomesan 
 
 # Provisioners
-builtin/provisioners/chef               Unmaintained
+builtin/provisioners/chef               Deprecated
 builtin/provisioners/file               @hashicorp/terraform-core
-builtin/provisioners/habitat            Unmaintained
+builtin/provisioners/habitat            Deprecated
 builtin/provisioners/local-exec         @hashicorp/terraform-core
-builtin/provisioners/puppet             Unmaintained
+builtin/provisioners/puppet             Deprecated
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
-builtin/provisioners/salt-masterless    Unmaintained
+builtin/provisioners/salt-masterless    Deprecated
 
