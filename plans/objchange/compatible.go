@@ -73,8 +73,9 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		}
 	}
 	for name, blockS := range schema.BlockTypes {
-		plannedV := planned.GetAttr(name)
-		actualV := actual.GetAttr(name)
+		// Unmark values before testing compatibility
+		plannedV, _ := planned.GetAttr(name).UnmarkDeep()
+		actualV, _ := actual.GetAttr(name).UnmarkDeep()
 
 		// As a special case, if there were any blocks whose leaf attributes
 		// are all unknown then we assume (possibly incorrectly) that the

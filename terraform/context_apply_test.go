@@ -11939,8 +11939,17 @@ variable "sensitive_var" {
 	sensitive = true
 }
 
+variable "sensitive_id" {
+	default = "secret id"
+	sensitive = true
+}
+
 resource "test_resource" "foo" {
 	value   = var.sensitive_var
+
+	network_interface {
+		network_interface_id = var.sensitive_id
+	}
 }`,
 	})
 
@@ -11982,7 +11991,7 @@ resource "test_resource" "foo" {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	// Now change the variable value
+	// Now change the variable value for sensitive_var
 	ctx = testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
