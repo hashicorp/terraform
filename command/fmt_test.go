@@ -22,11 +22,15 @@ func TestFmt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tmpDir, err := ioutil.TempDir("", "terraform-fmt-test")
+	td, err := ioutil.TempDir("", "terraform-fmt-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir, err := filepath.EvalSymlinks(td)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(td)
 
 	for _, info := range entries {
 		if info.IsDir() {
