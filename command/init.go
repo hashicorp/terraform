@@ -505,7 +505,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				sources := errorTy.Sources
 				displaySources := make([]string, len(sources))
 				for i, source := range sources {
-					displaySources[i] = fmt.Sprintf("- %s", source)
+					displaySources[i] = fmt.Sprintf("  - %s", source)
 				}
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
