@@ -8,6 +8,8 @@ description: |-
 
 # Creating Modules
 
+> **Hands-on:** Try the [Reuse Configuration with Modules](https://learn.hashicorp.com/collections/terraform/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+
 A _module_ is a container for multiple resources that are used together.
 Modules can be used to create lightweight abstractions, so that you can
 describe your infrastructure in terms of its architecture, rather than
@@ -22,8 +24,6 @@ of another.
 To learn how to _use_ modules, see [the Modules configuration section](/docs/configuration/modules.html).
 This section is about _creating_ re-usable modules that other configurations
 can include using `module` blocks.
-
-You can also learn more about how to use and create modules with our hands-on [modules track on learn.hashicorp.com](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## Module structure
 

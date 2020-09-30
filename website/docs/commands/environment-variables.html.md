@@ -112,7 +112,7 @@ applications.
 This is a purely cosmetic change to Terraform's human-readable output, and the
 exact output differences can change between minor Terraform versions.
 
-For more details see [Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
+For more details see [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## TF_REGISTRY_DISCOVERY_RETRY
 

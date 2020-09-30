@@ -8,7 +8,7 @@ description: |-
 
 # Import Usage
 
-> For a hands-on tutorial, try the [Import Terraform Configuration](https://learn.hashicorp.com/terraform/state/import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+> **Hands-on:** Try the [Import Terraform Configuration](https://learn.hashicorp.com/tutorials/terraform/state-import?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 The `terraform import` command is used to import existing infrastructure.
 
@@ -84,8 +84,3 @@ not done, Terraform will plan to destroy the imported objects on the next run.
 
 If you want to rename or otherwise move the imported resources, the
 [state management commands](/docs/commands/state/index.html) can be used.
-
-## Hands-On Tutorial
-
-You can also follow the [Terraform Import tutorial](https://learn.hashicorp.com/tutorials/terraform/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) on HashiCorp learn for a hands-on
-introduction to using the `terraform import` command.

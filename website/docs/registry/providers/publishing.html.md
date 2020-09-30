@@ -18,7 +18,7 @@ This page describes how to prepare a [Terraform Provider](/docs/plugins/provider
 
 Providers published to the Terraform Registry are written and built in the same way as other Terraform providers. A variety of resources are available to help our contributors build a quality integration:
 
-- [Writing a custom provider – full tutorial](https://learn.hashicorp.com/tutorials/terraform/provider-setup)
+- The [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn
 - [How to build a provider – Video](https://www.youtube.com/watch?v=2BvpqmFpchI)
 - [Sample provider developed by a HashiCorp partner](https://blog.container-solutions.com/write-terraform-provider-part-1)
 - Example providers for reference:

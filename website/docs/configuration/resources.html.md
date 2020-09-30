@@ -14,7 +14,7 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Resources](../configuration-0-11/resources.html).
 
-> For a hands-on tutorial, try the [Get Started](https://learn.hashicorp.com/terraform/getting-started/intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 _Resources_ are the most important element in the Terraform language.
 Each resource block describes one or more infrastructure objects, such
@@ -289,7 +289,7 @@ However, sometimes you want to manage several similar objects, such as a fixed
 pool of compute instances. Terraform has two ways to do this:
 `count` and [`for_each`][inpage-for_each].
 
-> For a hands-on tutorial, try the [Manage Similar Resources With Count](https://learn.hashicorp.com/terraform/configuration/count?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+> **Hands-on:** Try the [Manage Similar Resources With Count](https://learn.hashicorp.com/tutorials/terraform/count?in=terraform/0-13&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 The `count` meta-argument accepts a whole number, and creates that many
 instances of the resource. Each instance has a distinct infrastructure object
@@ -392,7 +392,7 @@ However, sometimes you want to manage several similar objects, such as a fixed
 pool of compute instances. Terraform has two ways to do this:
 [`count`][inpage-count] and `for_each`.
 
-> For a hands-on tutorial, try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/terraform/configuration/for-each?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) guide on HashiCorp Learn.
+> **Hands-on:** Try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/tutorials/terraform/for-each?in=terraform/0-13&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 The `for_each` meta-argument accepts a map or a set of strings, and creates an
 instance for each item in that map or set. Each instance has a distinct
@@ -707,7 +707,7 @@ the processing happens too early for arbitrary expression evaluation.
 
 [inpage-provisioner]: #provisioner-and-connection-resource-provisioners
 
-> For hands-on tutorials about handling provisioning actions declaratively, try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/terraform/provision/packer?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+> **Hands-on:** To learn about more declarative ways to handle provisioning actions, try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/collections/terraform/provision?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 Some infrastructure objects require some special actions to be taken after they
 are created before they can become fully functional. For example, compute
