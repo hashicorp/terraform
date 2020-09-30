@@ -28,6 +28,7 @@ type Variable struct {
 	Sensitive   bool
 
 	DescriptionSet bool
+	SensitiveSet   bool
 
 	DeclRange hcl.Range
 }
@@ -98,6 +99,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	if attr, exists := content.Attributes["sensitive"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Sensitive)
 		diags = append(diags, valDiags...)
+		v.SensitiveSet = true
 	}
 
 	if attr, exists := content.Attributes["default"]; exists {
