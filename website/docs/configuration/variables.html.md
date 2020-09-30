@@ -76,24 +76,24 @@ assign a value to the variable from outside and to reference the variable's
 value from within the module.
 
 The name of a variable can be any valid [identifier](./syntax.html#identifiers)
-_except_ the following:
-
-- `source`
-- `version`
-- `providers`
-- `count`
-- `for_each`
-- `lifecycle`
-- `depends_on`
-- `locals`
+_except_ the following: `source`, `version`, `providers`, `count`, `for_each`, `lifecycle`, `depends_on`, `locals`.
 
 These names are reserved for meta-arguments in
 [module configuration blocks](./modules.html), and cannot be
 declared as variable names.
 
-The variable declaration can optionally include a `type` argument to
-specify what value types are accepted for the variable, as described
-in the following section.
+## Arguments
+
+Terraform CLI defines the following optional arguments for variable declarations:
+
+- [`default`][inpage-default] - A default value which then makes the variable optional.
+- [`type`][inpage-type] - This argument specifies what value types are accepted for the variable.
+- [`description`][inpage-description] - This specifies the input variable's documentation.
+- [`validation`][inpage-validation] - A block to define validation rules, usually in addition to type constraints.
+
+### Default values
+
+[inpage-default]: #default-values
 
 The variable declaration can also include a `default` argument. If present,
 the variable is considered to be _optional_ and the default value will be used
@@ -101,26 +101,9 @@ if no value is set when calling the module or running Terraform. The `default`
 argument requires a literal value and cannot reference other objects in the
 configuration.
 
-## Using Input Variable Values
+### Type Constraints
 
-Within the module that declared a variable, its value can be accessed from
-within [expressions](./expressions.html) as `var.<NAME>`,
-where `<NAME>` matches the label given in the declaration block:
-
--> **Note:** Input variables are _created_ by a `variable` block, but you
-_reference_ them as attributes on an object named `var`.
-
-```hcl
-resource "aws_instance" "example" {
-  instance_type = "t2.micro"
-  ami           = var.image_id
-}
-```
-
-The value assigned to a variable can only be accessed in expressions within
-the module where it was declared.
-
-## Type Constraints
+[inpage-type]: #type-constraints
 
 The `type` argument in a `variable` block allows you to restrict the
 [type of value](./expressions.html#types-and-values) that will be accepted as
@@ -155,7 +138,9 @@ as detailed information about automatic conversion of complex types, see
 If both the `type` and `default` arguments are specified, the given default
 value must be convertible to the specified type.
 
-## Input Variable Documentation
+### Input Variable Documentation
+
+[inpage-description]: #input-variable-documentation
 
 Because the input variables of a module are part of its user interface, you can
 briefly describe the purpose of each variable using the optional
@@ -174,7 +159,9 @@ might be included in documentation about the module, and so it should be written
 from the perspective of the user of the module rather than its maintainer. For
 commentary for module maintainers, use comments.
 
-## Custom Validation Rules
+### Custom Validation Rules
+
+[inpage-validation]: #custom-validation-rules
 
 -> This feature was introduced in Terraform CLI v0.13.0.
 
@@ -219,6 +206,25 @@ If `condition` evaluates to `false`, Terraform will produce an error message
 that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
+
+## Using Input Variable Values
+
+Within the module that declared a variable, its value can be accessed from
+within [expressions](./expressions.html) as `var.<NAME>`,
+where `<NAME>` matches the label given in the declaration block:
+
+-> **Note:** Input variables are _created_ by a `variable` block, but you
+_reference_ them as attributes on an object named `var`.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = var.image_id
+}
+```
+
+The value assigned to a variable can only be accessed in expressions within
+the module where it was declared.
 
 ## Assigning Values to Root Module Variables
 
