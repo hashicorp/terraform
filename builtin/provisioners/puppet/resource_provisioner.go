@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/builtin/provisioners/puppet/bolt"
@@ -39,6 +40,8 @@ type provisioner struct {
 	instanceState *terraform.InstanceState
 	output        terraform.UIOutput
 	comm          communicator.Communicator
+
+	outputWG sync.WaitGroup
 }
 
 type csrAttributes struct {
@@ -297,8 +300,11 @@ func (p *provisioner) runCommand(command string) (stdout string, err error) {
 	outR, outW := io.Pipe()
 	errR, errW := io.Pipe()
 	outTee := io.TeeReader(outR, &stdoutBuffer)
+
+	p.outputWG.Add(2)
 	go p.copyToOutput(outTee)
 	go p.copyToOutput(errR)
+
 	defer outW.Close()
 	defer errW.Close()
 
@@ -315,12 +321,19 @@ func (p *provisioner) runCommand(command string) (stdout string, err error) {
 	}
 
 	err = cmd.Wait()
+
+	outW.Close()
+	errW.Close()
+	p.outputWG.Wait()
+
 	stdout = strings.TrimSpace(stdoutBuffer.String())
 
 	return stdout, err
 }
 
 func (p *provisioner) copyToOutput(reader io.Reader) {
+	defer p.outputWG.Done()
+
 	lr := linereader.New(reader)
 	for line := range lr.Ch {
 		p.output.Output(line)
