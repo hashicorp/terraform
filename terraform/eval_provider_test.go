@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/providers"
 )
 
 func TestBuildProviderConfig(t *testing.T) {
@@ -52,32 +51,5 @@ func TestBuildProviderConfig(t *testing.T) {
 	})
 	if !got.RawEquals(want) {
 		t.Fatalf("incorrect merged config\ngot:  %#v\nwant: %#v", got, want)
-	}
-}
-
-func TestEvalGetProvider_impl(t *testing.T) {
-	var _ EvalNode = new(EvalGetProvider)
-}
-
-func TestEvalGetProvider(t *testing.T) {
-	var actual providers.Interface
-	n := &EvalGetProvider{
-		Addr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("foo")),
-		Output: &actual,
-	}
-	provider := &MockProvider{}
-	ctx := &MockEvalContext{ProviderProvider: provider}
-	if _, err := n.Eval(ctx); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if actual != provider {
-		t.Fatalf("bad: %#v", actual)
-	}
-
-	if !ctx.ProviderCalled {
-		t.Fatal("should be called")
-	}
-	if ctx.ProviderAddr.String() != `provider["registry.terraform.io/hashicorp/foo"]` {
-		t.Fatalf("wrong provider address %s", ctx.ProviderAddr)
 	}
 }

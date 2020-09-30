@@ -143,12 +143,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			return err
 		}
 
-		evalReadDiff := &EvalReadDiff{
-			Addr:           addr.Resource,
-			ProviderSchema: &providerSchema,
-			Change:         &changeApply,
-		}
-		_, err = evalReadDiff.Eval(ctx)
+		changeApply, err = n.ReadDiff(ctx, providerSchema)
 		if err != nil {
 			return err
 		}

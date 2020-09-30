@@ -57,7 +57,7 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 		return err
 	}
 
-	err = n.CheckPreventDestroy(addr, change)
+	err = n.checkPreventDestroy(change)
 	if err != nil {
 		return err
 	}
