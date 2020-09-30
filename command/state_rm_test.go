@@ -26,7 +26,7 @@ func TestStateRm(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -41,7 +41,7 @@ func TestStateRm(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -91,7 +91,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -109,7 +109,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -141,7 +141,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `)
@@ -154,14 +154,14 @@ module.child:
 	testStateOutput(t, backups[0], `
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `)
@@ -180,7 +180,7 @@ func TestStateRmNoArgs(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -195,7 +195,7 @@ func TestStateRmNoArgs(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -239,7 +239,7 @@ func TestStateRmNonExist(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -254,7 +254,7 @@ func TestStateRmNonExist(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -294,7 +294,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -309,7 +309,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -410,7 +410,7 @@ func TestStateRm_backendState(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -425,7 +425,7 @@ func TestStateRm_backendState(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -474,12 +474,12 @@ func TestStateRm_backendState(t *testing.T) {
 const testStateRmOutputOriginal = `
 test_instance.bar:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -487,7 +487,7 @@ test_instance.foo:
 const testStateRmOutput = `
 test_instance.bar:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `

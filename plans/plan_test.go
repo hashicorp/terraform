@@ -22,7 +22,7 @@ func TestProviderAddrs(t *testing.T) {
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
 						Module:   addrs.RootModule,
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 					},
 				},
 				{
@@ -34,7 +34,7 @@ func TestProviderAddrs(t *testing.T) {
 					DeposedKey: "foodface",
 					ProviderAddr: addrs.AbsProviderConfig{
 						Module:   addrs.RootModule,
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 					},
 				},
 				{
@@ -45,7 +45,7 @@ func TestProviderAddrs(t *testing.T) {
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
 						Module:   addrs.RootModule.Child("foo"),
-						Provider: addrs.NewLegacyProvider("test"),
+						Provider: addrs.NewDefaultProvider("test"),
 					},
 				},
 			},
@@ -56,11 +56,11 @@ func TestProviderAddrs(t *testing.T) {
 	want := []addrs.AbsProviderConfig{
 		addrs.AbsProviderConfig{
 			Module:   addrs.RootModule.Child("foo"),
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 		},
 		addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 		},
 	}
 

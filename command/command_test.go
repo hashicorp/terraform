@@ -373,7 +373,7 @@ func testStateFile(t *testing.T, s *states.State) string {
 
 // testStateFileDefault writes the state out to the default statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
-func testStateFileDefault(t *testing.T, s *terraform.State) string {
+func testStateFileDefault(t *testing.T, s *states.State) {
 	t.Helper()
 
 	f, err := os.Create(DefaultStateFilename)
@@ -382,11 +382,9 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := writeStateForTesting(s, f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	return DefaultStateFilename
 }
 
 // testStateFileWorkspaceDefault writes the state out to the default statefile

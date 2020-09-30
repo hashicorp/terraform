@@ -15,3 +15,12 @@ func Write(s *File, w io.Writer) error {
 	diags := writeStateV4(s, w)
 	return diags.Err()
 }
+
+// WriteForTest writes the given state to the given writer in the current state
+// serialization format without recording the current terraform version. This is
+// intended for use in tests that need to override the current terraform
+// version.
+func WriteForTest(s *File, w io.Writer) error {
+	diags := writeStateV4(s, w)
+	return diags.Err()
+}

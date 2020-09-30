@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/helper/copy"
@@ -15,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -1783,21 +1783,9 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// create our local state
-	orig := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			{
-				Path: []string{"root"},
-				Outputs: map[string]*terraform.OutputState{
-					"foo": {
-						Value: "bar",
-						Type:  "string",
-					},
-				},
-			},
-		},
-	}
-
+	// // create our local state
+	orig := states.NewState()
+	orig.Module(addrs.RootModuleInstance).SetOutputValue("foo", cty.StringVal("bar"), false)
 	testStateFileDefault(t, orig)
 
 	m := testMetaBackend(t, nil)
