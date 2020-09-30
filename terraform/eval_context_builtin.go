@@ -79,8 +79,8 @@ type BuiltinEvalContext struct {
 var _ EvalContext = (*BuiltinEvalContext)(nil)
 
 func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
-	ctx.pathSet = true
 	newCtx := *ctx
+	newCtx.pathSet = true
 	newCtx.PathValue = path
 	return &newCtx
 }

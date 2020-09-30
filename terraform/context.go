@@ -562,11 +562,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 	p.Changes = c.changes
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
-	p.State = c.refreshState.DeepCopy()
+
+	refreshedState := c.refreshState.DeepCopy()
+	p.State = refreshedState
 
 	// replace the working state with the updated state, so that immediate calls
 	// to Apply work as expected.
-	c.state = c.refreshState
+	c.state = refreshedState
 
 	return p, diags
 }
@@ -743,12 +745,11 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 	switch operation {
 	case walkValidate:
 		// validate should not use any state
-		s := states.NewState()
-		state = s.SyncWrapper()
+		state = states.NewState().SyncWrapper()
 
 		// validate currently uses the plan graph, so we have to populate the
 		// refreshState.
-		refreshState = s.SyncWrapper()
+		refreshState = states.NewState().SyncWrapper()
 
 	case walkPlan:
 		state = c.state.SyncWrapper()

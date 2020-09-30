@@ -10135,9 +10135,15 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 			},
 		},
 	}
+
+	var pmMu sync.Mutex
 	arcPMs := map[string]cty.Value{}
+
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		pmMu.Lock()
+		defer pmMu.Unlock()
 		arcPMs[req.TypeName] = req.ProviderMeta
+
 		s := req.PlannedState.AsValueMap()
 		s["id"] = cty.StringVal("ID")
 		return providers.ApplyResourceChangeResponse{
@@ -10209,9 +10215,13 @@ func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
 			},
 		},
 	}
+	var pmMu sync.Mutex
 	arcPMs := map[string]cty.Value{}
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		pmMu.Lock()
+		defer pmMu.Unlock()
 		arcPMs[req.TypeName] = req.ProviderMeta
+
 		s := req.PlannedState.AsValueMap()
 		s["id"] = cty.StringVal("ID")
 		return providers.ApplyResourceChangeResponse{
