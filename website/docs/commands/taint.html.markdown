@@ -80,7 +80,7 @@ It is necessary to wrap the resource in single quotes and escape the quotes.
 This example will taint a single resource created with for_each:
 
 ```
-$ terraform taint "module.route_tables.azurerm_route_table.rt[\"DefaultSubnet\"]"
+$ terraform taint 'module.route_tables.azurerm_route_table.rt[\"DefaultSubnet\"]'
 The resource module.route_tables.azurerm_route_table.rt["DefaultSubnet"] in the module root has been marked as tainted.
 ```
 
