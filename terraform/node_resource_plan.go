@@ -185,7 +185,7 @@ func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) error
 		return nil
 	}
 
-	err := n.WriteResourceState(ctx, n.Addr)
+	err := n.writeResourceState(ctx, n.Addr)
 	return err
 }
 

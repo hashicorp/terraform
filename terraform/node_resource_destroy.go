@@ -143,7 +143,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			return err
 		}
 
-		changeApply, err = n.ReadDiff(ctx, providerSchema)
+		changeApply, err = n.readDiff(ctx, providerSchema)
 		if err != nil {
 			return err
 		}

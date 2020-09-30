@@ -141,7 +141,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		return err
 	}
 
-	change, err := n.ReadDiff(ctx, providerSchema)
+	change, err := n.readDiff(ctx, providerSchema)
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get the saved diff for apply
-	diffApply, err := n.ReadDiff(ctx, providerSchema)
+	diffApply, err := n.readDiff(ctx, providerSchema)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Get the saved diff
-	diff, err := n.ReadDiff(ctx, providerSchema)
+	diff, err := n.readDiff(ctx, providerSchema)
 	if err != nil {
 		return err
 	}

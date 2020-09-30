@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/terraform/configs"
 )
 
-func TestNodeAbstractResourceProvider(t *testing.T) {
+func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 	tests := []struct {
-		Addr   addrs.ConfigResource
+		Addr   addrs.AbsResourceInstance
 		Config *configs.Resource
 		Want   addrs.Provider
 	}{
@@ -19,7 +19,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
-			}.InModule(addrs.RootModule),
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			Want: addrs.Provider{
 				Hostname:  addrs.DefaultRegistryHost,
 				Namespace: "hashicorp",
@@ -31,7 +31,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Mode: addrs.DataResourceMode,
 				Type: "terraform_remote_state",
 				Name: "baz",
-			}.InModule(addrs.RootModule),
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			Want: addrs.Provider{
 				// As a special case, the type prefix "terraform_" maps to
 				// the builtin provider, not the default one.
@@ -45,7 +45,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Mode: addrs.ManagedResourceMode,
 				Type: "null_resource",
 				Name: "baz",
-			}.InModule(addrs.RootModule),
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			Config: &configs.Resource{
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
@@ -67,7 +67,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Mode: addrs.DataResourceMode,
 				Type: "terraform_remote_state",
 				Name: "baz",
-			}.InModule(addrs.RootModule),
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			Config: &configs.Resource{
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
@@ -94,11 +94,13 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 			name = fmt.Sprintf("%s with no configuration", test.Addr)
 		}
 		t.Run(name, func(t *testing.T) {
-			node := &NodeAbstractResource{
-				// Just enough NodeAbstractResource for the Provider function.
-				// (This would not be valid for some other functions.)
-				Addr:   test.Addr,
-				Config: test.Config,
+			node := &NodeAbstractResourceInstance{
+				// Just enough NodeAbstractResourceInstance for the Provider
+				// function. (This would not be valid for some other functions.)
+				Addr: test.Addr,
+				NodeAbstractResource: NodeAbstractResource{
+					Config: test.Config,
+				},
 			}
 			got := node.Provider()
 			if got != test.Want {
