@@ -94,7 +94,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 	// Test it starts with only the default
 	if !noDefault && (len(workspaces) != 1 || workspaces[0] != DefaultStateName) {
-		t.Fatalf("should only default to start: %#v", workspaces)
+		t.Fatalf("should only have the default workspace to start: %#v", workspaces)
 	}
 
 	// Create a couple states

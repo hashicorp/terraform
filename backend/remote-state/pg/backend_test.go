@@ -71,6 +71,8 @@ func TestBackendConfig(t *testing.T) {
 	if c.Name != backend.DefaultStateName {
 		t.Fatal("RemoteClient name is not configured")
 	}
+
+	backend.TestBackendStates(t, b)
 }
 
 func TestBackendConfigSkipSchema(t *testing.T) {

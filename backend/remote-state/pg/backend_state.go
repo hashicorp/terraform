@@ -10,14 +10,16 @@ import (
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
-	query := `SELECT name FROM %s.%s ORDER BY name`
+	query := `SELECT name FROM %s.%s WHERE name != 'default' ORDER BY name`
 	rows, err := b.db.Query(fmt.Sprintf(query, b.schemaName, statesTableName))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var result []string
+	result := []string{
+		backend.DefaultStateName,
+	}
 
 	for rows.Next() {
 		var name string
