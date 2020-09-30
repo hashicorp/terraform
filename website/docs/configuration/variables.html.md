@@ -90,6 +90,7 @@ Terraform CLI defines the following optional arguments for variable declarations
 - [`type`][inpage-type] - This argument specifies what value types are accepted for the variable.
 - [`description`][inpage-description] - This specifies the input variable's documentation.
 - [`validation`][inpage-validation] - A block to define validation rules, usually in addition to type constraints.
+- [`sensitive`][inpage-sensitive] - A boolean value that can limit Terraform UI output when the variable is used in configuration, to avoid accidental disclosure in logs or other UI.
 
 ### Default values
 
@@ -206,6 +207,72 @@ If `condition` evaluates to `false`, Terraform will produce an error message
 that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
+
+### Sensitive
+
+[inpage-sensitive]: #sensitive
+
+-> This feature was introduced in Terraform CLI v0.14.0.
+
+The `sensitive` argument on a variable block is a boolean value that, when provided, limits the output of the Terraform `plan` or `apply` when that variable is used. A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
+
+Once you have defined a sensitive variable, using it throughout your configuration will obfuscate the value from display in output:
+
+```
+variable "user_information" {
+  type = object({
+    name    = string
+    address = string
+  })
+  sensitive = true
+}
+
+resource "some_resource" "a" {
+  name    = var.user_information.name
+  address = var.user_information.address
+}
+```
+
+Running `terraform apply`:
+
+```
+Terraform will perform the following actions:
+
+  # some_resource.a will be created
+  + resource "some_resource" "a" {
+      + name    = (sensitive)
+      + address = (sensitive)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+#### Cases where Terraform may disclose a sensitive variable
+
+Variable values marked as sensitive will display in state. Much like provider-side sensitive values, designating a value as sensitive only limits its display in logs or output, not in state.
+
+Similarly, `sensitive` argument does not have an impact in other Terraform commands such as `console` or `show`. Those commands are meant to ex as this argument is intended to reduce exposure of data in, for example, external logs or aggregation.
+
+Defining sensitivity at the variable level is a configuration-centered concept, and values are sent to providers without any obfuscation; as such, a provider error could disclose a value depending on if the value is included in the error message. For example, if a provider returns an error with `"Invalid value 'foo' for field"`, the value will be displayed in output as a consequence of this error.
+
+If a resource attribute is used as, or part of, the provider-defined resource id, an `apply` will disclose the value. In the example below, the `prefix` attribute has been set to a sensitive variable, but then that value ("jae") is later disclosed as part of the resource id:
+
+```
+  # random_pet.animal will be created
+  + resource "random_pet" "animal" {
+      + id        = (known after apply)
+      + length    = 2
+      + prefix    = (sensitive)
+      + separator = "-"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+...
+
+random_pet.animal: Creating...
+random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
+```
 
 ## Using Input Variable Values
 
