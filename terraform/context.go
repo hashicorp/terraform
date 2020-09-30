@@ -743,12 +743,11 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 	switch operation {
 	case walkValidate:
 		// validate should not use any state
-		s := states.NewState()
-		state = s.SyncWrapper()
+		state = states.NewState().SyncWrapper()
 
 		// validate currently uses the plan graph, so we have to populate the
 		// refreshState.
-		refreshState = s.SyncWrapper()
+		refreshState = states.NewState().SyncWrapper()
 
 	case walkPlan:
 		state = c.state.SyncWrapper()
