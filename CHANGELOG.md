@@ -1,15 +1,15 @@
-## 0.13.4 (Unreleased)
+## 0.13.4 (September 30, 2020)
 
 UPGRADE NOTES:
 
 * The built-in vendor (third-party) provisioners, which include `habitat`, `puppet`, `chef`, and `salt-masterless` are now deprecated and will be removed in a future version of Terraform. More information [on Discuss](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-4/13997).
-* Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. Terraform also detects interpolation-only expressions in complex values such as lists and objects. An expression like `"${foo}"` should be rewritten as just `foo`. [GH-27272] [GH-26334]
+* Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. Terraform also detects interpolation-only expressions in complex values such as lists and objects. An expression like `"${foo}"` should be rewritten as just `foo`. ([#27272](https://github.com/hashicorp/terraform/issues/27272)] [[#26334](https://github.com/hashicorp/terraform/issues/26334))
 
 BUG FIXES:
 
-* command: Include schemas from required but unused providers in the output of `terraform providers schema`. This allows development tools such as the Terraform language server to offer autocompletion for the first resource for a given provider. [GH-26318]
-* core: create_before_destroy status is now updated in the state during refresh [GH-26343]
-* core: data sources using `depends_on`, either directly or through their modules, are no longer are forced to wait until apply by other planned data source reads [GH-26375]
+* command: Include schemas from required but unused providers in the output of `terraform providers schema`. This allows development tools such as the Terraform language server to offer autocompletion for the first resource for a given provider. ([#26318](https://github.com/hashicorp/terraform/issues/26318))
+* core: create_before_destroy status is now updated in the state during refresh ([#26343](https://github.com/hashicorp/terraform/issues/26343))
+* core: data sources using `depends_on`, either directly or through their modules, are no longer are forced to wait until apply by other planned data source reads ([#26375](https://github.com/hashicorp/terraform/issues/26375))
 
 ## 0.13.3 (September 16, 2020)
 
