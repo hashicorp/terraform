@@ -75,10 +75,9 @@ func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, c
 // ProviderIsLockable returns true if the given provider is eligible for
 // version locking.
 //
-// Currently, all providers except builtin and legacy providers are eligible
-// for locking.
+// Currently, all providers except builtin providers are eligible for locking.
 func ProviderIsLockable(addr addrs.Provider) bool {
-	return !(addr.IsBuiltIn() || addr.IsLegacy())
+	return !addr.IsBuiltIn()
 }
 
 // Sources returns the source code of the file the receiver was generated from,

@@ -133,7 +133,7 @@ func testStepImportState(
 			// will need to rely on explicit ImportStateVerifyIgnore, though
 			// this shouldn't happen in any reasonable case.
 			var rsrcSchema *schema.Resource
-			if providerAddr, diags := addrs.ParseAbsProviderConfigStr(r.Provider); !diags.HasErrors() {
+			if providerAddr, diags := addrs.ParseAbsProviderConfigStr(string(r.Provider)); !diags.HasErrors() {
 				// FIXME
 				providerType := providerAddr.Provider.Type
 				if provider, ok := step.providers[providerType]; ok {

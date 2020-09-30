@@ -36,7 +36,6 @@ func TestDirReading(t *testing.T) {
 	nonExistProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost, "bloop", "nonexist",
 	)
-	legacyProvider := addrs.NewLegacyProvider("legacy")
 	missingExecutableProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost, "missing", "executable",
 	)
@@ -140,13 +139,6 @@ func TestDirReading(t *testing.T) {
 
 		got := dir.AllAvailablePackages()
 		want := map[addrs.Provider][]CachedProvider{
-			legacyProvider: {
-				{
-					Provider:   legacyProvider,
-					Version:    versions.MustParseVersion("1.0.0"),
-					PackageDir: "testdata/cachedir/registry.terraform.io/-/legacy/1.0.0/linux_amd64",
-				},
-			},
 			nullProvider: {
 				{
 					Provider:   nullProvider,

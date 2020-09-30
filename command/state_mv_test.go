@@ -28,7 +28,7 @@ func TestStateMv(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -44,7 +44,7 @@ func TestStateMv(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -162,7 +162,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -178,7 +178,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -189,7 +189,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Name: "bar",
 			}.Absolute(addrs.RootModuleInstance),
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -251,7 +251,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -266,7 +266,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -339,7 +339,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -410,7 +410,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -463,7 +463,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -478,7 +478,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -538,7 +538,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -554,7 +554,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -603,7 +603,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -657,7 +657,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -676,7 +676,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -756,7 +756,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -771,7 +771,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -786,7 +786,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -844,7 +844,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 					Status:    states.ObjectReady,
 				},
 				addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("test"),
+					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
 			)
@@ -860,7 +860,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -914,7 +914,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -929,7 +929,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -984,7 +984,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1057,7 +1057,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1073,7 +1073,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1212,7 +1212,7 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)

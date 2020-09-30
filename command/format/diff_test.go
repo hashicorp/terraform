@@ -3965,7 +3965,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Name: "example",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				ProviderAddr: addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("test"),
+					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
 				ChangeSrc: plans.ChangeSrc{

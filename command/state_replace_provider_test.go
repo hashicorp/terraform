@@ -55,7 +55,7 @@ func TestStateReplaceProvider(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("azurerm"),
+				Provider: addrs.NewDefaultProvider("azurerm"),
 				Module:   addrs.RootModule,
 			},
 		)

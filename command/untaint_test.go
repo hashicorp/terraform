@@ -24,7 +24,7 @@ func TestUntaint(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -67,7 +67,7 @@ func TestUntaint_lockedState(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -283,7 +283,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -325,7 +325,7 @@ func TestUntaint_missing(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -361,7 +361,7 @@ func TestUntaint_missingAllow(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -449,7 +449,7 @@ func TestUntaint_module(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -464,7 +464,7 @@ func TestUntaint_module(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)

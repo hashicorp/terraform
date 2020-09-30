@@ -1415,6 +1415,29 @@ func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 	return rsk, nil
 }
 
+// StateLegacyProviderAddr is a shim to force provider addresses in the legacy
+// state structure into the new-style shape so that our long-suffering shims
+// for legacy tests can continue to hobble along even though this state format
+// is otherwise totally obsolete.
+type StateLegacyProviderAddr string
+
+func (a StateLegacyProviderAddr) MarshalJSON() ([]byte, error) {
+	// This is a horrific, just-good-enough approximation of mangling a
+	// legacy-style provider address into a new-style one. This is only
+	// suitable for shimming in tests and is not fit for use in any
+	// real code.
+	const marker = "provider."
+	pos := strings.Index(string(a), marker)
+	if pos < 0 {
+		providerAddr := fmt.Sprintf("legacy/shim/%s", a)
+		return json.Marshal(fmt.Sprintf("provider[%q]", providerAddr))
+	}
+	before := string(a[:pos])
+	after := string(a[pos+len(marker):])
+	providerAddr := fmt.Sprintf("legacy/shim/%s", after)
+	return json.Marshal(fmt.Sprintf("%sprovider[%q]", before, providerAddr))
+}
+
 // ResourceState holds the state of a resource that is used so that
 // a provider can find and manage an existing resource as well as for
 // storing attributes that are used to populate variables of child
@@ -1469,7 +1492,7 @@ type ResourceState struct {
 	// If this string is empty, the resource is connected to the default provider,
 	// e.g. "aws_instance" goes with the "aws" provider.
 	// If the resource block contained a "provider" key, that value will be set here.
-	Provider string `json:"provider"`
+	Provider StateLegacyProviderAddr `json:"provider"`
 
 	mu sync.Mutex
 }
@@ -1967,50 +1990,11 @@ func ReadState(src io.Reader) (*State, error) {
 	}
 
 	var result *State
-	switch versionIdentifier.Version {
-	case 0:
-		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
-	case 1:
-		v1State, err := ReadStateV1(jsonBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		v2State, err := upgradeStateV1ToV2(v1State)
-		if err != nil {
-			return nil, err
-		}
-
-		v3State, err := upgradeStateV2ToV3(v2State)
-		if err != nil {
-			return nil, err
-		}
-
-		// increment the Serial whenever we upgrade state
-		v3State.Serial++
-		result = v3State
-	case 2:
-		v2State, err := ReadStateV2(jsonBytes)
-		if err != nil {
-			return nil, err
-		}
-		v3State, err := upgradeStateV2ToV3(v2State)
-		if err != nil {
-			return nil, err
-		}
-
-		v3State.Serial++
-		result = v3State
-	case 3:
-		v3State, err := ReadStateV3(jsonBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		result = v3State
-	default:
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			tfversion.SemVer.String(), versionIdentifier.Version)
+	if versionIdentifier.Version != 3 {
+		return nil, fmt.Errorf(
+			"the legacy state parser does not support state version %d; consider making the caller not use the legacy state parser",
+			versionIdentifier.Version,
+		)
 	}
 
 	// If we reached this place we must have a result set
@@ -2030,105 +2014,9 @@ func ReadState(src io.Reader) (*State, error) {
 	return result, nil
 }
 
-func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
-	v1State := &stateV1{}
-	if err := json.Unmarshal(jsonBytes, v1State); err != nil {
-		return nil, fmt.Errorf("Decoding state file failed: %v", err)
-	}
-
-	if v1State.Version != 1 {
-		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
-			"read %d, expected 1", v1State.Version)
-	}
-
-	return v1State, nil
-}
-
-func ReadStateV2(jsonBytes []byte) (*State, error) {
-	state := &State{}
-	if err := json.Unmarshal(jsonBytes, state); err != nil {
-		return nil, fmt.Errorf("Decoding state file failed: %v", err)
-	}
-
-	// Check the version, this to ensure we don't read a future
-	// version that we don't understand
-	if state.Version > StateVersion {
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			tfversion.SemVer.String(), state.Version)
-	}
-
-	// Make sure the version is semantic
-	if state.TFVersion != "" {
-		if _, err := version.NewVersion(state.TFVersion); err != nil {
-			return nil, fmt.Errorf(
-				"State contains invalid version: %s\n\n"+
-					"Terraform validates the version format prior to writing it. This\n"+
-					"means that this is invalid of the state becoming corrupted through\n"+
-					"some external means. Please manually modify the Terraform version\n"+
-					"field to be a proper semantic version.",
-				state.TFVersion)
-		}
-	}
-
-	// catch any unitialized fields in the state
-	state.init()
-
-	// Sort it
-	state.sort()
-
-	return state, nil
-}
-
-func ReadStateV3(jsonBytes []byte) (*State, error) {
-	state := &State{}
-	if err := json.Unmarshal(jsonBytes, state); err != nil {
-		return nil, fmt.Errorf("Decoding state file failed: %v", err)
-	}
-
-	// Check the version, this to ensure we don't read a future
-	// version that we don't understand
-	if state.Version > StateVersion {
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
-			tfversion.SemVer.String(), state.Version)
-	}
-
-	// Make sure the version is semantic
-	if state.TFVersion != "" {
-		if _, err := version.NewVersion(state.TFVersion); err != nil {
-			return nil, fmt.Errorf(
-				"State contains invalid version: %s\n\n"+
-					"Terraform validates the version format prior to writing it. This\n"+
-					"means that this is invalid of the state becoming corrupted through\n"+
-					"some external means. Please manually modify the Terraform version\n"+
-					"field to be a proper semantic version.",
-				state.TFVersion)
-		}
-	}
-
-	// catch any unitialized fields in the state
-	state.init()
-
-	// Sort it
-	state.sort()
-
-	// Now we write the state back out to detect any changes in normaliztion.
-	// If our state is now written out differently, bump the serial number to
-	// prevent conflicts.
-	var buf bytes.Buffer
-	err := WriteState(state, &buf)
-	if err != nil {
-		return nil, err
-	}
-
-	if !bytes.Equal(jsonBytes, buf.Bytes()) {
-		log.Println("[INFO] state modified during read or write. incrementing serial number")
-		state.Serial++
-	}
-
-	return state, nil
-}
-
-// WriteState writes a state somewhere in a binary format.
+// WriteState is a legacy function for writing state in an old format that is
+// no longer used at runtime, but is unfortunately still used in a number
+// of old internal tests.
 func WriteState(d *State, dst io.Writer) error {
 	// writing a nil state is a noop.
 	if d == nil {

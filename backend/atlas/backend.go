@@ -2,10 +2,6 @@ package atlas
 
 import (
 	"fmt"
-	"net/url"
-	"os"
-	"strings"
-	"sync"
 
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -13,37 +9,12 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
 )
 
-const EnvVarToken = "ATLAS_TOKEN"
-const EnvVarAddress = "ATLAS_ADDRESS"
-
-// Backend is an implementation of EnhancedBackend that performs all operations
-// in Atlas. State must currently also be stored in Atlas, although it is worth
-// investigating in the future if state storage can be external as well.
+// Backend is an implementation of Backend that exists only to return a
+// somewhat-helpful error to anyone who still has a configuration using
+// the obsolete "atlas" backend.
 type Backend struct {
-	// CLI and Colorize control the CLI output. If CLI is nil then no CLI
-	// output will be done. If CLIColor is nil then no coloring will be done.
-	CLI      cli.Ui
-	CLIColor *colorstring.Colorize
-
-	// ContextOpts are the base context options to set when initializing a
-	// Terraform context. Many of these will be overridden or merged by
-	// Operation. See Operation for more details.
-	ContextOpts *terraform.ContextOpts
-
-	//---------------------------------------------------------------
-	// Internal fields, do not set
-	//---------------------------------------------------------------
-	// stateClient is the legacy state client, setup in Configure
-	stateClient *stateClient
-
-	// opLock locks operations
-	opLock sync.Mutex
 }
 
 var _ backend.Backend = (*Backend)(nil)
@@ -54,6 +25,9 @@ func New() *Backend {
 }
 
 func (b *Backend) ConfigSchema() *configschema.Block {
+	// NOTE: We have this here just so existing configurations can still
+	// pass initial schema validation, and then get to PrepareConfig where
+	// we'll return our specialized error about obsolescence.
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"name": {
@@ -77,118 +51,34 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 
 func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	name := obj.GetAttr("name").AsString()
-	if ct := strings.Count(name, "/"); ct != 1 {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid workspace selector",
-			`The "name" argument must be an organization name and a workspace name separated by a slash, such as "acme/network-production".`,
-			cty.Path{cty.GetAttrStep{Name: "name"}},
-		))
-	}
-
-	if v := obj.GetAttr("address"); !v.IsNull() {
-		addr := v.AsString()
-		_, err := url.Parse(addr)
-		if err != nil {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Terraform Enterprise URL",
-				fmt.Sprintf(`The "address" argument must be a valid URL: %s.`, err),
-				cty.Path{cty.GetAttrStep{Name: "address"}},
-			))
-		}
-	}
-
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		`The "atlas" backend is obsolete`,
+		`HashiCorp Atlas has reached end of life and so its corresponding Terraform backend is no longer available. If you have migrated to Terraform Cloud or Terraform Enterprise, use the "remote" backend instead.`,
+		nil, // an empty path refers to the containing block itself
+	))
 	return obj, diags
 }
 
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-
-	client := &stateClient{
-		// This is optionally set during Atlas Terraform runs.
-		RunId: os.Getenv("ATLAS_RUN_ID"),
-	}
-
-	name := obj.GetAttr("name").AsString() // assumed valid due to PrepareConfig method
-	slashIdx := strings.Index(name, "/")
-	client.User = name[:slashIdx]
-	client.Name = name[slashIdx+1:]
-
-	if v := obj.GetAttr("access_token"); !v.IsNull() {
-		client.AccessToken = v.AsString()
-	} else {
-		client.AccessToken = os.Getenv(EnvVarToken)
-		if client.AccessToken == "" {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Missing Terraform Enterprise access token",
-				`The "access_token" argument must be set unless the ATLAS_TOKEN environment variable is set to provide the authentication token for Terraform Enterprise.`,
-				cty.Path{cty.GetAttrStep{Name: "access_token"}},
-			))
-		}
-	}
-
-	if v := obj.GetAttr("address"); !v.IsNull() {
-		addr := v.AsString()
-		addrURL, err := url.Parse(addr)
-		if err != nil {
-			// We already validated the URL in PrepareConfig, so this shouldn't happen
-			panic(err)
-		}
-		client.Server = addr
-		client.ServerURL = addrURL
-	} else {
-		addr := os.Getenv(EnvVarAddress)
-		if addr == "" {
-			addr = defaultAtlasServer
-		}
-		addrURL, err := url.Parse(addr)
-		if err != nil {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Terraform Enterprise URL",
-				fmt.Sprintf(`The ATLAS_ADDRESS environment variable must contain a valid URL: %s.`, err),
-				cty.Path{cty.GetAttrStep{Name: "address"}},
-			))
-		}
-		client.Server = addr
-		client.ServerURL = addrURL
-	}
-
-	b.stateClient = client
-
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		`The "atlas" backend is obsolete`,
+		`HashiCorp Atlas has reached end of life and so its corresponding Terraform backend is no longer available. If you have migrated to Terraform Cloud or Terraform Enterprise, use the "remote" backend instead.`,
+		nil, // an empty path refers to the containing block itself
+	))
 	return diags
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrWorkspacesNotSupported
+	return nil, fmt.Errorf("the atlas backend is obsolete")
 }
 
 func (b *Backend) DeleteWorkspace(name string) error {
-	return backend.ErrWorkspacesNotSupported
+	return fmt.Errorf("the atlas backend is obsolete")
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
-	if name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
-	}
-
-	return &remote.State{Client: b.stateClient}, nil
-}
-
-// Colorize returns the Colorize structure that can be used for colorizing
-// output. This is gauranteed to always return a non-nil value and so is useful
-// as a helper to wrap any potentially colored strings.
-func (b *Backend) Colorize() *colorstring.Colorize {
-	if b.CLIColor != nil {
-		return b.CLIColor
-	}
-
-	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: true,
-	}
+	return nil, fmt.Errorf("the atlas backend is obsolete")
 }

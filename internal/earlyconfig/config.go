@@ -170,7 +170,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 			fqn = addr
 		}
 		if fqn.IsZero() {
-			fqn = addrs.NewLegacyProvider(name)
+			fqn = addrs.NewDefaultProvider(name)
 		}
 		var constraints version.Constraints
 		for _, reqStr := range reqs.VersionConstraints {
@@ -180,7 +180,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 					diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
 						Severity: tfconfig.DiagError,
 						Summary:  "Invalid provider version constraint",
-						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, fqn.LegacyString()),
+						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, fqn.ForDisplay()),
 					}))
 					continue
 				}

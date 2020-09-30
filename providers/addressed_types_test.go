@@ -10,34 +10,34 @@ import (
 
 func TestAddressedTypesAbs(t *testing.T) {
 	providerAddrs := []addrs.AbsProviderConfig{
-		addrs.AbsProviderConfig{
+		{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("aws"),
+			Provider: addrs.NewDefaultProvider("aws"),
 		},
-		addrs.AbsProviderConfig{
+		{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("aws"),
+			Provider: addrs.NewDefaultProvider("aws"),
 			Alias:    "foo",
 		},
-		addrs.AbsProviderConfig{
+		{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("azure"),
+			Provider: addrs.NewDefaultProvider("azure"),
 		},
-		addrs.AbsProviderConfig{
+		{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("null"),
+			Provider: addrs.NewDefaultProvider("null"),
 		},
-		addrs.AbsProviderConfig{
+		{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("null"),
+			Provider: addrs.NewDefaultProvider("null"),
 		},
 	}
 
 	got := AddressedTypesAbs(providerAddrs)
 	want := []addrs.Provider{
-		addrs.NewLegacyProvider("aws"),
-		addrs.NewLegacyProvider("azure"),
-		addrs.NewLegacyProvider("null"),
+		addrs.NewDefaultProvider("aws"),
+		addrs.NewDefaultProvider("azure"),
+		addrs.NewDefaultProvider("null"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)

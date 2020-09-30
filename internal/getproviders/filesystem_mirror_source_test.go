@@ -77,15 +77,6 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 				Location:       PackageLocalDir("testdata/filesystem-mirror/tfe.example.com/AwesomeCorp/happycloud/0.1.0-alpha.2/darwin_amd64"),
 			},
 		},
-		legacyProvider: {
-			{
-				Provider:       legacyProvider,
-				Version:        versions.MustParseVersion("1.0.0"),
-				TargetPlatform: Platform{"linux", "amd64"},
-				Filename:       "terraform-provider-legacy_1.0.0_linux_amd64.zip",
-				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/-/legacy/1.0.0/linux_amd64"),
-			},
-		},
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -199,4 +190,3 @@ var happycloudProvider = addrs.Provider{
 	Namespace: "awesomecorp",
 	Type:      "happycloud",
 }
-var legacyProvider = addrs.NewLegacyProvider("legacy")

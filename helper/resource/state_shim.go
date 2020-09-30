@@ -203,16 +203,16 @@ func shimLegacyState(legacy *terraform.State) (*states.State, error) {
 // create a legacy-style string from a non-legacy provider. This is only
 // necessary as this package shims back and forth between legacy and modern
 // state, neither of which encode the addrs.Provider for a resource.
-func legacyProviderConfigString(pc addrs.AbsProviderConfig) string {
+func legacyProviderConfigString(pc addrs.AbsProviderConfig) terraform.StateLegacyProviderAddr {
 	if pc.Alias != "" {
 		if len(pc.Module) == 0 {
-			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.Type, pc.Alias)
+			return terraform.StateLegacyProviderAddr(fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.Type, pc.Alias))
 		} else {
-			return fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString(), pc.Alias)
+			return terraform.StateLegacyProviderAddr(fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.Type, pc.Alias))
 		}
 	}
 	if len(pc.Module) == 0 {
-		return fmt.Sprintf("%s.%s", "provider", pc.Provider.Type)
+		return terraform.StateLegacyProviderAddr(fmt.Sprintf("%s.%s", "provider", pc.Provider.Type))
 	}
-	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.Type)
+	return terraform.StateLegacyProviderAddr(fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.Type))
 }

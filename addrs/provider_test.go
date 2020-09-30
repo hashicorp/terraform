@@ -54,37 +54,6 @@ func TestProviderString(t *testing.T) {
 	}
 }
 
-func TestProviderLegacyString(t *testing.T) {
-	tests := []struct {
-		Input Provider
-		Want  string
-	}{
-		{
-			Provider{
-				Type:      "test",
-				Hostname:  DefaultRegistryHost,
-				Namespace: LegacyProviderNamespace,
-			},
-			"test",
-		},
-		{
-			Provider{
-				Type:      "terraform",
-				Hostname:  BuiltInProviderHost,
-				Namespace: BuiltInProviderNamespace,
-			},
-			"terraform",
-		},
-	}
-
-	for _, test := range tests {
-		got := test.Input.LegacyString()
-		if got != test.Want {
-			t.Errorf("wrong result for %s\ngot:  %s\nwant: %s", test.Input.String(), got, test.Want)
-		}
-	}
-}
-
 func TestProviderDisplay(t *testing.T) {
 	tests := []struct {
 		Input Provider
@@ -230,45 +199,6 @@ func TestProviderIsBuiltIn(t *testing.T) {
 		got := test.Input.IsBuiltIn()
 		if got != test.Want {
 			t.Errorf("wrong result for %s\ngot:  %#v\nwant: %#v", test.Input.String(), got, test.Want)
-		}
-	}
-}
-
-func TestProviderIsLegacy(t *testing.T) {
-	tests := []struct {
-		Input Provider
-		Want  bool
-	}{
-		{
-			Provider{
-				Type:      "test",
-				Hostname:  DefaultRegistryHost,
-				Namespace: LegacyProviderNamespace,
-			},
-			true,
-		},
-		{
-			Provider{
-				Type:      "test",
-				Hostname:  "registry.terraform.com",
-				Namespace: LegacyProviderNamespace,
-			},
-			false,
-		},
-		{
-			Provider{
-				Type:      "test",
-				Hostname:  DefaultRegistryHost,
-				Namespace: "hashicorp",
-			},
-			false,
-		},
-	}
-
-	for _, test := range tests {
-		got := test.Input.IsLegacy()
-		if got != test.Want {
-			t.Errorf("wrong result for %s\n", test.Input.String())
 		}
 	}
 }

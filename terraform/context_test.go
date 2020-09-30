@@ -482,7 +482,7 @@ func resourceState(resourceType, resourceID string) *ResourceState {
 				"id": resourceID,
 			},
 		},
-		Provider: "provider." + providerResource[0],
+		Provider: StateLegacyProviderAddr("provider." + providerResource[0]),
 	}
 }
 

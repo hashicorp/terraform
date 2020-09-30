@@ -81,13 +81,10 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		typeName := parts[2]
 
 		// validate each part
-		// The legacy provider namespace is a special case.
-		if namespace != addrs.LegacyProviderNamespace {
-			_, err = addrs.ParseProviderPart(namespace)
-			if err != nil {
-				log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
-				return nil
-			}
+		_, err = addrs.ParseProviderPart(namespace)
+		if err != nil {
+			log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
+			return nil
 		}
 
 		_, err = addrs.ParseProviderPart(typeName)
@@ -101,16 +98,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			log.Printf("[WARN] local provider path %q contains invalid hostname %q; ignoring", fullPath, hostnameGiven)
 			return nil
 		}
-		var providerAddr addrs.Provider
-		if namespace == addrs.LegacyProviderNamespace {
-			if hostname != addrs.DefaultRegistryHost {
-				log.Printf("[WARN] local provider path %q indicates a legacy provider not on the default registry host; ignoring", fullPath)
-				return nil
-			}
-			providerAddr = addrs.NewLegacyProvider(typeName)
-		} else {
-			providerAddr = addrs.NewProvider(hostname, namespace, typeName)
-		}
+		providerAddr := addrs.NewProvider(hostname, namespace, typeName)
 
 		// The "info" passed to our function is an Lstat result, so it might
 		// be referring to a symbolic link. We'll do a full "Stat" on it

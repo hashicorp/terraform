@@ -215,105 +215,6 @@ func ParseAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnosti
 	return addr, diags
 }
 
-func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
-	diags = diags.Append(parseDiags)
-	if parseDiags.HasErrors() {
-		return AbsProviderConfig{}, diags
-	}
-
-	addr, addrDiags := ParseLegacyAbsProviderConfig(traversal)
-	diags = diags.Append(addrDiags)
-	return addr, diags
-}
-
-// ParseLegacyAbsProviderConfig parses the given traversal as an absolute
-// provider address. The following are examples of traversals that can be
-// successfully parsed as legacy absolute provider configuration addresses:
-//
-//     provider.aws
-//     provider.aws.foo
-//     module.bar.provider.aws
-//     module.bar.module.baz.provider.aws.foo
-//
-// This type of address is used in legacy state and may appear in state v4 if
-// the provider config addresses have not been normalized to include provider
-// FQN.
-func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal)
-	var ret AbsProviderConfig
-
-	// Providers cannot resolve within module instances, so verify that there
-	// are no instance keys in the module path before converting to a Module.
-	for _, step := range modInst {
-		if step.InstanceKey != NoKey {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider configuration address",
-				Detail:   "Provider address cannot contain module indexes",
-				Subject:  remain.SourceRange().Ptr(),
-			})
-			return ret, diags
-		}
-	}
-	ret.Module = modInst.Module()
-
-	if len(remain) < 2 || remain.RootName() != "provider" {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid provider configuration address",
-			Detail:   "Provider address must begin with \"provider.\", followed by a provider type name.",
-			Subject:  remain.SourceRange().Ptr(),
-		})
-		return ret, diags
-	}
-	if len(remain) > 3 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid provider configuration address",
-			Detail:   "Extraneous operators after provider configuration alias.",
-			Subject:  hcl.Traversal(remain[3:]).SourceRange().Ptr(),
-		})
-		return ret, diags
-	}
-
-	// We always assume legacy-style providers in legacy state ...
-	if tt, ok := remain[1].(hcl.TraverseAttr); ok {
-		// ... unless it's the builtin "terraform" provider, a special case.
-		if tt.Name == "terraform" {
-			ret.Provider = NewBuiltInProvider(tt.Name)
-		} else {
-			ret.Provider = NewLegacyProvider(tt.Name)
-		}
-	} else {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid provider configuration address",
-			Detail:   "The prefix \"provider.\" must be followed by a provider type name.",
-			Subject:  remain[1].SourceRange().Ptr(),
-		})
-		return ret, diags
-	}
-
-	if len(remain) == 3 {
-		if tt, ok := remain[2].(hcl.TraverseAttr); ok {
-			ret.Alias = tt.Name
-		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider configuration address",
-				Detail:   "Provider type name must be followed by a configuration alias name.",
-				Subject:  remain[2].SourceRange().Ptr(),
-			})
-			return ret, diags
-		}
-	}
-
-	return ret, diags
-}
-
 // ProviderConfigDefault returns the address of the default provider config of
 // the given type inside the recieving module instance.
 func (m ModuleInstance) ProviderConfigDefault(provider Provider) AbsProviderConfig {
@@ -366,21 +267,6 @@ func (pc AbsProviderConfig) Inherited() (AbsProviderConfig, bool) {
 		Provider: pc.Provider,
 	}, true
 
-}
-
-// LegacyString() returns a legacy-style AbsProviderConfig string and should only be used for legacy state shimming.
-func (pc AbsProviderConfig) LegacyString() string {
-	if pc.Alias != "" {
-		if len(pc.Module) == 0 {
-			return fmt.Sprintf("%s.%s.%s", "provider", pc.Provider.LegacyString(), pc.Alias)
-		} else {
-			return fmt.Sprintf("%s.%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString(), pc.Alias)
-		}
-	}
-	if len(pc.Module) == 0 {
-		return fmt.Sprintf("%s.%s", "provider", pc.Provider.LegacyString())
-	}
-	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
 }
 
 // String() returns a string representation of an AbsProviderConfig in the following format:

@@ -12,7 +12,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -92,66 +91,29 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					return nil, fmt.Errorf("state contains resource %s with an unsupported resource mode %#v", resAddr, resAddr.Mode)
 				}
 
-				// In state versions prior to 4 we allowed each instance of a
-				// resource to have its own provider configuration address,
-				// which makes no real sense in practice because providers
-				// are associated with resources in the configuration. We
-				// elevate that to the resource level during this upgrade,
-				// implicitly taking the provider address of the first instance
-				// we encounter for each resource. While this is lossy in
-				// theory, in practice there is no reason for these values to
-				// differ between instances.
-				var providerAddr addrs.AbsProviderConfig
-				oldProviderAddr := rsOld.Provider
-				if strings.Contains(oldProviderAddr, "provider.") {
-					// Smells like a new-style provider address, but we'll test it.
-					var diags tfdiags.Diagnostics
-					providerAddr, diags = addrs.ParseLegacyAbsProviderConfigStr(oldProviderAddr)
-					if diags.HasErrors() {
-						if strings.Contains(oldProviderAddr, "${") {
-							// There seems to be a common misconception that
-							// interpolation was valid in provider aliases
-							// in 0.11, so we'll use a specialized error
-							// message for that case.
-							return nil, fmt.Errorf("invalid provider config reference %q for %s: this alias seems to contain a template interpolation sequence, which was not supported but also not error-checked in Terraform 0.11. To proceed, rename the associated provider alias to a valid identifier and apply the change with Terraform 0.11 before upgrading to Terraform 0.12", oldProviderAddr, instAddr)
-						}
-						return nil, fmt.Errorf("invalid provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
-					}
-				} else {
-					// Smells like an old-style module-local provider address,
-					// which we'll need to migrate. We'll assume it's referring
-					// to the same module the resource is in, which might be
-					// incorrect but it'll get fixed up next time any updates
-					// are made to an instance.
-					if oldProviderAddr != "" {
-						localAddr, diags := configs.ParseProviderConfigCompactStr(oldProviderAddr)
-						if diags.HasErrors() {
-							if strings.Contains(oldProviderAddr, "${") {
-								// There seems to be a common misconception that
-								// interpolation was valid in provider aliases
-								// in 0.11, so we'll use a specialized error
-								// message for that case.
-								return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: this alias seems to contain a template interpolation sequence, which was not supported but also not error-checked in Terraform 0.11. To proceed, rename the associated provider alias to a valid identifier and apply the change with Terraform 0.11 before upgrading to Terraform 0.12", oldProviderAddr, instAddr)
-							}
-							return nil, fmt.Errorf("invalid legacy provider config reference %q for %s: %s", oldProviderAddr, instAddr, diags.Err())
-						}
-						providerAddr = addrs.AbsProviderConfig{
-							Module: moduleAddr.Module(),
-							// We use NewLegacyProvider here so we can use
-							// LegacyString() below to get the appropriate
-							// legacy-style provider string.
-							Provider: addrs.NewLegacyProvider(localAddr.LocalName),
-							Alias:    localAddr.Alias,
-						}
-					} else {
-						providerAddr = addrs.AbsProviderConfig{
-							Module: moduleAddr.Module(),
-							// We use NewLegacyProvider here so we can use
-							// LegacyString() below to get the appropriate
-							// legacy-style provider string.
-							Provider: addrs.NewLegacyProvider(resAddr.ImpliedProvider()),
-						}
-					}
+				// State versions prior to 4 don't retain fully-qualified
+				// provider addresses, so we can't decode them in Terraform
+				// 0.14 or later. We expect users to have migrated up to
+				// state version 4 as part of their Terraform 0.12 upgrade
+				// and away from the legacy provider identifiers as part of
+				// their Terraform 0.13 upgrade, so this is now a hard error
+				// prompting users to upgrade in the correct sequence.
+				//
+				// We do actually allow this to succeed if somehow there were
+				// a valid _new-style_ provider address associated, but that
+				// can never happen in any real situation and is here only
+				// because we have so many tests in the main "terraform"
+				// package relying on shimming that is based on upgrading old
+				// state formats.
+				providerAddr, diags := addrs.ParseAbsProviderConfigStr(rsOld.Provider)
+				if diags.HasErrors() {
+					// Notice that in spite of all of the work we've already done
+					// to parse here, this is effectively an unconditional failure
+					// for any real-world version 3 state which has at least one
+					// resource instance in it, though in the edge case of an
+					// existing state that contains no resource instances we would
+					// skip over this, allowing a successful result.
+					return nil, fmt.Errorf("state for %s contains legacy provider addresses from Terraform v0.12 or earlier; complete the Terraform v0.13 upgrade process before upgrading to Terraform v0.14", instAddr)
 				}
 
 				rs = &resourceStateV4{
@@ -160,7 +122,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 					Type:           resAddr.Type,
 					Name:           resAddr.Name,
 					Instances:      []instanceObjectStateV4{},
-					ProviderConfig: providerAddr.LegacyString(),
+					ProviderConfig: providerAddr.String(),
 				}
 				resourceStates[resAddr.String()] = rs
 			}

@@ -37,11 +37,11 @@ const BuiltInProviderHost = svchost.Hostname("terraform.io")
 // special, even if they haven't encountered the concept formally yet.
 const BuiltInProviderNamespace = "builtin"
 
-// LegacyProviderNamespace is the special string used in the Namespace field
-// of type Provider to mark a legacy provider address. This special namespace
-// value would normally be invalid, and can be used only when the hostname is
-// DefaultRegistryHost because that host owns the mapping from legacy name to
-// FQN.
+// LegacyProviderNamespace is the special string that was used in the Namespace
+// field of type Provider to mark a legacy provider address during the Terraform
+// v0.13 upgrade process. This legacy form is not supported from Terraform v0.14
+// onwards, but we still have this constant here primarily to help detect
+// and diagnose attempts to use legacy providers in later versions.
 const LegacyProviderNamespace = "-"
 
 // String returns an FQN string, indended for use in machine-readable output.
@@ -135,33 +135,6 @@ func NewBuiltInProvider(name string) Provider {
 	}
 }
 
-// NewLegacyProvider returns a mock address for a provider.
-// This will be removed when ProviderType is fully integrated.
-func NewLegacyProvider(name string) Provider {
-	return Provider{
-		// We intentionally don't normalize and validate the legacy names,
-		// because existing code expects legacy provider names to pass through
-		// verbatim, even if not compliant with our new naming rules.
-		Type:      name,
-		Namespace: LegacyProviderNamespace,
-		Hostname:  DefaultRegistryHost,
-	}
-}
-
-// LegacyString returns the provider type, which is frequently used
-// interchangeably with provider name. This function can and should be removed
-// when provider type is fully integrated. As a safeguard for future
-// refactoring, this function panics if the Provider is not a legacy provider.
-func (pt Provider) LegacyString() string {
-	if pt.IsZero() {
-		panic("called LegacyString on zero-value addrs.Provider")
-	}
-	if pt.Namespace != LegacyProviderNamespace && pt.Namespace != BuiltInProviderNamespace {
-		panic(pt.String() + " cannot be represented as a legacy string")
-	}
-	return pt.Type
-}
-
 // IsZero returns true if the receiver is the zero value of addrs.Provider.
 //
 // The zero value is not a valid addrs.Provider and calling other methods on
@@ -196,16 +169,6 @@ func (pt Provider) LessThan(other Provider) bool {
 	default:
 		return pt.Type < other.Type
 	}
-}
-
-// IsLegacy returns true if the provider is a legacy-style provider
-func (pt Provider) IsLegacy() bool {
-	if pt.IsZero() {
-		panic("called IsLegacy() on zero-value addrs.Provider")
-	}
-
-	return pt.Hostname == DefaultRegistryHost && pt.Namespace == LegacyProviderNamespace
-
 }
 
 // IsDefault returns true if the provider is a default hashicorp provider
@@ -279,10 +242,16 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 		// the namespace is always the second-to-last part
 		givenNamespace := parts[len(parts)-2]
 		if givenNamespace == LegacyProviderNamespace {
-			// For now we're tolerating legacy provider addresses until we've
-			// finished updating the rest of the codebase to no longer use them,
-			// or else we'd get errors round-tripping through legacy subsystems.
-			ret.Namespace = LegacyProviderNamespace
+			// Legacy providers are no longer supported in Terraform 0.14 and
+			// later, but we'll still return an explicit error about it to
+			// hint to anyone who tried to skip forward more than one major
+			// release at once.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider namespace",
+				Detail:   fmt.Sprintf(`Provider source address %q is a legacy-style address as used in the Terraform 0.13 upgrade process.\n\nLegacy addresses are no longer supported. You must complete the Terraform 0.13 upgrade process before upgrading to Terraform 0.14 or later.`, str),
+			})
+			return Provider{}, diags
 		} else {
 			namespace, err := ParseProviderPart(givenNamespace)
 			if err != nil {
