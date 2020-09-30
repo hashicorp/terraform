@@ -101,29 +101,8 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["default"]; exists {
-		val, valDiags := attr.Expr.Value(nil)
+		val, valDiags := decodeValue(attr.Expr, v.Type)
 		diags = append(diags, valDiags...)
-
-		// Convert the default to the expected type so we can catch invalid
-		// defaults early and allow later code to assume validity.
-		// Note that this depends on us having already processed any "type"
-		// attribute above.
-		// However, we can't do this if we're in an override file where
-		// the type might not be set; we'll catch that during merge.
-		if v.Type != cty.NilType {
-			var err error
-			val, err = convert.Convert(val, v.Type)
-			if err != nil {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid default value for variable",
-					Detail:   fmt.Sprintf("This default value is not compatible with the variable's type constraint: %s.", err),
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-				val = cty.DynamicVal
-			}
-		}
-
 		v.Default = val
 	}
 
@@ -218,6 +197,32 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 		// Everything else uses HCL parsing
 		return ty, VariableParseHCL, diags
 	}
+}
+
+func decodeValue(expr hcl.Expression, valueType cty.Type) (cty.Value, hcl.Diagnostics) {
+	val, diags := expr.Value(nil)
+
+	// Convert the default to the expected type so we can catch invalid
+	// defaults early and allow later code to assume validity.
+	// Note that this depends on us having already processed any "type"
+	// attribute above.
+	// However, we can't do this if we're in an override file where
+	// the type might not be set; we'll catch that during merge.
+	if valueType != cty.NilType {
+		var err error
+		val, err = convert.Convert(val, valueType)
+		if err != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid default value for variable",
+				Detail:   fmt.Sprintf("This default value is not compatible with the variable's type constraint: %s.", err),
+				Subject:  expr.Range().Ptr(),
+			})
+			val = cty.DynamicVal
+		}
+	}
+
+	return val, diags
 }
 
 // Required returns true if this variable is required to be set by the caller,
