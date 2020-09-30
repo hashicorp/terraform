@@ -1055,20 +1055,14 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 
 	// Expect this diagnostic output
 	wants := []string{
-		"Found unresolvable legacy provider references in state",
-		"terraform state replace-provider registry.terraform.io/-/alpha registry.terraform.io/acme/alpha",
+		"Invalid legacy provider address",
+		"You must complete the Terraform 0.13 upgrade process",
 	}
 	got := ui.ErrorWriter.String()
 	for _, want := range wants {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected output to contain %q, got:\n\n%s", want, got)
 		}
-	}
-
-	// Should still install the alpha provider
-	exactPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/acme/alpha/1.2.3/%s", getproviders.CurrentPlatform)
-	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
-		t.Fatal("provider 'alpha' not downloaded")
 	}
 }
 
@@ -1187,13 +1181,10 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// error output is the main focus of this test
 	errOutput := ui.ErrorWriter.String()
 	errors := []string{
-		"Error while installing hashicorp/frob:",
-		"Could not find required providers, but found possible alternatives",
-		"hashicorp/baz -> terraform-providers/baz",
-		"terraform 0.13upgrade .",
-		"terraform 0.13upgrade child",
-		"The following remote modules must also be upgraded",
-		"- module.dicerolls at acme/bar/random",
+		"Failed to query available provider packages",
+		"Could not retrieve the list of available versions",
+		"registry.terraform.io/hashicorp/baz",
+		"registry.terraform.io/hashicorp/frob",
 	}
 	for _, want := range errors {
 		if !strings.Contains(errOutput, want) {

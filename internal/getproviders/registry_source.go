@@ -104,29 +104,6 @@ func (s *RegistrySource) PackageMeta(ctx context.Context, provider addrs.Provide
 	return client.PackageMeta(ctx, provider, version, target)
 }
 
-// LookupLegacyProviderNamespace is a special method available only on
-// RegistrySource which can deal with legacy provider addresses that contain
-// only a type and leave the namespace implied.
-//
-// It asks the registry at the given hostname to provide a default namespace
-// for the given provider type, which can be combined with the given hostname
-// and type name to produce a fully-qualified provider address.
-//
-// Not all unqualified type names can be resolved to a default namespace. If
-// the request fails, this method returns an error describing the failure.
-//
-// This method exists only to allow compatibility with unqualified names
-// in older configurations. New configurations should be written so as not to
-// depend on it, and this fallback mechanism will likely be removed altogether
-// in a future Terraform version.
-func (s *RegistrySource) LookupLegacyProviderNamespace(ctx context.Context, hostname svchost.Hostname, typeName string) (string, string, error) {
-	client, err := s.registryClient(hostname)
-	if err != nil {
-		return "", "", err
-	}
-	return client.LegacyProviderDefaultNamespace(ctx, typeName)
-}
-
 func (s *RegistrySource) registryClient(hostname svchost.Hostname) (*registryClient, error) {
 	host, err := s.services.Discover(hostname)
 	if err != nil {

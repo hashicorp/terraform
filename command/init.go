@@ -433,6 +433,22 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		reqs = reqs.Merge(stateReqs)
 	}
 
+	for providerAddr := range reqs {
+		if providerAddr.IsLegacy() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid legacy provider address",
+				fmt.Sprintf(
+					"This configuration or its associated state refers to the unqualified provider %q.\n\nYou must complete the Terraform 0.13 upgrade process before upgrading to later versions.",
+					providerAddr.Type,
+				),
+			))
+		}
+	}
+	if diags.HasErrors() {
+		return false, true, diags
+	}
+
 	var inst *providercache.Installer
 	if len(pluginDirs) == 0 {
 		// By default we use a source that looks for providers in all of the
@@ -451,16 +467,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		log.Println("[DEBUG] init: overriding provider plugin search paths")
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
-
-	// We capture any missing provider errors (404s from a Registry source) for
-	// later analysis, to provide more useful diagnostics if the providers
-	// appear to have been re-namespaced.
-	missingProviderErrors := make(map[addrs.Provider]error)
-
-	// Legacy provider addresses required by source probably refer to in-house
-	// providers. Capture these for later analysis also, to suggest how to use
-	// the state replace-provider command to fix this problem.
-	stateLegacyProviderErrors := make(map[addrs.Provider]error)
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -515,27 +521,13 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					),
 				))
 			case getproviders.ErrRegistryProviderNotKnown:
-				if provider.IsDefault() {
-					// Default providers may have no explicit source, and the 404
-					// error could be caused by re-namespacing. Add the provider
-					// and error to a map to later check for this case. We don't
-					// run the check here to keep this event callback simple.
-					missingProviderErrors[provider] = err
-				} else if _, ok := stateReqs[provider]; ok && provider.IsLegacy() {
-					// Legacy provider, from state, not found from any source:
-					// probably an in-house provider. Record this here to
-					// faciliate a useful suggestion later.
-					stateLegacyProviderErrors[provider] = err
-				} else {
-					// Otherwise maybe this provider really doesn't exist? Shrug!
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Failed to query available provider packages",
-						fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
-							provider.ForDisplay(), err,
-						),
-					))
-				}
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to query available provider packages",
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
+						provider.ForDisplay(), err,
+					),
+				))
 			case getproviders.ErrHostNoProviders:
 				switch {
 				case errorTy.Hostname == svchost.Hostname("github.com") && !errorTy.HasOtherVersion:
@@ -745,143 +737,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		return true, true, diags
 	}
 	if err != nil {
-		// Build a map of provider address to modules using the provider,
-		// so that we can later show diagnostics about affected modules
-		reqs, _ := config.ProviderRequirementsByModule()
-		providerToReqs := make(map[addrs.Provider][]*configs.ModuleRequirements)
-		c.populateProviderToReqs(providerToReqs, reqs)
-
-		// Try to look up any missing providers which may be redirected legacy
-		// providers. If we're successful, construct a "did you mean?" diag to
-		// suggest how to fix this. Otherwise, add a simple error diag
-		// explaining that the provider could not be found.
-		foundProviders := make(map[addrs.Provider]addrs.Provider)
-		source := c.providerInstallSource()
-		for provider, fetchErr := range missingProviderErrors {
-			addr := addrs.NewLegacyProvider(provider.Type)
-			p, redirect, err := getproviders.LookupLegacyProvider(ctx, addr, source)
-			if err == nil {
-				if redirect.IsZero() {
-					foundProviders[provider] = p
-				} else {
-					foundProviders[provider] = redirect
-				}
-			} else {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to install provider",
-					fmt.Sprintf("Error while installing %s: %s.", provider.ForDisplay(), fetchErr),
-				))
-			}
-		}
-		if len(foundProviders) > 0 {
-			// Build list of provider suggestions, and track a list of local
-			// and remote modules which need to be upgraded
-			var providerSuggestions string
-			localModules := make(map[string]struct{})
-			remoteModules := make(map[*configs.ModuleRequirements]struct{})
-			for missingProvider, foundProvider := range foundProviders {
-				providerSuggestions += fmt.Sprintf("  %s -> %s\n", missingProvider.ForDisplay(), foundProvider.ForDisplay())
-				exists := struct{}{}
-				for _, reqs := range providerToReqs[missingProvider] {
-					src := reqs.SourceAddr
-					// Treat the root module and any others with local source
-					// addresses as fixable with 0.13upgrade. Remote modules
-					// must be upgraded elsewhere and therefore are listed
-					// separately
-					if src == "" || isLocalSourceAddr(src) {
-						localModules[reqs.SourceDir] = exists
-					} else {
-						remoteModules[reqs] = exists
-					}
-				}
-			}
-
-			// Create sorted list of 0.13upgrade commands with the affected
-			// source dirs
-			var upgradeCommands []string
-			for dir := range localModules {
-				upgradeCommands = append(upgradeCommands, fmt.Sprintf("terraform 0.13upgrade %s", dir))
-			}
-			sort.Strings(upgradeCommands)
-			command := "command"
-			if len(upgradeCommands) > 1 {
-				command = "commands"
-			}
-
-			// Display detailed diagnostic results, including the missing and
-			// found provider FQNs, and the suggested series of upgrade
-			// commands to fix this
-			var detail strings.Builder
-
-			fmt.Fprintf(&detail, "Could not find required providers, but found possible alternatives:\n\n%s\n", providerSuggestions)
-
-			fmt.Fprintf(&detail, "If these suggestions look correct, upgrade your configuration with the following %s:", command)
-			for _, upgradeCommand := range upgradeCommands {
-				fmt.Fprintf(&detail, "\n    %s", upgradeCommand)
-			}
-
-			if len(remoteModules) > 0 {
-				fmt.Fprintf(&detail, "\n\nThe following remote modules must also be upgraded for Terraform 0.13 compatibility:")
-				for remoteModule := range remoteModules {
-					fmt.Fprintf(&detail, "\n- module.%s at %s", remoteModule.Name, remoteModule.SourceAddr)
-				}
-			}
-
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to install providers",
-				detail.String(),
-			))
-		}
-
-		// Legacy providers required by state which could not be installed are
-		// probably in-house providers. If the user has completed the necessary
-		// steps to make their custom provider available for installation, then
-		// there should be a provider with the same type selected after the
-		// installation process completed.
-		//
-		// If we detect this specific situation, we can confidently suggest
-		// that the next step is to run the state replace-provider command to
-		// update state. We build a map of provider replacements here to ensure
-		// that we're as concise as possible with the diagnostic.
-		stateReplaceProviders := make(map[addrs.Provider]addrs.Provider)
-		for provider, fetchErr := range stateLegacyProviderErrors {
-			var sameType []addrs.Provider
-			for p := range selected {
-				if p.Type == provider.Type {
-					sameType = append(sameType, p)
-				}
-			}
-			if len(sameType) == 1 {
-				stateReplaceProviders[provider] = sameType[0]
-			} else {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to install provider",
-					fmt.Sprintf("Error while installing %s: %s", provider.ForDisplay(), fetchErr),
-				))
-			}
-		}
-		if len(stateReplaceProviders) > 0 {
-			var detail strings.Builder
-			command := "command"
-			if len(stateReplaceProviders) > 1 {
-				command = "commands"
-			}
-
-			fmt.Fprintf(&detail, "Found unresolvable legacy provider references in state. It looks like these refer to in-house providers. You can update the resources in state with the following %s:\n", command)
-			for legacy, replacement := range stateReplaceProviders {
-				fmt.Fprintf(&detail, "\n    terraform state replace-provider %s %s", legacy, replacement)
-			}
-
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to install legacy providers required by state",
-				detail.String(),
-			))
-		}
-
 		// The errors captured in "err" should be redundant with what we
 		// received via the InstallerEvents callbacks above, so we'll
 		// just return those as long as we have some.
