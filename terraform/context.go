@@ -562,11 +562,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 	p.Changes = c.changes
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
-	p.State = c.refreshState.DeepCopy()
+
+	refreshedState := c.refreshState.DeepCopy()
+	p.State = refreshedState
 
 	// replace the working state with the updated state, so that immediate calls
 	// to Apply work as expected.
-	c.state = c.refreshState
+	c.state = refreshedState
 
 	return p, diags
 }
