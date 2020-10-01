@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestStateMv(t *testing.T) {
@@ -1123,36 +1122,29 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-
-					"test_instance.baz": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	state.Module(addrs.RootModuleInstance).SetResourceInstanceCurrent(
+		mustResourceAddr("test_instance.foo").Resource.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+			Status:    states.ObjectReady,
 		},
-	}
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	state.Module(addrs.RootModuleInstance).SetResourceInstanceCurrent(
+		mustResourceAddr("test_instance.baz").Resource.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+			Status:    states.ObjectReady,
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewLegacyProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
 
 	// the local backend state file is "foo"
 	statePath := "local-state.tfstate"
@@ -1166,7 +1158,7 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(state, f); err != nil {
+	if err := writeStateForTesting(state, f); err != nil {
 		t.Fatal(err)
 	}
 

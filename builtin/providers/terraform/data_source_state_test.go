@@ -133,8 +133,8 @@ func TestState_basic(t *testing.T) {
 					"path": cty.StringVal("./testdata/null_outputs.tfstate"),
 				}),
 				"outputs": cty.ObjectVal(map[string]cty.Value{
-					"map":  cty.NullVal(cty.DynamicPseudoType),
-					"list": cty.NullVal(cty.DynamicPseudoType),
+					"map":  cty.NullVal(cty.Map(cty.String)),
+					"list": cty.NullVal(cty.List(cty.String)),
 				}),
 				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 				"workspace": cty.NullVal(cty.String),
