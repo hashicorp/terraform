@@ -3791,9 +3791,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         }
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change
-      ~ map_whole   = {
-          # This map is (or was) sensitive and will not be displayed
-        }
+      ~ map_whole   = (sensitive)
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change
       ~ some_number = (sensitive)
@@ -3880,9 +3878,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         }
       # Warning: this attribute value will be marked as sensitive and will
       # not display in UI output after applying this change
-      ~ map_whole  = {
-          # This map is (or was) sensitive and will not be displayed
-        }
+      ~ map_whole  = (sensitive)
     }
 `,
 		},
@@ -3981,9 +3977,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           ~ "dinner"    = (sensitive)
             # (1 unchanged element hidden)
         }
-      ~ map_whole  = {
-          # This map is (or was) sensitive and will not be displayed
-        }
+      ~ map_whole  = (sensitive)
     }
 `,
 		},

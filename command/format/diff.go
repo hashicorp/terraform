@@ -1070,23 +1070,16 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			return
 
 		case ty.IsMapType():
+			if old.IsMarked() || new.IsMarked() {
+				p.buf.WriteString("(sensitive)")
+				return
+			}
+
 			p.buf.WriteString("{")
 			if p.pathForcesNewResource(path) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 			}
 			p.buf.WriteString("\n")
-
-			// If the whole map is marked, we need to show our
-			// sensitive block warning rather than attempt to iterate
-			// through a marked map
-			if old.IsMarked() || new.IsMarked() {
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
-				p.buf.WriteString("# This map is (or was) sensitive and will not be displayed")
-				p.buf.WriteString("\n")
-				p.buf.WriteString(strings.Repeat(" ", indent))
-				p.buf.WriteString("}")
-				return
-			}
 
 			var allKeys []string
 			keyLen := 0
