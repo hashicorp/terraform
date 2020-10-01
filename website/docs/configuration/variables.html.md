@@ -220,7 +220,7 @@ Sensitive values are still recorded in the [state](/docs/state/index.html), and 
 
 A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
 
-Once you have defined a sensitive variable, using it throughout your configuration will obfuscate the value from display in output:
+Define a variable as sensitive by setting the `sensitive` argument to `true`:
 
 ```
 variable "user_information" {
@@ -237,7 +237,7 @@ resource "some_resource" "a" {
 }
 ```
 
-Running `terraform apply`:
+Using this variable throughout your configuration will obfuscate the value from display in `plan` or `apply` output:
 
 ```
 Terraform will perform the following actions:
