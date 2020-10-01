@@ -253,7 +253,7 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 
 #### Cases where Terraform may disclose a sensitive variable
 
-A ` sensitive` variable level is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
+A `sensitive` variable is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
 
 If a resource attribute is used as, or part of, the provider-defined resource id, an `apply` will disclose the value. In the example below, the `prefix` attribute has been set to a sensitive variable, but then that value ("jae") is later disclosed as part of the resource id:
 
