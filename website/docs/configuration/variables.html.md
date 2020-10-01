@@ -208,13 +208,17 @@ that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
 
-### Sensitive
+### Suppressing Values in CLI Output
 
-[inpage-sensitive]: #sensitive
+[inpage-sensitive]: #suppressing-values-in-cli-output
 
 -> This feature was introduced in Terraform CLI v0.14.0.
 
-The `sensitive` argument on a variable block is a boolean value that, when provided, limits the output of the Terraform `plan` or `apply` when that variable is used. A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
+Setting a variable as `sensitive` prevents Terraform from showing its value in the `plan` or `apply` output, when that variable is used within a configuration.
+
+Sensitive values are still recorded in the [state](/docs/state/index.html), and so will be visible to anyone who is able to access the state data. For more information, see [_Sensitive Data in State_](/docs/state/sensitive-data.html).
+
+A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
 
 Once you have defined a sensitive variable, using it throughout your configuration will obfuscate the value from display in output:
 
@@ -248,10 +252,6 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
 #### Cases where Terraform may disclose a sensitive variable
-
-Variable values marked as sensitive will display in state. Much like provider-side sensitive values, designating a value as sensitive only limits its display in logs or output, not in state.
-
-Similarly, `sensitive` argument does not have an impact in other Terraform commands such as `console` or `show`. Those commands are meant to ex as this argument is intended to reduce exposure of data in, for example, external logs or aggregation.
 
 A ` sensitive` variable level is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
 
