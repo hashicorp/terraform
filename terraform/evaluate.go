@@ -621,6 +621,11 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 	}
 }
 
+// Try to guess if we have a pending destroy for all resources.
+func (s *evaluationStateData) pendingDestroy() bool {
+	return true
+}
+
 func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// First we'll consult the configuration to see if an resource of this
@@ -695,6 +700,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	// Decode all instances in the current state
 	instances := map[addrs.InstanceKey]cty.Value{}
+	pendingDestroy := d.Evaluator.Changes.FullDestroy()
 	for key, is := range rs.Instances {
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.
@@ -711,18 +717,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// instances will be in the state, as they are not destroyed until
 			// after their dependants are updated.
 			if change.Action == plans.Delete {
-				// FIXME: we should not be evaluating resources that are going
-				// to be destroyed, but this needs to happen always since
-				// destroy-time provisioners need to reference their self
-				// value, and providers need to evaluate their configuration
-				// during a full destroy, even of they depend on resources
-				// being destroyed.
-				//
-				// Since this requires a special transformer to try and fixup
-				// the order of evaluation when possible, reference it here to
-				// ensure that we remove the transformer when this is fixed.
-				_ = GraphTransformer((*applyDestroyNodeReferenceFixupTransformer)(nil))
-				// continue
+				if !pendingDestroy {
+					continue
+				}
 			}
 		}
 
