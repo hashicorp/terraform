@@ -777,23 +777,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
+		if old.IsMarked() || new.IsMarked() {
+			p.buf.WriteString("(sensitive)")
+			return
+		}
+
 		switch {
-		case ty == cty.Bool || ty == cty.Number:
-			if old.IsMarked() || new.IsMarked() {
-				p.buf.WriteString("(sensitive)")
-				return
-			}
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
 			// and for strings that can parse as JSON. For the JSON handling
 			// to apply, both old and new must be valid JSON.
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
-
-			if old.IsMarked() || new.IsMarked() {
-				p.buf.WriteString("(sensitive)")
-				return
-			}
 			oldS := old.AsString()
 			newS := new.AsString()
 
@@ -1070,11 +1065,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			return
 
 		case ty.IsMapType():
-			if old.IsMarked() || new.IsMarked() {
-				p.buf.WriteString("(sensitive)")
-				return
-			}
-
 			p.buf.WriteString("{")
 			if p.pathForcesNewResource(path) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
