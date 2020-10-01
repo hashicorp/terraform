@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -225,6 +226,64 @@ func TestModuleOverrideDynamic(t *testing.T) {
 			t.Fatalf("wrong dynamic block label %q; want %q", got, want)
 		}
 	})
+}
+
+func TestModuleOverrideSensitiveVariable(t *testing.T) {
+	type testCase struct {
+		sensitive    bool
+		sensitiveSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+		"true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"false_false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+		"true_true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"false_true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"true_false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+	}
+
+	// TODO: When variable sensitivity is no longer experimental,
+	// move this test folder to "valid-modules" (it currently has a warning)
+	// and activate the diags assertion
+	mod, _ := testModuleFromDir("testdata/warning-modules/override-variable")
+
+	// assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Sensitive != want.sensitive {
+				t.Errorf("wrong result for sensitive\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+			}
+
+			if got[v].SensitiveSet != want.sensitiveSet {
+				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+			}
+		})
+	}
 }
 
 func TestModuleOverrideResourceFQNs(t *testing.T) {
