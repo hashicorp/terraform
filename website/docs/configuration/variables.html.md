@@ -90,7 +90,7 @@ Terraform CLI defines the following optional arguments for variable declarations
 - [`type`][inpage-type] - This argument specifies what value types are accepted for the variable.
 - [`description`][inpage-description] - This specifies the input variable's documentation.
 - [`validation`][inpage-validation] - A block to define validation rules, usually in addition to type constraints.
-- [`sensitive`][inpage-sensitive] - A boolean value that can limit Terraform UI output when the variable is used in configuration, to avoid accidental disclosure in logs or other UI.
+- [`sensitive`][inpage-sensitive] - Limits Terraform UI output when the variable is used in configuration.
 
 ### Default values
 
