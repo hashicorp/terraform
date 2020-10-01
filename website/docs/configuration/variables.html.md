@@ -253,7 +253,7 @@ Variable values marked as sensitive will display in state. Much like provider-si
 
 Similarly, `sensitive` argument does not have an impact in other Terraform commands such as `console` or `show`. Those commands are meant to ex as this argument is intended to reduce exposure of data in, for example, external logs or aggregation.
 
-Defining sensitivity at the variable level is a configuration-centered concept, and values are sent to providers without any obfuscation; as such, a provider error could disclose a value depending on if the value is included in the error message. For example, if a provider returns an error with `"Invalid value 'foo' for field"`, the value will be displayed in output as a consequence of this error.
+A ` sensitive` variable level is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
 
 If a resource attribute is used as, or part of, the provider-defined resource id, an `apply` will disclose the value. In the example below, the `prefix` attribute has been set to a sensitive variable, but then that value ("jae") is later disclosed as part of the resource id:
 
