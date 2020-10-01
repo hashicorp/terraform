@@ -73,7 +73,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	// Endpoint is optional (only for Stack)
 	endpoint := os.Getenv("ARM_ENDPOINT")
 
-	armClient, err := buildArmClient(BackendConfig{
+	armClient, err := buildArmClient(context.TODO(), BackendConfig{
 		SubscriptionID:                subscriptionID,
 		TenantID:                      tenantID,
 		ClientID:                      clientID,
