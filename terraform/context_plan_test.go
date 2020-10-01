@@ -6346,17 +6346,28 @@ func TestContext2Plan_dataReferencesResource(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 locals {
-	x = "value"
+  x = "value"
 }
 
 resource "test_resource" "a" {
-	value = local.x
+  value = local.x
 }
 
 // test_resource.a.value can be resolved during plan, but the reference implies
 // that the data source should wait until the resource is created.
 data "test_data_source" "d" {
-	foo = test_resource.a.value
+  foo = test_resource.a.value
+}
+
+// ensure referencing an indexed instance that has not yet created will also
+// delay reading the data source
+resource "test_resource" "b" {
+  count = 2
+  value = local.x
+}
+
+data "test_data_source" "e" {
+  foo = test_resource.b[0].value
 }
 `})
 
