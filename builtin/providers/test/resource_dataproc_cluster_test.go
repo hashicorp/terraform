@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -194,19 +193,17 @@ var dataprocClusterSchema = map[string]*schema.Schema{
 										},
 
 										"boot_disk_size_gb": {
-											Type:         schema.TypeInt,
-											Optional:     true,
-											Computed:     true,
-											ForceNew:     true,
-											ValidateFunc: validation.IntAtLeast(10),
+											Type:     schema.TypeInt,
+											Optional: true,
+											Computed: true,
+											ForceNew: true,
 										},
 
 										"boot_disk_type": {
-											Type:         schema.TypeString,
-											Optional:     true,
-											ForceNew:     true,
-											ValidateFunc: validation.StringInSlice([]string{"pd-standard", "pd-ssd", ""}, false),
-											Default:      "pd-standard",
+											Type:     schema.TypeString,
+											Optional: true,
+											ForceNew: true,
+											Default:  "pd-standard",
 										},
 									},
 								},
@@ -267,19 +264,17 @@ var dataprocClusterSchema = map[string]*schema.Schema{
 										},
 
 										"boot_disk_size_gb": {
-											Type:         schema.TypeInt,
-											Optional:     true,
-											Computed:     true,
-											ForceNew:     true,
-											ValidateFunc: validation.IntAtLeast(10),
+											Type:     schema.TypeInt,
+											Optional: true,
+											Computed: true,
+											ForceNew: true,
 										},
 
 										"boot_disk_type": {
-											Type:         schema.TypeString,
-											Optional:     true,
-											ForceNew:     true,
-											ValidateFunc: validation.StringInSlice([]string{"pd-standard", "pd-ssd", ""}, false),
-											Default:      "pd-standard",
+											Type:     schema.TypeString,
+											Optional: true,
+											ForceNew: true,
+											Default:  "pd-standard",
 										},
 									},
 								},
