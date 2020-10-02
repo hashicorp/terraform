@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 	plugin "github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -160,34 +161,86 @@ func (m *Meta) providerInstallSource() getproviders.Source {
 // be honored with what is currently in the cache, such as if a selected
 // package has been removed from the cache or if the contents of a selected
 // package have been modified outside of the installer. If it returns an error,
-// the returned map may be incomplete or invalid.
+// the returned map may be incomplete or invalid, but will be as complete
+// as possible given the cause of the error.
 func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error) {
-	// We don't have to worry about potentially calling
-	// providerInstallerCustomSource here because we're only using this
-	// installer for its SelectedPackages method, which does not consult
-	// any provider sources.
-	inst := m.providerInstaller()
-	selected, err := inst.SelectedPackages()
-	if err != nil {
-		return nil, fmt.Errorf("failed to recall provider packages selected by earlier 'terraform init': %s", err)
+	locks, diags := m.lockedDependencies()
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
 	}
+
+	// We'll always run through all of our providers, even if one of them
+	// encounters an error, so that we can potentially report multiple errors
+	// where appropriate and so that callers can potentially make use of the
+	// partial result we return if e.g. they want to enumerate which providers
+	// are available, or call into one of the providers that didn't fail.
+	var err error
+
+	// For the providers from the lock file, we expect them to be already
+	// available in the provider cache because "terraform init" should already
+	// have put them there.
+	providerLocks := locks.AllProviders()
+	cacheDir := m.providerLocalCacheDir()
 
 	// The internal providers are _always_ available, even if the configuration
 	// doesn't request them, because they don't need any special installation
 	// and they'll just be ignored if not used.
 	internalFactories := m.internalProviders()
 
-	factories := make(map[addrs.Provider]providers.Factory, len(selected)+len(internalFactories)+len(m.UnmanagedProviders))
+	// The Terraform SDK test harness (and possibly other callers in future)
+	// can ask that we use its own already-started provider servers, which we
+	// call "unmanaged" because Terraform isn't responsible for starting
+	// and stopping them.
+	unmanagedProviders := m.UnmanagedProviders
+
+	factories := make(map[addrs.Provider]providers.Factory, len(providerLocks)+len(internalFactories)+len(unmanagedProviders))
 	for name, factory := range internalFactories {
 		factories[addrs.NewBuiltInProvider(name)] = factory
 	}
-	for provider, reattach := range m.UnmanagedProviders {
-		factories[provider] = unmanagedProviderFactory(provider, reattach)
-	}
-	for provider, cached := range selected {
+	for provider, lock := range providerLocks {
+		reportError := func(thisErr error) {
+			err = multierror.Append(err, thisErr)
+			// We'll populate a provider factory that just echoes our error
+			// again if called, which allows us to still report a helpful
+			// error even if it gets detected downstream somewhere from the
+			// caller using our partial result.
+			factories[provider] = providerFactoryError(thisErr)
+		}
+
+		version := lock.Version()
+		cached := cacheDir.ProviderVersion(provider, version)
+		if cached == nil {
+			reportError(fmt.Errorf(
+				"there is no package for %s %s cached in %s",
+				provider, version, cacheDir.BasePath(),
+			))
+			continue
+		}
+		// The cached package must match one of the checksums recorded in
+		// the lock file, if any.
+		if allowedHashes := lock.PreferredHashes(); len(allowedHashes) != 0 {
+			matched, err := cached.MatchesAnyHash(allowedHashes)
+			if err != nil {
+				reportError(fmt.Errorf(
+					"failed to verify checksum of %s %s package cached in in %s: %s",
+					provider, version, cacheDir.BasePath(), err,
+				))
+				continue
+			}
+			if !matched {
+				reportError(fmt.Errorf(
+					"the cached package for %s %s (in %s) does not match any of the checksums recorded in the dependency lock file",
+					provider, version, cacheDir.BasePath(),
+				))
+				continue
+			}
+		}
 		factories[provider] = providerFactory(cached)
 	}
-	return factories, nil
+	for provider, reattach := range unmanagedProviders {
+		factories[provider] = unmanagedProviderFactory(provider, reattach)
+	}
+	return factories, err
 }
 
 func (m *Meta) internalProviders() map[string]providers.Factory {
@@ -284,5 +337,15 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 
 		p := raw.(*tfplugin.GRPCProvider)
 		return p, nil
+	}
+}
+
+// providerFactoryError is a stub providers.Factory that returns an error
+// when called. It's used to allow providerFactories to still produce a
+// factory for each available provider in an error case, for situations
+// where the caller can do something useful with that partial result.
+func providerFactoryError(err error) providers.Factory {
+	return func() (providers.Interface, error) {
+		return nil, err
 	}
 }

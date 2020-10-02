@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -422,9 +421,9 @@ the backend configuration is present and valid.
 func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output, abort bool, diags tfdiags.Diagnostics) {
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
-	reqs, moreDiags := config.ProviderRequirements()
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
+	reqs, hclDiags := config.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
 		return false, true, diags
 	}
 	if state != nil {
@@ -444,6 +443,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			))
 		}
 	}
+
+	previousLocks, moreDiags := c.lockedDependencies()
+	diags = diags.Append(moreDiags)
+
 	if diags.HasErrors() {
 		return false, true, diags
 	}
@@ -729,7 +732,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	ctx, done := c.InterruptibleContext()
 	defer done()
 	ctx = evts.OnContext(ctx)
-	selected, err := inst.EnsureProviderVersions(ctx, reqs, mode)
+	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		c.showDiagnostics(diags)
 		c.Ui.Error("Provider installation was canceled by an interrupt signal.")
@@ -746,29 +749,41 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		return true, true, diags
 	}
 
-	// If any providers have "floating" versions (completely unconstrained)
-	// we'll suggest the user constrain with a pessimistic constraint to
-	// avoid implicitly adopting a later major release.
-	constraintSuggestions := make(map[string]string)
-	for addr, version := range selected {
-		req := reqs[addr]
-
-		if len(req) == 0 {
-			constraintSuggestions[addr.ForDisplay()] = "~> " + version.String()
+	// If the provider dependencies have changed since the last run then we'll
+	// say a little about that in case the reader wasn't expecting a change.
+	// (When we later integrate module dependencies into the lock file we'll
+	// probably want to refactor this so that we produce one lock-file related
+	// message for all changes together, but this is here for now just because
+	// it's the smallest change relative to what came before it, which was
+	// a hidden JSON file specifically for tracking providers.)
+	if !newLocks.Equal(previousLocks) {
+		if previousLocks.Empty() {
+			// A change from empty to non-empty is special because it suggests
+			// we're running "terraform init" for the first time against a
+			// new configuration. In that case we'll take the opportunity to
+			// say a little about what the dependency lock file is, for new
+			// users or those who are upgrading from a previous Terraform
+			// version that didn't have dependency lock files.
+			c.Ui.Output(c.Colorize().Color(`
+Terraform has created a lock file [bold].terraform.lock.hcl[reset] to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.`))
+		} else {
+			c.Ui.Output(c.Colorize().Color(`
+Terraform has made some changes to the provider dependency selections recorded
+in the .terraform.lock.hcl file. Review those changes and commit them to your
+version control system if they represent changes you intended to make.`))
 		}
 	}
-	if len(constraintSuggestions) != 0 {
-		names := make([]string, 0, len(constraintSuggestions))
-		for name := range constraintSuggestions {
-			names = append(names, name)
-		}
-		sort.Strings(names)
 
-		c.Ui.Output(outputInitProvidersUnconstrained)
-		for _, name := range names {
-			c.Ui.Output(fmt.Sprintf("* %s: version = %q", name, constraintSuggestions[name]))
-		}
-	}
+	// TODO: Check whether newLocks is different from previousLocks and mention
+	// in the UI if so. We should emit a different message if previousLocks was
+	// empty, because that indicates we were creating a lock file for the first
+	// time and so we need to introduce the user to the idea of it.
+
+	moreDiags = c.replaceLockedDependencies(newLocks)
+	diags = diags.Append(moreDiags)
 
 	return true, false, diags
 }

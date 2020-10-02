@@ -425,6 +425,16 @@ func (m PackageMeta) MatchesHash(want Hash) (bool, error) {
 	return PackageMatchesHash(m.Location, want)
 }
 
+// MatchesAnyHash returns true if the package at the location associated with
+// the receiver matches at least one of the given hashes, or false otherwise.
+//
+// If it cannot read from the given location, MatchesHash returns an error.
+// Unlike the signular MatchesHash, MatchesAnyHash considers an unsupported
+// hash format to be a successful non-match.
+func (m PackageMeta) MatchesAnyHash(acceptable []Hash) (bool, error) {
+	return PackageMatchesAnyHash(m.Location, acceptable)
+}
+
 // HashV1 computes a hash of the contents of the package at the location
 // associated with the receiver using hash algorithm 1.
 //

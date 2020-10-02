@@ -2,6 +2,7 @@ package depsfile
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -46,12 +47,28 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 	return l.providers[addr]
 }
 
+// AllProviders returns a map describing all of the provider locks in the
+// receiver.
+func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
+	// We return a copy of our internal map so that future calls to
+	// SetProvider won't modify the map we're returning, or vice-versa.
+	ret := make(map[addrs.Provider]*ProviderLock, len(l.providers))
+	for k, v := range l.providers {
+		ret[k] = v
+	}
+	return ret
+}
+
 // SetProvider creates a new lock or replaces the existing lock for the given
 // provider.
 //
 // SetProvider returns the newly-created provider lock object, which
 // invalidates any ProviderLock object previously returned from Provider or
 // SetProvider for the given provider address.
+//
+// The ownership of the backing array for the slice of hashes passes to this
+// function, and so the caller must not read or write that backing array after
+// calling SetProvider.
 //
 // Only lockable providers can be passed to this method. If you pass a
 // non-lockable provider address then this function will panic. Use
@@ -62,14 +79,61 @@ func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, c
 		panic(fmt.Sprintf("Locks.SetProvider with non-lockable provider %s", addr))
 	}
 
-	new := &ProviderLock{
+	new := NewProviderLock(addr, version, constraints, hashes)
+	l.providers[new.addr] = new
+	return new
+}
+
+// NewProviderLock creates a new ProviderLock object that isn't associated
+// with any Locks object.
+//
+// This is here primarily for testing. Most callers should use Locks.SetProvider
+// to construct a new provider lock and insert it into a Locks object at the
+// same time.
+//
+// The ownership of the backing array for the slice of hashes passes to this
+// function, and so the caller must not read or write that backing array after
+// calling NewProviderLock.
+//
+// Only lockable providers can be passed to this method. If you pass a
+// non-lockable provider address then this function will panic. Use
+// function ProviderIsLockable to determine whether a particular provider
+// should participate in the version locking mechanism.
+func NewProviderLock(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes []getproviders.Hash) *ProviderLock {
+	if !ProviderIsLockable(addr) {
+		panic(fmt.Sprintf("Locks.NewProviderLock with non-lockable provider %s", addr))
+	}
+
+	// Normalize the hashes into lexical order so that we can do straightforward
+	// equality tests between different locks for the same provider. The
+	// hashes are logically a set, so the given order is insignificant.
+	sort.Slice(hashes, func(i, j int) bool {
+		return string(hashes[i]) < string(hashes[j])
+	})
+
+	// This is a slightly-tricky in-place deduping to avoid unnecessarily
+	// allocating a new array in the common case where there are no duplicates:
+	// we iterate over "hashes" at the same time as appending to another slice
+	// with the same backing array, relying on the fact that deduping can only
+	// _skip_ elements from the input, and will never generate additional ones
+	// that would cause the writer to get ahead of the reader. This also
+	// assumes that we already sorted the items, which means that any duplicates
+	// will be consecutive in the sequence.
+	dedupeHashes := hashes[:0]
+	prevHash := getproviders.NilHash
+	for _, hash := range hashes {
+		if hash != prevHash {
+			dedupeHashes = append(dedupeHashes, hash)
+			prevHash = hash
+		}
+	}
+
+	return &ProviderLock{
 		addr:               addr,
 		version:            version,
 		versionConstraints: constraints,
-		hashes:             hashes,
+		hashes:             dedupeHashes,
 	}
-	l.providers[addr] = new
-	return new
 }
 
 // ProviderIsLockable returns true if the given provider is eligible for
@@ -121,20 +185,14 @@ func (l *Locks) Equal(other *Locks) bool {
 		}
 
 		// Although "hashes" is declared as a slice, it's logically an
-		// unordered set and so we'll compare it as such.
+		// unordered set. However, we normalize the slice of hashes when
+		// recieving it in NewProviderLock, so we can just do a simple
+		// item-by-item equality test here.
 		if len(thisLock.hashes) != len(otherLock.hashes) {
 			return false
 		}
-		found := make(map[getproviders.Hash]int, len(thisLock.hashes))
-		for _, hash := range thisLock.hashes {
-			found[hash]++
-		}
-		for _, hash := range otherLock.hashes {
-			found[hash]++
-		}
-		for _, count := range found {
-			if count != 2 {
-				// It wasn't in both sets, then
+		for i := range thisLock.hashes {
+			if thisLock.hashes[i] != otherLock.hashes[i] {
 				return false
 			}
 		}
