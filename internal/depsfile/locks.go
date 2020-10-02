@@ -91,6 +91,89 @@ func (l *Locks) Sources() map[string][]byte {
 	return l.sources
 }
 
+// Equal returns true if the given Locks represents the same information as
+// the receiver.
+//
+// Equal explicitly _does not_ consider the equality of version constraints
+// in the saved locks, because those are saved only as hints to help the UI
+// explain what's changed between runs, and are never used as part of
+// dependency installation decisions.
+func (l *Locks) Equal(other *Locks) bool {
+	if len(l.providers) != len(other.providers) {
+		return false
+	}
+	for addr, thisLock := range l.providers {
+		otherLock, ok := other.providers[addr]
+		if !ok {
+			return false
+		}
+
+		if thisLock.addr != otherLock.addr {
+			// It'd be weird to get here because we already looked these up
+			// by address above.
+			return false
+		}
+		if thisLock.version != otherLock.version {
+			// Equality rather than "Version.Same" because changes to the
+			// build metadata are significant for the purpose of this function:
+			// it's a different package even if it has the same precedence.
+			return false
+		}
+
+		// Although "hashes" is declared as a slice, it's logically an
+		// unordered set and so we'll compare it as such.
+		if len(thisLock.hashes) != len(otherLock.hashes) {
+			return false
+		}
+		found := make(map[getproviders.Hash]int, len(thisLock.hashes))
+		for _, hash := range thisLock.hashes {
+			found[hash]++
+		}
+		for _, hash := range otherLock.hashes {
+			found[hash]++
+		}
+		for _, count := range found {
+			if count != 2 {
+				// It wasn't in both sets, then
+				return false
+			}
+		}
+	}
+	// We don't need to worry about providers that are in "other" but not
+	// in the receiver, because we tested the lengths being equal above.
+
+	return true
+}
+
+// Empty returns true if the given Locks object contains no actual locks.
+//
+// UI code might wish to use this to distinguish a lock file being
+// written for the first time from subsequent updates to that lock file.
+func (l *Locks) Empty() bool {
+	return len(l.providers) == 0
+}
+
+// DeepCopy creates a new Locks that represents the same information as the
+// receiver but does not share memory for any parts of the structure that.
+// are mutable through methods on Locks.
+//
+// Note that this does _not_ create deep copies of parts of the structure
+// that are technically mutable but are immutable by convention, such as the
+// array underlying the slice of version constraints. Callers may mutate the
+// resulting data structure only via the direct methods of Locks.
+func (l *Locks) DeepCopy() *Locks {
+	ret := NewLocks()
+	for addr, lock := range l.providers {
+		var hashes []getproviders.Hash
+		if len(lock.hashes) > 0 {
+			hashes = make([]getproviders.Hash, len(lock.hashes))
+			copy(hashes, lock.hashes)
+		}
+		ret.SetProvider(addr, lock.version, lock.versionConstraints, hashes)
+	}
+	return ret
+}
+
 // ProviderLock represents lock information for a specific provider.
 type ProviderLock struct {
 	// addr is the address of the provider this lock applies to.
