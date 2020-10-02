@@ -381,42 +381,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	// Display a special diff because it is irrelevant
 	// to list all obfuscated attributes as (sensitive)
 	if old.IsMarked() || new.IsMarked() {
-		unmarkedOld, _ := old.Unmark()
-		unmarkedNew, _ := new.Unmark()
-		eqV := unmarkedNew.Equals(unmarkedOld)
-		var action plans.Action
-		switch {
-		case old.IsNull():
-			action = plans.Create
-		case new.IsNull():
-			action = plans.Delete
-		case !new.IsWhollyKnown() || !old.IsWhollyKnown():
-			// "old" should actually always be known due to our contract
-			// that old values must never be unknown, but we'll allow it
-			// anyway to be robust.
-			action = plans.Update
-		case !eqV.IsKnown() || !eqV.True():
-			action = plans.Update
-		}
-
-		if blankBefore {
-			p.buf.WriteRune('\n')
-		}
-
-		// New line before warning printing
-		p.buf.WriteRune('\n')
-		p.writeSensitivityWarning(old, new, indent, action, true)
-		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.writeActionSymbol(action)
-		fmt.Fprintf(p.buf, "%s {", name)
-		p.buf.WriteRune('\n')
-		p.buf.WriteString(strings.Repeat(" ", indent+4))
-		p.buf.WriteString("# At least one attribute in this block is (or was) sensitive,\n")
-		p.buf.WriteString(strings.Repeat(" ", indent+4))
-		p.buf.WriteString("# so its contents will not be displayed.")
-		p.buf.WriteRune('\n')
-		p.buf.WriteString(strings.Repeat(" ", indent+2))
-		p.buf.WriteString("}")
+		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore)
 		return 0
 	}
 
@@ -622,6 +587,46 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		}
 	}
 	return skippedBlocks
+}
+
+func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, new cty.Value, indent int, blankBefore bool) {
+	unmarkedOld, _ := old.Unmark()
+	unmarkedNew, _ := new.Unmark()
+	eqV := unmarkedNew.Equals(unmarkedOld)
+	var action plans.Action
+	switch {
+	case old.IsNull():
+		action = plans.Create
+	case new.IsNull():
+		action = plans.Delete
+	case !new.IsWhollyKnown() || !old.IsWhollyKnown():
+		// "old" should actually always be known due to our contract
+		// that old values must never be unknown, but we'll allow it
+		// anyway to be robust.
+		action = plans.Update
+	case !eqV.IsKnown() || !eqV.True():
+		action = plans.Update
+	}
+
+	if blankBefore {
+		p.buf.WriteRune('\n')
+	}
+
+	// New line before warning printing
+	p.buf.WriteRune('\n')
+	p.writeSensitivityWarning(old, new, indent, action, true)
+	p.buf.WriteString(strings.Repeat(" ", indent))
+	p.writeActionSymbol(action)
+	fmt.Fprintf(p.buf, "%s {", name)
+	p.buf.WriteRune('\n')
+	p.buf.WriteString(strings.Repeat(" ", indent+4))
+	p.buf.WriteString("# At least one attribute in this block is (or was) sensitive,\n")
+	p.buf.WriteString(strings.Repeat(" ", indent+4))
+	p.buf.WriteString("# so its contents will not be displayed.")
+	p.buf.WriteRune('\n')
+	p.buf.WriteString(strings.Repeat(" ", indent+2))
+	p.buf.WriteString("}")
+	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) bool {
