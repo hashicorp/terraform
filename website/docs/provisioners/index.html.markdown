@@ -107,6 +107,8 @@ configuration management provisioners and can run their installation steps
 during a separate build process, before creating a system disk image that you
 can deploy many times.
 
+> **Hands-on:** Try the [Provision Infrastructure with Packer](https://learn.hashicorp.com/tutorials/terraform/packer?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 If you are using configuration management software that has a centralized server
 component, you will need to delay the _registration_ step until the final
 system is booted from your custom image. To achieve that, use one of the
