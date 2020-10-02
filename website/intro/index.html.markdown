@@ -75,5 +75,5 @@ See the page on [Terraform use cases](/intro/use-cases.html) to see the
 multiple ways Terraform can be used. Then see
 [how Terraform compares to other software](/intro/vs/index.html)
 to see how it fits into your existing infrastructure. Finally, continue onwards with
-the [getting started guide](https://learn.hashicorp.com/terraform/getting-started/install) to use
+the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn to use
 Terraform to manage real infrastructure and to see how it works.

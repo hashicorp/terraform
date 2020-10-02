@@ -36,7 +36,7 @@ visiting the [Web UI](https://demo.consul.io/ui/dc1/kv/). We can see
 that the `tf_test/id` and `tf_test/public_dns` values have been
 set.
 
-You can now [tear down the infrastructure](https://learn.hashicorp.com/terraform/getting-started/destroy).
+You can now [tear down the infrastructure](https://learn.hashicorp.com/tutorials/terraform/aws-destroy?in=terraform/aws-get-started&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 Because we set the `delete` property of two of the Consul keys, Terraform
 will clean up those keys on destroy. We can verify this by using
 the Web UI.

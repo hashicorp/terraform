@@ -8,7 +8,7 @@ description: |-
 
 # Command: plan
 
-> For a hands-on tutorial, try the [Get Started](https://learn.hashicorp.com/terraform/getting-started/intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 The `terraform plan` command is used to create an execution plan. Terraform
 performs a refresh, unless explicitly disabled, and then determines what
@@ -23,7 +23,7 @@ will behave as expected.
 
 The optional `-out` argument can be used to save the generated plan to a file
 for later execution with `terraform apply`, which can be useful when
-[running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation).
+[running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 If Terraform detects no changes to resource or to root module output values,
 `terraform plan` will indicate that no changes are required.

@@ -13,6 +13,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Input Variables](../configuration-0-11/variables.html).
 
+> **Hands-on:** Try the [Define Input Variables](https://learn.hashicorp.com/tutorials/terraform/aws-variables?in=terraform/aws-get-started&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 Input variables serve as parameters for a Terraform module, allowing aspects
 of the module to be customized without altering the module's own source code,
 and allowing modules to be shared between different configurations.
@@ -28,9 +30,6 @@ compare Terraform modules to function definitions:
 - Input variables are like function arguments.
 - [Output values](./outputs.html) are like function return values.
 - [Local values](./locals.html) are like a function's temporary local variables.
-
-Input variable usage is introduced in the Getting Started guide section
-[_Input Variables_](https://learn.hashicorp.com/terraform/getting-started/variables).
 
 -> **Note:** For brevity, input variables are often referred to as just
 "variables" or "Terraform variables" when it is clear from context what sort of
