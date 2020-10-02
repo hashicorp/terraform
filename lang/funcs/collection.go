@@ -315,7 +315,7 @@ var LookupFunc = function.New(&function.Spec{
 		mapVar := args[0]
 		lookupKey := args[1].AsString()
 
-		if !mapVar.IsWhollyKnown() {
+		if !mapVar.IsKnown() {
 			return cty.UnknownVal(retType), nil
 		}
 
