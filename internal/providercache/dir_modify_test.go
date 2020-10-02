@@ -46,7 +46,7 @@ func TestInstallPackage(t *testing.T) {
 		Location: getproviders.PackageLocalArchive("testdata/terraform-provider-null_2.1.0_linux_amd64.zip"),
 	}
 
-	result, err := tmpDir.InstallPackage(context.TODO(), meta)
+	result, err := tmpDir.InstallPackage(context.TODO(), meta, nil)
 	if err != nil {
 		t.Fatalf("InstallPackage failed: %s", err)
 	}
@@ -129,7 +129,7 @@ func TestLinkFromOtherCache(t *testing.T) {
 		t.Fatalf("null provider has no latest version in source directory")
 	}
 
-	err = tmpDir.LinkFromOtherCache(cacheEntry)
+	err = tmpDir.LinkFromOtherCache(cacheEntry, nil)
 	if err != nil {
 		t.Fatalf("LinkFromOtherCache failed: %s", err)
 	}

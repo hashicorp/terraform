@@ -44,8 +44,8 @@ func TestInitProviders(t *testing.T) {
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 
-	if !strings.Contains(stdout, "* hashicorp/template: version = ") {
-		t.Errorf("provider pinning recommendation is missing from output:\n%s", stdout)
+	if !strings.Contains(stdout, "Terraform has created a lock file") {
+		t.Errorf("lock file notification is missing from output:\n%s", stdout)
 	}
 
 }

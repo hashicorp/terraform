@@ -23,7 +23,7 @@ import (
 // specific protocol and set of expectations.)
 var unzip = getter.ZipDecompressor{}
 
-func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string) (*getproviders.PackageAuthenticationResult, error) {
+func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	url := meta.Location.String()
 
 	// When we're installing from an HTTP URL we expect the URL to refer to
@@ -83,7 +83,9 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 
 	// We can now delegate to installFromLocalArchive for extraction. To do so,
 	// we construct a new package meta description using the local archive
-	// path as the location, and skipping authentication.
+	// path as the location, and skipping authentication. installFromLocalMeta
+	// is responsible for verifying that the archive matches the allowedHashes,
+	// though.
 	localMeta := getproviders.PackageMeta{
 		Provider:         meta.Provider,
 		Version:          meta.Version,
@@ -93,13 +95,13 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 		Location:         localLocation,
 		Authentication:   nil,
 	}
-	if _, err := installFromLocalArchive(ctx, localMeta, targetDir); err != nil {
+	if _, err := installFromLocalArchive(ctx, localMeta, targetDir, allowedHashes); err != nil {
 		return nil, err
 	}
 	return authResult, nil
 }
 
-func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta, targetDir string) (*getproviders.PackageAuthenticationResult, error) {
+func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	var authResult *getproviders.PackageAuthenticationResult
 	if meta.Authentication != nil {
 		var err error
@@ -107,6 +109,21 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			return nil, err
 		}
 	}
+
+	if len(allowedHashes) > 0 {
+		if matches, err := meta.MatchesAnyHash(allowedHashes); err != nil {
+			return authResult, fmt.Errorf(
+				"failed to calculate checksum for %s %s package at %s: %s",
+				meta.Provider, meta.Version, meta.Location, err,
+			)
+		} else if !matches {
+			return authResult, fmt.Errorf(
+				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file",
+				meta.Provider, meta.Version,
+			)
+		}
+	}
+
 	filename := meta.Location.String()
 
 	err := unzip.Decompress(targetDir, filename, true)
@@ -121,7 +138,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 // a local directory source _and_ of linking a package from another cache
 // in LinkFromOtherCache, because they both do fundamentally the same
 // operation: symlink if possible, or deep-copy otherwise.
-func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, targetDir string) (*getproviders.PackageAuthenticationResult, error) {
+func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	sourceDir := meta.Location.String()
 
 	absNew, err := filepath.Abs(targetDir)

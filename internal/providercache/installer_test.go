@@ -15,6 +15,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -35,33 +36,33 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 	installer := NewInstaller(dir, source)
 
 	tests := map[string]struct {
-		provider  string
-		version   string
-		installed bool
-		err       string
+		provider string
+		version  string
+		wantHash getproviders.Hash // getproviders.NilHash if not expected to be installed
+		err      string
 	}{
 		"install-unpacked": {
-			provider:  "null",
-			version:   "2.0.0",
-			installed: true,
+			provider: "null",
+			version:  "2.0.0",
+			wantHash: getproviders.HashScheme1.New("qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g="),
 		},
 		"invalid-zip-file": {
-			provider:  "null",
-			version:   "2.1.0",
-			installed: false,
-			err:       "zip: not a valid zip file",
+			provider: "null",
+			version:  "2.1.0",
+			wantHash: getproviders.NilHash,
+			err:      "zip: not a valid zip file",
 		},
 		"version-constraint-unmet": {
-			provider:  "null",
-			version:   "2.2.0",
-			installed: false,
-			err:       "no available releases match the given constraints 2.2.0",
+			provider: "null",
+			version:  "2.2.0",
+			wantHash: getproviders.NilHash,
+			err:      "no available releases match the given constraints 2.2.0",
 		},
 		"missing-executable": {
-			provider:  "missing/executable",
-			version:   "2.0.0",
-			installed: true,
-			err:       "provider binary not found: could not find executable file starting with terraform-provider-executable",
+			provider: "missing/executable",
+			version:  "2.0.0",
+			wantHash: getproviders.NilHash, // installation fails for a provider with no executable
+			err:      "provider binary not found: could not find executable file starting with terraform-provider-executable",
 		},
 	}
 
@@ -75,14 +76,24 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 			reqs := getproviders.Requirements{
 				provider: versionConstraint,
 			}
-			wantSelected := getproviders.Selections{provider: version}
-			if !test.installed {
-				wantSelected = getproviders.Selections{}
+
+			newLocks, err := installer.EnsureProviderVersions(ctx, depsfile.NewLocks(), reqs, InstallNewProvidersOnly)
+			gotProviderlocks := newLocks.AllProviders()
+			wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+				provider: depsfile.NewProviderLock(
+					provider,
+					version,
+					getproviders.MustParseVersionConstraints("= 2.0.0"),
+					[]getproviders.Hash{
+						test.wantHash,
+					},
+				),
+			}
+			if test.wantHash == getproviders.NilHash {
+				wantProviderLocks = map[addrs.Provider]*depsfile.ProviderLock{}
 			}
 
-			selected, err := installer.EnsureProviderVersions(ctx, reqs, InstallNewProvidersOnly)
-
-			if diff := cmp.Diff(wantSelected, selected); diff != "" {
+			if diff := cmp.Diff(wantProviderLocks, gotProviderlocks, depsfile.ProviderLockComparer); diff != "" {
 				t.Errorf("wrong selected\n%s", diff)
 			}
 
@@ -158,7 +169,7 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 				test.provider: test.inputVersion,
 			}
 			ctx := context.TODO()
-			_, err := installer.EnsureProviderVersions(ctx, reqs, InstallNewProvidersOnly)
+			_, err := installer.EnsureProviderVersions(ctx, depsfile.NewLocks(), reqs, InstallNewProvidersOnly)
 
 			switch err := err.(type) {
 			case nil:

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	discovery "github.com/hashicorp/terraform/plugin/discovery"
@@ -378,7 +379,7 @@ func (c *PackageCommand) ensureProviderVersions(installer *providercache.Install
 		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
 			c.ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider.ForDisplay(), selectedVersion))
 		},
-		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if len(versionConstraints) > 0 {
 				c.ui.Info(fmt.Sprintf("- Finding %s versions matching %q...", provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 			} else {
@@ -405,7 +406,13 @@ func (c *PackageCommand) ensureProviderVersions(installer *providercache.Install
 				return err
 			}
 			req[provider] = cstr
-			_, err = installer.EnsureProviderVersions(ctx, req, mode)
+
+			// We always start with no locks here, because we want to take
+			// the newest version matching the given version constraint, and
+			// never consider anything that might've been selected before.
+			locks := depsfile.NewLocks()
+
+			_, err = installer.EnsureProviderVersions(ctx, locks, req, mode)
 			if err != nil {
 				return err
 			}

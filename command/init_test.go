@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
@@ -1126,13 +1128,13 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	}
 
 	wantErrors := []string{
-		"Failed to validate installed provider",
+		"Failed to install provider",
 		"could not find executable file starting with terraform-provider-package",
 	}
 	got := ui.ErrorWriter.String()
 	for _, wantError := range wantErrors {
 		if !strings.Contains(got, wantError) {
-			t.Fatalf("missing error:\nwant: %q\n got: %q", wantError, got)
+			t.Fatalf("missing error:\nwant: %q\ngot:\n%s", wantError, got)
 		}
 	}
 }
@@ -1267,29 +1269,38 @@ func TestInit_providerSource(t *testing.T) {
 		t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
 	}
 
-	inst := m.providerInstaller()
-	gotSelected, err := inst.SelectedPackages()
+	locks, err := m.lockedDependencies()
 	if err != nil {
-		t.Fatalf("failed to get selected packages from installer: %s", err)
+		t.Fatalf("failed to get locked dependencies: %s", err)
 	}
-	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
-		addrs.NewDefaultProvider("test-beta"): {
-			Provider:   addrs.NewDefaultProvider("test-beta"),
-			Version:    getproviders.MustParseVersion("1.2.4"),
-			PackageDir: expectedPackageInstallPath("test-beta", "1.2.4", false),
-		},
-		addrs.NewDefaultProvider("test"): {
-			Provider:   addrs.NewDefaultProvider("test"),
-			Version:    getproviders.MustParseVersion("1.2.3"),
-			PackageDir: expectedPackageInstallPath("test", "1.2.3", false),
-		},
-		addrs.NewDefaultProvider("source"): {
-			Provider:   addrs.NewDefaultProvider("source"),
-			Version:    getproviders.MustParseVersion("1.2.3"),
-			PackageDir: expectedPackageInstallPath("source", "1.2.3", false),
-		},
+	gotProviderLocks := locks.AllProviders()
+	wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+		addrs.NewDefaultProvider("test-beta"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("test-beta"),
+			getproviders.MustParseVersion("1.2.4"),
+			getproviders.MustParseVersionConstraints("= 1.2.4"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("see6W06w09Ea+AobFJ+mbvPTie6ASqZAAdlFZbs8BSM="),
+			},
+		),
+		addrs.NewDefaultProvider("test"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("test"),
+			getproviders.MustParseVersion("1.2.3"),
+			getproviders.MustParseVersionConstraints("= 1.2.3"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="),
+			},
+		),
+		addrs.NewDefaultProvider("source"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("source"),
+			getproviders.MustParseVersion("1.2.3"),
+			getproviders.MustParseVersionConstraints("= 1.2.3"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("myS3qb3px3tRBq1ZWRYJeUH+kySWpBc0Yy8rw6W7/p4="),
+			},
+		),
 	}
-	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
+	if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
 		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
 
@@ -1435,32 +1446,40 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 		t.Errorf("wrong cache directory contents after upgrade\n%s", diff)
 	}
 
-	inst := m.providerInstaller()
-	gotSelected, err := inst.SelectedPackages()
+	locks, err := m.lockedDependencies()
 	if err != nil {
-		t.Fatalf("failed to get selected packages from installer: %s", err)
+		t.Fatalf("failed to get locked dependencies: %s", err)
 	}
-	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
-		addrs.NewDefaultProvider("between"): {
-			Provider:   addrs.NewDefaultProvider("between"),
-			Version:    getproviders.MustParseVersion("2.3.4"),
-			PackageDir: expectedPackageInstallPath("between", "2.3.4", false),
-		},
-		addrs.NewDefaultProvider("exact"): {
-			Provider:   addrs.NewDefaultProvider("exact"),
-			Version:    getproviders.MustParseVersion("1.2.3"),
-			PackageDir: expectedPackageInstallPath("exact", "1.2.3", false),
-		},
-		addrs.NewDefaultProvider("greater-than"): {
-			Provider:   addrs.NewDefaultProvider("greater-than"),
-			Version:    getproviders.MustParseVersion("2.3.4"),
-			PackageDir: expectedPackageInstallPath("greater-than", "2.3.4", false),
-		},
+	gotProviderLocks := locks.AllProviders()
+	wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+		addrs.NewDefaultProvider("between"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("between"),
+			getproviders.MustParseVersion("2.3.4"),
+			getproviders.MustParseVersionConstraints("> 1.0.0, < 3.0.0"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("JVqAvZz88A+hS2wHVtTWQkHaxoA/LrUAz0H3jPBWPIA="),
+			},
+		),
+		addrs.NewDefaultProvider("exact"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("exact"),
+			getproviders.MustParseVersion("1.2.3"),
+			getproviders.MustParseVersionConstraints("= 1.2.3"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("H1TxWF8LyhBb6B4iUdKhLc/S9sC/jdcrCykpkbGcfbg="),
+			},
+		),
+		addrs.NewDefaultProvider("greater-than"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("greater-than"),
+			getproviders.MustParseVersion("2.3.4"),
+			getproviders.MustParseVersionConstraints(">= 2.3.3"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("SJPpXx/yoFE/W+7eCipjJ+G21xbdnTBD7lWodZ8hWkU="),
+			},
+		),
 	}
-	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
+	if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
 		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
-
 }
 
 func TestInit_getProviderMissing(t *testing.T) {
@@ -1537,7 +1556,7 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": []string{"1.2.3"},
+		"test": {"1.2.3"},
 	})
 	defer close()
 
@@ -1557,23 +1576,26 @@ func TestInit_providerLockFile(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	selectionsFile := ".terraform/plugins/selections.json"
-	buf, err := ioutil.ReadFile(selectionsFile)
+	lockFile := ".terraform.lock.hcl"
+	buf, err := ioutil.ReadFile(lockFile)
 	if err != nil {
-		t.Fatalf("failed to read provider selections file %s: %s", selectionsFile, err)
+		t.Fatalf("failed to read dependency lock file %s: %s", lockFile, err)
 	}
+	buf = bytes.TrimSpace(buf)
 	// The hash in here is for the fake package that newMockProviderSource produces
 	// (so it'll change if newMockProviderSource starts producing different contents)
 	wantLockFile := strings.TrimSpace(`
-{
-  "registry.terraform.io/hashicorp/test": {
-    "hash": "h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
-    "version": "1.2.3"
-  }
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version     = "1.2.3"
+  constraints = "1.2.3"
+  hashes      = ["h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="]
 }
 `)
-	if string(buf) != wantLockFile {
-		t.Errorf("wrong provider selections file contents\ngot:  %s\nwant: %s", buf, wantLockFile)
+	if diff := cmp.Diff(wantLockFile, string(buf)); diff != "" {
+		t.Errorf("wrong dependency lock file contents\n%s", diff)
 	}
 }
 
@@ -1697,29 +1719,38 @@ func TestInit_pluginDirProviders(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
 
-	inst := m.providerInstaller()
-	gotSelected, err := inst.SelectedPackages()
+	locks, err := m.lockedDependencies()
 	if err != nil {
-		t.Fatalf("failed to get selected packages from installer: %s", err)
+		t.Fatalf("failed to get locked dependencies: %s", err)
 	}
-	wantSelected := map[addrs.Provider]*providercache.CachedProvider{
-		addrs.NewDefaultProvider("between"): {
-			Provider:   addrs.NewDefaultProvider("between"),
-			Version:    getproviders.MustParseVersion("2.3.4"),
-			PackageDir: expectedPackageInstallPath("between", "2.3.4", false),
-		},
-		addrs.NewDefaultProvider("exact"): {
-			Provider:   addrs.NewDefaultProvider("exact"),
-			Version:    getproviders.MustParseVersion("1.2.3"),
-			PackageDir: expectedPackageInstallPath("exact", "1.2.3", false),
-		},
-		addrs.NewDefaultProvider("greater-than"): {
-			Provider:   addrs.NewDefaultProvider("greater-than"),
-			Version:    getproviders.MustParseVersion("2.3.4"),
-			PackageDir: expectedPackageInstallPath("greater-than", "2.3.4", false),
-		},
+	gotProviderLocks := locks.AllProviders()
+	wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+		addrs.NewDefaultProvider("between"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("between"),
+			getproviders.MustParseVersion("2.3.4"),
+			getproviders.MustParseVersionConstraints("> 1.0.0, < 3.0.0"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("JVqAvZz88A+hS2wHVtTWQkHaxoA/LrUAz0H3jPBWPIA="),
+			},
+		),
+		addrs.NewDefaultProvider("exact"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("exact"),
+			getproviders.MustParseVersion("1.2.3"),
+			getproviders.MustParseVersionConstraints("= 1.2.3"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("H1TxWF8LyhBb6B4iUdKhLc/S9sC/jdcrCykpkbGcfbg="),
+			},
+		),
+		addrs.NewDefaultProvider("greater-than"): depsfile.NewProviderLock(
+			addrs.NewDefaultProvider("greater-than"),
+			getproviders.MustParseVersion("2.3.4"),
+			getproviders.MustParseVersionConstraints(">= 2.3.3"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("SJPpXx/yoFE/W+7eCipjJ+G21xbdnTBD7lWodZ8hWkU="),
+			},
+		),
 	}
-	if diff := cmp.Diff(wantSelected, gotSelected); diff != "" {
+	if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
 		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
 
@@ -1983,7 +2014,7 @@ func installFakeProviderPackagesElsewhere(t *testing.T, cacheDir *providercache.
 			if err != nil {
 				t.Fatalf("failed to prepare fake package for %s %s: %s", name, versionStr, err)
 			}
-			_, err = cacheDir.InstallPackage(context.Background(), meta)
+			_, err = cacheDir.InstallPackage(context.Background(), meta, nil)
 			if err != nil {
 				t.Fatalf("failed to install fake package for %s %s: %s", name, versionStr, err)
 			}

@@ -50,12 +50,22 @@ func (cp *CachedProvider) Hash() (getproviders.Hash, error) {
 // MatchesHash returns true if the package on disk matches the given hash,
 // or false otherwise. If it cannot traverse the package directory and read
 // all of the files in it, or if the hash is in an unsupported format,
-// CheckHash returns an error.
+// MatchesHash returns an error.
 //
 // MatchesHash may accept hashes in a number of different formats. Over time
 // the set of supported formats may grow and shrink.
 func (cp *CachedProvider) MatchesHash(want getproviders.Hash) (bool, error) {
 	return getproviders.PackageMatchesHash(cp.PackageLocation(), want)
+}
+
+// MatchesAnyHash returns true if the package on disk matches the given hash,
+// or false otherwise. If it cannot traverse the package directory and read
+// all of the files in it, MatchesAnyHash returns an error.
+//
+// Unlike the singular MatchesHash, MatchesAnyHash considers unsupported hash
+// formats as successfully non-matching, rather than returning an error.
+func (cp *CachedProvider) MatchesAnyHash(allowed []getproviders.Hash) (bool, error) {
+	return getproviders.PackageMatchesAnyHash(cp.PackageLocation(), allowed)
 }
 
 // HashV1 computes a hash of the contents of the package directory associated
