@@ -777,26 +777,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
-		// Create unmarked values for comparisons
-		unmarkedOld, oldMarks := old.UnmarkDeep()
-		unmarkedNew, newMarks := new.UnmarkDeep()
+		if old.IsMarked() || new.IsMarked() {
+			p.buf.WriteString("(sensitive)")
+			return
+		}
+
 		switch {
-		case ty == cty.Bool || ty == cty.Number:
-			if len(oldMarks) > 0 || len(newMarks) > 0 {
-				p.buf.WriteString("(sensitive)")
-				return
-			}
 		case ty == cty.String:
 			// We have special behavior for both multi-line strings in general
 			// and for strings that can parse as JSON. For the JSON handling
 			// to apply, both old and new must be valid JSON.
 			// For single-line strings that don't parse as JSON we just fall
 			// out of this switch block and do the default old -> new rendering.
-
-			if len(oldMarks) > 0 || len(newMarks) > 0 {
-				p.buf.WriteString("(sensitive)")
-				return
-			}
 			oldS := old.AsString()
 			newS := new.AsString()
 
@@ -1114,10 +1106,18 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if new.HasIndex(kV).False() {
 					action = plans.Delete
-				} else if eqV := unmarkedOld.Index(kV).Equals(unmarkedNew.Index(kV)); eqV.IsKnown() && eqV.True() {
-					action = plans.NoOp
-				} else {
-					action = plans.Update
+				}
+
+				// Use unmarked values for equality testing
+				if old.HasIndex(kV).True() && new.HasIndex(kV).True() {
+					unmarkedOld, _ := old.Index(kV).Unmark()
+					unmarkedNew, _ := new.Index(kV).Unmark()
+					eqV := unmarkedOld.Equals(unmarkedNew)
+					if eqV.IsKnown() && eqV.True() {
+						action = plans.NoOp
+					} else {
+						action = plans.Update
+					}
 				}
 
 				if action == plans.NoOp && p.concise {
