@@ -11389,11 +11389,34 @@ locals {
 		return testApplyFn(info, s, d)
 	}
 
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		n := r.ProposedNewState.AsValueMap()
+
+		if r.PriorState.IsNull() {
+			n["id"] = cty.UnknownVal(cty.String)
+			resp.PlannedState = cty.ObjectVal(n)
+			return resp
+		}
+
+		p := r.PriorState.AsValueMap()
+
+		priorRN := p["require_new"]
+		newRN := n["require_new"]
+
+		if eq := priorRN.Equals(newRN); !eq.IsKnown() || eq.False() {
+			resp.RequiresReplace = []cty.Path{{cty.GetAttrStep{Name: "require_new"}}}
+			n["id"] = cty.UnknownVal(cty.String)
+		}
+
+		resp.PlannedState = cty.ObjectVal(n)
+		return resp
+	}
+
+	// reduce the count to 1
 	ctx := testContext2(t, &ContextOpts{
 		Variables: InputValues{
 			"ct": &InputValue{
-				Value:      cty.NumberIntVal(0),
+				Value:      cty.NumberIntVal(1),
 				SourceType: ValueFromCaller,
 			},
 		},
@@ -11409,20 +11432,10 @@ locals {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	// if resource b isn't going to apply correctly, we will get an error about
-	// an invalid plan value
 	state, diags = ctx.Apply()
-	errMsg := diags.ErrWithWarnings().Error()
-	if strings.Contains(errMsg, "Cycle") {
-		t.Fatal("test should not produce a cycle:\n", errMsg)
+	if diags.HasErrors() {
+		log.Fatal(diags.ErrWithWarnings())
 	}
-
-	if !diags.HasErrors() {
-		// FIXME: this test is correct, but needs to wait until we no longer
-		// evaluate resourced that are pending destruction.
-		t.Fatal("used to error, but now it's fixed!")
-	}
-	return
 
 	// check the output, as those can't cause an error planning the value
 	out := state.RootModule().OutputValues["out"].Value.AsString()
@@ -11450,8 +11463,6 @@ locals {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	// if resource b isn't going to apply correctly, we will get an error about
-	// an invalid plan value
 	state, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
