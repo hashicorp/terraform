@@ -6403,11 +6403,17 @@ resource "test_instance" "a" {
 		SkipRefresh: true,
 	})
 
-	_, diags := ctx.Plan()
+	plan, diags := ctx.Plan()
 	assertNoErrors(t, diags)
 
 	if p.ReadResourceCalled {
 		t.Fatal("Resource should not have been refreshed")
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
+		}
 	}
 }
 

@@ -146,24 +146,23 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext, 
 		return err
 	}
 
+	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
+	if err != nil {
+		return err
+	}
+	refreshLifecycle := &EvalRefreshLifecycle{
+		Addr:                     addr,
+		Config:                   n.Config,
+		State:                    &instanceRefreshState,
+		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+	}
+	_, err = refreshLifecycle.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Refresh, maybe
 	if !skipRefresh {
-		instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
-		if err != nil {
-			return err
-		}
-
-		refreshLifecycle := &EvalRefreshLifecycle{
-			Addr:                     addr,
-			Config:                   n.Config,
-			State:                    &instanceRefreshState,
-			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-		}
-		_, err = refreshLifecycle.Eval(ctx)
-		if err != nil {
-			return err
-		}
-
 		refresh := &EvalRefresh{
 			Addr:           addr.Resource,
 			ProviderAddr:   n.ResolvedProvider,
