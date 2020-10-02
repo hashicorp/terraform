@@ -323,10 +323,10 @@ compatible with Terraform v0.11 or later and should never be declared in a
 
 ## In-house Providers
 
-Anyone can develop and distribute their own Terraform providers. (See
+Anyone can develop and distribute their own Terraform providers. See
 the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 collection on HashiCorp Learn for more
-about provider development.)
+about provider development.
 
 Some organizations develop their own providers to configure
 proprietary systems, and wish to use these providers from Terraform without

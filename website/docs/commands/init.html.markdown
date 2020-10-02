@@ -160,7 +160,7 @@ other interesting features such as integration with version control hooks.
 There are some special concerns when running `init` in such an environment,
 including optionally making plugins available locally to avoid repeated
 re-installation. For more information, see
-[Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+the [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 ## Passing a Different Configuration Directory
 
