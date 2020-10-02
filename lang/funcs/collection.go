@@ -72,6 +72,18 @@ var AllTrueFunc = function.New(&function.Spec{
 			return cty.NilVal, errors.New("argument must be list, tuple, or set")
 		}
 
+		if args[0].IsNull() {
+			return cty.NilVal, errors.New("cannot search a nil list or set")
+		}
+
+		if args[0].LengthInt() == 0 {
+			return cty.True, nil
+		}
+
+		if !args[0].IsKnown() {
+			return cty.UnknownVal(cty.Bool), nil
+		}
+
 		tobool := MakeToFunc(cty.Bool)
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
@@ -91,6 +103,56 @@ var AllTrueFunc = function.New(&function.Spec{
 			}
 		}
 		return cty.True, nil
+	},
+})
+
+// AnyTrueFunc constructs a function that returns true if any element of the
+// collection is true or "true". If the collection is empty, return false.
+var AnyTrueFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "collection",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		ty := args[0].Type()
+		if !ty.IsListType() && !ty.IsTupleType() && !ty.IsSetType() {
+			return cty.NilVal, errors.New("argument must be list, tuple, or set")
+		}
+
+		if args[0].IsNull() {
+			return cty.NilVal, errors.New("cannot search a nil list or set")
+		}
+
+		if args[0].LengthInt() == 0 {
+			return cty.False, nil
+		}
+
+		if !args[0].IsKnown() {
+			return cty.UnknownVal(cty.Bool), nil
+		}
+
+		tobool := MakeToFunc(cty.Bool)
+		for it := args[0].ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			if !v.IsKnown() {
+				return cty.UnknownVal(cty.Bool), nil
+			}
+			got, err := tobool.Call([]cty.Value{v})
+			if err != nil {
+				continue
+			}
+			eq, err := stdlib.Equal(got, cty.True)
+			if err != nil {
+				return cty.NilVal, err
+			}
+			if eq.True() {
+				return cty.True, nil
+			}
+		}
+		return cty.False, nil
 	},
 })
 
@@ -624,6 +686,12 @@ func Length(collection cty.Value) (cty.Value, error) {
 // If the collection is empty, return true.
 func AllTrue(collection cty.Value) (cty.Value, error) {
 	return AllTrueFunc.Call([]cty.Value{collection})
+}
+
+// AnyTrue returns true if any element of the collection is true or "true".
+// If the collection is empty, return false.
+func AnyTrue(collection cty.Value) (cty.Value, error) {
+	return AnyTrueFunc.Call([]cty.Value{collection})
 }
 
 // Coalesce takes any number of arguments and returns the first one that isn't empty.

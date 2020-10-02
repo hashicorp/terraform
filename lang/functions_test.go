@@ -74,6 +74,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"anytrue": {
+			{
+				`anytrue([])`,
+				cty.False,
+			},
+		},
+
 		"base64decode": {
 			{
 				`base64decode("YWJjMTIzIT8kKiYoKSctPUB+")`,

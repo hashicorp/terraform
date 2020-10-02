@@ -196,9 +196,107 @@ func TestAllTrue(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
+			cty.False,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
 			cty.StringVal("true"),
 			cty.False,
 			true,
+		},
+		{
+			cty.NullVal(cty.List(cty.Bool)),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("alltrue(%#v)", test.Collection), func(t *testing.T) {
+			got, err := AllTrue(test.Collection)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestAnyTrue(t *testing.T) {
+	tests := []struct {
+		Collection cty.Value
+		Want       cty.Value
+		Err        bool
+	}{
+		{
+			cty.ListValEmpty(cty.String),
+			cty.False,
+			false,
+		},
+		{
+			cty.TupleVal([]cty.Value{}),
+			cty.False,
+			false,
+		},
+		{
+			cty.SetValEmpty(cty.Bool),
+			cty.False,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.True}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("true")}),
+			cty.True,
+			false,
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.False, cty.StringVal("true")}),
+			cty.True,
+			false,
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.StringVal("false"), cty.True}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.False}),
+			cty.False,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.True, cty.False}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.False, cty.True}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.NumberIntVal(1)}),
+			cty.False,
+			false,
 		},
 		{
 			cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
@@ -210,11 +308,21 @@ func TestAllTrue(t *testing.T) {
 			cty.UnknownVal(cty.Bool),
 			false,
 		},
+		{
+			cty.StringVal("true"),
+			cty.False,
+			true,
+		},
+		{
+			cty.NullVal(cty.List(cty.Bool)),
+			cty.NilVal,
+			true,
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("alltrue(%#v)", test.Collection), func(t *testing.T) {
-			got, err := AllTrue(test.Collection)
+		t.Run(fmt.Sprintf("anytrue(%#v)", test.Collection), func(t *testing.T) {
+			got, err := AnyTrue(test.Collection)
 
 			if test.Err {
 				if err == nil {
