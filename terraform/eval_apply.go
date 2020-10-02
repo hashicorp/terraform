@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
@@ -504,6 +505,9 @@ type EvalApplyProvisioners struct {
 
 	// When is the type of provisioner to run at this point
 	When configs.ProvisionerWhen
+
+	// We use the stored change to get the previous resource values in the case of a destroy provisioner
+	Change *plans.ResourceInstanceChange
 }
 
 // TODO: test
@@ -600,6 +604,18 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 	instanceAddr := n.Addr
 	absAddr := instanceAddr.Absolute(ctx.Path())
 
+	// this self is only used for destroy provisioner evaluation, and must
+	// refer to the last known value of the resource.
+	self := n.Change.Before
+
+	var evalScope func(EvalContext, hcl.Body, cty.Value, *configschema.Block) (cty.Value, tfdiags.Diagnostics)
+	switch n.When {
+	case configs.ProvisionerWhenDestroy:
+		evalScope = n.evalDestroyProvisionerConfig
+	default:
+		evalScope = n.evalProvisionerConfig
+	}
+
 	// If there's a connection block defined directly inside the resource block
 	// then it'll serve as a base connection configuration for all of the
 	// provisioners.
@@ -615,25 +631,8 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
-		var forEach map[string]cty.Value
-
-		// For a destroy-time provisioner forEach is intentionally nil here,
-		// which EvalDataForInstanceKey responds to by not populating EachValue
-		// in its result. That's okay because each.value is prohibited for
-		// destroy-time provisioners.
-		if n.When != configs.ProvisionerWhenDestroy {
-			m, forEachDiags := evaluateForEachExpression(n.ResourceConfig.ForEach, ctx)
-			diags = diags.Append(forEachDiags)
-			forEach = m
-		}
-
-		keyData := EvalDataForInstanceKey(instanceAddr.Key, forEach)
-
-		// Evaluate the main provisioner configuration.
-		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
+		config, configDiags := evalScope(ctx, prov.Config, self, schema)
 		diags = diags.Append(configDiags)
-
-		// we can't apply the provisioner if the config has errors
 		if diags.HasErrors() {
 			return diags.Err()
 		}
@@ -664,11 +663,9 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 
 		if connBody != nil {
 			var connInfoDiags tfdiags.Diagnostics
-			connInfo, _, connInfoDiags = ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
+			connInfo, connInfoDiags = evalScope(ctx, connBody, self, connectionBlockSupersetSchema)
 			diags = diags.Append(connInfoDiags)
 			if diags.HasErrors() {
-				// "on failure continue" setting only applies to failures of the
-				// provisioner itself, not to invalid configuration.
 				return diags.Err()
 			}
 		}
@@ -727,4 +724,35 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 	}
 
 	return diags.ErrWithWarnings()
+}
+
+func (n *EvalApplyProvisioners) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	forEach, forEachDiags := evaluateForEachExpression(n.ResourceConfig.ForEach, ctx)
+	diags = diags.Append(forEachDiags)
+
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
+
+	config, _, configDiags := ctx.EvaluateBlock(body, schema, n.Addr, keyData)
+	diags = diags.Append(configDiags)
+
+	return config, diags
+}
+
+// during destroy a provisioner can only evaluate within the scope of the parent resource
+func (n *EvalApplyProvisioners) evalDestroyProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// For a destroy-time provisioner forEach is intentionally nil here,
+	// which EvalDataForInstanceKey responds to by not populating EachValue
+	// in its result. That's okay because each.value is prohibited for
+	// destroy-time provisioners.
+	keyData := EvalDataForInstanceKey(n.Addr.Key, nil)
+
+	evalScope := ctx.EvaluationScope(n.Addr, keyData)
+	config, evalDiags := evalScope.EvalSelfBlock(body, self, schema, keyData)
+	diags = diags.Append(evalDiags)
+
+	return config, diags
 }

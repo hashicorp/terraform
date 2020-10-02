@@ -352,6 +352,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return err
 	}
 
+	// We clear the change out here so that future nodes don't see a change
+	// that is already complete.
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr,
+		ProviderSchema: &providerSchema,
+		Change:         nil,
+	}
+	_, err = writeDiff.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
 	evalMaybeTainted := &EvalMaybeTainted{
 		Addr:   addr,
 		State:  &state,
@@ -382,6 +394,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		CreateNew:      &createNew,
 		Error:          &applyError,
 		When:           configs.ProvisionerWhenCreate,
+		Change:         diffApply,
 	}
 	_, err = applyProvisioners.Eval(ctx)
 	if err != nil {
@@ -418,20 +431,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			Key:           &deposedKey,
 		}
 		_, err := maybeRestoreDesposedObject.Eval(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// We clear the diff out here so that future nodes don't see a diff that is
-	// already complete. There is no longer a diff!
-	if !diff.Action.IsReplace() || !n.CreateBeforeDestroy() {
-		writeDiff := &EvalWriteDiff{
-			Addr:           addr,
-			ProviderSchema: &providerSchema,
-			Change:         nil,
-		}
-		_, err := writeDiff.Eval(ctx)
 		if err != nil {
 			return err
 		}

@@ -193,6 +193,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 				ResourceConfig: n.Config,
 				Error:          &provisionerErr,
 				When:           configs.ProvisionerWhenDestroy,
+				Change:         changeApply,
 			}
 			_, err := evalApplyProvisioners.Eval(ctx)
 			if err != nil {
