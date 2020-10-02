@@ -358,7 +358,7 @@ func TestInitProviderNotFound(t *testing.T) {
 			t.Fatal("expected error, got success")
 		}
 
-		if !strings.Contains(stderr, "provider registry.terraform.io/hashicorp/nonexist was not\nfound in any of the search locations\n\n- "+pluginDir) {
+		if !strings.Contains(stderr, "provider registry.terraform.io/hashicorp/nonexist was not\nfound in any of the search locations\n\n  - "+pluginDir) {
 			t.Errorf("expected error message is missing from output:\n%s", stderr)
 		}
 	})
