@@ -38,7 +38,7 @@ func TestEnv(t *testing.T) {
 	os.Setenv(envKeySet, envValueSet)
 	defer os.Unsetenv(envKeySet)
 	os.Setenv(envKeyEmpty, envValueEmpty)
-	defer os.Unsetenv(envValueEmpty)
+	defer os.Unsetenv(envKeyEmpty)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Env(%#v...)", test.Value), func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestEnvExists(t *testing.T) {
 	os.Setenv(envKeySet, envValueSet)
 	defer os.Unsetenv(envKeySet)
 	os.Setenv(envKeyEmpty, envValueEmpty)
-	defer os.Unsetenv(envValueEmpty)
+	defer os.Unsetenv(envKeyEmpty)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("EnvExists(%#v...)", test.Value), func(t *testing.T) {
