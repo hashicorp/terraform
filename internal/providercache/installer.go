@@ -211,7 +211,7 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 					// this provider before we indicate that it failed using
 					// QueryPackagesFailure.
 					if cb := evts.QueryPackagesBegin; cb != nil {
-						cb(provider, versionConstraints)
+						cb(provider, versionConstraints, true)
 					}
 					if cb := evts.QueryPackagesFailure; cb != nil {
 						cb(provider, err)
@@ -241,7 +241,7 @@ NeedProvider:
 		}
 
 		if cb := evts.QueryPackagesBegin; cb != nil {
-			cb(provider, reqs[provider])
+			cb(provider, reqs[provider], locked[provider])
 		}
 		available, warnings, err := i.source.AvailableVersions(ctx, provider)
 		if err != nil {
