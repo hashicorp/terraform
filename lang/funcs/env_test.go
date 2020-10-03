@@ -61,8 +61,8 @@ func TestEnv(t *testing.T) {
 }
 
 func TestEnvExists(t *testing.T) {
-	const envKeySet, envValueSet = "ENVEXISTS_KEY_SET", "ENVEXISTS_VALUE_SET"
-	const envKeyEmpty, envValueEmpty = "ENVEXISTS_KEY_EMPTY", ""
+	const envKeySet = "ENVEXISTS_KEY_SET"
+	const envKeyEmpty = "ENVEXISTS_KEY_EMPTY"
 	const envKeyUnset = "ENVEXISTS_KEY_UNSET"
 
 	tests := []struct {
