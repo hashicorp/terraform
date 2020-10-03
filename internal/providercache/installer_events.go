@@ -66,7 +66,7 @@ type InstallerEvents struct {
 	// distinct provider.
 	//
 	// The Warning event is unique to the registry source
-	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints)
+	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool)
 	QueryPackagesSuccess func(provider addrs.Provider, selectedVersion getproviders.Version)
 	QueryPackagesFailure func(provider addrs.Provider, err error)
 	QueryPackagesWarning func(provider addrs.Provider, warn []string)
