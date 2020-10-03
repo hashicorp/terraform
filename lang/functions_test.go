@@ -305,6 +305,24 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"env": {
+			{
+				`env("ephemeral_test_var")`,
+				cty.StringVal("test value"),
+			},
+		},
+
+		"envexists": {
+			{
+				`envexists("ephemeral_test_var")`,
+				cty.BoolVal(true),
+			},
+			{
+				`envexists("no_such_var")`,
+				cty.BoolVal(false),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -1047,6 +1065,11 @@ func TestFunctions(t *testing.T) {
 			t.Errorf("Missing test for function %s\n", f)
 		}
 	}
+
+	// Set (and defer unset) an environment variable to allow "env" and
+	// "envexists" to be tested. Surely there's a better place to put this.
+	os.Setenv("ephemeral_test_var", "test value")
+	defer os.Unsetenv("ephemeral_test_var")
 
 	for funcName, funcTests := range tests {
 		t.Run(funcName, func(t *testing.T) {

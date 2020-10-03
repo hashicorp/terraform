@@ -57,6 +57,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,
+			"env":              funcs.EnvFunc,
+			"envexists":        funcs.EnvExistsFunc,
 			"chunklist":        stdlib.ChunklistFunc,
 			"file":             funcs.MakeFileFunc(s.BaseDir, false),
 			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
