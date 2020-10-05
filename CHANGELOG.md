@@ -28,6 +28,7 @@ BUG FIXES:
 
 * backend/consul: Fix bug which prevented state locking when path has trailing `/` ([#25842](https://github.com/hashicorp/terraform/issues/25842))
 * backend/pg: Always have the default workspace in the pg backend ([#26420](https://github.com/hashicorp/terraform/pull/26420))
+* backend/pg: Properly quote schema_name in the pg backend configuration [GH-26476]
 * build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249)
 * command/clistate: return an error on a state unlock failure [[#25729](https://github.com/hashicorp/terraform/issues/25729)] 
 * command/taint: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. [GH-26345]
