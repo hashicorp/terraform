@@ -24,9 +24,6 @@ protobuf:
 	bash internal/tfplugin5/generate.sh
 	bash plans/internal/planproto/generate.sh
 
-fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
-
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
