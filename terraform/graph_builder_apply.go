@@ -185,10 +185,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 		&CloseProvisionerTransformer{},
 
-		// Add destroy node reference edges where needed, until we can fix
-		// full-destroy evaluation.
-		&applyDestroyNodeReferenceFixupTransformer{},
-
 		// close the root module
 		&CloseRootModuleTransformer{},
 
