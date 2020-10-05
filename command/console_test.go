@@ -149,6 +149,47 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	}
 }
 
+func TestConsole_variables(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &ConsoleCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	commands := map[string]string{
+		"var.foo\n":          "\"bar\"\n",
+		"var.snack\n":        "\"popcorn\"\n",
+		"var.secret_snack\n": "(sensitive)\n",
+		"local.snack_bar\n":  "[\n  \"popcorn\",\n  (sensitive),\n]\n",
+	}
+
+	args := []string{
+		testFixturePath("variables"),
+	}
+
+	for cmd, val := range commands {
+		var output bytes.Buffer
+		defer testStdinPipe(t, strings.NewReader(cmd))()
+		outCloser := testStdoutCapture(t, &output)
+		code := c.Run(args)
+		outCloser()
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := output.String()
+		if output.String() != val {
+			t.Fatalf("bad: %q, expected %q", actual, val)
+		}
+	}
+}
+
 func TestConsole_modules(t *testing.T) {
 	td := tempDir(t)
 	copy.CopyDir(testFixturePath("modules"), td)

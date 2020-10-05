@@ -37,6 +37,9 @@ func FormatValue(v cty.Value, indent int) string {
 			return fmt.Sprintf("null /* %s */", ty.FriendlyName())
 		}
 	}
+	if v.IsMarked() {
+		return "(sensitive)"
+	}
 
 	ty := v.Type()
 	switch {
