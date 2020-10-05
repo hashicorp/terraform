@@ -638,7 +638,7 @@ meta-arguments are supported:
   any difference in the current settings of a real infrastructure object
   and plans to update the remote object to match configuration.
 
-    The `ignore_chages` feature is intended to be used when a resource is
+    The `ignore_changes` feature is intended to be used when a resource is
     created with references to data that may change in the future, but should
     not effect said resource after its creation. In some rare cases, settings
     of a remote object are modified by processes outside of Terraform, which
@@ -650,7 +650,7 @@ meta-arguments are supported:
 
     The arguments corresponding to the given attribute names are considered
     when planning a _create_ operation, but are ignored when planning an
-    _update_. The arugments are the relative address of the attributes in the
+    _update_. The arguments are the relative address of the attributes in the
     resource. Map and list elements can be referenced using index notation,
     like `tags["Name"]` and `list[0]` respectively.
 
