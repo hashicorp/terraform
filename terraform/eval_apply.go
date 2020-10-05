@@ -505,9 +505,6 @@ type EvalApplyProvisioners struct {
 
 	// When is the type of provisioner to run at this point
 	When configs.ProvisionerWhen
-
-	// We use the stored change to get the previous resource values in the case of a destroy provisioner
-	Change *plans.ResourceInstanceChange
 }
 
 // TODO: test
@@ -606,7 +603,7 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 
 	// this self is only used for destroy provisioner evaluation, and must
 	// refer to the last known value of the resource.
-	self := n.Change.Before
+	self := (*n.State).Value
 
 	var evalScope func(EvalContext, hcl.Body, cty.Value, *configschema.Block) (cty.Value, tfdiags.Diagnostics)
 	switch n.When {

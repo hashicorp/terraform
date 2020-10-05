@@ -394,7 +394,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		CreateNew:      &createNew,
 		Error:          &applyError,
 		When:           configs.ProvisionerWhenCreate,
-		Change:         diffApply,
 	}
 	_, err = applyProvisioners.Eval(ctx)
 	if err != nil {
