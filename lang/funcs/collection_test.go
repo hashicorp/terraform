@@ -722,6 +722,14 @@ func TestLookup(t *testing.T) {
 		},
 		{
 			[]cty.Value{
+				mapWithUnknowns,
+				cty.StringVal("foo"),
+			},
+			cty.StringVal("bar"),
+			false,
+		},
+		{
+			[]cty.Value{
 				simpleMap,
 				cty.UnknownVal(cty.String),
 			},
