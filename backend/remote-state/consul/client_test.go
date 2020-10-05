@@ -255,6 +255,17 @@ func TestConsul_destroyLock(t *testing.T) {
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
 	}
 
+	testLock := func(client *RemoteClient, lockPath string) {
+		// get the lock val
+		pair, _, err := client.Client.KV().Get(lockPath, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pair != nil {
+			t.Fatalf("lock key not cleaned up at: %s", pair.Key)
+		}
+	}
+
 	for _, path := range testCases {
 		t.Run(path, func(*testing.T) {
 			// Get the backend
@@ -269,27 +280,50 @@ func TestConsul_destroyLock(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 
-			c := s.(*remote.State).Client.(*RemoteClient)
+			clientA := s.(*remote.State).Client.(*RemoteClient)
 
 			info := statemgr.NewLockInfo()
-			id, err := c.Lock(info)
+			id, err := clientA.Lock(info)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			lockPath := c.Path + lockSuffix
+			lockPath := clientA.Path + lockSuffix
 
-			if err := c.Unlock(id); err != nil {
+			if err := clientA.Unlock(id); err != nil {
 				t.Fatal(err)
 			}
 
-			// get the lock val
-			pair, _, err := c.Client.KV().Get(lockPath, nil)
+			testLock(clientA, lockPath)
+
+			// The release the lock from a second client to test the
+			// `terraform force-unlock <lock_id>` functionnality
+			s, err = b.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			clientB := s.(*remote.State).Client.(*RemoteClient)
+
+			info = statemgr.NewLockInfo()
+			id, err = clientA.Lock(info)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if pair != nil {
-				t.Fatalf("lock key not cleaned up at: %s", pair.Key)
+
+			if err := clientB.Unlock(id); err != nil {
+				t.Fatal(err)
+			}
+
+			testLock(clientA, lockPath)
+
+			err = clientA.Unlock(id)
+
+			if err == nil {
+				t.Fatal("consul lock should have been lost")
+			}
+			if err.Error() != "consul lock was lost" {
+				t.Fatal("got wrong error", err)
 			}
 		})
 	}
