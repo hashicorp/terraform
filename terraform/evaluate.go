@@ -695,7 +695,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	// Decode all instances in the current state
 	instances := map[addrs.InstanceKey]cty.Value{}
-	pendingDestroy := d.Evaluator.Changes.FullDestroy()
+	pendingDestroy := d.Evaluator.Changes.IsFullDestroy()
 	for key, is := range rs.Instances {
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.

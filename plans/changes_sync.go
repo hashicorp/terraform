@@ -21,9 +21,9 @@ type ChangesSync struct {
 	changes *Changes
 }
 
-// FullDestroy returns true if the set of changes indicates we are doing a
+// IsFullDestroy returns true if the set of changes indicates we are doing a
 // destroy of all resources.
-func (cs *ChangesSync) FullDestroy() bool {
+func (cs *ChangesSync) IsFullDestroy() bool {
 	if cs == nil {
 		panic("FullDestroy on nil ChangesSync")
 	}
