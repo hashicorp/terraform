@@ -55,7 +55,7 @@ jobs:
       - run:
           name: install az-cli
           command: |
-            curl -L https://aka.ms/InstallAzureCli | bash
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
       - run: mkdir -p $TEST_RESULTS_DIR
       - run:
           name: Run Go Tests
