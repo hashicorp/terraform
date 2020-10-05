@@ -52,6 +52,10 @@ jobs:
             mkdir -p ~/bin
             mv consul ~/bin
             echo 'export PATH="~/bin:$PATH"'
+      - run:
+          name: install az-cli
+          command: |
+            curl -L https://aka.ms/InstallAzureCli | bash
       - run: mkdir -p $TEST_RESULTS_DIR
       - run:
           name: Run Go Tests
