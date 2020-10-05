@@ -250,6 +250,32 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
+In some cases where a sensitive variable is used in a nested block, the whole block can be redacted. This happens with resources which can have multiple blocks of the same type, where the values must be unique. This looks like:
+
+```
+# main.tf
+
+resource "some_resource" "a" {
+  nested_block {
+    user_information  = var.user_information # a sensitive variable
+    other_information = "not sensitive data"
+  }
+}
+
+# CLI output
+
+Terraform will perform the following actions:
+
+  # some_resource.a will be updated in-place
+  ~ resource "some_resource" "a" {
+      ~ nested_block {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+
+```
+
 #### Cases where Terraform may disclose a sensitive variable
 
 A `sensitive` variable is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
