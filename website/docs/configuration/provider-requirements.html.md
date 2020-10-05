@@ -40,7 +40,7 @@ is the main directory of publicly available Terraform providers, and hosts
 providers for most major infrastructure platforms. You can also write and
 distribute your own Terraform providers, for public or private use.
 
-> For a hands-on tutorial about creating a custom Terraform provider, try the [Call APIs with Terraform Providers](https://learn.hashicorp.com/terraform/providers/setup-implement-read?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+> **Hands-on:** If you're interested in developing your own Terraform providers, try the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 ### Provider Installation
 
@@ -183,7 +183,7 @@ For example,
 [the official HTTP provider](https://registry.terraform.io/providers/hashicorp/http)
 belongs to the `hashicorp` namespace on `registry.terraform.io`, so its
 source address is `registry.terraform.io/hashicorp/http` or, more commonly, just
-`hashicorp/http`. 
+`hashicorp/http`.
 
 The source address with all three components given explicitly is called the
 provider's _fully-qualified address_. You will see fully-qualified address in
@@ -323,10 +323,10 @@ compatible with Terraform v0.11 or later and should never be declared in a
 
 ## In-house Providers
 
-Anyone can develop and distribute their own Terraform providers. (See
-the [Call APIs with Terraform Providers](https://learn.hashicorp.com/terraform/providers/provider-use?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
-track on HashiCorp Learn for more
-about provider development.)
+Anyone can develop and distribute their own Terraform providers. See
+the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+collection on HashiCorp Learn for more
+about provider development.
 
 Some organizations develop their own providers to configure
 proprietary systems, and wish to use these providers from Terraform without

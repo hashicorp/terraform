@@ -2,6 +2,7 @@ package getproviders
 
 import (
 	"archive/zip"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -42,7 +43,7 @@ func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *M
 // AvailableVersions returns all of the versions of the given provider that
 // are available in the fixed set of packages that were passed to
 // NewMockSource when creating the receiving source.
-func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+func (s *MockSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	s.calls = append(s.calls, []interface{}{"AvailableVersions", provider})
 	var ret VersionList
 	for _, pkg := range s.packages {
@@ -78,7 +79,7 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Wa
 // always return the first one in the list, which may not match the behavior
 // of other sources in an equivalent situation because it's a degenerate case
 // with undefined results.
-func (s *MockSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *MockSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	s.calls = append(s.calls, []interface{}{"PackageMeta", provider, version, target})
 
 	for _, pkg := range s.packages {
@@ -206,7 +207,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
 
-		Authentication: NewArchiveChecksumAuthentication(checksum),
+		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
 	return meta, close, nil
 }

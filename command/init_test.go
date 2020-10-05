@@ -16,6 +16,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -23,8 +24,8 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestInit_empty(t *testing.T) {
@@ -956,9 +957,19 @@ func TestInit_getProvider(t *testing.T) {
 		// getting providers should fail if a state from a newer version of
 		// terraform exists, since InitCommand.getProviders needs to inspect that
 		// state.
-		s := terraform.NewState()
-		s.TFVersion = "100.1.0"
-		testStateFileDefault(t, s)
+
+		f, err := os.Create(DefaultStateFilename)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		defer f.Close()
+
+		s := &statefile.File{
+			Lineage:          "",
+			State:            states.NewState(),
+			TerraformVersion: version.Must(version.NewVersion("100.1.0")),
+		}
+		statefile.WriteForTest(s, f)
 
 		ui := new(cli.MockUi)
 		m.Ui = ui
@@ -1055,20 +1066,14 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 
 	// Expect this diagnostic output
 	wants := []string{
-		"Found unresolvable legacy provider references in state",
-		"terraform state replace-provider registry.terraform.io/-/alpha registry.terraform.io/acme/alpha",
+		"Invalid legacy provider address",
+		"You must complete the Terraform 0.13 upgrade process",
 	}
 	got := ui.ErrorWriter.String()
 	for _, want := range wants {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected output to contain %q, got:\n\n%s", want, got)
 		}
-	}
-
-	// Should still install the alpha provider
-	exactPath := fmt.Sprintf(".terraform/plugins/registry.terraform.io/acme/alpha/1.2.3/%s", getproviders.CurrentPlatform)
-	if _, err := os.Stat(exactPath); os.IsNotExist(err) {
-		t.Fatal("provider 'alpha' not downloaded")
 	}
 }
 
@@ -1187,13 +1192,10 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// error output is the main focus of this test
 	errOutput := ui.ErrorWriter.String()
 	errors := []string{
-		"Error while installing hashicorp/frob:",
-		"Could not find required providers, but found possible alternatives",
-		"hashicorp/baz -> terraform-providers/baz",
-		"terraform 0.13upgrade .",
-		"terraform 0.13upgrade child",
-		"The following remote modules must also be upgraded",
-		"- module.dicerolls at acme/bar/random",
+		"Failed to query available provider packages",
+		"Could not retrieve the list of available versions",
+		"registry.terraform.io/hashicorp/baz",
+		"registry.terraform.io/hashicorp/frob",
 	}
 	for _, want := range errors {
 		if !strings.Contains(errOutput, want) {
@@ -1295,6 +1297,54 @@ func TestInit_providerSource(t *testing.T) {
 	outputStr := ui.OutputWriter.String()
 	if want := "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(outputStr, want) {
 		t.Fatalf("unexpected output: %s\nexpected to include %q", outputStr, want)
+	}
+}
+
+func TestInit_cancel(t *testing.T) {
+	// This test runs `terraform init` as if SIGINT (or similar on other
+	// platforms) were sent to it, testing that it is interruptible.
+
+	td := tempDir(t)
+	configDirName := "init-required-providers"
+	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, closeSrc := newMockProviderSource(t, map[string][]string{
+		"test":      []string{"1.2.3", "1.2.4"},
+		"test-beta": []string{"1.2.4"},
+		"source":    []string{"1.2.2", "1.2.3", "1.2.1"},
+	})
+	defer closeSrc()
+
+	// our shutdown channel is pre-closed so init will exit as soon as it
+	// starts a cancelable portion of the process.
+	shutdownCh := make(chan struct{})
+	close(shutdownCh)
+
+	ui := cli.NewMockUi()
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		ProviderSource:   providerSource,
+		ShutdownCh:       shutdownCh,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{configDirName}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("succeeded; wanted error")
+	}
+	// Currently the first operation that is cancelable is provider
+	// installation, so our error message comes from there. If we
+	// make the earlier steps cancelable in future then it'd be
+	// expected for this particular message to change.
+	if got, want := ui.ErrorWriter.String(), `Provider installation was canceled by an interrupt signal`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
 

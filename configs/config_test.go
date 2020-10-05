@@ -32,6 +32,7 @@ func TestConfigProviderTypes(t *testing.T) {
 		addrs.NewDefaultProvider("aws"),
 		addrs.NewDefaultProvider("null"),
 		addrs.NewDefaultProvider("template"),
+		addrs.NewDefaultProvider("test"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)
@@ -73,7 +74,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Alias:    "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)

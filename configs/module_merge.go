@@ -42,6 +42,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 		v.Description = ov.Description
 		v.DescriptionSet = ov.DescriptionSet
 	}
+	if ov.SensitiveSet {
+		v.Sensitive = ov.Sensitive
+		v.SensitiveSet = ov.SensitiveSet
+	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
 	}

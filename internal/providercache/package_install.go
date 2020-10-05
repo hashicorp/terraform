@@ -40,6 +40,11 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
+		if ctx.Err() == context.Canceled {
+			// "context canceled" is not a user-friendly error message,
+			// so we'll return a more appropriate one here.
+			return nil, fmt.Errorf("provider download was interrupted")
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()

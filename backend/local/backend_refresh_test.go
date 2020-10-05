@@ -51,76 +51,11 @@ test_instance.foo:
 	assertBackendStateUnlocked(t, b)
 }
 
-func TestLocal_refreshNoConfig(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
-	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
-	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("yes"),
-	})}
-
-	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
-	defer configCleanup()
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
-	}
-
-	checkState(t, b.StateOutPath, `
-test_instance.foo:
-  ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
-	`)
-}
-
-// GH-12174
-func TestLocal_refreshNilModuleWithInput(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
-	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
-	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("yes"),
-	})}
-
-	b.OpInput = true
-
-	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
-	defer configCleanup()
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
-	}
-
-	checkState(t, b.StateOutPath, `
-test_instance.foo:
-  ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
-	`)
-}
-
 func TestLocal_refreshInput(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
 
-	p.GetSchemaReturn = &terraform.ProviderSchema{
+	schema := &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"value": {Type: cty.String, Optional: true},
@@ -129,12 +64,17 @@ func TestLocal_refreshInput(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Optional: true},
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 		},
 	}
+
+	p := TestLocalProvider(t, b, "test", schema)
+	testStateFile(t, b.StatePath, testRefreshState())
+
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),

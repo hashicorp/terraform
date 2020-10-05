@@ -130,11 +130,6 @@ func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{})
 // in the final returned error value so callers should show either one or the
 // other, and not both.
 func (i *Installer) EnsureProviderVersions(ctx context.Context, reqs getproviders.Requirements, mode InstallMode) (getproviders.Selections, error) {
-	// FIXME: Currently the context isn't actually propagated into all of the
-	// other functions we call here, because they are not context-aware.
-	// Anything that could be making network requests here should take a
-	// context and ideally respond to the cancellation of that context.
-
 	errs := map[addrs.Provider]error{}
 	evts := installerEventsForContext(ctx)
 
@@ -234,10 +229,17 @@ MightNeedProvider:
 	need := map[addrs.Provider]getproviders.Version{}
 NeedProvider:
 	for provider, acceptableVersions := range mightNeed {
+		if err := ctx.Err(); err != nil {
+			// If our context has been cancelled or reached a timeout then
+			// we'll abort early, because subsequent operations against
+			// that context will fail immediately anyway.
+			return nil, err
+		}
+
 		if cb := evts.QueryPackagesBegin; cb != nil {
 			cb(provider, reqs[provider])
 		}
-		available, warnings, err := i.source.AvailableVersions(provider)
+		available, warnings, err := i.source.AvailableVersions(ctx, provider)
 		if err != nil {
 			// TODO: Consider retrying a few times for certain types of
 			// source errors that seem likely to be transient.
@@ -277,6 +279,13 @@ NeedProvider:
 	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
 	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
 	for provider, version := range need {
+		if err := ctx.Err(); err != nil {
+			// If our context has been cancelled or reached a timeout then
+			// we'll abort early, because subsequent operations against
+			// that context will fail immediately anyway.
+			return nil, err
+		}
+
 		if i.globalCacheDir != nil {
 			// Step 3a: If our global cache already has this version available then
 			// we'll just link it in.
@@ -318,7 +327,7 @@ NeedProvider:
 		if cb := evts.FetchPackageMeta; cb != nil {
 			cb(provider, version)
 		}
-		meta, err := i.source.PackageMeta(provider, version, targetPlatform)
+		meta, err := i.source.PackageMeta(ctx, provider, version, targetPlatform)
 		if err != nil {
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
@@ -418,7 +427,7 @@ NeedProvider:
 		}
 		lockEntries[provider] = lockFileEntry{
 			SelectedVersion: version,
-			PackageHash:     hash,
+			PackageHash:     hash.String(),
 		}
 	}
 	err := i.lockFile().Write(lockEntries)
@@ -471,7 +480,13 @@ func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, erro
 			continue
 		}
 
-		ok, err := cached.MatchesHash(entry.PackageHash)
+		hash, err := getproviders.ParseHash(entry.PackageHash)
+		if err != nil {
+			errs[provider] = fmt.Errorf("local cache for %s has invalid hash %q: %s", provider, entry.PackageHash, err)
+			continue
+		}
+
+		ok, err := cached.MatchesHash(hash)
 		if err != nil {
 			errs[provider] = fmt.Errorf("failed to verify checksum for v%s package: %s", entry.SelectedVersion, err)
 			continue

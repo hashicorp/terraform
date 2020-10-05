@@ -42,6 +42,9 @@ func (b *Local) opRefresh(
 		}
 	}
 
+	// Refresh now happens via a plan, so we need to ensure this is enabled
+	op.PlanRefresh = true
+
 	// Get our context
 	tfCtx, _, opState, contextDiags := b.context(op)
 	diags = diags.Append(contextDiags)

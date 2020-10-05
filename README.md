@@ -40,5 +40,7 @@ This repository contains only Terraform core, which includes the command line in
 
 To learn more about compiling Terraform and contributing suggested changes, please refer to [the contributing guide](.github/CONTRIBUTING.md).
 
+To learn more about how we handle bug reports, please read the [bug triage guide](./BUGPROCESS.md).
+
 ## License
 [Mozilla Public License v2.0](https://github.com/hashicorp/terraform/blob/master/LICENSE)

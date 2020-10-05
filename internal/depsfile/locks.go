@@ -2,7 +2,6 @@ package depsfile
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -58,14 +57,9 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 // non-lockable provider address then this function will panic. Use
 // function ProviderIsLockable to determine whether a particular provider
 // should participate in the version locking mechanism.
-func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes map[getproviders.Platform][]string) *ProviderLock {
+func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes []getproviders.Hash) *ProviderLock {
 	if !ProviderIsLockable(addr) {
 		panic(fmt.Sprintf("Locks.SetProvider with non-lockable provider %s", addr))
-	}
-
-	// Normalize the hash lists into a consistent order.
-	for _, slice := range hashes {
-		sort.Strings(slice)
 	}
 
 	new := &ProviderLock{
@@ -112,9 +106,9 @@ type ProviderLock struct {
 	version            getproviders.Version
 	versionConstraints getproviders.VersionConstraints
 
-	// hashes contains one or more hashes of packages or package contents
-	// for the package associated with the selected version on each supported
-	// architecture.
+	// hashes contains zero or more hashes of packages or package contents
+	// for the package associated with the selected version across all of
+	// the supported platforms.
 	//
 	// hashes can contain a mixture of hashes in different formats to support
 	// changes over time. The new-style hash format is to have a string
@@ -131,7 +125,7 @@ type ProviderLock struct {
 	// when we have the original .zip file exactly; we can't verify a local
 	// directory containing the unpacked contents of that .zip file.
 	//
-	// We ideally want to populate hashes for all available architectures at
+	// We ideally want to populate hashes for all available platforms at
 	// once, by referring to the signed checksums file in the upstream
 	// registry. In that ideal case it's possible to later work with the same
 	// configuration on a different platform while still verifying the hashes.
@@ -139,7 +133,7 @@ type ProviderLock struct {
 	// means we can only populate the hash for the current platform, and so
 	// it won't be possible to verify a subsequent installation of the same
 	// provider on a different platform.
-	hashes map[getproviders.Platform][]string
+	hashes []getproviders.Hash
 }
 
 // Provider returns the address of the provider this lock applies to.
@@ -164,23 +158,27 @@ func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
 	return l.versionConstraints
 }
 
-// HashesForPlatform returns all of the package hashes that were recorded for
-// the given platform when this lock was created. If no hashes were recorded
-// for that platform, the result is a zero-length slice.
+// AllHashes returns all of the package hashes that were recorded when this
+// lock was created. If no hashes were recorded for that platform, the result
+// is a zero-length slice.
 //
 // If your intent is to verify a package against the recorded hashes, use
-// PreferredHashForPlatform to get a single hash which the current version
-// of Terraform considers the strongest of the available hashes, which is
-// the one that must pass for verification to be considered successful.
+// PreferredHashes to get only the hashes which the current version
+// of Terraform considers the strongest of the available hashing schemes, one
+// of which must match in order for verification to be considered successful.
 //
 // Do not modify the backing array of the returned slice.
-func (l *ProviderLock) HashesForPlatform(platform getproviders.Platform) []string {
-	return l.hashes[platform]
+func (l *ProviderLock) AllHashes() []getproviders.Hash {
+	return l.hashes
 }
 
-// PreferredHashForPlatform returns a single hash which must match for a package
-// for the given platform to be considered valid, or an empty string if there
-// are no acceptable hashes recorded for the given platform.
-func (l *ProviderLock) PreferredHashForPlatform(platform getproviders.Platform) string {
-	return getproviders.PreferredHash(l.hashes[platform])
+// PreferredHashes returns a filtered version of the AllHashes return value
+// which includes only the strongest of the availabile hash schemes, in
+// case legacy hash schemes are deprecated over time but still supported for
+// upgrade purposes.
+//
+// At least one of the given hashes must match for a package to be considered
+// valud.
+func (l *ProviderLock) PreferredHashes() []getproviders.Hash {
+	return getproviders.PreferredHashes(l.hashes)
 }

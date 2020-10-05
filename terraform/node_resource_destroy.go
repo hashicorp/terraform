@@ -143,12 +143,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			return err
 		}
 
-		evalReadDiff := &EvalReadDiff{
-			Addr:           addr.Resource,
-			ProviderSchema: &providerSchema,
-			Change:         &changeApply,
-		}
-		_, err = evalReadDiff.Eval(ctx)
+		changeApply, err = n.readDiff(ctx, providerSchema)
 		if err != nil {
 			return err
 		}
@@ -170,13 +165,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			return EvalEarlyExitError{}
 		}
 
-		evalReadState := &EvalReadState{
-			Addr:           addr.Resource,
-			Output:         &state,
-			Provider:       &provider,
-			ProviderSchema: &providerSchema,
-		}
-		_, err = evalReadState.Eval(ctx)
+		state, err = n.ReadResourceInstanceState(ctx, addr)
 		if err != nil {
 			return err
 		}

@@ -18,7 +18,7 @@ This page describes how to prepare a [Terraform Provider](/docs/plugins/provider
 
 Providers published to the Terraform Registry are written and built in the same way as other Terraform providers. A variety of resources are available to help our contributors build a quality integration:
 
-- [Writing a custom provider – full tutorial](https://learn.hashicorp.com/tutorials/terraform/provider-setup)
+- The [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn
 - [How to build a provider – Video](https://www.youtube.com/watch?v=2BvpqmFpchI)
 - [Sample provider developed by a HashiCorp partner](https://blog.container-solutions.com/write-terraform-provider-part-1)
 - Example providers for reference:
@@ -100,24 +100,15 @@ Before publishing a provider, you must first sign in to the Terraform Registry w
 
 All provider releases are required to be signed, thus you must provide HashiCorp with the public key for the GPG keypair that you will be signing releases with. The Terraform Registry will validate that the release is signed with this key when publishing each version, and Terraform will verify this during `terraform init`.
 
-- Generate a GPG key to be used when signing releases (See [GitHub's detailed instructions](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-gpg-key) for help with this step)
+- Generate a GPG key to be used when signing releases (See [GitHub's detailed instructions](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-gpg-key) for help with this step, but you do not need to add the key to GitHub)
 - Export your public key in ASCII-armor format using the following command, substituting the GPG key ID created in the step above:
 
 ```console
 $ gpg --armor --export "{Key ID or email address}"
 ```
 
-#### Individuals
+The ASCII-armored public key to the Terraform Registry by going to [User Settings > Signing Keys](https://registry.terraform.io/settings/gpg-keys). You can add keys for your personal namespace, or any organization which you are an admin of.
 
-If you would like to publish a provider under your GitHub username (not a GitHub organization), you may add your GPG key directly to the Terraform Registry by going to [User Settings > Signing Keys](https://registry.terraform.io/settings/gpg-keys).
-
-#### Organizations
-
-In order to publish a provider under a GitHub organization, your public key must be added to the Terraform Registry by a HashiCorp employee. Please send us an email to terraform-registry@hashicorp.com, including the information below, and one of us will get back to you shortly. For convenience, you may also use this <a href="mailto:terraform-registry@hashicorp.com?subject=Request%20to%20add%20GPG%20Key%20for%20%3CProvider%20Name%3E&body=Hello%2C%0D%0A%0D%0APlease%20add%20the%20following%20GPG%20key%20for%20my%20Terraform%20Provider%3A%0D%0A-%20GitHub%20organization%20(namespace)%3A%0D%0A-%20Link%20to%20provider%20repository%3A%20%0D%0A-%20GPG%20Key%3A%20(paste%20here%20or%20attach)">email template</a>.
-
-- GitHub organization (namespace):
-- Link to provider repository: 
-- GPG Key: (paste here or attach)
 
 ### Publishing Your Provider
 
@@ -126,3 +117,7 @@ In the top-right navigation, select [Publish > Provider](https://registry.terraf
 #### Terms of Use
 
 Anything published to the Terraform Registry is subject to our terms of use. A copy of the terms are available for viewing at https://registry.terraform.io/terms
+
+### Support
+
+If you experience issues publishing your provider to the Terraform Registry, please contact us at [terraform-registry@hashicorp.com](mailto:terraform-registry@hashicorp.com).

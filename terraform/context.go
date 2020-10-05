@@ -47,13 +47,14 @@ var (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Config    *configs.Config
-	Changes   *plans.Changes
-	State     *states.State
-	Targets   []addrs.Targetable
-	Variables InputValues
-	Meta      *ContextMeta
-	Destroy   bool
+	Config      *configs.Config
+	Changes     *plans.Changes
+	State       *states.State
+	Targets     []addrs.Targetable
+	Variables   InputValues
+	Meta        *ContextMeta
+	Destroy     bool
+	SkipRefresh bool
 
 	Hooks        []Hook
 	Parallelism  int
@@ -97,6 +98,7 @@ type Context struct {
 	changes      *plans.Changes
 	state        *states.State
 	refreshState *states.State
+	skipRefresh  bool
 	targets      []addrs.Targetable
 	variables    InputValues
 	meta         *ContextMeta
@@ -233,6 +235,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		config:       config,
 		state:        state,
 		refreshState: state.DeepCopy(),
+		skipRefresh:  opts.SkipRefresh,
 		targets:      opts.Targets,
 		uiInput:      opts.UIInput,
 		variables:    variables,
@@ -293,26 +296,17 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	case GraphTypePlan:
 		// Create the plan graph builder
 		return (&PlanGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
+			Config:      c.config,
+			State:       c.state,
+			Components:  c.components,
+			Schemas:     c.schemas,
+			Targets:     c.targets,
+			Validate:    opts.Validate,
+			skipRefresh: c.skipRefresh,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypeRefresh:
-		return (&RefreshGraphBuilder{
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
@@ -567,61 +561,30 @@ The -target option is not for routine use, and is provided only for exceptional 
 	}
 	p.Changes = c.changes
 
-	p.State = c.refreshState
+	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
+
+	refreshedState := c.refreshState.DeepCopy()
+	p.State = refreshedState
 
 	// replace the working state with the updated state, so that immediate calls
 	// to Apply work as expected.
-	c.state = c.refreshState
+	c.state = refreshedState
 
 	return p, diags
 }
 
 // Refresh goes through all the resources in the state and refreshes them
-// to their latest state. This will update the state that this context
-// works with, along with returning it.
+// to their latest state. This is done by executing a plan, and retaining the
+// state while discarding the change set.
 //
-// Even in the case an error is returned, the state may be returned and
-// will potentially be partially updated.
+// In the case of an error, there is no state returned.
 func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
-	defer c.acquireRun("refresh")()
-
-	// Copy our own state
-	c.state = c.state.DeepCopy()
-
-	// Refresh builds a partial changeset as part of its work because it must
-	// create placeholder stubs for any resource instances that'll be created
-	// in subsequent plan so that provider configurations and data resources
-	// can interpolate from them. This plan is always thrown away after
-	// the operation completes, restoring any existing changeset.
-	oldChanges := c.changes
-	defer func() { c.changes = oldChanges }()
-	c.changes = plans.NewChanges()
-
-	// Build the graph.
-	graph, diags := c.Graph(GraphTypeRefresh, nil)
+	p, diags := c.Plan()
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	// Do the walk
-	_, walkDiags := c.walk(graph, walkRefresh)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// During our walk we will have created planned object placeholders in
-	// state for resource instances that are in configuration but not yet
-	// created. These were created only to allow expression evaluation to
-	// work properly in provider and data blocks during the walk and must
-	// now be discarded, since a subsequent plan walk is responsible for
-	// creating these "for real".
-	// TODO: Consolidate refresh and plan into a single walk, so that the
-	// refresh walk doesn't need to emulate various aspects of the plan
-	// walk in order to properly evaluate provider and data blocks.
-	c.state.SyncWrapper().RemovePlannedResourceInstanceObjects()
-
-	return c.state, diags
+	return p.State, diags
 }
 
 // Stop stops the running task.
@@ -782,12 +745,11 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 	switch operation {
 	case walkValidate:
 		// validate should not use any state
-		s := states.NewState()
-		state = s.SyncWrapper()
+		state = states.NewState().SyncWrapper()
 
 		// validate currently uses the plan graph, so we have to populate the
 		// refreshState.
-		refreshState = s.SyncWrapper()
+		refreshState = states.NewState().SyncWrapper()
 
 	case walkPlan:
 		state = c.state.SyncWrapper()

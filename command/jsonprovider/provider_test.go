@@ -133,7 +133,7 @@ func TestMarshalProvider(t *testing.T) {
 func testProviders() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewLegacyProvider("test"): testProvider(),
+			addrs.NewDefaultProvider("test"): testProvider(),
 		},
 	}
 }

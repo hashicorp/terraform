@@ -238,7 +238,7 @@ type PlanResourceChangeResponse struct {
 	// configuration is applied.
 	PlannedState cty.Value
 
-	// RequiresReplace is the list of thee attributes that are requiring
+	// RequiresReplace is the list of the attributes that are requiring
 	// resource replacement.
 	RequiresReplace []cty.Path
 

@@ -1879,22 +1879,11 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	diags := ctx.Validate()
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Refresh() // data resource is read in this step
+	_, diags = ctx.Plan()
 	assertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource was not called on provider during refresh; should've been called")
-	}
-	p.ReadDataSourceCalled = false // reset for next call
-
-	t.Logf("state after refresh:\n%s", state)
-
-	_, diags = ctx.Plan() // should do nothing with data resource in this step, since it was already read
-	assertNoErrors(t, diags)
-
-	if p.ReadDataSourceCalled {
-		// there was no config change to read during plan
-		t.Fatalf("ReadDataSource should not have been called")
+		t.Fatalf("ReadDataSource was not called on provider during plan; should've been called")
 	}
 }
 
@@ -4637,18 +4626,14 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Action != plans.Update {
-		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
-	}
 
 	if ric.Addr.String() != "aws_instance.foo" {
 		t.Fatalf("unexpected resource: %s", ric.Addr)
 	}
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
-		"id":   cty.StringVal("bar"),
-		"ami":  cty.StringVal("ami-abcd1234"),
-		"type": cty.StringVal("aws_instance"),
+		"id":  cty.StringVal("bar"),
+		"ami": cty.StringVal("ami-abcd1234"),
 	}), ric.After)
 }
 
@@ -5007,11 +4992,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		},
 	})
 
-	// We're skipping ctx.Refresh here, which simulates what happens when
-	// running "terraform plan -refresh=false". As a result, we don't get our
-	// usual opportunity to read the data source during the refresh step and
-	// thus the plan call below is forced to produce a deferred read action.
-
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
@@ -5052,22 +5032,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 					"num":      cty.StringVal("2"),
 					"computed": cty.StringVal("data_id"),
 				}), ric.After)
-			case "data.aws_vpc.bar[0]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id":  cty.StringVal("data_id"),
-					"foo": cty.StringVal("0"),
-				}), ric.After)
-			case "data.aws_vpc.bar[1]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id":  cty.StringVal("data_id"),
-					"foo": cty.StringVal("1"),
-				}), ric.After)
 			default:
 				t.Fatal("unknown instance:", i)
 			}
@@ -5077,8 +5041,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	wantAddrs := map[string]struct{}{
 		"aws_instance.foo[0]": struct{}{},
 		"aws_instance.foo[1]": struct{}{},
-		"data.aws_vpc.bar[0]": struct{}{},
-		"data.aws_vpc.bar[1]": struct{}{},
 	}
 	if !cmp.Equal(seenAddrs, wantAddrs) {
 		t.Errorf("incorrect addresses in changeset:\n%s", cmp.Diff(wantAddrs, seenAddrs))
@@ -5255,7 +5217,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5264,7 +5226,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5273,7 +5235,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"baz0"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5282,7 +5244,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"baz1"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("aws_instance.bar")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -6270,7 +6232,7 @@ resource "test_instance" "b" {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"b"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.a")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_instance.a")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -6384,17 +6346,28 @@ func TestContext2Plan_dataReferencesResource(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 locals {
-	x = "value"
+  x = "value"
 }
 
 resource "test_resource" "a" {
-	value = local.x
+  value = local.x
 }
 
 // test_resource.a.value can be resolved during plan, but the reference implies
 // that the data source should wait until the resource is created.
 data "test_data_source" "d" {
-	foo = test_resource.a.value
+  foo = test_resource.a.value
+}
+
+// ensure referencing an indexed instance that has not yet created will also
+// delay reading the data source
+resource "test_resource" "b" {
+  count = 2
+  value = local.x
+}
+
+data "test_data_source" "e" {
+  foo = test_resource.b[0].value
 }
 `})
 
@@ -6407,4 +6380,108 @@ data "test_data_source" "d" {
 
 	_, diags := ctx.Plan()
 	assertNoErrors(t, diags)
+}
+
+func TestContext2Plan_skipRefresh(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State:       state,
+		SkipRefresh: true,
+	})
+
+	plan, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if p.ReadResourceCalled {
+		t.Fatal("Resource should not have been refreshed")
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
+		}
+	}
+}
+
+func TestContext2Plan_dataInModuleDependsOn(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	readDataSourceB := false
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		cfg := req.Config.AsValueMap()
+		foo := cfg["foo"].AsString()
+
+		cfg["id"] = cty.StringVal("ID")
+		cfg["foo"] = cty.StringVal("new")
+
+		if foo == "b" {
+			readDataSourceB = true
+		}
+
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod_a"
+}
+
+module "b" {
+  source = "./mod_b"
+  depends_on = [module.a]
+}`,
+		"mod_a/main.tf": `
+data "test_data_source" "a" {
+  foo = "a"
+}`,
+		"mod_b/main.tf": `
+data "test_data_source" "b" {
+  foo = "b"
+}`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	// The change to data source a should not prevent data source b from being
+	// read.
+	if !readDataSourceB {
+		t.Fatal("data source b was not read during plan")
+	}
 }

@@ -41,17 +41,13 @@ sequences then this function will produce an error.
 This function can be used only with files that already exist on disk at the
 beginning of a Terraform run. Functions do not participate in the dependency
 graph, so this function cannot be used with files that are generated
-dynamically during a Terraform operation. We do not recommend using dynamic
-templates in Terraform configurations, but in rare situations where this is
-necessary you can use
-[the `template_file` data source](/docs/providers/template/d/file.html)
-to render templates while respecting resource dependencies.
+dynamically during a Terraform operation.
 
 ## Examples
 
 ### Lists
 
-Given a template file `backends.tmpl` with the following content:
+Given a template file `backends.tpl` with the following content:
 
 ```
 %{ for addr in ip_addrs ~}
@@ -62,7 +58,7 @@ backend ${addr}:${port}
 The `templatefile` function renders the template:
 
 ```
-> templatefile("${path.module}/backends.tmpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
+> templatefile("${path.module}/backends.tpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
 

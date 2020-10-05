@@ -8,7 +8,7 @@ description: |-
 
 # Command: apply
 
-> For a hands-on tutorial, try the [Get Started](https://learn.hashicorp.com/terraform/getting-started/intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 The `terraform apply` command is used to apply the changes required
 to reach the desired state of the configuration, or the pre-determined
@@ -59,7 +59,7 @@ The command-line flags are all optional. The list of available flags are:
   Ignored when [remote state](/docs/state/remote.html) is used. This setting
   does not persist and other commands, such as init, may not be aware of the
   alternate statefile. To configure an alternate statefile path which is
-  available to all terraform commands, use the [local backend](/docs/state/local.html).
+  available to all terraform commands, use the [local backend](/docs/backends/types/local.html).
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when

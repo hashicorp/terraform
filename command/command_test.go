@@ -42,6 +42,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // These are the directories for our test data and fixtures.
@@ -372,7 +373,7 @@ func testStateFile(t *testing.T, s *states.State) string {
 
 // testStateFileDefault writes the state out to the default statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
-func testStateFileDefault(t *testing.T, s *terraform.State) string {
+func testStateFileDefault(t *testing.T, s *states.State) {
 	t.Helper()
 
 	f, err := os.Create(DefaultStateFilename)
@@ -381,11 +382,34 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := writeStateForTesting(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+// testStateFileWorkspaceDefault writes the state out to the default statefile
+// for the given workspace in the cwd. Use `testCwd` to change into a temp cwd.
+func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.State) string {
+	t.Helper()
+
+	workspaceDir := filepath.Join(backendLocal.DefaultWorkspaceDir, workspace)
+	err := os.MkdirAll(workspaceDir, os.ModePerm)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	return DefaultStateFilename
+	path := filepath.Join(workspaceDir, DefaultStateFilename)
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if err := writeStateForTesting(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return path
 }
 
 // testStateFileRemote writes the state out to the remote statefile
@@ -466,9 +490,11 @@ func testStateOutput(t *testing.T, path string, expected string) {
 
 func testProvider() *terraform.MockProvider {
 	p := new(terraform.MockProvider)
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
-		PlannedState: cty.EmptyObjectVal,
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return resp
 	}
+
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{
 			NewState: req.PriorState,
@@ -824,7 +850,7 @@ func testLockState(sourceDir, path string) (func(), error) {
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
 
-	cmd := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source)
+	cmd := exec.Command("go", "build", "-o", lockBin, source)
 	cmd.Dir = filepath.Dir(sourceDir)
 
 	out, err := cmd.CombinedOutput()

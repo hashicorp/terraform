@@ -101,29 +101,15 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 			body.SetAttributeValue("constraints", cty.StringVal(constraintsStr))
 		}
 		if len(lock.hashes) != 0 {
-			platforms := make([]getproviders.Platform, 0, len(lock.hashes))
-			for platform := range lock.hashes {
-				platforms = append(platforms, platform)
+			hashVals := make([]cty.Value, 0, len(lock.hashes))
+			for _, hash := range lock.hashes {
+				hashVals = append(hashVals, cty.StringVal(hash.String()))
 			}
-			sort.Slice(platforms, func(i, j int) bool {
-				return platforms[i].LessThan(platforms[j])
-			})
-			body.AppendNewline()
-			hashesBlock := body.AppendNewBlock("hashes", nil)
-			hashesBody := hashesBlock.Body()
-			for platform, hashes := range lock.hashes {
-				vals := make([]cty.Value, len(hashes))
-				for i := range hashes {
-					vals[i] = cty.StringVal(hashes[i])
-				}
-				var hashList cty.Value
-				if len(vals) > 0 {
-					hashList = cty.ListVal(vals)
-				} else {
-					hashList = cty.ListValEmpty(cty.String)
-				}
-				hashesBody.SetAttributeValue(platform.String(), hashList)
-			}
+			// We're using a set rather than a list here because the order
+			// isn't significant and SetAttributeValue will automatically
+			// write the set elements in a consistent lexical order.
+			hashSet := cty.SetVal(hashVals)
+			body.SetAttributeValue("hashes", hashSet)
 		}
 	}
 
@@ -276,44 +262,38 @@ func decodeProviderLockFromHCL(block *hcl.Block) (*ProviderLock, tfdiags.Diagnos
 
 	ret.addr = addr
 
-	// We'll decode the block body using gohcl, because we don't have any
-	// special structural validation to do other than what gohcl will naturally
-	// do for us here.
-	type RawHashes struct {
-		// We'll consume all of the attributes and process them dynamically.
-		Hashes hcl.Attributes `hcl:",remain"`
-	}
-	type Provider struct {
-		Version            hcl.Expression `hcl:"version,attr"`
-		VersionConstraints hcl.Expression `hcl:"constraints,attr"`
-		HashesBlock        *RawHashes     `hcl:"hashes,block"`
-	}
-	var raw Provider
-	hclDiags := gohcl.DecodeBody(block.Body, nil, &raw)
+	content, hclDiags := block.Body.Content(&hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{Name: "version", Required: true},
+			{Name: "constraints"},
+			{Name: "hashes"},
+		},
+	})
 	diags = diags.Append(hclDiags)
-	if hclDiags.HasErrors() {
-		return ret, diags
-	}
 
-	version, moreDiags := decodeProviderVersionArgument(addr, raw.Version)
+	version, moreDiags := decodeProviderVersionArgument(addr, content.Attributes["version"])
 	ret.version = version
 	diags = diags.Append(moreDiags)
 
-	constraints, moreDiags := decodeProviderVersionConstraintsArgument(addr, raw.VersionConstraints)
+	constraints, moreDiags := decodeProviderVersionConstraintsArgument(addr, content.Attributes["constraints"])
 	ret.versionConstraints = constraints
 	diags = diags.Append(moreDiags)
 
-	if raw.HashesBlock != nil {
-		hashes, moreDiags := decodeProviderHashesArgument(addr, raw.HashesBlock.Hashes)
-		ret.hashes = hashes
-		diags = diags.Append(moreDiags)
-	}
+	hashes, moreDiags := decodeProviderHashesArgument(addr, content.Attributes["hashes"])
+	ret.hashes = hashes
+	diags = diags.Append(moreDiags)
 
 	return ret, diags
 }
 
-func decodeProviderVersionArgument(provider addrs.Provider, expr hcl.Expression) (getproviders.Version, tfdiags.Diagnostics) {
+func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute) (getproviders.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if attr == nil {
+		// It's not okay to omit this argument, but the caller should already
+		// have generated diagnostics about that.
+		return getproviders.UnspecifiedVersion, diags
+	}
+	expr := attr.Expr
 
 	var raw *string
 	hclDiags := gohcl.DecodeExpression(expr, nil, &raw)
@@ -334,7 +314,7 @@ func decodeProviderVersionArgument(provider addrs.Provider, expr hcl.Expression)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid version number",
+			Summary:  "Invalid provider version number",
 			Detail:   fmt.Sprintf("The selected version number for provider %s is invalid: %s.", provider, err),
 			Subject:  expr.Range().Ptr(),
 		})
@@ -344,7 +324,7 @@ func decodeProviderVersionArgument(provider addrs.Provider, expr hcl.Expression)
 		// that a file diff will show changes that are entirely cosmetic.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid version number",
+			Summary:  "Invalid provider version number",
 			Detail:   fmt.Sprintf("The selected version number for provider %s must be written in normalized form: %q.", provider, canon),
 			Subject:  expr.Range().Ptr(),
 		})
@@ -352,34 +332,35 @@ func decodeProviderVersionArgument(provider addrs.Provider, expr hcl.Expression)
 	return version, diags
 }
 
-func decodeProviderVersionConstraintsArgument(provider addrs.Provider, expr hcl.Expression) (getproviders.VersionConstraints, tfdiags.Diagnostics) {
+func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl.Attribute) (getproviders.VersionConstraints, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if attr == nil {
+		// It's okay to omit this argument.
+		return nil, diags
+	}
+	expr := attr.Expr
 
-	var raw *string
+	var raw string
 	hclDiags := gohcl.DecodeExpression(expr, nil, &raw)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		return nil, diags
 	}
-	if raw == nil {
-		// It's okay to omit this argument.
-		return nil, diags
-	}
-	constraints, err := getproviders.ParseVersionConstraints(*raw)
+	constraints, err := getproviders.ParseVersionConstraints(raw)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid version constraints",
+			Summary:  "Invalid provider version constraints",
 			Detail:   fmt.Sprintf("The recorded version constraints for provider %s are invalid: %s.", provider, err),
 			Subject:  expr.Range().Ptr(),
 		})
 	}
-	if canon := getproviders.VersionConstraintsString(constraints); canon != *raw {
+	if canon := getproviders.VersionConstraintsString(constraints); canon != raw {
 		// Canonical forms are required in the lock file, to reduce the risk
 		// that a file diff will show changes that are entirely cosmetic.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid version constraints",
+			Summary:  "Invalid provider version constraints",
 			Detail:   fmt.Sprintf("The recorded version constraints for provider %s must be written in normalized form: %q.", provider, canon),
 			Subject:  expr.Range().Ptr(),
 		})
@@ -388,49 +369,54 @@ func decodeProviderVersionConstraintsArgument(provider addrs.Provider, expr hcl.
 	return constraints, diags
 }
 
-func decodeProviderHashesArgument(provider addrs.Provider, attrs hcl.Attributes) (map[getproviders.Platform][]string, tfdiags.Diagnostics) {
-	if len(attrs) == 0 {
-		return nil, nil
-	}
-	ret := make(map[getproviders.Platform][]string, len(attrs))
+func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) ([]getproviders.Hash, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if attr == nil {
+		// It's okay to omit this argument.
+		return nil, diags
+	}
+	expr := attr.Expr
 
-	for platformStr, attr := range attrs {
-		platform, err := getproviders.ParsePlatform(platformStr)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider hash platform",
-				Detail:   fmt.Sprintf("The string %q is not a valid platform specification: %s.", platformStr, err),
-				Subject:  attr.NameRange.Ptr(),
-			})
-			continue
-		}
-		if canon := platform.String(); canon != platformStr {
-			// Canonical forms are required in the lock file, to reduce the risk
-			// that a file diff will show changes that are entirely cosmetic.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider hash platform",
-				Detail:   fmt.Sprintf("The platform specification %q must be written in the normalized form %q.", platformStr, canon),
-				Subject:  attr.NameRange.Ptr(),
-			})
-			continue
-		}
+	// We'll decode this argument using the HCL static analysis mode, because
+	// there's no reason for the hashes list to be dynamic and this way we can
+	// give more precise feedback on individual elements that are invalid,
+	// with direct source locations.
+	hashExprs, hclDiags := hcl.ExprList(expr)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, diags
+	}
+	if len(hashExprs) == 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider hash set",
+			Detail:   "The \"hashes\" argument must either be omitted or contain at least one hash value.",
+			Subject:  expr.Range().Ptr(),
+		})
+		return nil, diags
+	}
 
-		var hashes []string
-		hclDiags := gohcl.DecodeExpression(attr.Expr, nil, &hashes)
+	ret := make([]getproviders.Hash, 0, len(hashExprs))
+	for _, hashExpr := range hashExprs {
+		var raw string
+		hclDiags := gohcl.DecodeExpression(hashExpr, nil, &raw)
 		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {
 			continue
 		}
 
-		// We don't validate the hashes, because we expect to support different
-		// hash formats over time and so we'll assume any that are in formats
-		// we don't understand are from later Terraform versions, or perhaps
-		// from an origin registry that is offering hashes aimed at a later
-		// Terraform version.
-		ret[platform] = hashes
+		hash, err := getproviders.ParseHash(raw)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider hash string",
+				Detail:   fmt.Sprintf("Cannot interpret %q as a provider hash: %s.", raw, err),
+				Subject:  expr.Range().Ptr(),
+			})
+			continue
+		}
+
+		ret = append(ret, hash)
 	}
 
 	return ret, diags

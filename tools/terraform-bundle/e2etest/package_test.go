@@ -125,6 +125,9 @@ func TestPackage_manyProviders(t *testing.T) {
 
 			for _, file := range read.File {
 				if _, exists := expectedFiles[file.Name]; exists {
+					if !file.FileInfo().Mode().IsRegular() {
+						t.Errorf("Expected file is not a regular file: %s", file.Name)
+					}
 					delete(expectedFiles, file.Name)
 				} else {
 					extraFiles[file.Name] = struct{}{}
@@ -195,6 +198,9 @@ func TestPackage_localProviders(t *testing.T) {
 
 			for _, file := range read.File {
 				if _, exists := expectedFiles[file.Name]; exists {
+					if !file.FileInfo().Mode().IsRegular() {
+						t.Errorf("Expected file is not a regular file: %s", file.Name)
+					}
 					delete(expectedFiles, file.Name)
 				} else {
 					extraFiles[file.Name] = struct{}{}

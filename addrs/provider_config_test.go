@@ -168,25 +168,25 @@ func TestAbsProviderConfigString(t *testing.T) {
 		{
 			AbsProviderConfig{
 				Module:   RootModule.Child("child_module"),
-				Provider: NewLegacyProvider("foo"),
+				Provider: NewDefaultProvider("foo"),
 			},
-			`module.child_module.provider["registry.terraform.io/-/foo"]`,
+			`module.child_module.provider["registry.terraform.io/hashicorp/foo"]`,
 		},
 		{
 			AbsProviderConfig{
 				Module:   RootModule,
 				Alias:    "bar",
-				Provider: NewLegacyProvider("foo"),
+				Provider: NewDefaultProvider("foo"),
 			},
-			`provider["registry.terraform.io/-/foo"].bar`,
+			`provider["registry.terraform.io/hashicorp/foo"].bar`,
 		},
 		{
 			AbsProviderConfig{
 				Module:   RootModule.Child("child_module"),
 				Alias:    "bar",
-				Provider: NewLegacyProvider("foo"),
+				Provider: NewDefaultProvider("foo"),
 			},
-			`module.child_module.provider["registry.terraform.io/-/foo"].bar`,
+			`module.child_module.provider["registry.terraform.io/hashicorp/foo"].bar`,
 		},
 	}
 

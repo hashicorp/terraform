@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -174,7 +175,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		case "/pkg/awesomesauce/happycloud_1.2.0.zip":
 			resp.Write([]byte("some zip file"))
 		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS":
-			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"))
+			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"))
 		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS.sig":
 			resp.Write([]byte("GPG signature"))
 		default:
@@ -340,7 +341,7 @@ func TestProviderVersions(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gotVersions, _, err := client.ProviderVersions(test.provider)
+			gotVersions, _, err := client.ProviderVersions(context.Background(), test.provider)
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -419,7 +420,7 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			got, err := client.findClosestProtocolCompatibleVersion(test.provider, test.version)
+			got, err := client.findClosestProtocolCompatibleVersion(context.Background(), test.provider, test.version)
 
 			if err != nil {
 				if test.wantErr == "" {

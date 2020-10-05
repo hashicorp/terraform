@@ -12,7 +12,7 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Modules](../configuration-0-11/modules.html).
 
-> For a hands-on tutorial, try the [Organize Configuration with Modules](https://learn.hashicorp.com/terraform/modules/modules-overview?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) track on HashiCorp Learn.
+> **Hands-on:** Try the [Reuse Configuration with Modules](https://learn.hashicorp.com/collections/terraform/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 A _module_ is a container for multiple resources that are used together.
 

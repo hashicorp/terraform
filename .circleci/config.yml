@@ -6,7 +6,7 @@ orbs:
 executors:
   go:
     docker:
-      - image: circleci/golang:1.14
+      - image: circleci/golang:1.15
     environment:
       CONSUL_VERSION: 1.7.2
       GOMAXPROCS: 4
@@ -14,7 +14,6 @@ executors:
       GOPROXY: https://proxy.golang.org/
       TEST_RESULTS_DIR: &TEST_RESULTS_DIR /tmp/test-results
       ARTIFACTS_DIR: &ARTIFACTS_DIR /tmp/artifacts
-      GOFLAGS: "-mod=vendor"
 
 jobs:
   go-checks:

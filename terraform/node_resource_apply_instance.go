@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -34,7 +33,7 @@ var (
 	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeEvalable           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
 
@@ -101,8 +100,8 @@ func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigRe
 	n.Dependencies = deps
 }
 
-// GraphNodeEvalable
-func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
+// GraphNodeExecutable
+func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
@@ -120,319 +119,334 @@ func (n *NodeApplyableResourceInstance) EvalTree() EvalNode {
 				addr,
 			),
 		))
-		err := diags.Err()
-		return &EvalReturnError{
-			Error: &err,
-		}
+		return diags.Err()
 	}
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr)
+		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr)
+		return n.dataResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
-	var change *plans.ResourceInstanceChange
+func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) error {
+	addr := n.ResourceInstanceAddr().Resource
+
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+
+	change, err := n.readDiff(ctx, providerSchema)
+	if err != nil {
+		return err
+	}
+	// Stop early if we don't actually have a diff
+	if change == nil {
+		return EvalEarlyExitError{}
+	}
+
+	// In this particular call to EvalReadData we include our planned
+	// change, which signals that we expect this read to complete fully
+	// with no unknown values; it'll produce an error if not.
 	var state *states.ResourceInstanceObject
-
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-
-			// Get the saved diff for apply
-			&EvalReadDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &change,
-			},
-
-			// Stop early if we don't actually have a diff
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					if change == nil {
-						return true, EvalEarlyExitError{}
-					}
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
-			// In this particular call to EvalReadData we include our planned
-			// change, which signals that we expect this read to complete fully
-			// with no unknown values; it'll produce an error if not.
-			&evalReadDataApply{
-				evalReadData{
-					Addr:           addr.Resource,
-					Config:         n.Config,
-					Planned:        &change,
-					Provider:       &provider,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderMetas:  n.ProviderMetas,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-				},
-			},
-
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-			},
-
-			// Clear the diff now that we've applied it, so
-			// later nodes won't see a diff that's now a no-op.
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         nil,
-			},
-
-			&EvalUpdateStateHook{},
+	readDataApply := &evalReadDataApply{
+		evalReadData{
+			Addr:           addr,
+			Config:         n.Config,
+			Planned:        &change,
+			Provider:       &provider,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			State:          &state,
 		},
 	}
+	_, err = readDataApply.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeState := &EvalWriteState{
+		Addr:           addr,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+	}
+	_, err = writeState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr,
+		ProviderSchema: &providerSchema,
+		Change:         nil,
+	}
+	_, err = writeDiff.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	UpdateStateHook(ctx)
+	return nil
 }
 
-func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
+func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) error {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
-	var diff, diffApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var err error
 	var createNew bool
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-
-			// Get the saved diff for apply
-			&EvalReadDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &diffApply,
-			},
-
-			// We don't want to do any destroys
-			// (these are handled by NodeDestroyResourceInstance instead)
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					if diffApply == nil {
-						return true, EvalEarlyExitError{}
-					}
-					if diffApply.Action == plans.Delete {
-						return true, EvalEarlyExitError{}
-					}
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					destroy := false
-					if diffApply != nil {
-						destroy = (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
-
-						// Get the stored action for CBD if we have a plan already
-						createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete
-					}
-
-					if destroy && n.CreateBeforeDestroy() {
-						createBeforeDestroyEnabled = true
-					}
-
-					return createBeforeDestroyEnabled, nil
-				},
-				Then: &EvalDeposeState{
-					Addr:      addr.Resource,
-					ForceKey:  n.PreallocatedDeposedKey,
-					OutputKey: &deposedKey,
-				},
-			},
-
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-
-				Output: &state,
-			},
-
-			// Get the saved diff
-			&EvalReadDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &diff,
-			},
-
-			// Make a new diff, in case we've learned new values in the state
-			// during apply which we can now incorporate.
-			&EvalDiff{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				PreviousDiff:   &diff,
-				OutputChange:   &diffApply,
-				OutputState:    &state,
-			},
-
-			// Compare the diffs
-			&EvalCheckPlannedChange{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				Planned:        &diff,
-				Actual:         &diffApply,
-			},
-
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-
-				Output: &state,
-			},
-
-			&EvalReduceDiff{
-				Addr:      addr.Resource,
-				InChange:  &diffApply,
-				Destroy:   false,
-				OutChange: &diffApply,
-			},
-
-			// EvalReduceDiff may have simplified our planned change
-			// into a NoOp if it only requires destroying, since destroying
-			// is handled by NodeDestroyResourceInstance.
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					if diffApply == nil || diffApply.Action == plans.NoOp {
-						return true, EvalEarlyExitError{}
-					}
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
-			// Call pre-apply hook
-			&EvalApplyPre{
-				Addr:   addr.Resource,
-				State:  &state,
-				Change: &diffApply,
-			},
-			&EvalApply{
-				Addr:                addr.Resource,
-				Config:              n.Config,
-				State:               &state,
-				Change:              &diffApply,
-				Provider:            &provider,
-				ProviderAddr:        n.ResolvedProvider,
-				ProviderMetas:       n.ProviderMetas,
-				ProviderSchema:      &providerSchema,
-				Output:              &state,
-				Error:               &err,
-				CreateNew:           &createNew,
-				CreateBeforeDestroy: n.CreateBeforeDestroy(),
-			},
-			&EvalMaybeTainted{
-				Addr:   addr.Resource,
-				State:  &state,
-				Change: &diffApply,
-				Error:  &err,
-			},
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				Dependencies:   &n.Dependencies,
-			},
-			&EvalApplyProvisioners{
-				Addr:           addr.Resource,
-				State:          &state, // EvalApplyProvisioners will skip if already tainted
-				ResourceConfig: n.Config,
-				CreateNew:      &createNew,
-				Error:          &err,
-				When:           configs.ProvisionerWhenCreate,
-			},
-			&EvalMaybeTainted{
-				Addr:   addr.Resource,
-				State:  &state,
-				Change: &diffApply,
-				Error:  &err,
-			},
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-				Dependencies:   &n.Dependencies,
-			},
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					return createBeforeDestroyEnabled && err != nil, nil
-				},
-				Then: &EvalMaybeRestoreDeposedObject{
-					Addr:          addr.Resource,
-					PlannedChange: &diffApply,
-					Key:           &deposedKey,
-				},
-			},
-
-			// We clear the diff out here so that future nodes
-			// don't see a diff that is already complete. There
-			// is no longer a diff!
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					if !diff.Action.IsReplace() {
-						return true, nil
-					}
-					if !n.CreateBeforeDestroy() {
-						return true, nil
-					}
-					return false, nil
-				},
-				Then: &EvalWriteDiff{
-					Addr:           addr.Resource,
-					ProviderSchema: &providerSchema,
-					Change:         nil,
-				},
-			},
-
-			&EvalApplyPost{
-				Addr:  addr.Resource,
-				State: &state,
-				Error: &err,
-			},
-			&EvalUpdateStateHook{},
-		},
+	addr := n.ResourceInstanceAddr().Resource
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
 	}
+
+	// Get the saved diff for apply
+	diffApply, err := n.readDiff(ctx, providerSchema)
+	if err != nil {
+		return err
+	}
+
+	// We don't want to do any destroys
+	// (these are handled by NodeDestroyResourceInstance instead)
+	if diffApply == nil || diffApply.Action == plans.Delete {
+		return EvalEarlyExitError{}
+	}
+
+	destroy := (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
+	// Get the stored action for CBD if we have a plan already
+	createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete
+
+	if destroy && n.CreateBeforeDestroy() {
+		createBeforeDestroyEnabled = true
+	}
+
+	if createBeforeDestroyEnabled {
+		deposeState := &EvalDeposeState{
+			Addr:      addr,
+			ForceKey:  n.PreallocatedDeposedKey,
+			OutputKey: &deposedKey,
+		}
+		_, err = deposeState.Eval(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	readState := &EvalReadState{
+		Addr:           addr,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+
+		Output: &state,
+	}
+	_, err = readState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Get the saved diff
+	diff, err := n.readDiff(ctx, providerSchema)
+	if err != nil {
+		return err
+	}
+
+	// Make a new diff, in case we've learned new values in the state
+	// during apply which we can now incorporate.
+	evalDiff := &EvalDiff{
+		Addr:           addr,
+		Config:         n.Config,
+		Provider:       &provider,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderMetas:  n.ProviderMetas,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+		PreviousDiff:   &diff,
+		OutputChange:   &diffApply,
+		OutputState:    &state,
+	}
+	_, err = evalDiff.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Compare the diffs
+	checkPlannedChange := &EvalCheckPlannedChange{
+		Addr:           addr,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		Planned:        &diff,
+		Actual:         &diffApply,
+	}
+	_, err = checkPlannedChange.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	readState = &EvalReadState{
+		Addr:           addr,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+
+		Output: &state,
+	}
+	_, err = readState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	reduceDiff := &EvalReduceDiff{
+		Addr:      addr,
+		InChange:  &diffApply,
+		Destroy:   false,
+		OutChange: &diffApply,
+	}
+	_, err = reduceDiff.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	// EvalReduceDiff may have simplified our planned change
+	// into a NoOp if it only requires destroying, since destroying
+	// is handled by NodeDestroyResourceInstance.
+	if diffApply == nil || diffApply.Action == plans.NoOp {
+		return EvalEarlyExitError{}
+	}
+
+	evalApplyPre := &EvalApplyPre{
+		Addr:   addr,
+		State:  &state,
+		Change: &diffApply,
+	}
+	_, err = evalApplyPre.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	var applyError error
+	evalApply := &EvalApply{
+		Addr:                addr,
+		Config:              n.Config,
+		State:               &state,
+		Change:              &diffApply,
+		Provider:            &provider,
+		ProviderAddr:        n.ResolvedProvider,
+		ProviderMetas:       n.ProviderMetas,
+		ProviderSchema:      &providerSchema,
+		Output:              &state,
+		Error:               &applyError,
+		CreateNew:           &createNew,
+		CreateBeforeDestroy: n.CreateBeforeDestroy(),
+	}
+	_, err = evalApply.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	evalMaybeTainted := &EvalMaybeTainted{
+		Addr:   addr,
+		State:  &state,
+		Change: &diffApply,
+		Error:  &applyError,
+	}
+	_, err = evalMaybeTainted.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeState := &EvalWriteState{
+		Addr:           addr,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+		Dependencies:   &n.Dependencies,
+	}
+	_, err = writeState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	applyProvisioners := &EvalApplyProvisioners{
+		Addr:           addr,
+		State:          &state, // EvalApplyProvisioners will skip if already tainted
+		ResourceConfig: n.Config,
+		CreateNew:      &createNew,
+		Error:          &applyError,
+		When:           configs.ProvisionerWhenCreate,
+	}
+	_, err = applyProvisioners.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	evalMaybeTainted = &EvalMaybeTainted{
+		Addr:   addr,
+		State:  &state,
+		Change: &diffApply,
+		Error:  &applyError,
+	}
+	_, err = evalMaybeTainted.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeState = &EvalWriteState{
+		Addr:           addr,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+		Dependencies:   &n.Dependencies,
+	}
+	_, err = writeState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	if createBeforeDestroyEnabled && applyError != nil {
+		maybeRestoreDesposedObject := &EvalMaybeRestoreDeposedObject{
+			Addr:          addr,
+			PlannedChange: &diffApply,
+			Key:           &deposedKey,
+		}
+		_, err := maybeRestoreDesposedObject.Eval(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// We clear the diff out here so that future nodes don't see a diff that is
+	// already complete. There is no longer a diff!
+	if !diff.Action.IsReplace() || !n.CreateBeforeDestroy() {
+		writeDiff := &EvalWriteDiff{
+			Addr:           addr,
+			ProviderSchema: &providerSchema,
+			Change:         nil,
+		}
+		_, err := writeDiff.Eval(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	applyPost := &EvalApplyPost{
+		Addr:  addr,
+		State: &state,
+		Error: &applyError,
+	}
+	_, err = applyPost.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	UpdateStateHook(ctx)
+	return nil
 }

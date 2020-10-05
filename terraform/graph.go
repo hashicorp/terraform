@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/tfdiags"
@@ -57,33 +56,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
-			// A node must not be both Evalable and Executable. This will be
-			// removed when GraphNodeEvalable is fully removed.
-			if _, ok := v.(GraphNodeEvalable); ok {
-				panic(fmt.Sprintf(
-					"%T implements both GraphNodeEvalable and GraphNodeExecutable", v,
-				))
-			}
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
-			if diags.HasErrors() {
-				return
-			}
-		}
-
-		// If the node is eval-able, then evaluate it.
-		if ev, ok := v.(GraphNodeEvalable); ok {
-			tree := ev.EvalTree()
-			if tree == nil {
-				panic(fmt.Sprintf("%q (%T): nil eval tree", dag.VertexName(v), v))
-			}
-
-			// Allow the walker to change our tree if needed. Eval,
-			// then callback with the output.
-			log.Printf("[TRACE] vertex %q: evaluating", dag.VertexName(v))
-
-			tree = walker.EnterEvalTree(v, tree)
-			output, err := Eval(tree, vertexCtx)
-			diags = diags.Append(walker.ExitEvalTree(v, output, err))
 			if diags.HasErrors() {
 				return
 			}

@@ -328,30 +328,8 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 
 	refs := depender.DependsOn()
 
-	// For data sources we implicitly treat references as depends_on entries.
-	// If a data source references a resource, even if that reference is
-	// resolvable, it stands to reason that the user intends for the data
-	// source to require that resource in some way.
-	if n, ok := depender.(GraphNodeConfigResource); ok &&
-		n.ResourceAddr().Resource.Mode == addrs.DataResourceMode {
-		for _, r := range depender.References() {
-
-			// We don't need to wait on referenced data sources. They have no
-			// side effects, so our configuration reference should suffice for
-			// proper ordering.
-			var resAddr addrs.Resource
-			switch s := r.Subject.(type) {
-			case addrs.Resource:
-				resAddr = s
-			case addrs.ResourceInstance:
-				resAddr = s.Resource
-			}
-
-			if resAddr.Mode == addrs.ManagedResourceMode {
-				refs = append(refs, r)
-			}
-		}
-	}
+	// get any implied dependencies for data sources
+	refs = append(refs, m.dataDependsOn(depender)...)
 
 	// This is where we record that a module has depends_on configured.
 	if _, ok := depender.(*nodeExpandModule); ok && len(refs) > 0 {
@@ -391,10 +369,44 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 	return res, fromModule || fromParentModule
 }
 
+// Return extra depends_on references if this is a data source.
+// For data sources we implicitly treat references to managed resources as
+// depends_on entries. If a data source references a managed resource, even if
+// that reference is resolvable, it stands to reason that the user intends for
+// the data source to require that resource in some way.
+func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Reference {
+	var refs []*addrs.Reference
+	if n, ok := depender.(GraphNodeConfigResource); ok &&
+		n.ResourceAddr().Resource.Mode == addrs.DataResourceMode {
+		for _, r := range depender.References() {
+
+			var resAddr addrs.Resource
+			switch s := r.Subject.(type) {
+			case addrs.Resource:
+				resAddr = s
+			case addrs.ResourceInstance:
+				resAddr = s.Resource
+				r.Subject = resAddr
+			}
+
+			if resAddr.Mode != addrs.ManagedResourceMode {
+				// We only want to wait on directly referenced managed resources.
+				// Data sources have no external side effects, so normal
+				// references to them in the config will suffice for proper
+				// ordering.
+				continue
+			}
+
+			refs = append(refs, r)
+		}
+	}
+	return refs
+}
+
 // parentModuleDependsOn returns the set of vertices that a data sources parent
 // module references through the module call's depends_on. The bool return
 // value indicates if depends_on was found in a parent module configuration.
-func (n ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
+func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
 	var res []dag.Vertex
 	fromModule := false
 
@@ -408,7 +420,7 @@ func (n ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 			continue
 		}
 
-		deps, fromParentModule := n.dependsOn(g, mod)
+		deps, fromParentModule := m.dependsOn(g, mod)
 		for _, dep := range deps {
 			// add the dependency
 			res = append(res, dep)

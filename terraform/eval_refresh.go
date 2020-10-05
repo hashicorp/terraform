@@ -3,12 +3,14 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -80,6 +82,13 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Refresh!
 	priorVal := state.Value
+
+	// Unmarked before sending to provider
+	var priorPaths []cty.PathValueMarks
+	if priorVal.ContainsMarked() {
+		priorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
+	}
+
 	req := providers.ReadResourceRequest{
 		TypeName:     n.Addr.Resource.Type,
 		PriorState:   priorVal,
@@ -115,6 +124,17 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
+	// We have no way to exempt provider using the legacy SDK from this check,
+	// so we can only log inconsistencies with the updated state values.
+	if errs := objchange.AssertObjectCompatible(schema, priorVal, resp.NewState); len(errs) > 0 {
+		var buf strings.Builder
+		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ProviderAddr.Provider.String(), absAddr)
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+		}
+		log.Print(buf.String())
+	}
+
 	newState := state.DeepCopy()
 	newState.Value = resp.NewState
 	newState.Private = resp.Private
@@ -127,6 +147,11 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// Mark the value if necessary
+	if len(priorPaths) > 0 {
+		newState.Value = newState.Value.MarkWithPaths(priorPaths)
 	}
 
 	if n.Output != nil {

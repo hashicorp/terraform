@@ -117,7 +117,6 @@ type EvalDiff struct {
 	CreateBeforeDestroy bool
 
 	OutputChange **plans.ResourceInstanceChange
-	OutputValue  *cty.Value
 	OutputState  **states.ResourceInstanceObject
 
 	Stub bool
@@ -153,21 +152,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, diags.Err()
-	}
-
-	// Create an unmarked version of our config val, defaulting
-	// to the configVal so we don't do the work of unmarking unless
-	// necessary
-	unmarkedConfigVal := configVal
-	var unmarkedPaths []cty.PathValueMarks
-	if configVal.ContainsMarked() {
-		// store the marked values so we can re-mark them later after
-		// we've sent things over the wire.
-		unmarkedConfigVal, unmarkedPaths = configVal.UnmarkDeepWithPaths()
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -213,7 +201,36 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, priorVal, unmarkedConfigVal)
+	// ignore_changes is meant to only apply to the configuration, so it must
+	// be applied before we generate a plan. This ensures the config used for
+	// the proposed value, the proposed value itself, and the config presented
+	// to the provider in the PlanResourceChange request all agree on the
+	// starting values.
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal)
+	diags = diags.Append(ignoreChangeDiags)
+	if ignoreChangeDiags.HasErrors() {
+		return nil, diags.Err()
+	}
+
+	// Create an unmarked version of our config val, defaulting
+	// to the configVal so we don't do the work of unmarking unless
+	// necessary
+	unmarkedConfigVal := configValIgnored
+	var unmarkedPaths []cty.PathValueMarks
+	if configValIgnored.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedConfigVal, unmarkedPaths = configValIgnored.UnmarkDeepWithPaths()
+	}
+
+	unmarkedPriorVal := priorVal
+	if priorVal.ContainsMarked() {
+		// store the marked values so we can re-mark them later after
+		// we've sent things over the wire.
+		unmarkedPriorVal, _ = priorVal.UnmarkDeep()
+	}
+
+	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
 	if !n.Stub {
@@ -239,21 +256,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
 	}
 
-	// The provider gets an opportunity to customize the proposed new value,
-	// which in turn produces the _planned_ new value. But before
-	// we send back this information, we need to process ignore_changes
-	// so that CustomizeDiff will not act on them
-	var ignoreChangeDiags tfdiags.Diagnostics
-	proposedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, proposedNewVal)
-	diags = diags.Append(ignoreChangeDiags)
-	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
-	}
-
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
 		Config:           unmarkedConfigVal,
-		PriorState:       priorVal,
+		PriorState:       unmarkedPriorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
 		ProviderMeta:     metaConfigVal,
@@ -271,11 +277,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// is always a bug in the client-side stub. This is more likely caused
 		// by an incompletely-configured mock provider in tests, though.
 		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", absAddr.String()))
-	}
-
-	// Add the marks back to the planned new value
-	if configVal.ContainsMarked() {
-		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	// We allow the planned new value to disagree with configuration _values_
@@ -296,7 +297,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	if errs := objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
@@ -327,14 +328,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	// TODO: We should be able to remove this repeat of processing ignored changes
-	// after the plan, which helps providers relying on old behavior "just work"
-	// in the next major version, such that we can be stricter about ignore_changes
-	// values
-	plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(priorVal, plannedNewVal)
-	diags = diags.Append(ignoreChangeDiags)
-	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
+	// Add the marks back to the planned new value -- this must happen after ignore changes
+	// have been processed
+	unmarkedPlannedNewVal := plannedNewVal
+	if len(unmarkedPaths) > 0 {
+		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	// The provider produces a list of paths to attributes whose changes mean
@@ -352,7 +350,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				continue
 			}
 
-			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
 			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
 			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
 				// This means the path was invalid in both the prior and new
@@ -384,7 +382,10 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
 
-			eqV := plannedChangedVal.Equals(priorChangedVal)
+			// Unmark for this value for the equality test. If only sensitivity has changed,
+			// this does not require an Update or Replace
+			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
+			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
 			if !eqV.IsKnown() || eqV.False() {
 				reqRep.Add(path)
 			}
@@ -394,7 +395,9 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	eqV := plannedNewVal.Equals(priorVal)
+	// Unmark for this test for equality. If only sensitivity has changed,
+	// this does not require an Update or Replace
+	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
 	var action plans.Action
@@ -431,12 +434,19 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// able to predict new values for any of these computed attributes.
 		nullPriorVal := cty.NullVal(schema.ImpliedType())
 
+		// Since there is no prior state to compare after replacement, we need
+		// a new unmarked config from our original with no ignored values.
+		unmarkedConfigVal := origConfigVal
+		if origConfigVal.ContainsMarked() {
+			unmarkedConfigVal, _ = origConfigVal.UnmarkDeep()
+		}
+
 		// create a new proposed value from the null state and the config
-		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, configVal)
+		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
 
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Type,
-			Config:           configVal,
+			Config:           unmarkedConfigVal,
 			PriorState:       nullPriorVal,
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     plannedPrivate,
@@ -453,6 +463,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
+
+		if len(unmarkedPaths) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		}
+
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -523,10 +538,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	if n.OutputValue != nil {
-		*n.OutputValue = configVal
-	}
-
 	// Update the state if we care
 	if n.OutputState != nil {
 		*n.OutputState = &states.ResourceInstanceObject{
@@ -545,32 +556,32 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-func (n *EvalDiff) processIgnoreChanges(prior, proposed cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func (n *EvalDiff) processIgnoreChanges(prior, config cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	// ignore_changes only applies when an object already exists, since we
 	// can't ignore changes to a thing we've not created yet.
 	if prior.IsNull() {
-		return proposed, nil
+		return config, nil
 	}
 
 	ignoreChanges := n.Config.Managed.IgnoreChanges
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
 	if len(ignoreChanges) == 0 && !ignoreAll {
-		return proposed, nil
+		return config, nil
 	}
 	if ignoreAll {
 		return prior, nil
 	}
-	if prior.IsNull() || proposed.IsNull() {
+	if prior.IsNull() || config.IsNull() {
 		// Ignore changes doesn't apply when we're creating for the first time.
 		// Proposed should never be null here, but if it is then we'll just let it be.
-		return proposed, nil
+		return config, nil
 	}
 
-	return processIgnoreChangesIndividual(prior, proposed, ignoreChanges)
+	return processIgnoreChangesIndividual(prior, config, ignoreChanges)
 }
 
-func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []hcl.Traversal) (cty.Value, tfdiags.Diagnostics) {
+func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl.Traversal) (cty.Value, tfdiags.Diagnostics) {
 	// When we walk below we will be using cty.Path values for comparison, so
 	// we'll convert our traversals here so we can compare more easily.
 	ignoreChangesPath := make([]cty.Path, len(ignoreChanges))
@@ -598,7 +609,7 @@ func processIgnoreChangesIndividual(prior, proposed cty.Value, ignoreChanges []h
 	}
 
 	var diags tfdiags.Diagnostics
-	ret, _ := cty.Transform(proposed, func(path cty.Path, v cty.Value) (cty.Value, error) {
+	ret, _ := cty.Transform(config, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		// First we must see if this is a path that's being ignored at all.
 		// We're looking for an exact match here because this walk will visit
 		// leaf values first and then their containers, and we want to do
@@ -768,49 +779,6 @@ func (n *EvalReduceDiff) Eval(ctx EvalContext) (interface{}, error) {
 			log.Printf("[TRACE] EvalReduceDiff: %s change simplified from %s to %s for apply node", n.Addr, in.Action, out.Action)
 		}
 	}
-	return nil, nil
-}
-
-// EvalReadDiff is an EvalNode implementation that retrieves the planned
-// change for a particular resource instance object.
-type EvalReadDiff struct {
-	Addr           addrs.ResourceInstance
-	DeposedKey     states.DeposedKey
-	ProviderSchema **ProviderSchema
-	Change         **plans.ResourceInstanceChange
-}
-
-func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
-	providerSchema := *n.ProviderSchema
-	changes := ctx.Changes()
-	addr := n.Addr.Absolute(ctx.Path())
-
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
-	}
-
-	gen := states.CurrentGen
-	if n.DeposedKey != states.NotDeposed {
-		gen = n.DeposedKey
-	}
-	csrc := changes.GetResourceInstanceChange(addr, gen)
-	if csrc == nil {
-		log.Printf("[TRACE] EvalReadDiff: No planned change recorded for %s", addr)
-		return nil, nil
-	}
-
-	change, err := csrc.Decode(schema.ImpliedType())
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode planned changes for %s: %s", addr, err)
-	}
-	if n.Change != nil {
-		*n.Change = change
-	}
-
-	log.Printf("[TRACE] EvalReadDiff: Read %s change from plan for %s", change.Action, addr)
-
 	return nil, nil
 }
 

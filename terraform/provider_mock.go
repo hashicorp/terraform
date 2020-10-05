@@ -308,7 +308,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			Type: r.TypeName,
 		}
 		priorState := NewInstanceStateShimmedFromValue(r.PriorState, 0)
-		cfg := NewResourceConfigShimmed(r.Config, schema)
+		cfg := NewResourceConfigShimmed(r.ProposedNewState, schema)
 
 		legacyDiff, err := p.DiffFn(info, priorState, cfg)
 

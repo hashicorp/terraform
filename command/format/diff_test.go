@@ -3624,22 +3624,36 @@ func TestResourceChange_nestedMap(t *testing.T) {
 
 func TestResourceChange_sensitiveVariable(t *testing.T) {
 	testCases := map[string]testCase{
-		"in-place update - creation": {
-			Action: plans.Update,
+		"creation": {
+			Action: plans.Create,
 			Mode:   addrs.ManagedResourceMode,
-			Before: cty.ObjectVal(map[string]cty.Value{
-				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-BEFORE"),
-				"root_block_device": cty.MapValEmpty(cty.Object(map[string]cty.Type{
-					"volume_type": cty.String,
-				})),
-			}),
+			Before: cty.NullVal(cty.EmptyObject),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
-				"ami": cty.StringVal("ami-AFTER"),
-				"root_block_device": cty.MapVal(map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"volume_type": cty.StringVal("gp2"),
+				"ami": cty.StringVal("ami-123"),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000),
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("!"),
+				}),
+				"nested_block_list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+						"another": cty.StringVal("not secret"),
+					}),
+				}),
+				"nested_block_set": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+						"another": cty.StringVal("not secret"),
 					}),
 				}),
 			}),
@@ -3647,23 +3661,469 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
 					Marks: cty.NewValueMarks("sensitive"),
-				}},
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					// Nested blocks/sets will mark the whole set/block as sensitive
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_list"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
+					"nested_block_list": {
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
+								"an_attr": {Type: cty.String, Optional: true},
+								"another": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+					"nested_block_set": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+								"another": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + ami        = (sensitive)
+      + id         = "i-02ae66f368e8518a9"
+      + list_field = [
+          + "hello",
+          + (sensitive),
+          + "!",
+        ]
+      + map_key    = {
+          + "breakfast" = 800
+          + "dinner"    = (sensitive)
+        }
+      + map_whole  = (sensitive)
+
+      + nested_block_list {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+
+      + nested_block_set {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
+		"in-place update - before sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-BEFORE"),
+				"special":     cty.BoolVal(true),
+				"some_number": cty.NumberIntVal(1),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("!"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+					}),
+				}),
+				"nested_block_set": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-AFTER"),
+				"special":     cty.BoolVal(false),
+				"some_number": cty.NumberIntVal(2),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("."),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(1900),
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("cereal"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("changed"),
+					}),
+				}),
+				"nested_block_set": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("changed"),
+					}),
+				}),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":          {Type: cty.String, Optional: true, Computed: true},
+					"ami":         {Type: cty.String, Optional: true},
+					"list_field":  {Type: cty.List(cty.String), Optional: true},
+					"special":     {Type: cty.Bool, Optional: true},
+					"some_number": {Type: cty.Number, Optional: true},
+					"map_key":     {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":   {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+					"nested_block_set": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ ami         = (sensitive)
+        id          = "i-02ae66f368e8518a9"
+      ~ list_field  = [
+            # (1 unchanged element hidden)
+            "friends",
+          - (sensitive),
+          + ".",
+        ]
+      ~ map_key     = {
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change
+          ~ "dinner"    = (sensitive)
+            # (1 unchanged element hidden)
+        }
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ map_whole   = (sensitive)
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ some_number = (sensitive)
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ special     = (sensitive)
+
+      # Warning: this block will no longer be marked as sensitive
+      # after applying this change
+      ~ nested_block {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+
+      # Warning: this block will no longer be marked as sensitive
+      # after applying this change
+      ~ nested_block_set {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
+		"in-place update - after sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block_single": cty.ObjectVal(map[string]cty.Value{
+					"an_attr": cty.StringVal("original"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("goodbye"),
+					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(700),
+					"dinner":    cty.NumberIntVal(2100), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("cereal"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block_single": cty.ObjectVal(map[string]cty.Value{
+					"an_attr": cty.StringVal("changed"),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_single"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block_single": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSingle,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id         = "i-02ae66f368e8518a9"
+      ~ list_field = [
+          - "hello",
+          + (sensitive),
+            "friends",
+        ]
+      ~ map_key    = {
+          ~ "breakfast" = 800 -> 700
+          # Warning: this attribute value will be marked as sensitive and will
+          # not display in UI output after applying this change
+          ~ "dinner"    = (sensitive)
+        }
+      # Warning: this attribute value will be marked as sensitive and will
+      # not display in UI output after applying this change
+      ~ map_whole  = (sensitive)
+
+      # Warning: this block will be marked as sensitive and will
+      # not display in UI output after applying this change
+      ~ nested_block_single {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
+		"in-place update - both sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block_map": cty.MapVal(map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("original"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("goodbye"),
+					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(1800), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("cereal"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block_map": cty.MapVal(map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block_map": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
 							},
 						},
 						Nesting: configschema.NestingMap,
@@ -3672,11 +4132,123 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = (sensitive)
-        id  = "i-02ae66f368e8518a9"
+      ~ ami        = (sensitive)
+        id         = "i-02ae66f368e8518a9"
+      ~ list_field = [
+          - (sensitive),
+          + (sensitive),
+            "friends",
+        ]
+      ~ map_key    = {
+          ~ "dinner"    = (sensitive)
+            # (1 unchanged element hidden)
+        }
+      ~ map_whole  = (sensitive)
 
-      + root_block_device "a" {
-          + volume_type = "gp2"
+      ~ nested_block_map {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
+		"deletion": {
+			Action: plans.Delete,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secret"),
+						"another": cty.StringVal("not secret"),
+					}),
+				}),
+				"nested_block_set": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secret"),
+						"another": cty.StringVal("not secret"),
+					}),
+				}),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"ami":        {Type: cty.String, Optional: true},
+					"list_field": {Type: cty.List(cty.String), Optional: true},
+					"map_key":    {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":  {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block_set": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+								"another": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - ami        = (sensitive) -> null
+      - id         = "i-02ae66f368e8518a9" -> null
+      - list_field = [
+          - "hello",
+          - (sensitive),
+        ] -> null
+      - map_key    = {
+          - "breakfast" = 800
+          - "dinner"    = (sensitive)
+        } -> null
+      - map_whole  = (sensitive) -> null
+
+      - nested_block_set {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
         }
     }
 `,
@@ -3740,7 +4312,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Name: "example",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				ProviderAddr: addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("test"),
+					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
 				ChangeSrc: plans.ChangeSrc{
