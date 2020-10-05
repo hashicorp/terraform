@@ -16,6 +16,9 @@ func FormatValue(v cty.Value, indent int) string {
 	if !v.IsKnown() {
 		return "(known after apply)"
 	}
+	if v.IsMarked() {
+		return "(sensitive)"
+	}
 	if v.IsNull() {
 		ty := v.Type()
 		switch {
@@ -36,9 +39,6 @@ func FormatValue(v cty.Value, indent int) string {
 		default:
 			return fmt.Sprintf("null /* %s */", ty.FriendlyName())
 		}
-	}
-	if v.IsMarked() {
-		return "(sensitive)"
 	}
 
 	ty := v.Type()
