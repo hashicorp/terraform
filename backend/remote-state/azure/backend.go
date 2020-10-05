@@ -239,7 +239,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		UseMsi:                        data.Get("use_msi").(bool),
 	}
 
-	armClient, err := buildArmClient(config)
+	armClient, err := buildArmClient(context.TODO(), config)
 	if err != nil {
 		return err
 	}
