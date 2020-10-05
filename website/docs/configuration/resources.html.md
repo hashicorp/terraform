@@ -638,16 +638,22 @@ meta-arguments are supported:
   any difference in the current settings of a real infrastructure object
   and plans to update the remote object to match configuration.
 
-    In some rare cases, settings of a remote object are modified by processes
-    outside of Terraform, which Terraform would then attempt to "fix" on the
-    next run. In order to make Terraform share management responsibilities
-    of a single object with a separate process, the `ignore_changes`
-    meta-argument specifies resource attributes that Terraform should ignore
-    when planning updates to the associated remote object.
+    The `ignore_chages` feature is intended to be used when a resource is
+    created with references to data that may change in the future, but should
+    not effect said resource after its creation. In some rare cases, settings
+    of a remote object are modified by processes outside of Terraform, which
+    Terraform would then attempt to "fix" on the next run. In order to make
+    Terraform share management responsibilities of a single object with a
+    separate process, the `ignore_changes` meta-argument specifies resource
+    attributes that Terraform should ignore when planning updates to the
+    associated remote object.
 
     The arguments corresponding to the given attribute names are considered
     when planning a _create_ operation, but are ignored when planning an
-    _update_.
+    _update_. The arugments are the relative address of the attributes in the
+    resource. Map and list elements can be referenced using index notation,
+    like `tags["Name"]` and `list[0]` respectively.
+
 
     ```hcl
     resource "aws_instance" "example" {
@@ -658,35 +664,6 @@ meta-arguments are supported:
           # Ignore changes to tags, e.g. because a management agent
           # updates these based on some ruleset managed elsewhere.
           tags,
-        ]
-      }
-    }
-    ```
-
-    You can also ignore specific map elements by writing references like
-    `tags["Name"]` in the `ignore_changes` list, though with an important
-    caveat: the ignoring applies only to in-place updates to an existing
-    key. Adding or removing a key is treated by Terraform as a change to the
-    containing map itself rather than to the individual key, and so if you
-    wish to ignore changes to a particular tag made by an external system
-    you must ensure that the Terraform configuration creates a placeholder
-    element for that tag name so that the external system changes will be
-    understood as an in-place edit of that key:
-
-    ```hcl
-    resource "aws_instance" "example" {
-      # ...
-
-      tags = {
-        # Initial value for Name is overridden by our automatic scheduled
-        # re-tagging process; changes to this are ignored by ignore_changes
-        # below.
-        Name = "placeholder"
-      }
-
-      lifecycle {
-        ignore_changes = [
-          tags["Name"],
         ]
       }
     }
