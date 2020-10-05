@@ -16,6 +16,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -23,8 +24,8 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestInit_empty(t *testing.T) {
@@ -956,9 +957,19 @@ func TestInit_getProvider(t *testing.T) {
 		// getting providers should fail if a state from a newer version of
 		// terraform exists, since InitCommand.getProviders needs to inspect that
 		// state.
-		s := terraform.NewState()
-		s.TFVersion = "100.1.0"
-		testStateFileDefault(t, s)
+
+		f, err := os.Create(DefaultStateFilename)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		defer f.Close()
+
+		s := &statefile.File{
+			Lineage:          "",
+			State:            states.NewState(),
+			TerraformVersion: version.Must(version.NewVersion("100.1.0")),
+		}
+		statefile.WriteForTest(s, f)
 
 		ui := new(cli.MockUi)
 		m.Ui = ui

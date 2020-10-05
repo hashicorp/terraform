@@ -192,10 +192,10 @@ func TestModuleProviderRequirements(t *testing.T) {
 	m := &Module{
 		Name: "root",
 		Providers: Providers{
-			addrs.NewLegacyProvider("foo"): ProviderDependency{
+			addrs.NewDefaultProvider("foo"): ProviderDependency{
 				Constraints: discovery.ConstraintStr(">=1.0.0").MustParse(),
 			},
-			addrs.NewLegacyProvider("baz"): ProviderDependency{
+			addrs.NewDefaultProvider("baz"): ProviderDependency{
 				Constraints: discovery.ConstraintStr(">=3.0.0").MustParse(),
 			},
 		},

@@ -139,7 +139,7 @@ func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewLegacyProvider("test"): provider.GetSchemaReturn,
+			addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
 		},
 	}
 }
@@ -244,7 +244,7 @@ func basicState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -260,7 +260,7 @@ func basicState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"compute":"sure"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -296,7 +296,7 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -323,7 +323,7 @@ func nestedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -346,7 +346,7 @@ func deposedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -375,7 +375,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -392,7 +392,7 @@ func onlyDeposedState(t *testing.T) *states.State {
 			AttrsJSON:     []byte(`{"woozles":"confuzles","nested": [{"value": "42"}]}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)

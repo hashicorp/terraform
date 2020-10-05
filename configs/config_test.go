@@ -74,7 +74,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Alias:    "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
