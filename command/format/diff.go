@@ -885,7 +885,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				break
 			}
 
-			p.buf.WriteString("<<~EOT")
+			p.buf.WriteString("<<-EOT")
 			if p.pathForcesNewResource(path) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 			}
