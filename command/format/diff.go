@@ -827,6 +827,9 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
 		if old.IsMarked() || new.IsMarked() {
 			p.buf.WriteString("(sensitive)")
+			if p.pathForcesNewResource(path) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
 			return
 		}
 
