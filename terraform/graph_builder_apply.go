@@ -87,6 +87,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:   b.Config,
 		},
 
+		// Add dynamic values
+		&RootVariableTransformer{Config: b.Config},
+		&ModuleVariableTransformer{Config: b.Config},
+		&LocalTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config},
+
 		// Creates all the resource instances represented in the diff, along
 		// with dependency edges against the whole-resource nodes added by
 		// ConfigTransformer above.
@@ -96,30 +102,18 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Changes:  b.Changes,
 		},
 
+		// Attach the state
+		&AttachStateTransformer{State: b.State},
+
 		// Create orphan output nodes
 		&OrphanOutputTransformer{Config: b.Config, State: b.State},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		// Attach the state
-		&AttachStateTransformer{State: b.State},
-
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
-
-		// Add root variables
-		&RootVariableTransformer{Config: b.Config},
-
-		// Add the local values
-		&LocalTransformer{Config: b.Config},
-
-		// Add the outputs
-		&OutputTransformer{Config: b.Config},
-
-		// Add module variables
-		&ModuleVariableTransformer{Config: b.Config},
 
 		// add providers
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
@@ -150,7 +144,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:   b.State,
 			Schemas: b.Schemas,
 		},
-
 		&CBDEdgeTransformer{
 			Config:  b.Config,
 			State:   b.State,

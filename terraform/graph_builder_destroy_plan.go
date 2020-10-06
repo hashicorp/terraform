@@ -92,8 +92,13 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// created proper destroy ordering.
 		&TargetsTransformer{Targets: b.Targets},
 
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
+
 		// Close the root module
 		&CloseRootModuleTransformer{},
+
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps

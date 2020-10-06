@@ -60,28 +60,20 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Creates all the data resources that aren't in the state. This will also
 		// add any orphans from scaling in as destroy nodes.
 		&ConfigTransformer{
-			Concrete: nil, // just use the abstract type
-			Config:   b.Config,
-			Unique:   true,
+			Config: b.Config,
 		},
 
-		// Attach the state
-		&AttachStateTransformer{State: b.State},
+		// Add dynamic values
+		&RootVariableTransformer{Config: b.Config},
+		&ModuleVariableTransformer{Config: b.Config},
+		&LocalTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		// Add root variables
-		&RootVariableTransformer{Config: b.Config},
-
-		// Add the local values
-		&LocalTransformer{Config: b.Config},
-
-		// Add the outputs
-		&OutputTransformer{Config: b.Config},
-
-		// Add module variables
-		&ModuleVariableTransformer{Config: b.Config},
+		// Attach the state
+		&AttachStateTransformer{State: b.State},
 
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
@@ -92,9 +84,7 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
 		// objects that can belong to modules.
-		&ModuleExpansionTransformer{
-			Config: b.Config,
-		},
+		&ModuleExpansionTransformer{Config: b.Config},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
