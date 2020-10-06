@@ -153,7 +153,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
 	var err error
 
 	switch op {
-	case walkPlan, walkApply, walkDestroy, walkImport:
+	case walkPlan, walkApply, walkDestroy:
 		vals, err = n.EvalModuleCallArgument(ctx, false)
 		if err != nil {
 			return err
