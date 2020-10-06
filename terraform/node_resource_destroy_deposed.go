@@ -76,44 +76,41 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	switch op {
-	case walkPlan, walkPlanDestroy:
-
-		readStateDeposed := &EvalReadStateDeposed{
-			Addr:           addr.Resource,
-			Output:         &state,
-			Key:            n.DeposedKey,
-			Provider:       &provider,
-			ProviderSchema: &providerSchema,
-		}
-		_, err = readStateDeposed.Eval(ctx)
-		if err != nil {
-			return err
-		}
-
-		diffDestroy := &EvalDiffDestroy{
-			Addr:         addr.Resource,
-			ProviderAddr: n.ResolvedProvider,
-			DeposedKey:   n.DeposedKey,
-			State:        &state,
-			Output:       &change,
-		}
-		_, err = diffDestroy.Eval(ctx)
-		if err != nil {
-			return err
-		}
-
-		writeDiff := &EvalWriteDiff{
-			Addr:           addr.Resource,
-			DeposedKey:     n.DeposedKey,
-			ProviderSchema: &providerSchema,
-			Change:         &change,
-		}
-		_, err = writeDiff.Eval(ctx)
-		if err != nil {
-			return err
-		}
+	readStateDeposed := &EvalReadStateDeposed{
+		Addr:           addr.Resource,
+		Output:         &state,
+		Key:            n.DeposedKey,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
 	}
+	_, err = readStateDeposed.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	diffDestroy := &EvalDiffDestroy{
+		Addr:         addr.Resource,
+		ProviderAddr: n.ResolvedProvider,
+		DeposedKey:   n.DeposedKey,
+		State:        &state,
+		Output:       &change,
+	}
+	_, err = diffDestroy.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		DeposedKey:     n.DeposedKey,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	_, err = writeDiff.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
