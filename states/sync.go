@@ -316,9 +316,8 @@ func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.ConfigR
 // concurrently mutated during this call, but may be freely used again once
 // this function returns.
 //
-// The provider address and "each mode" are resource-wide settings and so they
-// are updated for all other instances of the same resource as a side-effect of
-// this call.
+// The provider address is a resource-wide settings and is updated
+// for all other instances of the same resource as a side-effect of this call.
 //
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.

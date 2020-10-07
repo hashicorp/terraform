@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -212,23 +213,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	// Create an unmarked version of our config val, defaulting
-	// to the configVal so we don't do the work of unmarking unless
-	// necessary
-	unmarkedConfigVal := configValIgnored
-	var unmarkedPaths []cty.PathValueMarks
-	if configValIgnored.ContainsMarked() {
-		// store the marked values so we can re-mark them later after
-		// we've sent things over the wire.
-		unmarkedConfigVal, unmarkedPaths = configValIgnored.UnmarkDeepWithPaths()
-	}
-
-	unmarkedPriorVal := priorVal
-	if priorVal.ContainsMarked() {
-		// store the marked values so we can re-mark them later after
-		// we've sent things over the wire.
-		unmarkedPriorVal, _ = priorVal.UnmarkDeep()
-	}
+	// Create an unmarked version of our config val and our prior val.
+	// Store the paths for the config val to re-markafter
+	// we've sent things over the wire.
+	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
+	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
 
 	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
 
@@ -395,8 +384,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	// Unmark for this test for equality. If only sensitivity has changed,
-	// this does not require an Update or Replace
+	// Unmark for this test for value equality.
 	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
@@ -493,6 +481,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			action = plans.DeleteThenCreate
 		}
 		priorVal = priorValTainted
+	}
+
+	// If we plan to write or delete sensitive paths from state,
+	// this is an Update action
+	if action == plans.NoOp && !reflect.DeepEqual(priorPaths, unmarkedPaths) {
+		action = plans.Update
 	}
 
 	// As a special case, if we have a previous diff (presumably from the plan

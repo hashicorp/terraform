@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -109,20 +110,17 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// If our config, Before or After value contain any marked values,
 	// ensure those are stripped out before sending
 	// this to the provider
-	unmarkedConfigVal := configVal
-	if configVal.ContainsMarked() {
-		unmarkedConfigVal, _ = configVal.UnmarkDeep()
-	}
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	unmarkedBefore, beforePaths := change.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, afterPaths := change.After.UnmarkDeepWithPaths()
 
-	unmarkedBefore := change.Before
-	if change.Before.ContainsMarked() {
-		unmarkedBefore, _ = change.Before.UnmarkDeep()
-	}
-
-	unmarkedAfter := change.After
-	var afterPaths []cty.PathValueMarks
-	if change.After.ContainsMarked() {
-		unmarkedAfter, afterPaths = change.After.UnmarkDeepWithPaths()
+	// If we have an Update action, our before and after values are equal,
+	// and only differ on their sensitivity, the newVal is the after val
+	// and we should not communicate with the provider or perform further action.
+	eqV := unmarkedBefore.Equals(unmarkedAfter)
+	eq := eqV.IsKnown() && eqV.True()
+	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
+		return nil, diags.ErrWithWarnings()
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
