@@ -179,6 +179,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 
 func (i *UIInput) init() {
 	i.result = make(chan string)
+	i.err = make(chan string)
 
 	if i.Colorize == nil {
 		i.Colorize = &colorstring.Colorize{
