@@ -119,17 +119,6 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	return dirs
 }
 
-func (m *Meta) pluginCache() discovery.PluginCache {
-	dir := m.PluginCacheDir
-	if dir == "" {
-		return nil // cache disabled
-	}
-
-	dir = filepath.Join(dir, pluginMachineName)
-
-	return discovery.NewLocalPluginCache(dir)
-}
-
 func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)

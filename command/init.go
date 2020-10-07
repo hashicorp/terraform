@@ -427,9 +427,8 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	if moreDiags.HasErrors() {
 		return false, true, diags
 	}
-	stateReqs := make(getproviders.Requirements, 0)
 	if state != nil {
-		stateReqs = state.ProviderRequirements()
+		stateReqs := state.ProviderRequirements()
 		reqs = reqs.Merge(stateReqs)
 	}
 
@@ -774,16 +773,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	return true, false, diags
 }
 
-func (c *InitCommand) populateProviderToReqs(reqs map[addrs.Provider][]*configs.ModuleRequirements, node *configs.ModuleRequirements) {
-	for fqn := range node.Requirements {
-		reqs[fqn] = append(reqs[fqn], node)
-	}
-
-	for _, child := range node.Children {
-		c.populateProviderToReqs(reqs, child)
-	}
-}
-
 // backendConfigOverrideBody interprets the raw values of -backend-config
 // arguments into a hcl Body that should override the backend settings given
 // in the configuration.
@@ -1030,117 +1019,6 @@ changes, we recommend adding version constraints in a required_providers block
 in your configuration, with the constraint strings suggested below.
 `
 
-const errDiscoveryServiceUnreachable = `
-[reset][bold][red]Registry service unreachable.[reset][red]
-
-This may indicate a network issue, or an issue with the requested Terraform Registry.
-`
-
-const errProviderNotFound = `
-[reset][bold][red]Provider %[1]q not available for installation.[reset][red]
-
-A provider named %[1]q could not be found in the Terraform Registry.
-
-This may result from mistyping the provider name, or the given provider may
-be a third-party provider that cannot be installed automatically.
-
-In the latter case, the plugin must be installed manually by locating and
-downloading a suitable distribution package and placing the plugin's executable
-file in the following directory:
-    %[2]s
-
-Terraform detects necessary plugins by inspecting the configuration and state.
-To view the provider versions requested by each module, run
-"terraform providers".
-`
-
-const errProviderVersionsUnsuitable = `
-[reset][bold][red]No provider %[1]q plugins meet the constraint %[2]q.[reset][red]
-
-The version constraint is derived from the "version" argument within the
-provider %[1]q block in configuration. Child modules may also apply
-provider version constraints. To view the provider versions requested by each
-module in the current configuration, run "terraform providers".
-
-To proceed, the version constraints for this provider must be relaxed by
-either adjusting or removing the "version" argument in the provider blocks
-throughout the configuration.
-`
-
-const errProviderIncompatible = `
-[reset][bold][red]No available provider %[1]q plugins are compatible with this Terraform version.[reset][red]
-
-From time to time, new Terraform major releases can change the requirements for
-plugins such that older plugins become incompatible.
-
-Terraform checked all of the plugin versions matching the given constraint:
-    %[2]s
-
-Unfortunately, none of the suitable versions are compatible with this version
-of Terraform. If you have recently upgraded Terraform, it may be necessary to
-move to a newer major release of this provider. Alternatively, if you are
-attempting to upgrade the provider to a new major version you may need to
-also upgrade Terraform to support the new version.
-
-Consult the documentation for this provider for more information on
-compatibility between provider versions and Terraform versions.
-`
-
-const errProviderInstallError = `
-[reset][bold][red]Error installing provider %[1]q: %[2]s.[reset][red]
-
-Terraform analyses the configuration and state and automatically downloads
-plugins for the providers used. However, when attempting to download this
-plugin an unexpected error occurred.
-
-This may be caused if for some reason Terraform is unable to reach the
-plugin repository. The repository may be unreachable if access is blocked
-by a firewall.
-
-If automatic installation is not possible or desirable in your environment,
-you may alternatively manually install plugins by downloading a suitable
-distribution package and placing the plugin's executable file in the
-following directory:
-    %[3]s
-`
-
-const errMissingProvidersNoInstall = `
-[reset][bold][red]Missing required providers.[reset][red]
-
-The following provider constraints are not met by the currently-installed
-provider plugins:
-
-%[1]s
-Terraform can automatically download and install plugins to meet the given
-constraints, but this step was skipped due to the use of -get-plugins=false
-and/or -plugin-dir on the command line.
-
-If automatic installation is not possible or desirable in your environment,
-you may manually install plugins by downloading a suitable distribution package
-and placing the plugin's executable file in one of the directories given in
-by -plugin-dir on the command line, or in the following directory if custom
-plugin directories are not set:
-    %[2]s
-`
-
-const errChecksumVerification = `
-[reset][bold][red]Error verifying checksum for provider %[1]q[reset][red]
-The checksum for provider distribution from the Terraform Registry
-did not match the source. This may mean that the distributed files
-were changed after this version was released to the Registry.
-`
-
-const errSignatureVerification = `
-[reset][bold][red]Error:[reset][bold] Untrusted signing key for provider %[1]q[reset]
-
-This provider package is not signed with the HashiCorp signing key, and is
-therefore incompatible with Terraform v%[2]s.
-
-A later version of Terraform may have introduced other signing keys that would
-accept this provider. Alternatively, an earlier version of this provider may
-be compatible with Terraform v%[2]s.
-`
-
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's
 // supported protocol versions are too old for the user's version of terraform,
 // but a newer version of the provider is compatible.
@@ -1171,20 +1049,3 @@ Alternatively, upgrade to the latest version of Terraform for compatibility with
 
 // No version of the provider is compatible.
 const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`
-
-// Logic from internal/initwd/getter.go
-var localSourcePrefixes = []string{
-	"./",
-	"../",
-	".\\",
-	"..\\",
-}
-
-func isLocalSourceAddr(addr string) bool {
-	for _, prefix := range localSourcePrefixes {
-		if strings.HasPrefix(addr, prefix) {
-			return true
-		}
-	}
-	return false
-}
