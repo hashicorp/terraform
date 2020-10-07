@@ -199,61 +199,55 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 
 // GraphNodeExecutable
 func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
-	switch op {
-	// Everything except walkImport
-	case walkEval, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy:
-		// This has to run before we have a state lock, since evaluation also
-		// reads the state
-		val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
-		// We'll handle errors below, after we have loaded the module.
+	// This has to run before we have a state lock, since evaluation also
+	// reads the state
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+	// We'll handle errors below, after we have loaded the module.
 
-		// Outputs don't have a separate mode for validation, so validate
-		// depends_on expressions here too
-		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+	// Outputs don't have a separate mode for validation, so validate
+	// depends_on expressions here too
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
-		// Ensure that non-sensitive outputs don't include sensitive values
-		_, marks := val.UnmarkDeep()
-		_, hasSensitive := marks["sensitive"]
-		if !n.Config.Sensitive && hasSensitive {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Output refers to sensitive values",
-				Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
-				Subject:  n.Config.DeclRange.Ptr(),
-			})
-		}
+	// Ensure that non-sensitive outputs don't include sensitive values
+	_, marks := val.UnmarkDeep()
+	_, hasSensitive := marks["sensitive"]
+	if !n.Config.Sensitive && hasSensitive {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Output refers to sensitive values",
+			Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
+	}
 
-		state := ctx.State()
-		if state == nil {
-			return nil
-		}
-
-		changes := ctx.Changes() // may be nil, if we're not working on a changeset
-
-		// handling the interpolation error
-		if diags.HasErrors() {
-			if flagWarnOutputErrors {
-				log.Printf("[ERROR] Output interpolation %q failed: %s", n.Addr, diags.Err())
-				// if we're continuing, make sure the output is included, and
-				// marked as unknown. If the evaluator was able to find a type
-				// for the value in spite of the error then we'll use it.
-				n.setValue(state, changes, cty.UnknownVal(val.Type()))
-				return EvalEarlyExitError{}
-			}
-			return diags.Err()
-		}
-		n.setValue(state, changes, val)
-
-		// If we were able to evaluate a new value, we can update that in the
-		// refreshed state as well.
-		if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
-			n.setValue(state, changes, val)
-		}
-
-		return nil
-	default:
+	state := ctx.State()
+	if state == nil {
 		return nil
 	}
+
+	changes := ctx.Changes() // may be nil, if we're not working on a changeset
+
+	// handling the interpolation error
+	if diags.HasErrors() {
+		if flagWarnOutputErrors {
+			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Addr, diags.Err())
+			// if we're continuing, make sure the output is included, and
+			// marked as unknown. If the evaluator was able to find a type
+			// for the value in spite of the error then we'll use it.
+			n.setValue(state, changes, cty.UnknownVal(val.Type()))
+			return EvalEarlyExitError{}
+		}
+		return diags.Err()
+	}
+	n.setValue(state, changes, val)
+
+	// If we were able to evaluate a new value, we can update that in the
+	// refreshed state as well.
+	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
+		n.setValue(state, changes, val)
+	}
+
+	return nil
 }
 
 // dag.GraphNodeDotter impl.

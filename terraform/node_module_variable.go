@@ -153,13 +153,13 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
 	var err error
 
 	switch op {
-	case walkPlan, walkApply, walkDestroy:
-		vals, err = n.EvalModuleCallArgument(ctx, false)
+	case walkValidate:
+		vals, err = n.EvalModuleCallArgument(ctx, true)
 		if err != nil {
 			return err
 		}
-	case walkValidate:
-		vals, err = n.EvalModuleCallArgument(ctx, true)
+	default:
+		vals, err = n.EvalModuleCallArgument(ctx, false)
 		if err != nil {
 			return err
 		}

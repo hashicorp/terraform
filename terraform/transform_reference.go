@@ -301,7 +301,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 			case addrs.ModuleCallInstance:
 				subject = ri.Call
 			default:
-				log.Printf("[WARN] ReferenceTransformer: reference not found: %q", subject)
+				log.Printf("[INFO] ReferenceTransformer: reference not found: %q", subject)
 				continue
 			}
 			key = m.referenceMapKey(v, subject)
