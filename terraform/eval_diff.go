@@ -216,7 +216,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// Store the paths for the config val to re-markafter
 	// we've sent things over the wire.
 	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
-	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeep()
+	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
 
 	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
 
@@ -393,11 +393,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		action = plans.Create
 	case eq:
 		action = plans.NoOp
-		// If we plan to write or delete sensitive paths from state,
-		// this is an Update action
-		if len(priorPaths) != len(unmarkedPaths) {
-			action = plans.Update
-		}
 	case !reqRep.Empty():
 		// If there are any "requires replace" paths left _after our filtering
 		// above_ then this is a replace action.
@@ -485,6 +480,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			action = plans.DeleteThenCreate
 		}
 		priorVal = priorValTainted
+	}
+
+	// If we plan to write or delete sensitive paths from state,
+	// this is an Update action
+	if action == plans.NoOp && len(priorPaths) != len(unmarkedPaths) {
+		action = plans.Update
 	}
 
 	// As a special case, if we have a previous diff (presumably from the plan

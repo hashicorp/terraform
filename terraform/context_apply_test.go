@@ -12088,3 +12088,105 @@ resource "test_resource" "foo" {
 	fooState := state.ResourceInstance(addr)
 	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
 }
+
+func TestContext2Apply_variableSensitivityChange(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+	experiments = [sensitive_variables]
+}
+
+variable "sensitive_var" {
+	default = "hello"
+	sensitive = true
+}
+
+resource "test_resource" "foo" {
+	value = var.sensitive_var
+}`,
+	})
+
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"foo", "value":"hello"}`),
+					// No AttrSensitivePaths present
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+			)
+		}),
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	addr := mustResourceInstanceAddr("test_resource.foo")
+
+	state, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	fooState := state.ResourceInstance(addr)
+
+	got := fooState.Current.AttrSensitivePaths[0]
+	want := cty.PathValueMarks{
+		Path:  cty.GetAttrPath("value"),
+		Marks: cty.NewValueMarks("sensitive"),
+	}
+
+	if !got.Equal(want) {
+		t.Fatalf("wrong value marks; got:\n%#v\n\nwant:\n%#v\n", got, want)
+	}
+
+	m2 := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+	experiments = [sensitive_variables]
+}
+
+variable "sensitive_var" {
+	default = "hello"
+	sensitive = false
+}
+
+resource "test_resource" "foo" {
+	value = var.sensitive_var
+}`,
+	})
+
+	ctx2 := testContext2(t, &ContextOpts{
+		Config: m2,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags = ctx2.Plan()
+	assertNoErrors(t, diags)
+
+	stateWithoutSensitive, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	fooState2 := stateWithoutSensitive.ResourceInstance(addr)
+	if len(fooState2.Current.AttrSensitivePaths) > 0 {
+		t.Fatalf("wrong number of sensitive paths, expected 0, got, %v", len(fooState2.Current.AttrSensitivePaths))
+	}
+}
