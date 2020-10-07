@@ -1,4 +1,4 @@
-package copydir
+package copy
 
 import (
 	"io/ioutil"

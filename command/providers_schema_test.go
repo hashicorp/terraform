@@ -10,8 +10,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
-
-	"github.com/hashicorp/terraform/helper/copy"
 )
 
 func TestProvidersSchema_error(t *testing.T) {
@@ -45,7 +43,7 @@ func TestProvidersSchema_output(t *testing.T) {
 		t.Run(entry.Name(), func(t *testing.T) {
 			td := tempDir(t)
 			inputDir := filepath.Join(fixtureDir, entry.Name())
-			copy.CopyDir(inputDir, td)
+			testCopyDir(t, inputDir, td)
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 

@@ -11,7 +11,8 @@ import (
 	getter "github.com/hashicorp/go-getter"
 
 	"github.com/hashicorp/terraform/httpclient"
-	"github.com/hashicorp/terraform/internal/copydir"
+	"github.com/hashicorp/terraform/internal/copy"
+	copydir "github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -180,7 +181,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 	if err != nil && os.IsExist(err) {
 		return nil, fmt.Errorf("failed to create directory %s: %s", absNew, err)
 	}
-	err = copydir.CopyDir(absNew, absCurrent)
+	err = copy.CopyDir(absNew, absCurrent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to either symlink or copy %s to %s: %s", absCurrent, absNew, err)
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -444,7 +443,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 // don't modify backend state is we supply a -state flag
 func TestStateMv_explicitWithBackend(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1040,7 +1039,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 
 func TestStateMv_withinBackend(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1118,7 +1117,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 
 func TestStateMv_fromBackendToLocal(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

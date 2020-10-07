@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
@@ -186,7 +185,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 func TestInit_get(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get"), td)
+	testCopyDir(t, testFixturePath("init-get"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -245,7 +244,7 @@ func TestInit_getUpgradeModules(t *testing.T) {
 func TestInit_backend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -270,7 +269,7 @@ func TestInit_backend(t *testing.T) {
 func TestInit_backendUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -333,7 +332,7 @@ func TestInit_backendUnset(t *testing.T) {
 func TestInit_backendConfigFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend-config-file"), td)
+	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -460,7 +459,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend-config-file"), td)
+	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -494,7 +493,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 func TestInit_backendConfigFileChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend-config-file-change"), td)
+	testCopyDir(t, testFixturePath("init-backend-config-file-change"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -526,7 +525,7 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 func TestInit_backendConfigKV(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend-config-kv"), td)
+	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -553,7 +552,7 @@ func TestInit_backendConfigKV(t *testing.T) {
 func TestInit_backendConfigKVReInit(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend-config-kv"), td)
+	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -614,7 +613,7 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -660,7 +659,7 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 func TestInit_backendCli_no_config_block(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init"), td)
+	testCopyDir(t, testFixturePath("init"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -691,7 +690,7 @@ func TestInit_targetSubdir(t *testing.T) {
 	defer testChdir(t, td)()
 
 	// copy the source into a subdir
-	copy.CopyDir(testFixturePath("init-backend"), filepath.Join(td, "source"))
+	testCopyDir(t, testFixturePath("init-backend"), filepath.Join(td, "source"))
 
 	ui := new(cli.MockUi)
 	c := &InitCommand{
@@ -720,7 +719,7 @@ func TestInit_targetSubdir(t *testing.T) {
 
 func TestInit_backendReinitWithExtra(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend-empty"), td)
+	testCopyDir(t, testFixturePath("init-backend-empty"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -776,7 +775,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 // move option from config to -backend-config args
 func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -832,7 +831,7 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 // make sure inputFalse stops execution on migrate
 func TestInit_inputFalse(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -907,7 +906,7 @@ func TestInit_inputFalse(t *testing.T) {
 func TestInit_getProvider(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -991,7 +990,7 @@ func TestInit_getProvider(t *testing.T) {
 func TestInit_getProviderSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-provider-source"), td)
+	testCopyDir(t, testFixturePath("init-get-provider-source"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1040,7 +1039,7 @@ func TestInit_getProviderSource(t *testing.T) {
 func TestInit_getProviderLegacyFromState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-provider-legacy-from-state"), td)
+	testCopyDir(t, testFixturePath("init-get-provider-legacy-from-state"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1080,7 +1079,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 func TestInit_getProviderInvalidPackage(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-provider-invalid-package"), td)
+	testCopyDir(t, testFixturePath("init-get-provider-invalid-package"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1141,7 +1140,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-provider-detected-legacy"), td)
+	testCopyDir(t, testFixturePath("init-get-provider-detected-legacy"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1208,7 +1207,7 @@ func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	configDirName := "init-required-providers"
-	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	testCopyDir(t, testFixturePath(configDirName), filepath.Join(td, configDirName))
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1306,7 +1305,7 @@ func TestInit_cancel(t *testing.T) {
 
 	td := tempDir(t)
 	configDirName := "init-required-providers"
-	copy.CopyDir(testFixturePath(configDirName), filepath.Join(td, configDirName))
+	testCopyDir(t, testFixturePath(configDirName), filepath.Join(td, configDirName))
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1351,7 +1350,7 @@ func TestInit_cancel(t *testing.T) {
 func TestInit_getUpgradePlugins(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1467,7 +1466,7 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 func TestInit_getProviderMissing(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1505,7 +1504,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 func TestInit_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-check-required-version"), td)
+	testCopyDir(t, testFixturePath("init-check-required-version"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1533,7 +1532,7 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 func TestInit_providerLockFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-provider-lock-file"), td)
+	testCopyDir(t, testFixturePath("init-provider-lock-file"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1647,7 +1646,7 @@ func TestInit_pluginDirReset(t *testing.T) {
 // Test user-supplied -plugin-dir
 func TestInit_pluginDirProviders(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1734,7 +1733,7 @@ func TestInit_pluginDirProviders(t *testing.T) {
 // Test user-supplied -plugin-dir doesn't allow auto-install
 func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-get-providers"), td)
+	testCopyDir(t, testFixturePath("init-get-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1810,7 +1809,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 // Verify that plugin-dir doesn't prevent discovery of internal providers
 func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-internal"), td)
+	testCopyDir(t, testFixturePath("init-internal"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1847,7 +1846,7 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	// - an explicit dependency on terraform.io/builtin/nonexist, which does
 	//   not exist at all.
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-internal-invalid"), td)
+	testCopyDir(t, testFixturePath("init-internal-invalid"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
