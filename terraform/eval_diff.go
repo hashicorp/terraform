@@ -731,26 +731,6 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 	return ret, nil
 }
 
-// a group of key-*ResourceAttrDiff pairs from the same flatmapped container
-type flatAttrDiff map[string]*ResourceAttrDiff
-
-// we need to keep all keys if any of them have a diff that's not ignored
-func (f flatAttrDiff) keepDiff(ignoreChanges map[string]bool) bool {
-	for k, v := range f {
-		ignore := false
-		for attr := range ignoreChanges {
-			if strings.HasPrefix(k, attr) {
-				ignore = true
-			}
-		}
-
-		if !v.Empty() && !v.NewComputed && !ignore {
-			return true
-		}
-	}
-	return false
-}
-
 // EvalDiffDestroy is an EvalNode implementation that returns a plain
 // destroy diff.
 type EvalDiffDestroy struct {
