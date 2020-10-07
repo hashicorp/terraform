@@ -1,4 +1,4 @@
-package pathorcontents
+package backend
 
 import (
 	"io"
@@ -11,8 +11,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-func TestRead_Path(t *testing.T) {
-	isPath := true
+func TestReadPathOrContents_Path(t *testing.T) {
 	f, cleanup := testTempFile(t)
 	defer cleanup()
 
@@ -21,21 +20,17 @@ func TestRead_Path(t *testing.T) {
 	}
 	f.Close()
 
-	contents, wasPath, err := Read(f.Name())
+	contents, err := ReadPathOrContents(f.Name())
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if wasPath != isPath {
-		t.Fatalf("expected wasPath: %t, got %t", isPath, wasPath)
 	}
 	if contents != "foobar" {
 		t.Fatalf("expected contents %s, got %s", "foobar", contents)
 	}
 }
 
-func TestRead_TildePath(t *testing.T) {
-	isPath := true
+func TestReadPathOrContents_TildePath(t *testing.T) {
 	home, err := homedir.Dir()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -50,13 +45,10 @@ func TestRead_TildePath(t *testing.T) {
 
 	r := strings.NewReplacer(home, "~")
 	homePath := r.Replace(f.Name())
-	contents, wasPath, err := Read(homePath)
+	contents, err := ReadPathOrContents(homePath)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if wasPath != isPath {
-		t.Fatalf("expected wasPath: %t, got %t", isPath, wasPath)
 	}
 	if contents != "foobar" {
 		t.Fatalf("expected contents %s, got %s", "foobar", contents)
@@ -72,7 +64,6 @@ func TestRead_PathNoPermission(t *testing.T) {
 		t.Skip("This test is invalid when running as root, since root can read every file")
 	}
 
-	isPath := true
 	f, cleanup := testTempFile(t)
 	defer cleanup()
 
@@ -85,47 +76,36 @@ func TestRead_PathNoPermission(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	contents, wasPath, err := Read(f.Name())
+	contents, err := ReadPathOrContents(f.Name())
 
 	if err == nil {
 		t.Fatal("Expected error, got none!")
-	}
-	if wasPath != isPath {
-		t.Fatalf("expected wasPath: %t, got %t", isPath, wasPath)
 	}
 	if contents != "" {
 		t.Fatalf("expected contents %s, got %s", "", contents)
 	}
 }
 
-func TestRead_Contents(t *testing.T) {
-	isPath := false
+func TestReadPathOrContents_Contents(t *testing.T) {
 	input := "hello"
 
-	contents, wasPath, err := Read(input)
+	contents, err := ReadPathOrContents(input)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if wasPath != isPath {
-		t.Fatalf("expected wasPath: %t, got %t", isPath, wasPath)
 	}
 	if contents != input {
 		t.Fatalf("expected contents %s, got %s", input, contents)
 	}
 }
 
-func TestRead_TildeContents(t *testing.T) {
-	isPath := false
+func TestReadPathOrContents_TildeContents(t *testing.T) {
 	input := "~/hello/notafile"
 
-	contents, wasPath, err := Read(input)
+	contents, err := ReadPathOrContents(input)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if wasPath != isPath {
-		t.Fatalf("expected wasPath: %t, got %t", isPath, wasPath)
 	}
 	if contents != input {
 		t.Fatalf("expected contents %s, got %s", input, contents)

@@ -11,7 +11,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/httpclient"
 	"golang.org/x/oauth2"
@@ -148,7 +147,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
-		contents, _, err := pathorcontents.Read(creds)
+		contents, err := backend.ReadPathOrContents(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
@@ -183,7 +182,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if key != "" {
-		kc, _, err := pathorcontents.Read(key)
+		kc, err := backend.ReadPathOrContents(key)
 		if err != nil {
 			return fmt.Errorf("Error loading encryption key: %s", err)
 		}
