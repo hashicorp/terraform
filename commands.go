@@ -220,6 +220,12 @@ func initCommands(originalWorkingDir string, config *cliconfig.Config, services 
 			}, nil
 		},
 
+		"providers lock": func() (cli.Command, error) {
+			return &command.ProvidersLockCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"providers mirror": func() (cli.Command, error) {
 			return &command.ProvidersMirrorCommand{
 				Meta: meta,
