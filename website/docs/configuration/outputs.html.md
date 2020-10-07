@@ -98,10 +98,53 @@ output "db_password" {
 }
 ```
 
-Setting an output value in the root module as sensitive prevents Terraform
-from showing its value in the list of outputs at the end of `terraform apply`.
-It might still be shown in the CLI output for other reasons, like if the
-value is referenced in an expression for a resource argument.
+Setting an output value as sensitive prevents Terraform from showing its value 
+in `plan` and `apply`. In the following scenario, our root module has an output declared as sensitive
+and a module call with a sensitive output, which we then use in a resource attribute.
+
+```hcl
+# main.tf
+
+module "foo" {
+  source = "./mod"
+}
+
+resource "test_instance" "x" {
+  some_attribute = module.mod.a # resource attribute references a sensitive output
+}
+
+output "out" {
+  value     = "xyz"
+  sensitive = true
+}
+
+# mod/main.tf, our module containing a sensitive output
+
+output "a" {
+  value     = "secret"
+  sensitive = true"
+}
+```
+
+When we run a `plan` or `apply`, the sensitive value is redacted from output:
+
+```
+# CLI output
+
+Terraform will perform the following actions:
+
+  # test_instance.x will be created
+  + resource "test_instance" "x" {
+      + some_attribute    = (sensitive)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + out = (sensitive value)
+```
+
+-> **Note:** In Terraform versions prior to Terraform 0.14, setting an output value in the root module as sensitive would prevent Terraform from showing its value in the list of outputs at the end of `terraform apply`. However, the value could still display in the CLI output for other reasons, like if the value is referenced in an expression for a resource argument.
 
 Sensitive output values are still recorded in the
 [state](/docs/state/index.html), and so will be visible to anyone who is able

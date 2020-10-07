@@ -426,6 +426,10 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			instance[cfg.Name] = outputState
+
+			if cfg.Sensitive {
+				instance[cfg.Name] = outputState.Mark("sensitive")
+			}
 		}
 
 		// any pending changes override the state state values
@@ -451,6 +455,10 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			instance[cfg.Name] = change.After
+
+			if change.Sensitive {
+				instance[cfg.Name] = change.After.Mark("sensitive")
+			}
 		}
 	}
 
