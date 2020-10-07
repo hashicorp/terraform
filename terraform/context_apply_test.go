@@ -1593,7 +1593,6 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/2892
 func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 	m := testModule(t, "apply-destroy-cross-providers")
 
@@ -1629,23 +1628,16 @@ func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p_aws),
 	}
 
-	// Bug only appears from time to time,
-	// so we run this test multiple times
-	// to check for the race-condition
+	ctx := getContextForApply_destroyCrossProviders(t, m, providers)
 
-	// FIXME: this test flaps now, so run it more times
-	for i := 0; i <= 100; i++ {
-		ctx := getContextForApply_destroyCrossProviders(t, m, providers)
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
+	}
 
-		if _, diags := ctx.Plan(); diags.HasErrors() {
-			logDiagnostics(t, diags)
-			t.Fatal("plan failed")
-		}
-
-		if _, diags := ctx.Apply(); diags.HasErrors() {
-			logDiagnostics(t, diags)
-			t.Fatal("apply failed")
-		}
+	if _, diags := ctx.Apply(); diags.HasErrors() {
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
 	}
 }
 
