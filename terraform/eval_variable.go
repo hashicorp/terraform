@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 )
 
-// evalVariableValidations ensures ta all of the configured custom validations
+// evalVariableValidations ensures that all of the configured custom validations
 // for a variable are passing.
 //
 // This must be used only after any side-effects that make the value of the
