@@ -39,6 +39,7 @@ type UIInput struct {
 
 	listening int32
 	result    chan string
+	err       chan string
 
 	interrupted bool
 	l           sync.Mutex
@@ -140,12 +141,16 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		}
 		if err != nil {
 			log.Printf("[ERR] UIInput scan err: %s", err)
+			i.err <- string(err.Error())
+		} else {
+			i.result <- strings.TrimRightFunc(line, unicode.IsSpace)
 		}
-
-		i.result <- strings.TrimRightFunc(line, unicode.IsSpace)
 	}()
 
 	select {
+	case err := <-i.err:
+		return "", errors.New(err)
+
 	case line := <-i.result:
 		fmt.Fprint(w, "\n")
 
