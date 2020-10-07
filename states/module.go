@@ -76,16 +76,14 @@ func (ms *Module) RemoveResource(addr addrs.Resource) {
 
 // SetResourceInstanceCurrent saves the given instance object as the current
 // generation of the resource instance with the given address, simultaneously
-// updating the recorded provider configuration address, dependencies, and
-// resource EachMode.
+// updating the recorded provider configuration address and dependencies.
 //
 // Any existing current instance object for the given resource is overwritten.
 // Set obj to nil to remove the primary generation object altogether. If there
 // are no deposed objects then the instance will be removed altogether.
 //
-// The provider address and "each mode" are resource-wide settings and so they
-// are updated for all other instances of the same resource as a side-effect of
-// this call.
+// The provider address is a resource-wide setting and is updated for all other
+// instances of the same resource as a side-effect of this call.
 func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
 	rs := ms.Resource(addr.Resource)
 	// if the resource is nil and the object is nil, don't do anything!
