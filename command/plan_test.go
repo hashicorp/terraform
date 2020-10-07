@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -26,7 +25,7 @@ import (
 
 func TestPlan(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -47,7 +46,7 @@ func TestPlan(t *testing.T) {
 
 func TestPlan_lockedState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -264,7 +263,7 @@ func TestPlan_outPathNoChange(t *testing.T) {
 func TestPlan_outBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan-out-backend"), td)
+	testCopyDir(t, testFixturePath("plan-out-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -472,7 +471,7 @@ func TestPlan_validate(t *testing.T) {
 	defer func() { test = true }()
 
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan-invalid"), td)
+	testCopyDir(t, testFixturePath("plan-invalid"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -763,7 +762,7 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 
 func TestPlan_detailedExitcode(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -784,7 +783,7 @@ func TestPlan_detailedExitcode(t *testing.T) {
 
 func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan-emptydiff"), td)
+	testCopyDir(t, testFixturePath("plan-emptydiff"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -884,7 +883,7 @@ func TestPlan_shutdown(t *testing.T) {
 
 func TestPlan_init_required(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

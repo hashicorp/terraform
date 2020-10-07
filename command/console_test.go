@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
@@ -192,7 +191,7 @@ func TestConsole_variables(t *testing.T) {
 
 func TestConsole_modules(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("modules"), td)
+	testCopyDir(t, testFixturePath("modules"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -152,7 +152,7 @@ func TestImport_providerConfig(t *testing.T) {
 // "remote" state provided by the "local" backend
 func TestImport_remoteState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -258,7 +258,7 @@ func TestImport_remoteState(t *testing.T) {
 // early failure on import should not leave stale lock
 func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -746,7 +746,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 
 func TestImportModuleVarFile(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-module-var-file"), td)
+	testCopyDir(t, testFixturePath("import-module-var-file"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -816,7 +816,7 @@ func TestImportModuleVarFile(t *testing.T) {
 // module of {} causes this local evaluation to error, breaking import.
 func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-module-input-variable"), td)
+	testCopyDir(t, testFixturePath("import-module-input-variable"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

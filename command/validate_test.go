@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -59,7 +58,7 @@ func TestValidateCommandWithTfvarsFile(t *testing.T) {
 	// Create a temporary working directory that is empty because this test
 	// requires scanning the current working directory by validate command.
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("validate-valid/with-tfvars-file"), td)
+	testCopyDir(t, testFixturePath("validate-valid/with-tfvars-file"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

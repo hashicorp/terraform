@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
@@ -891,6 +892,71 @@ func testLockState(sourceDir, path string) (func(), error) {
 		return deferFunc, fmt.Errorf("statelocker wrote: %s", string(buf[:n]))
 	}
 	return deferFunc, nil
+}
+
+// testCopyDir recursively copies a directory tree, attempting to preserve
+// permissions. Source directory must exist, destination directory must *not*
+// exist. Symlinks are ignored and skipped.
+func testCopyDir(t *testing.T, src, dst string) {
+	t.Helper()
+
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
+
+	si, err := os.Stat(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !si.IsDir() {
+		t.Fatal("source is not a directory")
+	}
+
+	_, err = os.Stat(dst)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if err == nil {
+		t.Fatal("destination already exists")
+	}
+
+	err = os.MkdirAll(dst, si.Mode())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := ioutil.ReadDir(src)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		// If the entry is a symlink, we copy the contents
+		for entry.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(srcPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			entry, err = os.Stat(target)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if entry.IsDir() {
+			testCopyDir(t, srcPath, dstPath)
+		} else {
+			err = copy.CopyFile(srcPath, dstPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	return
 }
 
 // normalizeJSON removes all insignificant whitespace from the given JSON buffer

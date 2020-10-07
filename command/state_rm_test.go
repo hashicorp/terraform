@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -367,7 +366,7 @@ func TestStateRm_noState(t *testing.T) {
 
 func TestStateRm_needsInit(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-change"), td)
+	testCopyDir(t, testFixturePath("backend-change"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -394,7 +393,7 @@ func TestStateRm_needsInit(t *testing.T) {
 
 func TestStateRm_backendState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

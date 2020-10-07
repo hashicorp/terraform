@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -16,7 +15,7 @@ func TestVersionCommand_implements(t *testing.T) {
 func TestVersion(t *testing.T) {
 	fixtureDir := "testdata/providers-schema/basic"
 	td := tempDir(t)
-	copy.CopyDir(fixtureDir, td)
+	testCopyDir(t, fixtureDir, td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -111,7 +110,7 @@ func TestVersion_outdated(t *testing.T) {
 func TestVersion_json(t *testing.T) {
 	fixtureDir := "testdata/providers-schema/basic"
 	td := tempDir(t)
-	copy.CopyDir(fixtureDir, td)
+	testCopyDir(t, fixtureDir, td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -65,7 +64,7 @@ func TestUnlock(t *testing.T) {
 func TestUnlock_inmemBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-inmem-locked"), td)
+	testCopyDir(t, testFixturePath("backend-inmem-locked"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()

@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/internal/copydir"
+	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -544,7 +544,7 @@ func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 		return "", nil
 	}
 
-	if err := copydir.CopyDir(tmpDir, sourceDir); err != nil {
+	if err := copy.CopyDir(tmpDir, sourceDir); err != nil {
 		t.Fatalf("failed to copy fixture to temporary directory: %s", err)
 		return "", nil
 	}

@@ -6,14 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
 func TestStatePull(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-pull-backend"), td)
+	testCopyDir(t, testFixturePath("state-pull-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

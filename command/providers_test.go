@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -77,7 +76,7 @@ func TestProviders_noConfigs(t *testing.T) {
 
 func TestProviders_modules(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("providers/modules"), td)
+	testCopyDir(t, testFixturePath("providers/modules"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

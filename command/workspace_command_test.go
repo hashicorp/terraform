@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -215,7 +214,7 @@ func TestWorkspace_createInvalid(t *testing.T) {
 
 func TestWorkspace_createWithState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("inmem-backend"), td)
+	testCopyDir(t, testFixturePath("inmem-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()
