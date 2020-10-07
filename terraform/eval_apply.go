@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -118,7 +119,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// and we should not communicate with the provider or perform further action.
 	eqV := unmarkedBefore.Equals(unmarkedAfter)
 	eq := eqV.IsKnown() && eqV.True()
-	if change.Action == plans.Update && eq && (len(beforePaths) != len(afterPaths)) {
+	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
 		return nil, diags.ErrWithWarnings()
 	}
 

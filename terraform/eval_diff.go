@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -484,7 +485,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	// If we plan to write or delete sensitive paths from state,
 	// this is an Update action
-	if action == plans.NoOp && len(priorPaths) != len(unmarkedPaths) {
+	if action == plans.NoOp && !reflect.DeepEqual(priorPaths, unmarkedPaths) {
 		action = plans.Update
 	}
 
