@@ -148,10 +148,6 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 	return ret, diags
 }
 
-func (c *StateMeta) lookupSingleResourceInstanceAddr(state *states.State, addrStr string) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {
-	return addrs.ParseAbsResourceInstanceStr(addrStr)
-}
-
 func (c *StateMeta) lookupSingleStateObjectAddr(state *states.State, addrStr string) (addrs.Targetable, tfdiags.Diagnostics) {
 	target, diags := addrs.ParseTargetStr(addrStr)
 	if diags.HasErrors() {

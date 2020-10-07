@@ -153,25 +153,3 @@ Options:
 func (c *StatePushCommand) Synopsis() string {
 	return "Update remote state from a local state file"
 }
-
-const errStatePushLineage = `
-The lineages do not match! The state will not be pushed.
-
-The "lineage" is a unique identifier given to a state on creation. It helps
-protect Terraform from overwriting a seemingly unrelated state file since it
-represents potentially losing real state.
-
-Please verify you're pushing the correct state. If you're sure you are, you
-can force the behavior with the "-force" flag.
-`
-
-const errStatePushSerialNewer = `
-The destination state has a higher serial number! The state will not be pushed.
-
-A higher serial could indicate that there is data in the destination state
-that was not present when the source state was created. As a protection measure,
-Terraform will not automatically overwrite this state.
-
-Please verify you're pushing the correct state. If you're sure you are, you
-can force the behavior with the "-force" flag.
-`

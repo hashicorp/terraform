@@ -17,8 +17,6 @@ type ValidateCommand struct {
 	Meta
 }
 
-const defaultPath = "."
-
 func (c *ValidateCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	// TODO: The `var` and `var-file` options are not actually used, and should
