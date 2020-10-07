@@ -77,6 +77,9 @@ The intent of this process is to get fix the maximum number of bugs in Terraform
 Milestones ending in .x indicate issues assigned to that milestone are intended to be fixed during that release lifecycle. Milestones ending in .0 indicate issues that will be fixed in that major release. For example:
 
 [0.13.x Milestone](https://github.com/hashicorp/terraform/milestone/17). Issues in this milestone should be considered high-priority but do not block a patch release. All issues in this milestone should be resolved in a 13.x release before the 0.14.0 RC1 ships.
+
 [0.14.0 Milestone](https://github.com/hashicorp/terraform/milestone/18). All issues in this milestone must be fixed before 0.14.0 RC1 ships, and should ideally be fixed before 0.14.0 beta 1 ships.
+
 [0.14.x Milestone](https://github.com/hashicorp/terraform/milestone/20). Issues in this milestone are expected to be addressed at some point in the 0.14.x lifecycle, before 0.15.0. All issues in this milestone should be resolved in a 14.x release before the 0.15.0 RC1 ships.
+
 [0.15.0 Milestone](https://github.com/hashicorp/terraform/milestone/19). All issues in this milestone must be fixed before 0.15.0 RC1 ships, and should ideally be fixed before 0.15.0 beta 1 ships.
