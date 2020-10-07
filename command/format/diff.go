@@ -381,7 +381,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	// Display a special diff because it is irrelevant
 	// to list all obfuscated attributes as (sensitive)
 	if old.IsMarked() || new.IsMarked() {
-		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore)
+		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore, path)
 		return 0
 	}
 
@@ -589,7 +589,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	return skippedBlocks
 }
 
-func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, new cty.Value, indent int, blankBefore bool) {
+func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, new cty.Value, indent int, blankBefore bool, path cty.Path) {
 	unmarkedOld, _ := old.Unmark()
 	unmarkedNew, _ := new.Unmark()
 	eqV := unmarkedNew.Equals(unmarkedOld)
@@ -618,6 +618,9 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 	fmt.Fprintf(p.buf, "%s {", name)
+	if action != plans.NoOp && p.pathForcesNewResource(path) {
+		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+	}
 	p.buf.WriteRune('\n')
 	p.buf.WriteString(strings.Repeat(" ", indent+4))
 	p.buf.WriteString("# At least one attribute in this block is (or was) sensitive,\n")

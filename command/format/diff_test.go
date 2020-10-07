@@ -4259,20 +4259,38 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-BEFORE"),
+				"nested_block_set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secret"),
+					}),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"nested_block_set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("changed"),
+					}),
+				}),
 			}),
 			BeforeValMarks: []cty.PathValueMarks{
 				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Path:  cty.GetAttrPath("ami"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.GetAttrPath("nested_block_set"),
 					Marks: cty.NewValueMarks("sensitive"),
 				},
 			},
 			AfterValMarks: []cty.PathValueMarks{
 				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Path:  cty.GetAttrPath("ami"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.GetAttrPath("nested_block_set"),
 					Marks: cty.NewValueMarks("sensitive"),
 				},
 			},
@@ -4281,15 +4299,31 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"id":  {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block_set": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Required: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
 			},
-			RequiredReplace: cty.NewPathSet(cty.Path{
-				cty.GetAttrStep{Name: "ami"},
-			}),
+			RequiredReplace: cty.NewPathSet(
+				cty.GetAttrPath("ami"),
+				cty.GetAttrPath("nested_block_set"),
+			),
 			Tainted: false,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ ami = (sensitive) # forces replacement
         id  = "i-02ae66f368e8518a9"
+
+      ~ nested_block_set { # forces replacement
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
     }
 `,
 		},
