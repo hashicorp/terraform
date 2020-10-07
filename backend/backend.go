@@ -34,10 +34,6 @@ var (
 	ErrDefaultWorkspaceNotSupported = errors.New("default workspace not supported\n" +
 		"You can create a new workspace with the \"workspace new\" command.")
 
-	// ErrOperationNotSupported is returned when an unsupported operation
-	// is detected by the configured backend.
-	ErrOperationNotSupported = errors.New("operation not supported")
-
 	// ErrWorkspacesNotSupported is an error returned when a caller attempts
 	// to perform an operation on a workspace other than "default" for a
 	// backend that doesn't support multiple workspaces.
