@@ -86,9 +86,6 @@ type MockProvider struct {
 
 	CloseCalled bool
 	CloseError  error
-
-	DiffFn  func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
-	ApplyFn func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 }
 
 func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
@@ -263,9 +260,6 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	p.PlanResourceChangeCalled = true
 	p.PlanResourceChangeRequest = r
 
-	if p.DiffFn != nil {
-		return p.DiffFn(r)
-	}
 	if p.PlanResourceChangeFn != nil {
 		return p.PlanResourceChangeFn(r)
 	}
@@ -279,9 +273,6 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	p.ApplyResourceChangeRequest = r
 	p.Unlock()
 
-	if p.ApplyFn != nil {
-		return p.ApplyFn(r)
-	}
 	if p.ApplyResourceChangeFn != nil {
 		return p.ApplyResourceChangeFn(r)
 	}

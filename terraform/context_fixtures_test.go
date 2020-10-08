@@ -48,8 +48,8 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 			"map":  {Type: cty.Map(cty.String), Optional: true},
 		},
 	})
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -74,8 +74,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 			"type":   {Type: cty.String, Computed: true},
 		},
 	})
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
 		Providers: map[addrs.Provider]providers.Factory{
