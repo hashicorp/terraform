@@ -54,8 +54,11 @@ Common commands:
     workspace          Workspace management
 
 All other commands:
+    0.12upgrade        Rewrites pre-0.12 module source code for v0.12
+    0.13upgrade        Rewrites pre-0.13 module source code for v0.13
     debug              Debug output management (experimental)
     force-unlock       Manually unlock the terraform state
+    push               Obsolete command for Terraform Enterprise legacy (v1)
     state              Advanced state management
 
 
