@@ -660,19 +660,15 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 
 	// Configure to record calls AFTER Plan above
 	var configCount int32
-	p2.ConfigureFn = func(c *ResourceConfig) error {
+	p2.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
 		atomic.AddInt32(&configCount, 1)
 
-		foo, ok := c.Get("foo")
-		if !ok {
-			return fmt.Errorf("foo is not found")
-		}
-
+		foo := req.Config.GetAttr("foo").AsString()
 		if foo != "bar" {
-			return fmt.Errorf("foo: %#v", foo)
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("foo: %#v", foo))
 		}
 
-		return nil
+		return
 	}
 
 	state, diags := ctx.Apply()
@@ -2477,16 +2473,18 @@ func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		if _, ok := c.Get("value"); !ok {
-			return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			return
 		}
 
-		if _, ok := c.Get("root"); ok {
-			return fmt.Errorf("child should not get root")
+		root := req.Config.GetAttr("root")
+		if !root.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("child should not get root"))
 		}
 
-		return nil
+		return
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -2601,19 +2599,18 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	called := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		called = true
-
-		if _, ok := c.Get("child"); !ok {
-			return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			return
 		}
 
-		if _, ok := c.Get("root"); ok {
-			return fmt.Errorf("child should not get root")
+		root := req.Config.GetAttr("root")
+		if !root.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("child should not get root"))
 		}
 
-		return nil
+		return
 	}
 
 	// Create a state with an orphan module
@@ -2645,7 +2642,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	if !called {
+	if !p.ConfigureCalled {
 		t.Fatal("must call configure")
 	}
 
@@ -2658,12 +2655,13 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		if _, ok := c.Get("value"); !ok {
-			return fmt.Errorf("value is not found")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
 		}
 
-		return nil
+		return
 	}
 
 	// Create a state with an orphan module
@@ -2701,12 +2699,13 @@ func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		if _, ok := c.Get("value"); !ok {
-			return fmt.Errorf("value is not found")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
 		}
 
-		return nil
+		return
 	}
 
 	// Create a state with an orphan module that is nested (grandchild)
@@ -2746,15 +2745,17 @@ func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
 
 	var callLock sync.Mutex
 	called := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		if _, ok := c.Get("value"); !ok {
-			return fmt.Errorf("value is not found")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
 		}
+
 		callLock.Lock()
 		called = true
 		callLock.Unlock()
 
-		return nil
+		return
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -3985,20 +3986,13 @@ func TestContext2Apply_providerComputedVar(t *testing.T) {
 		},
 	})
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		if c.IsComputed("value") {
-			return fmt.Errorf("value is computed")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
+			return
 		}
-
-		v, ok := c.Get("value")
-		if !ok {
-			return fmt.Errorf("value is not found")
-		}
-		if v != "yes" {
-			return fmt.Errorf("value is not 'yes': %v", v)
-		}
-
-		return nil
+		return
 	}
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -4016,15 +4010,13 @@ func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	called := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		called = true
-
-		if _, ok := c.Get("value"); !ok {
-			return fmt.Errorf("value is not found")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
 		}
 
-		return nil
+		return
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -4042,7 +4034,7 @@ func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
-	if !called {
+	if !p.ConfigureCalled {
 		t.Fatal("configure never called")
 	}
 }
@@ -8834,12 +8826,15 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 
 	providerRegion := ""
 	// this should not be overridden during destroy
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		if r, ok := c.Get("region"); ok {
-			providerRegion = r.(string)
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("region")
+		if !val.IsNull() {
+			providerRegion = val.AsString()
 		}
-		return nil
+
+		return
 	}
+
 	p.DiffFn = testDiffFn
 	p.ApplyFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
@@ -11385,7 +11380,7 @@ output "output" {
 	testP.GetSchemaReturn = schemaFn("test")
 
 	providerConfig := ""
-	testP.ConfigureNewFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	testP.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
 		value := req.Config.GetAttr("value")
 		if value.IsKnown() && !value.IsNull() {
 			providerConfig = value.AsString()

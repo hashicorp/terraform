@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
 
@@ -196,15 +196,13 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		},
 	}
 
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
 		}
 
-		return nil
+		return
 	}
 
 	m := testModule(t, "import-provider")
@@ -229,7 +227,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !configured {
+	if !p.ConfigureCalled {
 		t.Fatal("didn't configure provider")
 	}
 
@@ -258,15 +256,13 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	}
 
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
 		}
 
-		return nil
+		return
 	}
 
 	_, diags := ctx.Import(&ImportOpts{
@@ -283,7 +279,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !configured {
+	if !p.ConfigureCalled {
 		t.Fatal("didn't configure provider")
 	}
 }

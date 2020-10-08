@@ -173,13 +173,12 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		return nil, c.CheckSet([]string{"value"})
 	}
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		return fmt.Errorf("Configure should not be called for provider")
-	}
-
 	diags := c.Validate()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+	if p.ConfigureCalled {
+		t.Fatal("Configure should not be called for provider")
 	}
 }
 

@@ -51,7 +51,7 @@ type MockProvider struct {
 	ConfigureCalled   bool
 	ConfigureResponse providers.ConfigureResponse
 	ConfigureRequest  providers.ConfigureRequest
-	ConfigureNewFn    func(providers.ConfigureRequest) providers.ConfigureResponse // Named ConfigureNewFn so we can still have the legacy ConfigureFn declared below
+	ConfigureFn       func(providers.ConfigureRequest) providers.ConfigureResponse
 
 	StopCalled   bool
 	StopFn       func() error
@@ -88,10 +88,8 @@ type MockProvider struct {
 	CloseCalled bool
 	CloseError  error
 
-	ValidateFn  func(c *ResourceConfig) (ws []string, es []error)
-	ConfigureFn func(c *ResourceConfig) error
+	ValidateFn func(c *ResourceConfig) (ws []string, es []error)
 	//ValidateFn  func(providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse
-	//ConfigureFn func(providers.ConfigureRequest) providers.ConfigureResponse
 	DiffFn  func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
 	ApplyFn func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 }
@@ -232,19 +230,7 @@ func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.Configu
 	p.ConfigureRequest = r
 
 	if p.ConfigureFn != nil {
-		resp := p.getSchema()
-		schema := resp.Provider.Block
-		rc := NewResourceConfigShimmed(r.Config, schema)
-		ret := providers.ConfigureResponse{}
-
-		err := p.ConfigureFn(rc)
-		if err != nil {
-			ret.Diagnostics = ret.Diagnostics.Append(err)
-		}
-		return ret
-	}
-	if p.ConfigureNewFn != nil {
-		return p.ConfigureNewFn(r)
+		return p.ConfigureFn(r)
 	}
 
 	return p.ConfigureResponse

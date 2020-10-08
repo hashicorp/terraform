@@ -56,9 +56,9 @@ func TestContext2Input_provider(t *testing.T) {
 	})
 
 	var actual interface{}
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual = c.Config["foo"]
-		return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		actual = req.Config.GetAttr("foo").AsString()
+		return
 	}
 	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
 		return nil, c.CheckSet([]string{"foo"})
@@ -145,11 +145,11 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	p.ConfigureFn = func(c *ResourceConfig) error {
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
 		lock.Lock()
 		defer lock.Unlock()
-		actual = append(actual, c.Config["foo"])
-		return nil
+		actual = append(actual, req.Config.GetAttr("foo").AsString())
+		return
 	}
 	if _, diags := ctx.Apply(); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
@@ -217,9 +217,9 @@ func TestContext2Input_providerId(t *testing.T) {
 	})
 
 	var actual interface{}
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual = c.Config["foo"]
-		return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		actual = req.Config.GetAttr("foo").AsString()
+		return
 	}
 
 	input.InputReturnMap = map[string]string{
@@ -290,9 +290,9 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	}
 
 	var actual interface{}
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual = c.Config["foo"]
-		return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		actual = req.Config.GetAttr("foo").AsString()
+		return
 	}
 
 	if err := ctx.Input(InputModeProvider); err != nil {
@@ -344,15 +344,10 @@ func TestContext2Input_providerVars(t *testing.T) {
 	}
 
 	var actual interface{}
-	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Config["bar"] = "baz"
-		return c, nil
-	}*/
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual, _ = c.Get("foo")
-		return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		actual = req.Config.GetAttr("foo").AsString()
+		return
 	}
-
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
@@ -384,16 +379,6 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 		UIInput: input,
 	})
 
-	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		if errs := c.CheckSet([]string{"access_key"}); len(errs) > 0 {
-			return c, errs[0]
-		}
-		return c, nil
-	}*/
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		return nil
-	}
-
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
@@ -413,13 +398,6 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 		},
 		UIInput: input,
 	})
-
-	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		return c, nil
-	}*/
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		return nil
-	}
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())

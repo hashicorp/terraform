@@ -1016,12 +1016,13 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 						},
 					},
 				}
-				p.ConfigureFn = func(c *ResourceConfig) error {
-					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-						return fmt.Errorf("bad")
+				p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+					from := req.Config.GetAttr("from")
+					if from.IsNull() || from.AsString() != "root" {
+						resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("not root"))
 					}
 
-					return nil
+					return
 				}
 				p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 					from := req.Config.GetAttr("from").AsString()
@@ -1078,14 +1079,14 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 					},
 				}
 
-				p.ConfigureFn = func(c *ResourceConfig) error {
-					v, ok := c.Get("from")
-					if !ok || v.(string) != "root" {
-						return fmt.Errorf("bad")
+				p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+					v := req.Config.GetAttr("from")
+					if v.IsNull() || v.AsString() != "root" {
+						resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("not root"))
 					}
+					from = v.AsString()
 
-					from = v.(string)
-					return nil
+					return
 				}
 
 				p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
@@ -1135,20 +1136,23 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 						},
 					},
 				}
-				p.ConfigureFn = func(c *ResourceConfig) error {
+				p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
 					var buf bytes.Buffer
-					if v, ok := c.Get("from"); ok {
-						buf.WriteString(v.(string) + "\n")
+					from := req.Config.GetAttr("from")
+					if !from.IsNull() {
+						buf.WriteString(from.AsString() + "\n")
 					}
-					if v, ok := c.Get("to"); ok {
-						buf.WriteString(v.(string) + "\n")
+					to := req.Config.GetAttr("to")
+					if !to.IsNull() {
+						buf.WriteString(to.AsString() + "\n")
 					}
 
 					l.Lock()
 					defer l.Unlock()
 					calls = append(calls, buf.String())
-					return nil
+					return
 				}
+
 				p.DiffFn = testDiffFn
 				return p, nil
 			},
@@ -4434,9 +4438,9 @@ func TestContext2Plan_provider(t *testing.T) {
 	p.DiffFn = testDiffFn
 
 	var value interface{}
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		value, _ = c.Get("foo")
-		return nil
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		value = req.Config.GetAttr("foo").AsString()
+		return
 	}
 
 	ctx := testContext2(t, &ContextOpts{
