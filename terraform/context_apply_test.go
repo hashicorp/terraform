@@ -11928,8 +11928,8 @@ resource "test_resource" "foo" {
 	})
 
 	p := testProvider("test")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
