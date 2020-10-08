@@ -60,9 +60,6 @@ func TestContext2Input_provider(t *testing.T) {
 		actual = req.Config.GetAttr("foo").AsString()
 		return
 	}
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
-	}
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
@@ -133,9 +130,6 @@ func TestContext2Input_providerMulti(t *testing.T) {
 
 	var actual []interface{}
 	var lock sync.Mutex
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
-	}
 
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())

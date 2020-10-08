@@ -693,8 +693,8 @@ func TestContext2Apply_providerWarning(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	p.ValidateFn = func(c *ResourceConfig) (ws []string, es []error) {
-		ws = append(ws, "Just a warning")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("just a warning"))
 		return
 	}
 	ctx := testContext2(t, &ContextOpts{

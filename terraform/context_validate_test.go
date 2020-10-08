@@ -150,6 +150,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Computed: true},
 					"value": {Type: cty.String, Optional: true},
 				},
 			},
@@ -165,12 +166,13 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		if !c.IsComputed("value") {
-			return nil, []error{fmt.Errorf("value isn't computed")}
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsKnown() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value isn't computed"))
 		}
 
-		return nil, c.CheckSet([]string{"value"})
+		return
 	}
 
 	diags := c.Validate()
@@ -463,8 +465,11 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		if req.Config.GetAttr("foo").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
+		}
+		return
 	}
 
 	diags := c.Validate()
@@ -498,8 +503,11 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		if req.Config.GetAttr("foo").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
+		}
+		return
 	}
 
 	diags := c.Validate()

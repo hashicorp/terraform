@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var _ providers.Interface = (*MockProvider)(nil)
@@ -88,8 +87,6 @@ type MockProvider struct {
 	CloseCalled bool
 	CloseError  error
 
-	ValidateFn func(c *ResourceConfig) (ws []string, es []error)
-	//ValidateFn  func(providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse
 	DiffFn  func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
 	ApplyFn func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 }
@@ -149,19 +146,6 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 	p.ValidateResourceTypeConfigCalled = true
 	p.ValidateResourceTypeConfigRequest = r
 
-	if p.ValidateFn != nil {
-		resp := p.getSchema()
-		schema := resp.Provider.Block
-		rc := NewResourceConfigShimmed(r.Config, schema)
-		warns, errs := p.ValidateFn(rc)
-		ret := providers.ValidateResourceTypeConfigResponse{}
-		for _, warn := range warns {
-			ret.Diagnostics = ret.Diagnostics.Append(tfdiags.SimpleWarning(warn))
-		}
-		for _, err := range errs {
-			ret.Diagnostics = ret.Diagnostics.Append(err)
-		}
-	}
 	if p.ValidateResourceTypeConfigFn != nil {
 		return p.ValidateResourceTypeConfigFn(r)
 	}
