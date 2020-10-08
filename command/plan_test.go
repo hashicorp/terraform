@@ -523,15 +523,10 @@ func TestPlan_vars(t *testing.T) {
 	}
 
 	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
-		}
-
-		return nil, nil
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		resp.PlannedState = req.ProposedNewState
+		return
 	}
 
 	args := []string{
@@ -655,15 +650,10 @@ func TestPlan_varFile(t *testing.T) {
 	}
 
 	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
-		}
-
-		return nil, nil
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		resp.PlannedState = req.ProposedNewState
+		return
 	}
 
 	args := []string{
@@ -705,15 +695,10 @@ func TestPlan_varFileDefault(t *testing.T) {
 	}
 
 	actual := ""
-	p.DiffFn = func(
-		info *terraform.InstanceInfo,
-		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		if v, ok := c.Config["value"]; ok {
-			actual = v.(string)
-		}
-
-		return nil, nil
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		actual = req.ProposedNewState.GetAttr("value").AsString()
+		resp.PlannedState = req.ProposedNewState
+		return
 	}
 
 	args := []string{
@@ -823,11 +808,7 @@ func TestPlan_shutdown(t *testing.T) {
 
 	var once sync.Once
 
-	p.DiffFn = func(
-		*terraform.InstanceInfo,
-		*terraform.InstanceState,
-		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		once.Do(func() {
 			shutdownCh <- struct{}{}
 		})
@@ -840,14 +821,12 @@ func TestPlan_shutdown(t *testing.T) {
 		// canceled.
 		time.Sleep(200 * time.Millisecond)
 
-		return &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+		s := req.ProposedNewState.AsValueMap()
+		s["ami"] = cty.StringVal("bar")
+		resp.PlannedState = cty.ObjectVal(s)
+		return
 	}
+
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {

@@ -110,7 +110,7 @@ func TestImport_providerConfig(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		configured = true
 
 		cfg := req.Config
@@ -217,7 +217,7 @@ func TestImport_remoteState(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -364,7 +364,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -495,7 +495,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -568,7 +568,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {

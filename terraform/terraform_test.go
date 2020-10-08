@@ -414,12 +414,15 @@ aws_instance.bar:
 aws_instance.foo.0:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.foo.1:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.foo.2:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 `
 
 const testTerraformApplyProviderAliasStr = `
@@ -439,9 +442,11 @@ const testTerraformApplyProviderAliasConfigStr = `
 another_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/another"].two
+  type = another_instance
 another_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/another"]
+  type = another_instance
 `
 
 const testTerraformApplyEmptyModuleStr = `
@@ -487,6 +492,7 @@ const testTerraformApplyCancelStr = `
 aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
   value = 2
 `
 
@@ -590,9 +596,11 @@ aws_instance.bar:
 aws_instance.foo.0:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.foo.1:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 `
 const testTerraformApplyForEachVariableStr = `
 aws_instance.foo["b15c6d616d6143248c575900dff57325eb1de498"]:
@@ -613,18 +621,22 @@ aws_instance.foo["e30a7edcc42a846684f2a4eea5f3cd261d33c46d"]:
 aws_instance.one["a"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.one["b"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.two["a"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 
   Dependencies:
     aws_instance.one
 aws_instance.two["b"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 
   Dependencies:
     aws_instance.one`
@@ -632,9 +644,11 @@ const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 `
 
 const testTerraformApplyModuleStr = `
@@ -688,9 +702,11 @@ module.child:
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
+    type = aws_instance
   test_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/test"]
+    type = test_instance
 `
 
 const testTerraformApplyModuleProviderAliasStr = `
@@ -699,6 +715,7 @@ module.child:
   aws_instance.foo:
     ID = foo
     provider = module.child.provider["registry.terraform.io/hashicorp/aws"].eu
+    type = aws_instance
 `
 
 const testTerraformApplyModuleVarRefExistingStr = `
@@ -706,6 +723,7 @@ aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = bar
+  type = aws_instance
 
 module.child:
   aws_instance.foo:
@@ -733,6 +751,7 @@ const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 
   Dependencies:
     aws_instance.foo
@@ -752,12 +771,14 @@ module.child:
   aws_instance.bar:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
+    type = aws_instance
 `
 
 const testTerraformApplyProvisionerFailStr = `
 aws_instance.bar: (tainted)
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
@@ -769,6 +790,7 @@ const testTerraformApplyProvisionerFailCreateStr = `
 aws_instance.bar: (tainted)
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 `
 
 const testTerraformApplyProvisionerFailCreateNoIdStr = `
@@ -850,14 +872,16 @@ const testTerraformApplyDestroyStr = `
 
 const testTerraformApplyErrorStr = `
 aws_instance.bar: (tainted)
-  ID = bar
+  ID = 
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = 2
 
   Dependencies:
     aws_instance.foo
 aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
   value = 2
 `
 
@@ -866,6 +890,7 @@ aws_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/aws"]
   require_new = abc
+  type = aws_instance
 `
 
 const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
@@ -881,12 +906,14 @@ const testTerraformApplyErrorPartialStr = `
 aws_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 
   Dependencies:
     aws_instance.foo
 aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
   value = 2
 `
 
@@ -1107,7 +1134,6 @@ const testTerraformApplyUnknownAttrStr = `
 aws_instance.foo: (tainted)
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
-  compute = unknown
   num = 2
   type = aws_instance
 `
