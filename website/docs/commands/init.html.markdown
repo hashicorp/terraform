@@ -113,42 +113,48 @@ initialized with its child modules.
 
 ## Plugin Installation
 
+Most Terraform providers are published separately from Terraform as plugins.
 During init, Terraform searches the configuration for both direct and indirect
-references to providers and attempts to load the required plugins.
+references to providers and attempts to install the plugins for those providers.
 
-For [providers distributed by HashiCorp](/docs/providers/index.html),
-init will automatically download and install plugins if necessary. Plugins
-can also be manually installed in the user plugins directory, located at
-`~/.terraform.d/plugins` on most operating systems and
-`%APPDATA%\terraform.d\plugins` on Windows.
+For providers that are published in either
+[the public Terraform Registry](https://registry.terraform.io/) or in a
+third-party provider registry, `terraform init` will automatically find,
+download, and install the necessary provider plugins. If you cannot or do not
+wish to install providers from their origin registries, you can customize how
+Terraform installs providers using
+[the provider installation settings in the CLI configuration](./cli-config.html#provider-installation).
 
-For more information about configuring and installing providers, see
-[Configuration: Providers](/docs/configuration/providers.html).
+For more information about specifying which providers are required for each
+of your modules, see [Provider Requirements](/docs/configuration/provider-requirements.html).
 
-On subsequent runs, init only installs providers without acceptable versions
-installed. (This includes newly added providers, and providers whose installed
-versions can't meet the current version constraints.) Use `-upgrade` if you want
-to update _all_ providers to the newest acceptable version.
+After successful installation, Terraform writes information about the selected
+providers to [the dependency lock file](/docs/configuration/dependency-lock.html).
+You should commit this file to your version control system to ensure that
+when you run `terraform init` again in future Terraform will select exactly
+the same provider versions. Use the `-upgrade` option if you want Terraform
+to ignore the dependency lock file and consider installing newer versions.
 
 You can modify `terraform init`'s plugin behavior with the following options:
 
-- `-upgrade` — Update all previously installed plugins to the newest version
-  that complies with the configuration's version constraints. This option does
-  not apply to manually installed plugins.
-- `-get-plugins=false` — Skips plugin installation. Terraform will use plugins
-  installed in the user plugins directory, and any plugins already installed
-  for the current working directory. If the installed plugins aren't sufficient
-  for the configuration, init fails.
-- `-plugin-dir=PATH` — Skips plugin installation and loads plugins _only_ from
-  the specified directory. This ignores the user plugins directory and any
-  plugins already installed in the current working directory. To restore the
-  default behavior after using this option, run init again and pass an empty
-  string to `-plugin-dir`.
-- `-verify-plugins=false` — Skips release signature validation when
-  installing downloaded plugins (not recommended). Official plugin releases are
-  digitally signed by HashiCorp, and Terraform verifies these signatures when
-  automatically downloading plugins. This option disables that verification.
-  (Terraform does not check signatures for manually installed plugins.)
+- `-upgrade` Upgrade all previously-selected plugins to the newest version
+  that complies with the configuration's version constraints. This will
+  cause Terraform to ignore any selections recorded in the dependency lock
+  file, and to take the newest available version matching the configured
+  version constraints.
+- `-get-plugins=false` — Skip plugin installation. If you previously ran
+  `terraform init` without this option, the previously-installed plugins will
+  remain available in your current working directory. If you have not
+  previously run without this option, subsequent Terraform commands will
+  fail due to the needed provider plugins being unavailable.
+- `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
+  the specified directory, as if it had been configured as a `filesystem_mirror`
+  in the CLI configuration. If you intend to routinely use a particular
+  filesystem mirror then we recommend
+  [configuring Terraform's installation methods globally](./cli-config.html#provider-installation).
+  You can use `-plugin-dir` as a one-time override for exceptional situations,
+  such as if you are testing a local build of a provider plugin you are
+  currently developing.
 
 ## Running `terraform init` in automation
 

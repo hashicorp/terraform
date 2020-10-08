@@ -49,13 +49,17 @@ Terraform finds and installs providers when
 automatically download providers from a Terraform registry, or load them from a
 local mirror or cache.
 
-When a new provider is added to a configuration, Terraform must install the
-provider before it can be used. If you are using a persistent working directory,
+When you add a new provider to a configuration, Terraform must install the
+provider in order to use it. If you are using a persistent working directory,
 you can run `terraform init` again to install new providers.
 
 Providers downloaded by `terraform init` are only installed for the current
 working directory; other working directories can have their own installed
-provider plugins, which might be different versions.
+provider plugins. To help ensure that each working directory will use the same
+selected versions, `terraform init` records its version selections in
+your configuration's [dependency lock file](dependency-lock.html), named
+`.terraform.lock.hcl` and will always make those same selections unless
+you run `terraform init -upgrade` to update them.
 
 To save time and bandwidth, Terraform supports an optional plugin cache. You can
 enable the cache using the `plugin_cache_dir` setting in
