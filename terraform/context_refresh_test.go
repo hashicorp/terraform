@@ -726,6 +726,7 @@ func TestContext2Refresh_output(t *testing.T) {
 					"foo": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},

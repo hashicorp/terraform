@@ -30,7 +30,14 @@ func TestContext2Input_provider(t *testing.T) {
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {},
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
 		},
 	}
 
@@ -98,7 +105,14 @@ func TestContext2Input_providerMulti(t *testing.T) {
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {},
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
 		},
 	}
 
@@ -159,25 +173,6 @@ func TestContext2Input_providerOnce(t *testing.T) {
 		},
 	})
 
-	//count := 0
-	/*p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		count++
-		_, set := c.Config["from_input"]
-
-		if count == 1 {
-			if set {
-				return nil, errors.New("from_input should not be set")
-			}
-			c.Config["from_input"] = "x"
-		}
-
-		if count > 1 && !set {
-			return nil, errors.New("from_input should be set")
-		}
-
-		return c, nil
-	}*/
-
 	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
@@ -202,7 +197,14 @@ func TestContext2Input_providerId(t *testing.T) {
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {},
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
 		},
 	}
 

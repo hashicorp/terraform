@@ -91,7 +91,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"baz"}`),
+			AttrsJSON: []byte(`{"id":"baz","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -123,6 +123,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
  aws_instance.foo: (1 deposed)
   ID = baz
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
   Deposed ID 1 = foo`)
 
 	if ctx.State().String() != expectedState {
@@ -171,7 +172,10 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 		}
 
 		// the existing instance should only have an unchanged id
-		expected, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("baz")}))
+		expected, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+			"id":   cty.StringVal("baz"),
+			"type": cty.StringVal("aws_instance"),
+		}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -226,11 +230,9 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 func TestContext2Plan_emptyDiff(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
-	p.DiffFn = func(
-		info *InstanceInfo,
-		s *InstanceState,
-		c *ResourceConfig) (*InstanceDiff, error) {
-		return nil, nil
+	p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return resp
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -304,8 +306,8 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 	expected := objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.UnknownVal(cty.String),
 		"foo":  cty.StringVal("bar-${baz}"),
-		"type": cty.StringVal("aws_instance")},
-	)
+		"type": cty.UnknownVal(cty.String),
+	})
 
 	checkVals(t, expected, ric.After)
 }
@@ -375,14 +377,14 @@ func TestContext2Plan_modules(t *testing.T) {
 	expectFoo := objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.UnknownVal(cty.String),
 		"foo":  cty.StringVal("2"),
-		"type": cty.StringVal("aws_instance")},
-	)
+		"type": cty.UnknownVal(cty.String),
+	})
 
 	expectNum := objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.UnknownVal(cty.String),
 		"num":  cty.NumberIntVal(2),
-		"type": cty.StringVal("aws_instance")},
-	)
+		"type": cty.UnknownVal(cty.String),
+	})
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.Create {
@@ -507,13 +509,14 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.b":
 			expected = objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			})
 		case "aws_instance.c":
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":         cty.UnknownVal(cty.String),
 				"some_input": cty.UnknownVal(cty.String),
-				"type":       cty.StringVal("aws_instance"),
+				"type":       cty.UnknownVal(cty.String),
 			})
 		default:
 			t.Fatal("unknown instance:", i)
@@ -554,7 +557,8 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 			}
 
 			expected := objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			})
 			switch i := ric.Addr.String(); i {
 			case "module.child.aws_instance.foo[0]":
@@ -608,13 +612,13 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			})
 		case "module.child.aws_instance.foo":
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("42"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			})
 		default:
 			t.Fatal("unknown instance:", i)
@@ -661,14 +665,14 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":      cty.UnknownVal(cty.String),
 				"foo":     cty.UnknownVal(cty.String),
-				"type":    cty.StringVal("aws_instance"),
+				"type":    cty.UnknownVal(cty.String),
 				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -719,13 +723,13 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("52"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -858,7 +862,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			if res.Action != plans.Delete {
@@ -893,7 +897,7 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.top").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"top"}`),
+			AttrsJSON: []byte(`{"id":"top","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -902,7 +906,7 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"baz"}`),
+			AttrsJSON: []byte(`{"id":"baz","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -911,7 +915,7 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"baz"}`),
+			AttrsJSON: []byte(`{"id":"baz","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -967,15 +971,18 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 	expectedState := `aws_instance.top:
   ID = top
   provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
 
 module.parent.child1:
   aws_instance.foo:
     ID = baz
     provider = provider["registry.terraform.io/hashicorp/aws"]
+    type = aws_instance
 module.parent.child2:
   aws_instance.foo:
     ID = baz
-    provider = provider["registry.terraform.io/hashicorp/aws"]`
+    provider = provider["registry.terraform.io/hashicorp/aws"]
+    type = aws_instance`
 
 	if expectedState != ctx.State().String() {
 		t.Fatalf("\nexpect state:\n%s\n\ngot state:\n%s\n", expectedState, ctx.State().String())
@@ -1016,16 +1023,13 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 
 					return nil
 				}
-				p.DiffFn = func(
-					info *InstanceInfo,
-					state *InstanceState,
-					c *ResourceConfig) (*InstanceDiff, error) {
-					v, _ := c.Get("from")
+				p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+					from := req.Config.GetAttr("from").AsString()
 
 					l.Lock()
 					defer l.Unlock()
-					calls = append(calls, v.(string))
-					return testDiffFn(info, state, c)
+					calls = append(calls, from)
+					return testDiffFn(req)
 				}
 				return p, nil
 			},
@@ -1084,15 +1088,13 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 					return nil
 				}
 
-				p.DiffFn = func(
-					info *InstanceInfo,
-					state *InstanceState,
-					c *ResourceConfig) (*InstanceDiff, error) {
+				p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 					if from != "root" {
-						return nil, fmt.Errorf("bad resource")
+						resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("bad resource"))
+						return
 					}
 
-					return testDiffFn(info, state, c)
+					return testDiffFn(req)
 				}
 				return p, nil
 			},
@@ -1271,13 +1273,13 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			})
 		case "module.child.aws_instance.foo":
 			expected = objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			})
 		default:
 			t.Fatal("unknown instance:", i)
@@ -1374,13 +1376,13 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":      cty.UnknownVal(cty.String),
 				"foo":     cty.UnknownVal(cty.String),
-				"type":    cty.StringVal("aws_instance"),
+				"type":    cty.UnknownVal(cty.String),
 				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		default:
@@ -1434,7 +1436,7 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+			AttrsJSON: []byte(`{"id":"i-abc123","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -1560,7 +1562,7 @@ func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
 					"current": {Type: cty.String, Optional: true},
-					"type":    {Type: cty.String, Optional: true},
+					"type":    {Type: cty.String, Optional: true, Computed: true},
 					"id":      {Type: cty.String, Computed: true},
 				},
 			},
@@ -1691,14 +1693,14 @@ func TestContext2Plan_computed(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":      cty.UnknownVal(cty.String),
 				"foo":     cty.UnknownVal(cty.String),
 				"num":     cty.NumberIntVal(2),
-				"type":    cty.StringVal("aws_instance"),
+				"type":    cty.UnknownVal(cty.String),
 				"compute": cty.StringVal("foo"),
 			}), ric.After)
 		default:
@@ -2075,60 +2077,7 @@ func TestContext2Plan_computedList(t *testing.T) {
 			},
 		},
 	}
-	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
-		diff := &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{},
-		}
-
-		computedKeys := map[string]bool{}
-		for _, k := range c.ComputedKeys {
-			computedKeys[k] = true
-		}
-
-		compute, _ := c.Raw["compute"].(string)
-		if compute != "" {
-			diff.Attributes[compute] = &ResourceAttrDiff{
-				Old:         "",
-				New:         "",
-				NewComputed: true,
-			}
-			diff.Attributes["compute"] = &ResourceAttrDiff{
-				Old: "",
-				New: compute,
-			}
-		}
-
-		fooOld := s.Attributes["foo"]
-		fooNew, _ := c.Raw["foo"].(string)
-		if fooOld != fooNew {
-			diff.Attributes["foo"] = &ResourceAttrDiff{
-				Old:         fooOld,
-				New:         fooNew,
-				NewComputed: computedKeys["foo"],
-			}
-		}
-
-		numOld := s.Attributes["num"]
-		numNew, _ := c.Raw["num"].(string)
-		if numOld != numNew {
-			diff.Attributes["num"] = &ResourceAttrDiff{
-				Old:         numOld,
-				New:         numNew,
-				NewComputed: computedKeys["num"],
-			}
-		}
-
-		listOld := s.Attributes["list.#"]
-		if listOld == "" {
-			diff.Attributes["list.#"] = &ResourceAttrDiff{
-				Old:         "",
-				New:         "",
-				NewComputed: true,
-			}
-		}
-
-		return diff, nil
-	}
+	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -2161,8 +2110,7 @@ func TestContext2Plan_computedList(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"list": cty.UnknownVal(cty.List(cty.String)),
-				"foo":  cty.UnknownVal(cty.String),
+				"foo": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
@@ -2195,50 +2143,7 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		},
 	}
 
-	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
-		diff := &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{},
-		}
-
-		compute, _ := c.Raw["compute"].(string)
-		if compute != "" {
-			diff.Attributes[compute] = &ResourceAttrDiff{
-				Old:         "",
-				New:         "",
-				NewComputed: true,
-			}
-			diff.Attributes["compute"] = &ResourceAttrDiff{
-				Old: "",
-				New: compute,
-			}
-		}
-
-		fooOld := s.Attributes["foo"]
-		fooNew, _ := c.Raw["foo"].(string)
-		fooComputed := false
-		for _, k := range c.ComputedKeys {
-			if k == "foo" {
-				fooComputed = true
-			}
-		}
-		if fooNew != "" {
-			diff.Attributes["foo"] = &ResourceAttrDiff{
-				Old:         fooOld,
-				New:         fooNew,
-				NewComputed: fooComputed,
-			}
-		}
-
-		ipOld := s.Attributes["ip"]
-		ipComputed := ipOld == ""
-		diff.Attributes["ip"] = &ResourceAttrDiff{
-			Old:         ipOld,
-			New:         "",
-			NewComputed: ipComputed,
-		}
-
-		return diff, nil
-	}
+	p.DiffFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -2283,7 +2188,6 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 			}), ric.After)
 		case "aws_instance.bar[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"ip":  cty.UnknownVal(cty.List(cty.String)),
 				"foo": cty.UnknownVal(cty.List(cty.String)),
 			}), ric.After)
 		default:
@@ -2329,37 +2233,37 @@ func TestContext2Plan_count(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo,foo,foo,foo,foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[3]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[4]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2439,15 +2343,18 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2490,15 +2397,18 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "module.child.module.child.aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.module.child.aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.child.module.child.aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2543,13 +2453,13 @@ func TestContext2Plan_countIndex(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("0"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("1"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2599,25 +2509,25 @@ func TestContext2Plan_countVar(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo,foo,foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[1]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[2]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2719,13 +2629,13 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[0]":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2799,7 +2709,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("bar"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			if res.Action != plans.NoOp {
@@ -2885,7 +2795,7 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("bar"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[0]":
 			if res.Action != plans.NoOp {
@@ -2898,7 +2808,7 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[2]":
 			if res.Action != plans.Create {
@@ -2907,7 +2817,7 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -2964,7 +2874,7 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("bar"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[0]":
 			if res.Action != plans.NoOp {
@@ -2977,7 +2887,7 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[2]":
 			if res.Action != plans.Create {
@@ -2986,7 +2896,7 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -3057,7 +2967,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("bar"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			if res.Action != plans.Delete {
@@ -3074,7 +2984,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo[2]":
 			if res.Action != plans.Create {
@@ -3083,7 +2993,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -3595,7 +3505,7 @@ func TestContext2Plan_diffVar(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","num":"2"}`),
+			AttrsJSON: []byte(`{"id":"bar","num":"2","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -3608,23 +3518,7 @@ func TestContext2Plan_diffVar(t *testing.T) {
 		State: state,
 	})
 
-	p.DiffFn = func(
-		info *InstanceInfo,
-		s *InstanceState,
-		c *ResourceConfig) (*InstanceDiff, error) {
-		if s.ID != "bar" {
-			return testDiffFn(info, s, c)
-		}
-
-		return &InstanceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"num": &ResourceAttrDiff{
-					Old: "2",
-					New: "3",
-				},
-			},
-		}, nil
-	}
+	p.DiffFn = testDiffFn
 
 	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
@@ -3652,19 +3546,21 @@ func TestContext2Plan_diffVar(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(3),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			if res.Action != plans.Update {
 				t.Fatalf("resource %s should be updated", i)
 			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":  cty.StringVal("bar"),
-				"num": cty.NumberIntVal(2),
+				"id":   cty.StringVal("bar"),
+				"num":  cty.NumberIntVal(2),
+				"type": cty.StringVal("aws_instance"),
 			}), ric.Before)
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":  cty.StringVal("bar"),
-				"num": cty.NumberIntVal(3),
+				"id":   cty.StringVal("bar"),
+				"num":  cty.NumberIntVal(3),
+				"type": cty.StringVal("aws_instance"),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -3775,7 +3671,7 @@ func TestContext2Plan_orphan(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -3853,7 +3749,7 @@ func TestContext2Plan_state(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			if res.Action != plans.Update {
@@ -3867,7 +3763,7 @@ func TestContext2Plan_state(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.StringVal("bar"),
 				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -3885,7 +3781,7 @@ func TestContext2Plan_taint(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","num":"2"}`),
+			AttrsJSON: []byte(`{"id":"bar","num":"2","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -3932,7 +3828,7 @@ func TestContext2Plan_taint(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "aws_instance.foo":
 			if res.Action != plans.NoOp {
@@ -4011,7 +3907,7 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"vars": cty.StringVal("foo"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -4030,7 +3926,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectTainted,
-			AttrsJSON: []byte(`{"id":"bar"}`),
+			AttrsJSON: []byte(`{"id":"bar","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4038,7 +3934,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar"}`),
+			AttrsJSON: []byte(`{"id":"bar","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4046,7 +3942,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar"}`),
+			AttrsJSON: []byte(`{"id":"bar","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4084,10 +3980,12 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 					t.Fatalf("resource %s should be replaced, not %s", i, res.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id": cty.StringVal("bar"),
+					"id":   cty.StringVal("bar"),
+					"type": cty.StringVal("aws_instance"),
 				}), ric.Before)
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					"id": cty.UnknownVal(cty.String),
+					"id":   cty.UnknownVal(cty.String),
+					"type": cty.UnknownVal(cty.String),
 				}), ric.After)
 			case "aws_instance.foo[1]", "aws_instance.foo[2]":
 				if res.Action != plans.NoOp {
@@ -4141,7 +4039,7 @@ func TestContext2Plan_targeted(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -4189,13 +4087,13 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("bar"),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.B.aws_instance.bar":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.UnknownVal(cty.String),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -4425,13 +4323,14 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.blue":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id": cty.UnknownVal(cty.String),
+				"id":   cty.UnknownVal(cty.String),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		case "module.blue_mod.aws_instance.mod":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":    cty.UnknownVal(cty.String),
 				"value": cty.UnknownVal(cty.String),
-				"type":  cty.StringVal("aws_instance"),
+				"type":  cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -4484,7 +4383,7 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 	for i := 0; i < 13; i++ {
 		key := fmt.Sprintf("aws_instance.foo[%d]", i)
 		id := fmt.Sprintf("i-abc%d", i)
-		attrs := fmt.Sprintf("{\"id\":\"%s\"}", id)
+		attrs := fmt.Sprintf(`{"id":"%s","type":"aws_instance"}`, id)
 
 		root.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr(key).Resource,
@@ -4590,7 +4489,7 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234"}`),
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4632,8 +4531,9 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	}
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
-		"id":  cty.StringVal("bar"),
-		"ami": cty.StringVal("ami-abcd1234"),
+		"id":   cty.StringVal("bar"),
+		"ami":  cty.StringVal("ami-abcd1234"),
+		"type": cty.StringVal("aws_instance"),
 	}), ric.After)
 }
 
@@ -4648,7 +4548,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro"}`),
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -4712,7 +4612,7 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				Status:    states.ObjectReady,
-				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
+				AttrsJSON: []byte(`{"id":"foo","tags":{"ignored":"from state","other":"from state"},"type":"aws_instance"}`),
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -4777,28 +4677,19 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 		},
 	}
 	p.ApplyFn = testApplyFn
-	p.DiffFn = func(i *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
-		// Here we verify that both the populated and empty map literals made it
-		// through to the resource attributes
-		val, _ := c.Get("tags")
-		m, ok := val.(map[string]interface{})
-		if !ok {
-			t.Fatalf("Tags attr not map: %#v", val)
-		}
-		if m["foo"] != "bar" {
+	p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		s := req.ProposedNewState.AsValueMap()
+		m := s["tags"].AsValueMap()
+
+		if m["foo"].AsString() != "bar" {
 			t.Fatalf("Bad value in tags attr: %#v", m)
 		}
-		{
-			val, _ := c.Get("meta")
-			m, ok := val.(map[string]interface{})
-			if !ok {
-				t.Fatalf("Meta attr not map: %#v", val)
-			}
-			if len(m) != 0 {
-				t.Fatalf("Meta attr not empty: %#v", val)
-			}
+
+		meta := s["meta"].AsValueMap()
+		if len(meta) != 0 {
+			t.Fatalf("Meta attr not empty: %#v", meta)
 		}
-		return nil, nil
+		return testDiffFn(req)
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -4830,19 +4721,18 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 			},
 		},
 	}
-	p.DiffFn = func(info *InstanceInfo, state *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
-		switch info.Type {
-		case "aws_computed_source":
-			return &InstanceDiff{
-				Attributes: map[string]*ResourceAttrDiff{
-					"computed_read_only": &ResourceAttrDiff{
-						NewComputed: true,
-					},
-				},
-			}, nil
+	p.DiffFn = testDiffFn
+	p.DiffFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp = testDiffFn(req)
+
+		if req.TypeName != "aws_computed_source" {
+			return
 		}
 
-		return testDiffFn(info, state, c)
+		planned := resp.PlannedState.AsValueMap()
+		planned["computed_read_only"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(planned)
+		return resp
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -5200,7 +5090,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"foo0"}`),
+			AttrsJSON: []byte(`{"id":"foo0","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5208,7 +5098,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"foo1"}`),
+			AttrsJSON: []byte(`{"id":"foo1","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5216,7 +5106,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.bar[0]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"bar0"}`),
+			AttrsJSON:    []byte(`{"id":"bar0","type":"aws_instance"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
@@ -5225,7 +5115,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.bar[1]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"bar1"}`),
+			AttrsJSON:    []byte(`{"id":"bar1","type":"aws_instance"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
@@ -5234,7 +5124,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.baz[0]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"baz0"}`),
+			AttrsJSON:    []byte(`{"id":"baz0","type":"aws_instance"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
@@ -5243,7 +5133,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.baz[1]").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"baz1"}`),
+			AttrsJSON:    []byte(`{"id":"baz1","type":"aws_instance"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
@@ -5273,7 +5163,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.NoOp {
-			t.Fatalf("resource %s should now change, plan returned %s", res.Addr, res.Action)
+			t.Fatalf("resource %s should not change, plan returned %s", res.Addr, res.Action)
 		}
 	}
 }
@@ -5295,38 +5185,21 @@ func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
 			Diagnostics: diags,
 		}
 	}
-	p.DiffFn = func(
-		info *InstanceInfo,
-		state *InstanceState,
-		c *ResourceConfig) (*InstanceDiff, error) {
-		switch info.Type {
-		case "aws_ami_list":
-			// Emulate a diff that says "we'll create this list and ids will be populated"
-			return &InstanceDiff{
-				Attributes: map[string]*ResourceAttrDiff{
-					"ids.#": &ResourceAttrDiff{NewComputed: true},
-				},
-			}, nil
-		case "aws_instance":
-			// If we get to the diff for instance, we should be able to assume types
-			ami, _ := c.Get("ami")
-			_ = ami.(string)
-		}
-		return nil, nil
-	}
-	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
-		if info.Type != "aws_ami_list" {
-			t.Fatalf("Reached apply for unexpected resource type! %s", info.Type)
+	p.DiffFn = testDiffFn
+	p.ApplyFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		if req.TypeName != "aws_ami_list" {
+			t.Fatalf("Reached apply for unexpected resource type! %s", req.TypeName)
 		}
 		// Pretend like we make a thing and the computed list "ids" is populated
-		return &InstanceState{
-			ID: "someid",
-			Attributes: map[string]string{
-				"ids.#": "2",
-				"ids.0": "ami-abc123",
-				"ids.1": "ami-bcd345",
-			},
-		}, nil
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("someid")
+		s["ids"] = cty.ListVal([]cty.Value{
+			cty.StringVal("ami-abc123"),
+			cty.StringVal("ami-bcd345"),
+		})
+
+		resp.NewState = cty.ObjectVal(s)
+		return
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -5877,7 +5750,7 @@ resource "aws_instance" "foo" {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"child"}`),
+			AttrsJSON: []byte(`{"id":"child","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -5885,7 +5758,7 @@ resource "aws_instance" "foo" {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"child"}`),
+			AttrsJSON: []byte(`{"id":"child","type":"aws_instance"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -6288,7 +6161,7 @@ func TestContext2Plan_targetedModuleInstance(t *testing.T) {
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"num":  cty.NumberIntVal(2),
-				"type": cty.StringVal("aws_instance"),
+				"type": cty.UnknownVal(cty.String),
 			}), ric.After)
 		default:
 			t.Fatal("unknown instance:", i)
@@ -6399,7 +6272,7 @@ resource "test_instance" "a" {
 		mustResourceInstanceAddr("test_instance.a").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"a"}`),
+			AttrsJSON:    []byte(`{"id":"a","type":"test_instance"}`),
 			Dependencies: []addrs.ConfigResource{},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
