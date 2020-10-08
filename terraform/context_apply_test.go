@@ -11941,10 +11941,6 @@ resource "test_resource" "c" {
 func TestContext2Apply_variableSensitivity(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-	experiments = [sensitive_variables]
-}
-
 variable "sensitive_var" {
 	default = "foo"
 	sensitive = true
@@ -12029,10 +12025,6 @@ resource "test_resource" "foo" {
 func TestContext2Apply_variableSensitivityPropagation(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-	experiments = [sensitive_variables]
-}
-
 variable "sensitive_map" {
 	type = map(string)
 	default = {
@@ -12092,10 +12084,6 @@ resource "test_resource" "foo" {
 func TestContext2Apply_variableSensitivityChange(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-	experiments = [sensitive_variables]
-}
-
 variable "sensitive_var" {
 	default = "hello"
 	sensitive = true
@@ -12157,10 +12145,6 @@ resource "test_resource" "foo" {
 
 	m2 := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-	experiments = [sensitive_variables]
-}
-
 variable "sensitive_var" {
 	default = "hello"
 	sensitive = false

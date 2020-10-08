@@ -1,7 +1,3 @@
-terraform {
-    experiments = [sensitive_variables]
-}
-
 variable "foo" {
     default = "bar"
 }

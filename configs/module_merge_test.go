@@ -260,12 +260,9 @@ func TestModuleOverrideSensitiveVariable(t *testing.T) {
 		},
 	}
 
-	// TODO: When variable sensitivity is no longer experimental,
-	// move this test folder to "valid-modules" (it currently has a warning)
-	// and activate the diags assertion
-	mod, _ := testModuleFromDir("testdata/warning-modules/override-variable")
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-sensitive")
 
-	// assertNoDiagnostics(t, diags)
+	assertNoDiagnostics(t, diags)
 
 	if mod == nil {
 		t.Fatalf("module is nil")
