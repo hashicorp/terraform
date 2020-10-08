@@ -1591,7 +1591,9 @@ func TestInit_providerLockFile(t *testing.T) {
 provider "registry.terraform.io/hashicorp/test" {
   version     = "1.2.3"
   constraints = "1.2.3"
-  hashes      = ["h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="]
+  hashes = [
+    "h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
+  ]
 }
 `)
 	if diff := cmp.Diff(wantLockFile, string(buf)); diff != "" {

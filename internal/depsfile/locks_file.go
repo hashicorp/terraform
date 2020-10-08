@@ -101,15 +101,8 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 			body.SetAttributeValue("constraints", cty.StringVal(constraintsStr))
 		}
 		if len(lock.hashes) != 0 {
-			hashVals := make([]cty.Value, 0, len(lock.hashes))
-			for _, hash := range lock.hashes {
-				hashVals = append(hashVals, cty.StringVal(hash.String()))
-			}
-			// We're using a set rather than a list here because the order
-			// isn't significant and SetAttributeValue will automatically
-			// write the set elements in a consistent lexical order.
-			hashSet := cty.SetVal(hashVals)
-			body.SetAttributeValue("hashes", hashSet)
+			hashToks := encodeHashSetTokens(lock.hashes)
+			body.SetAttributeRaw("hashes", hashToks)
 		}
 	}
 
@@ -420,4 +413,46 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 	}
 
 	return ret, diags
+}
+
+func encodeHashSetTokens(hashes []getproviders.Hash) hclwrite.Tokens {
+	// We'll generate the source code in a low-level way here (direct
+	// token manipulation) because it's desirable to maintain exactly
+	// the layout implemented here so that diffs against the locks
+	// file are easy to read; we don't want potential future changes to
+	// hclwrite to inadvertently introduce whitespace changes here.
+	ret := hclwrite.Tokens{
+		{
+			Type:  hclsyntax.TokenOBrack,
+			Bytes: []byte{'['},
+		},
+		{
+			Type:  hclsyntax.TokenNewline,
+			Bytes: []byte{'\n'},
+		},
+	}
+
+	// Although lock.hashes is a slice, we de-dupe and sort it on
+	// initialization so it's normalized for interpretation as a logical
+	// set, and so we can just trust it's already in a good order here.
+	for _, hash := range hashes {
+		hashVal := cty.StringVal(hash.String())
+		ret = append(ret, hclwrite.TokensForValue(hashVal)...)
+		ret = append(ret, hclwrite.Tokens{
+			{
+				Type:  hclsyntax.TokenComma,
+				Bytes: []byte{','},
+			},
+			{
+				Type:  hclsyntax.TokenNewline,
+				Bytes: []byte{'\n'},
+			},
+		}...)
+	}
+	ret = append(ret, &hclwrite.Token{
+		Type:  hclsyntax.TokenCBrack,
+		Bytes: []byte{']'},
+	})
+
+	return ret
 }

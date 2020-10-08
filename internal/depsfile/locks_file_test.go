@@ -210,7 +210,11 @@ provider "registry.terraform.io/test/baz" {
 provider "registry.terraform.io/test/foo" {
   version     = "1.0.0"
   constraints = ">= 1.0.0"
-  hashes      = ["test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "test:cccccccccccccccccccccccccccccccccccccccccccccccc"]
+  hashes = [
+    "test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "test:cccccccccccccccccccccccccccccccccccccccccccccccc",
+  ]
 }
 `
 	if diff := cmp.Diff(wantContent, gotContent); diff != "" {
