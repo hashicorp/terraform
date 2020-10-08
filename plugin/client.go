@@ -9,6 +9,11 @@ import (
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
+// The TF_DISABLE_PLUGIN_TLS environment variable is intended only for use by
+// the plugin SDK test framework. We do not recommend Terraform CLI end-users
+// set this variable.
+var enableAutoMTLS = os.Getenv("TF_DISABLE_PLUGIN_TLS") == ""
+
 // ClientConfig returns a configuration object that can be used to instantiate
 // a client for the plugin described by the given metadata.
 func ClientConfig(m discovery.PluginMeta) *plugin.ClientConfig {
@@ -25,7 +30,7 @@ func ClientConfig(m discovery.PluginMeta) *plugin.ClientConfig {
 		Managed:          true,
 		Logger:           logger,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		AutoMTLS:         true,
+		AutoMTLS:         enableAutoMTLS,
 	}
 }
 

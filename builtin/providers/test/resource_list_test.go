@@ -103,6 +103,37 @@ resource "test_resource_list" "foo" {
 	})
 }
 
+func TestResourceList_mapList(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+variable "map" {
+  type = map(string)
+  default = {}
+}
+
+resource "test_resource_list" "foo" {
+	map_list = [
+	  {
+	    a = "1"
+	  },
+	  var.map
+	]
+}
+				`),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"test_resource_list.foo", "map_list.1", "",
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceList_sublist(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers:    testAccProviders,

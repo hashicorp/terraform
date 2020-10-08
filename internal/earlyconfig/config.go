@@ -7,6 +7,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/moduledeps"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -68,8 +69,79 @@ type Config struct {
 	Version *version.Version
 }
 
-// ProviderDependencies returns the provider dependencies for the recieving
-// config, including all of its descendent modules.
+// ProviderRequirements searches the full tree of modules under the receiver
+// for both explicit and implicit dependencies on providers.
+//
+// The result is a full manifest of all of the providers that must be available
+// in order to work with the receiving configuration.
+//
+// If the returned diagnostics includes errors then the resulting Requirements
+// may be incomplete.
+func (c *Config) ProviderRequirements() (getproviders.Requirements, tfdiags.Diagnostics) {
+	reqs := make(getproviders.Requirements)
+	diags := c.addProviderRequirements(reqs)
+	return reqs, diags
+}
+
+// addProviderRequirements is the main part of the ProviderRequirements
+// implementation, gradually mutating a shared requirements object to
+// eventually return.
+func (c *Config) addProviderRequirements(reqs getproviders.Requirements) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// First we'll deal with the requirements directly in _our_ module...
+	for localName, providerReqs := range c.Module.RequiredProviders {
+		var fqn addrs.Provider
+		if source := providerReqs.Source; source != "" {
+			addr, moreDiags := addrs.ParseProviderSourceString(source)
+			if moreDiags.HasErrors() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid provider source address",
+					fmt.Sprintf("Invalid source %q for provider %q in %s", source, localName, c.Path),
+				))
+				continue
+			}
+			fqn = addr
+		}
+		if fqn.IsZero() {
+			fqn = addrs.ImpliedProviderForUnqualifiedType(localName)
+		}
+		if _, ok := reqs[fqn]; !ok {
+			// We'll at least have an unconstrained dependency then, but might
+			// add to this in the loop below.
+			reqs[fqn] = nil
+		}
+		for _, constraintsStr := range providerReqs.VersionConstraints {
+			if constraintsStr != "" {
+				constraints, err := getproviders.ParseVersionConstraints(constraintsStr)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider version constraint",
+						fmt.Sprintf("Provider %q in %s has invalid version constraint %q: %s.", localName, c.Path, constraintsStr, err),
+					))
+					continue
+				}
+				reqs[fqn] = append(reqs[fqn], constraints...)
+			}
+		}
+	}
+
+	// ...and now we'll recursively visit all of the child modules to merge
+	// in their requirements too.
+	for _, childConfig := range c.Children {
+		moreDiags := childConfig.addProviderRequirements(reqs)
+		diags = diags.Append(moreDiags)
+	}
+
+	return diags
+}
+
+// ProviderDependencies is a deprecated variant of ProviderRequirements which
+// uses the moduledeps models for representation. This is preserved to allow
+// a gradual transition over to ProviderRequirements, but note that its
+// support for fully-qualified provider addresses has some idiosyncracies.
 func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -84,23 +156,38 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 
 	providers := make(moduledeps.Providers)
 	for name, reqs := range c.Module.RequiredProviders {
-		inst := moduledeps.ProviderInstance(name)
+		var fqn addrs.Provider
+		if source := reqs.Source; source != "" {
+			addr, diags := addrs.ParseProviderSourceString(source)
+			if diags.HasErrors() {
+				diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
+					Severity: tfconfig.DiagError,
+					Summary:  "Invalid provider source",
+					Detail:   fmt.Sprintf("Invalid source %q for provider", name),
+				}))
+				continue
+			}
+			fqn = addr
+		}
+		if fqn.IsZero() {
+			fqn = addrs.NewDefaultProvider(name)
+		}
 		var constraints version.Constraints
-		for _, reqStr := range reqs {
+		for _, reqStr := range reqs.VersionConstraints {
 			if reqStr != "" {
 				constraint, err := version.NewConstraint(reqStr)
 				if err != nil {
 					diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
 						Severity: tfconfig.DiagError,
 						Summary:  "Invalid provider version constraint",
-						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, name),
+						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, fqn.String()),
 					}))
 					continue
 				}
 				constraints = append(constraints, constraint...)
 			}
 		}
-		providers[inst] = moduledeps.ProviderDependency{
+		providers[fqn] = moduledeps.ProviderDependency{
 			Constraints: discovery.NewConstraints(constraints),
 			Reason:      moduledeps.ProviderDependencyExplicit,
 		}

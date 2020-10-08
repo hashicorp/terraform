@@ -8,6 +8,52 @@ import (
 	"github.com/hashicorp/terraform/lang"
 )
 
+// nodeExpandApplyableResource handles the first layer of resource
+// expansion during apply. Even though the resource instances themselves are
+// already expanded from the plan, we still need to expand the
+// NodeApplyableResource nodes into their respective modules.
+type nodeExpandApplyableResource struct {
+	*NodeAbstractResource
+}
+
+var (
+	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeReferenceable        = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
+	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
+)
+
+func (n *nodeExpandApplyableResource) expandsInstances() {}
+
+func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
+	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
+}
+
+func (n *nodeExpandApplyableResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
+
+func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	moduleInstances := expander.ExpandModule(n.Addr.Module)
+	var resources []addrs.AbsResource
+	for _, module := range moduleInstances {
+		resAddr := n.Addr.Resource.Absolute(module)
+		resources = append(resources, resAddr)
+		g.Add(&NodeApplyableResource{
+			NodeAbstractResource: n.NodeAbstractResource,
+			Addr:                 n.Addr.Resource.Absolute(module),
+		})
+	}
+
+	return &g, nil
+}
+
 // NodeApplyableResource represents a resource that is "applyable":
 // it may need to have its record in the state adjusted to match configuration.
 //
@@ -18,18 +64,21 @@ import (
 // in the state is suitably prepared to receive any updates to instances.
 type NodeApplyableResource struct {
 	*NodeAbstractResource
+
+	Addr addrs.AbsResource
 }
 
 var (
-	_ GraphNodeResource             = (*NodeApplyableResource)(nil)
-	_ GraphNodeEvalable             = (*NodeApplyableResource)(nil)
+	_ GraphNodeModuleInstance       = (*NodeApplyableResource)(nil)
+	_ GraphNodeConfigResource       = (*NodeApplyableResource)(nil)
+	_ GraphNodeExecutable           = (*NodeApplyableResource)(nil)
 	_ GraphNodeProviderConsumer     = (*NodeApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeApplyableResource)(nil)
 	_ GraphNodeReferencer           = (*NodeApplyableResource)(nil)
 )
 
-func (n *NodeApplyableResource) Name() string {
-	return n.NodeAbstractResource.Name() + " (prepare state)"
+func (n *NodeApplyableResource) Path() addrs.ModuleInstance {
+	return n.Addr.Module
 }
 
 func (n *NodeApplyableResource) References() []*addrs.Reference {
@@ -51,21 +100,14 @@ func (n *NodeApplyableResource) References() []*addrs.Reference {
 	return result
 }
 
-// GraphNodeEvalable
-func (n *NodeApplyableResource) EvalTree() EvalNode {
-	addr := n.ResourceAddr()
-	config := n.Config
-	providerAddr := n.ResolvedProvider
-
-	if config == nil {
+// GraphNodeExecutable
+func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) error {
+	if n.Config == nil {
 		// Nothing to do, then.
-		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", addr)
-		return &EvalNoop{}
+		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
+		return nil
 	}
 
-	return &EvalWriteResourceState{
-		Addr:         addr.Resource,
-		Config:       config,
-		ProviderAddr: providerAddr,
-	}
+	err := n.writeResourceState(ctx, n.Addr)
+	return err
 }

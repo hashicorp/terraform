@@ -16,8 +16,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -30,11 +30,9 @@ func TestContext2Plan_basic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		ProviderSHA256s: map[string][]byte{
 			"aws": []byte("placeholder"),
 		},
@@ -87,41 +85,32 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-							Attributes: map[string]string{
-								"id": "baz",
-							},
-						},
-						Deposed: []*InstanceState{
-							&InstanceState{
-								ID: "foo",
-								Attributes: map[string]string{
-									"id": "foo",
-								},
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		states.DeposedKey("00000001"),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -133,7 +122,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	expectedState := strings.TrimSpace(`
  aws_instance.foo: (1 deposed)
   ID = baz
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
   Deposed ID 1 = foo`)
 
 	if ctx.State().String() != expectedState {
@@ -208,16 +197,8 @@ func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		Variables: InputValues{
-			"in": &InputValue{
-				Value:      cty.StringVal("a,b,c"),
-				SourceType: ValueFromCaller,
-			},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -254,11 +235,9 @@ func TestContext2Plan_emptyDiff(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -295,11 +274,9 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -339,11 +316,9 @@ func TestContext2Plan_minimal(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -380,11 +355,9 @@ func TestContext2Plan_modules(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -435,6 +408,55 @@ func TestContext2Plan_modules(t *testing.T) {
 		checkVals(t, expected, ric.After)
 	}
 }
+func TestContext2Plan_moduleExpand(t *testing.T) {
+	// Test a smattering of plan expansion behavior
+	m := testModule(t, "plan-modules-expand")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	expected := map[string]struct{}{
+		`aws_instance.foo["a"]`:                          struct{}{},
+		`module.count_child[1].aws_instance.foo[0]`:      struct{}{},
+		`module.count_child[1].aws_instance.foo[1]`:      struct{}{},
+		`module.count_child[0].aws_instance.foo[0]`:      struct{}{},
+		`module.count_child[0].aws_instance.foo[1]`:      struct{}{},
+		`module.for_each_child["a"].aws_instance.foo[1]`: struct{}{},
+		`module.for_each_child["a"].aws_instance.foo[0]`: struct{}{},
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, ok := expected[ric.Addr.String()]
+		if !ok {
+			t.Fatal("unexpected resource:", ric.Addr.String())
+		}
+		delete(expected, ric.Addr.String())
+	}
+	for addr := range expected {
+		t.Error("missing resource", addr)
+	}
+}
 
 // GH-1475
 func TestContext2Plan_moduleCycle(t *testing.T) {
@@ -455,11 +477,9 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -511,11 +531,9 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: providers.ResolverFixed(
-				map[string]providers.Factory{
-					"aws": testProviderFuncFixed(p),
-				},
-			),
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			},
 		})
 
 		plan, err := ctx.Plan()
@@ -557,11 +575,9 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -614,11 +630,9 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -668,11 +682,9 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("52"),
@@ -739,11 +751,9 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -802,30 +812,24 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	m := testModule(t, "plan-modules-remove")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+
+	state := states.NewState()
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -869,7 +873,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 module.child:
   aws_instance.foo:
     ID = baz
-    provider = provider.aws`
+    provider = provider["registry.terraform.io/hashicorp/aws"]`
 
 	if ctx.State().String() != expectedState {
 		t.Fatalf("\nexpected state: %q\n\ngot: %q", expectedState, ctx.State().String())
@@ -882,56 +886,45 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.top": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "top",
-						},
-					},
-				},
-			},
-			&ModuleState{
-				Path: []string{"root", "parent", "childone"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
-			&ModuleState{
-				Path: []string{"root", "parent", "childtwo"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-						},
-						Provider: "provider.aws",
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.top").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"top"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child1 := state.EnsureModule(addrs.RootModuleInstance.Child("parent", addrs.NoKey).Child("child1", addrs.NoKey))
+	child1.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child2 := state.EnsureModule(addrs.RootModuleInstance.Child("parent", addrs.NoKey).Child("child2", addrs.NoKey))
+	child2.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Provisioners: map[string]ProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: s,
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -954,17 +947,17 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		}
 
 		switch i := ric.Addr.String(); i {
-		case "module.parent.module.childone.aws_instance.foo":
+		case "module.parent.module.child1.aws_instance.foo":
 			if res.Action != plans.Delete {
 				t.Fatalf("expected resource Delete, got %s", res.Action)
 			}
-		case "module.parent.module.childtwo.aws_instance.foo":
+		case "module.parent.module.child2.aws_instance.foo":
 			if res.Action != plans.Delete {
 				t.Fatalf("expected resource Delete, got %s", res.Action)
 			}
 		case "aws_instance.top":
 			if res.Action != plans.NoOp {
-				t.Fatal("expected no changes, got", res.Action)
+				t.Fatalf("expected no changes, got %s", res.Action)
 			}
 		default:
 			t.Fatalf("unknown instance: %s\nafter: %#v", i, hcl2shim.ConfigValueFromHCL2(ric.After))
@@ -973,19 +966,19 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 
 	expectedState := `aws_instance.top:
   ID = top
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 
-module.parent.childone:
+module.parent.child1:
   aws_instance.foo:
     ID = baz
-    provider = provider.aws
-module.parent.childtwo:
+    provider = provider["registry.terraform.io/hashicorp/aws"]
+module.parent.child2:
   aws_instance.foo:
     ID = baz
-    provider = provider.aws`
+    provider = provider["registry.terraform.io/hashicorp/aws"]`
 
 	if expectedState != ctx.State().String() {
-		t.Fatalf("\nexpect state: %q\ngot state:    %q\n", expectedState, ctx.State().String())
+		t.Fatalf("\nexpect state:\n%s\n\ngot state:\n%s\n", expectedState, ctx.State().String())
 	}
 }
 
@@ -996,49 +989,47 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	m := testModule(t, "plan-module-provider-inherit")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": func() (providers.Interface, error) {
-					l.Lock()
-					defer l.Unlock()
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+				l.Lock()
+				defer l.Unlock()
 
-					p := testProvider("aws")
-					p.GetSchemaReturn = &ProviderSchema{
-						Provider: &configschema.Block{
+				p := testProvider("aws")
+				p.GetSchemaReturn = &ProviderSchema{
+					Provider: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"from": {Type: cty.String, Optional: true},
+						},
+					},
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
 							Attributes: map[string]*configschema.Attribute{
 								"from": {Type: cty.String, Optional: true},
 							},
 						},
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": {
-								Attributes: map[string]*configschema.Attribute{
-									"from": {Type: cty.String, Optional: true},
-								},
-							},
-						},
+					},
+				}
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
 					}
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						if v, ok := c.Get("from"); !ok || v.(string) != "root" {
-							return fmt.Errorf("bad")
-						}
 
-						return nil
-					}
-					p.DiffFn = func(
-						info *InstanceInfo,
-						state *InstanceState,
-						c *ResourceConfig) (*InstanceDiff, error) {
-						v, _ := c.Get("from")
+					return nil
+				}
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					v, _ := c.Get("from")
 
-						l.Lock()
-						defer l.Unlock()
-						calls = append(calls, v.(string))
-						return testDiffFn(info, state, c)
-					}
-					return p, nil
-				},
+					l.Lock()
+					defer l.Unlock()
+					calls = append(calls, v.(string))
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
 			},
-		),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -1062,52 +1053,50 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 	m := testModule(t, "plan-module-provider-inherit-deep")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": func() (providers.Interface, error) {
-					l.Lock()
-					defer l.Unlock()
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+				l.Lock()
+				defer l.Unlock()
 
-					var from string
-					p := testProvider("aws")
+				var from string
+				p := testProvider("aws")
 
-					p.GetSchemaReturn = &ProviderSchema{
-						Provider: &configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"from": {Type: cty.String, Optional: true},
-							},
+				p.GetSchemaReturn = &ProviderSchema{
+					Provider: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"from": {Type: cty.String, Optional: true},
 						},
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": {
-								Attributes: map[string]*configschema.Attribute{},
-							},
+					},
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
+							Attributes: map[string]*configschema.Attribute{},
 						},
+					},
+				}
+
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					v, ok := c.Get("from")
+					if !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
 					}
 
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						v, ok := c.Get("from")
-						if !ok || v.(string) != "root" {
-							return fmt.Errorf("bad")
-						}
+					from = v.(string)
+					return nil
+				}
 
-						from = v.(string)
-						return nil
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					if from != "root" {
+						return nil, fmt.Errorf("bad resource")
 					}
 
-					p.DiffFn = func(
-						info *InstanceInfo,
-						state *InstanceState,
-						c *ResourceConfig) (*InstanceDiff, error) {
-						if from != "root" {
-							return nil, fmt.Errorf("bad resource")
-						}
-
-						return testDiffFn(info, state, c)
-					}
-					return p, nil
-				},
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
 			},
-		),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -1123,47 +1112,45 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	m := testModule(t, "plan-module-provider-defaults-var")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": func() (providers.Interface, error) {
-					l.Lock()
-					defer l.Unlock()
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+				l.Lock()
+				defer l.Unlock()
 
-					p := testProvider("aws")
-					p.GetSchemaReturn = &ProviderSchema{
-						Provider: &configschema.Block{
+				p := testProvider("aws")
+				p.GetSchemaReturn = &ProviderSchema{
+					Provider: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"to":   {Type: cty.String, Optional: true},
+							"from": {Type: cty.String, Optional: true},
+						},
+					},
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
 							Attributes: map[string]*configschema.Attribute{
-								"to":   {Type: cty.String, Optional: true},
 								"from": {Type: cty.String, Optional: true},
 							},
 						},
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": {
-								Attributes: map[string]*configschema.Attribute{
-									"from": {Type: cty.String, Optional: true},
-								},
-							},
-						},
+					},
+				}
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					var buf bytes.Buffer
+					if v, ok := c.Get("from"); ok {
+						buf.WriteString(v.(string) + "\n")
 					}
-					p.ConfigureFn = func(c *ResourceConfig) error {
-						var buf bytes.Buffer
-						if v, ok := c.Get("from"); ok {
-							buf.WriteString(v.(string) + "\n")
-						}
-						if v, ok := c.Get("to"); ok {
-							buf.WriteString(v.(string) + "\n")
-						}
+					if v, ok := c.Get("to"); ok {
+						buf.WriteString(v.(string) + "\n")
+					}
 
-						l.Lock()
-						defer l.Unlock()
-						calls = append(calls, buf.String())
-						return nil
-					}
-					p.DiffFn = testDiffFn
-					return p, nil
-				},
+					l.Lock()
+					defer l.Unlock()
+					calls = append(calls, buf.String())
+					return nil
+				}
+				p.DiffFn = testDiffFn
+				return p, nil
 			},
-		),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("root"),
@@ -1208,11 +1195,9 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1253,11 +1238,9 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1310,11 +1293,9 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -1329,11 +1310,9 @@ func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -1348,11 +1327,9 @@ func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -1367,11 +1344,9 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1418,28 +1393,23 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-bad")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, err := ctx.Plan()
@@ -1457,28 +1427,24 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -1495,34 +1461,32 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-count-bad")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo.0": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-						},
-						"aws_instance.foo.1": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc345",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, err := ctx.Plan()
@@ -1544,40 +1508,38 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
 					"current": {Type: cty.String, Optional: true},
+					"id":      {Type: cty.String, Computed: true},
 				},
 			},
 		},
 	}
 	p.DiffFn = testDiffFn
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc345"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo.0": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-						},
-						"aws_instance.foo.1": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc345",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -1598,38 +1560,31 @@ func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
 					"current": {Type: cty.String, Optional: true},
+					"type":    {Type: cty.String, Optional: true},
+					"id":      {Type: cty.String, Computed: true},
 				},
 			},
 		},
 	}
 	p.DiffFn = testDiffFn
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123","current":"0","type":"aws_instance"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo.0": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-								Attributes: map[string]string{
-									"current": "0",
-									"type":    "aws_instance",
-								},
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -1646,28 +1601,24 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.foo": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 	})
 
@@ -1689,11 +1640,9 @@ func TestContext2Plan_provisionerCycle(t *testing.T) {
 	pr := testProvisioner()
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Provisioners: map[string]ProvisionerFactory{
 			"local-exec": testProvisionerFuncFixed(pr),
 		},
@@ -1711,11 +1660,9 @@ func TestContext2Plan_computed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1786,11 +1733,9 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1859,11 +1804,9 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -1928,33 +1871,20 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := ctx.Validate()
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Refresh() // data resource is read in this step
+	_, diags = ctx.Plan()
 	assertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource was not called on provider during refresh; should've been called")
+		t.Fatalf("ReadDataSource was not called on provider during plan; should've been called")
 	}
-	p.ReadDataSourceCalled = false // reset for next call
-
-	t.Logf("state after refresh:\n%s", state)
-
-	_, diags = ctx.Plan() // should do nothing with data resource in this step, since it was already read
-	assertNoErrors(t, diags)
-
-	if p.ReadDataSourceCalled {
-		t.Fatalf("ReadDataSource was called on provider during plan; should not have been called")
-	}
-
 }
 
 func TestContext2Plan_computedDataCountResource(t *testing.T) {
@@ -1982,11 +1912,9 @@ func TestContext2Plan_computedDataCountResource(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2014,11 +1942,9 @@ func TestContext2Plan_localValueCount(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2056,6 +1982,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		DataSources: map[string]*configschema.Block{
 			"aws_data_source": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.String, Optional: true},
 				},
 			},
@@ -2082,32 +2009,23 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
 	}
 
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("data.aws_data_source.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123","foo":"baz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"data.aws_data_source.foo": &ResourceState{
-							Type: "aws_data_source",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-								Attributes: map[string]string{
-									"id":  "i-abc123",
-									"foo": "baz",
-								},
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	_, diags := ctx.Refresh()
@@ -2214,11 +2132,9 @@ func TestContext2Plan_computedList(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2326,11 +2242,9 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2384,11 +2298,9 @@ func TestContext2Plan_count(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2461,11 +2373,9 @@ func TestContext2Plan_countComputed(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -2480,11 +2390,9 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -2502,11 +2410,9 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2555,11 +2461,9 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2608,11 +2512,9 @@ func TestContext2Plan_countIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2661,11 +2563,9 @@ func TestContext2Plan_countVar(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"instance_count": &InputValue{
 				Value:      cty.StringVal("3"),
@@ -2747,11 +2647,9 @@ func TestContext2Plan_countZero(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2790,11 +2688,9 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -2841,45 +2737,40 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	m := testModule(t, "plan-count-dec")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo",
-								"type": "aws_instance",
-							},
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-					"aws_instance.foo.2": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo","type":"aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -2927,17 +2818,17 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 		}
 	}
 
-	expectedState := `aws_instance.foo.0:
+	expectedState := `aws_instance.foo:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = foo
   type = aws_instance
 aws_instance.foo.1:
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.foo.2:
   ID = bar
-  provider = provider.aws`
+  provider = provider["registry.terraform.io/hashicorp/aws"]`
 
 	if ctx.State().String() != expectedState {
 		t.Fatalf("epected state:\n%q\n\ngot state:\n%q\n", expectedState, ctx.State().String())
@@ -2948,33 +2839,24 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo",
-								"type": "aws_instance",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","type":"aws_instance","foo":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3037,33 +2919,23 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo",
-								"type": "aws_instance",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo","type":"aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3131,43 +3003,32 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo",
-								"type": "aws_instance",
-							},
-						},
-					},
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo",
-								"type": "aws_instance",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo","type":"aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo","type":"aws_instance"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3247,65 +3108,54 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"name":     {Type: cty.String, Optional: true},
 					"foo_name": {Type: cty.String, Optional: true},
+					"id":       {Type: cty.String, Computed: true},
 				},
 			},
 		},
 	}
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"name": "foo 0",
-							},
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"name": "foo 1",
-							},
-						},
-					},
-					"aws_instance.bar.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo_name": "foo 0",
-							},
-						},
-					},
-					"aws_instance.bar.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo_name": "foo 1",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","name":"foo 0"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","name":"foo 1"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo_name":"foo 0"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo_name":"foo 1"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3335,19 +3185,88 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 			if res.Action != plans.Create {
 				t.Fatalf("expected resource create, got %s", res.Action)
 			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo_name": cty.StringVal("foo 2"),
-			}), ric.After)
+			// The instance ID changed, so just check that the name updated
+			if ric.After.GetAttr("foo_name") != cty.StringVal("foo 2") {
+				t.Fatalf("resource %s attr \"foo_name\" should be changed", i)
+			}
 		case "aws_instance.foo[2]":
 			if res.Action != plans.Create {
 				t.Fatalf("expected resource create, got %s", res.Action)
 			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"name": cty.StringVal("foo 2"),
-			}), ric.After)
+			// The instance ID changed, so just check that the name updated
+			if ric.After.GetAttr("name") != cty.StringVal("foo 2") {
+				t.Fatalf("resource %s attr \"name\" should be changed", i)
+			}
 		default:
 			t.Fatal("unknown instance:", i)
 		}
+	}
+}
+
+func TestContext2Plan_forEach(t *testing.T) {
+	m := testModule(t, "plan-for-each")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 8 {
+		t.Fatal("expected 8 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		_, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestContext2Plan_forEachUnknownValue(t *testing.T) {
+	// This module has a variable defined, but it's value is unknown. We
+	// expect this to produce an error, but not to panic.
+	m := testModule(t, "plan-for-each-unknown-value")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"foo": {
+				Value:      cty.UnknownVal(cty.String),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		// Should get this error:
+		// Invalid for_each argument: The "for_each" value depends on resource attributes that cannot be determined until apply...
+		t.Fatal("succeeded; want errors")
+	}
+
+	gotErrStr := diags.Err().Error()
+	wantErrStr := "Invalid for_each argument"
+	if !strings.Contains(gotErrStr, wantErrStr) {
+		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}
 }
 
@@ -3355,35 +3274,32 @@ func TestContext2Plan_destroy(t *testing.T) {
 	m := testModule(t, "plan-destroy")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.one": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-					"aws_instance.two": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "baz",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.one").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.two").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State:   s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 	})
 
@@ -3421,40 +3337,33 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	m := testModule(t, "plan-module-destroy")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State:   s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 	})
 
@@ -3492,40 +3401,33 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 	m := testModule(t, "plan-module-destroy-gh-1835")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root", "a_module"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.a": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "a",
-						},
-					},
-				},
-			},
-			&ModuleState{
-				Path: []string{"root", "b_module"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.b": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "b",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	aModule := state.EnsureModule(addrs.RootModuleInstance.Child("a_module", addrs.NoKey))
+	aModule.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"a"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	bModule := state.EnsureModule(addrs.RootModuleInstance.Child("b_module", addrs.NoKey))
+	bModule.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"b"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State:   s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 	})
 
@@ -3563,39 +3465,32 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 	m := testModule(t, "plan-module-destroy-multivar")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path:      rootModulePath,
-				Resources: map[string]*ResourceState{},
-			},
-			&ModuleState{
-				Path: []string{"root", "child"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar0",
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar1",
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar0"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar1"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State:   s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 	})
 
@@ -3652,11 +3547,9 @@ func TestContext2Plan_pathVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -3696,32 +3589,23 @@ func TestContext2Plan_pathVar(t *testing.T) {
 func TestContext2Plan_diffVar(t *testing.T) {
 	m := testModule(t, "plan-diffvar")
 	p := testProvider("aws")
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"num": "2",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","num":"2"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	p.DiffFn = func(
@@ -3796,11 +3680,9 @@ func TestContext2Plan_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Hooks:  []Hook{h},
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -3825,11 +3707,9 @@ func TestContext2Plan_closeProvider(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -3846,29 +3726,23 @@ func TestContext2Plan_orphan(t *testing.T) {
 	m := testModule(t, "plan-orphan")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.baz": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.baz").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3917,11 +3791,9 @@ func TestContext2Plan_shadowUuid(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -3934,29 +3806,22 @@ func TestContext2Plan_state(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -4014,37 +3879,31 @@ func TestContext2Plan_taint(t *testing.T) {
 	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{"num": "2"},
-						},
-					},
-					"aws_instance.bar": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:      "baz",
-							Tainted: true,
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","num":"2"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -4102,34 +3961,23 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"vars": "foo",
-								"type": "aws_instance",
-							},
-							Tainted: true,
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"foo","vars":"foo","type":"aws_instance"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -4176,40 +4024,40 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	m := testModule(t, "plan-taint-interpolated-count")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:      "bar",
-							Tainted: true,
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type:    "aws_instance",
-						Primary: &InstanceState{ID: "bar"},
-					},
-					"aws_instance.foo.2": &ResourceState{
-						Type:    "aws_instance",
-						Primary: &InstanceState{ID: "bar"},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	for i := 0; i < 100; i++ {
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
-			ProviderResolver: providers.ResolverFixed(
-				map[string]providers.Factory{
-					"aws": testProviderFuncFixed(p),
-				},
-			),
-			State: s,
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			},
+			State: state.DeepCopy(),
 		})
 
 		plan, diags := ctx.Plan()
@@ -4233,7 +4081,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			switch i := ric.Addr.String(); i {
 			case "aws_instance.foo[0]":
 				if res.Action != plans.DeleteThenCreate {
-					t.Fatalf("resource %s should be replaced", i)
+					t.Fatalf("resource %s should be replaced, not %s", i, res.Action)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"id": cty.StringVal("bar"),
@@ -4258,11 +4106,9 @@ func TestContext2Plan_targeted(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
@@ -4311,11 +4157,9 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("B", addrs.NoKey),
 		},
@@ -4378,11 +4222,9 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"null": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
@@ -4415,34 +4257,32 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 	m := testModule(t, "plan-targeted-orphan")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.orphan").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-789xyz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.nottargeted").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.orphan": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-789xyz",
-							},
-						},
-						"aws_instance.nottargeted": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
@@ -4485,36 +4325,32 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 	m := testModule(t, "plan-targeted-module-orphan")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
+
+	state := states.NewState()
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.orphan").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-789xyz"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	child.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.nottargeted").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"i-abc123"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: []string{"root", "child"},
-					Resources: map[string]*ResourceState{
-						"aws_instance.orphan": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-789xyz",
-							},
-							Provider: "provider.aws",
-						},
-						"aws_instance.nottargeted": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "i-abc123",
-							},
-							Provider: "provider.aws",
-						},
-					},
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State:   state,
 		Destroy: true,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
@@ -4555,11 +4391,9 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "blue",
@@ -4613,11 +4447,9 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 	p.DiffFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("mod", addrs.NoKey).Resource(
 				addrs.ManagedResourceMode, "aws_instance", "a",
@@ -4625,9 +4457,18 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("got %d diagnostics; want 1", diags)
+	}
+	if got, want := diags[0].Severity(), tfdiags.Warning; got != want {
+		t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
+	}
+	if got, want := diags[0].Description().Summary, "Resource targeting is in effect"; got != want {
+		t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
 	}
 }
 
@@ -4637,33 +4478,31 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 
-	resources := make(map[string]*ResourceState)
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
 	var expectedState []string
 	for i := 0; i < 13; i++ {
-		key := fmt.Sprintf("aws_instance.foo.%d", i)
+		key := fmt.Sprintf("aws_instance.foo[%d]", i)
 		id := fmt.Sprintf("i-abc%d", i)
-		resources[key] = &ResourceState{
-			Type:    "aws_instance",
-			Primary: &InstanceState{ID: id},
-		}
-		expectedState = append(expectedState,
-			fmt.Sprintf("%s:\n  ID = %s\n", key, id))
+		attrs := fmt.Sprintf("{\"id\":\"%s\"}", id)
+
+		root.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(key).Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(attrs),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		)
+		expectedState = append(expectedState, fmt.Sprintf("%s:\n  ID = %s\n", key, id))
 	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: MustShimLegacyState(&State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path:      rootModulePath,
-					Resources: resources,
-				},
-			},
-		}),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.ResourceInstance(
 				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
@@ -4703,11 +4542,9 @@ func TestContext2Plan_provider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("bar"),
@@ -4730,11 +4567,9 @@ func TestContext2Plan_varListErr(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, err := ctx.Plan()
@@ -4747,39 +4582,31 @@ func TestContext2Plan_varListErr(t *testing.T) {
 func TestContext2Plan_ignoreChanges(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes")
 	p := testProvider("aws")
-
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID:         "bar",
-							Attributes: map[string]string{"ami": "ami-abcd1234"},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("ami-1234abcd"),
 				SourceType: ValueFromCaller,
 			},
 		},
-		State: s,
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -4799,18 +4626,14 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Action != plans.Update {
-		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
-	}
 
 	if ric.Addr.String() != "aws_instance.foo" {
 		t.Fatalf("unexpected resource: %s", ric.Addr)
 	}
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
-		"id":   cty.StringVal("bar"),
-		"ami":  cty.StringVal("ami-abcd1234"),
-		"type": cty.StringVal("aws_instance"),
+		"id":  cty.StringVal("bar"),
+		"ami": cty.StringVal("ami-abcd1234"),
 	}), ric.After)
 }
 
@@ -4819,32 +4642,22 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"ami":      "ami-abcd1234",
-								"instance": "t2.micro",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 		Variables: InputValues{
 			"foo": &InputValue{
 				Value:      cty.StringVal("ami-1234abcd"),
@@ -4855,7 +4668,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 				SourceType: ValueFromCaller,
 			},
 		},
-		State: s,
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -4868,6 +4681,86 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 			t.Fatalf("unexpected resource diffs in root module: %s", spew.Sdump(plan.Changes.Resources))
 		}
 	}
+}
+
+func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
+	p := testProvider("test")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_ignore_changes_map": {
+				Attributes: map[string]*configschema.Attribute{
+					"tags": {Type: cty.Map(cty.String), Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	p.DiffFn = testDiffFn
+
+	s := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_ignore_changes_map",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"tags":{"ignored":"from state","other":"from state"}}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	m := testModule(t, "plan-ignore-changes-in-map")
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["test_ignore_changes_map"]
+	ty := schema.ImpliedType()
+
+	if got, want := len(plan.Changes.Resources), 1; got != want {
+		t.Fatalf("wrong number of changes %d; want %d", got, want)
+	}
+
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != plans.Update {
+		t.Fatalf("resource %s should be updated, got %s", ric.Addr, res.Action)
+	}
+
+	if got, want := ric.Addr.String(), "test_ignore_changes_map.foo"; got != want {
+		t.Fatalf("unexpected resource address %s; want %s", got, want)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"tags": cty.MapVal(map[string]cty.Value{
+			"ignored": cty.StringVal("from state"),
+			"other":   cty.StringVal("from config"),
+		}),
+	}), ric.After)
 }
 
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
@@ -4909,11 +4802,9 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -4956,11 +4847,9 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5015,11 +4904,9 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5091,29 +4978,21 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		}
 	}
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		cfg := req.Config.AsValueMap()
+		cfg["id"] = cty.StringVal("data_id")
 		return providers.ReadDataSourceResponse{
-			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
+			State: cty.ObjectVal(cfg),
 		}
 	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
-	// We're skipping ctx.Refresh here, which simulates what happens when
-	// running "terraform plan -refresh=false". As a result, we don't get our
-	// usual opportunity to read the data source during the refresh step and
-	// thus the plan call below is forced to produce a deferred read action.
-
 	plan, diags := ctx.Plan()
-	if p.ReadDataSourceCalled {
-		t.Errorf("ReadDataSource was called on the provider, but should not have been because we didn't refresh")
-	}
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -5143,7 +5022,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"num":      cty.StringVal("2"),
-					"computed": cty.UnknownVal(cty.String),
+					"computed": cty.StringVal("data_id"),
 				}), ric.After)
 			case "aws_instance.foo[1]":
 				if res.Action != plans.Create {
@@ -5151,31 +5030,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"num":      cty.StringVal("2"),
-					"computed": cty.UnknownVal(cty.String),
-				}), ric.After)
-			case "data.aws_vpc.bar[0]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					// In a normal flow we would've read an exact value in
-					// ReadDataSource, but because this test doesn't run
-					// cty.Refresh we have no opportunity to do that lookup
-					// and a deferred read is forced.
-					"id":  cty.UnknownVal(cty.String),
-					"foo": cty.StringVal("0"),
-				}), ric.After)
-			case "data.aws_vpc.bar[1]":
-				if res.Action != plans.Read {
-					t.Fatalf("resource %s should be read, got %s", ric.Addr, ric.Action)
-				}
-				checkVals(t, objectVal(t, schema, map[string]cty.Value{
-					// In a normal flow we would've read an exact value in
-					// ReadDataSource, but because this test doesn't run
-					// cty.Refresh we have no opportunity to do that lookup
-					// and a deferred read is forced.
-					"id":  cty.UnknownVal(cty.String),
-					"foo": cty.StringVal("1"),
+					"computed": cty.StringVal("data_id"),
 				}), ric.After)
 			default:
 				t.Fatal("unknown instance:", i)
@@ -5186,8 +5041,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	wantAddrs := map[string]struct{}{
 		"aws_instance.foo[0]": struct{}{},
 		"aws_instance.foo[1]": struct{}{},
-		"data.aws_vpc.bar[0]": struct{}{},
-		"data.aws_vpc.bar[1]": struct{}{},
 	}
 	if !cmp.Equal(seenAddrs, wantAddrs) {
 		t.Errorf("incorrect addresses in changeset:\n%s", cmp.Diff(wantAddrs, seenAddrs))
@@ -5211,11 +5064,9 @@ func TestContext2Plan_listOrder(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5265,39 +5116,28 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 			},
 		},
 	}
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"user_data":   "x",
-								"require_new": "",
-								"set.#":       "1",
-								"set.0.%":     "1",
-								"set.0.a":     "1",
-								"lst.#":       "1",
-								"lst.0":       "j",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"user_data":"x","require_new":"",
+				"set":[{"a":"1"}],
+				"lst":["j"]
+			}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	plan, diags := ctx.Plan()
@@ -5353,87 +5193,67 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
-	s := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo.0": &ResourceState{
-						Type:     "aws_instance",
-						Provider: "provider.aws",
-						Primary: &InstanceState{
-							ID: "foo0",
-							Attributes: map[string]string{
-								"id": "foo0",
-							},
-						},
-					},
-					"aws_instance.foo.1": &ResourceState{
-						Type:     "aws_instance",
-						Provider: "provider.aws",
-						Primary: &InstanceState{
-							ID: "foo1",
-							Attributes: map[string]string{
-								"id": "foo1",
-							},
-						},
-					},
-					"aws_instance.bar.0": &ResourceState{
-						Type:         "aws_instance",
-						Provider:     "provider.aws",
-						Dependencies: []string{"aws_instance.foo"},
-						Primary: &InstanceState{
-							ID: "bar0",
-							Attributes: map[string]string{
-								"id": "bar0",
-							},
-						},
-					},
-					"aws_instance.bar.1": &ResourceState{
-						Type:         "aws_instance",
-						Provider:     "provider.aws",
-						Dependencies: []string{"aws_instance.foo"},
-						Primary: &InstanceState{
-							ID: "bar1",
-							Attributes: map[string]string{
-								"id": "bar1",
-							},
-						},
-					},
-					"aws_instance.baz.0": &ResourceState{
-						Type:         "aws_instance",
-						Provider:     "provider.aws",
-						Dependencies: []string{"aws_instance.bar"},
-						Primary: &InstanceState{
-							ID: "baz0",
-							Attributes: map[string]string{
-								"id": "baz0",
-							},
-						},
-					},
-					"aws_instance.baz.1": &ResourceState{
-						Type:         "aws_instance",
-						Provider:     "provider.aws",
-						Dependencies: []string{"aws_instance.bar"},
-						Primary: &InstanceState{
-							ID: "baz1",
-							Attributes: map[string]string{
-								"id": "baz1",
-							},
-						},
-					},
-				},
-			},
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo0"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo1"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"bar0"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.bar[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"bar1"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.foo")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.baz[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"baz0"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.baz[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"baz1"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("aws_instance.bar")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
-		State: s,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
 	})
 
 	diags := ctx.Validate()
@@ -5510,11 +5330,9 @@ func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5543,11 +5361,9 @@ func TestContext2Plan_selfRef(t *testing.T) {
 	m := testModule(t, "plan-self-ref")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -5582,11 +5398,9 @@ func TestContext2Plan_selfRefMulti(t *testing.T) {
 	m := testModule(t, "plan-self-ref-multi")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -5621,11 +5435,9 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 	m := testModule(t, "plan-self-ref-multi-all")
 	c := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	diags := c.Validate()
@@ -5655,18 +5467,23 @@ func TestContext2Plan_invalidOutput(t *testing.T) {
 data "aws_data_source" "name" {}
 
 output "out" {
-  value = "${data.aws_data_source.name.missing}"
+  value = data.aws_data_source.name.missing
 }`,
 	})
 
 	p := testProvider("aws")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5702,13 +5519,18 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5753,11 +5575,9 @@ resource "aws_instance" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"aws": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
 	})
 
 	_, diags := ctx.Plan()
@@ -5765,6 +5585,128 @@ resource "aws_instance" "foo" {
 		// Should get this error:
 		// Unsupported attribute: This object does not have an attribute named "missing"
 		t.Fatal("succeeded; want errors")
+	}
+}
+
+func TestContext2Plan_variableSensitivity(t *testing.T) {
+	m := testModule(t, "plan-variable-sensitivity")
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo": cty.StringVal("foo"),
+			}), ric.After)
+			if len(res.ChangeSrc.BeforeValMarks) != 0 {
+				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
+			}
+			if len(res.ChangeSrc.AfterValMarks) != 1 {
+				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+				continue
+			}
+			pvm := res.ChangeSrc.AfterValMarks[0]
+			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
+				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			}
+			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+}
+
+func TestContext2Plan_variableSensitivityModule(t *testing.T) {
+	m := testModule(t, "plan-variable-sensitivity-module")
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected resource creation, got %s", res.Action)
+		}
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.child.aws_instance.foo":
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"foo": cty.StringVal("foo"),
+			}), ric.After)
+			if len(res.ChangeSrc.BeforeValMarks) != 0 {
+				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
+			}
+			if len(res.ChangeSrc.AfterValMarks) != 1 {
+				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+				continue
+			}
+			pvm := res.ChangeSrc.AfterValMarks[0]
+			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
+				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			}
+			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			}
+		default:
+			t.Fatal("unknown instance:", i)
+		}
 	}
 }
 
@@ -5803,11 +5745,9 @@ func TestContext2Plan_requiredModuleOutput(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5870,11 +5810,9 @@ func TestContext2Plan_requiredModuleObject(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": testProviderFuncFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5917,5 +5855,633 @@ func TestContext2Plan_requiredModuleObject(t *testing.T) {
 
 			checkVals(t, expected, ric.After)
 		})
+	}
+}
+
+func TestContext2Plan_expandOrphan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 1
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	state := states.NewState()
+	state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.IntKey(0))).SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"child"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.IntKey(1))).SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"child"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		`module.mod[1].aws_instance.foo`: plans.Delete,
+		`module.mod[0].aws_instance.foo`: plans.NoOp,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
+func TestContext2Plan_indexInVar(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  count = 1
+  source = "./mod"
+  in = "test"
+}
+
+module "b" {
+  count = 1
+  source = "./mod"
+  in = length(module.a)
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  foo = var.in
+}
+
+variable "in" {
+}
+
+output"out" {
+  value = aws_instance.foo.id
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Plan_targetExpandedAddress(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+  count = 2
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	targets := []addrs.Targetable{}
+	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo[0]")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	targets = append(targets, target.Subject)
+
+	target, diags = addrs.ParseTargetStr("module.mod[2]")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	targets = append(targets, target.Subject)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: targets,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		// the single targeted mod[1] instances
+		`module.mod[1].aws_instance.foo[0]`: plans.Create,
+		// the whole mode[2]
+		`module.mod[2].aws_instance.foo[0]`: plans.Create,
+		`module.mod[2].aws_instance.foo[1]`: plans.Create,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
+func TestContext2Plan_targetResourceInModuleInstance(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo")
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	targets := []addrs.Targetable{target.Subject}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: targets,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	expected := map[string]plans.Action{
+		// the single targeted mod[1] instance
+		`module.mod[1].aws_instance.foo`: plans.Create,
+	}
+
+	for _, res := range plan.Changes.Resources {
+		want := expected[res.Addr.String()]
+		if res.Action != want {
+			t.Fatalf("expected %s action, got: %q %s", want, res.Addr, res.Action)
+		}
+		delete(expected, res.Addr.String())
+	}
+
+	for res, action := range expected {
+		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
+func TestContext2Plan_moduleRefIndex(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  for_each = {
+    a = "thing"
+  }
+  in = null
+  source = "./mod"
+}
+
+module "single" {
+  source = "./mod"
+  in = module.mod["a"]
+}
+`,
+		"mod/main.tf": `
+variable "in" {
+}
+
+output "out" {
+  value = "foo"
+}
+
+resource "aws_instance" "foo" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Plan_noChangeDataPlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "foo" {}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetSchemaReturn = &ProviderSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	}
+
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("data.test_data_source.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"data_id", "foo":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.NoOp {
+			t.Fatalf("expected NoOp, got: %q %s", res.Addr, res.Action)
+		}
+	}
+}
+
+// for_each can reference a resource with 0 instances
+func TestContext2Plan_scaleInForEach(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  m = {}
+}
+
+resource "test_instance" "a" {
+  for_each = local.m
+}
+
+resource "test_instance" "b" {
+  for_each = test_instance.a
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a0"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"b"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_instance.a")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Plan_targetedModuleInstance(t *testing.T) {
+	m := testModule(t, "plan-targeted")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Child("mod", addrs.IntKey(0)),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	for _, res := range plan.Changes.Resources {
+		ric, err := res.Decode(ty)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch i := ric.Addr.String(); i {
+		case "module.mod[0].aws_instance.foo":
+			if res.Action != plans.Create {
+				t.Fatalf("resource %s should be created", i)
+			}
+			checkVals(t, objectVal(t, schema, map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"num":  cty.NumberIntVal(2),
+				"type": cty.StringVal("aws_instance"),
+			}), ric.After)
+		default:
+			t.Fatal("unknown instance:", i)
+		}
+	}
+}
+
+func TestContext2Plan_dataRefreshedInPlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "d" {
+}
+`})
+
+	p := testProvider("test")
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("this"),
+			"foo": cty.NullVal(cty.String),
+		}),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	d := plan.State.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.d"))
+	if d == nil || d.Current == nil {
+		t.Fatal("data.test_data_source.d not found in state:", plan.State)
+	}
+
+	if d.Current.Status != states.ObjectReady {
+		t.Fatal("expected data.test_data_source.d to be fully read in refreshed state, got status", d.Current.Status)
+	}
+}
+
+func TestContext2Plan_dataReferencesResource(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source should not be read"))
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  x = "value"
+}
+
+resource "test_resource" "a" {
+  value = local.x
+}
+
+// test_resource.a.value can be resolved during plan, but the reference implies
+// that the data source should wait until the resource is created.
+data "test_data_source" "d" {
+  foo = test_resource.a.value
+}
+
+// ensure referencing an indexed instance that has not yet created will also
+// delay reading the data source
+resource "test_resource" "b" {
+  count = 2
+  value = local.x
+}
+
+data "test_data_source" "e" {
+  foo = test_resource.b[0].value
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Plan_skipRefresh(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State:       state,
+		SkipRefresh: true,
+	})
+
+	plan, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	if p.ReadResourceCalled {
+		t.Fatal("Resource should not have been refreshed")
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
+		}
+	}
+}
+
+func TestContext2Plan_dataInModuleDependsOn(t *testing.T) {
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	readDataSourceB := false
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		cfg := req.Config.AsValueMap()
+		foo := cfg["foo"].AsString()
+
+		cfg["id"] = cty.StringVal("ID")
+		cfg["foo"] = cty.StringVal("new")
+
+		if foo == "b" {
+			readDataSourceB = true
+		}
+
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod_a"
+}
+
+module "b" {
+  source = "./mod_b"
+  depends_on = [module.a]
+}`,
+		"mod_a/main.tf": `
+data "test_data_source" "a" {
+  foo = "a"
+}`,
+		"mod_b/main.tf": `
+data "test_data_source" "b" {
+  foo = "b"
+}`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	// The change to data source a should not prevent data source b from being
+	// read.
+	if !readDataSourceB {
+		t.Fatal("data source b was not read during plan")
 	}
 }

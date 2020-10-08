@@ -1,0 +1,205 @@
+version: 2.1
+
+orbs:
+  slack: circleci/slack@3.4.2
+
+executors:
+  go:
+    docker:
+      - image: circleci/golang:1.15
+    environment:
+      CONSUL_VERSION: 1.7.2
+      GOMAXPROCS: 4
+      GO111MODULE: "on"
+      GOPROXY: https://proxy.golang.org/
+      TEST_RESULTS_DIR: &TEST_RESULTS_DIR /tmp/test-results
+      ARTIFACTS_DIR: &ARTIFACTS_DIR /tmp/artifacts
+
+jobs:
+  go-checks:
+    executor:
+      name: go
+    steps:
+      - checkout
+      - run: go mod verify
+      - run: make fmtcheck generate
+      - run:
+          name: verify no code was generated
+          command: |
+            if [[ -z $(git status --porcelain) ]]; then
+              echo "Git directory is clean."
+            else
+              echo "Git is dirty. Run `make fmtcheck` and `make generate` locally and commit any formatting fixes or generated code."
+              git status --porcelain
+              exit 1
+            fi
+
+  go-test:
+    executor:
+      name: go
+    environment:
+      TF_CONSUL_TEST: 1
+    parallelism: 4
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: install consul
+          command: |
+            curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+            unzip consul.zip
+            mkdir -p ~/bin
+            mv consul ~/bin
+            echo 'export PATH="~/bin:$PATH"'
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: Run Go Tests
+          command: |
+            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
+            echo $PACKAGE_NAMES
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_$CIRCLE_NODE_INDEX.part $PACKAGE_NAMES
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+      - slack/status:
+          fail_only: true
+          only_for_branches: master
+
+  go-test-e2e:
+    executor:
+      name: go
+    environment:
+      TF_ACC: 1
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: Run Go E2E Tests
+          command: |
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./command/e2etest ./tools/terraform-bundle/e2etest
+
+      # save coverage report parts
+      - persist_to_workspace:
+          root: .
+          paths:
+            - cov_*.part
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+      - slack/status:
+          fail_only: true
+          only_for_branches: master
+
+  # combine code coverage results from the parallel circleci executors
+  coverage-merge:
+    executor:
+      name: go
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: mkdir -p $TEST_RESULTS_DIR
+      - run:
+          name: merge coverage reports
+          command: |
+            echo "mode: set" > coverage.out
+            grep -h -v "mode: set" cov_*.part >> coverage.out
+            go tool cover -html=coverage.out -o $TEST_RESULTS_DIR/coverage.html
+      - run:
+          name: codecov upload
+          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # build all distros
+  build-distros: &build-distros
+    executor: go
+    environment: &build-env
+      TF_RELEASE: 1
+    steps:
+      - run: go get -u github.com/mitchellh/gox # go get gox before detecting go mod
+      - checkout
+      - run: ./scripts/build.sh
+      - run: mkdir -p $ARTIFACTS_DIR
+      - run: cp pkg/*.zip /tmp/artifacts
+      # save dev build to CircleCI
+      - store_artifacts:
+          path: *ARTIFACTS_DIR
+
+  # build all 386 architecture supported OS binaries
+  build-386:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "freebsd linux openbsd windows"
+      XC_ARCH: "386"
+
+  # build all amd64 architecture supported OS binaries
+  build-amd64:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "darwin freebsd linux solaris windows"
+      XC_ARCH: "amd64"
+
+  # build all arm architecture supported OS binaries
+  build-arm:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "freebsd linux"
+      XC_ARCH: "arm"
+
+  test-docker-full:
+    executor:
+      name: go
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: test docker build for 'full' image
+          command: docker build -t test-docker-full .
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - go-checks
+      - go-test:
+          requires:
+            - go-checks
+      - go-test-e2e:
+          requires:
+            - go-checks
+      - coverage-merge:
+          requires:
+            - go-test
+            - go-test-e2e
+      - test-docker-full:
+          filters:
+            branches:
+              only:
+                - master
+                - /^v\d+\.\d+$/ # v0.11, v0.12, etc.
+
+  build-distros:
+    jobs:
+      - build-386
+      - build-amd64
+      - build-arm

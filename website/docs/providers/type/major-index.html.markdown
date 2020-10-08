@@ -19,14 +19,16 @@ tested by HashiCorp.
 ---
 
 
-- [AliCloud](/docs/providers/alicloud/index.html)
+- [Alibaba Cloud](/docs/providers/alicloud/index.html)
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
+- [Azure DevOps](/docs/providers/azuredevops/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
 - [Google Cloud Platform](/docs/providers/google/index.html)
 - [Oracle Cloud Infrastructure](/docs/providers/oci/index.html)
 - [Oracle Cloud Platform](/docs/providers/oraclepaas/index.html)
 - [Oracle Public Cloud](/docs/providers/opc/index.html)
+- [VMware Cloud](/docs/providers/vmc/index.html)
 - [VMware NSX-T](/docs/providers/nsxt/index.html)
 - [vCloud Director](/docs/providers/vcd/index.html)
 - [VMware vRA7](/docs/providers/vra7/index.html)

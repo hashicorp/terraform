@@ -14,13 +14,11 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
-	TFSTATE_NAME = "tfstate.tf"
-
 	consistencyTimeout = 15
 
 	// Suffix that will be appended to state file paths
@@ -55,7 +53,7 @@ type RemoteClient struct {
 	// lockState is true if we're using locks
 	lockState bool
 
-	info *state.LockInfo
+	info *statemgr.LockInfo
 
 	// lockCancel cancels the Context use for lockRenewPeriodic, and is
 	// called when unlocking, or before creating a new lock if the lock is
@@ -126,7 +124,7 @@ func (c *RemoteClient) Delete() error {
 	return c.delete(c.objectName)
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -387,7 +385,7 @@ func (c *RemoteClient) delete(object string) error {
 	return nil
 }
 
-func (c *RemoteClient) writeLockInfo(info *state.LockInfo, deleteAfter time.Duration, ifNoneMatch string) error {
+func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo, deleteAfter time.Duration, ifNoneMatch string) error {
 	err := c.put(c.lockFilePath(), info.Marshal(), int(deleteAfter.Seconds()), ifNoneMatch)
 
 	if httpErr, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok && httpErr.Actual == 412 {
@@ -407,8 +405,8 @@ func (c *RemoteClient) writeLockInfo(info *state.LockInfo, deleteAfter time.Dura
 	return nil
 }
 
-func (c *RemoteClient) lockError(err error, conflictingLock *state.LockInfo) *state.LockError {
-	lockErr := &state.LockError{
+func (c *RemoteClient) lockError(err error, conflictingLock *statemgr.LockInfo) *statemgr.LockError {
+	lockErr := &statemgr.LockError{
 		Err:  err,
 		Info: conflictingLock,
 	}
@@ -418,13 +416,13 @@ func (c *RemoteClient) lockError(err error, conflictingLock *state.LockInfo) *st
 
 // lockInfo reads the lock file, parses its contents and returns the parsed
 // LockInfo struct.
-func (c *RemoteClient) lockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) lockInfo() (*statemgr.LockInfo, error) {
 	raw, err := c.get(c.lockFilePath())
 	if err != nil {
 		return nil, err
 	}
 
-	info := &state.LockInfo{}
+	info := &statemgr.LockInfo{}
 
 	if err := json.Unmarshal(raw.Data, info); err != nil {
 		return nil, err
@@ -433,7 +431,7 @@ func (c *RemoteClient) lockInfo() (*state.LockInfo, error) {
 	return info, nil
 }
 
-func (c *RemoteClient) lockRenewPeriodic(ctx context.Context, info *state.LockInfo) error {
+func (c *RemoteClient) lockRenewPeriodic(ctx context.Context, info *statemgr.LockInfo) error {
 	log.Printf("[DEBUG] Renew lock %v", info)
 
 	waitDur := lockRenewInterval

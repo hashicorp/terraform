@@ -10,8 +10,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
-
-	"github.com/hashicorp/terraform/helper/copy"
 )
 
 func TestProvidersSchema_error(t *testing.T) {
@@ -32,7 +30,7 @@ func TestProvidersSchema_error(t *testing.T) {
 func TestProvidersSchema_output(t *testing.T) {
 	// there's only one test at this time. This can be refactored to have
 	// multiple test cases in individual directories as needed.
-	fixtureDir := "test-fixtures/providers-schema"
+	fixtureDir := "testdata/providers-schema"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
@@ -45,26 +43,26 @@ func TestProvidersSchema_output(t *testing.T) {
 		t.Run(entry.Name(), func(t *testing.T) {
 			td := tempDir(t)
 			inputDir := filepath.Join(fixtureDir, entry.Name())
-			copy.CopyDir(inputDir, td)
+			testCopyDir(t, inputDir, td)
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": []string{"1.2.3"},
+			})
+			defer close()
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				ProviderSource:   providerSource,
 			}
 
 			// `terrafrom init`
 			ic := &InitCommand{
 				Meta: m,
-				providerInstaller: &mockProviderInstaller{
-					Providers: map[string][]string{
-						"test": []string{"1.2.3"},
-					},
-					Dir: m.pluginDir(),
-				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)

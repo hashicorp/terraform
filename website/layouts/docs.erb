@@ -9,65 +9,150 @@
           <li<%= sidebar_current("docs-config") %>>
             <a href="/docs/configuration/index.html">0.12 and Newer</a>
             <ul class="nav">
-              <li<%= sidebar_current("docs-config-resources") %>>
-                <a href="/docs/configuration/resources.html">Resources</a>
+
+              <li>
+                <a href="/docs/configuration/index.html">Language Overview</a>
               </li>
 
-              <li<%= sidebar_current("docs-config-providers") %>>
-                <a href="/docs/configuration/providers.html">Providers</a>
+              <li>
+                <a href="/docs/configuration/resources.html">Configuration Blocks</a>
+                <ul class="nav nav-auto-expand">
+
+                  <li<%= sidebar_current("docs-config-resources") %>>
+                    <a href="/docs/configuration/resources.html">Resources</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/configuration/provider-requirements.html">Provider Requirements</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/configuration/providers.html">Provider Configuration</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-variables") %>>
+                    <a href="/docs/configuration/variables.html">Input Variables</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-outputs") %>>
+                    <a href="/docs/configuration/outputs.html">Output Values</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-locals") %>>
+                    <a href="/docs/configuration/locals.html">Local Values</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-modules") %>>
+                    <a href="/docs/configuration/modules.html">Modules</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-data-sources") %>>
+                    <a href="/docs/configuration/data-sources.html">Data Sources</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/configuration/backend.html">Backend Configuration</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-terraform") %>>
+                    <a href="/docs/configuration/terraform.html">Terraform Settings</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-provisioners") %>>
+                    <a href="/docs/provisioners/index.html">Provisioners</a>
+                    <ul class="nav">
+                      <li<%= sidebar_current("docs-provisioners-connection") %>>
+                        <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
+                      </li>
+
+                      <li<%= sidebar_current("docs-provisioners-null-resource") %>>
+                        <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
+                      </li>
+
+                      <li>
+                        <a href="#">Generic Provisioners</a>
+                        <ul class="nav nav-auto-expand">
+                          <li<%= sidebar_current("docs-provisioners-file") %>>
+                            <a href="/docs/provisioners/file.html">file Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-local") %>>
+                            <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-remote") %>>
+                            <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
+                          </li>
+                        </ul>
+                      </li>
+
+                      <li>
+                        <a href="#">Vendor Provisioners</a>
+                        <ul class="nav nav-auto-expand">
+                          <li<%= sidebar_current("docs-provisioners-chef") %>>
+                            <a href="/docs/provisioners/chef.html">chef Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-habitat") %>>
+                            <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-puppet") %>>
+                            <a href="/docs/provisioners/puppet.html">puppet Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
+                            <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
+                          </li>
+                        </ul>
+                      </li>
+
+                    </ul>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-config-variables") %>>
-                <a href="/docs/configuration/variables.html">Input Variables</a>
+              <li>
+                <a href="/docs/configuration/syntax.html">Syntax</a>
+                <ul class="nav nav-auto-expand">
+
+                  <li<%= sidebar_current("docs-config-syntax") %>>
+                    <a href="/docs/configuration/syntax.html">Configuration Syntax</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-expressions") %>>
+                    <a href="/docs/configuration/expressions.html">Expressions</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-functions") %>>
+                    <a href="/docs/configuration/functions.html">Functions</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-override") %>>
+                    <a href="/docs/configuration/override.html">Override Files</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-style") %>>
+                    <a href="/docs/configuration/style.html">Style Conventions</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/configuration/version-constraints.html">Version Constraints</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-types") %>>
+                    <a href="/docs/configuration/types.html">Type Constraints</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-config-syntax-json") %>>
+                    <a href="/docs/configuration/syntax-json.html">JSON Configuration Syntax</a>
+                  </li>
+
+                </ul>
               </li>
 
-              <li<%= sidebar_current("docs-config-outputs") %>>
-                <a href="/docs/configuration/outputs.html">Output Values</a>
-              </li>
 
-              <li<%= sidebar_current("docs-config-locals") %>>
-                <a href="/docs/configuration/locals.html">Local Values</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-modules") %>>
-                <a href="/docs/configuration/modules.html">Modules</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-data-sources") %>>
-                <a href="/docs/configuration/data-sources.html">Data Sources</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-syntax") %>>
-                <a href="/docs/configuration/syntax.html">Configuration Syntax</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-expressions") %>>
-                <a href="/docs/configuration/expressions.html">Expressions</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-functions") %>>
-                <a href="/docs/configuration/functions.html">Functions</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-terraform") %>>
-                <a href="/docs/configuration/terraform.html">Terraform Settings</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-override") %>>
-                <a href="/docs/configuration/override.html">Override Files</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-style") %>>
-                <a href="/docs/configuration/style.html">Style Conventions</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-types") %>>
-                <a href="/docs/configuration/types.html">Type Constraints</a>
-              </li>
-
-              <li<%= sidebar_current("docs-config-syntax-json") %>>
-                <a href="/docs/configuration/syntax-json.html">JSON Configuration Syntax</a>
-              </li>
             </ul>
           </li>
 
@@ -120,6 +205,10 @@
 
               <li<%= sidebar_current("docs-conf-old-terraform") %>>
                 <a href="/docs/configuration-0-11/terraform.html">Terraform</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners") %>>
+                <a href="/docs/provisioners/index.html?v=011">Provisioners</a>
               </li>
 
               <li<%= sidebar_current("docs-conf-old-push") %>>
@@ -186,6 +275,14 @@
             <a href="/docs/commands/init.html">init</a>
           </li>
 
+          <li<%= sidebar_current("docs-commands-login") %>>
+            <a href="/docs/commands/login.html">login</a>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-logout") %>>
+            <a href="/docs/commands/logout.html">logout</a>
+          </li>
+
           <li<%= sidebar_current("docs-commands-output") %>>
             <a href="/docs/commands/output.html">output</a>
           </li>
@@ -228,6 +325,10 @@
 
           <li<%= sidebar_current("docs-commands-workspace") %>>
             <a href="/docs/commands/workspace/index.html">workspace</a>
+          </li>
+
+          <li<%= sidebar_current("docs-commands-013upgrade") %>>
+            <a href="/docs/commands/0.13upgrade.html">0.13upgrade</a>
           </li>
 
           <li<%= sidebar_current("docs-commands-012upgrade") %>>
@@ -320,43 +421,6 @@
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-provisioners") %>>
-        <a href="/docs/provisioners/index.html">Provisioners</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-provisioners-connection") %>>
-            <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-null-resource") %>>
-            <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-chef") %>>
-            <a href="/docs/provisioners/chef.html">chef Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-file") %>>
-            <a href="/docs/provisioners/file.html">file Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-habitat") %>>
-            <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-local") %>>
-            <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-remote") %>>
-            <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
-            <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
-          </li>
-        </ul>
-      </li>
-
       <li<%= sidebar_current("docs-modules") %>>
         <a href="/docs/modules/index.html">Modules</a>
         <ul class="nav">
@@ -377,12 +441,12 @@
       <li<%= sidebar_current("docs-backends") %>>
         <a href="/docs/backends/index.html">Backends</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-backends-init") %>>
-            <a href="/docs/backends/init.html">Init</a>
-          </li>
-
           <li<%= sidebar_current("docs-backends-config") %>>
             <a href="/docs/backends/config.html">Configuration</a>
+          </li>
+
+          <li<%= sidebar_current("docs-backends-init") %>>
+            <a href="/docs/backends/init.html">Init</a>
           </li>
 
           <li<%= sidebar_current("docs-backends-state") %>>
@@ -406,6 +470,10 @@
             <a href="/docs/plugins/basics.html">Basics</a>
           </li>
 
+          <li<%= sidebar_current("docs-plugins-signing") %>>
+            <a href="/docs/plugins/signing.html">Signing</a>
+          </li>
+
           <li<%= sidebar_current("docs-plugins-provider") %>>
             <a href="/docs/plugins/provider.html">Provider</a>
           </li>
@@ -419,8 +487,24 @@
       <li<%= sidebar_current("docs-internals") %>>
         <a href="/docs/internals/index.html">Internals</a>
         <ul class="nav">
+          <li<%= sidebar_current("docs-internals-credentials-helpers") %>>
+            <a href="/docs/internals/credentials-helpers.html">Credentials Helpers</a>
+          </li>
+
           <li<%= sidebar_current("docs-internals-debug") %>>
             <a href="/docs/internals/debugging.html">Debugging Terraform</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-module-registry-protocol") %>>
+            <a href="/docs/internals/module-registry-protocol.html">Module Registry Protocol</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-provider-network-mirror-protocol") %>>
+            <a href="/docs/internals/provider-network-mirror-protocol.html">Provider Network Mirror Protocol</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-provider-registry-protocol") %>>
+            <a href="/docs/internals/provider-registry-protocol.html">Provider Registry Protocol</a>
           </li>
 
           <li<%= sidebar_current("docs-internals-graph") %>>
@@ -429,6 +513,10 @@
 
           <li<%= sidebar_current("docs-internals-lifecycle") %>>
             <a href="/docs/internals/lifecycle.html">Resource Lifecycle</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-login-protocol") %>>
+            <a href="/docs/internals/login-protocol.html">Login Protocol</a>
           </li>
 
           <li<%= sidebar_current("docs-internals-resource-addressing") %>>
@@ -445,6 +533,10 @@
 
           <li<%= sidebar_current("docs-internals-plugins") %>>
             <a href="/docs/internals/internal-plugins.html">Internal Plugins</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-provider-meta") %>>
+            <a href="/docs/internals/provider-meta.html">Provider Metadata</a>
           </li>
         </ul>
       </li>

@@ -28,6 +28,52 @@ resource "test_resource_timeout" "foo" {
 	})
 }
 
+// start with the default, then modify it
+func TestResourceTimeout_defaults(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_timeout" "foo" {
+	update_delay = "1ms"
+}
+				`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_timeout" "foo" {
+	update_delay = "2ms"
+	timeouts {
+		update = "3s"
+	}
+}
+				`),
+			},
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_timeout" "foo" {
+	update_delay = "2s"
+	delete_delay = "2s"
+	timeouts {
+		delete = "3s"
+		update = "3s"
+	}
+}
+				`),
+			},
+			// delete "foo"
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource_timeout" "bar" {
+}
+				`),
+			},
+		},
+	})
+}
+
 func TestResourceTimeout_delete(t *testing.T) {
 	// If the delete timeout isn't saved until destroy, the cleanup here will
 	// fail because the default is only 20m.

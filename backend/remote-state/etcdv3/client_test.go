@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -83,7 +83,7 @@ func TestEtcdv3_destroyLock(t *testing.T) {
 
 	c := s.(*remote.State).Client.(*RemoteClient)
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	id, err := c.Lock(info)
 	if err != nil {
 		t.Fatal(err)

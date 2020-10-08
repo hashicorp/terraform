@@ -178,12 +178,12 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		}
 
 		schema, _ := schemas.ResourceTypeConfig(
-			rc.ProviderAddr.ProviderConfig.Type,
+			rc.ProviderAddr.Provider,
 			addr.Resource.Resource.Mode,
 			addr.Resource.Resource.Type,
 		)
 		if schema == nil {
-			return fmt.Errorf("no schema found for %s", r.Address)
+			return fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 		}
 
 		changeV, err := rc.Decode(schema.ImpliedType())
@@ -252,7 +252,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.ModuleAddress = addr.Module.String()
 		r.Name = addr.Resource.Resource.Name
 		r.Type = addr.Resource.Resource.Type
-		r.ProviderName = rc.ProviderAddr.ProviderConfig.StringCompact()
+		r.ProviderName = rc.ProviderAddr.Provider.String()
 
 		p.ResourceChanges = append(p.ResourceChanges, r)
 

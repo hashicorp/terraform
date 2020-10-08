@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -109,7 +109,7 @@ func TestForceUnlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info := state.NewLockInfo()
+	info := statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Who = "clientA"
 
@@ -135,7 +135,7 @@ func TestForceUnlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info = state.NewLockInfo()
+	info = statemgr.NewLockInfo()
 	info.Operation = "test"
 	info.Who = "clientA"
 
@@ -227,7 +227,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	client1 := s1.(*remote.State).Client
 
 	// create an old and new state version to persist
-	s := state.TestStateInitial()
+	s := statemgr.TestFullInitialState()
 	sf := &statefile.File{State: s}
 	var oldState bytes.Buffer
 	if err := statefile.Write(sf, &oldState); err != nil {

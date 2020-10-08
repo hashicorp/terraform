@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
@@ -14,18 +16,12 @@ type ResourceCountTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	Schema   *configschema.Block
 
-	// Count is either the number of indexed instances to create, or -1 to
-	// indicate that count is not set at all and thus a no-key instance should
-	// be created.
-	Count int
-	Addr  addrs.AbsResource
+	Addr          addrs.ConfigResource
+	InstanceAddrs []addrs.AbsResourceInstance
 }
 
 func (t *ResourceCountTransformer) Transform(g *Graph) error {
-	if t.Count < 0 {
-		// Negative count indicates that count is not set at all.
-		addr := t.Addr.Instance(addrs.NoKey)
-
+	for _, addr := range t.InstanceAddrs {
 		abstract := NewNodeAbstractResourceInstance(addr)
 		abstract.Schema = t.Schema
 		var node dag.Vertex = abstract
@@ -33,24 +29,8 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 			node = f(abstract)
 		}
 
-		g.Add(node)
-		return nil
-	}
-
-	// For each count, build and add the node
-	for i := 0; i < t.Count; i++ {
-		key := addrs.IntKey(i)
-		addr := t.Addr.Instance(key)
-
-		abstract := NewNodeAbstractResourceInstance(addr)
-		abstract.Schema = t.Schema
-		var node dag.Vertex = abstract
-		if f := t.Concrete; f != nil {
-			node = f(abstract)
-		}
-
+		log.Printf("[TRACE] ResourceCountTransformer: adding %s as %T", addr, node)
 		g.Add(node)
 	}
-
 	return nil
 }

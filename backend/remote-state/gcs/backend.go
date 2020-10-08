@@ -11,9 +11,9 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/httpclient"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
@@ -63,6 +63,15 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Google Cloud JSON Account Key",
 				Default:     "",
+			},
+
+			"access_token": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_OAUTH_ACCESS_TOKEN",
+				}, nil),
+				Description: "An OAuth2 token used for GCP authentication",
 			},
 
 			"encryption_key": {
@@ -116,16 +125,29 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	var opts []option.ClientOption
 
-	creds := data.Get("credentials").(string)
-	if creds == "" {
+	// Add credential source
+	var creds string
+	var tokenSource oauth2.TokenSource
+
+	if v, ok := data.GetOk("access_token"); ok {
+		tokenSource = oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: v.(string),
+		})
+	} else if v, ok := data.GetOk("credentials"); ok {
+		creds = v.(string)
+	} else if v := os.Getenv("GOOGLE_BACKEND_CREDENTIALS"); v != "" {
+		creds = v
+	} else {
 		creds = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 
-	if creds != "" {
+	if tokenSource != nil {
+		opts = append(opts, option.WithTokenSource(tokenSource))
+	} else if creds != "" {
 		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
-		contents, _, err := pathorcontents.Read(creds)
+		contents, err := backend.ReadPathOrContents(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
@@ -138,7 +160,7 @@ func (b *Backend) configure(ctx context.Context) error {
 			Email:      account.ClientEmail,
 			PrivateKey: []byte(account.PrivateKey),
 			Scopes:     []string{storage.ScopeReadWrite},
-			TokenURL:   "https://accounts.google.com/o/oauth2/token",
+			TokenURL:   "https://oauth2.googleapis.com/token",
 		}
 
 		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
@@ -160,7 +182,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if key != "" {
-		kc, _, err := pathorcontents.Read(key)
+		kc, err := backend.ReadPathOrContents(key)
 		if err != nil {
 			return fmt.Errorf("Error loading encryption key: %s", err)
 		}

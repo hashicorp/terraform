@@ -13,6 +13,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Input Variables](../configuration-0-11/variables.html).
 
+> **Hands-on:** Try the [Define Input Variables](https://learn.hashicorp.com/tutorials/terraform/aws-variables?in=terraform/aws-get-started&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 Input variables serve as parameters for a Terraform module, allowing aspects
 of the module to be customized without altering the module's own source code,
 and allowing modules to be shared between different configurations.
@@ -22,8 +24,12 @@ set their values using CLI options and environment variables.
 When you declare them in [child modules](./modules.html),
 the calling module should pass values in the `module` block.
 
-Input variable usage is introduced in the Getting Started guide section
-[_Input Variables_](/intro/getting-started/variables.html).
+If you're familiar with traditional programming languages, it can be useful to
+compare Terraform modules to function definitions:
+
+- Input variables are like function arguments.
+- [Output values](./outputs.html) are like function return values.
+- [Local values](./locals.html) are like a function's temporary local variables.
 
 -> **Note:** For brevity, input variables are often referred to as just
 "variables" or "Terraform variables" when it is clear from context what sort of
@@ -46,6 +52,21 @@ variable "availability_zone_names" {
   type    = list(string)
   default = ["us-west-1a"]
 }
+
+variable "docker_ports" {
+  type = list(object({
+    internal = number
+    external = number
+    protocol = string
+  }))
+  default = [
+    {
+      internal = 8300
+      external = 8300
+      protocol = "tcp"
+    }
+  ]
+}
 ```
 
 The label after the `variable` keyword is a name for the variable, which must
@@ -54,24 +75,25 @@ assign a value to the variable from outside and to reference the variable's
 value from within the module.
 
 The name of a variable can be any valid [identifier](./syntax.html#identifiers)
-_except_ the following:
-
-- `source`
-- `version`
-- `providers`
-- `count`
-- `for_each`
-- `lifecycle`
-- `depends_on`
-- `locals`
+_except_ the following: `source`, `version`, `providers`, `count`, `for_each`, `lifecycle`, `depends_on`, `locals`.
 
 These names are reserved for meta-arguments in
 [module configuration blocks](./modules.html), and cannot be
 declared as variable names.
 
-The variable declaration can optionally include a `type` argument to
-specify what value types are accepted for the variable, as described
-in the following section.
+## Arguments
+
+Terraform CLI defines the following optional arguments for variable declarations:
+
+- [`default`][inpage-default] - A default value which then makes the variable optional.
+- [`type`][inpage-type] - This argument specifies what value types are accepted for the variable.
+- [`description`][inpage-description] - This specifies the input variable's documentation.
+- [`validation`][inpage-validation] - A block to define validation rules, usually in addition to type constraints.
+- [`sensitive`][inpage-sensitive] - Limits Terraform UI output when the variable is used in configuration.
+
+### Default values
+
+[inpage-default]: #default-values
 
 The variable declaration can also include a `default` argument. If present,
 the variable is considered to be _optional_ and the default value will be used
@@ -79,23 +101,9 @@ if no value is set when calling the module or running Terraform. The `default`
 argument requires a literal value and cannot reference other objects in the
 configuration.
 
-## Using Input Variable Values
+### Type Constraints
 
-Within the module that declared a variable, its value can be accessed from
-within [expressions](./expressions.html) as `var.<NAME>`,
-where `<NAME>` matches the label given in the declaration block:
-
-```hcl
-resource "aws_instance" "example" {
-  instance_type = "t2.micro"
-  ami           = var.image_id
-}
-```
-
-The value assigned to a variable can be accessed only from expressions within
-the module where it was declared.
-
-## Type Constraints
+[inpage-type]: #type-constraints
 
 The `type` argument in a `variable` block allows you to restrict the
 [type of value](./expressions.html#types-and-values) that will be accepted as
@@ -130,7 +138,9 @@ as detailed information about automatic conversion of complex types, see
 If both the `type` and `default` arguments are specified, the given default
 value must be convertible to the specified type.
 
-## Input Variable Documentation
+### Input Variable Documentation
+
+[inpage-description]: #input-variable-documentation
 
 Because the input variables of a module are part of its user interface, you can
 briefly describe the purpose of each variable using the optional
@@ -149,12 +159,171 @@ might be included in documentation about the module, and so it should be written
 from the perspective of the user of the module rather than its maintainer. For
 commentary for module maintainers, use comments.
 
+### Custom Validation Rules
+
+[inpage-validation]: #custom-validation-rules
+
+-> This feature was introduced in Terraform CLI v0.13.0.
+
+In addition to Type Constraints as described above, a module author can specify
+arbitrary custom validation rules for a particular variable using a `validation`
+block nested within the corresponding `variable` block:
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+The `condition` argument is an expression that must use the value of the
+variable to return `true` if the value is valid, or `false` if it is invalid.
+The expression can refer only to the variable that the condition applies to,
+and _must not_ produce errors.
+
+If the failure of an expression is the basis of the validation decision, use
+[the `can` function](./functions/can.html) to detect such errors. For example:
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    # regex(...) fails if it cannot find a match
+    condition     = can(regex("^ami-", var.image_id))
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+If `condition` evaluates to `false`, Terraform will produce an error message
+that includes the sentences given in `error_message`. The error message string
+should be at least one full sentence explaining the constraint that failed,
+using a sentence structure similar to the above examples.
+
+### Suppressing Values in CLI Output
+
+[inpage-sensitive]: #suppressing-values-in-cli-output
+
+-> This feature was introduced in Terraform CLI v0.14.0.
+
+Setting a variable as `sensitive` prevents Terraform from showing its value in the `plan` or `apply` output, when that variable is used within a configuration.
+
+Sensitive values are still recorded in the [state](/docs/state/index.html), and so will be visible to anyone who is able to access the state data. For more information, see [_Sensitive Data in State_](/docs/state/sensitive-data.html).
+
+A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
+
+Define a variable as sensitive by setting the `sensitive` argument to `true`:
+
+```
+variable "user_information" {
+  type = object({
+    name    = string
+    address = string
+  })
+  sensitive = true
+}
+
+resource "some_resource" "a" {
+  name    = var.user_information.name
+  address = var.user_information.address
+}
+```
+
+Using this variable throughout your configuration will obfuscate the value from display in `plan` or `apply` output:
+
+```
+Terraform will perform the following actions:
+
+  # some_resource.a will be created
+  + resource "some_resource" "a" {
+      + name    = (sensitive)
+      + address = (sensitive)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+In some cases where a sensitive variable is used in a nested block, the whole block can be redacted. This happens with resources which can have multiple blocks of the same type, where the values must be unique. This looks like:
+
+```
+# main.tf
+
+resource "some_resource" "a" {
+  nested_block {
+    user_information  = var.user_information # a sensitive variable
+    other_information = "not sensitive data"
+  }
+}
+
+# CLI output
+
+Terraform will perform the following actions:
+
+  # some_resource.a will be updated in-place
+  ~ resource "some_resource" "a" {
+      ~ nested_block {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+
+```
+
+#### Cases where Terraform may disclose a sensitive variable
+
+A `sensitive` variable is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
+
+If a resource attribute is used as, or part of, the provider-defined resource id, an `apply` will disclose the value. In the example below, the `prefix` attribute has been set to a sensitive variable, but then that value ("jae") is later disclosed as part of the resource id:
+
+```
+  # random_pet.animal will be created
+  + resource "random_pet" "animal" {
+      + id        = (known after apply)
+      + length    = 2
+      + prefix    = (sensitive)
+      + separator = "-"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+...
+
+random_pet.animal: Creating...
+random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
+```
+
+## Using Input Variable Values
+
+Within the module that declared a variable, its value can be accessed from
+within [expressions](./expressions.html) as `var.<NAME>`,
+where `<NAME>` matches the label given in the declaration block:
+
+-> **Note:** Input variables are _created_ by a `variable` block, but you
+_reference_ them as attributes on an object named `var`.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = var.image_id
+}
+```
+
+The value assigned to a variable can only be accessed in expressions within
+the module where it was declared.
+
 ## Assigning Values to Root Module Variables
 
 When variables are declared in the root module of your configuration, they
 can be set in a number of ways:
 
-* [In a Terraform Enterprise workspace](/docs/enterprise/workspaces/variables.html).
+* [In a Terraform Cloud workspace](/docs/cloud/workspaces/variables.html).
 * Individually, with the `-var` command line option.
 * In variable definitions (`.tfvars`) files, either specified on the command line
   or automatically loaded.
@@ -167,7 +336,7 @@ assigned in the configuration of their parent module, as described in
 
 ### Variables on the Command Line
 
-To specify individual modules on the command line, use the `-var` option
+To specify individual variables on the command line, use the `-var` option
 when running the `terraform plan` and `terraform apply` commands:
 
 ```
@@ -189,8 +358,8 @@ or `.tfvars.json`) and then specify that file on the command line with
 terraform apply -var-file="testing.tfvars"
 ```
 
--> **Note:** This is how Terraform Enterprise passes
-[workspace variables](/docs/enterprise/workspaces/variables.html) to Terraform.
+-> **Note:** This is how Terraform Cloud passes
+[workspace variables](/docs/cloud/workspaces/variables.html) to Terraform.
 
 A variable definitions file uses the same basic syntax as Terraform language
 files, but consists only of variable name assignments:
@@ -271,7 +440,8 @@ recommend always setting complex variable values via variable definitions files.
 
 The above mechanisms for setting variables can be used together in any
 combination. If the same variable is assigned multiple values, Terraform uses
-the _last_ value it finds, overriding any previous values.
+the _last_ value it finds, overriding any previous values. Note that the same
+variable cannot be assigned multiple values within a single source.
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:
@@ -282,7 +452,7 @@ precedence over earlier ones:
 * Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
   of their filenames.
 * Any `-var` and `-var-file` options on the command line, in the order they
-  are provided. (This includes variables set by a Terraform Enterprise
+  are provided. (This includes variables set by a Terraform Cloud
   workspace.)
 
 ~> **Important:** In Terraform 0.12 and later, variables with map and object

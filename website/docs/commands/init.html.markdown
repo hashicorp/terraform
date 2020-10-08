@@ -8,6 +8,8 @@ description: |-
 
 # Command: init
 
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+
 The `terraform init` command is used to initialize a working directory
 containing Terraform configuration files. This is the first command that should
 be run after writing a new Terraform configuration or cloning an existing one
@@ -15,22 +17,17 @@ from version control. It is safe to run this command multiple times.
 
 ## Usage
 
-Usage: `terraform init [options] [DIR]`
+Usage: `terraform init [options]`
 
 This command performs several different initialization steps in order to
-prepare a working directory for use. More details on these are in the
-sections below, but in most cases it is not necessary to worry about these
-individual steps.
+prepare the current working directory for use with Terraform. More details on
+these are in the sections below, but in most cases it is not necessary to worry
+about these individual steps.
 
 This command is always safe to run multiple times, to bring the working
 directory up to date with changes in the configuration. Though subsequent runs
 may give errors, this command will never delete your existing configuration or
 state.
-
-If no arguments are given, the configuration in the current working directory
-is initialized. It is recommended to run Terraform with the current working
-directory set to the root directory of the configuration, and omit the `DIR`
-argument.
 
 ## General Options
 
@@ -63,7 +60,7 @@ run.
 This special mode of operation supports two use-cases:
 
 * Given a version control source, it can serve as a shorthand for checking out
-  a configuration from version control and then initializing the work directory
+  a configuration from version control and then initializing the working directory
   for it.
 
 * If the source refers to an _example_ configuration, it can be copied into
@@ -163,4 +160,25 @@ other interesting features such as integration with version control hooks.
 There are some special concerns when running `init` in such an environment,
 including optionally making plugins available locally to avoid repeated
 re-installation. For more information, see
-[`Running Terraform in Automation`](/guides/running-terraform-in-automation.html).
+the [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
+## Passing a Different Configuration Directory
+
+Terraform v0.13 and earlier also accepted a directory path in place of the
+plan file argument to `terraform apply`, in which case Terraform would use
+that directory as the root module instead of the current working directory.
+
+That usage is still supported in Terraform v0.14, but is now deprecated and we
+plan to remove it in Terraform v0.15. If your workflow relies on overriding
+the root module directory, use
+[the `-chdir` global option](./#switching-working-directory-with--chdir)
+instead, which works across all commands and makes Terraform consistently look
+in the given directory for all files it would normaly read or write in the
+current working directory.
+
+If your previous use of this legacy pattern was also relying on Terraform
+writing the `.terraform` subdirectory into the current working directory even
+though the root module directory was overridden, use
+[the `TF_DATA_DIR` environment variable](environment-variables.html#TF_DATA_DIR)
+to direct Terraform to write the `.terraform` directory to a location other
+than the current working directory.

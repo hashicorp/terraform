@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/acctest"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -264,21 +264,22 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error building Blob Client: %+v", err)
 	}
-	containerReference := client.GetContainerReference(res.storageContainerName)
-	blobReference := containerReference.GetBlobReference(res.storageKeyName)
 
-	err = blobReference.CreateBlockBlob(&storage.PutBlobOptions{})
+	_, err = client.PutBlockBlob(ctx, res.storageAccountName, res.storageContainerName, res.storageKeyName, blobs.PutBlockBlobInput{})
 	if err != nil {
 		t.Fatalf("Error Creating Block Blob: %+v", err)
 	}
 
-	err = blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	blobReference, err := client.GetProperties(ctx, res.storageAccountName, res.storageContainerName, res.storageKeyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		t.Fatalf("Error loading MetaData: %+v", err)
 	}
 
-	blobReference.Metadata[headerName] = expectedValue
-	err = blobReference.SetMetadata(&storage.SetBlobMetadataOptions{})
+	blobReference.MetaData[headerName] = expectedValue
+	opts := blobs.SetMetaDataInput{
+		MetaData: blobReference.MetaData,
+	}
+	_, err = client.SetMetaData(ctx, res.storageAccountName, res.storageContainerName, res.storageKeyName, opts)
 	if err != nil {
 		t.Fatalf("Error setting MetaData: %+v", err)
 	}
@@ -287,8 +288,9 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	remoteClient := RemoteClient{
 		keyName:       res.storageKeyName,
 		containerName: res.storageContainerName,
+		accountName:   res.storageAccountName,
 
-		blobClient: *client,
+		giovanniBlobClient: *client,
 	}
 
 	bytes := []byte(acctest.RandString(20))
@@ -298,12 +300,12 @@ func TestPutMaintainsMetaData(t *testing.T) {
 	}
 
 	// Verify it still exists
-	err = blobReference.GetMetadata(&storage.GetBlobMetadataOptions{})
+	blobReference, err = client.GetProperties(ctx, res.storageAccountName, res.storageContainerName, res.storageKeyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		t.Fatalf("Error loading MetaData: %+v", err)
 	}
 
-	if blobReference.Metadata[headerName] != expectedValue {
-		t.Fatalf("%q was not set to %q in the MetaData: %+v", headerName, expectedValue, blobReference.Metadata)
+	if blobReference.MetaData[headerName] != expectedValue {
+		t.Fatalf("%q was not set to %q in the MetaData: %+v", headerName, expectedValue, blobReference.MetaData)
 	}
 }

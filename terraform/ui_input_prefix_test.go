@@ -9,7 +9,7 @@ func TestPrefixUIInput_impl(t *testing.T) {
 	var _ UIInput = new(PrefixUIInput)
 }
 
-func testPrefixUIInput(t *testing.T) {
+func TestPrefixUIInput(t *testing.T) {
 	input := new(MockUIInput)
 	prefix := &PrefixUIInput{
 		IdPrefix: "foo",

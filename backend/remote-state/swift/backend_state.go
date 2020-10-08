@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -63,7 +63,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	result := make([]string, 1, len(envs)+1)
 	result[0] = backend.DefaultStateName
 
-	for k, _ := range envs {
+	for k := range envs {
 		result = append(result, k)
 	}
 
@@ -91,7 +91,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return err
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	if name == "" {
 		return nil, fmt.Errorf("missing state name")
 	}
@@ -106,11 +106,11 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		lockState:        b.lock,
 	}
 
-	var stateMgr state.State = &remote.State{Client: client}
+	var stateMgr statemgr.Full = &remote.State{Client: client}
 
 	// If we're not locking, disable it
 	if !b.lock {
-		stateMgr = &state.LockDisabled{Inner: stateMgr}
+		stateMgr = &statemgr.LockDisabled{Inner: stateMgr}
 	}
 
 	// Check to see if this state already exists.
@@ -144,7 +144,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		// Grab a lock, we use this to write an empty state if one doesn't
 		// exist already. We have to write an empty state as a sentinel value
 		// so States() knows it exists.
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockId, err := stateMgr.Lock(lockInfo)
 		if err != nil {
@@ -189,9 +189,9 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 
 func (b *Backend) objectName(name string) string {
 	if name != backend.DefaultStateName {
-		name = fmt.Sprintf("%s%s/%s", objectEnvPrefix, name, TFSTATE_NAME)
+		name = fmt.Sprintf("%s%s/%s", objectEnvPrefix, name, b.stateName)
 	} else {
-		name = TFSTATE_NAME
+		name = b.stateName
 	}
 
 	return name

@@ -23,15 +23,15 @@ to browse the various subsections.
 ## Who is This For?
 
 The Terraform CLI docs are relevant to _all Terraform users,_ including open
-source users and Terraform Enterprise users.
+source users and Terraform Cloud users.
 
 Since these docs are reference material, they are mainly written for
 _intermediate and advanced users,_ who need to find complete and detailed
 information quickly.
 
 - **New user?** Try the
-  [Getting Started guide](https://learn.hashicorp.com/terraform/getting-started/install.html)
-  at [Learn Terraform](https://learn.hashicorp.com/terraform), then return
+  [Get Started collection](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+  at HashiCorp Learn, then return
   here once you've used Terraform to manage some simple resources.
 - **Curious about Terraform?** See [Introduction to Terraform](/intro/index.html)
   for a broad overview of what Terraform is and why people use it.

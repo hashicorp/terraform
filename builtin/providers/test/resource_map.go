@@ -3,7 +3,7 @@ package test
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,7 +26,7 @@ func testResourceMap() *schema.Resource {
 				ValidateFunc: func(v interface{}, _ string) ([]string, []error) {
 					errs := []error{}
 					for k, v := range v.(map[string]interface{}) {
-						if v == config.UnknownVariableValue {
+						if v == hcl2shim.UnknownVariableValue {
 							errs = append(errs, fmt.Errorf("unknown value in ValidateFunc: %q=%q", k, v))
 						}
 					}

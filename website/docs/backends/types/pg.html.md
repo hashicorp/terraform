@@ -52,9 +52,9 @@ To use a Postgres server running on the same machine as Terraform, configure loc
 terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?sslmode=disable"
 ```
 
-## Example Referencing
+## Data Source Configuration
 
-To make use of the pg remote state we can use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+To make use of the pg remote state in another configuration, use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -71,7 +71,8 @@ The following configuration options or environment variables are supported:
 
  * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
  * `schema_name` - Name of the automatically-managed Postgres schema, default `terraform_remote_state`.
- 
+ * `skip_schema_creation` - If set to `true`, the Postgres schema must already exist. Terraform won't try to create the schema. Useful when the Postgres user does not have "create schema" permission on the database.
+
 ## Technical Design
 
 Postgres version 9.5 or newer is required to support advisory locks and the "ON CONFLICT" upsert syntax.

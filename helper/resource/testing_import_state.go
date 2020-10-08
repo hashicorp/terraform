@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// testStepImportState runs an imort state test step
+// testStepImportState runs an import state test step
 func testStepImportState(
 	opts terraform.ContextOpts,
 	state *terraform.State,
@@ -77,9 +77,6 @@ func testStepImportState(
 
 	// Do the import
 	importedState, stepDiags := ctx.Import(&terraform.ImportOpts{
-		// Set the module so that any provider config is loaded
-		Config: cfg,
-
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
 				Addr: importAddr,
@@ -96,7 +93,6 @@ func testStepImportState(
 	if err != nil {
 		return nil, err
 	}
-
 	// Go through the new state and verify
 	if step.ImportStateCheck != nil {
 		var states []*terraform.InstanceState
@@ -138,7 +134,8 @@ func testStepImportState(
 			// this shouldn't happen in any reasonable case.
 			var rsrcSchema *schema.Resource
 			if providerAddr, diags := addrs.ParseAbsProviderConfigStr(r.Provider); !diags.HasErrors() {
-				providerType := providerAddr.ProviderConfig.Type
+				// FIXME
+				providerType := providerAddr.Provider.Type
 				if provider, ok := step.providers[providerType]; ok {
 					if provider, ok := provider.(*schema.Provider); ok {
 						rsrcSchema = provider.ResourcesMap[r.Type]

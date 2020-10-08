@@ -18,5 +18,6 @@ collaboration with HashiCorp, and are tested by HashiCorp.
 
 
 - [InfluxDB](/docs/providers/influxdb/index.html)
+- [MongoDB Atlas](/docs/providers/mongodbatlas/index.html)
 - [MySQL](/docs/providers/mysql/index.html)
 - [PostgreSQL](/docs/providers/postgresql/index.html)

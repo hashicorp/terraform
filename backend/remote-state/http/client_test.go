@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 )
 
 func TestHTTPClient_impl(t *testing.T) {
@@ -26,7 +26,7 @@ func TestHTTPClient(t *testing.T) {
 
 	url, err := url.Parse(ts.URL)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("Parse: %s", err)
 	}
 
 	// Test basic get/update
@@ -73,6 +73,10 @@ func TestHTTPClient(t *testing.T) {
 		UpdateMethod: "PUT",
 		Client:       retryablehttp.NewClient(),
 	}
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+
 	remote.TestClient(t, client) // first time through: 201
 	remote.TestClient(t, client) // second time, with identical data: 204
 
@@ -83,16 +87,11 @@ func TestHTTPClient(t *testing.T) {
 	defer ts.Close()
 
 	url, err = url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
 	client = &httpClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
-}
-
-func assertError(t *testing.T, err error, expected string) {
-	if err == nil {
-		t.Fatalf("Expected empty config to err")
-	} else if err.Error() != expected {
-		t.Fatalf("Expected err.Error() to be \"%s\", got \"%s\"", expected, err.Error())
-	}
 }
 
 type testHTTPHandler struct {

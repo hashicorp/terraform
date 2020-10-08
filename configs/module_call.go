@@ -3,9 +3,9 @@ package configs
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl2/gohcl"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
 // ModuleCall represents a "module" block in a module or file.
@@ -31,6 +31,13 @@ type ModuleCall struct {
 }
 
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	// Produce deprecation messages for any pre-0.12-style
+	// single-interpolation-only expressions.
+	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
+	diags = append(diags, moreDiags...)
+
 	mc := &ModuleCall{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,
@@ -41,7 +48,8 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 		schema = schemaForOverrides(schema)
 	}
 
-	content, remain, diags := block.Body.PartialContent(schema)
+	content, remain, moreDiags := block.Body.PartialContent(schema)
+	diags = append(diags, moreDiags...)
 	mc.Config = remain
 
 	if !hclsyntax.ValidIdentifier(mc.Name) {
@@ -68,40 +76,25 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 
 	if attr, exists := content.Attributes["count"]; exists {
 		mc.Count = attr.Expr
-
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in module block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
 	}
 
 	if attr, exists := content.Attributes["for_each"]; exists {
-		mc.ForEach = attr.Expr
+		if mc.Count != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "count" and "for_each"`,
+				Detail:   `The "count" and "for_each" meta-arguments are mutually-exclusive, only one should be used to be explicit about the number of resources to be created.`,
+				Subject:  &attr.NameRange,
+			})
+		}
 
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in module block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
+		mc.ForEach = attr.Expr
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
 		deps, depsDiags := decodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		mc.DependsOn = append(mc.DependsOn, deps...)
-
-		// We currently parse this, but don't yet do anything with it.
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved argument name in module block",
-			Detail:   fmt.Sprintf("The name %q is reserved for use in a future version of Terraform.", attr.Name),
-			Subject:  &attr.NameRange,
-		})
 	}
 
 	if attr, exists := content.Attributes["providers"]; exists {

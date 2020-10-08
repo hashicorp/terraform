@@ -3,11 +3,13 @@ package command
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -18,11 +20,7 @@ type TaintCommand struct {
 }
 
 func (c *TaintCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var module string
 	var allowMissing bool
 	cmdFlags := c.Meta.defaultFlagSet("taint")
@@ -31,10 +29,11 @@ func (c *TaintCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&module, "module", "", "module")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -65,6 +64,34 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Load the config and check the core version requirements are satisfied
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		return 1
+	}
+
+	config, configDiags := loader.LoadConfig(pwd)
+	diags = diags.Append(configDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	diags = diags.Append(versionDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
@@ -74,7 +101,11 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

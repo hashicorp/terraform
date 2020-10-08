@@ -3,8 +3,8 @@ package jsonconfig
 import (
 	"encoding/json"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/zclconf/go-cty/cty"
@@ -64,7 +64,7 @@ func marshalExpressions(body hcl.Body, schema *configschema.Block) expressions {
 	// need the low-level schema.
 	lowSchema := hcldec.ImpliedSchema(schema.DecoderSpec())
 	// (lowSchema is an hcl.BodySchema:
-	// https://godoc.org/github.com/hashicorp/hcl2/hcl#BodySchema )
+	// https://godoc.org/github.com/hashicorp/hcl/v2/hcl#BodySchema )
 
 	// Use the low-level schema with the body to decode one level We'll just
 	// ignore any additional content that's not covered by the schema, which

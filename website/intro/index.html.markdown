@@ -36,6 +36,8 @@ low-level components such as
 compute instances, storage, and networking, as well as high-level
 components such as DNS entries, SaaS features, etc.
 
+<iframe src="https://www.youtube.com/embed/h970ZBgKINg" frameborder="0" allowfullscreen="true"  width="560" height="315" ></iframe>
+
 Examples work best to showcase Terraform. Please see the
 [use cases](/intro/use-cases.html).
 
@@ -73,5 +75,5 @@ See the page on [Terraform use cases](/intro/use-cases.html) to see the
 multiple ways Terraform can be used. Then see
 [how Terraform compares to other software](/intro/vs/index.html)
 to see how it fits into your existing infrastructure. Finally, continue onwards with
-the [getting started guide](/intro/getting-started/install.html) to use
+the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn to use
 Terraform to manage real infrastructure and to see how it works.

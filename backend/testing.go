@@ -6,13 +6,12 @@ import (
 	"testing"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -95,7 +94,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 
 	// Test it starts with only the default
 	if !noDefault && (len(workspaces) != 1 || workspaces[0] != DefaultStateName) {
-		t.Fatalf("should only default to start: %#v", workspaces)
+		t.Fatalf("should only have the default workspace to start: %#v", workspaces)
 	}
 
 	// Create a couple states
@@ -150,9 +149,10 @@ func TestBackendStates(t *testing.T, b Backend) {
 				Status:        states.ObjectReady,
 				SchemaVersion: 0,
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 
 		// write a distinct known state to bar
@@ -292,7 +292,7 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 	}
 
 	// Fast exit if this doesn't support locking at all
-	if _, ok := b1StateMgr.(state.Locker); !ok {
+	if _, ok := b1StateMgr.(statemgr.Locker); !ok {
 		t.Logf("TestBackend: backend %T doesn't support state locking, not testing", b1)
 		return
 	}
@@ -308,14 +308,14 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 	}
 
 	// Reassign so its obvious whats happening
-	lockerA := b1StateMgr.(state.Locker)
-	lockerB := b2StateMgr.(state.Locker)
+	lockerA := b1StateMgr.(statemgr.Locker)
+	lockerB := b2StateMgr.(statemgr.Locker)
 
-	infoA := state.NewLockInfo()
+	infoA := statemgr.NewLockInfo()
 	infoA.Operation = "test"
 	infoA.Who = "clientA"
 
-	infoB := state.NewLockInfo()
+	infoB := statemgr.NewLockInfo()
 	infoB.Operation = "test"
 	infoB.Who = "clientB"
 
@@ -324,7 +324,7 @@ func testLocks(t *testing.T, b1, b2 Backend, testForceUnlock bool) {
 		t.Fatal("unable to get initial lock:", err)
 	}
 
-	// Make sure we can still get the state.State from another instance even
+	// Make sure we can still get the statemgr.Full from another instance even
 	// when locked.  This should only happen when a state is loaded via the
 	// backend, and as a remote state.
 	_, err = b2.StateMgr(DefaultStateName)

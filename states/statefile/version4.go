@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	version "github.com/hashicorp/go-version"
+	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -84,30 +85,22 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
 		diags.Append(addrDiags)
 		if addrDiags.HasErrors() {
-			continue
-		}
-
-		var eachMode states.EachMode
-		switch rsV4.EachMode {
-		case "":
-			eachMode = states.NoEach
-		case "list":
-			eachMode = states.EachList
-		case "map":
-			eachMode = states.EachMap
-		default:
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid resource metadata in state",
-				fmt.Sprintf("Resource %s has invalid \"each\" value %q in state.", rAddr.Absolute(moduleAddr), eachMode),
-			))
-			continue
+			// If ParseAbsProviderConfigStr returns an error, the state may have
+			// been written before Provider FQNs were introduced and the
+			// AbsProviderConfig string format will need normalization. If so,
+			// we treat it like a legacy provider (namespace "-") and let the
+			// provider installer handle detecting the FQN.
+			var legacyAddrDiags tfdiags.Diagnostics
+			providerAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
+			if legacyAddrDiags.HasErrors() {
+				continue
+			}
 		}
 
 		ms := state.EnsureModule(moduleAddr)
 
 		// Ensure the resource container object is present in the state.
-		ms.SetResourceMeta(rAddr, eachMode, providerAddr)
+		ms.SetResourceProvider(rAddr, providerAddr)
 
 		for _, isV4 := range rsV4.Instances {
 			keyRaw := isV4.IndexKey
@@ -139,7 +132,8 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			instAddr := rAddr.Instance(key)
 
 			obj := &states.ResourceInstanceObjectSrc{
-				SchemaVersion: isV4.SchemaVersion,
+				SchemaVersion:       isV4.SchemaVersion,
+				CreateBeforeDestroy: isV4.CreateBeforeDestroy,
 			}
 
 			{
@@ -156,6 +150,24 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 					// to hand-write inline in tests.
 					obj.AttrsJSON = []byte{'{', '}'}
 				}
+			}
+
+			// Sensitive paths
+			if isV4.AttributeSensitivePaths != nil {
+				paths, pathsDiags := unmarshalPaths([]byte(isV4.AttributeSensitivePaths))
+				diags = diags.Append(pathsDiags)
+				if pathsDiags.HasErrors() {
+					continue
+				}
+
+				var pvm []cty.PathValueMarks
+				for _, path := range paths {
+					pvm = append(pvm, cty.PathValueMarks{
+						Path:  path,
+						Marks: cty.NewValueMarks("sensitive"),
+					})
+				}
+				obj.AttrSensitivePaths = pvm
 			}
 
 			{
@@ -182,25 +194,14 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 
 			{
 				depsRaw := isV4.Dependencies
-				deps := make([]addrs.Referenceable, 0, len(depsRaw))
+				deps := make([]addrs.ConfigResource, 0, len(depsRaw))
 				for _, depRaw := range depsRaw {
-					ref, refDiags := addrs.ParseRefStr(depRaw)
-					diags = diags.Append(refDiags)
-					if refDiags.HasErrors() {
+					addr, addrDiags := addrs.ParseAbsResourceStr(depRaw)
+					diags = diags.Append(addrDiags)
+					if addrDiags.HasErrors() {
 						continue
 					}
-					if len(ref.Remaining) != 0 {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Invalid resource instance metadata in state",
-							fmt.Sprintf("Instance %s declares dependency on %q, which is not a reference to a dependable object.", instAddr.Absolute(moduleAddr), depRaw),
-						))
-					}
-					if ref.Subject == nil {
-						// Should never happen
-						panic(fmt.Sprintf("parsing dependency %q for instance %s returned a nil address", depRaw, instAddr.Absolute(moduleAddr)))
-					}
-					deps = append(deps, ref.Subject)
+					deps = append(deps, addr.Config())
 				}
 				obj.Dependencies = deps
 			}
@@ -247,7 +248,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		// on the incoming objects. That behavior is useful when we're making
 		// piecemeal updates to the state during an apply, but when we're
 		// reading the state file we want to reflect its contents exactly.
-		ms.SetResourceMeta(rAddr, eachMode, providerAddr)
+		ms.SetResourceProvider(rAddr, providerAddr)
 	}
 
 	// The root module is special in that we persist its attributes and thus
@@ -256,7 +257,13 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	{
 		rootModule := state.RootModule()
 		for name, fos := range sV4.RootOutputs {
-			os := &states.OutputValue{}
+			os := &states.OutputValue{
+				Addr: addrs.AbsOutputValue{
+					OutputValue: addrs.OutputValue{
+						Name: name,
+					},
+				},
+			}
 			os.Sensitive = fos.Sensitive
 
 			ty, err := ctyjson.UnmarshalType([]byte(fos.ValueTypeRaw))
@@ -346,7 +353,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 	for _, ms := range file.State.Modules {
 		moduleAddr := ms.Addr
 		for _, rs := range ms.Resources {
-			resourceAddr := rs.Addr
+			resourceAddr := rs.Addr.Resource
 
 			var mode string
 			switch resourceAddr.Mode {
@@ -363,29 +370,11 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 				continue
 			}
 
-			var eachMode string
-			switch rs.EachMode {
-			case states.NoEach:
-				eachMode = ""
-			case states.EachList:
-				eachMode = "list"
-			case states.EachMap:
-				eachMode = "map"
-			default:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to serialize resource in state",
-					fmt.Sprintf("Resource %s has \"each\" mode %s, which cannot be serialized in state", resourceAddr.Absolute(moduleAddr), rs.EachMode),
-				))
-				continue
-			}
-
 			sV4.Resources = append(sV4.Resources, resourceStateV4{
 				Module:         moduleAddr.String(),
 				Mode:           mode,
 				Type:           resourceAddr.Type,
 				Name:           resourceAddr.Name,
-				EachMode:       eachMode,
 				ProviderConfig: rs.ProviderConfig.String(),
 				Instances:      []instanceObjectStateV4{},
 			})
@@ -482,15 +471,27 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		}
 	}
 
+	// Extract paths from path value marks
+	var paths []cty.Path
+	for _, vm := range obj.AttrSensitivePaths {
+		paths = append(paths, vm.Path)
+	}
+
+	// Marshal paths to JSON
+	attributeSensitivePaths, pathsDiags := marshalPaths(paths)
+	diags = diags.Append(pathsDiags)
+
 	return append(isV4s, instanceObjectStateV4{
-		IndexKey:       rawKey,
-		Deposed:        string(deposed),
-		Status:         status,
-		SchemaVersion:  obj.SchemaVersion,
-		AttributesFlat: obj.AttrsFlat,
-		AttributesRaw:  obj.AttrsJSON,
-		PrivateRaw:     privateRaw,
-		Dependencies:   deps,
+		IndexKey:                rawKey,
+		Deposed:                 string(deposed),
+		Status:                  status,
+		SchemaVersion:           obj.SchemaVersion,
+		AttributesFlat:          obj.AttrsFlat,
+		AttributesRaw:           obj.AttrsJSON,
+		AttributeSensitivePaths: attributeSensitivePaths,
+		PrivateRaw:              privateRaw,
+		Dependencies:            deps,
+		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
 	}), diags
 }
 
@@ -534,13 +535,16 @@ type instanceObjectStateV4 struct {
 	Status   string      `json:"status,omitempty"`
 	Deposed  string      `json:"deposed,omitempty"`
 
-	SchemaVersion  uint64            `json:"schema_version"`
-	AttributesRaw  json.RawMessage   `json:"attributes,omitempty"`
-	AttributesFlat map[string]string `json:"attributes_flat,omitempty"`
+	SchemaVersion           uint64            `json:"schema_version"`
+	AttributesRaw           json.RawMessage   `json:"attributes,omitempty"`
+	AttributesFlat          map[string]string `json:"attributes_flat,omitempty"`
+	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty,"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
-	Dependencies []string `json:"depends_on,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty"`
+
+	CreateBeforeDestroy bool `json:"create_before_destroy,omitempty"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded
@@ -562,6 +566,8 @@ func (sr sortResourcesV4) Len() int      { return len(sr) }
 func (sr sortResourcesV4) Swap(i, j int) { sr[i], sr[j] = sr[j], sr[i] }
 func (sr sortResourcesV4) Less(i, j int) bool {
 	switch {
+	case sr[i].Module != sr[j].Module:
+		return sr[i].Module < sr[j].Module
 	case sr[i].Mode != sr[j].Mode:
 		return sr[i].Mode < sr[j].Mode
 	case sr[i].Type != sr[j].Type:
@@ -601,4 +607,136 @@ func (si sortInstancesV4) Less(i, j int) bool {
 		return si[i].Deposed < si[j].Deposed
 	}
 	return false
+}
+
+// pathStep is an intermediate representation of a cty.PathStep to facilitate
+// consistent JSON serialization. The Value field can either be a cty.Value of
+// dynamic type (for index steps), or a string (for get attr steps).
+type pathStep struct {
+	Type  string          `json:"type"`
+	Value json.RawMessage `json:"value"`
+}
+
+const (
+	indexPathStepType   = "index"
+	getAttrPathStepType = "get_attr"
+)
+
+func unmarshalPaths(buf []byte) ([]cty.Path, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var jsonPaths [][]pathStep
+
+	err := json.Unmarshal(buf, &jsonPaths)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error unmarshaling path steps",
+			err.Error(),
+		))
+	}
+
+	paths := make([]cty.Path, 0, len(jsonPaths))
+
+unmarshalOuter:
+	for _, jsonPath := range jsonPaths {
+		var path cty.Path
+		for _, jsonStep := range jsonPath {
+			switch jsonStep.Type {
+			case indexPathStepType:
+				key, err := ctyjson.Unmarshal(jsonStep.Value, cty.DynamicPseudoType)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error unmarshaling path step",
+						fmt.Sprintf("Failed to unmarshal index step key: %s", err),
+					))
+					continue unmarshalOuter
+				}
+				path = append(path, cty.IndexStep{Key: key})
+			case getAttrPathStepType:
+				var name string
+				if err := json.Unmarshal(jsonStep.Value, &name); err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error unmarshaling path step",
+						fmt.Sprintf("Failed to unmarshal get attr step name: %s", err),
+					))
+					continue unmarshalOuter
+				}
+				path = append(path, cty.GetAttrStep{Name: name})
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unsupported path step",
+					fmt.Sprintf("Unsupported path step type %q", jsonStep.Type),
+				))
+				continue unmarshalOuter
+			}
+		}
+		paths = append(paths, path)
+	}
+
+	return paths, diags
+}
+
+func marshalPaths(paths []cty.Path) ([]byte, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// cty.Path is a slice of cty.PathSteps, so our representation of a slice
+	// of paths is a nested slice of our intermediate pathStep struct
+	jsonPaths := make([][]pathStep, 0, len(paths))
+
+marshalOuter:
+	for _, path := range paths {
+		jsonPath := make([]pathStep, 0, len(path))
+		for _, step := range path {
+			var jsonStep pathStep
+			switch s := step.(type) {
+			case cty.IndexStep:
+				key, err := ctyjson.Marshal(s.Key, cty.DynamicPseudoType)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error marshaling path step",
+						fmt.Sprintf("Failed to marshal index step key %#v: %s", s.Key, err),
+					))
+					continue marshalOuter
+				}
+				jsonStep.Type = indexPathStepType
+				jsonStep.Value = key
+			case cty.GetAttrStep:
+				name, err := json.Marshal(s.Name)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Error marshaling path step",
+						fmt.Sprintf("Failed to marshal get attr step name %s: %s", s.Name, err),
+					))
+					continue marshalOuter
+				}
+				jsonStep.Type = getAttrPathStepType
+				jsonStep.Value = name
+			default:
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unsupported path step",
+					fmt.Sprintf("Unsupported path step %#v (%t)", step, step),
+				))
+				continue marshalOuter
+			}
+			jsonPath = append(jsonPath, jsonStep)
+		}
+		jsonPaths = append(jsonPaths, jsonPath)
+	}
+
+	buf, err := json.Marshal(jsonPaths)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error marshaling path steps",
+			fmt.Sprintf("Failed to marshal path steps: %s", err),
+		))
+	}
+
+	return buf, diags
 }

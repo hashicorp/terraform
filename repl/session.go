@@ -2,14 +2,12 @@ package repl
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -61,25 +59,7 @@ func (s *Session) handleEval(line string) (string, tfdiags.Diagnostics) {
 		return "", diags
 	}
 
-	if !val.IsWhollyKnown() {
-		// FIXME: In future, once we've updated the result formatter to be
-		// cty-aware, we should just include unknown values as "(not yet known)"
-		// in the serialized result, allowing the rest (if any) to be seen.
-		diags = diags.Append(fmt.Errorf("Result depends on values that cannot be determined until after \"terraform apply\"."))
-		return "", diags
-	}
-
-	// Our formatter still wants an old-style raw interface{} value, so
-	// for now we'll just shim it.
-	// FIXME: Port the formatter to work with cty.Value directly.
-	legacyVal := hcl2shim.ConfigValueFromHCL2(val)
-	result, err := FormatResult(legacyVal)
-	if err != nil {
-		diags = diags.Append(err)
-		return "", diags
-	}
-
-	return result, diags
+	return FormatValue(val, 0), diags
 }
 
 func (s *Session) handleHelp() (string, tfdiags.Diagnostics) {

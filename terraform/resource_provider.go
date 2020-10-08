@@ -1,23 +1,10 @@
 package terraform
 
-import (
-	"fmt"
-
-	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/providers"
-)
-
-// ResourceProvider is an interface that must be implemented by any
-// resource provider: the thing that creates and manages the resources in
-// a Terraform configuration.
+// ResourceProvider is a legacy interface for providers.
 //
-// Important implementation note: All returned pointers, such as
-// *ResourceConfig, *InstanceState, *InstanceDiff, etc. must not point to
-// shared data. Terraform is highly parallel and assumes that this data is safe
-// to read/write in parallel so it must be unique references. Note that it is
-// safe to return arguments as results, however.
+// This is retained only for compatibility with legacy code. The current
+// interface for providers is providers.Interface, in the sibling directory
+// named "providers".
 type ResourceProvider interface {
 	/*********************************************************************
 	* Functions related to the provider
@@ -202,50 +189,6 @@ type DataSource struct {
 	SchemaAvailable bool
 }
 
-// ResourceProviderResolver is an interface implemented by objects that are
-// able to resolve a given set of resource provider version constraints
-// into ResourceProviderFactory callbacks.
-type ResourceProviderResolver interface {
-	// Given a constraint map, return a ResourceProviderFactory for each
-	// requested provider. If some or all of the constraints cannot be
-	// satisfied, return a non-nil slice of errors describing the problems.
-	ResolveProviders(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error)
-}
-
-// ResourceProviderResolverFunc wraps a callback function and turns it into
-// a ResourceProviderResolver implementation, for convenience in situations
-// where a function and its associated closure are sufficient as a resolver
-// implementation.
-type ResourceProviderResolverFunc func(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error)
-
-// ResolveProviders implements ResourceProviderResolver by calling the
-// wrapped function.
-func (f ResourceProviderResolverFunc) ResolveProviders(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error) {
-	return f(reqd)
-}
-
-// ResourceProviderResolverFixed returns a ResourceProviderResolver that
-// has a fixed set of provider factories provided by the caller. The returned
-// resolver ignores version constraints entirely and just returns the given
-// factory for each requested provider name.
-//
-// This function is primarily used in tests, to provide mock providers or
-// in-process providers under test.
-func ResourceProviderResolverFixed(factories map[string]ResourceProviderFactory) ResourceProviderResolver {
-	return ResourceProviderResolverFunc(func(reqd discovery.PluginRequirements) (map[string]ResourceProviderFactory, []error) {
-		ret := make(map[string]ResourceProviderFactory, len(reqd))
-		var errs []error
-		for name := range reqd {
-			if factory, exists := factories[name]; exists {
-				ret[name] = factory
-			} else {
-				errs = append(errs, fmt.Errorf("provider %q is not available", name))
-			}
-		}
-		return ret, errs
-	})
-}
-
 // ResourceProviderFactory is a function type that creates a new instance
 // of a resource provider.
 type ResourceProviderFactory func() (ResourceProvider, error)
@@ -278,34 +221,6 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 	return false
 }
 
-// resourceProviderFactories matches available plugins to the given version
-// requirements to produce a map of compatible provider plugins if possible,
-// or an error if the currently-available plugins are insufficient.
-//
-// This should be called only with configurations that have passed calls
-// to config.Validate(), which ensures that all of the given version
-// constraints are valid. It will panic if any invalid constraints are present.
-func resourceProviderFactories(resolver providers.Resolver, reqd discovery.PluginRequirements) (map[string]providers.Factory, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	ret, errs := resolver.ResolveProviders(reqd)
-	if errs != nil {
-		diags = diags.Append(
-			tfdiags.Sourceless(tfdiags.Error,
-				"Could not satisfy plugin requirements",
-				errPluginInit,
-			),
-		)
-
-		for _, err := range errs {
-			diags = diags.Append(err)
-		}
-
-		return nil, diags
-	}
-
-	return ret, nil
-}
-
 const errPluginInit = `
 Plugin reinitialization required. Please run "terraform init".
 
@@ -315,5 +230,7 @@ don't satisfy the version constraints, or are otherwise incompatible.
 
 Terraform automatically discovers provider requirements from your
 configuration, including providers used in child modules. To see the
-requirements and constraints from each module, run "terraform providers".
+requirements and constraints, run "terraform providers".
+
+%s
 `

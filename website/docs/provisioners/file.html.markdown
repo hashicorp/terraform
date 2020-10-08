@@ -12,6 +12,10 @@ The `file` provisioner is used to copy files or directories from the machine
 executing Terraform to the newly created resource. The `file` provisioner
 supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection.html).
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. For more information, see
+[the main Provisioners page](./).
+
 ## Example usage
 
 ```hcl

@@ -28,12 +28,17 @@ func AssertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Value, path cty.Path) []error {
 	var errs []error
+	var atRoot string
+	if len(path) == 0 {
+		atRoot = "Root resource "
+	}
+
 	if planned.IsNull() && !actual.IsNull() {
-		errs = append(errs, path.NewErrorf("was absent, but now present"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas absent, but now present", atRoot)))
 		return errs
 	}
 	if actual.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf("was present, but now absent"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas present, but now absent", atRoot)))
 		return errs
 	}
 	if planned.IsNull() {
@@ -46,7 +51,17 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
-		moreErrs := assertValueCompatible(plannedV, actualV, path)
+		// If our value is marked, unmark it here before
+		// checking value assertions
+		unmarkedActualV := actualV
+		if actualV.ContainsMarked() {
+			unmarkedActualV, _ = actualV.UnmarkDeep()
+		}
+		unmarkedPlannedV := plannedV
+		if plannedV.ContainsMarked() {
+			unmarkedPlannedV, _ = actualV.UnmarkDeep()
+		}
+		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
 		if attrS.Sensitive {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
@@ -58,8 +73,9 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		}
 	}
 	for name, blockS := range schema.BlockTypes {
-		plannedV := planned.GetAttr(name)
-		actualV := actual.GetAttr(name)
+		// Unmark values before testing compatibility
+		plannedV, _ := planned.GetAttr(name).UnmarkDeep()
+		actualV, _ := actual.GetAttr(name).UnmarkDeep()
 
 		// As a special case, if there were any blocks whose leaf attributes
 		// are all unknown then we assume (possibly incorrectly) that the
@@ -84,7 +100,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			// whether there are dynamically-typed attributes inside. However,
 			// both support a similar-enough API that we can treat them the
 			// same for our purposes here.
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
 				continue
 			}
 
@@ -160,6 +176,16 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			}
 		case configschema.NestingSet:
 			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+				continue
+			}
+
+			if maybeUnknownBlocks {
+				// When unknown blocks are present the final number of blocks
+				// may be different, either because the unknown set values
+				// become equal and are collapsed, or the count is unknown due
+				// a dynamic block. Unfortunately this means we can't do our
+				// usual checks in this case without generating false
+				// negatives.
 				continue
 			}
 

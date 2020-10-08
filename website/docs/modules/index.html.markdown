@@ -8,6 +8,8 @@ description: |-
 
 # Creating Modules
 
+> **Hands-on:** Try the [Reuse Configuration with Modules](https://learn.hashicorp.com/collections/terraform/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+
 A _module_ is a container for multiple resources that are used together.
 Modules can be used to create lightweight abstractions, so that you can
 describe your infrastructure in terms of its architecture, rather than
@@ -97,7 +99,7 @@ don't need to do any extra work to follow the standard structure.
   directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
   Consider including a visual diagram depicting the infrastructure resources
   the module may create and their relationship.
-  
+
   The README doesn't need to document inputs or outputs of the module because
   tooling will automatically generate this. If you are linking to a file or
   embedding an image contained in the repository itself, use a commit-specific

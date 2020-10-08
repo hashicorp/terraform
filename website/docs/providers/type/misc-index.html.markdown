@@ -18,6 +18,7 @@ by the vendors and the Terraform community, and are tested by HashiCorp.
 - [Archive](/docs/providers/archive/index.html)
 - [Cobbler](/docs/providers/cobbler/index.html)
 - [External](/docs/providers/external/index.html)
+- [Genymotion](/docs/providers/genymotion/index.html)
 - [Ignition](/docs/providers/ignition/index.html)
 - [Local](/docs/providers/local/index.html)
 - [Netlify](/docs/providers/netlify/index.html)
@@ -25,3 +26,4 @@ by the vendors and the Terraform community, and are tested by HashiCorp.
 - [Random](/docs/providers/random/index.html)
 - [Template](/docs/providers/template/index.html)
 - [TLS](/docs/providers/tls/index.html)
+- [Time](/docs/providers/time/index.html)

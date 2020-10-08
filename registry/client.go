@@ -7,36 +7,68 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 )
 
 const (
 	xTerraformGet      = "X-Terraform-Get"
 	xTerraformVersion  = "X-Terraform-Version"
-	requestTimeout     = 10 * time.Second
 	modulesServiceID   = "modules.v1"
 	providersServiceID = "providers.v1"
+
+	// registryDiscoveryRetryEnvName is the name of the environment variable that
+	// can be configured to customize number of retries for module and provider
+	// discovery requests with the remote registry.
+	registryDiscoveryRetryEnvName = "TF_REGISTRY_DISCOVERY_RETRY"
+	defaultRetry                  = 1
+
+	// registryClientTimeoutEnvName is the name of the environment variable that
+	// can be configured to customize the timeout duration (seconds) for module
+	// and provider discovery with the remote registry.
+	registryClientTimeoutEnvName = "TF_REGISTRY_CLIENT_TIMEOUT"
+
+	// defaultRequestTimeout is the default timeout duration for requests to the
+	// remote registry.
+	defaultRequestTimeout = 10 * time.Second
 )
 
-var tfVersion = version.String()
+var (
+	tfVersion = version.String()
+
+	discoveryRetry int
+	requestTimeout time.Duration
+)
+
+func init() {
+	configureDiscoveryRetry()
+	configureRequestTimeout()
+}
 
 // Client provides methods to query Terraform Registries.
 type Client struct {
 	// this is the client to be used for all requests.
-	client *http.Client
+	client *retryablehttp.Client
 
 	// services is a required *disco.Disco, which may have services and
 	// credentials pre-loaded.
 	services *disco.Disco
+
+	// retry is the number of retries the client will attempt for each request
+	// if it runs into a transient failure with the remote registry.
+	retry int
 }
 
 // NewClient returns a new initialized registry client.
@@ -49,11 +81,25 @@ func NewClient(services *disco.Disco, client *http.Client) *Client {
 		client = httpclient.New()
 		client.Timeout = requestTimeout
 	}
+	retryableClient := retryablehttp.NewClient()
+	retryableClient.HTTPClient = client
+	retryableClient.RetryMax = discoveryRetry
+	retryableClient.RequestLogHook = requestLogHook
+	retryableClient.ErrorHandler = maxRetryErrorHandler
 
-	services.Transport = client.Transport
+	logOutput, err := logging.LogOutput()
+	if err != nil {
+		log.Printf("[WARN] Failed to set up registry client logger, "+
+			"continuing without client logging: %s", err)
+	}
+	retryableClient.Logger = log.New(logOutput, "", log.Flags())
+
+	services.Transport = retryableClient.HTTPClient.Transport
+
+	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	return &Client{
-		client:   client,
+		client:   retryableClient,
 		services: services,
 	}
 }
@@ -91,12 +137,12 @@ func (c *Client) ModuleVersions(module *regsrc.Module) (*response.ModuleVersions
 
 	log.Printf("[DEBUG] fetching module versions from %q", service)
 
-	req, err := http.NewRequest("GET", service.String(), nil)
+	req, err := retryablehttp.NewRequest("GET", service.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	c.addRequestCreds(host, req)
+	c.addRequestCreds(host, req.Request)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := c.client.Do(req)
@@ -168,12 +214,12 @@ func (c *Client) ModuleLocation(module *regsrc.Module, version string) (string, 
 
 	log.Printf("[DEBUG] looking up module location from %q", download)
 
-	req, err := http.NewRequest("GET", download.String(), nil)
+	req, err := retryablehttp.NewRequest("GET", download.String(), nil)
 	if err != nil {
 		return "", err
 	}
 
-	c.addRequestCreds(host, req)
+	c.addRequestCreds(host, req.Request)
 	req.Header.Set(xTerraformVersion, tfVersion)
 
 	resp, err := c.client.Do(req)
@@ -227,117 +273,59 @@ func (c *Client) ModuleLocation(module *regsrc.Module, version string) (string, 
 	return location, nil
 }
 
-// TerraformProviderVersions queries the registry for a provider, and returns the available versions.
-func (c *Client) TerraformProviderVersions(provider *regsrc.TerraformProvider) (*response.TerraformProviderVersions, error) {
-	host, err := provider.SvcHost()
-	if err != nil {
-		return nil, err
+// configureDiscoveryRetry configures the number of retries the registry client
+// will attempt for requests with retryable errors, like 502 status codes
+func configureDiscoveryRetry() {
+	discoveryRetry = defaultRetry
+
+	if v := os.Getenv(registryDiscoveryRetryEnvName); v != "" {
+		retry, err := strconv.Atoi(v)
+		if err == nil && retry > 0 {
+			discoveryRetry = retry
+		}
 	}
-
-	service, err := c.Discover(host, providersServiceID)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := url.Parse(path.Join(provider.TerraformProvider(), "versions"))
-	if err != nil {
-		return nil, err
-	}
-
-	service = service.ResolveReference(p)
-
-	log.Printf("[DEBUG] fetching provider versions from %q", service)
-
-	req, err := http.NewRequest("GET", service.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.addRequestCreds(host, req)
-	req.Header.Set(xTerraformVersion, tfVersion)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// OK
-	case http.StatusNotFound:
-		return nil, &errProviderNotFound{addr: provider}
-	default:
-		return nil, fmt.Errorf("error looking up provider versions: %s", resp.Status)
-	}
-
-	var versions response.TerraformProviderVersions
-
-	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&versions); err != nil {
-		return nil, err
-	}
-
-	return &versions, nil
 }
 
-// TerraformProviderLocation queries the registry for a provider download metadata
-func (c *Client) TerraformProviderLocation(provider *regsrc.TerraformProvider, version string) (*response.TerraformProviderPlatformLocation, error) {
-	host, err := provider.SvcHost()
-	if err != nil {
-		return nil, err
+func requestLogHook(logger retryablehttp.Logger, req *http.Request, i int) {
+	if i > 0 {
+		logger.Printf("[INFO] Previous request to the remote registry failed, attempting retry.")
+	}
+}
+
+func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.Response, error) {
+	// Close the body per library instructions
+	if resp != nil {
+		resp.Body.Close()
 	}
 
-	service, err := c.Discover(host, providersServiceID)
-	if err != nil {
-		return nil, err
+	// Additional error detail: if we have a response, use the status code;
+	// if we have an error, use that; otherwise nothing. We will never have
+	// both response and error.
+	var errMsg string
+	if resp != nil {
+		errMsg = fmt.Sprintf(": %d", resp.StatusCode)
+	} else if err != nil {
+		errMsg = fmt.Sprintf(": %s", err)
 	}
 
-	p, err := url.Parse(path.Join(
-		provider.TerraformProvider(),
-		version,
-		"download",
-		provider.OS,
-		provider.Arch,
-	))
-	if err != nil {
-		return nil, err
+	// This function is always called with numTries=RetryMax+1. If we made any
+	// retry attempts, include that in the error message.
+	if numTries > 1 {
+		return resp, fmt.Errorf("the request failed after %d attempts, please try again later%s",
+			numTries, errMsg)
 	}
+	return resp, fmt.Errorf("the request failed, please try again later%s", errMsg)
+}
 
-	service = service.ResolveReference(p)
+// configureRequestTimeout configures the registry client request timeout from
+// environment variables
+func configureRequestTimeout() {
+	requestTimeout = defaultRequestTimeout
 
-	log.Printf("[DEBUG] fetching provider location from %q", service)
-
-	req, err := http.NewRequest("GET", service.String(), nil)
-	if err != nil {
-		return nil, err
+	if v := os.Getenv(registryClientTimeoutEnvName); v != "" {
+		timeout, err := strconv.Atoi(v)
+		if err == nil && timeout > 0 {
+			requestTimeout = time.Duration(timeout) * time.Second
+		}
 	}
-
-	c.addRequestCreds(host, req)
-	req.Header.Set(xTerraformVersion, tfVersion)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var loc response.TerraformProviderPlatformLocation
-
-	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&loc); err != nil {
-		return nil, err
-	}
-
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusNoContent:
-		// OK
-	case http.StatusNotFound:
-		return nil, fmt.Errorf("provider %q version %q not found", provider.TerraformProvider(), version)
-	default:
-		// anything else is an error:
-		return nil, fmt.Errorf("error getting download location for %q: %s", provider.TerraformProvider(), resp.Status)
-	}
-
-	return &loc, nil
 }

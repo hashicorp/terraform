@@ -19,13 +19,14 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+var equateEmpty = cmpopts.EquateEmpty()
 
 func TestRefresh(t *testing.T) {
 	state := testState()
@@ -81,7 +82,7 @@ func TestRefresh(t *testing.T) {
 func TestRefresh_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("refresh-empty"), td)
+	testCopyDir(t, testFixturePath("refresh-empty"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -275,7 +276,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -339,7 +340,7 @@ func TestRefresh_outPath(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -568,7 +569,7 @@ func TestRefresh_backup(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"changed\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -623,8 +624,10 @@ func TestRefresh_disableBackup(t *testing.T) {
 	}
 
 	newState := testStateRead(t, statePath)
-	if !reflect.DeepEqual(newState, state) {
-		t.Fatalf("bad: %#v", newState)
+	if !cmp.Equal(state, newState, equateEmpty) {
+		spew.Config.DisableMethods = true
+		fmt.Println(cmp.Diff(state, newState, equateEmpty))
+		t.Fatalf("bad: %s", newState)
 	}
 
 	newState = testStateRead(t, outPath)
@@ -632,7 +635,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
 		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
-		Dependencies: []addrs.Referenceable{},
+		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("wrong new object\ngot:  %swant: %s", spew.Sdump(actual), spew.Sdump(expected))
@@ -707,7 +710,7 @@ func newInstanceState(id string) *states.ResourceInstanceObjectSrc {
 }
 
 // refreshFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/refresh . This schema should be
+// configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
 func refreshFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -723,7 +726,7 @@ func refreshFixtureSchema() *terraform.ProviderSchema {
 }
 
 // refreshVarFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/refresh-var . This schema should be
+// configuration in testdata/refresh-var . This schema should be
 // assigned to a mock provider named "test".
 func refreshVarFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -749,10 +752,10 @@ foo = "bar"
 const testRefreshStr = `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 `
 const testRefreshCwdStr = `
 test_instance.foo:
   ID = yes
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
 `

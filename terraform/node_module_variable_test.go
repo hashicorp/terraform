@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 )
 
-func TestNodeApplyableModuleVariablePath(t *testing.T) {
-	n := &NodeApplyableModuleVariable{
-		Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).InputVariable("foo"),
+func TestnodeModuleVariablePath(t *testing.T) {
+	n := &nodeModuleVariable{
+		Addr: addrs.RootModuleInstance.InputVariable("foo"),
 		Config: &configs.Variable{
 			Name: "foo",
 		},
@@ -27,9 +27,9 @@ func TestNodeApplyableModuleVariablePath(t *testing.T) {
 	}
 }
 
-func TestNodeApplyableModuleVariableReferenceableName(t *testing.T) {
-	n := &NodeApplyableModuleVariable{
-		Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).InputVariable("foo"),
+func TestnodeModuleVariableReferenceableName(t *testing.T) {
+	n := &nodeExpandModuleVariable{
+		Addr: addrs.InputVariable{Name: "foo"},
 		Config: &configs.Variable{
 			Name: "foo",
 		},
@@ -59,9 +59,9 @@ func TestNodeApplyableModuleVariableReferenceableName(t *testing.T) {
 
 }
 
-func TestNodeApplyableModuleVariableReference(t *testing.T) {
-	n := &NodeApplyableModuleVariable{
-		Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).InputVariable("foo"),
+func TestnodeModuleVariableReference(t *testing.T) {
+	n := &nodeExpandModuleVariable{
+		Addr: addrs.InputVariable{Name: "foo"},
 		Config: &configs.Variable{
 			Name: "foo",
 		},
@@ -84,12 +84,9 @@ func TestNodeApplyableModuleVariableReference(t *testing.T) {
 	}
 }
 
-func TestNodeApplyableModuleVariableReference_grandchild(t *testing.T) {
-	n := &NodeApplyableModuleVariable{
-		Addr: addrs.RootModuleInstance.
-			Child("child", addrs.NoKey).
-			Child("grandchild", addrs.NoKey).
-			InputVariable("foo"),
+func TestnodeModuleVariableReference_grandchild(t *testing.T) {
+	n := &nodeExpandModuleVariable{
+		Addr: addrs.InputVariable{Name: "foo"},
 		Config: &configs.Variable{
 			Name: "foo",
 		},

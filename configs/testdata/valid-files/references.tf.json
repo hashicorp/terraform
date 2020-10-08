@@ -1,0 +1,11 @@
+{
+  "//": "The purpose of this test file is to show that we can use template syntax unwrapping to provide complex expressions without generating the deprecation warnings we'd expect for native syntax.",
+  "resource": {
+    "null_resource": {
+      "baz": {
+        "//": "This particular use of template syntax is redundant, but we permit it because this is the documented way to use more complex expressions in JSON.",
+        "triggers": "${ {} }"
+      }
+    }
+  }
+}

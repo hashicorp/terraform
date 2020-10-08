@@ -29,18 +29,25 @@ type ResourceInstanceObject struct {
 	// it was updated.
 	Status ObjectStatus
 
-	// Dependencies is a set of other addresses in the same module which
-	// this instance depended on when the given attributes were evaluated.
-	// This is used to construct the dependency relationships for an object
-	// whose configuration is no longer available, such as if it has been
-	// removed from configuration altogether, or is now deposed.
-	Dependencies []addrs.Referenceable
+	// Dependencies is a set of absolute address to other resources this
+	// instance dependeded on when it was applied. This is used to construct
+	// the dependency relationships for an object whose configuration is no
+	// longer available, such as if it has been removed from configuration
+	// altogether, or is now deposed.
+	Dependencies []addrs.ConfigResource
+
+	// CreateBeforeDestroy reflects the status of the lifecycle
+	// create_before_destroy option when this instance was last updated.
+	// Because create_before_destroy also effects the overall ordering of the
+	// destroy operations, we need to record the status to ensure a resource
+	// removed from the config will still be destroyed in the same manner.
+	CreateBeforeDestroy bool
 }
 
 // ObjectStatus represents the status of a RemoteObject.
 type ObjectStatus rune
 
-//go:generate stringer -type ObjectStatus
+//go:generate go run golang.org/x/tools/cmd/stringer -type ObjectStatus
 
 const (
 	// ObjectReady is an object status for an object that is ready to use.
@@ -80,6 +87,11 @@ const (
 // so the caller must not mutate the receiver any further once once this
 // method is called.
 func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	// If it contains marks, remove these marks before traversing the
+	// structure with UnknownAsNull, and save the PathValueMarks
+	// so we can save them in state.
+	val, pvm := o.Value.UnmarkDeepWithPaths()
+
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
 	// values here and expecting to get them out again later.
@@ -89,7 +101,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// for expression evaluation. The apply step should never produce unknown
 	// values, but if it does it's the responsibility of the caller to detect
 	// and raise an error about that.
-	val := cty.UnknownAsNull(o.Value)
+	val = cty.UnknownAsNull(val)
 
 	src, err := ctyjson.Marshal(val, ty)
 	if err != nil {
@@ -97,11 +109,13 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	}
 
 	return &ResourceInstanceObjectSrc{
-		SchemaVersion: schemaVersion,
-		AttrsJSON:     src,
-		Private:       o.Private,
-		Status:        o.Status,
-		Dependencies:  o.Dependencies,
+		SchemaVersion:       schemaVersion,
+		AttrsJSON:           src,
+		AttrSensitivePaths:  pvm,
+		Private:             o.Private,
+		Status:              o.Status,
+		Dependencies:        o.Dependencies,
+		CreateBeforeDestroy: o.CreateBeforeDestroy,
 	}, nil
 }
 

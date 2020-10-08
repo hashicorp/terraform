@@ -11,7 +11,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
 
 // String returns a rather-odd string representation of the entire state.
@@ -55,9 +55,7 @@ func (s *State) String() string {
 			buf.WriteByte('.')
 			buf.WriteString(step.Name)
 			if step.InstanceKey != addrs.NoKey {
-				buf.WriteByte('[')
 				buf.WriteString(step.InstanceKey.String())
-				buf.WriteByte(']')
 			}
 		}
 		buf.WriteString(":\n")
@@ -91,7 +89,7 @@ func (m *Module) testString() string {
 	addrsOrder := make([]addrs.AbsResourceInstance, 0, len(m.Resources))
 	for _, rs := range m.Resources {
 		for ik := range rs.Instances {
-			addrsOrder = append(addrsOrder, rs.Addr.Instance(ik).Absolute(addrs.RootModuleInstance))
+			addrsOrder = append(addrsOrder, rs.Addr.Instance(ik))
 		}
 	}
 

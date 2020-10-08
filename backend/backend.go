@@ -7,6 +7,8 @@ package backend
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -33,10 +36,6 @@ var (
 	// be selected.
 	ErrDefaultWorkspaceNotSupported = errors.New("default workspace not supported\n" +
 		"You can create a new workspace with the \"workspace new\" command.")
-
-	// ErrOperationNotSupported is returned when an unsupported operation
-	// is detected by the configured backend.
-	ErrOperationNotSupported = errors.New("operation not supported")
 
 	// ErrWorkspacesNotSupported is an error returned when a caller attempts
 	// to perform an operation on a workspace other than "default" for a
@@ -196,12 +195,22 @@ type Operation struct {
 	Targets      []addrs.Targetable
 	Variables    map[string]UnparsedVariableValue
 
+	// Some operations use root module variables only opportunistically or
+	// don't need them at all. If this flag is set, the backend must treat
+	// all variables as optional and provide an unknown value for any required
+	// variables that aren't set in order to allow partial evaluation against
+	// the resulting incomplete context.
+	//
+	// This flag is honored only if PlanFile isn't set. If PlanFile is set then
+	// the variables set in the plan are used instead, and they must be valid.
+	AllowUnsetVariables bool
+
 	// Input/output/control options.
 	UIIn  terraform.UIInput
 	UIOut terraform.UIOutput
 
 	// If LockState is true, the Operation must Lock any
-	// state.Lockers for its duration, and Unlock when complete.
+	// statemgr.Lockers for its duration, and Unlock when complete.
 	LockState bool
 
 	// StateLocker is used to lock the state while providing UI feedback to the
@@ -280,4 +289,32 @@ const (
 
 func (r OperationResult) ExitStatus() int {
 	return int(r)
+}
+
+// If the argument is a path, Read loads it and returns the contents,
+// otherwise the argument is assumed to be the desired contents and is simply
+// returned.
+func ReadPathOrContents(poc string) (string, error) {
+	if len(poc) == 0 {
+		return poc, nil
+	}
+
+	path := poc
+	if path[0] == '~' {
+		var err error
+		path, err = homedir.Expand(path)
+		if err != nil {
+			return path, err
+		}
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		contents, err := ioutil.ReadFile(path)
+		if err != nil {
+			return string(contents), err
+		}
+		return string(contents), nil
+	}
+
+	return poc, nil
 }

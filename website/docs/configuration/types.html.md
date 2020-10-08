@@ -95,6 +95,17 @@ The three kinds of collection type in the Terraform language are:
     element type as long as every element is the same type. This is for
     compatibility with older configurations; for new code, we recommend using
     the full form.
+
+    Maps can be made with braces ({}) and colons (:) or equals signs (=):
+    { "foo": "bar", "bar": "baz" } OR { foo = "bar", bar = "baz" }. Quotes
+    may be omitted on keys, unless the key starts with a number, in which
+    case quotes are required. Commas are required between key/value pairs
+    for single line maps. A newline between key/value pairs is sufficient
+    in multi-line maps.
+
+    Note: although colons are valid delimiters between keys and values,
+    they are currently ignored by `terraform fmt` (whereas `terraform fmt`
+    will attempt vertically align equals signs).
 * `set(...)`: a collection of unique values that do not have any secondary
   identifiers or ordering.
 

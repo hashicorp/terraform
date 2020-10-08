@@ -1,7 +1,7 @@
 package tfdiags
 
 import (
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -308,8 +308,8 @@ func hclRangeFromIndexStepAndAttribute(idxStep cty.IndexStep, attr *hcl.Attribut
 		}
 		stepKey := idxStep.Key.AsString()
 		for _, kvPair := range pairs {
-			key, err := kvPair.Key.Value(nil)
-			if err != nil {
+			key, diags := kvPair.Key.Value(nil)
+			if diags.HasErrors() {
 				return attr.Expr.Range()
 			}
 			if key.AsString() == stepKey {

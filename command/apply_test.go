@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -177,7 +176,7 @@ func TestApply_parallelism(t *testing.T) {
 	// to ApplyResourceChange, we need to use a number of separate providers
 	// here. They will all have the same mock implementation function assigned
 	// but crucially they will each have their own mutex.
-	providerFactories := map[string]providers.Factory{}
+	providerFactories := map[addrs.Provider]providers.Factory{}
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
 		provider := &terraform.MockProvider{}
@@ -203,10 +202,10 @@ func TestApply_parallelism(t *testing.T) {
 				NewState: cty.EmptyObjectVal,
 			}
 		}
-		providerFactories[name] = providers.FactoryFixed(provider)
+		providerFactories[addrs.NewDefaultProvider(name)] = providers.FactoryFixed(provider)
 	}
 	testingOverrides := &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(providerFactories),
+		Providers: providerFactories,
 	}
 
 	ui := new(cli.MockUi)
@@ -305,8 +304,8 @@ func TestApply_defaultState(t *testing.T) {
 	}
 
 	// create an existing state file
-	localState := &state.LocalState{Path: statePath}
-	if err := localState.WriteState(terraform.NewState()); err != nil {
+	localState := statemgr.NewFilesystem(statePath)
+	if err := localState.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -423,7 +422,11 @@ func TestApply_input(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
-	// Set some default reader/writers for the inputs
+	// The configuration for this test includes a declaration of variable
+	// "foo" with no default, and we don't set it on the command line below,
+	// so the apply command will produce an interactive prompt for the
+	// value of var.foo. We'll answer "foo" here, and we expect the output
+	// value "result" to echo that back to us below.
 	defaultInputReader = bytes.NewBufferString("foo\n")
 	defaultInputWriter = new(bytes.Buffer)
 
@@ -830,7 +833,10 @@ func TestApply_refresh(t *testing.T) {
 				AttrsJSON: []byte(`{"ami":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -984,7 +990,10 @@ func TestApply_state(t *testing.T) {
 				AttrsJSON: []byte(`{"ami":"foo"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -1099,7 +1108,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "notsensitive = Hello world") {
+	if !strings.Contains(output, "notsensitive = \"Hello world\"") {
 		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
 	}
 	if !strings.Contains(output, "sensitive = <sensitive>") {
@@ -1348,7 +1357,10 @@ func TestApply_backup(t *testing.T) {
 				AttrsJSON: []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -1589,7 +1601,7 @@ func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 }
 
 // applyFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/apply . This schema should be
+// configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
 func applyFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
@@ -1605,7 +1617,7 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 }
 
 // applyFixtureProvider returns a mock provider that is configured for basic
-// operation with the configuration in test-fixtures/apply. This mock has
+// operation with the configuration in testdata/apply. This mock has
 // GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
@@ -1649,7 +1661,10 @@ func applyFixturePlanFile(t *testing.T) string {
 			Type: "test_instance",
 			Name: "foo",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-		ProviderAddr: addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Create,
 			Before: priorValRaw,

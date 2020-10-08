@@ -6,19 +6,20 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"hash"
+	"strings"
 
+	uuidv5 "github.com/google/uuid"
 	uuid "github.com/hashicorp/go-uuid"
-	uuidv5 "github.com/satori/go.uuid"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ssh"
 )
 
 var UUIDFunc = function.New(&function.Spec{
@@ -49,20 +50,20 @@ var UUIDV5Func = function.New(&function.Spec{
 		var namespace uuidv5.UUID
 		switch {
 		case args[0].AsString() == "dns":
-			namespace = uuidv5.NamespaceDNS
+			namespace = uuidv5.NameSpaceDNS
 		case args[0].AsString() == "url":
-			namespace = uuidv5.NamespaceURL
+			namespace = uuidv5.NameSpaceURL
 		case args[0].AsString() == "oid":
-			namespace = uuidv5.NamespaceOID
+			namespace = uuidv5.NameSpaceOID
 		case args[0].AsString() == "x500":
-			namespace = uuidv5.NamespaceX500
+			namespace = uuidv5.NameSpaceX500
 		default:
-			if namespace, err = uuidv5.FromString(args[0].AsString()); err != nil {
+			if namespace, err = uuidv5.Parse(args[0].AsString()); err != nil {
 				return cty.UnknownVal(cty.String), fmt.Errorf("uuidv5() doesn't support namespace %s (%v)", args[0].AsString(), err)
 			}
 		}
 		val := args[1].AsString()
-		return cty.StringVal(uuidv5.NewV5(namespace, val).String()), nil
+		return cty.StringVal(uuidv5.NewSHA1(namespace, []byte(val)).String()), nil
 	},
 })
 
@@ -152,27 +153,30 @@ var RsaDecryptFunc = function.New(&function.Spec{
 
 		b, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode input %q: cipher text must be base64-encoded", s)
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "failed to decode input %q: cipher text must be base64-encoded", s)
 		}
 
-		block, _ := pem.Decode([]byte(key))
-		if block == nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to parse key: no key found")
-		}
-		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-			return cty.UnknownVal(cty.String), fmt.Errorf(
-				"failed to parse key: password protected keys are not supported. Please decrypt the key prior to use",
-			)
-		}
-
-		x509Key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		rawKey, err := ssh.ParseRawPrivateKey([]byte(key))
 		if err != nil {
-			return cty.UnknownVal(cty.String), err
+			var errStr string
+			switch e := err.(type) {
+			case asn1.SyntaxError:
+				errStr = strings.ReplaceAll(e.Error(), "asn1: syntax error", "invalid ASN1 data in the given private key")
+			case asn1.StructuralError:
+				errStr = strings.ReplaceAll(e.Error(), "asn1: struture error", "invalid ASN1 data in the given private key")
+			default:
+				errStr = fmt.Sprintf("invalid private key: %s", e)
+			}
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, errStr)
+		}
+		privateKey, ok := rawKey.(*rsa.PrivateKey)
+		if !ok {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "invalid private key type %t", rawKey)
 		}
 
-		out, err := rsa.DecryptPKCS1v15(nil, x509Key, b)
+		out, err := rsa.DecryptPKCS1v15(nil, privateKey, b)
 		if err != nil {
-			return cty.UnknownVal(cty.String), err
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decrypt: %s", err)
 		}
 
 		return cty.StringVal(string(out)), nil

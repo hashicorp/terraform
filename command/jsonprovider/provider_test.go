@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -27,10 +28,12 @@ func TestMarshalProvider(t *testing.T) {
 					Block: &block{
 						Attributes: map[string]*attribute{
 							"region": {
-								AttributeType: json.RawMessage(`"string"`),
-								Required:      true,
+								AttributeType:   json.RawMessage(`"string"`),
+								Required:        true,
+								DescriptionKind: "plain",
 							},
 						},
+						DescriptionKind: "plain",
 					},
 				},
 				ResourceSchemas: map[string]*schema{
@@ -39,13 +42,15 @@ func TestMarshalProvider(t *testing.T) {
 						Block: &block{
 							Attributes: map[string]*attribute{
 								"id": {
-									AttributeType: json.RawMessage(`"string"`),
-									Optional:      true,
-									Computed:      true,
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									Computed:        true,
+									DescriptionKind: "plain",
 								},
 								"ami": {
-									AttributeType: json.RawMessage(`"string"`),
-									Optional:      true,
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									DescriptionKind: "plain",
 								},
 							},
 							BlockTypes: map[string]*blockType{
@@ -53,18 +58,22 @@ func TestMarshalProvider(t *testing.T) {
 									Block: &block{
 										Attributes: map[string]*attribute{
 											"device_index": {
-												AttributeType: json.RawMessage(`"string"`),
-												Optional:      true,
+												AttributeType:   json.RawMessage(`"string"`),
+												Optional:        true,
+												DescriptionKind: "plain",
 											},
 											"description": {
-												AttributeType: json.RawMessage(`"string"`),
-												Optional:      true,
+												AttributeType:   json.RawMessage(`"string"`),
+												Optional:        true,
+												DescriptionKind: "plain",
 											},
 										},
+										DescriptionKind: "plain",
 									},
 									NestingMode: "list",
 								},
 							},
+							DescriptionKind: "plain",
 						},
 					},
 				},
@@ -74,13 +83,15 @@ func TestMarshalProvider(t *testing.T) {
 						Block: &block{
 							Attributes: map[string]*attribute{
 								"id": {
-									AttributeType: json.RawMessage(`"string"`),
-									Optional:      true,
-									Computed:      true,
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									Computed:        true,
+									DescriptionKind: "plain",
 								},
 								"ami": {
-									AttributeType: json.RawMessage(`"string"`),
-									Optional:      true,
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									DescriptionKind: "plain",
 								},
 							},
 							BlockTypes: map[string]*blockType{
@@ -88,18 +99,22 @@ func TestMarshalProvider(t *testing.T) {
 									Block: &block{
 										Attributes: map[string]*attribute{
 											"device_index": {
-												AttributeType: json.RawMessage(`"string"`),
-												Optional:      true,
+												AttributeType:   json.RawMessage(`"string"`),
+												Optional:        true,
+												DescriptionKind: "plain",
 											},
 											"description": {
-												AttributeType: json.RawMessage(`"string"`),
-												Optional:      true,
+												AttributeType:   json.RawMessage(`"string"`),
+												Optional:        true,
+												DescriptionKind: "plain",
 											},
 										},
+										DescriptionKind: "plain",
 									},
 									NestingMode: "list",
 								},
 							},
+							DescriptionKind: "plain",
 						},
 					},
 				},
@@ -117,8 +132,8 @@ func TestMarshalProvider(t *testing.T) {
 
 func testProviders() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[string]*terraform.ProviderSchema{
-			"test": testProvider(),
+		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+			addrs.NewDefaultProvider("test"): testProvider(),
 		},
 	}
 }

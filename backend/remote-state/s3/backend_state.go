@@ -12,12 +12,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
+	const maxKeys = 1000
+
 	prefix := ""
 
 	if b.workspaceKeyPrefix != "" {
@@ -25,24 +27,24 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	params := &s3.ListObjectsInput{
-		Bucket: &b.bucketName,
-		Prefix: aws.String(prefix),
-	}
-
-	resp, err := b.s3Client.ListObjects(params)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
-			return nil, fmt.Errorf(errS3NoSuchBucket, err)
-		}
-		return nil, err
+		Bucket:  &b.bucketName,
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int64(maxKeys),
 	}
 
 	wss := []string{backend.DefaultStateName}
-	for _, obj := range resp.Contents {
-		ws := b.keyEnv(*obj.Key)
-		if ws != "" {
-			wss = append(wss, ws)
+	err := b.s3Client.ListObjectsPages(params, func(page *s3.ListObjectsOutput, lastPage bool) bool {
+		for _, obj := range page.Contents {
+			ws := b.keyEnv(*obj.Key)
+			if ws != "" {
+				wss = append(wss, ws)
+			}
 		}
+		return !lastPage
+	})
+
+	if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
+		return nil, fmt.Errorf(errS3NoSuchBucket, err)
 	}
 
 	sort.Strings(wss[1:])
@@ -108,20 +110,21 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 	}
 
 	client := &RemoteClient{
-		s3Client:             b.s3Client,
-		dynClient:            b.dynClient,
-		bucketName:           b.bucketName,
-		path:                 b.path(name),
-		serverSideEncryption: b.serverSideEncryption,
-		acl:                  b.acl,
-		kmsKeyID:             b.kmsKeyID,
-		ddbTable:             b.ddbTable,
+		s3Client:              b.s3Client,
+		dynClient:             b.dynClient,
+		bucketName:            b.bucketName,
+		path:                  b.path(name),
+		serverSideEncryption:  b.serverSideEncryption,
+		customerEncryptionKey: b.customerEncryptionKey,
+		acl:                   b.acl,
+		kmsKeyID:              b.kmsKeyID,
+		ddbTable:              b.ddbTable,
 	}
 
 	return client, nil
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -152,7 +155,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	// We need to create the object so it's listed by States.
 	if !exists {
 		// take a lock on this state while we write it
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {

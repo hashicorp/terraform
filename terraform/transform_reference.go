@@ -3,14 +3,13 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/lang"
-
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/lang"
 )
 
 // GraphNodeReferenceable must be implemented by any node that represents
@@ -21,7 +20,7 @@ import (
 // be referenced and other methods of referencing may still be possible (such
 // as by path!)
 type GraphNodeReferenceable interface {
-	GraphNodeSubPath
+	GraphNodeModulePath
 
 	// ReferenceableAddrs returns a list of addresses through which this can be
 	// referenced.
@@ -31,12 +30,48 @@ type GraphNodeReferenceable interface {
 // GraphNodeReferencer must be implemented by nodes that reference other
 // Terraform items and therefore depend on them.
 type GraphNodeReferencer interface {
-	GraphNodeSubPath
+	GraphNodeModulePath
 
 	// References returns a list of references made by this node, which
 	// include both a referenced address and source location information for
 	// the reference.
 	References() []*addrs.Reference
+}
+
+type GraphNodeAttachDependencies interface {
+	GraphNodeConfigResource
+	AttachDependencies([]addrs.ConfigResource)
+}
+
+// graphNodeDependsOn is implemented by resources that need to expose any
+// references set via DependsOn in their configuration.
+type graphNodeDependsOn interface {
+	GraphNodeReferencer
+	DependsOn() []*addrs.Reference
+}
+
+// graphNodeAttachResourceDependencies records all resources that are transitively
+// referenced through depends_on in the configuration. This is used by data
+// resources to determine if they can be read during the plan, or if they need
+// to be further delayed until apply.
+// We can only use an addrs.ConfigResource address here, because modules are
+// not yet expended in the graph. While this will cause some extra data
+// resources to show in the plan when their depends_on references may be in
+// unrelated module instances, the fact that it only happens when there are any
+// resource updates pending means we can still avoid the problem of the
+// "perpetual diff"
+type graphNodeAttachResourceDependencies interface {
+	GraphNodeConfigResource
+	graphNodeDependsOn
+
+	// AttachResourceDependencies stored the discovered dependencies in the
+	// resource node for evaluation later.
+	//
+	// The force parameter indicates that even if there are no dependencies,
+	// force the data source to act as though there are for refresh purposes.
+	// This is needed because yet-to-be-created resources won't be in the
+	// initial refresh graph, but may still be referenced through depends_on.
+	AttachResourceDependencies(deps []addrs.ConfigResource, force bool)
 }
 
 // GraphNodeReferenceOutside is an interface that can optionally be implemented.
@@ -60,7 +95,7 @@ type GraphNodeReferencer interface {
 type GraphNodeReferenceOutside interface {
 	// ReferenceOutside returns a path in which any references from this node
 	// are resolved.
-	ReferenceOutside() (selfPath, referencePath addrs.ModuleInstance)
+	ReferenceOutside() (selfPath, referencePath addrs.Module)
 }
 
 // ReferenceTransformer is a GraphTransformer that connects all the
@@ -74,7 +109,12 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	// Find the things that reference things and connect them
 	for _, v := range vs {
-		parents, _ := m.References(v)
+		if _, ok := v.(GraphNodeDestroyer); ok {
+			// destroy nodes references are not connected, since they can only
+			// use their own state.
+			continue
+		}
+		parents := m.References(v)
 		parentsDbg := make([]string, len(parents))
 		for i, v := range parents {
 			parentsDbg[i] = dag.VertexName(v)
@@ -84,128 +124,169 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 			dag.VertexName(v), parentsDbg)
 
 		for _, parent := range parents {
-			g.Connect(dag.BasicEdge(v, parent))
+			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, parent) {
+				g.Connect(dag.BasicEdge(v, parent))
+			} else {
+				log.Printf("[TRACE] ReferenceTransformer: skipping %s => %s inter-module-instance dependency", v, parent)
+			}
+		}
+
+		if len(parents) > 0 {
+			continue
 		}
 	}
 
 	return nil
 }
 
-// DestroyReferenceTransformer is a GraphTransformer that reverses the edges
-// for locals and outputs that depend on other nodes which will be
-// removed during destroy. If a destroy node is evaluated before the local or
-// output value, it will be removed from the state, and the later interpolation
-// will fail.
-type DestroyValueReferenceTransformer struct{}
+type depMap map[string]addrs.ConfigResource
 
-func (t *DestroyValueReferenceTransformer) Transform(g *Graph) error {
-	vs := g.Vertices()
-	for _, v := range vs {
-		switch v.(type) {
-		case *NodeApplyableOutput, *NodeLocal:
-			// OK
-		default:
+// add stores the vertex if it represents a resource in the
+// graph.
+func (m depMap) add(v dag.Vertex) {
+	// we're only concerned with resources which may have changes that
+	// need to be applied.
+	switch v := v.(type) {
+	case GraphNodeResourceInstance:
+		instAddr := v.ResourceInstanceAddr()
+		addr := instAddr.ContainingResource().Config()
+		m[addr.String()] = addr
+	case GraphNodeConfigResource:
+		addr := v.ResourceAddr()
+		m[addr.String()] = addr
+	}
+}
+
+// attachDataResourceDependenciesTransformer records all resources transitively referenced
+// through a configuration depends_on.
+type attachDataResourceDependenciesTransformer struct {
+}
+
+func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
+	// First we need to make a map of referenceable addresses to their vertices.
+	// This is very similar to what's done in ReferenceTransformer, but we keep
+	// implementation separate as they may need to change independently.
+	vertices := g.Vertices()
+	refMap := NewReferenceMap(vertices)
+
+	for _, v := range vertices {
+		depender, ok := v.(graphNodeAttachResourceDependencies)
+		if !ok {
 			continue
 		}
 
-		// reverse any outgoing edges so that the value is evaluated first.
-		for _, e := range g.EdgesFrom(v) {
-			target := e.Target()
-
-			// only destroy nodes will be evaluated in reverse
-			if _, ok := target.(GraphNodeDestroyer); !ok {
-				continue
-			}
-
-			log.Printf("[TRACE] output dep: %s", dag.VertexName(target))
-
-			g.RemoveEdge(e)
-			g.Connect(&DestroyEdge{S: target, T: v})
+		// Only data need to attach depends_on, so they can determine if they
+		// are eligible to be read during plan.
+		if depender.ResourceAddr().Resource.Mode != addrs.DataResourceMode {
+			continue
 		}
+
+		// depMap will only add resource references then dedupe
+		deps := make(depMap)
+		dependsOnDeps, fromModule := refMap.dependsOn(g, depender)
+		for _, dep := range dependsOnDeps {
+			// any the dependency
+			deps.add(dep)
+		}
+
+		res := make([]addrs.ConfigResource, 0, len(deps))
+		for _, d := range deps {
+			res = append(res, d)
+		}
+
+		log.Printf("[TRACE] attachDataDependenciesTransformer: %s depends on %s", depender.ResourceAddr(), res)
+		depender.AttachResourceDependencies(res, fromModule)
 	}
 
 	return nil
 }
 
-// PruneUnusedValuesTransformer is s GraphTransformer that removes local and
-// output values which are not referenced in the graph. Since outputs and
-// locals always need to be evaluated, if they reference a resource that is not
-// available in the state the interpolation could fail.
-type PruneUnusedValuesTransformer struct{}
+// AttachDependenciesTransformer records all resource dependencies for each
+// instance, and attaches the addresses to the node itself. Managed resource
+// will record these in the state for proper ordering of destroy operations.
+type AttachDependenciesTransformer struct {
+}
 
-func (t *PruneUnusedValuesTransformer) Transform(g *Graph) error {
-	// this might need multiple runs in order to ensure that pruning a value
-	// doesn't effect a previously checked value.
-	for removed := 0; ; removed = 0 {
-		for _, v := range g.Vertices() {
-			switch v.(type) {
-			case *NodeApplyableOutput, *NodeLocal:
-				// OK
+func (t AttachDependenciesTransformer) Transform(g *Graph) error {
+	for _, v := range g.Vertices() {
+		attacher, ok := v.(GraphNodeAttachDependencies)
+		if !ok {
+			continue
+		}
+		selfAddr := attacher.ResourceAddr()
+
+		ans, err := g.Ancestors(v)
+		if err != nil {
+			return err
+		}
+
+		// dedupe addrs when there's multiple instances involved, or
+		// multiple paths in the un-reduced graph
+		depMap := map[string]addrs.ConfigResource{}
+		for _, d := range ans {
+			var addr addrs.ConfigResource
+
+			switch d := d.(type) {
+			case GraphNodeResourceInstance:
+				instAddr := d.ResourceInstanceAddr()
+				addr = instAddr.ContainingResource().Config()
+			case GraphNodeConfigResource:
+				addr = d.ResourceAddr()
 			default:
 				continue
 			}
 
-			dependants := g.UpEdges(v)
-
-			switch dependants.Len() {
-			case 0:
-				// nothing at all depends on this
-				g.Remove(v)
-				removed++
-			case 1:
-				// because an output's destroy node always depends on the output,
-				// we need to check for the case of a single destroy node.
-				d := dependants.List()[0]
-				if _, ok := d.(*NodeDestroyableOutput); ok {
-					g.Remove(v)
-					removed++
-				}
+			if addr.Equal(selfAddr) {
+				continue
 			}
+			depMap[addr.String()] = addr
 		}
-		if removed == 0 {
-			break
+
+		deps := make([]addrs.ConfigResource, 0, len(depMap))
+		for _, d := range depMap {
+			deps = append(deps, d)
 		}
+		sort.Slice(deps, func(i, j int) bool {
+			return deps[i].String() < deps[j].String()
+		})
+
+		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", attacher.ResourceAddr(), deps)
+		attacher.AttachDependencies(deps)
 	}
 
 	return nil
 }
 
-// ReferenceMap is a structure that can be used to efficiently check
-// for references on a graph.
-type ReferenceMap struct {
-	// vertices is a map from internal reference keys (as produced by the
-	// mapKey method) to one or more vertices that are identified by each key.
-	//
-	// A particular reference key might actually identify multiple vertices,
-	// e.g. in situations where one object is contained inside another.
-	vertices map[string][]dag.Vertex
-
-	// edges is a map whose keys are a subset of the internal reference keys
-	// from "vertices", and whose values are the nodes that refer to each
-	// key. The values in this map are the referrers, while values in
-	// "verticies" are the referents. The keys in both cases are referents.
-	edges map[string][]dag.Vertex
+func isDependableResource(v dag.Vertex) bool {
+	switch v.(type) {
+	case GraphNodeResourceInstance:
+		return true
+	case GraphNodeConfigResource:
+		return true
+	}
+	return false
 }
+
+// ReferenceMap is a structure that can be used to efficiently check
+// for references on a graph, mapping internal reference keys (as produced by
+// the mapKey method) to one or more vertices that are identified by each key.
+type ReferenceMap map[string][]dag.Vertex
 
 // References returns the set of vertices that the given vertex refers to,
 // and any referenced addresses that do not have corresponding vertices.
-func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Referenceable) {
+func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	rn, ok := v.(GraphNodeReferencer)
 	if !ok {
-		return nil, nil
-	}
-	if _, ok := v.(GraphNodeSubPath); !ok {
-		return nil, nil
+		return nil
 	}
 
 	var matches []dag.Vertex
-	var missing []addrs.Referenceable
 
 	for _, ref := range rn.References() {
 		subject := ref.Subject
 
 		key := m.referenceMapKey(v, subject)
-		if _, exists := m.vertices[key]; !exists {
+		if _, exists := m[key]; !exists {
 			// If what we were looking for was a ResourceInstance then we
 			// might be in a resource-oriented graph rather than an
 			// instance-oriented graph, and so we'll see if we have the
@@ -215,11 +296,17 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Reference
 				subject = ri.ContainingResource()
 			case addrs.ResourceInstancePhase:
 				subject = ri.ContainingResource()
+			case addrs.AbsModuleCallOutput:
+				subject = ri.ModuleCallOutput()
+			case addrs.ModuleCallInstance:
+				subject = ri.Call
+			default:
+				log.Printf("[INFO] ReferenceTransformer: reference not found: %q", subject)
+				continue
 			}
 			key = m.referenceMapKey(v, subject)
 		}
-
-		vertices := m.vertices[key]
+		vertices := m[key]
 		for _, rv := range vertices {
 			// don't include self-references
 			if rv == v {
@@ -227,53 +314,132 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []addrs.Reference
 			}
 			matches = append(matches, rv)
 		}
-		if len(vertices) == 0 {
-			missing = append(missing, ref.Subject)
-		}
-	}
-
-	return matches, missing
-}
-
-// Referrers returns the set of vertices that refer to the given vertex.
-func (m *ReferenceMap) Referrers(v dag.Vertex) []dag.Vertex {
-	rn, ok := v.(GraphNodeReferenceable)
-	if !ok {
-		return nil
-	}
-	sp, ok := v.(GraphNodeSubPath)
-	if !ok {
-		return nil
-	}
-
-	var matches []dag.Vertex
-	for _, addr := range rn.ReferenceableAddrs() {
-		key := m.mapKey(sp.Path(), addr)
-		referrers, ok := m.edges[key]
-		if !ok {
-			continue
-		}
-
-		// If the referrer set includes our own given vertex then we skip,
-		// since we don't want to return self-references.
-		selfRef := false
-		for _, p := range referrers {
-			if p == v {
-				selfRef = true
-				break
-			}
-		}
-		if selfRef {
-			continue
-		}
-
-		matches = append(matches, referrers...)
 	}
 
 	return matches
 }
 
-func (m *ReferenceMap) mapKey(path addrs.ModuleInstance, addr addrs.Referenceable) string {
+// dependsOn returns the set of vertices that the given vertex refers to from
+// the configured depends_on. The bool return value indicates if depends_on was
+// found in a parent module configuration.
+func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
+	var res []dag.Vertex
+	fromModule := false
+
+	refs := depender.DependsOn()
+
+	// get any implied dependencies for data sources
+	refs = append(refs, m.dataDependsOn(depender)...)
+
+	// This is where we record that a module has depends_on configured.
+	if _, ok := depender.(*nodeExpandModule); ok && len(refs) > 0 {
+		fromModule = true
+	}
+
+	for _, ref := range refs {
+		subject := ref.Subject
+
+		key := m.referenceMapKey(depender, subject)
+		vertices, ok := m[key]
+		if !ok {
+			// the ReferenceMap generates all possible keys, so any warning
+			// here is probably not useful for this implementation.
+			continue
+		}
+		for _, rv := range vertices {
+			// don't include self-references
+			if rv == depender {
+				continue
+			}
+			res = append(res, rv)
+
+			// and check any ancestors for transitive dependencies
+			ans, _ := g.Ancestors(rv)
+			for _, v := range ans {
+				if isDependableResource(v) {
+					res = append(res, v)
+				}
+			}
+		}
+	}
+
+	parentDeps, fromParentModule := m.parentModuleDependsOn(g, depender)
+	res = append(res, parentDeps...)
+
+	return res, fromModule || fromParentModule
+}
+
+// Return extra depends_on references if this is a data source.
+// For data sources we implicitly treat references to managed resources as
+// depends_on entries. If a data source references a managed resource, even if
+// that reference is resolvable, it stands to reason that the user intends for
+// the data source to require that resource in some way.
+func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Reference {
+	var refs []*addrs.Reference
+	if n, ok := depender.(GraphNodeConfigResource); ok &&
+		n.ResourceAddr().Resource.Mode == addrs.DataResourceMode {
+		for _, r := range depender.References() {
+
+			var resAddr addrs.Resource
+			switch s := r.Subject.(type) {
+			case addrs.Resource:
+				resAddr = s
+			case addrs.ResourceInstance:
+				resAddr = s.Resource
+				r.Subject = resAddr
+			}
+
+			if resAddr.Mode != addrs.ManagedResourceMode {
+				// We only want to wait on directly referenced managed resources.
+				// Data sources have no external side effects, so normal
+				// references to them in the config will suffice for proper
+				// ordering.
+				continue
+			}
+
+			refs = append(refs, r)
+		}
+	}
+	return refs
+}
+
+// parentModuleDependsOn returns the set of vertices that a data sources parent
+// module references through the module call's depends_on. The bool return
+// value indicates if depends_on was found in a parent module configuration.
+func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
+	var res []dag.Vertex
+	fromModule := false
+
+	// Look for containing modules with DependsOn.
+	// This should be connected directly to the module node, so we only need to
+	// look one step away.
+	for _, v := range g.DownEdges(depender) {
+		// we're only concerned with module expansion nodes here.
+		mod, ok := v.(*nodeExpandModule)
+		if !ok {
+			continue
+		}
+
+		deps, fromParentModule := m.dependsOn(g, mod)
+		for _, dep := range deps {
+			// add the dependency
+			res = append(res, dep)
+
+			// and check any transitive resource dependencies for more resources
+			ans, _ := g.Ancestors(dep)
+			for _, v := range ans {
+				if isDependableResource(v) {
+					res = append(res, v)
+				}
+			}
+		}
+		fromModule = fromModule || fromParentModule
+	}
+
+	return res, fromModule
+}
+
+func (m *ReferenceMap) mapKey(path addrs.Module, addr addrs.Referenceable) string {
 	return fmt.Sprintf("%s|%s", path.String(), addr.String())
 }
 
@@ -281,13 +447,13 @@ func (m *ReferenceMap) mapKey(path addrs.ModuleInstance, addr addrs.Referenceabl
 // referenced. This is the path that its results from ReferenceableAddrs
 // are considered to be relative to.
 //
-// Only GraphNodeSubPath implementations can be referenced, so this method will
+// Only GraphNodeModulePath implementations can be referenced, so this method will
 // panic if the given vertex does not implement that interface.
-func (m *ReferenceMap) vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstance {
-	sp, ok := v.(GraphNodeSubPath)
+func vertexReferenceablePath(v dag.Vertex) addrs.Module {
+	sp, ok := v.(GraphNodeModulePath)
 	if !ok {
 		// Only nodes with paths can participate in a reference map.
-		panic(fmt.Errorf("vertexMapKey on vertex type %T which doesn't implement GraphNodeSubPath", sp))
+		panic(fmt.Errorf("vertexMapKey on vertex type %T which doesn't implement GraphNodeModulePath", sp))
 	}
 
 	if outside, ok := v.(GraphNodeReferenceOutside); ok {
@@ -298,32 +464,31 @@ func (m *ReferenceMap) vertexReferenceablePath(v dag.Vertex) addrs.ModuleInstanc
 	}
 
 	// Vertex is referenced from the same module as where it was declared.
-	return sp.Path()
+	return sp.ModulePath()
 }
 
 // vertexReferencePath returns the path in which references _from_ the given
 // vertex must be interpreted.
 //
-// Only GraphNodeSubPath implementations can have references, so this method
+// Only GraphNodeModulePath implementations can have references, so this method
 // will panic if the given vertex does not implement that interface.
-func vertexReferencePath(referrer dag.Vertex) addrs.ModuleInstance {
-	sp, ok := referrer.(GraphNodeSubPath)
+func vertexReferencePath(v dag.Vertex) addrs.Module {
+	sp, ok := v.(GraphNodeModulePath)
 	if !ok {
 		// Only nodes with paths can participate in a reference map.
-		panic(fmt.Errorf("vertexReferencePath on vertex type %T which doesn't implement GraphNodeSubPath", sp))
+		panic(fmt.Errorf("vertexReferencePath on vertex type %T which doesn't implement GraphNodeModulePath", v))
 	}
 
-	var path addrs.ModuleInstance
-	if outside, ok := referrer.(GraphNodeReferenceOutside); ok {
+	if outside, ok := v.(GraphNodeReferenceOutside); ok {
 		// Vertex makes references to objects in a different module than where
 		// it was declared.
-		_, path = outside.ReferenceOutside()
+		_, path := outside.ReferenceOutside()
 		return path
 	}
 
 	// Vertex makes references to objects in the same module as where it
 	// was declared.
-	return sp.Path()
+	return sp.ModulePath()
 }
 
 // referenceMapKey produces keys for the "edges" map. "referrer" is the vertex
@@ -333,7 +498,7 @@ func vertexReferencePath(referrer dag.Vertex) addrs.ModuleInstance {
 // The result is an opaque string that includes both the address of the given
 // object and the address of the module instance that object belongs to.
 //
-// Only GraphNodeSubPath implementations can be referrers, so this method will
+// Only GraphNodeModulePath implementations can be referrers, so this method will
 // panic if the given vertex does not implement that interface.
 func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Referenceable) string {
 	path := vertexReferencePath(referrer)
@@ -342,76 +507,26 @@ func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Reference
 
 // NewReferenceMap is used to create a new reference map for the
 // given set of vertices.
-func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
-	var m ReferenceMap
-
+func NewReferenceMap(vs []dag.Vertex) ReferenceMap {
 	// Build the lookup table
-	vertices := make(map[string][]dag.Vertex)
+	m := make(ReferenceMap)
 	for _, v := range vs {
-		_, ok := v.(GraphNodeSubPath)
-		if !ok {
-			// Only nodes with paths can participate in a reference map.
-			continue
-		}
-
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
 		if !ok {
 			continue
 		}
 
-		path := m.vertexReferenceablePath(v)
+		path := vertexReferenceablePath(v)
 
 		// Go through and cache them
 		for _, addr := range rn.ReferenceableAddrs() {
 			key := m.mapKey(path, addr)
-			vertices[key] = append(vertices[key], v)
-		}
-
-		// Any node can be referenced by the address of the module it belongs
-		// to or any of that module's ancestors.
-		for _, addr := range path.Ancestors()[1:] {
-			// Can be referenced either as the specific call instance (with
-			// an instance key) or as the bare module call itself (the "module"
-			// block in the parent module that created the instance).
-			callPath, call := addr.Call()
-			callInstPath, callInst := addr.CallInstance()
-			callKey := m.mapKey(callPath, call)
-			callInstKey := m.mapKey(callInstPath, callInst)
-			vertices[callKey] = append(vertices[callKey], v)
-			vertices[callInstKey] = append(vertices[callInstKey], v)
+			m[key] = append(m[key], v)
 		}
 	}
 
-	// Build the lookup table for referenced by
-	edges := make(map[string][]dag.Vertex)
-	for _, v := range vs {
-		_, ok := v.(GraphNodeSubPath)
-		if !ok {
-			// Only nodes with paths can participate in a reference map.
-			continue
-		}
-
-		rn, ok := v.(GraphNodeReferencer)
-		if !ok {
-			// We're only looking for referenceable nodes
-			continue
-		}
-
-		// Go through and cache them
-		for _, ref := range rn.References() {
-			if ref.Subject == nil {
-				// Should never happen
-				panic(fmt.Sprintf("%T.References returned reference with nil subject", rn))
-			}
-			key := m.referenceMapKey(v, ref.Subject)
-			edges[key] = append(edges[key], v)
-		}
-	}
-
-	m.vertices = vertices
-	m.edges = edges
-	return &m
+	return m
 }
 
 // ReferencesFromConfig returns the references that a configuration has
@@ -421,62 +536,6 @@ func ReferencesFromConfig(body hcl.Body, schema *configschema.Block) []*addrs.Re
 		return nil
 	}
 	refs, _ := lang.ReferencesInBlock(body, schema)
-	return refs
-}
-
-// ReferenceFromInterpolatedVar returns the reference from this variable,
-// or an empty string if there is no reference.
-func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
-	switch v := v.(type) {
-	case *config.ModuleVariable:
-		return []string{fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)}
-	case *config.ResourceVariable:
-		id := v.ResourceId()
-
-		// If we have a multi-reference (splat), then we depend on ALL
-		// resources with this type/name.
-		if v.Multi && v.Index == -1 {
-			return []string{fmt.Sprintf("%s.*", id)}
-		}
-
-		// Otherwise, we depend on a specific index.
-		idx := v.Index
-		if !v.Multi || v.Index == -1 {
-			idx = 0
-		}
-
-		// Depend on the index, as well as "N" which represents the
-		// un-expanded set of resources.
-		return []string{fmt.Sprintf("%s.%d/%s.N", id, idx, id)}
-	case *config.UserVariable:
-		return []string{fmt.Sprintf("var.%s", v.Name)}
-	case *config.LocalVariable:
-		return []string{fmt.Sprintf("local.%s", v.Name)}
-	default:
-		return nil
-	}
-}
-
-// appendResourceDestroyReferences identifies resource and resource instance
-// references in the given slice and appends to it the "destroy-phase"
-// equivalents of those references, returning the result.
-//
-// This can be used in the References implementation for a node which must also
-// depend on the destruction of anything it references.
-func appendResourceDestroyReferences(refs []*addrs.Reference) []*addrs.Reference {
-	given := refs
-	for _, ref := range given {
-		switch tr := ref.Subject.(type) {
-		case addrs.Resource:
-			newRef := *ref // shallow copy
-			newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
-			refs = append(refs, &newRef)
-		case addrs.ResourceInstance:
-			newRef := *ref // shallow copy
-			newRef.Subject = tr.Phase(addrs.ResourceInstancePhaseDestroy)
-			refs = append(refs, &newRef)
-		}
-	}
 	return refs
 }
 

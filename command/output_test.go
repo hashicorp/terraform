@@ -41,7 +41,7 @@ func TestOutput(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	if actual != "bar" {
+	if actual != `"bar"` {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
@@ -80,9 +80,19 @@ func TestOutput_nestedListAndMap(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "foo = [\n  {\n    \"key\" = \"value\"\n    \"key2\" = \"value2\"\n  },\n  {\n    \"key\" = \"value\"\n  },\n]"
+	expected := strings.TrimSpace(`
+foo = tolist([
+  tomap({
+    "key" = "value"
+    "key2" = "value2"
+  }),
+  tomap({
+    "key" = "value"
+  }),
+])
+`)
 	if actual != expected {
-		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", actual, expected)
+		t.Fatalf("wrong output\ngot:  %s\nwant: %s", actual, expected)
 	}
 }
 
@@ -120,7 +130,7 @@ func TestOutput_json(t *testing.T) {
 	}
 }
 
-func TestOutput_emptyOutputsErr(t *testing.T) {
+func TestOutput_emptyOutputs(t *testing.T) {
 	originalState := states.NewState()
 	statePath := testStateFile(t, originalState)
 
@@ -136,8 +146,11 @@ func TestOutput_emptyOutputsErr(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+	if got, want := ui.ErrorWriter.String(), "Warning: No outputs found"; !strings.Contains(got, want) {
+		t.Fatalf("bad output: expected to contain %q, got:\n%s", want, got)
 	}
 }
 
@@ -257,7 +270,7 @@ func TestOutput_blank(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	expectedOutput := "foo = bar\nname = john-doe\n"
+	expectedOutput := "foo = \"bar\"\nname = \"john-doe\"\n"
 	output := ui.OutputWriter.String()
 	if output != expectedOutput {
 		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", output, expectedOutput)
@@ -292,7 +305,7 @@ func TestOutput_noArgs(t *testing.T) {
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}
 }
@@ -313,7 +326,7 @@ func TestOutput_noState(t *testing.T) {
 		"-state", statePath,
 		"foo",
 	}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 }
@@ -335,7 +348,7 @@ func TestOutput_noVars(t *testing.T) {
 		"-state", statePath,
 		"bar",
 	}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 }
@@ -390,7 +403,7 @@ func TestOutput_stateDefault(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	if actual != "bar" {
+	if actual != `"bar"` {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
