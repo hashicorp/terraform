@@ -70,7 +70,9 @@ We are working to remove ourselves from the critical path of state storage backe
 
 #### Provisioners
 
-Provisioners are an area of concern in Terraform for a number of reasons. Chiefly, they are often used in the place of configuration management tools or custom providers.
+Provisioners are an area of concern in Terraform for a number of reasons. Chiefly, they are often used in the place of configuration management tools or custom providers. 
+
+There are two main types of provisioners in Terraform, the generic provisioners (`file`,`local-exec`, and `remote-exec`) and the tool-specific provisioners (`chef`, `habbitat`, `puppet` & `salt-masterless`). **The tool-specific provisioners [are deprecated](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-4/13997).** In practice this means we will not be accepting PRs for these areas of the codebase. 
 
 From our [documentation](https://www.terraform.io/docs/provisioners/index.html):
 
