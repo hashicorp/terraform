@@ -1,5 +1,10 @@
 ## 0.14.0 (Unreleased)
 
+NEW FEATURES:
+* `terraform init`: Terraform will now generate a lock file in the configuration directory which you can check in to your version control so that Terraform can make the same version selections in future. [GH-26524]
+
+    If you wish to retain the previous behavior of always taking the newest version allowed by the version constraints on each install, you can run `terraform init -upgrade` to see that behavior.
+
 UPGRADE NOTES:
 * configs: The `version` argument inside provider configuration blocks has been documented as deprecated since Terraform 0.12. As of 0.14 it will now also generate an explicit deprecation warning. To avoid the warning, use [provider requirements](https://www.terraform.io/docs/configuration/provider-requirements.html) declarations instead. ([#26135](https://github.com/hashicorp/terraform/issues/26135))
 * The official MacOS builds of Terraform now require MacOS 10.12 Sierra or later. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
