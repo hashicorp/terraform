@@ -64,31 +64,24 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			}
 		}
 
+		destroy := t.Destroy
+		if rootChange != nil {
+			destroy = rootChange.Action == plans.Delete
+		}
+
 		var node dag.Vertex
 		switch {
-		case c.Path.IsRoot() && t.Destroy:
+		case c.Path.IsRoot() && destroy:
 			node = &NodeDestroyableOutput{
 				Addr:   addr.Absolute(addrs.RootModuleInstance),
 				Config: o,
 			}
-		case c.Path.IsRoot():
-			destroy := t.Destroy
-			if rootChange != nil {
-				destroy = rootChange.Action == plans.Delete
-			}
 
-			switch {
-			case destroy:
-				node = &NodeDestroyableOutput{
-					Addr:   addr.Absolute(addrs.RootModuleInstance),
-					Config: o,
-				}
-			default:
-				node = &NodeApplyableOutput{
-					Addr:   addr.Absolute(addrs.RootModuleInstance),
-					Config: o,
-					Change: rootChange,
-				}
+		case c.Path.IsRoot():
+			node = &NodeApplyableOutput{
+				Addr:   addr.Absolute(addrs.RootModuleInstance),
+				Config: o,
+				Change: rootChange,
 			}
 
 		default:

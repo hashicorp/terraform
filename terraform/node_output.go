@@ -356,15 +356,26 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error
 		return nil
 	}
 
+	// if this is a root module, try to get a before value from the state for
+	// the diff
+	before := cty.NullVal(cty.DynamicPseudoType)
+	mod := state.Module(n.Addr.Module)
+	if n.Addr.Module.IsRoot() && mod != nil {
+		for name, o := range mod.OutputValues {
+			if name == n.Addr.OutputValue.Name {
+				before = o.Value
+				break
+			}
+		}
+	}
+
 	changes := ctx.Changes()
 	if changes != nil {
 		change := &plans.OutputChange{
 			Addr: n.Addr,
 			Change: plans.Change{
-				// FIXME: Generate real planned changes for output values
-				// that include the old values.
 				Action: plans.Delete,
-				Before: cty.NullVal(cty.DynamicPseudoType),
+				Before: before,
 				After:  cty.NullVal(cty.DynamicPseudoType),
 			},
 		}
@@ -395,6 +406,56 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 }
 
 func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+	// If we have an active changeset then we'll first replicate the value in
+	// there and lookup the prior value in the state. This is used in
+	// preference to the state where present, since it *is* able to represent
+	// unknowns, while the state cannot.
+	if changes != nil {
+		// if this is a root module, try to get a before value from the state for
+		// the diff
+		before := cty.NullVal(cty.DynamicPseudoType)
+		mod := state.Module(n.Addr.Module)
+		if n.Addr.Module.IsRoot() && mod != nil {
+			for name, o := range mod.OutputValues {
+				if name == n.Addr.OutputValue.Name {
+					before = o.Value
+					break
+				}
+			}
+		}
+
+		var action plans.Action
+		switch {
+		case val.IsNull():
+			action = plans.Delete
+		case before.IsNull():
+			action = plans.Create
+		case val.IsWhollyKnown() && val.Equals(before).True():
+			action = plans.NoOp
+		default:
+			action = plans.Update
+		}
+
+		change := &plans.OutputChange{
+			Addr:      n.Addr,
+			Sensitive: n.Config.Sensitive,
+			Change: plans.Change{
+				Action: action,
+				Before: before,
+				After:  val,
+			},
+		}
+
+		cs, err := change.Encode()
+		if err != nil {
+			// Should never happen, since we just constructed this right above
+			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+		}
+		log.Printf("[TRACE] ExecuteWriteOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
+		changes.AppendOutputChange(cs)     // add the new planned change
+	}
+
 	if val.IsKnown() && !val.IsNull() {
 		// The state itself doesn't represent unknown values, so we null them
 		// out here and then we'll save the real unknown value in the planned
@@ -408,50 +469,4 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		state.RemoveOutputValue(n.Addr)
 	}
 
-	// If we also have an active changeset then we'll replicate the value in
-	// there. This is used in preference to the state where present, since it
-	// *is* able to represent unknowns, while the state cannot.
-	if changes != nil {
-		// For the moment we are not properly tracking changes to output
-		// values, and just marking them always as "Create" or "Destroy"
-		// actions. A future release will rework the output lifecycle so we
-		// can track their changes properly, in a similar way to how we work
-		// with resource instances.
-
-		var change *plans.OutputChange
-		if !val.IsNull() {
-			change = &plans.OutputChange{
-				Addr:      n.Addr,
-				Sensitive: n.Config.Sensitive,
-				Change: plans.Change{
-					Action: plans.Create,
-					Before: cty.NullVal(cty.DynamicPseudoType),
-					After:  val,
-				},
-			}
-		} else {
-			change = &plans.OutputChange{
-				Addr:      n.Addr,
-				Sensitive: n.Config.Sensitive,
-				Change: plans.Change{
-					// This is just a weird placeholder delete action since
-					// we don't have an actual prior value to indicate.
-					// FIXME: Generate real planned changes for output values
-					// that include the old values.
-					Action: plans.Delete,
-					Before: cty.NullVal(cty.DynamicPseudoType),
-					After:  cty.NullVal(cty.DynamicPseudoType),
-				},
-			}
-		}
-
-		cs, err := change.Encode()
-		if err != nil {
-			// Should never happen, since we just constructed this right above
-			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
-		}
-		log.Printf("[TRACE] ExecuteWriteOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
-		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
-		changes.AppendOutputChange(cs)     // add the new planned change
-	}
 }
