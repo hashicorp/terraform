@@ -11,15 +11,18 @@ import (
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandOutput is the placeholder for an output that has not yet had
 // its module path expanded.
 type nodeExpandOutput struct {
-	Addr   addrs.OutputValue
-	Module addrs.Module
-	Config *configs.Output
+	Addr    addrs.OutputValue
+	Module  addrs.Module
+	Config  *configs.Output
+	Changes []*plans.OutputChangeSrc
+	Destroy bool
 }
 
 var (
@@ -39,16 +42,62 @@ func (n *nodeExpandOutput) temporaryValue() bool {
 }
 
 func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	if n.Destroy {
+		return n.planDestroyOutputs(ctx)
+	}
+
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
+		absAddr := n.Addr.Absolute(module)
+
+		// Find any recorded change for this output
+		var change *plans.OutputChangeSrc
+		for _, c := range n.Changes {
+			if c.Addr.String() == absAddr.String() {
+				change = c
+				break
+			}
+		}
+
 		o := &NodeApplyableOutput{
-			Addr:   n.Addr.Absolute(module),
+			Addr:   absAddr,
+			Config: n.Config,
+			Change: change,
+		}
+		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
+		g.Add(o)
+	}
+	return &g, nil
+}
+
+// if we're planing a destroy operation, add destroy nodes for all root outputs
+// in the state.
+func (n *nodeExpandOutput) planDestroyOutputs(ctx EvalContext) (*Graph, error) {
+	// we only need to plan destroying root outputs
+	// Other module outputs may be used during destruction by providers that
+	// need to interpolate values.
+	if !n.Module.IsRoot() {
+		return nil, nil
+	}
+
+	state := ctx.State()
+	if state == nil {
+		return nil, nil
+	}
+
+	ms := state.Module(addrs.RootModuleInstance)
+
+	var g Graph
+	for _, output := range ms.OutputValues {
+		o := &NodeDestroyableOutput{
+			Addr:   output.Addr,
 			Config: n.Config,
 		}
 		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	}
+
 	return &g, nil
 }
 
@@ -108,6 +157,8 @@ func (n *nodeExpandOutput) References() []*addrs.Reference {
 type NodeApplyableOutput struct {
 	Addr   addrs.AbsOutputValue
 	Config *configs.Output // Config is the output in the config
+	// If this is being evaluated during apply, we may have a change recorded already
+	Change *plans.OutputChangeSrc
 }
 
 var (
@@ -199,33 +250,47 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 
 // GraphNodeExecutable
 func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
-	// This has to run before we have a state lock, since evaluation also
-	// reads the state
-	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
-	// We'll handle errors below, after we have loaded the module.
-
-	// Outputs don't have a separate mode for validation, so validate
-	// depends_on expressions here too
-	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
-
-	// Ensure that non-sensitive outputs don't include sensitive values
-	_, marks := val.UnmarkDeep()
-	_, hasSensitive := marks["sensitive"]
-	if !n.Config.Sensitive && hasSensitive {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Output refers to sensitive values",
-			Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
-			Subject:  n.Config.DeclRange.Ptr(),
-		})
-	}
-
+	var diags tfdiags.Diagnostics
 	state := ctx.State()
 	if state == nil {
 		return nil
 	}
 
 	changes := ctx.Changes() // may be nil, if we're not working on a changeset
+
+	val := cty.UnknownVal(cty.DynamicPseudoType)
+	changeRecorded := n.Change != nil
+	// we we have a change recorded, we don't need to re-evaluate if the value
+	// was known
+	if changeRecorded {
+		var err error
+		val, err = n.Change.After.Decode(cty.DynamicPseudoType)
+		diags = diags.Append(err)
+	}
+
+	// If there was no change recorded, or the recorded change was not wholly
+	// known, then we need to re-evaluate the output
+	if !changeRecorded || !val.IsWhollyKnown() {
+		// This has to run before we have a state lock, since evaluation also
+		// reads the state
+		val, diags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+		// We'll handle errors below, after we have loaded the module.
+		// Outputs don't have a separate mode for validation, so validate
+		// depends_on expressions here too
+		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+		// Ensure that non-sensitive outputs don't include sensitive values
+		_, marks := val.UnmarkDeep()
+		_, hasSensitive := marks["sensitive"]
+		if !n.Config.Sensitive && hasSensitive {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Output refers to sensitive values",
+				Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		}
+	}
 
 	// handling the interpolation error
 	if diags.HasErrors() {
@@ -261,7 +326,7 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 	}
 }
 
-// NodeDestroyableOutput represents an output that is "destroybale":
+// NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
 	Addr   addrs.AbsOutputValue
@@ -293,6 +358,32 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error
 	if state == nil {
 		return nil
 	}
+
+	changes := ctx.Changes()
+	if changes != nil {
+		change := &plans.OutputChange{
+			Addr: n.Addr,
+			Change: plans.Change{
+				// This is just a weird placeholder delete action since
+				// we don't have an actual prior value to indicate.
+				// FIXME: Generate real planned changes for output values
+				// that include the old values.
+				Action: plans.Delete,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.NullVal(cty.DynamicPseudoType),
+			},
+		}
+
+		cs, err := change.Encode()
+		if err != nil {
+			// Should never happen, since we just constructed this right above
+			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+		}
+		log.Printf("[TRACE] planDestroyOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
+		changes.AppendOutputChange(cs)     // add the new planned change
+	}
+
 	state.RemoveOutputValue(n.Addr)
 	return nil
 }

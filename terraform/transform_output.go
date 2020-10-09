@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/plans"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs
@@ -15,7 +16,12 @@ import (
 // aren't changing since there is no downside: the state will be available
 // even if the dependent items aren't changing.
 type OutputTransformer struct {
-	Config *configs.Config
+	Config  *configs.Config
+	Changes *plans.Changes
+
+	// if this is a planed destroy, root outputs are still in the configuration
+	// so we need to record that we wish to remove them
+	Destroy bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -40,11 +46,19 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	// Add plannable outputs to the graph, which will be dynamically expanded
 	// into NodeApplyableOutputs to reflect possible expansion
 	// through the presence of "count" or "for_each" on the modules.
+
+	var changes []*plans.OutputChangeSrc
+	if t.Changes != nil {
+		changes = t.Changes.Outputs
+	}
+
 	for _, o := range c.Module.Outputs {
 		node := &nodeExpandOutput{
-			Addr:   addrs.OutputValue{Name: o.Name},
-			Module: c.Path,
-			Config: o,
+			Addr:    addrs.OutputValue{Name: o.Name},
+			Module:  c.Path,
+			Config:  o,
+			Changes: changes,
+			Destroy: t.Destroy,
 		}
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
 		g.Add(node)

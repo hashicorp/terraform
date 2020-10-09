@@ -91,7 +91,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&RootVariableTransformer{Config: b.Config},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config, Changes: b.Changes},
 
 		// Creates all the resource instances represented in the diff, along
 		// with dependency edges against the whole-resource nodes added by
