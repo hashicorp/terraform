@@ -43,73 +43,67 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		}
 	}
 
-	// Add plannable outputs to the graph, which will be dynamically expanded
+	// Add outputs to the graph, which will be dynamically expanded
 	// into NodeApplyableOutputs to reflect possible expansion
 	// through the presence of "count" or "for_each" on the modules.
 
+	// if this is a root output, we add the apply or destroy node directly, as
+	// the root modules does not expand
 	var changes []*plans.OutputChangeSrc
 	if t.Changes != nil {
 		changes = t.Changes.Outputs
 	}
 
 	for _, o := range c.Module.Outputs {
-		node := &nodeExpandOutput{
-			Addr:    addrs.OutputValue{Name: o.Name},
-			Module:  c.Path,
-			Config:  o,
-			Changes: changes,
-			Destroy: t.Destroy,
+		addr := addrs.OutputValue{Name: o.Name}
+
+		var rootChange *plans.OutputChangeSrc
+		for _, c := range changes {
+			if c.Addr.Module.IsRoot() && c.Addr.OutputValue.Name == o.Name {
+				rootChange = c
+			}
 		}
+
+		var node dag.Vertex
+		switch {
+		case c.Path.IsRoot() && t.Destroy:
+			node = &NodeDestroyableOutput{
+				Addr:   addr.Absolute(addrs.RootModuleInstance),
+				Config: o,
+			}
+		case c.Path.IsRoot():
+			destroy := t.Destroy
+			if rootChange != nil {
+				destroy = rootChange.Action == plans.Delete
+			}
+
+			switch {
+			case destroy:
+				node = &NodeDestroyableOutput{
+					Addr:   addr.Absolute(addrs.RootModuleInstance),
+					Config: o,
+				}
+			default:
+				node = &NodeApplyableOutput{
+					Addr:   addr.Absolute(addrs.RootModuleInstance),
+					Config: o,
+					Change: rootChange,
+				}
+			}
+
+		default:
+			node = &nodeExpandOutput{
+				Addr:    addr,
+				Module:  c.Path,
+				Config:  o,
+				Changes: changes,
+				Destroy: t.Destroy,
+			}
+		}
+
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
 		g.Add(node)
 	}
 
-	return nil
-}
-
-// destroyRootOutputTransformer is a GraphTransformer that adds nodes to delete
-// outputs during destroy. We need to do this to ensure that no stale outputs
-// are ever left in the state.
-type destroyRootOutputTransformer struct {
-	Destroy bool
-}
-
-func (t *destroyRootOutputTransformer) Transform(g *Graph) error {
-	// Only clean root outputs on a full destroy
-	if !t.Destroy {
-		return nil
-	}
-
-	for _, v := range g.Vertices() {
-		output, ok := v.(*nodeExpandOutput)
-		if !ok {
-			continue
-		}
-
-		// We only destroy root outputs
-		if !output.Module.Equal(addrs.RootModule) {
-			continue
-		}
-
-		// create the destroy node for this output
-		node := &NodeDestroyableOutput{
-			Addr:   output.Addr.Absolute(addrs.RootModuleInstance),
-			Config: output.Config,
-		}
-
-		log.Printf("[TRACE] creating %s", node.Name())
-		g.Add(node)
-
-		deps := g.UpEdges(v)
-
-		for _, d := range deps {
-			log.Printf("[TRACE] %s depends on %s", node.Name(), dag.VertexName(d))
-			g.Connect(dag.BasicEdge(node, d))
-		}
-
-		// We no longer need the expand node, since we intend to remove this
-		// output from the state.
-		g.Remove(v)
-	}
 	return nil
 }

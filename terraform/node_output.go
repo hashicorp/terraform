@@ -15,8 +15,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// nodeExpandOutput is the placeholder for an output that has not yet had
-// its module path expanded.
+// nodeExpandOutput is the placeholder for a non-root module output that has
+// not yet had its module path expanded.
 type nodeExpandOutput struct {
 	Addr    addrs.OutputValue
 	Module  addrs.Module
@@ -37,17 +37,21 @@ var (
 func (n *nodeExpandOutput) expandsInstances() {}
 
 func (n *nodeExpandOutput) temporaryValue() bool {
-	// this must always be evaluated if it is a root module output
+	// non root outputs are temporary
 	return !n.Module.IsRoot()
 }
 
 func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	if n.Destroy {
-		return n.planDestroyOutputs(ctx)
+		// if we're planning a destroy, we only need to handle the root outputs.
+		// The destroy plan doesn't evaluate any other config, so we can skip
+		// the rest of the outputs.
+		return n.planDestroyRootOutput(ctx)
 	}
 
-	var g Graph
 	expander := ctx.InstanceExpander()
+
+	var g Graph
 	for _, module := range expander.ExpandModule(n.Module) {
 		absAddr := n.Addr.Absolute(module)
 
@@ -71,32 +75,23 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	return &g, nil
 }
 
-// if we're planing a destroy operation, add destroy nodes for all root outputs
-// in the state.
-func (n *nodeExpandOutput) planDestroyOutputs(ctx EvalContext) (*Graph, error) {
-	// we only need to plan destroying root outputs
-	// Other module outputs may be used during destruction by providers that
-	// need to interpolate values.
+// if we're planing a destroy operation, add a destroy node for any root output
+func (n *nodeExpandOutput) planDestroyRootOutput(ctx EvalContext) (*Graph, error) {
 	if !n.Module.IsRoot() {
 		return nil, nil
 	}
-
 	state := ctx.State()
 	if state == nil {
 		return nil, nil
 	}
 
-	ms := state.Module(addrs.RootModuleInstance)
-
 	var g Graph
-	for _, output := range ms.OutputValues {
-		o := &NodeDestroyableOutput{
-			Addr:   output.Addr,
-			Config: n.Config,
-		}
-		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
-		g.Add(o)
+	o := &NodeDestroyableOutput{
+		Addr:   n.Addr.Absolute(addrs.RootModuleInstance),
+		Config: n.Config,
 	}
+	log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
+	g.Add(o)
 
 	return &g, nil
 }
@@ -149,6 +144,8 @@ func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Mod
 
 // GraphNodeReferencer
 func (n *nodeExpandOutput) References() []*addrs.Reference {
+	// root outputs might be destroyable, and may not reference anything in
+	// that case
 	return referencesForOutput(n.Config)
 }
 
@@ -364,8 +361,6 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error
 		change := &plans.OutputChange{
 			Addr: n.Addr,
 			Change: plans.Change{
-				// This is just a weird placeholder delete action since
-				// we don't have an actual prior value to indicate.
 				// FIXME: Generate real planned changes for output values
 				// that include the old values.
 				Action: plans.Delete,
@@ -379,7 +374,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error
 			// Should never happen, since we just constructed this right above
 			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
 		}
-		log.Printf("[TRACE] planDestroyOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(cs)     // add the new planned change
 	}
