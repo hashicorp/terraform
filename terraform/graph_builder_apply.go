@@ -40,9 +40,6 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
-	// Destroy, if true, represents a pure destroy operation
-	Destroy bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
 }
