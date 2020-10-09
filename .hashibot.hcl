@@ -26,6 +26,27 @@ poll "label_issue_migrater" "provider_migrater" {
 }
 */
 
+poll "label_issue_migrater" "provider_migrater_test" {
+  schedule                = "@every 2m"
+  new_owner               = env.PROVIDERS_OWNER
+  repo_prefix             = "terraform-provider-"
+  label_prefix            = "migrationtest/"
+  excluded_label_prefixes = ["backend/", "provisioner/"]
+  excluded_labels         = ["build", "cli", "config", "core", "new-provider", "new-provisioner", "new-remote-state", "provider/terraform"]
+  aliases = {
+    "provider/google-cloud" = "provider/google"
+    "provider/influx"       = "provider/influxdb"
+    "provider/vcloud"       = "provider/vcd"
+  }
+  issue_header     = <<-EOF
+    _This issue was originally opened by @${var.user} as ${var.repository}#${var.issue_number}. It was migrated here as a result of the [provider split](https://www.hashicorp.com/blog/upcoming-provider-changes-in-terraform-0-10/). The original body of the issue is below._
+    
+    <hr>
+    
+    EOF
+  migrated_comment = "This issue has been automatically migrated to ${var.repository}#${var.issue_number} because it looks like an issue with that provider. If you believe this is _not_ an issue with the provider, please reply to ${var.repository}#${var.issue_number}."
+}
+
 poll "closed_issue_locker" "locker" {
   schedule                      = "0 50 1 * * *"
   closed_for                    = "720h" # 30 days
