@@ -425,6 +425,11 @@ func testProviderSchema(name string) *ProviderSchema {
 						Type:     cty.String,
 						Optional: true,
 					},
+					"sensitive_value": {
+						Type:      cty.String,
+						Sensitive: true,
+						Optional:  true,
+					},
 					"random": {
 						Type:     cty.String,
 						Optional: true,

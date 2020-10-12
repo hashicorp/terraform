@@ -727,7 +727,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		// Planned resources are temporarily stored in state with empty values,
-		// and need to be replaced bu the planned value here.
+		// and need to be replaced by the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
 			if change == nil {
 				// If the object is in planned status then we should not get
@@ -752,6 +752,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				continue
 			}
 
+			// If our schema contains sensitive values, mark those as sensitive
+			if schema.ContainsSensitive() {
+				val = markProviderSensitiveAttributes(schema, val, nil)
+			}
 			instances[key] = val
 			continue
 		}
@@ -768,7 +772,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			})
 			continue
 		}
-		instances[key] = ios.Value
+
+		val := ios.Value
+		// If our schema contains sensitive values, mark those as sensitive
+		if schema.ContainsSensitive() {
+			val = markProviderSensitiveAttributes(schema, val, nil)
+		}
+		instances[key] = val
 	}
 
 	var ret cty.Value
@@ -934,4 +944,20 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 	default:
 		return addr.String()
 	}
+}
+
+// markProviderSensitiveAttributes returns an updated value
+// where attributes that are Sensitive are marked
+func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value, path cty.Path) cty.Value {
+	var pvm []cty.PathValueMarks
+	for name, attrS := range schema.Attributes {
+		if attrS.Sensitive {
+			path := append(path, cty.GetAttrStep{Name: name})
+			pvm = append(pvm, cty.PathValueMarks{
+				Path:  path,
+				Marks: cty.NewValueMarks("sensitive"),
+			})
+		}
+	}
+	return val.MarkWithPaths(pvm)
 }

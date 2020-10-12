@@ -11856,7 +11856,14 @@ variable "sensitive_map" {
 
 resource "test_resource" "foo" {
 	value = var.sensitive_map.x
-}`,
+	sensitive_value = "should get marked"
+}
+
+resource "test_resource" "bar" {
+	value = test_resource.foo.sensitive_value
+	random = test_resource.foo.id # not sensitive
+}
+`,
 	})
 
 	p := testProvider("test")
@@ -11892,6 +11899,12 @@ resource "test_resource" "foo" {
 
 	fooChangeSrc := plan.Changes.ResourceInstance(addr)
 	verifySensitiveValue(fooChangeSrc.AfterValMarks)
+
+	barAddr := mustResourceInstanceAddr("test_resource.bar")
+	barChangeSrc := plan.Changes.ResourceInstance(barAddr)
+	if len(barChangeSrc.AfterValMarks) != 1 {
+		t.Fatalf("there should only be 1 marked path for bar, there are %v", len(barChangeSrc.AfterValMarks))
+	}
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
