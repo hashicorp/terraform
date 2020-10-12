@@ -48,6 +48,13 @@ BUG FIXES:
 * lang/funcs: `lookup()` will now only treat map as unknown if it is wholly unknown ([#26427](https://github.com/hashicorp/terraform/issues/26427))
 * states/remote: fix `state push -force` to work for all backends ([#26190](https://github.com/hashicorp/terraform/issues/26190))
 
+EXPERIMENTS:
+
+* `module_variable_optional_attrs`: When declaring an input variable for a module whose type constraint (`type` argument) contains an object type constraint, the type expressions for the attributes can be annotated with the experimental `optional(...)` modifier.
+
+    Marking an attribute as "optional" changes the type conversion behavior for that type constraint so that if the given value is a map or object that has no attribute of that name then Terraform will silently give that attribute the value `null`, rather than returning an error saying that it is required. The resulting value still conforms to the type constraint in that the attribute is considered to be present, but references to it in the recieving module will find a null value and can act on that accordingly.
+    
+    If you try this feature during its experimental period and have feedback about it, please open a feature request issue. We are aiming to stabilize this feature in the forthcoming 0.15 release, but its design may change in the meantime based on feedback. If we make further changes to the feature during the 0.15 period then they will be reflected in 0.15 alpha releases.
 
 ## Previous Releases
 
