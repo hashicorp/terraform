@@ -47,8 +47,6 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 	// into NodeApplyableOutputs to reflect possible expansion
 	// through the presence of "count" or "for_each" on the modules.
 
-	// if this is a root output, we add the apply or destroy node directly, as
-	// the root modules does not expand
 	var changes []*plans.OutputChangeSrc
 	if t.Changes != nil {
 		changes = t.Changes.Outputs
@@ -68,6 +66,9 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		if rootChange != nil {
 			destroy = rootChange.Action == plans.Delete
 		}
+
+		// If this is a root output, we add the apply or destroy node directly,
+		// as the root modules does not expand.
 
 		var node dag.Vertex
 		switch {

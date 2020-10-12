@@ -358,11 +358,13 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error
 
 	// if this is a root module, try to get a before value from the state for
 	// the diff
+	sensitiveBefore := false
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
 		for name, o := range mod.OutputValues {
 			if name == n.Addr.OutputValue.Name {
+				sensitiveBefore = o.Sensitive
 				before = o.Value
 				break
 			}
@@ -372,7 +374,8 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error
 	changes := ctx.Changes()
 	if changes != nil {
 		change := &plans.OutputChange{
-			Addr: n.Addr,
+			Addr:      n.Addr,
+			Sensitive: sensitiveBefore,
 			Change: plans.Change{
 				Action: plans.Delete,
 				Before: before,
@@ -413,32 +416,51 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 	if changes != nil {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
+		sensitiveBefore := false
 		before := cty.NullVal(cty.DynamicPseudoType)
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
 			for name, o := range mod.OutputValues {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
+					sensitiveBefore = o.Sensitive
 					break
 				}
 			}
 		}
 
+		// We will not show the value is either the before or after are marked
+		// as sensitivity. We can show the value again once sensitivity is
+		// removed from both the config and the state.
+		sensitiveChange := sensitiveBefore || n.Config.Sensitive
+
+		// strip any marks here just to be sure we don't panic on the True comparison
+		val, _ = val.UnmarkDeep()
+
 		var action plans.Action
 		switch {
 		case val.IsNull():
 			action = plans.Delete
+
 		case before.IsNull():
 			action = plans.Create
-		case val.IsWhollyKnown() && val.Equals(before).True():
+
+		case val.IsWhollyKnown() &&
+			val.Equals(before).True() &&
+			n.Config.Sensitive == sensitiveBefore:
+			// Sensitivity must also match to be a NoOp.
+			// Theoretically marks may not match here, but sensitivity is the
+			// only one we can act on, and the state will have been loaded
+			// without any marks to consider.
 			action = plans.NoOp
+
 		default:
 			action = plans.Update
 		}
 
 		change := &plans.OutputChange{
 			Addr:      n.Addr,
-			Sensitive: n.Config.Sensitive,
+			Sensitive: sensitiveChange,
 			Change: plans.Change{
 				Action: action,
 				Before: before,
