@@ -66,16 +66,6 @@ func (b *Local) opApply(
 		}
 	}()
 
-	// Before we do anything else we'll take a snapshot of the prior state
-	// so we can use it for some fixups to our detection of whether the plan
-	// includes externally-visible side-effects that need to be applied.
-	// (We should be able to remove this once we complete the planned work
-	// described in the comment for func planHasSideEffects in backend_plan.go .)
-	// We go directly to the state manager here because the state inside
-	// tfCtx was already implicitly changed by a validation walk inside
-	// the b.context method.
-	priorState := opState.State().DeepCopy()
-
 	runningOp.State = tfCtx.State()
 
 	// If we weren't given a plan, then we refresh/plan
@@ -89,7 +79,7 @@ func (b *Local) opApply(
 			return
 		}
 
-		trivialPlan := !planHasSideEffects(priorState, plan.Changes)
+		trivialPlan := plan.Changes.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
 		if mustConfirm {
@@ -114,7 +104,7 @@ func (b *Local) opApply(
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(plan, runningOp.State, priorState, tfCtx.Schemas())
+				b.renderPlan(plan, runningOp.State, tfCtx.Schemas())
 				b.CLI.Output("")
 			}
 

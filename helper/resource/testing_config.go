@@ -115,8 +115,16 @@ func testStep(opts terraform.ContextOpts, state *terraform.State, step TestStep)
 	if stepDiags.HasErrors() {
 		return state, newOperationError("second follow-up plan", stepDiags)
 	}
-	empty := p.Changes.Empty()
+	empty := true
 	newState := p.State
+
+	// the legacy tests never took outputs into account
+	for _, c := range p.Changes.Resources {
+		if c.Action != plans.NoOp {
+			empty = false
+			break
+		}
+	}
 
 	if !empty {
 		if step.ExpectNonEmptyPlan {
