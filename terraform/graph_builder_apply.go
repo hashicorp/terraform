@@ -40,9 +40,6 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
-	// Destroy, if true, represents a pure destroy operation
-	Destroy bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
 }
@@ -91,7 +88,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&RootVariableTransformer{Config: b.Config},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config, Changes: b.Changes},
 
 		// Creates all the resource instances represented in the diff, along
 		// with dependency edges against the whole-resource nodes added by
@@ -149,17 +146,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:   b.State,
 			Schemas: b.Schemas,
 		},
-
-		// Create a destroy node for root outputs to remove them from the
-		// state.  This does nothing unless invoked via the destroy command
-		// directly.  A destroy is identical to a normal apply, except for the
-		// fact that we also have configuration to evaluate. While the rest of
-		// the unused nodes can be programmatically pruned (via
-		// pruneUnusedNodesTransformer), root module outputs always have an
-		// implied dependency on remote state. This means that if they exist in
-		// the configuration, the only signal to remove them is via the destroy
-		// command itself.
-		&destroyRootOutputTransformer{Destroy: b.Destroy},
 
 		// We need to remove configuration nodes that are not used at all, as
 		// they may not be able to evaluate, especially during destroy.

@@ -277,7 +277,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
-			Destroy:    c.destroy,
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 

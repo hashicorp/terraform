@@ -72,6 +72,11 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			State:           b.State,
 		},
 
+		&OutputTransformer{
+			Config:  b.Config,
+			Destroy: true,
+		},
+
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 

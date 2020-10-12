@@ -9142,9 +9142,12 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	}
 
 	// Applying the plan should now succeed
-	_, diags = ctx.Apply()
+	state, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("apply failed: %s", diags.Err())
+	}
+	if !state.Empty() {
+		t.Fatalf("state not empty: %s\n", state)
 	}
 }
 

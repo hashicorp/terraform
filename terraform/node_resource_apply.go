@@ -26,7 +26,8 @@ var (
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 )
 
-func (n *nodeExpandApplyableResource) expandsInstances() {}
+func (n *nodeExpandApplyableResource) expandsInstances() {
+}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
