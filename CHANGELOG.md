@@ -1,5 +1,8 @@
 ## 0.13.5 (Unreleased)
 
+BUG FIXES:
+* terraform: fix issue where the provider configuration was not properly attached to the configured provider source address by localname (GH-26567)
+
 ## 0.13.4 (September 30, 2020)
 
 UPGRADE NOTES:
