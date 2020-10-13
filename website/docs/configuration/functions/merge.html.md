@@ -3,25 +3,44 @@ layout: "functions"
 page_title: "merge - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-merge"
 description: |-
-  The merge function takes an arbitrary number of maps and returns a single
-  map after merging the keys from each argument.
+  The merge function takes an arbitrary number maps or objects, and returns a
+  single map or object that contains a merged set of elements from all
+  arguments.
 ---
 
 # `merge` Function
 
-`merge` takes an arbitrary number of maps and returns a single map that
-contains a merged set of elements from all of the maps.
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-If more than one given map defines the same key then the one that is later
-in the argument sequence takes precedence.
+`merge` takes an arbitrary number of maps or objects, and returns a single map
+or object that contains a merged set of elements from all arguments. 
+
+If more than one given map or object defines the same key or attribute, then
+the one that is later in the argument sequence takes precedence. If the
+argument types do not match, the resulting type will be an object matching the
+type structure of the attributes after the merging rules have been applied.
 
 ## Examples
 
 ```
-> merge({"a"="b", "c"="d"}, {"e"="f", "c"="z"})
+> merge({a="b", c="d"}, {e="f", c="z"})
 {
   "a" = "b"
   "c" = "z"
   "e" = "f"
+}
+```
+
+```
+> merge({a="b"}, {a=[1,2], c="z"}, {d=3})
+{
+  "a" = [
+    1,
+    2,
+  ]
+  "c" = "z"
+  "d" = 3
 }
 ```

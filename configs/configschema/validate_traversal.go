@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/helper/didyoumean"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -115,7 +115,7 @@ func (b *Block) StaticValidateTraversal(traversal hcl.Traversal) tfdiags.Diagnos
 }
 
 func (b *NestedBlock) staticValidateTraversal(typeName string, traversal hcl.Traversal) tfdiags.Diagnostics {
-	if b.Nesting == NestingSingle {
+	if b.Nesting == NestingSingle || b.Nesting == NestingGroup {
 		// Single blocks are easy: just pass right through.
 		return b.Block.StaticValidateTraversal(traversal)
 	}

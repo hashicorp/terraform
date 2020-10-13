@@ -3,12 +3,11 @@ package command
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -18,11 +17,7 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var dryRun bool
 	cmdFlags := c.Meta.defaultFlagSet("state rm")
 	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
@@ -31,7 +26,8 @@ func (c *StateRmCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&c.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
-		return cli.RunResultHelp
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
 	}
 
 	args = cmdFlags.Args()
@@ -67,67 +63,33 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Filter what we are removing.
-	results, err := c.filter(state, args)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
-		return cli.RunResultHelp
+	// This command primarily works with resource instances, though it will
+	// also clean up any modules and resources left empty by actions it takes.
+	var addrs []addrs.AbsResourceInstance
+	var diags tfdiags.Diagnostics
+	for _, addrStr := range args {
+		moreAddrs, moreDiags := c.lookupResourceInstanceAddr(state, true, addrStr)
+		addrs = append(addrs, moreAddrs...)
+		diags = diags.Append(moreDiags)
+	}
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
-	// If we have no results, exit early as we're not going to do anything.
-	if len(results) == 0 {
-		if dryRun {
-			c.Ui.Output("Would have removed nothing.")
-		} else {
-			c.Ui.Output("No matching resources found.")
-		}
-		return 0
-	}
-
-	prefix := "Remove resource "
+	prefix := "Removed "
 	if dryRun {
-		prefix = "Would remove resource "
+		prefix = "Would remove "
 	}
 
 	var isCount int
 	ss := state.SyncWrapper()
-	for _, result := range results {
-		switch addr := result.Address.(type) {
-		case addrs.ModuleInstance:
-			var output []string
-			for _, rs := range result.Value.(*states.Module).Resources {
-				for k := range rs.Instances {
-					isCount++
-					output = append(output, prefix+rs.Addr.Absolute(addr).Instance(k).String())
-				}
-			}
-			if len(output) > 0 {
-				c.Ui.Output(strings.Join(sort.StringSlice(output), "\n"))
-			}
-			if !dryRun {
-				ss.RemoveModule(addr)
-			}
-
-		case addrs.AbsResource:
-			var output []string
-			for k := range result.Value.(*states.Resource).Instances {
-				isCount++
-				output = append(output, prefix+addr.Instance(k).String())
-			}
-			if len(output) > 0 {
-				c.Ui.Output(strings.Join(sort.StringSlice(output), "\n"))
-			}
-			if !dryRun {
-				ss.RemoveResource(addr)
-			}
-
-		case addrs.AbsResourceInstance:
-			isCount++
-			c.Ui.Output(prefix + addr.String())
-			if !dryRun {
-				ss.ForgetResourceInstanceAll(addr)
-				ss.RemoveResourceIfEmpty(addr.ContainingResource())
-			}
+	for _, addr := range addrs {
+		isCount++
+		c.Ui.Output(prefix + addr.String())
+		if !dryRun {
+			ss.ForgetResourceInstanceAll(addr)
+			ss.RemoveResourceIfEmpty(addr.ContainingResource())
 		}
 	}
 
@@ -147,11 +109,21 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if isCount == 0 {
-		c.Ui.Output("No matching resources found.")
-	} else {
-		c.Ui.Output(fmt.Sprintf("Successfully removed %d resource(s).", isCount))
+	if len(diags) > 0 && isCount != 0 {
+		c.showDiagnostics(diags)
 	}
+
+	if isCount == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
+		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
 	return 0
 }
 
@@ -159,15 +131,18 @@ func (c *StateRmCommand) Help() string {
 	helpText := `
 Usage: terraform state rm [options] ADDRESS...
 
-  Remove one or more items from the Terraform state.
+  Remove one or more items from the Terraform state, causing Terraform to
+  "forget" those items without first destroying them in the remote system.
 
   This command removes one or more resource instances from the Terraform state
   based on the addresses given. You can view and list the available instances
   with "terraform state list".
 
-  This command creates a timestamped backup of the state on every invocation.
-  This can't be disabled. Due to the destructive nature of this command,
-  the backup is ensured by Terraform for safety reasons.
+  If you give the address of an entire module then all of the instances in
+  that module and any of its child modules will be removed from the state.
+
+  If you give the address of a resource that has "count" or "for_each" set,
+  all of the instances of that resource will be removed from the state.
 
 Options:
 
@@ -175,16 +150,14 @@ Options:
                       doesn't actually remove anything.
 
   -backup=PATH        Path where Terraform should write the backup
-                      state. This can't be disabled. If not set, Terraform
-                      will write it to the same path as the statefile with
-                      a backup extension.
+                      state.
 
   -lock=true          Lock the state file when locking is supported.
 
   -lock-timeout=0s    Duration to retry a state lock.
 
-  -state=PATH         Path to the source state file. Defaults to the configured
-                      backend, or "terraform.tfstate"
+  -state=PATH         Path to the state file to update. Defaults to the current
+                      workspace state.
 
 `
 	return strings.TrimSpace(helpText)
@@ -193,12 +166,6 @@ Options:
 func (c *StateRmCommand) Synopsis() string {
 	return "Remove instances from the state"
 }
-
-const errStateRm = `Error removing items from the state: %s
-
-The state was not saved. No items were removed from the persisted
-state. No backup was created since no modification occurred. Please
-resolve the issue above and try again.`
 
 const errStateRmPersist = `Error saving the state: %s
 

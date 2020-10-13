@@ -1,17 +1,21 @@
 ---
 layout: "functions"
 page_title: "formatdate - Functions - Configuration Language"
-sidebar_current: "docs-funcs-string-formatdate-x"
+sidebar_current: "docs-funcs-datetime-formatdate"
 description: |-
   The formatdate function converts a timestamp into a different time format.
 ---
 
 # `formatdate` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `formatdate` converts a timestamp into a different time format.
 
 ```hcl
-format(spec, timestamp)
+formatdate(spec, timestamp)
 ```
 
 In the Terraform language, timestamps are conventionally represented as
@@ -30,8 +34,8 @@ Tuesday, 02-Jan-18 23:12:01 UTC
 Tue, 02 Jan 2018 23:12:01 -0800
 > formatdate("MMM DD, YYYY", "2018-01-02T23:12:01Z")
 Jan 02, 2018
-> formatdate("HH:MMaa", "2018-01-02T23:12:01Z")
-11:01pm
+> formatdate("HH:mmaa", "2018-01-02T23:12:01Z")
+11:12pm
 ```
 
 ## Specification Syntax

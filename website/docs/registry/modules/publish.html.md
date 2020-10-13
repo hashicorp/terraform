@@ -45,7 +45,7 @@ to populate the short description of the module. This should be a simple
 one sentence description of the module.
 
 - **Standard module structure.** The module must adhere to the
-[standard module structure](/docs/modules/create.html#standard-module-structure).
+[standard module structure](/docs/modules/index.html#standard-module-structure).
 This allows the registry to inspect your module and generate documentation,
 track resource usage, parse submodules and examples, and more.
 
@@ -89,7 +89,7 @@ The webhook will notify the registry of the new version and it will appear
 on the registry usually in less than a minute.
 
 If your version doesn't appear properly, you may force a sync with GitHub
-by viewing your module on the registry and clicking "Force GitHub Sync"
+by viewing your module on the registry and clicking "Resync Module"
 under the "Manage Module" dropdown. This process may take a few minutes.
 Please only do this if you do not see the version appear, since it will
 cause the registry to resync _all versions_ of your module.

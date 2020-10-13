@@ -288,36 +288,10 @@ func TestCoerceValue(t *testing.T) {
 				},
 			},
 			cty.EmptyObjectVal,
-			cty.DynamicVal,
-			`attribute "foo" is required`,
-		},
-		"missing required list block": {
-			&Block{
-				BlockTypes: map[string]*NestedBlock{
-					"foo": {
-						Block:    Block{},
-						Nesting:  NestingList,
-						MinItems: 1,
-					},
-				},
-			},
-			cty.EmptyObjectVal,
-			cty.DynamicVal,
-			`attribute "foo" is required`,
-		},
-		"missing required set block": {
-			&Block{
-				BlockTypes: map[string]*NestedBlock{
-					"foo": {
-						Block:    Block{},
-						Nesting:  NestingList,
-						MinItems: 1,
-					},
-				},
-			},
-			cty.EmptyObjectVal,
-			cty.DynamicVal,
-			`attribute "foo" is required`,
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.EmptyObject),
+			}),
+			``,
 		},
 		"unknown nested list": {
 			&Block{
@@ -331,7 +305,7 @@ func TestCoerceValue(t *testing.T) {
 					"foo": {
 						Block:    Block{},
 						Nesting:  NestingList,
-						MinItems: 1,
+						MinItems: 2,
 					},
 				},
 			},
@@ -342,6 +316,39 @@ func TestCoerceValue(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"attr": cty.StringVal("test"),
 				"foo":  cty.UnknownVal(cty.List(cty.EmptyObject)),
+			}),
+			"",
+		},
+		"unknowns in nested list": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Nesting:  NestingList,
+						MinItems: 2,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.UnknownVal(cty.String),
+					}),
+				}),
 			}),
 			"",
 		},
@@ -433,6 +440,101 @@ func TestCoerceValue(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{}),
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.NullVal(cty.String),
+			}),
+			``,
+		},
+		"dynamic value attributes": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Nesting: NestingMap,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NumberIntVal(8),
+					}),
+				}),
+			}),
+			``,
+		},
+		"dynamic attributes in map": {
+			// Convert a block represented as a map to an object if a
+			// DynamicPseudoType causes the element types to mismatch.
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"foo": {
+						Nesting: NestingMap,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
+					}),
+				}),
 			}),
 			``,
 		},

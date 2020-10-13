@@ -39,14 +39,42 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
 			continue
 		}
-		switch schema.Elem.(type) {
-		case *Schema, ValueType:
+		if schema.Type == TypeMap {
+			// For TypeMap in particular, it isn't valid for Elem to be a
+			// *Resource (since that would be ambiguous in flatmap) and
+			// so Elem is treated as a TypeString schema if so. This matches
+			// how the field readers treat this situation, for compatibility
+			// with configurations targeting Terraform 0.11 and earlier.
+			if _, isResource := schema.Elem.(*Resource); isResource {
+				sch := *schema // shallow copy
+				sch.Elem = &Schema{
+					Type: TypeString,
+				}
+				ret.Attributes[name] = sch.coreConfigSchemaAttribute()
+				continue
+			}
+		}
+		switch schema.ConfigMode {
+		case SchemaConfigModeAttr:
 			ret.Attributes[name] = schema.coreConfigSchemaAttribute()
-		case *Resource:
+		case SchemaConfigModeBlock:
 			ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
-		default:
-			// Should never happen for a valid schema
-			panic(fmt.Errorf("invalid Schema.Elem %#v; need *Schema or *Resource", schema.Elem))
+		default: // SchemaConfigModeAuto, or any other invalid value
+			if schema.Computed && !schema.Optional {
+				// Computed-only schemas are always handled as attributes,
+				// because they never appear in configuration.
+				ret.Attributes[name] = schema.coreConfigSchemaAttribute()
+				continue
+			}
+			switch schema.Elem.(type) {
+			case *Schema, ValueType:
+				ret.Attributes[name] = schema.coreConfigSchemaAttribute()
+			case *Resource:
+				ret.BlockTypes[name] = schema.coreConfigSchemaBlock()
+			default:
+				// Should never happen for a valid schema
+				panic(fmt.Errorf("invalid Schema.Elem %#v; need *Schema or *Resource", schema.Elem))
+			}
 		}
 	}
 
@@ -59,7 +87,7 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 // whose elem is a whole resource.
 func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 	// The Schema.DefaultFunc capability adds some extra weirdness here since
-	// it can be combined with "Required: true" to create a sitution where
+	// it can be combined with "Required: true" to create a situation where
 	// required-ness is conditional. Terraform Core doesn't share this concept,
 	// so we must sniff for this possibility here and conditionally turn
 	// off the "Required" flag if it looks like the DefaultFunc is going
@@ -166,9 +194,10 @@ func (s *Schema) coreConfigSchemaType() cty.Type {
 			// common one so we'll just shim it.
 			elemType = (&Schema{Type: set}).coreConfigSchemaType()
 		case *Resource:
-			// In practice we don't actually use this for normal schema
-			// construction because we construct a NestedBlock in that
-			// case instead. See schemaMap.CoreConfigSchema.
+			// By default we construct a NestedBlock in this case, but this
+			// behavior is selected either for computed-only schemas or
+			// when ConfigMode is explicitly SchemaConfigModeBlock.
+			// See schemaMap.CoreConfigSchema for the exact rules.
 			elemType = set.coreConfigSchema().ImpliedType()
 		default:
 			if set != nil {

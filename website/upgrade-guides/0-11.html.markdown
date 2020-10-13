@@ -1,5 +1,5 @@
 ---
-layout: "downloads"
+layout: "guides"
 page_title: "Upgrading to Terraform 0.11"
 sidebar_current: "upgrade-guides-0-11"
 description: |-
@@ -40,7 +40,7 @@ of `terraform apply` will not invalidate the execution plan.
 
 A consequence of this change is that `terraform apply` is now interactive by
 default unless a plan file is provided on the command line. When
-[running Terraform in automation](/guides/running-terraform-in-automation.html)
+[running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 it is always recommended to separate plan from apply, but if existing automation
 was running `terraform apply` with no arguments it may now be necessary to
 update it to either generate an explicit plan using `terraform plan -out=...`
@@ -68,7 +68,7 @@ explicitly by beginning the string with either `./` (for a module in a child
 directory) or `../` (for a module in the parent directory).
 
 **Action:** Update existing module `source` values containing relative paths
-to start eith either `./` or `../` to prevent misinterpretation of the source
+to start with either `./` or `../` to prevent misinterpretation of the source
 as a Terraform Registry module.
 
 ## Interactions Between Providers and Modules
@@ -96,7 +96,7 @@ situations:
 * If a `provider` block is present in a child module, it must either contain a
   complete configuration for its associated provider or a configuration must be
   passed from the parent module using
-  [the new `providers` attribute](/docs/modules/usage.html#providers-within-modules).
+  [the new `providers` attribute](/docs/configuration-0-11/modules.html#providers-within-modules).
   In the latter case, an empty provider block is a placeholder that declares
   that the child module requires a configuration to be passed from its parent.
 
@@ -157,7 +157,7 @@ now inherit only as a whole, rather than on a per-argument basis.
 
 **Action**: In existing configurations where a descendent module inherits
 _aliased_ providers from an ancestor module, use
-[the new `providers` attribute](/docs/modules/usage.html#providers-within-modules)
+[the new `providers` attribute](/docs/configuration-0-11/modules.html#providers-within-modules)
 to explicitly pass those aliased providers.
 
 **Action**: Consider refactoring existing configurations so that all provider
@@ -266,11 +266,11 @@ to actual infrastructure, since no resource configurations were changed.
 
 For more details on the explicit `providers` map, and discussion of more
 complex possibilities such as child modules with additional (aliased) provider
-configurations, see [_Providers Within Modules_](/docs/modules/usage.html#providers-within-modules).
+configurations, see [_Providers Within Modules_](/docs/configuration-0-11/modules.html#providers-within-modules).
 
 ## Error Checking for Output Values
 
-Prior to Terraform 0.11, if an error occured when evaluating the `value`
+Prior to Terraform 0.11, if an error occurred when evaluating the `value`
 expression within an `output` block then it would be silently ignored and
 the empty string used as the result. This was inconvenient because it made it
 very hard to debug errors within output expressions.

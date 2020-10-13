@@ -9,6 +9,10 @@ description: |-
 
 # `join` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `join` produces a string by concatenating together all elements of a given
 list of strings with the given delimiter.
 

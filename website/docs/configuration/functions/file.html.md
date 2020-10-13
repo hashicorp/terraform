@@ -9,6 +9,10 @@ description: |-
 
 # `file` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `file` reads the contents of a file at the given path and returns them as
 a string.
 
@@ -44,5 +48,5 @@ Hello World
   interpreting the contents as UTF-8 text.
 * [`fileexists`](./fileexists.html) determines whether a file exists
   at a given path.
-* [`templatefile`](./templatefile.html) renders uses a file from disk as a
+* [`templatefile`](./templatefile.html) renders using a file from disk as a
   template.

@@ -9,7 +9,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	tfcore "github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 // Type binary represents the combination of a compiled binary
@@ -34,10 +37,15 @@ func NewBinary(binaryPath, workingDir string) *binary {
 		panic(err)
 	}
 
+	tmpDir, err = filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		panic(err)
+	}
+
 	// For our purposes here we do a very simplistic file copy that doesn't
 	// attempt to preserve file permissions, attributes, alternate data
 	// streams, etc. Since we only have to deal with our own fixtures in
-	// the test-fixtures subdir, we know we don't need to deal with anything
+	// the testdata subdir, we know we don't need to deal with anything
 	// of this nature.
 	err = filepath.Walk(workingDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -45,6 +53,12 @@ func NewBinary(binaryPath, workingDir string) *binary {
 		}
 		if path == workingDir {
 			// nothing to do at the root
+			return nil
+		}
+
+		if filepath.Base(path) == ".exists" {
+			// We use this file just to let git know the "empty" fixture
+			// exists. It is not used by any test.
 			return nil
 		}
 
@@ -170,43 +184,58 @@ func (b *binary) FileExists(path ...string) bool {
 
 // LocalState is a helper for easily reading the local backend's state file
 // terraform.tfstate from the working directory.
-func (b *binary) LocalState() (*tfcore.State, error) {
-	f, err := b.OpenFile("terraform.tfstate")
+func (b *binary) LocalState() (*states.State, error) {
+	return b.StateFromFile("terraform.tfstate")
+}
+
+// StateFromFile is a helper for easily reading a state snapshot from a file
+// on disk relative to the working directory.
+func (b *binary) StateFromFile(filename string) (*states.State, error) {
+	f, err := b.OpenFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return tfcore.ReadState(f)
+
+	stateFile, err := statefile.Read(f)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading statefile: %s", err)
+	}
+	return stateFile.State, nil
 }
 
 // Plan is a helper for easily reading a plan file from the working directory.
-func (b *binary) Plan(path ...string) (*tfcore.Plan, error) {
-	f, err := b.OpenFile(path...)
+func (b *binary) Plan(path string) (*plans.Plan, error) {
+	path = b.Path(path)
+	pr, err := planfile.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-	return tfcore.ReadPlan(f)
+	plan, err := pr.ReadPlan()
+	if err != nil {
+		return nil, err
+	}
+	return plan, nil
 }
 
 // SetLocalState is a helper for easily writing to the file the local backend
 // uses for state in the working directory. This does not go through the
 // actual local backend code, so processing such as management of serials
 // does not apply and the given state will simply be written verbatim.
-func (b *binary) SetLocalState(state *tfcore.State) error {
+func (b *binary) SetLocalState(state *states.State) error {
 	path := b.Path("terraform.tfstate")
 	f, err := os.OpenFile(path, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create temporary state file %s: %s", path, err)
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			panic(fmt.Sprintf("failed to close state file after writing: %s", err))
-		}
-	}()
+	defer f.Close()
 
-	return tfcore.WriteState(state, f)
+	sf := &statefile.File{
+		Serial:  0,
+		Lineage: "fake-for-testing",
+		State:   state,
+	}
+	return statefile.Write(sf, f)
 }
 
 // Close cleans up the temporary resources associated with the object,
@@ -236,7 +265,6 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 
 	cmd := exec.Command(
 		"go", "build",
-		"-mod=vendor",
 		"-o", tmpFilename,
 		pkgPath,
 	)
@@ -251,4 +279,9 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 	}
 
 	return tmpFilename
+}
+
+// WorkDir() returns the binary workdir
+func (b *binary) WorkDir() string {
+	return b.workDir
 }

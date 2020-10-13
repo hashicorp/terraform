@@ -4,6 +4,15 @@ package addrs
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[InvalidResourceMode-0]
+	_ = x[ManagedResourceMode-77]
+	_ = x[DataResourceMode-68]
+}
+
 const (
 	_ResourceMode_name_0 = "InvalidResourceMode"
 	_ResourceMode_name_1 = "DataResourceMode"

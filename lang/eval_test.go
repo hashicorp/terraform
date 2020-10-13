@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcl/hclsyntax"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -20,7 +20,11 @@ func TestScopeEvalContext(t *testing.T) {
 		CountAttrs: map[string]cty.Value{
 			"index": cty.NumberIntVal(0),
 		},
-		ResourceInstances: map[string]cty.Value{
+		ForEachAttrs: map[string]cty.Value{
+			"key":   cty.StringVal("a"),
+			"value": cty.NumberIntVal(1),
+		},
+		Resources: map[string]cty.Value{
 			"null_resource.foo": cty.ObjectVal(map[string]cty.Value{
 				"attr": cty.StringVal("bar"),
 			}),
@@ -33,6 +37,14 @@ func TestScopeEvalContext(t *testing.T) {
 				}),
 				cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
+				}),
+			}),
+			"null_resource.each": cty.ObjectVal(map[string]cty.Value{
+				"each0": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("each0"),
+				}),
+				"each1": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("each1"),
 				}),
 			}),
 			"null_resource.multi[1]": cty.ObjectVal(map[string]cty.Value{
@@ -72,6 +84,22 @@ func TestScopeEvalContext(t *testing.T) {
 			map[string]cty.Value{
 				"count": cty.ObjectVal(map[string]cty.Value{
 					"index": cty.NumberIntVal(0),
+				}),
+			},
+		},
+		{
+			`each.key`,
+			map[string]cty.Value{
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("a"),
+				}),
+			},
+		},
+		{
+			`each.value`,
+			map[string]cty.Value{
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"value": cty.NumberIntVal(1),
 				}),
 			},
 		},
@@ -119,13 +147,48 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
+			// at this level, all instance references return the entire resource
 			`null_resource.multi[1]`,
 			map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"multi": cty.TupleVal([]cty.Value{
-						cty.DynamicVal,
+						cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("multi0"),
+						}),
 						cty.ObjectVal(map[string]cty.Value{
 							"attr": cty.StringVal("multi1"),
+						}),
+					}),
+				}),
+			},
+		},
+		{
+			// at this level, all instance references return the entire resource
+			`null_resource.each["each1"]`,
+			map[string]cty.Value{
+				"null_resource": cty.ObjectVal(map[string]cty.Value{
+					"each": cty.ObjectVal(map[string]cty.Value{
+						"each0": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each0"),
+						}),
+						"each1": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each1"),
+						}),
+					}),
+				}),
+			},
+		},
+		{
+			// at this level, all instance references return the entire resource
+			`null_resource.each["each1"].attr`,
+			map[string]cty.Value{
+				"null_resource": cty.ObjectVal(map[string]cty.Value{
+					"each": cty.ObjectVal(map[string]cty.Value{
+						"each0": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each0"),
+						}),
+						"each1": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("each1"),
 						}),
 					}),
 				}),
@@ -169,11 +232,13 @@ func TestScopeEvalContext(t *testing.T) {
 				}),
 			},
 		},
+		// any module reference returns the entire module
 		{
 			`module.foo.output1`,
 			map[string]cty.Value{
 				"module": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
+						"output0": cty.StringVal("bar0"),
 						"output1": cty.StringVal("bar1"),
 					}),
 				}),
@@ -190,17 +255,6 @@ func TestScopeEvalContext(t *testing.T) {
 		{
 			`self.baz`,
 			map[string]cty.Value{
-				// In the test function below we set "SelfAddr" to be
-				// one of the resources in our dataset, causing it to get
-				// expanded here and then copied into "self".
-				"null_resource": cty.ObjectVal(map[string]cty.Value{
-					"multi": cty.TupleVal([]cty.Value{
-						cty.DynamicVal,
-						cty.ObjectVal(map[string]cty.Value{
-							"attr": cty.StringVal("multi1"),
-						}),
-					}),
-				}),
 				"self": cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
 				}),
@@ -286,20 +340,20 @@ func TestScopeEvalContext(t *testing.T) {
 }
 
 func TestScopeExpandEvalBlock(t *testing.T) {
+	nestedObjTy := cty.Object(map[string]cty.Type{
+		"boop": cty.String,
+	})
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"foo": {
-				Type: cty.String,
-			},
+			"foo":         {Type: cty.String, Optional: true},
+			"list_of_obj": {Type: cty.List(nestedObjTy), Optional: true},
 		},
 		BlockTypes: map[string]*configschema.NestedBlock{
 			"bar": {
 				Nesting: configschema.NestingMap,
 				Block: configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"baz": {
-							Type: cty.String,
-						},
+						"baz": {Type: cty.String, Optional: true},
 					},
 				},
 			},
@@ -327,7 +381,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			`
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.NullVal(cty.String),
+				"foo":         cty.NullVal(cty.String),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
 					"baz": cty.String,
 				})),
@@ -338,7 +393,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			foo = "hello"
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.StringVal("hello"),
+				"foo":         cty.StringVal("hello"),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
 					"baz": cty.String,
 				})),
@@ -349,7 +405,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			foo = local.greeting
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.StringVal("howdy"),
+				"foo":         cty.StringVal("howdy"),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
 					"baz": cty.String,
 				})),
@@ -360,7 +417,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			bar "static" {}
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.NullVal(cty.String),
+				"foo":         cty.NullVal(cty.String),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapVal(map[string]cty.Value{
 					"static": cty.ObjectVal(map[string]cty.Value{
 						"baz": cty.NullVal(cty.String),
@@ -378,7 +436,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			}
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.NullVal(cty.String),
+				"foo":         cty.NullVal(cty.String),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapVal(map[string]cty.Value{
 					"static0": cty.ObjectVal(map[string]cty.Value{
 						"baz": cty.StringVal("0"),
@@ -400,7 +459,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			}
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.NullVal(cty.String),
+				"foo":         cty.NullVal(cty.String),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapVal(map[string]cty.Value{
 					"elem0": cty.ObjectVal(map[string]cty.Value{
 						"baz": cty.StringVal("0"),
@@ -422,7 +482,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			}
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.NullVal(cty.String),
+				"foo":         cty.NullVal(cty.String),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapVal(map[string]cty.Value{
 					"key1": cty.ObjectVal(map[string]cty.Value{
 						"baz": cty.StringVal("val1"),
@@ -433,7 +494,45 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 				}),
 			}),
 		},
-		"everything at once": {
+		"list-of-object attribute": {
+			`
+			list_of_obj = [
+				{
+					boop = local.greeting
+				},
+			]
+			`,
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+				"list_of_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"boop": cty.StringVal("howdy"),
+					}),
+				}),
+				"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"baz": cty.String,
+				})),
+			}),
+		},
+		"list-of-object attribute as blocks": {
+			`
+			list_of_obj {
+				boop = local.greeting
+			}
+			`,
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+				"list_of_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"boop": cty.StringVal("howdy"),
+					}),
+				}),
+				"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"baz": cty.String,
+				})),
+			}),
+		},
+		"lots of things at once": {
 			`
 			foo = "whoop"
 			bar "static0" {
@@ -461,7 +560,8 @@ func TestScopeExpandEvalBlock(t *testing.T) {
 			}
 			`,
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.StringVal("whoop"),
+				"foo":         cty.StringVal("whoop"),
+				"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
 				"bar": cty.MapVal(map[string]cty.Value{
 					"key1": cty.ObjectVal(map[string]cty.Value{
 						"baz": cty.StringVal("val1"),

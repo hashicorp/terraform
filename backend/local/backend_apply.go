@@ -56,29 +56,25 @@ func (b *Local) opApply(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
 
-	// Setup the state
 	runningOp.State = tfCtx.State()
 
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
-		// If we're refreshing before apply, perform that
-		if op.PlanRefresh {
-			log.Printf("[INFO] backend/local: apply calling Refresh")
-			_, err := tfCtx.Refresh()
-			if err != nil {
-				diags = diags.Append(err)
-				runningOp.Result = backend.OperationFailure
-				b.ShowDiagnostics(diags)
-				return
-			}
-		}
-
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
-		plan, err := tfCtx.Plan()
-		if err != nil {
-			diags = diags.Append(err)
+		plan, planDiags := tfCtx.Plan()
+		diags = diags.Append(planDiags)
+		if planDiags.HasErrors() {
 			b.ReportResult(runningOp, diags)
 			return
 		}
@@ -108,11 +104,18 @@ func (b *Local) opApply(
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(plan, tfCtx.Schemas())
+				b.renderPlan(plan, runningOp.State, tfCtx.Schemas())
 				b.CLI.Output("")
 			}
 
-			v, err := op.UIIn.Input(&terraform.InputOpts{
+			// We'll show any accumulated warnings before we display the prompt,
+			// so the user can consider them when deciding how to answer.
+			if len(diags) > 0 {
+				b.ShowDiagnostics(diags)
+				diags = nil // reset so we won't show the same diagnostics again later
+			}
+
+			v, err := op.UIIn.Input(stopCtx, &terraform.InputOpts{
 				Id:          "approve",
 				Query:       query,
 				Description: desc,
@@ -157,7 +160,15 @@ func (b *Local) opApply(
 	runningOp.State = applyState
 	err := statemgr.WriteAndPersist(opState, applyState)
 	if err != nil {
-		diags = diags.Append(b.backupStateForError(applyState, err))
+		// Export the state file from the state manager and assign the new
+		// state. This is needed to preserve the existing serial and lineage.
+		stateFile := statemgr.Export(opState)
+		if stateFile == nil {
+			stateFile = &statefile.File{}
+		}
+		stateFile.State = applyState
+
+		diags = diags.Append(b.backupStateForError(stateFile, err))
 		b.ReportResult(runningOp, diags)
 		return
 	}
@@ -208,11 +219,11 @@ func (b *Local) opApply(
 // to local disk to help the user recover. This is a "last ditch effort" sort
 // of thing, so we really don't want to end up in this codepath; we should do
 // everything we possibly can to get the state saved _somewhere_.
-func (b *Local) backupStateForError(applyState *states.State, err error) error {
+func (b *Local) backupStateForError(stateFile *statefile.File, err error) error {
 	b.CLI.Error(fmt.Sprintf("Failed to save state: %s\n", err))
 
 	local := statemgr.NewFilesystem("errored.tfstate")
-	writeErr := local.WriteState(applyState)
+	writeErr := local.WriteStateForMigration(stateFile, true)
 	if writeErr != nil {
 		b.CLI.Error(fmt.Sprintf(
 			"Also failed to create local state file for recovery: %s\n\n", writeErr,
@@ -223,9 +234,6 @@ func (b *Local) backupStateForError(applyState *states.State, err error) error {
 		// but at least the user has _some_ path to recover if we end up
 		// here for some reason.
 		stateBuf := new(bytes.Buffer)
-		stateFile := &statefile.File{
-			State: applyState,
-		}
 		jsonErr := statefile.Write(stateFile, stateBuf)
 		if jsonErr != nil {
 			b.CLI.Error(fmt.Sprintf(

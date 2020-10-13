@@ -9,6 +9,10 @@ description: |-
 
 # `timeadd` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `timeadd` adds a duration to a timestamp, returning a new timestamp.
 
 ```hcl
@@ -21,8 +25,8 @@ strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
 to be a string conforming to this syntax.
 
 `duration` is a string representation of a time difference, consisting of
-sequences of number and unit pairs, like `"1.5h"` or `1h30m`. The accepted
-units are `ns`, `us` (or `µs`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
+sequences of number and unit pairs, like `"1.5h"` or `"1h30m"`. The accepted
+units are `"ns"`, `"us"` (or `"µs"`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
 number may be negative to indicate a negative duration, like `"-2h5m"`.
 
 The result is a string, also in RFC 3339 format, representing the result

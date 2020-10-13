@@ -4,6 +4,16 @@ package terraform
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[TypeInvalid-0]
+	_ = x[TypePrimary-1]
+	_ = x[TypeTainted-2]
+	_ = x[TypeDeposed-3]
+}
+
 const _InstanceType_name = "TypeInvalidTypePrimaryTypeTaintedTypeDeposed"
 
 var _InstanceType_index = [...]uint8{0, 11, 22, 33, 44}

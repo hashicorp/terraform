@@ -6,9 +6,17 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+)
+
+type phaseState int
+
+const (
+	workingState phaseState = iota
+	refreshState
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -141,30 +149,8 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	return obj, nil
 }
 
-// EvalRequireState is an EvalNode implementation that exits early if the given
-// object is null.
-type EvalRequireState struct {
-	State **states.ResourceInstanceObject
-}
-
-func (n *EvalRequireState) Eval(ctx EvalContext) (interface{}, error) {
-	if n.State == nil {
-		return nil, EvalEarlyExitError{}
-	}
-
-	state := *n.State
-	if state == nil || state.Value.IsNull() {
-		return nil, EvalEarlyExitError{}
-	}
-
-	return nil, nil
-}
-
-// EvalUpdateStateHook is an EvalNode implementation that calls the
-// PostStateUpdate hook with the current state.
-type EvalUpdateStateHook struct{}
-
-func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
+// UpdateStateHook calls the PostStateUpdate hook with the current state.
+func UpdateStateHook(ctx EvalContext) error {
 	// In principle we could grab the lock here just long enough to take a
 	// deep copy and then pass that to our hooks below, but we'll instead
 	// hold the hook for the duration to avoid the potential confusing
@@ -178,11 +164,19 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostStateUpdate(state)
 	})
-	if err != nil {
-		return nil, err
-	}
+	return err
+}
 
-	return nil, nil
+// evalWriteEmptyState wraps EvalWriteState to specifically record an empty
+// state for a particular object.
+type evalWriteEmptyState struct {
+	EvalWriteState
+}
+
+func (n *evalWriteEmptyState) Eval(ctx EvalContext) (interface{}, error) {
+	var state *states.ResourceInstanceObject
+	n.State = &state
+	return n.EvalWriteState.Eval(ctx)
 }
 
 // EvalWriteState is an EvalNode implementation that saves the given object
@@ -200,6 +194,14 @@ type EvalWriteState struct {
 	// ProviderAddr is the address of the provider configuration that
 	// produced the given object.
 	ProviderAddr addrs.AbsProviderConfig
+
+	// Dependencies are the inter-resource dependencies to be stored in the
+	// state.
+	Dependencies *[]addrs.ConfigResource
+
+	// targetState determines which context state we're writing to during plan.
+	// The default is the global working state.
+	targetState phaseState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -210,12 +212,19 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
 
-	if n.ProviderAddr.ProviderConfig.Type == "" {
-		return nil, fmt.Errorf("failed to write state for %s, missing provider type", absAddr)
+	var state *states.SyncState
+	switch n.targetState {
+	case refreshState:
+		log.Printf("[TRACE] EvalWriteState: using RefreshState for %s", absAddr)
+		state = ctx.RefreshState()
+	default:
+		state = ctx.State()
 	}
 
+	if n.ProviderAddr.Provider.Type == "" {
+		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
+	}
 	obj := *n.State
 	if obj == nil || obj.Value.IsNull() {
 		// No need to encode anything: we'll just write it directly.
@@ -223,6 +232,13 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
 		return nil, nil
 	}
+
+	// store the new deps in the state
+	if n.Dependencies != nil {
+		log.Printf("[TRACE] EvalWriteState: recording %d dependencies for %s", len(*n.Dependencies), absAddr)
+		obj.Dependencies = *n.Dependencies
+	}
+
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		// Should never happen, unless our state object is nil
 		panic("EvalWriteState used with pointer to nil ProviderSchema object")
@@ -377,6 +393,12 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalMaybeRestoreDeposedObject struct {
 	Addr addrs.ResourceInstance
 
+	// PlannedChange might be the action we're performing that includes
+	// the possiblity of restoring a deposed object. However, it might also
+	// be nil. It's here only for use in error messages and must not be
+	// used for business logic.
+	PlannedChange **plans.ResourceInstanceChange
+
 	// Key is a pointer to the deposed object key that should be forgotten
 	// from the state, which must be non-nil.
 	Key *states.DeposedKey
@@ -388,6 +410,33 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 	dk := *n.Key
 	state := ctx.State()
 
+	if dk == states.NotDeposed {
+		// This should never happen, and so it always indicates a bug.
+		// We should evaluate this node only if we've previously deposed
+		// an object as part of the same operation.
+		var diags tfdiags.Diagnostics
+		if n.PlannedChange != nil && *n.PlannedChange != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Attempt to restore non-existent deposed object",
+				fmt.Sprintf(
+					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
+					absAddr, (*n.PlannedChange).Action,
+				),
+			))
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Attempt to restore non-existent deposed object",
+				fmt.Sprintf(
+					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
+					absAddr,
+				),
+			))
+		}
+		return nil, diags.Err()
+	}
+
 	restored := state.MaybeRestoreResourceInstanceDeposed(absAddr, dk)
 	if restored {
 		log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", absAddr, dk)
@@ -398,72 +447,35 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 	return nil, nil
 }
 
-// EvalWriteResourceState is an EvalNode implementation that ensures that
-// a suitable resource-level state record is present in the state, if that's
-// required for the "each mode" of that resource.
-//
-// This is important primarily for the situation where count = 0, since this
-// eval is the only change we get to set the resource "each mode" to list
-// in that case, allowing expression evaluation to see it as a zero-element
-// list rather than as not set at all.
-type EvalWriteResourceState struct {
-	Addr         addrs.Resource
-	Config       *configs.Resource
-	ProviderAddr addrs.AbsProviderConfig
+// EvalRefreshLifecycle is an EvalNode implementation that updates
+// the status of the lifecycle options stored in the state.
+// This currently only applies to create_before_destroy.
+type EvalRefreshLifecycle struct {
+	Addr addrs.AbsResourceInstance
+
+	Config *configs.Resource
+	// Prior State
+	State **states.ResourceInstanceObject
+	// ForceCreateBeforeDestroy indicates a create_before_destroy resource
+	// depends on this resource.
+	ForceCreateBeforeDestroy bool
 }
 
-// TODO: test
-func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
-	var diags tfdiags.Diagnostics
-	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
-
-	count, countDiags := evaluateResourceCountExpression(n.Config.Count, ctx)
-	diags = diags.Append(countDiags)
-	if countDiags.HasErrors() {
-		return nil, diags.Err()
+func (n *EvalRefreshLifecycle) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
+	if state == nil {
+		// no existing state
+		return nil, nil
 	}
 
-	// Currently we ony support NoEach and EachList, because for_each support
-	// is not fully wired up across Terraform. Once for_each support is added,
-	// we'll need to handle that here too, setting states.EachMap if the
-	// assigned expression is a map.
-	eachMode := states.NoEach
-	if count >= 0 { // -1 signals "count not set"
-		eachMode = states.EachList
+	// In 0.13 we could be refreshing a resource with no config.
+	// We should be operating on managed resource, but check here to be certain
+	if n.Config == nil || n.Config.Managed == nil {
+		log.Printf("[WARN] EvalRefreshLifecycle: no Managed config value found in instance state for %q", n.Addr)
+		return nil, nil
 	}
 
-	// This method takes care of all of the business logic of updating this
-	// while ensuring that any existing instances are preserved, etc.
-	state.SetResourceMeta(absAddr, eachMode, n.ProviderAddr)
-
-	return nil, nil
-}
-
-// EvalForgetResourceState is an EvalNode implementation that prunes out an
-// empty resource-level state for a given resource address, or produces an
-// error if it isn't empty after all.
-//
-// This should be the last action taken for a resource that has been removed
-// from the configuration altogether, to clean up the leftover husk of the
-// resource in the state after other EvalNodes have destroyed and removed
-// all of the instances and instance objects beneath it.
-type EvalForgetResourceState struct {
-	Addr addrs.Resource
-}
-
-func (n *EvalForgetResourceState) Eval(ctx EvalContext) (interface{}, error) {
-	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
-
-	pruned := state.RemoveResourceIfEmpty(absAddr)
-	if !pruned {
-		// If this produces an error, it indicates a bug elsewhere in Terraform
-		// -- probably missing graph nodes, graph edges, or
-		// incorrectly-implemented evaluation steps.
-		return nil, fmt.Errorf("orphan resource %s still has a non-empty state after apply; this is a bug in Terraform", absAddr)
-	}
-	log.Printf("[TRACE] EvalForgetResourceState: Pruned husk of %s from state", absAddr)
+	state.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
 
 	return nil, nil
 }

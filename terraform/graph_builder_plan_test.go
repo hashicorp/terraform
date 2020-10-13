@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -33,9 +34,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 		},
 	}
 	components := &basicComponentFactory{
-		providers: map[string]providers.Factory{
-			"aws":       providers.FactoryFixed(awsProvider),
-			"openstack": providers.FactoryFixed(openstackProvider),
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"):       providers.FactoryFixed(awsProvider),
+			addrs.NewDefaultProvider("openstack"): providers.FactoryFixed(openstackProvider),
 		},
 	}
 
@@ -43,12 +44,11 @@ func TestPlanGraphBuilder(t *testing.T) {
 		Config:     testModule(t, "graph-builder-plan-basic"),
 		Components: components,
 		Schemas: &Schemas{
-			Providers: map[string]*ProviderSchema{
-				"aws":       awsProvider.GetSchemaReturn,
-				"openstack": openstackProvider.GetSchemaReturn,
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewDefaultProvider("aws"):       awsProvider.GetSchemaReturn,
+				addrs.NewDefaultProvider("openstack"): openstackProvider.GetSchemaReturn,
 			},
 		},
-		DisableReduce: true,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -62,6 +62,150 @@ func TestPlanGraphBuilder(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testPlanGraphBuilderStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
+	provider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"test_thing": {
+					Attributes: map[string]*configschema.Attribute{
+						"id":   {Type: cty.String, Computed: true},
+						"list": {Type: cty.List(cty.String), Computed: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"nested": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"foo": {Type: cty.String, Optional: true},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	components := &basicComponentFactory{
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
+		},
+	}
+
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-dynblock"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
+			},
+		},
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
+	}
+
+	// This test is here to make sure we properly detect references inside
+	// the special "dynamic" block construct. The most important thing here
+	// is that at the end test_thing.c depends on both test_thing.a and
+	// test_thing.b. Other details might shift over time as other logic in
+	// the graph builders changes.
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+meta.count-boundary (EachMode fixup)
+  test_thing.c (expand)
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
+  test_thing.c (expand)
+root
+  meta.count-boundary (EachMode fixup)
+  provider["registry.terraform.io/hashicorp/test"] (close)
+test_thing.a (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+test_thing.b (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+test_thing.c (expand)
+  test_thing.a (expand)
+  test_thing.b (expand)
+`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
+	provider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"test_thing": {
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+						"nested": {
+							Type: cty.List(cty.Object(map[string]cty.Type{
+								"foo": cty.String,
+							})),
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	components := &basicComponentFactory{
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
+		},
+	}
+
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-attr-as-blocks"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
+			},
+		},
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
+	}
+
+	// This test is here to make sure we properly detect references inside
+	// the "nested" block that is actually defined in the schema as a
+	// list-of-objects attribute. This requires some special effort
+	// inside lang.ReferencesInBlock to make sure it searches blocks of
+	// type "nested" along with an attribute named "nested".
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+meta.count-boundary (EachMode fixup)
+  test_thing.b (expand)
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
+  test_thing.b (expand)
+root
+  meta.count-boundary (EachMode fixup)
+  provider["registry.terraform.io/hashicorp/test"] (close)
+test_thing.a (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+test_thing.b (expand)
+  test_thing.a (expand)
+`)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
 	}
@@ -84,50 +228,111 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 
 	t.Logf("Graph: %s", g.String())
 
-	testGraphNotContains(t, g, "module.child1.provider.test")
+	testGraphNotContains(t, g, `module.child1.provider["registry.terraform.io/hashicorp/test"]`)
 	testGraphNotContains(t, g, "module.child1.test_object.foo")
 }
 
+func TestPlanGraphBuilder_forEach(t *testing.T) {
+	awsProvider := &MockProvider{
+		GetSchemaReturn: &ProviderSchema{
+			Provider: simpleTestSchema(),
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_instance": simpleTestSchema(),
+			},
+		},
+	}
+
+	components := &basicComponentFactory{
+		providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): providers.FactoryFixed(awsProvider),
+		},
+	}
+
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "plan-for-each"),
+		Components: components,
+		Schemas: &Schemas{
+			Providers: map[addrs.Provider]*ProviderSchema{
+				addrs.NewDefaultProvider("aws"): awsProvider.GetSchemaReturn,
+			},
+		},
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong module path %q", g.Path)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	// We're especially looking for the edge here, where aws_instance.bat
+	// has a dependency on aws_instance.boo
+	expected := strings.TrimSpace(testPlanGraphBuilderForEachStr)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testPlanGraphBuilderStr = `
-aws_instance.web
-  aws_security_group.firewall
-  provider.aws
+aws_instance.web (expand)
+  aws_security_group.firewall (expand)
   var.foo
-aws_load_balancer.weblb
-  aws_instance.web
-  provider.aws
-aws_security_group.firewall
-  provider.aws
-local.instance_id
-  aws_instance.web
+aws_load_balancer.weblb (expand)
+  aws_instance.web (expand)
+aws_security_group.firewall (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+local.instance_id (expand)
+  aws_instance.web (expand)
 meta.count-boundary (EachMode fixup)
-  aws_instance.web
-  aws_load_balancer.weblb
-  aws_security_group.firewall
-  local.instance_id
-  openstack_floating_ip.random
+  aws_load_balancer.weblb (expand)
   output.instance_id
-  provider.aws
-  provider.openstack
-  var.foo
-openstack_floating_ip.random
-  provider.openstack
+openstack_floating_ip.random (expand)
+  provider["registry.terraform.io/hashicorp/openstack"]
 output.instance_id
-  local.instance_id
-provider.aws
-  openstack_floating_ip.random
-provider.aws (close)
-  aws_instance.web
-  aws_load_balancer.weblb
-  aws_security_group.firewall
-  provider.aws
-provider.openstack
-provider.openstack (close)
-  openstack_floating_ip.random
-  provider.openstack
+  local.instance_id (expand)
+provider["registry.terraform.io/hashicorp/aws"]
+  openstack_floating_ip.random (expand)
+provider["registry.terraform.io/hashicorp/aws"] (close)
+  aws_load_balancer.weblb (expand)
+provider["registry.terraform.io/hashicorp/openstack"]
+provider["registry.terraform.io/hashicorp/openstack"] (close)
+  openstack_floating_ip.random (expand)
 root
   meta.count-boundary (EachMode fixup)
-  provider.aws (close)
-  provider.openstack (close)
+  provider["registry.terraform.io/hashicorp/aws"] (close)
+  provider["registry.terraform.io/hashicorp/openstack"] (close)
 var.foo
+`
+const testPlanGraphBuilderForEachStr = `
+aws_instance.bar (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+aws_instance.bar2 (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+aws_instance.bat (expand)
+  aws_instance.boo (expand)
+aws_instance.baz (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+aws_instance.boo (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+aws_instance.foo (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+meta.count-boundary (EachMode fixup)
+  aws_instance.bar (expand)
+  aws_instance.bar2 (expand)
+  aws_instance.bat (expand)
+  aws_instance.baz (expand)
+  aws_instance.foo (expand)
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"] (close)
+  aws_instance.bar (expand)
+  aws_instance.bar2 (expand)
+  aws_instance.bat (expand)
+  aws_instance.baz (expand)
+  aws_instance.foo (expand)
+root
+  meta.count-boundary (EachMode fixup)
+  provider["registry.terraform.io/hashicorp/aws"] (close)
 `

@@ -203,6 +203,15 @@ func TestMapFieldWriter(t *testing.T) {
 			},
 		},
 
+		"set typed nil": {
+			[]string{"set"},
+			func() *Set { return nil }(),
+			false,
+			map[string]string{
+				"set.#": "0",
+			},
+		},
+
 		"set resource": {
 			[]string{"setDeep"},
 			[]interface{}{

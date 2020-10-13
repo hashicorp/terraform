@@ -1,7 +1,7 @@
 ---
 layout: "commands-workspace"
 page_title: "Command: workspace new"
-sidebar_current: "docs-workspace-sub-new"
+sidebar_current: "docs-commands-workspace-sub-new"
 description: |-
   The terraform workspace new command is used to create a new workspace.
 ---

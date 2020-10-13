@@ -1,14 +1,10 @@
 package dag
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"reflect"
 	"sort"
 	"strconv"
-	"sync"
 )
 
 const (
@@ -112,9 +108,14 @@ func newMarshalVertex(v Vertex) *marshalVertex {
 		dn = nil
 	}
 
+	// the name will be quoted again later, so we need to ensure it's properly
+	// escaped without quotes.
+	name := strconv.Quote(VertexName(v))
+	name = name[1 : len(name)-1]
+
 	return &marshalVertex{
 		ID:              marshalVertexID(v),
-		Name:            VertexName(v),
+		Name:            name,
 		Attrs:           make(map[string]string),
 		graphNodeDotter: dn,
 	}
@@ -233,242 +234,4 @@ func marshalSubgrapher(v Vertex) (*Graph, bool) {
 	}
 
 	return nil, false
-}
-
-// The DebugOperationEnd func type provides a way to call an End function via a
-// method call, allowing for the chaining of methods in a defer statement.
-type DebugOperationEnd func(string)
-
-// End calls function e with the info parameter, marking the end of this
-// operation in the logs.
-func (e DebugOperationEnd) End(info string) { e(info) }
-
-// encoder provides methods to write debug data to an io.Writer, and is a noop
-// when no writer is present
-type encoder struct {
-	sync.Mutex
-	w io.Writer
-}
-
-// Encode is analogous to json.Encoder.Encode
-func (e *encoder) Encode(i interface{}) {
-	if e == nil || e.w == nil {
-		return
-	}
-	e.Lock()
-	defer e.Unlock()
-
-	js, err := json.Marshal(i)
-	if err != nil {
-		log.Println("[ERROR] dag:", err)
-		return
-	}
-	js = append(js, '\n')
-
-	_, err = e.w.Write(js)
-	if err != nil {
-		log.Println("[ERROR] dag:", err)
-		return
-	}
-}
-
-func (e *encoder) Add(v Vertex) {
-	if e == nil {
-		return
-	}
-	e.Encode(marshalTransform{
-		Type:      typeTransform,
-		AddVertex: newMarshalVertex(v),
-	})
-}
-
-// Remove records the removal of Vertex v.
-func (e *encoder) Remove(v Vertex) {
-	if e == nil {
-		return
-	}
-	e.Encode(marshalTransform{
-		Type:         typeTransform,
-		RemoveVertex: newMarshalVertex(v),
-	})
-}
-
-func (e *encoder) Connect(edge Edge) {
-	if e == nil {
-		return
-	}
-	e.Encode(marshalTransform{
-		Type:    typeTransform,
-		AddEdge: newMarshalEdge(edge),
-	})
-}
-
-func (e *encoder) RemoveEdge(edge Edge) {
-	if e == nil {
-		return
-	}
-	e.Encode(marshalTransform{
-		Type:       typeTransform,
-		RemoveEdge: newMarshalEdge(edge),
-	})
-}
-
-// BeginOperation marks the start of set of graph transformations, and returns
-// an EndDebugOperation func to be called once the opration is complete.
-func (e *encoder) BeginOperation(op string, info string) DebugOperationEnd {
-	if e == nil {
-		return func(string) {}
-	}
-
-	e.Encode(marshalOperation{
-		Type:  typeOperation,
-		Begin: op,
-		Info:  info,
-	})
-
-	return func(info string) {
-		e.Encode(marshalOperation{
-			Type: typeOperation,
-			End:  op,
-			Info: info,
-		})
-	}
-}
-
-// structure for recording graph transformations
-type marshalTransform struct {
-	// Type: "Transform"
-	Type         string
-	AddEdge      *marshalEdge   `json:",omitempty"`
-	RemoveEdge   *marshalEdge   `json:",omitempty"`
-	AddVertex    *marshalVertex `json:",omitempty"`
-	RemoveVertex *marshalVertex `json:",omitempty"`
-}
-
-func (t marshalTransform) Transform(g *marshalGraph) {
-	switch {
-	case t.AddEdge != nil:
-		g.connect(t.AddEdge)
-	case t.RemoveEdge != nil:
-		g.removeEdge(t.RemoveEdge)
-	case t.AddVertex != nil:
-		g.add(t.AddVertex)
-	case t.RemoveVertex != nil:
-		g.remove(t.RemoveVertex)
-	}
-}
-
-// this structure allows us to decode any object in the json stream for
-// inspection, then re-decode it into a proper struct if needed.
-type streamDecode struct {
-	Type string
-	Map  map[string]interface{}
-	JSON []byte
-}
-
-func (s *streamDecode) UnmarshalJSON(d []byte) error {
-	s.JSON = d
-	err := json.Unmarshal(d, &s.Map)
-	if err != nil {
-		return err
-	}
-
-	if t, ok := s.Map["Type"]; ok {
-		s.Type, _ = t.(string)
-	}
-	return nil
-}
-
-// structure for recording the beginning and end of any multi-step
-// transformations. These are informational, and not required to reproduce the
-// graph state.
-type marshalOperation struct {
-	Type  string
-	Begin string `json:",omitempty"`
-	End   string `json:",omitempty"`
-	Info  string `json:",omitempty"`
-}
-
-// decodeGraph decodes a marshalGraph from an encoded graph stream.
-func decodeGraph(r io.Reader) (*marshalGraph, error) {
-	dec := json.NewDecoder(r)
-
-	// a stream should always start with a graph
-	g := &marshalGraph{}
-
-	err := dec.Decode(g)
-	if err != nil {
-		return nil, err
-	}
-
-	// now replay any operations that occurred on the original graph
-	for dec.More() {
-		s := &streamDecode{}
-		err := dec.Decode(s)
-		if err != nil {
-			return g, err
-		}
-
-		// the only Type we're concerned with here is Transform to complete the
-		// Graph
-		if s.Type != typeTransform {
-			continue
-		}
-
-		t := &marshalTransform{}
-		err = json.Unmarshal(s.JSON, t)
-		if err != nil {
-			return g, err
-		}
-		t.Transform(g)
-	}
-	return g, nil
-}
-
-// marshalVertexInfo allows encoding arbitrary information about the a single
-// Vertex in the logs. These are accumulated for informational display while
-// rebuilding the graph.
-type marshalVertexInfo struct {
-	Type   string
-	Vertex *marshalVertex
-	Info   string
-}
-
-func newVertexInfo(infoType string, v Vertex, info string) *marshalVertexInfo {
-	return &marshalVertexInfo{
-		Type:   infoType,
-		Vertex: newMarshalVertex(v),
-		Info:   info,
-	}
-}
-
-// marshalEdgeInfo allows encoding arbitrary information about the a single
-// Edge in the logs. These are accumulated for informational display while
-// rebuilding the graph.
-type marshalEdgeInfo struct {
-	Type string
-	Edge *marshalEdge
-	Info string
-}
-
-func newEdgeInfo(infoType string, e Edge, info string) *marshalEdgeInfo {
-	return &marshalEdgeInfo{
-		Type: infoType,
-		Edge: newMarshalEdge(e),
-		Info: info,
-	}
-}
-
-// JSON2Dot reads a Graph debug log from and io.Reader, and converts the final
-// graph dot format.
-//
-// TODO: Allow returning the output at a certain point during decode.
-//       Encode extra information from the json log into the Dot.
-func JSON2Dot(r io.Reader) ([]byte, error) {
-	g, err := decodeGraph(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return g.Dot(nil), nil
 }

@@ -29,7 +29,10 @@ func TestApply_destroy(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -122,7 +125,10 @@ func TestApply_destroyLockedState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)
@@ -189,12 +195,15 @@ func TestApply_destroyTargeted(t *testing.T) {
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_instance",
 				Name: "foo",
-			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"id":"i-ab123"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -203,10 +212,14 @@ func TestApply_destroyTargeted(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"i-abc123"}`),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"i-abc123"}`),
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
+				Status:       states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, originalState)

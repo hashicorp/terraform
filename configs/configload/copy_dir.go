@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // copyDir copies the src directory contents into dst. Both directories
@@ -22,15 +21,6 @@ func copyDir(dst, src string) error {
 
 		if path == src {
 			return nil
-		}
-
-		if strings.HasPrefix(filepath.Base(path), ".") {
-			// Skip any dot files
-			if info.IsDir() {
-				return filepath.SkipDir
-			} else {
-				return nil
-			}
 		}
 
 		// The "path" has the src prefixed to it. We need to join our
@@ -57,6 +47,17 @@ func copyDir(dst, src string) error {
 			}
 
 			return nil
+		}
+
+		// If the current path is a symlink, recreate the symlink relative to
+		// the dst directory
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			target, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+
+			return os.Symlink(target, dstPath)
 		}
 
 		// If we have a file, copy the contents.

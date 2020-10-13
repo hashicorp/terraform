@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/hcl2/hcl"
-	"github.com/hashicorp/hcl2/hcled"
-	"github.com/hashicorp/hcl2/hclparse"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcled"
+	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/colorstring"
 	wordwrap "github.com/mitchellh/go-wordwrap"
@@ -62,6 +62,14 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 		// Make sure the snippet includes the highlight. This should be true
 		// for any reasonable diagnostic, but we'll make sure.
 		snippetRange = hcl.RangeOver(snippetRange, highlightRange)
+		if snippetRange.Empty() {
+			snippetRange.End.Byte++
+			snippetRange.End.Column++
+		}
+		if highlightRange.Empty() {
+			highlightRange.End.Byte++
+			highlightRange.End.Column++
+		}
 
 		var src []byte
 		if sources != nil {
@@ -77,13 +85,6 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			file, offset := parseRange(src, highlightRange)
 
 			headerRange := highlightRange
-			if snippetRange.Empty() {
-				// We assume that empty range signals diagnostic
-				// related to the whole body, so we lookup the definition
-				// instead of attempting to render empty range
-				snippetRange = hcled.ContextDefRange(file, offset-1)
-				headerRange = snippetRange
-			}
 
 			contextStr := hcled.ContextString(file, offset-1)
 			if contextStr != "" {
@@ -99,10 +100,8 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				if !lineRange.Overlaps(snippetRange) {
 					continue
 				}
-				beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
-				if highlightedRange.Empty() {
-					fmt.Fprintf(&buf, "%4d: %s\n", lineRange.Start.Line, sc.Bytes())
-				} else {
+				if !lineRange.Overlap(highlightRange).Empty() {
+					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
 					before := beforeRange.SliceBytes(src)
 					highlighted := highlightedRange.SliceBytes(src)
 					after := afterRange.SliceBytes(src)
@@ -110,6 +109,12 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 						&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
 						lineRange.Start.Line,
 						before, highlighted, after,
+					)
+				} else {
+					fmt.Fprintf(
+						&buf, "%4d: %s\n",
+						lineRange.Start.Line,
+						lineRange.SliceBytes(src),
 					)
 				}
 			}
@@ -170,22 +175,67 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	}
 
 	if desc.Detail != "" {
-		detail := desc.Detail
 		if width != 0 {
-			detail = wordwrap.WrapString(detail, uint(width))
+			lines := strings.Split(desc.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(line, uint(width))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", desc.Detail)
 		}
-		fmt.Fprintf(&buf, "%s\n", detail)
 	}
 
 	return buf.String()
 }
 
-// sourceCodeContextStr attempts to find a user-friendly description of
-// the location of the given range in the given source code.
+// DiagnosticWarningsCompact is an alternative to Diagnostic for when all of
+// the given diagnostics are warnings and we want to show them compactly,
+// with only two lines per warning and excluding all of the detail information.
 //
-// An empty string is returned if no suitable description is available, e.g.
-// because the source is invalid, or because the offset is not inside any sort
-// of identifiable container.
+// The caller may optionally pre-process the given diagnostics with
+// ConsolidateWarnings, in which case this function will recognize consolidated
+// messages and include an indication that they are consolidated.
+//
+// Do not pass non-warning diagnostics to this function, or the result will
+// be nonsense.
+func DiagnosticWarningsCompact(diags tfdiags.Diagnostics, color *colorstring.Colorize) string {
+	var b strings.Builder
+	b.WriteString(color.Color("[bold][yellow]Warnings:[reset]\n\n"))
+	for _, diag := range diags {
+		sources := tfdiags.WarningGroupSourceRanges(diag)
+		b.WriteString(fmt.Sprintf("- %s\n", diag.Description().Summary))
+		if len(sources) > 0 {
+			mainSource := sources[0]
+			if mainSource.Subject != nil {
+				if len(sources) > 1 {
+					b.WriteString(fmt.Sprintf(
+						"  on %s line %d (and %d more)\n",
+						mainSource.Subject.Filename,
+						mainSource.Subject.Start.Line,
+						len(sources)-1,
+					))
+				} else {
+					b.WriteString(fmt.Sprintf(
+						"  on %s line %d\n",
+						mainSource.Subject.Filename,
+						mainSource.Subject.Start.Line,
+					))
+				}
+			} else if len(sources) > 1 {
+				b.WriteString(fmt.Sprintf(
+					"  (%d occurences of this warning)\n",
+					len(sources),
+				))
+			}
+		}
+	}
+
+	return b.String()
+}
+
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
 	filename := rng.Filename
 	offset := rng.Start.Byte
@@ -251,6 +301,10 @@ func compactValueStr(val cty.Value) string {
 	// This is a specialized subset of value rendering tailored to producing
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
+
+	if val.ContainsMarked() {
+		return "(sensitive value)"
+	}
 
 	ty := val.Type()
 	switch {

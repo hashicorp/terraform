@@ -6,14 +6,15 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/plans/planfile"
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/tfdiags"
-
+	localBackend "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
+	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the
@@ -23,16 +24,13 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("show")
 	var jsonOutput bool
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output (only available when showing a planfile)")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -42,6 +40,13 @@ func (c *ShowCommand) Run(args []string) int {
 			"The show command expects at most two arguments.\n The path to a " +
 				"Terraform state or plan file, and optionally -json for json output.\n")
 		cmdFlags.Usage()
+		return 1
+	}
+
+	// Check for user-supplied plugin path
+	var err error
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
 
@@ -84,6 +89,7 @@ func (c *ShowCommand) Run(args []string) int {
 	opReq.ConfigDir = cwd
 	opReq.PlanFile = planFile
 	opReq.ConfigLoader, err = c.initConfigLoader()
+	opReq.AllowUnsetVariables = true
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
@@ -103,20 +109,15 @@ func (c *ShowCommand) Run(args []string) int {
 
 	var planErr, stateErr error
 	var plan *plans.Plan
-	var state *states.State
+	var stateFile *statefile.File
 
 	// if a path was provided, try to read it as a path to a planfile
 	// if that fails, try to read the cli argument as a path to a statefile
 	if len(args) > 0 {
 		path := args[0]
-		plan, planErr = getPlanFromPath(path)
+		plan, stateFile, planErr = getPlanFromPath(path)
 		if planErr != nil {
-			// json output is only supported for plans
-			if jsonOutput == true {
-				c.Ui.Error("Error: JSON output not available for state")
-				return 1
-			}
-			state, stateErr = getStateFromPath(path)
+			stateFile, stateErr = getStateFromPath(path)
 			if stateErr != nil {
 				c.Ui.Error(fmt.Sprintf(
 					"Terraform couldn't read the given file as a state or plan file.\n"+
@@ -128,29 +129,24 @@ func (c *ShowCommand) Run(args []string) int {
 				return 1
 			}
 		}
-	}
-
-	if state == nil {
-		env := c.Workspace()
-		state, stateErr = getStateFromEnv(b, env)
+	} else {
+		env, err := c.Workspace()
 		if err != nil {
-			c.Ui.Error(err.Error())
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		stateFile, stateErr = getStateFromEnv(b, env)
+		if stateErr != nil {
+			c.Ui.Error(stateErr.Error())
 			return 1
 		}
 	}
 
-	// This is an odd-looking check, because it's ok if we have a plan and an
-	// empty state, and we've already validated that any command-line arguments
-	// have been read successfully
-	if plan == nil && state == nil {
-		c.Ui.Output("No state.")
-		return 0
-	}
-
 	if plan != nil {
-		if jsonOutput == true {
+		if jsonOutput {
 			config := ctx.Config()
-			jsonPlan, err := jsonplan.Marshal(config, plan, state, schemas)
+			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
+
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
 				return 1
@@ -158,16 +154,40 @@ func (c *ShowCommand) Run(args []string) int {
 			c.Ui.Output(string(jsonPlan))
 			return 0
 		}
-		dispPlan := format.NewPlan(plan.Changes)
-		c.Ui.Output(dispPlan.Format(c.Colorize()))
+
+		// FIXME: We currently call into the local backend for this, since
+		// the "terraform plan" logic lives there and our package call graph
+		// means we can't orient this dependency the other way around. In
+		// future we'll hopefully be able to refactor the backend architecture
+		// a little so that CLI UI rendering always happens in this "command"
+		// package rather than in the backends themselves, but for now we're
+		// accepting this oddity because "terraform show" is a less commonly
+		// used way to render a plan than "terraform plan" is.
+		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize())
 		return 0
 	}
 
-	c.Ui.Output(format.State(&format.StateOpts{
-		State:   state,
-		Color:   c.Colorize(),
-		Schemas: schemas,
-	}))
+	if jsonOutput {
+		// At this point, it is possible that there is neither state nor a plan.
+		// That's ok, we'll just return an empty object.
+		jsonState, err := jsonstate.Marshal(stateFile, schemas)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
+			return 1
+		}
+		c.Ui.Output(string(jsonState))
+	} else {
+		if stateFile == nil {
+			c.Ui.Output("No state.")
+			return 0
+		}
+		c.Ui.Output(format.State(&format.StateOpts{
+			State:   stateFile.State,
+			Color:   c.Colorize(),
+			Schemas: schemas,
+		}))
+	}
+
 	return 0
 }
 
@@ -181,8 +201,8 @@ Usage: terraform show [options] [path]
 Options:
 
   -no-color           If specified, output won't contain any color.
-  -json				  If specified, output the Terraform plan in a machine-
-						readable form. Only available for plan files.
+  -json               If specified, output the Terraform plan or state in
+                      a machine-readable form.
 
 `
 	return strings.TrimSpace(helpText)
@@ -192,23 +212,25 @@ func (c *ShowCommand) Synopsis() string {
 	return "Inspect Terraform state or plan"
 }
 
-// getPlanFromPath returns a plan if the user-supplied path points to a planfile.
-// If both plan and error are nil, the path is likely a directory.
-// An error could suggest that the given path points to a statefile.
-func getPlanFromPath(path string) (*plans.Plan, error) {
+// getPlanFromPath returns a plan and statefile if the user-supplied path points
+// to a planfile. If both plan and error are nil, the path is likely a
+// directory. An error could suggest that the given path points to a statefile.
+func getPlanFromPath(path string) (*plans.Plan, *statefile.File, error) {
 	pr, err := planfile.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	plan, err := pr.ReadPlan()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return plan, nil
+
+	stateFile, err := pr.ReadStateFile()
+	return plan, stateFile, err
 }
 
-// getStateFromPath returns a State if the user-supplied path points to a statefile.
-func getStateFromPath(path string) (*states.State, error) {
+// getStateFromPath returns a statefile if the user-supplied path points to a statefile.
+func getStateFromPath(path string) (*statefile.File, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading statefile: %s", err)
@@ -220,11 +242,11 @@ func getStateFromPath(path string) (*states.State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s as a statefile: %s", path, err)
 	}
-	return stateFile.State, nil
+	return stateFile, nil
 }
 
 // getStateFromEnv returns the State for the current workspace, if available.
-func getStateFromEnv(b backend.Backend, env string) (*states.State, error) {
+func getStateFromEnv(b backend.Backend, env string) (*statefile.File, error) {
 	// Get the state
 	stateStore, err := b.StateMgr(env)
 	if err != nil {
@@ -235,6 +257,7 @@ func getStateFromEnv(b backend.Backend, env string) (*states.State, error) {
 		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}
 
-	state := stateStore.State()
-	return state, nil
+	sf := statemgr.Export(stateStore)
+
+	return sf, nil
 }

@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -181,7 +180,10 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	log.Printf("[TRACE] backendMigrateState: target backend type %q does not support named workspaces", opts.TwoType)
 
-	currentEnv := m.Workspace()
+	currentEnv, err := m.Workspace()
+	if err != nil {
+		return err
+	}
 
 	migrate := opts.force
 	if !migrate {
@@ -242,7 +244,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		// for a new name and migrate the default state to the given named state.
 		stateTwo, err = func() (statemgr.Full, error) {
 			log.Print("[TRACE] backendMigrateState: target doesn't support a default workspace, so we must prompt for a new name")
-			name, err := m.UIInput().Input(&terraform.InputOpts{
+			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 				Id: "new-state-name",
 				Query: fmt.Sprintf(
 					"[reset][bold][yellow]The %q backend configuration only allows "+
@@ -262,9 +264,12 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 				return nil, err
 			}
 
+			// Ignore invalid workspace name as it is irrelevant in this context.
+			workspace, _ := m.Workspace()
+
 			// If the currently selected workspace is the default workspace, then set
 			// the named workspace as the new selected workspace.
-			if m.Workspace() == backend.DefaultStateName {
+			if workspace == backend.DefaultStateName {
 				if err := m.SetWorkspace(opts.twoEnv); err != nil {
 					return nil, fmt.Errorf("Failed to set new workspace: %s", err)
 				}
@@ -336,7 +341,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		two = stateTwo.State()
 	}
 
-	var confirmFunc func(state.State, state.State, *backendMigrateOpts) (bool, error)
+	var confirmFunc func(statemgr.Full, statemgr.Full, *backendMigrateOpts) (bool, error)
 	switch {
 	// No migration necessary
 	case one.Empty() && two.Empty():
@@ -401,7 +406,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	return nil
 }
 
-func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
+func (m *Meta) backendMigrateEmptyConfirm(one, two statemgr.Full, opts *backendMigrateOpts) (bool, error) {
 	inputOpts := &terraform.InputOpts{
 		Id:    "backend-migrate-copy-to-empty",
 		Query: "Do you want to copy existing state to the new backend?",
@@ -414,7 +419,7 @@ func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMig
 }
 
 func (m *Meta) backendMigrateNonEmptyConfirm(
-	stateOne, stateTwo state.State, opts *backendMigrateOpts) (bool, error) {
+	stateOne, stateTwo statemgr.Full, opts *backendMigrateOpts) (bool, error) {
 	// We need to grab both states so we can write them to a file
 	one := stateOne.State()
 	two := stateTwo.State()

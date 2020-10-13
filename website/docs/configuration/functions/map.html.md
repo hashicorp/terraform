@@ -8,6 +8,10 @@ description: |-
 
 # `map` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 ~> **This function is deprecated.** From Terraform v0.12, the Terraform
 language has built-in syntax for creating maps using the `{` and `}`
 delimiters. Use the built-in syntax instead. The `map` function will be
@@ -23,7 +27,7 @@ are constructed from consecutive pairs of arguments.
 {
   "a" = "b"
   "c" = "d"
-]
+}
 ```
 
 Do not use the above form in Terraform v0.12 or above. Instead, use the
@@ -34,5 +38,9 @@ built-in map construction syntax, which achieves the same result:
 {
   "a" = "b"
   "c" = "d"
-]
+}
 ```
+
+## Related Functions
+
+* [`tomap`](./tomap.html) performs a type conversion to a map type.

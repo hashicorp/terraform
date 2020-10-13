@@ -9,8 +9,8 @@ import (
 	etcdapi "github.com/coreos/etcd/client"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func New() backend.Backend {
@@ -24,7 +24,7 @@ func New() backend.Backend {
 			"endpoints": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "A space-separated list of the etcd endpoints<Paste>",
+				Description: "A space-separated list of the etcd endpoints",
 			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
@@ -83,7 +83,7 @@ func (b *Backend) DeleteWorkspace(string) error {
 	return backend.ErrWorkspacesNotSupported
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	if name != backend.DefaultStateName {
 		return nil, backend.ErrWorkspacesNotSupported
 	}

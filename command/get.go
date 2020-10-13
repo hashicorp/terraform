@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // GetCommand is a Command implementation that takes a Terraform
@@ -16,15 +16,12 @@ type GetCommand struct {
 func (c *GetCommand) Run(args []string) int {
 	var update bool
 
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("get")
 	cmdFlags.BoolVar(&update, "update", false, "update")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -34,13 +31,11 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
-	mode := module.GetModeGet
-	if update {
-		mode = module.GetModeUpdate
-	}
+	path = c.normalizePath(path)
 
-	if err := getModules(&c.Meta, path, mode); err != nil {
-		c.Ui.Error(err.Error())
+	diags := getModules(&c.Meta, path, update)
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
 		return 1
 	}
 
@@ -61,10 +56,10 @@ Usage: terraform get [options] PATH
 
 Options:
 
-  -update=false       If true, modules already downloaded will be checked
-                      for updates and updated if necessary.
+  -update             Check already-downloaded modules for available updates
+                      and install the newest versions available.
 
-  -no-color           If specified, output won't contain any color.
+  -no-color           Disable text coloring in the output.
 
 `
 	return strings.TrimSpace(helpText)
@@ -74,16 +69,10 @@ func (c *GetCommand) Synopsis() string {
 	return "Download and install modules for the configuration"
 }
 
-func getModules(m *Meta, path string, mode module.GetMode) error {
-	mod, err := module.NewTreeModule("", path)
-	if err != nil {
-		return fmt.Errorf("Error loading configuration: %s", err)
+func getModules(m *Meta, path string, upgrade bool) tfdiags.Diagnostics {
+	hooks := uiModuleInstallHooks{
+		Ui:             m.Ui,
+		ShowLocalPaths: true,
 	}
-
-	err = mod.Load(m.moduleStorage(m.DataDir(), mode))
-	if err != nil {
-		return fmt.Errorf("Error loading modules: %s", err)
-	}
-
-	return nil
+	return m.installModules(path, upgrade, hooks)
 }

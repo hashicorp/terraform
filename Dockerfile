@@ -11,14 +11,14 @@
 FROM golang:alpine
 LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
 
-RUN apk add --update git bash openssh
+RUN apk add --no-cache git bash openssh
 
 ENV TF_DEV=true
 ENV TF_RELEASE=1
 
 WORKDIR $GOPATH/src/github.com/hashicorp/terraform
 COPY . .
-RUN /bin/bash scripts/build.sh
+RUN /bin/bash ./scripts/build.sh
 
 WORKDIR $GOPATH
 ENTRYPOINT ["terraform"]

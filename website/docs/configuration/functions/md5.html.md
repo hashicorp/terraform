@@ -9,6 +9,10 @@ description: |-
 
 # `md5` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `md5` computes the MD5 hash of a given string and encodes it with
 hexadecimal digits.
 
@@ -26,3 +30,8 @@ considerations applying to the MD5 algorithm.
 > md5("hello world")
 5eb63bbbe01eeed093cb22bb8f5acdc3
 ```
+
+## Related Functions
+
+* [`filemd5`](./filemd5.html) calculates the same hash from
+  the contents of a file rather than from a string value.

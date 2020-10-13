@@ -8,6 +8,10 @@ description: |-
 
 # `slice` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `slice` extracts some consecutive elements from within a list.
 
 ```hcl

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Config represents the complete configuration source
@@ -23,24 +25,39 @@ type config struct {
 // provider configurations are the one concept in Terraform that can span across
 // module boundaries.
 type providerConfig struct {
-	Name          string                 `json:"name,omitempty"`
-	Alias         string                 `json:"alias,omitempty"`
-	ModuleAddress string                 `json:"module_address,omitempty"`
-	Expressions   map[string]interface{} `json:"expressions,omitempty"`
+	Name              string                 `json:"name,omitempty"`
+	Alias             string                 `json:"alias,omitempty"`
+	VersionConstraint string                 `json:"version_constraint,omitempty"`
+	ModuleAddress     string                 `json:"module_address,omitempty"`
+	Expressions       map[string]interface{} `json:"expressions,omitempty"`
 }
 
 type module struct {
-	Outputs     map[string]configOutput `json:"outputs,omitempty"`
-	Resources   []resource              `json:"resources,omitempty"`
-	ModuleCalls []moduleCall            `json:"module_calls,omitempty"`
+	Outputs map[string]output `json:"outputs,omitempty"`
+	// Resources are sorted in a user-friendly order that is undefined at this
+	// time, but consistent.
+	Resources   []resource            `json:"resources,omitempty"`
+	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
+	Variables   variables             `json:"variables,omitempty"`
 }
 
 type moduleCall struct {
-	ResolvedSource    string                 `json:"resolved_source,omitempty"`
+	Source            string                 `json:"source,omitempty"`
 	Expressions       map[string]interface{} `json:"expressions,omitempty"`
-	CountExpression   expression             `json:"count_expression,omitempty"`
-	ForEachExpression expression             `json:"for_each_expression,omitempty"`
+	CountExpression   *expression            `json:"count_expression,omitempty"`
+	ForEachExpression *expression            `json:"for_each_expression,omitempty"`
 	Module            module                 `json:"module,omitempty"`
+	VersionConstraint string                 `json:"version_constraint,omitempty"`
+	DependsOn         []string               `json:"depends_on,omitempty"`
+}
+
+// variables is the JSON representation of the variables provided to the current
+// plan.
+type variables map[string]*variable
+
+type variable struct {
+	Default     json.RawMessage `json:"default,omitempty"`
+	Description string          `json:"description,omitempty"`
 }
 
 // Resource is the representation of a resource in the config
@@ -56,6 +73,10 @@ type resource struct {
 
 	// ProviderConfigKey is the key into "provider_configs" (shown above) for
 	// the provider configuration that this resource is associated with.
+	//
+	// NOTE: If a given resource is in a ModuleCall, and the provider was
+	// configured outside of the module (in a higher level configuration file),
+	// the ProviderConfigKey will not match a key in the ProviderConfigs map.
 	ProviderConfigKey string `json:"provider_config_key,omitempty"`
 
 	// Provisioners is an optional field which describes any provisioners.
@@ -73,17 +94,21 @@ type resource struct {
 	// CountExpression and ForEachExpression describe the expressions given for
 	// the corresponding meta-arguments in the resource configuration block.
 	// These are omitted if the corresponding argument isn't set.
-	CountExpression   expression `json:"count_expression,omitempty"`
-	ForEachExpression expression `json:"for_each_expression,omitempty"`
+	CountExpression   *expression `json:"count_expression,omitempty"`
+	ForEachExpression *expression `json:"for_each_expression,omitempty"`
+
+	DependsOn []string `json:"depends_on,omitempty"`
 }
 
-type configOutput struct {
-	Sensitive  bool       `json:"sensitive,omitempty"`
-	Expression expression `json:"expression,omitempty"`
+type output struct {
+	Sensitive   bool       `json:"sensitive,omitempty"`
+	Expression  expression `json:"expression,omitempty"`
+	DependsOn   []string   `json:"depends_on,omitempty"`
+	Description string     `json:"description,omitempty"`
 }
 
 type provisioner struct {
-	Name        string                 `json:"name,omitempty"`
+	Type        string                 `json:"type,omitempty"`
 	Expressions map[string]interface{} `json:"expressions,omitempty"`
 }
 
@@ -95,7 +120,7 @@ func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
 	marshalProviderConfigs(c, schemas, pcs)
 	output.ProviderConfigs = pcs
 
-	rootModule, err := marshalModule(c, schemas)
+	rootModule, err := marshalModule(c, schemas, "")
 	if err != nil {
 		return nil, err
 	}
@@ -114,14 +139,19 @@ func marshalProviderConfigs(
 		return
 	}
 
-	for _, pc := range c.Module.ProviderConfigs {
-		schema := schemas.ProviderConfig(pc.Name)
-		m[pc.Name] = providerConfig{
-			Name:          pc.Name,
-			Alias:         pc.Alias,
-			ModuleAddress: c.Path.String(),
-			Expressions:   marshalExpressions(pc.Config, schema),
+	for k, pc := range c.Module.ProviderConfigs {
+		providerFqn := c.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: pc.Name})
+		schema := schemas.ProviderConfig(providerFqn)
+		p := providerConfig{
+			Name:              pc.Name,
+			Alias:             pc.Alias,
+			ModuleAddress:     c.Path.String(),
+			Expressions:       marshalExpressions(pc.Config, schema),
+			VersionConstraint: pc.Version.Required.String(),
 		}
+		absPC := opaqueProviderKey(k, c.Path.String())
+
+		m[absPC] = p
 	}
 
 	// Must also visit our child modules, recursively.
@@ -130,15 +160,15 @@ func marshalProviderConfigs(
 	}
 }
 
-func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error) {
+func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (module, error) {
 	var module module
 	var rs []resource
 
-	managedResources, err := marshalResources(c.Module.ManagedResources, schemas)
+	managedResources, err := marshalResources(c.Module.ManagedResources, schemas, addr)
 	if err != nil {
 		return module, err
 	}
-	dataResources, err := marshalResources(c.Module.DataResources, schemas)
+	dataResources, err := marshalResources(c.Module.DataResources, schemas, addr)
 	if err != nil {
 		return module, err
 	}
@@ -146,63 +176,126 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas) (module, error
 	rs = append(managedResources, dataResources...)
 	module.Resources = rs
 
-	outputs := make(map[string]configOutput)
+	outputs := make(map[string]output)
 	for _, v := range c.Module.Outputs {
-		outputs[v.Name] = configOutput{
+		o := output{
 			Sensitive:  v.Sensitive,
 			Expression: marshalExpression(v.Expr),
 		}
+		if v.Description != "" {
+			o.Description = v.Description
+		}
+		if len(v.DependsOn) > 0 {
+			dependencies := make([]string, len(v.DependsOn))
+			for i, d := range v.DependsOn {
+				ref, diags := addrs.ParseRef(d)
+				// we should not get an error here, because `terraform validate`
+				// would have complained well before this point, but if we do we'll
+				// silenty skip it.
+				if !diags.HasErrors() {
+					dependencies[i] = ref.Subject.String()
+				}
+			}
+			o.DependsOn = dependencies
+		}
+
+		outputs[v.Name] = o
 	}
 	module.Outputs = outputs
+
 	module.ModuleCalls = marshalModuleCalls(c, schemas)
+
+	if len(c.Module.Variables) > 0 {
+		vars := make(variables, len(c.Module.Variables))
+		for k, v := range c.Module.Variables {
+			var defaultValJSON []byte
+			if v.Default == cty.NilVal {
+				defaultValJSON = nil
+			} else {
+				defaultValJSON, err = ctyjson.Marshal(v.Default, v.Default.Type())
+				if err != nil {
+					return module, err
+				}
+			}
+			vars[k] = &variable{
+				Default:     defaultValJSON,
+				Description: v.Description,
+			}
+		}
+		module.Variables = vars
+	}
+
 	return module, nil
 }
 
-func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) []moduleCall {
-	var ret []moduleCall
-	for _, v := range c.Module.ModuleCalls {
-		mc := moduleCall{
-			ResolvedSource: v.SourceAddr,
-		}
-		cExp := marshalExpression(v.Count)
-		if !cExp.Empty() {
-			mc.CountExpression = cExp
-		} else {
-			fExp := marshalExpression(v.ForEach)
-			if !fExp.Empty() {
-				mc.ForEachExpression = fExp
-			}
-		}
+func marshalModuleCalls(c *configs.Config, schemas *terraform.Schemas) map[string]moduleCall {
+	ret := make(map[string]moduleCall)
 
-		schema := &configschema.Block{}
-		schema.Attributes = make(map[string]*configschema.Attribute)
-		for _, variable := range c.Module.Variables {
-			schema.Attributes[variable.Name] = &configschema.Attribute{
-				Required: variable.Default == cty.NilVal,
-			}
-		}
-		mc.Expressions = marshalExpressions(v.Config, schema)
-
-		for _, cc := range c.Children {
-			childModule, _ := marshalModule(cc, schemas)
-			mc.Module = childModule
-		}
-		ret = append(ret, mc)
-
+	for name, mc := range c.Module.ModuleCalls {
+		mcConfig := c.Children[name]
+		ret[name] = marshalModuleCall(mcConfig, mc, schemas)
 	}
 
 	return ret
-
 }
 
-func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas) ([]resource, error) {
+func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terraform.Schemas) moduleCall {
+	// It is possible to have a module call with a nil config.
+	if c == nil {
+		return moduleCall{}
+	}
+
+	ret := moduleCall{
+		Source:            mc.SourceAddr,
+		VersionConstraint: mc.Version.Required.String(),
+	}
+	cExp := marshalExpression(mc.Count)
+	if !cExp.Empty() {
+		ret.CountExpression = &cExp
+	} else {
+		fExp := marshalExpression(mc.ForEach)
+		if !fExp.Empty() {
+			ret.ForEachExpression = &fExp
+		}
+	}
+
+	schema := &configschema.Block{}
+	schema.Attributes = make(map[string]*configschema.Attribute)
+	for _, variable := range c.Module.Variables {
+		schema.Attributes[variable.Name] = &configschema.Attribute{
+			Required: variable.Default == cty.NilVal,
+		}
+	}
+
+	ret.Expressions = marshalExpressions(mc.Config, schema)
+	module, _ := marshalModule(c, schemas, mc.Name)
+	ret.Module = module
+
+	if len(mc.DependsOn) > 0 {
+		dependencies := make([]string, len(mc.DependsOn))
+		for i, d := range mc.DependsOn {
+			ref, diags := addrs.ParseRef(d)
+			// we should not get an error here, because `terraform validate`
+			// would have complained well before this point, but if we do we'll
+			// silenty skip it.
+			if !diags.HasErrors() {
+				dependencies[i] = ref.Subject.String()
+			}
+		}
+		ret.DependsOn = dependencies
+	}
+
+	return ret
+}
+
+func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
 		r := resource{
 			Address:           v.Addr().String(),
 			Type:              v.Type,
 			Name:              v.Name,
-			ProviderConfigKey: v.ProviderConfigAddr().String(),
+			ProviderConfigKey: opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr),
 		}
 
 		switch v.Mode {
@@ -216,16 +309,23 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 
 		cExp := marshalExpression(v.Count)
 		if !cExp.Empty() {
-			r.CountExpression = cExp
+			r.CountExpression = &cExp
 		} else {
 			fExp := marshalExpression(v.ForEach)
 			if !fExp.Empty() {
-				r.ForEachExpression = fExp
+				r.ForEachExpression = &fExp
 			}
 		}
 
-		schema, schemaVersion := schemas.ResourceTypeConfig(v.ProviderConfigAddr().String(), v.Mode, v.Type)
-		r.SchemaVersion = schemaVersion
+		schema, schemaVer := schemas.ResourceTypeConfig(
+			v.Provider,
+			v.Mode,
+			v.Type,
+		)
+		if schema == nil {
+			return nil, fmt.Errorf("no schema found for %s (in provider %s)", v.Addr().String(), v.Provider)
+		}
+		r.SchemaVersion = schemaVer
 
 		r.Expressions = marshalExpressions(v.Config, schema)
 
@@ -235,12 +335,26 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			for _, p := range v.Managed.Provisioners {
 				schema := schemas.ProvisionerConfig(p.Type)
 				prov := provisioner{
-					Name:        p.Type,
+					Type:        p.Type,
 					Expressions: marshalExpressions(p.Config, schema),
 				}
 				provisioners = append(provisioners, prov)
 			}
 			r.Provisioners = provisioners
+		}
+
+		if len(v.DependsOn) > 0 {
+			dependencies := make([]string, len(v.DependsOn))
+			for i, d := range v.DependsOn {
+				ref, diags := addrs.ParseRef(d)
+				// we should not get an error here, because `terraform validate`
+				// would have complained well before this point, but if we do we'll
+				// silenty skip it.
+				if !diags.HasErrors() {
+					dependencies[i] = ref.Subject.String()
+				}
+			}
+			r.DependsOn = dependencies
 		}
 
 		rs = append(rs, r)
@@ -249,4 +363,14 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		return rs[i].Address < rs[j].Address
 	})
 	return rs, nil
+}
+
+// opaqueProviderKey generates a unique absProviderConfig-like string from the module
+// address and provider
+func opaqueProviderKey(provider string, addr string) (key string) {
+	key = provider
+	if addr != "" {
+		key = fmt.Sprintf("%s:%s", addr, provider)
+	}
+	return key
 }

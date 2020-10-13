@@ -9,6 +9,10 @@ description: |-
 
 # Expressions
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../configuration-0-11/interpolation.html).
+
 _Expressions_ are used to refer to or compute values within a configuration.
 The simplest expressions are just literal values, like `"hello"` or `5`,
 but the Terraform language also allows more complex expressions such as
@@ -18,8 +22,8 @@ and a number of built-in functions.
 Expressions can be used in a number of places in the Terraform language,
 but some contexts limit which expression constructs are allowed,
 such as requiring a literal value of a particular type or forbidding
-references to resource attributes. Each language feature's documentation
-describes any restrictions it places on expressions.
+[references to resource attributes](/docs/configuration/expressions.html#references-to-resource-attributes).
+Each language feature's documentation describes any restrictions it places on expressions.
 
 You can experiment with the behavior of Terraform's expressions from
 the Terraform expression console, by running
@@ -166,6 +170,12 @@ The following named values are available:
 
     If the resource has the `count` argument set, the value of this expression
     is a _list_ of objects representing its instances.
+
+    If the resource has the `for_each` argument set, the value of this expression
+    is a _map_ of objects representing its instances.
+
+    For more information, see
+    [references to resource attributes](#references-to-resource-attributes) below.
 * `var.<NAME>` is the value of the
   [input variable](./variables.html) of the given name.
 * `local.<NAME>` is the value of the
@@ -176,7 +186,8 @@ The following named values are available:
 * `data.<DATA TYPE>.<NAME>` is an object representing a
   [data resource](./data-sources.html) of the given data
   source type and name. If the resource has the `count` argument set, the value
-  is a list of objects representing its instances.
+  is a list of objects representing its instances. If the resource has the `for_each`
+  argument set, the value is a map of objects representing its instances.
 * `path.module` is the filesystem path of the module where the expression
   is placed.
 * `path.root` is the filesystem path of the root module of the configuration.
@@ -194,6 +205,25 @@ you cannot use square-bracket notation to replace the dot-separated paths, and
 you cannot iterate over the "parent object" of a named entity (for example, you
 cannot use `aws_instance` in a `for` expression).
 
+### Local Named Values
+
+Within the bodies of certain expressions, or in some other specific contexts,
+there are other named values available beyond the global values listed above.
+These local names are described in the documentation for the specific contexts
+where they appear. Some of most common local names are:
+
+- `count.index`, in resources that use
+  [the `count` meta-argument](./resources.html#count-multiple-resource-instances-by-count).
+- `each.key` / `each.value`, in resources that use
+  [the `for_each` meta-argument](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings).
+- `self`, in [provisioner](../provisioners/index.html) and
+  [connection](../provisioners/connection.html) blocks.
+
+-> **Note:** Local names are often referred to as _variables_ or
+_temporary variables_ in their documentation. These are not [input
+variables](./variables.html); they are just arbitrary names
+that temporarily represent a value.
+
 ### Named Values and Dependencies
 
 Constructs like resources and module calls often use references to named values
@@ -201,6 +231,95 @@ in their block bodies, and Terraform analyzes these expressions to automatically
 infer dependencies between objects. For example, an expression in a resource
 argument that refers to another managed resource creates an implicit dependency
 between the two resources.
+
+### References to Resource Attributes
+
+The most common reference type is a reference to an attribute of a resource
+which has been declared either with a `resource` or `data` block. Because
+the contents of such blocks can be quite complicated themselves, expressions
+referring to these contents can also be complicated.
+
+Consider the following example resource block:
+
+```hcl
+resource "aws_instance" "example" {
+  ami           = "ami-abc123"
+  instance_type = "t2.micro"
+
+  ebs_block_device {
+    device_name = "sda2"
+    volume_size = 16
+  }
+  ebs_block_device {
+    device_name = "sda3"
+    volume_size = 20
+  }
+}
+```
+
+The documentation for [`aws_instance`](/docs/providers/aws/r/instance.html)
+lists all of the arguments and nested blocks supported for this resource type,
+and also lists a number of attributes that are _exported_ by this resource
+type. All of these different resource type schema constructs are available
+for use in references, as follows:
+
+* The `ami` argument set in the configuration can be used elsewhere with
+  the reference expression `aws_instance.example.ami`.
+* The `id` attribute exported by this resource type can be read using the
+  same syntax, giving `aws_instance.example.id`.
+* The arguments of the `ebs_block_device` nested blocks can be accessed using
+  a [splat expression](#splat-expressions). For example, to obtain a list of
+  all of the `device_name` values, use
+  `aws_instance.example.ebs_block_device[*].device_name`.
+* The nested blocks in this particular resource type do not have any exported
+  attributes, but if `ebs_block_device` were to have a documented `id`
+  attribute then a list of them could be accessed similarly as
+  `aws_instance.example.ebs_block_device[*].id`.
+* Sometimes nested blocks are defined as taking a logical key to identify each
+  block, which serves a similar purpose as the resource's own name by providing
+  a convenient way to refer to that single block in expressions. If `aws_instance`
+  had a hypothetical nested block type `device` that accepted such a key, it
+  would look like this in configuration:
+
+  ```hcl
+    device "foo" {
+      size = 2
+    }
+    device "bar" {
+      size = 4
+    }
+  ```
+
+  Arguments inside blocks with _keys_ can be accessed using index syntax, such
+  as `aws_instance.example.device["foo"].size`.
+
+  To obtain a map of values of a particular argument for _labelled_ nested
+  block types, use a [`for` expression](#for-expressions):
+  `{for k, device in aws_instance.example.device : k => device.size}`.
+
+When a resource has the
+[`count`](https://www.terraform.io/docs/configuration/resources.html#count-multiple-resource-instances-by-count)
+argument set, the resource itself becomes a _list_ of instance objects rather than
+a single object. In that case, access the attributes of the instances using
+either [splat expressions](#splat-expressions) or index syntax:
+
+* `aws_instance.example[*].id` returns a list of all of the ids of each of the
+  instances.
+* `aws_instance.example[0].id` returns just the id of the first instance.
+
+When a resource has the
+[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+argument set, the resource itself becomes a _map_ of instance objects rather than
+a single object, and attributes of instances must be specified by key, or can
+be accessed using a [`for` expression](#for-expressions).
+
+* `aws_instance.example["a"].id` returns the id of the "a"-keyed resource.
+* `[for value in aws_instance.example: value.id]` returns a list of all of the ids
+  of each of the instances.
+
+Note that unlike `count`, splat expressions are _not_ directly applicable to resources managed with `for_each`, as splat expressions are for lists only. You may apply a splat expression to values in a map like so:
+
+* `values(aws_instance.example)[*].id`
 
 ### Local Named Values
 
@@ -300,7 +419,7 @@ as results:
 
 * `a + b` returns the result of adding `a` and `b` together.
 * `a - b` returns the result of subtracting `b` from `a`.
-* `a * b` returns the result of multiplying `b` and `b`.
+* `a * b` returns the result of multiplying `a` and `b`.
 * `a / b` returns the result of dividing `a` by `b`.
 * `a % b` returns the remainder of dividing `a` by `b`. This operator is
   generally useful only when used with whole numbers.
@@ -324,7 +443,7 @@ as results.
 * `a <= b` returns `true` if `a` is less than or equal to `b`, or `false`
   otherwise.
 * `a > b` returns `true` if `a` is greater than `b`, or `false` otherwise.
-* `a >= b` returns `true` if `a` is greater than or equal to `b`, or `false otherwise.
+* `a >= b` returns `true` if `a` is greater than or equal to `b`, or `false` otherwise.
 
 ### Logical Operators
 
@@ -415,7 +534,7 @@ For example, if `var.list` is a list of strings, then the following expression
 produces a list of strings with all-uppercase letters:
 
 ```hcl
-[for s in var.list: upper(s)]
+[for s in var.list : upper(s)]
 ```
 
 This `for` expression iterates over each element of `var.list`, and then
@@ -429,7 +548,7 @@ it produces. The above example uses `[` and `]`, which produces a tuple. If
 expressions must be provided separated by the `=>` symbol:
 
 ```hcl
-{for s in var.list: s => upper(s)}
+{for s in var.list : s => upper(s)}
 ```
 
 This expression produces an object whose attributes are the original elements
@@ -440,7 +559,7 @@ from the source collection, which can produce a value with fewer elements than
 the source:
 
 ```
-[for s in var.list: upper(s) if s != ""]
+[for s in var.list : upper(s) if s != ""]
 ```
 
 The source value can also be an object or map value, in which case two
@@ -448,7 +567,7 @@ temporary variable names can be provided to access the keys and values
 respectively:
 
 ```
-[for k, v in var.map: length(k) + length(v)]
+[for k, v in var.map : length(k) + length(v)]
 ```
 
 Finally, if the result type is an object (using `{` and `}` delimiters) then
@@ -456,8 +575,19 @@ the value result expression can be followed by the `...` symbol to group
 together results that have a common key:
 
 ```
-{for s in var.list: substr(s, 0, 1) => s... if s != ""}
+{for s in var.list : substr(s, 0, 1) => s... if s != ""}
 ```
+
+For expressions are particularly useful when combined with other language
+features to combine collections together in various ways. For example,
+the following two patterns are commonly used when constructing map values
+to use with [resource `for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+
+* Transform a multi-level nested structure into a flat list by
+  [using nested `for` expressions with the `flatten` function](./functions/flatten.html#flattening-nested-structures-for-for_each).
+* Produce an exhaustive list of combinations of elements from two or more
+  collections by
+  [using the `setproduct` function inside a `for` expression](./functions/setproduct.html#finding-combinations-for-for_each).
 
 ## Splat Expressions
 
@@ -468,7 +598,7 @@ If `var.list` is a list of objects that all have an attribute `id`, then
 a list of the ids could be produced with the following `for` expression:
 
 ```hcl
-[for o in var.list: o.id]
+[for o in var.list : o.id]
 ```
 
 This is equivalent to the following _splat expression:_
@@ -490,14 +620,17 @@ var.list[*].interfaces[0].name
 The above expression is equivalent to the following `for` expression:
 
 ```hcl
-[for o in var.list: o.interfaces[0].name]
+[for o in var.list : o.interfaces[0].name]
 ```
 
-Splat expressions also have another useful effect: if they are applied to
-a value that is _not_ a list or tuple then the value is automatically wrapped
-in a single-element list before processing. That is, `var.single_object[*].id`
-is equivalent to `[var.single_object][*].id`, or effectively
-`[var.single_object.id]`. This behavior is not interesting in most cases,
+Splat expressions are for lists only (and thus cannot be used [to reference resources
+created with `for_each`](/docs/configuration/resources.html#referring-to-instances-1),
+which are represented as maps in Terraform). However, if a splat expression is applied 
+to a value that is _not_ a list or tuple then the value is automatically wrapped in 
+a single-element list before processing.
+
+For example, `var.single_object[*].id` is equivalent to `[var.single_object][*].id`, 
+or effectively `[var.single_object.id]`. This behavior is not interesting in most cases,
 but it is particularly useful when referring to resources that may or may
 not have `count` set, and thus may or may not produce a tuple value:
 
@@ -527,7 +660,7 @@ This form has a subtly different behavior, equivalent to the following
 `for` expression:
 
 ```
-[for o in var.list: o.interfaces][0].name
+[for o in var.list : o.interfaces][0].name
 ```
 
 Notice that with the attribute-only splat expression the index operation
@@ -542,29 +675,31 @@ form. This covers many uses, but some resource types include repeatable _nested
 blocks_ in their arguments, which do not accept expressions:
 
 ```hcl
-resource "aws_security_group" "example" {
-  name = "example" # can use expressions here
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name = "tf-test-name" # can use expressions here
 
-  ingress {
-    # but the "ingress" block is always a literal block
+  setting {
+    # but the "setting" block is always a literal block
   }
 }
 ```
 
-You can dynamically construct repeatable nested blocks like `ingress` using a
+You can dynamically construct repeatable nested blocks like `setting` using a
 special `dynamic` block type, which is supported inside `resource`, `data`,
 `provider`, and `provisioner` blocks:
 
 ```hcl
-resource "aws_security_group" "example" {
-  name = "example" # can use expressions here
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux 2018.03 v2.11.4 running Go 1.12.6"
 
-  dynamic "ingress" {
-    for_each = var.service_ports
+  dynamic "setting" {
+    for_each = var.settings
     content {
-      from_port = ingress.value
-      to_port   = ingress.value
-      protocol  = "tcp"
+      namespace = setting.value["namespace"]
+      name = setting.value["name"]
+      value = setting.value["value"]
     }
   }
 }
@@ -574,12 +709,12 @@ A `dynamic` block acts much like a `for` expression, but produces nested blocks
 instead of a complex typed value. It iterates over a given complex value, and
 generates a nested block for each element of that complex value.
 
-- The label of the dynamic block (`"ingress"` in the example above) specifies
+- The label of the dynamic block (`"setting"` in the example above) specifies
   what kind of nested block to generate.
 - The `for_each` argument provides the complex value to iterate over.
 - The `iterator` argument (optional) sets the name of a temporary variable
   that represents the current element of the complex value. If omitted, the name
-  of the variable defaults to the label of the `dynamic` block (`"ingress"` in
+  of the variable defaults to the label of the `dynamic` block (`"setting"` in
   the example above).
 - The `labels` argument (optional) is a list of strings that specifies the block
   labels, in order, to use for each generated block. You can use the temporary
@@ -591,11 +726,28 @@ Since the `for_each` argument accepts any collection or structural value,
 you can use a `for` expression or splat expression to transform an existing
 collection.
 
+The iterator object (`setting` in the example above) has two attributes:
+
+* `key` is the map key or list element index for the current element. If the
+  `for_each` expression produces a _set_ value then `key` is identical to
+  `value` and should not be used.
+* `value` is the value of the current element.
+
 A `dynamic` block can only generate arguments that belong to the resource type,
 data source, provider or provisioner being configured. It is _not_ possible
 to generate meta-argument blocks such as `lifecycle` and `provisioner`
 blocks, since Terraform must process these before it is safe to evaluate
 expressions.
+
+The `for_each` value must be a map or set with one element per desired
+nested block. If you need to declare resource instances based on a nested
+data structure or combinations of elements from multiple data structures you
+can use Terraform expressions and functions to derive a suitable value.
+For some common examples of such situations, see the
+[`flatten`](/docs/configuration/functions/flatten.html)
+and
+[`setproduct`](/docs/configuration/functions/setproduct.html)
+functions.
 
 ### Best Practices for `dynamic` Blocks
 
@@ -619,7 +771,7 @@ sequence, with the following characters selecting the escape behavior:
 | `\"`         | Literal quote (without terminating the string)                                |
 | `\\`         | Literal backslash                                                             |
 | `\uNNNN`     | Unicode character from the basic multilingual plane (NNNN is four hex digits) |
-| `\UNNNNNNNN` | Unicode character from supplimentary planes (NNNNNNNN is eight hex digits)    |
+| `\UNNNNNNNN` | Unicode character from supplementary planes (NNNNNNNN is eight hex digits)    |
 
 The alternative syntax for string literals is the so-called "heredoc" style,
 inspired by Unix shell languages. This style allows multi-line strings to
@@ -637,7 +789,7 @@ The `<<` marker followed by any identifier at the end of a line introduces the
 sequence. Terraform then processes the following lines until it finds one that
 consists entirely of the identifier given in the introducer. In the above
 example, `EOT` is the identifier selected. Any identifier is allowed, but
-conventionally this identifier is in all-uppercase and beings with `EO`, meaning
+conventionally this identifier is in all-uppercase and begins with `EO`, meaning
 "end of". `EOT` in this case stands for "end of text".
 
 The "heredoc" form shown above requires that the lines following be flush with

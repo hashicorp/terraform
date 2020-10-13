@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func New() backend.Backend {
@@ -20,44 +22,49 @@ func New() backend.Backend {
 			"address": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_ADDRESS", nil),
 				Description: "The address of the REST endpoint",
 			},
 			"update_method": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "POST",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_UPDATE_METHOD", "POST"),
 				Description: "HTTP method to use when updating state",
 			},
 			"lock_address": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_LOCK_ADDRESS", nil),
 				Description: "The address of the lock REST endpoint",
 			},
 			"unlock_address": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_UNLOCK_ADDRESS", nil),
 				Description: "The address of the unlock REST endpoint",
 			},
 			"lock_method": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "LOCK",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_LOCK_METHOD", "LOCK"),
 				Description: "The HTTP method to use when locking",
 			},
 			"unlock_method": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "UNLOCK",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_UNLOCK_METHOD", "UNLOCK"),
 				Description: "The HTTP method to use when unlocking",
 			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_USERNAME", nil),
 				Description: "The username for HTTP basic authentication",
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_PASSWORD", nil),
 				Description: "The password for HTTP basic authentication",
 			},
 			"skip_cert_verification": &schema.Schema{
@@ -65,6 +72,24 @@ func New() backend.Backend {
 				Optional:    true,
 				Default:     false,
 				Description: "Whether to skip TLS verification.",
+			},
+			"retry_max": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_RETRY_MAX", 2),
+				Description: "The number of HTTP request retries.",
+			},
+			"retry_wait_min": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_RETRY_WAIT_MIN", 1),
+				Description: "The minimum time in seconds to wait between HTTP request attempts.",
+			},
+			"retry_wait_max": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_RETRY_WAIT_MAX", 30),
+				Description: "The maximum time in seconds to wait between HTTP request attempts.",
 			},
 		},
 	}
@@ -131,6 +156,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
+	rClient := retryablehttp.NewClient()
+	rClient.HTTPClient = client
+	rClient.RetryMax = data.Get("retry_max").(int)
+	rClient.RetryWaitMin = time.Duration(data.Get("retry_wait_min").(int)) * time.Second
+	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
+
 	b.client = &httpClient{
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
@@ -144,12 +175,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		Password: data.Get("password").(string),
 
 		// accessible only for testing use
-		Client: client,
+		Client: rClient,
 	}
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	if name != backend.DefaultStateName {
 		return nil, backend.ErrWorkspacesNotSupported
 	}

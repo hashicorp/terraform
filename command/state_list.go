@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -16,18 +18,20 @@ type StateListCommand struct {
 }
 
 func (c *StateListCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
+	var statePath string
 	cmdFlags := c.Meta.defaultFlagSet("state list")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
+	cmdFlags.StringVar(&statePath, "state", "", "path")
 	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
+
+	if statePath != "" {
+		c.Meta.statePath = statePath
+	}
 
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
@@ -37,14 +41,18 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
@@ -54,49 +62,61 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
-	filter := &states.Filter{State: state}
-	results, err := filter.Filter(args...)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateFilter, err))
-		return cli.RunResultHelp
+	var addrs []addrs.AbsResourceInstance
+	var diags tfdiags.Diagnostics
+	if len(args) == 0 {
+		addrs, diags = c.lookupAllResourceInstanceAddrs(state)
+	} else {
+		addrs, diags = c.lookupResourceInstanceAddrs(state, args...)
+	}
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
-	for _, result := range results {
-		if is, ok := result.Value.(*states.ResourceInstance); ok {
+	for _, addr := range addrs {
+		if is := state.ResourceInstance(addr); is != nil {
 			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
-				c.Ui.Output(result.Address.String())
+				c.Ui.Output(addr.String())
 			}
 		}
 	}
+
+	c.showDiagnostics(diags)
 
 	return 0
 }
 
 func (c *StateListCommand) Help() string {
 	helpText := `
-Usage: terraform state list [options] [pattern...]
+Usage: terraform state list [options] [address...]
 
   List resources in the Terraform state.
 
-  This command lists resources in the Terraform state. The pattern argument
-  can be used to filter the resources by resource or module. If no pattern
-  is given, all resources are listed.
+  This command lists resource instances in the Terraform state. The address
+  argument can be used to filter the instances by resource or module. If
+  no pattern is given, all resource instances are listed.
 
-  The pattern argument is meant to provide very simple filtering. For
-  advanced filtering, please use tools such as "grep". The output of this
-  command is designed to be friendly for this usage.
+  The addresses must either be module addresses or absolute resource
+  addresses, such as:
+      aws_instance.example
+      module.example
+      module.example.module.child
+      module.example.aws_instance.example
 
-  The pattern argument accepts any resource targeting syntax. Please
-  refer to the documentation on resource targeting syntax for more
-  information.
+  An error will be returned if any of the resources or modules given as
+  filter addresses do not exist in the state.
 
 Options:
 
   -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default it will
-                      use the state "terraform.tfstate" if it exists.
+                      up Terraform-managed resources. By default, Terraform
+                      will consult the state of the currently-selected
+                      workspace.
 
-  -id=ID              Restricts the output to objects whose id is ID.
+  -id=ID              Filters the results to include only instances whose
+                      resource types have an attribute named "id" whose value
+                      equals the given id string.
 
 `
 	return strings.TrimSpace(helpText)
@@ -105,10 +125,6 @@ Options:
 func (c *StateListCommand) Synopsis() string {
 	return "List resources in the state"
 }
-
-const errStateFilter = `Error filtering state: %[1]s
-
-Please ensure that all your addresses are formatted properly.`
 
 const errStateLoadingState = `Error loading the state: %[1]s
 

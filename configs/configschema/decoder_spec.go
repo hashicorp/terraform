@@ -1,7 +1,7 @@
 package configschema
 
 import (
-	"github.com/hashicorp/hcl2/hcldec"
+	"github.com/hashicorp/hcl/v2/hcldec"
 )
 
 var mapLabelNames = []string{"key"}
@@ -19,11 +19,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	for name, attrS := range b.Attributes {
-		ret[name] = &hcldec.AttrSpec{
-			Name:     name,
-			Type:     attrS.Type,
-			Required: attrS.Required,
-		}
+		ret[name] = attrS.decoderSpec(name)
 	}
 
 	for name, blockS := range b.BlockTypes {
@@ -37,12 +33,29 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 
 		childSpec := blockS.Block.DecoderSpec()
 
+		// We can only validate 0 or 1 for MinItems, because a dynamic block
+		// may satisfy any number of min items while only having a single
+		// block in the config. We cannot validate MaxItems because a
+		// configuration may have any number of dynamic blocks
+		minItems := 0
+		if blockS.MinItems > 1 {
+			minItems = 1
+		}
+
 		switch blockS.Nesting {
-		case NestingSingle:
+		case NestingSingle, NestingGroup:
 			ret[name] = &hcldec.BlockSpec{
 				TypeName: name,
 				Nested:   childSpec,
-				Required: blockS.MinItems == 1 && blockS.MaxItems >= 1,
+				Required: blockS.MinItems == 1,
+			}
+			if blockS.Nesting == NestingGroup {
+				ret[name] = &hcldec.DefaultSpec{
+					Primary: ret[name],
+					Default: &hcldec.LiteralSpec{
+						Value: blockS.EmptyValue(),
+					},
+				}
 			}
 		case NestingList:
 			// We prefer to use a list where possible, since it makes our
@@ -53,15 +66,13 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 				ret[name] = &hcldec.BlockTupleSpec{
 					TypeName: name,
 					Nested:   childSpec,
-					MinItems: blockS.MinItems,
-					MaxItems: blockS.MaxItems,
+					MinItems: minItems,
 				}
 			} else {
 				ret[name] = &hcldec.BlockListSpec{
 					TypeName: name,
 					Nested:   childSpec,
-					MinItems: blockS.MinItems,
-					MaxItems: blockS.MaxItems,
+					MinItems: minItems,
 				}
 			}
 		case NestingSet:
@@ -73,8 +84,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			ret[name] = &hcldec.BlockSetSpec{
 				TypeName: name,
 				Nested:   childSpec,
-				MinItems: blockS.MinItems,
-				MaxItems: blockS.MaxItems,
+				MinItems: minItems,
 			}
 		case NestingMap:
 			// We prefer to use a list where possible, since it makes our
@@ -102,4 +112,12 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	}
 
 	return ret
+}
+
+func (a *Attribute) decoderSpec(name string) hcldec.Spec {
+	return &hcldec.AttrSpec{
+		Name:     name,
+		Type:     a.Type,
+		Required: a.Required,
+	}
 }

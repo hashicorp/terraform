@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )
@@ -16,7 +15,7 @@ import (
 func TestStatePush_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-good"), td)
+	testCopyDir(t, testFixturePath("state-push-good"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -45,7 +44,7 @@ func TestStatePush_empty(t *testing.T) {
 func TestStatePush_lockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-good"), td)
+	testCopyDir(t, testFixturePath("state-push-good"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -76,7 +75,7 @@ func TestStatePush_lockedState(t *testing.T) {
 func TestStatePush_replaceMatch(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-replace-match"), td)
+	testCopyDir(t, testFixturePath("state-push-replace-match"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -105,7 +104,7 @@ func TestStatePush_replaceMatch(t *testing.T) {
 func TestStatePush_replaceMatchStdin(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-replace-match"), td)
+	testCopyDir(t, testFixturePath("state-push-replace-match"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -141,7 +140,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 func TestStatePush_lineageMismatch(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-bad-lineage"), td)
+	testCopyDir(t, testFixturePath("state-push-bad-lineage"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -170,7 +169,7 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 func TestStatePush_serialNewer(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-serial-newer"), td)
+	testCopyDir(t, testFixturePath("state-push-serial-newer"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -199,7 +198,7 @@ func TestStatePush_serialNewer(t *testing.T) {
 func TestStatePush_serialOlder(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-push-serial-older"), td)
+	testCopyDir(t, testFixturePath("state-push-serial-older"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -227,7 +226,7 @@ func TestStatePush_serialOlder(t *testing.T) {
 
 func TestStatePush_forceRemoteState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("inmem-backend"), td)
+	testCopyDir(t, testFixturePath("inmem-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()

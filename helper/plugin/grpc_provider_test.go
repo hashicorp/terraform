@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -11,9 +10,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/helper/schema"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -117,6 +116,144 @@ func TestUpgradeState_jsonState(t *testing.T) {
 	}
 }
 
+func TestUpgradeState_removedAttr(t *testing.T) {
+	r1 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"two": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	}
+
+	r2 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"multi": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"set": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"required": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	r3 := &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"config_mode_attr": {
+				Type:       schema.TypeList,
+				ConfigMode: schema.SchemaConfigModeAttr,
+				Optional:   true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"foo": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p := &schema.Provider{
+		ResourcesMap: map[string]*schema.Resource{
+			"r1": r1,
+			"r2": r2,
+			"r3": r3,
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: p,
+	}
+
+	for _, tc := range []struct {
+		name     string
+		raw      string
+		expected cty.Value
+	}{
+		{
+			name: "r1",
+			raw:  `{"id":"bar","removed":"removed","two":"2"}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"two": cty.StringVal("2"),
+			}),
+		},
+		{
+			name: "r2",
+			raw:  `{"id":"bar","multi":[{"set":[{"required":"ok","removed":"removed"}]}]}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"set": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"required": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		{
+			name: "r3",
+			raw:  `{"id":"bar","config_mode_attr":[{"foo":"ok","removed":"removed"}]}`,
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+				"config_mode_attr": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := &proto.UpgradeResourceState_Request{
+				TypeName: tc.name,
+				Version:  0,
+				RawState: &proto.RawState{
+					Json: []byte(tc.raw),
+				},
+			}
+			resp, err := server.UpgradeResourceState(nil, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					t.Errorf("%#v", d)
+				}
+				t.Fatal("error")
+			}
+			val, err := msgpack.Unmarshal(resp.UpgradedState.Msgpack, p.ResourcesMap[tc.name].CoreConfigSchema().ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !tc.expected.RawEquals(val) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expected, val)
+			}
+		})
+	}
+
+}
+
 func TestUpgradeState_flatmapState(t *testing.T) {
 	r := &schema.Resource{
 		SchemaVersion: 4,
@@ -124,6 +261,18 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 			"four": {
 				Type:     schema.TypeInt,
 				Required: true,
+			},
+			"block": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"attr": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 		// this MigrateState will take the state to version 2
@@ -289,8 +438,89 @@ func TestUpgradeState_flatmapState(t *testing.T) {
 			}
 
 			expected := cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.StringVal("bar"),
-				"four": cty.NumberIntVal(4),
+				"block": cty.ListValEmpty(cty.Object(map[string]cty.Type{"attr": cty.String})),
+				"id":    cty.StringVal("bar"),
+				"four":  cty.NumberIntVal(4),
+			})
+
+			if !cmp.Equal(expected, val, valueComparer, equateEmpty) {
+				t.Fatal(cmp.Diff(expected, val, valueComparer, equateEmpty))
+			}
+		})
+	}
+}
+
+func TestUpgradeState_flatmapStateMissingMigrateState(t *testing.T) {
+	r := &schema.Resource{
+		SchemaVersion: 1,
+		Schema: map[string]*schema.Schema{
+			"one": {
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+		},
+	}
+
+	server := &GRPCProviderServer{
+		provider: &schema.Provider{
+			ResourcesMap: map[string]*schema.Resource{
+				"test": r,
+			},
+		},
+	}
+
+	testReqs := []*proto.UpgradeResourceState_Request{
+		{
+			TypeName: "test",
+			Version:  0,
+			RawState: &proto.RawState{
+				Flatmap: map[string]string{
+					"id":  "bar",
+					"one": "1",
+				},
+			},
+		},
+		{
+			TypeName: "test",
+			Version:  1,
+			RawState: &proto.RawState{
+				Flatmap: map[string]string{
+					"id":  "bar",
+					"one": "1",
+				},
+			},
+		},
+		{
+			TypeName: "test",
+			Version:  1,
+			RawState: &proto.RawState{
+				Json: []byte(`{"id":"bar","one":1}`),
+			},
+		},
+	}
+
+	for i, req := range testReqs {
+		t.Run(fmt.Sprintf("%d-%d", i, req.Version), func(t *testing.T) {
+			resp, err := server.UpgradeResourceState(nil, req)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(resp.Diagnostics) > 0 {
+				for _, d := range resp.Diagnostics {
+					t.Errorf("%#v", d)
+				}
+				t.Fatal("error")
+			}
+
+			val, err := msgpack.Unmarshal(resp.UpgradedState.Msgpack, r.CoreConfigSchema().ImpliedType())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			expected := cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("bar"),
+				"one": cty.NumberIntVal(1),
 			})
 
 			if !cmp.Equal(expected, val, valueComparer, equateEmpty) {
@@ -665,63 +895,10 @@ func TestGetSchemaTimeouts(t *testing.T) {
 	}
 }
 
-func TestNormalizeFlatmapContainers(t *testing.T) {
-	for i, tc := range []struct {
-		prior  map[string]string
-		attrs  map[string]string
-		expect map[string]string
-	}{
-		{
-			attrs:  map[string]string{"id": "1", "multi.2.set.#": "1", "multi.1.set.#": "0", "single.#": "0"},
-			expect: map[string]string{"id": "1", "multi.2.set.#": "1"},
-		},
-		{
-			attrs:  map[string]string{"id": "1", "multi.2.set.#": "2", "multi.2.set.1.foo": "bar", "multi.1.set.#": "0", "single.#": "0"},
-			expect: map[string]string{"id": "1", "multi.2.set.#": "1", "multi.2.set.1.foo": "bar"},
-		},
-		{
-			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
-			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
-		},
-		{
-			attrs:  map[string]string{"id": "78629a0f5f3f164f", "multi.#": "0"},
-			expect: map[string]string{"id": "78629a0f5f3f164f"},
-		},
-		{
-			attrs:  map[string]string{"multi.529860700.set.#": "0", "multi.#": "1", "id": "78629a0f5f3f164f"},
-			expect: map[string]string{"id": "78629a0f5f3f164f", "multi.#": "1"},
-		},
-		{
-			attrs:  map[string]string{"set.2.required": "bar", "set.2.list.#": "1", "set.2.list.0": "x", "set.1.list.#": "0", "set.#": "2"},
-			expect: map[string]string{"set.2.list.#": "1", "set.2.list.0": "x", "set.2.required": "bar", "set.#": "1"},
-		},
-		{
-			attrs:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue, "id": "1"},
-			expect: map[string]string{"id": "1", "map.%": hcl2shim.UnknownVariableValue, "list.#": hcl2shim.UnknownVariableValue},
-		},
-		{
-			prior:  map[string]string{"map.%": "0"},
-			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
-			expect: map[string]string{"id": "1", "map.%": "0"},
-		},
-		{
-			prior:  map[string]string{"map.%": hcl2shim.UnknownVariableValue, "list.#": "0"},
-			attrs:  map[string]string{"map.%": "0", "list.#": "0", "id": "1"},
-			expect: map[string]string{"id": "1", "map.%": "0", "list.#": "0"},
-		},
-	} {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			got := normalizeFlatmapContainers(tc.prior, tc.attrs, false)
-			if !reflect.DeepEqual(tc.expect, got) {
-				t.Fatalf("expected:\n%#v\ngot:\n%#v\n", tc.expect, got)
-			}
-		})
-	}
-}
-
-func TestCopyMissingValues(t *testing.T) {
+func TestNormalizeNullValues(t *testing.T) {
 	for i, tc := range []struct {
 		Src, Dst, Expect cty.Value
+		Apply            bool
 	}{
 		{
 			// The known set value is copied over the null set value
@@ -744,6 +921,40 @@ func TestCopyMissingValues(t *testing.T) {
 					}),
 				}),
 			}),
+			Apply: true,
+		},
+		{
+			// A zero set value is kept
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.String),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.String),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.String),
+			}),
+		},
+		{
+			// The known set value is copied over the null set value
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
+			// If we're only in a plan, we can't compare sets at all
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				}))),
+			}),
 		},
 		{
 			// The empty map is copied over the null map
@@ -756,9 +967,10 @@ func TestCopyMissingValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapValEmpty(cty.String),
 			}),
+			Apply: true,
 		},
 		{
-			// A zerp value primitive is copied over a null primitive
+			// A zero value primitive is copied over a null primitive
 			Src: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal(""),
 			}),
@@ -768,6 +980,44 @@ func TestCopyMissingValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal(""),
 			}),
+			Apply: true,
+		},
+		{
+			// Plan primitives are kept
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NumberIntVal(0),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.Number),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.Number),
+			}),
+		},
+		{
+			// Neither plan nor apply should remove empty strings
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.String),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+		},
+		{
+			// Neither plan nor apply should remove empty strings
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.NullVal(cty.String),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"string": cty.StringVal(""),
+			}),
+			Apply: true,
 		},
 		{
 			// The null map is retained, because the src was unknown
@@ -780,6 +1030,7 @@ func TestCopyMissingValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.NullVal(cty.Map(cty.String)),
 			}),
+			Apply: true,
 		},
 		{
 			// the nul set is retained, because the src set contains an unknown value
@@ -800,9 +1051,10 @@ func TestCopyMissingValues(t *testing.T) {
 					"foo": cty.String,
 				}))),
 			}),
+			Apply: true,
 		},
 		{
-			// Retain the zero value within the map
+			// Retain don't re-add unexpected planned values in a map
 			Src: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapVal(map[string]cty.Value{
 					"a": cty.StringVal("a"),
@@ -817,24 +1069,152 @@ func TestCopyMissingValues(t *testing.T) {
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapVal(map[string]cty.Value{
 					"a": cty.StringVal("a"),
-					"b": cty.StringVal(""),
 				}),
 			}),
 		},
 		{
-			// Recover the lost unknown key, assuming it was set to an empty
-			// string and lost.
+			// Remove extra values after apply
 			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}),
+			}),
+			Apply: true,
+		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a"),
+			}),
+			Dst: cty.EmptyObjectVal,
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+			}),
+		},
+
+		// a list in an object in a list, going from null to empty
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.UnknownVal(cty.String),
+						"access_config": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String}))),
+						"address":       cty.NullVal(cty.String),
+						"name":          cty.StringVal("nic0"),
+					})}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.StringVal("10.128.0.64"),
+						"access_config": cty.ListValEmpty(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String})),
+						"address":       cty.StringVal("address"),
+						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.StringVal("10.128.0.64"),
+						"access_config": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String}))),
+						"address":       cty.StringVal("address"),
+						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+			Apply: true,
+		},
+
+		// a list in an object in a list, going from empty to null
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.UnknownVal(cty.String),
+						"access_config": cty.ListValEmpty(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String})),
+						"address":       cty.NullVal(cty.String),
+						"name":          cty.StringVal("nic0"),
+					})}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.StringVal("10.128.0.64"),
+						"access_config": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String}))),
+						"address":       cty.StringVal("address"),
+						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.StringVal("10.128.0.64"),
+						"access_config": cty.ListValEmpty(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String})),
+						"address":       cty.StringVal("address"),
+						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+			Apply: true,
+		},
+		// the empty list should be transferred, but the new unknown should not be overridden
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.StringVal("10.128.0.64"),
+						"access_config": cty.ListValEmpty(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String})),
+						"address":       cty.NullVal(cty.String),
+						"name":          cty.StringVal("nic0"),
+					})}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.UnknownVal(cty.String),
+						"access_config": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String}))),
+						"address":       cty.StringVal("address"),
+						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"network_ip":    cty.UnknownVal(cty.String),
+						"access_config": cty.ListValEmpty(cty.Object(map[string]cty.Type{"public_ptr_domain_name": cty.String, "nat_ip": cty.String})),
+						"address":       cty.StringVal("address"),
+						"name":          cty.StringVal("nic0"),
+					}),
+				}),
+			}),
+		},
+		{
+			// fix unknowns added to a map
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal(""),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapVal(map[string]cty.Value{
 					"a": cty.StringVal("a"),
 					"b": cty.UnknownVal(cty.String),
 				}),
 			}),
-			Dst: cty.ObjectVal(map[string]cty.Value{
-				"map": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("a"),
-				}),
-			}),
 			Expect: cty.ObjectVal(map[string]cty.Value{
 				"map": cty.MapVal(map[string]cty.Value{
 					"a": cty.StringVal("a"),
@@ -842,11 +1222,160 @@ func TestCopyMissingValues(t *testing.T) {
 				}),
 			}),
 		},
+		{
+			// fix unknowns lost from a list
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.NullVal(cty.List(cty.String)),
+							}),
+						}),
+					}),
+				}),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"top": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"list": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"values": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+		},
+		{
+			Src: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Dst: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				})),
+			}),
+			Expect: cty.ObjectVal(map[string]cty.Value{
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.String),
+				}))),
+			}),
+			Apply: true,
+		},
 	} {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			got := copyMissingValues(tc.Dst, tc.Src)
+			got := normalizeNullValues(tc.Dst, tc.Src, tc.Apply)
 			if !got.RawEquals(tc.Expect) {
 				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.Expect, got)
+			}
+		})
+	}
+}
+
+func TestValidateNulls(t *testing.T) {
+	for i, tc := range []struct {
+		Cfg cty.Value
+		Err bool
+	}{
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("string"),
+					cty.NullVal(cty.String),
+				}),
+			}),
+			Err: true,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"string": cty.StringVal("string"),
+					"null":   cty.NullVal(cty.String),
+				}),
+			}),
+			Err: false,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+					"list2": cty.ListVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
+		{
+			Cfg: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.SetVal([]cty.Value{
+						cty.StringVal("string"),
+						cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			Err: true,
+		},
+	} {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			d := validateConfigNulls(tc.Cfg, nil)
+			diags := convert.ProtoToDiagnostics(d)
+			switch {
+			case tc.Err:
+				if !diags.HasErrors() {
+					t.Fatal("expected error")
+				}
+			default:
+				if diags.HasErrors() {
+					t.Fatalf("unexpected error: %q", diags.Err())
+				}
 			}
 		})
 	}

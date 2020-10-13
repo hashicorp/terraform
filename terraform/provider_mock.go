@@ -2,15 +2,13 @@ package terraform
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var _ providers.Interface = (*MockProvider)(nil)
@@ -52,7 +50,7 @@ type MockProvider struct {
 	ConfigureCalled   bool
 	ConfigureResponse providers.ConfigureResponse
 	ConfigureRequest  providers.ConfigureRequest
-	ConfigureNewFn    func(providers.ConfigureRequest) providers.ConfigureResponse // Named ConfigureNewFn so we can still have the legacy ConfigureFn declared below
+	ConfigureFn       func(providers.ConfigureRequest) providers.ConfigureResponse
 
 	StopCalled   bool
 	StopFn       func() error
@@ -88,15 +86,6 @@ type MockProvider struct {
 
 	CloseCalled bool
 	CloseError  error
-
-	// Legacy callbacks: if these are set, we will shim incoming calls for
-	// new-style methods to these old-fashioned terraform.ResourceProvider
-	// mock callbacks, for the benefit of older tests that were written against
-	// the old mock API.
-	ValidateFn  func(c *ResourceConfig) (ws []string, es []error)
-	ConfigureFn func(c *ResourceConfig) error
-	DiffFn      func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error)
-	ApplyFn     func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error)
 }
 
 func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
@@ -118,6 +107,7 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	}
 	if p.GetSchemaReturn != nil {
 		ret.Provider.Block = p.GetSchemaReturn.Provider
+		ret.ProviderMeta.Block = p.GetSchemaReturn.ProviderMeta
 		for n, s := range p.GetSchemaReturn.DataSources {
 			ret.DataSources[n] = providers.Schema{
 				Block: s,
@@ -153,19 +143,6 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 	p.ValidateResourceTypeConfigCalled = true
 	p.ValidateResourceTypeConfigRequest = r
 
-	if p.ValidateFn != nil {
-		resp := p.getSchema()
-		schema := resp.Provider.Block
-		rc := NewResourceConfigShimmed(r.Config, schema)
-		warns, errs := p.ValidateFn(rc)
-		ret := providers.ValidateResourceTypeConfigResponse{}
-		for _, warn := range warns {
-			ret.Diagnostics = ret.Diagnostics.Append(tfdiags.SimpleWarning(warn))
-		}
-		for _, err := range errs {
-			ret.Diagnostics = ret.Diagnostics.Append(err)
-		}
-	}
 	if p.ValidateResourceTypeConfigFn != nil {
 		return p.ValidateResourceTypeConfigFn(r)
 	}
@@ -191,6 +168,10 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	p.Lock()
 	defer p.Unlock()
 
+	schemas := p.getSchema()
+	schema := schemas.ResourceTypes[r.TypeName]
+	schemaType := schema.Block.ImpliedType()
+
 	p.UpgradeResourceStateCalled = true
 	p.UpgradeResourceStateRequest = r
 
@@ -198,7 +179,28 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return p.UpgradeResourceStateFn(r)
 	}
 
-	return p.UpgradeResourceStateResponse
+	resp := p.UpgradeResourceStateResponse
+
+	if resp.UpgradedState == cty.NilVal {
+		switch {
+		case r.RawStateFlatmap != nil:
+			v, err := hcl2shim.HCL2ValueFromFlatmap(r.RawStateFlatmap, schemaType)
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+			resp.UpgradedState = v
+		case len(r.RawStateJSON) > 0:
+			v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
+
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+			resp.UpgradedState = v
+		}
+	}
+	return resp
 }
 
 func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.ConfigureResponse {
@@ -209,19 +211,7 @@ func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.Configu
 	p.ConfigureRequest = r
 
 	if p.ConfigureFn != nil {
-		resp := p.getSchema()
-		schema := resp.Provider.Block
-		rc := NewResourceConfigShimmed(r.Config, schema)
-		ret := providers.ConfigureResponse{}
-
-		err := p.ConfigureFn(rc)
-		if err != nil {
-			ret.Diagnostics = ret.Diagnostics.Append(err)
-		}
-		return ret
-	}
-	if p.ConfigureNewFn != nil {
-		return p.ConfigureNewFn(r)
+		return p.ConfigureFn(r)
 	}
 
 	return p.ConfigureResponse
@@ -270,49 +260,6 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	p.PlanResourceChangeCalled = true
 	p.PlanResourceChangeRequest = r
 
-	if p.DiffFn != nil {
-		ps := p.getSchema()
-		if ps.ResourceTypes == nil || ps.ResourceTypes[r.TypeName].Block == nil {
-			return providers.PlanResourceChangeResponse{
-				Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Printf("mock provider has no schema for resource type %s", r.TypeName)),
-			}
-		}
-		schema := ps.ResourceTypes[r.TypeName].Block
-		info := &InstanceInfo{
-			Type: r.TypeName,
-		}
-		priorState := NewInstanceStateShimmedFromValue(r.PriorState, 0)
-		cfg := NewResourceConfigShimmed(r.Config, schema)
-
-		legacyDiff, err := p.DiffFn(info, priorState, cfg)
-
-		var res providers.PlanResourceChangeResponse
-		res.PlannedState = r.ProposedNewState
-		if err != nil {
-			res.Diagnostics = res.Diagnostics.Append(err)
-		}
-		if legacyDiff != nil {
-			newVal, err := legacyDiff.ApplyToValue(r.PriorState, schema)
-			if err != nil {
-				res.Diagnostics = res.Diagnostics.Append(err)
-			}
-
-			res.PlannedState = newVal
-
-			var requiresNew []string
-			for attr, d := range legacyDiff.Attributes {
-				if d.RequiresNew {
-					requiresNew = append(requiresNew, attr)
-				}
-			}
-			requiresReplace, err := hcl2shim.RequiresReplace(requiresNew, schema.ImpliedType())
-			if err != nil {
-				res.Diagnostics = res.Diagnostics.Append(err)
-			}
-			res.RequiresReplace = requiresReplace
-		}
-		return res
-	}
 	if p.PlanResourceChangeFn != nil {
 		return p.PlanResourceChangeFn(r)
 	}
@@ -326,92 +273,6 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	p.ApplyResourceChangeRequest = r
 	p.Unlock()
 
-	if p.ApplyFn != nil {
-		// ApplyFn is a special callback fashioned after our old provider
-		// interface, which expected to be given an actual diff rather than
-		// separate old/new values to apply. Therefore we need to approximate
-		// a diff here well enough that _most_ of our legacy ApplyFns in old
-		// tests still see the behavior they are expecting. New tests should
-		// not use this, and should instead use ApplyResourceChangeFn directly.
-		providerSchema := p.getSchema()
-		schema, ok := providerSchema.ResourceTypes[r.TypeName]
-		if !ok {
-			return providers.ApplyResourceChangeResponse{
-				Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("no mocked schema available for resource type %s", r.TypeName)),
-			}
-		}
-
-		info := &InstanceInfo{
-			Type: r.TypeName,
-		}
-
-		priorVal := r.PriorState
-		plannedVal := r.PlannedState
-		priorMap := hcl2shim.FlatmapValueFromHCL2(priorVal)
-		plannedMap := hcl2shim.FlatmapValueFromHCL2(plannedVal)
-		s := NewInstanceStateShimmedFromValue(priorVal, 0)
-		d := &InstanceDiff{
-			Attributes: make(map[string]*ResourceAttrDiff),
-		}
-		if plannedMap == nil { // destroying, then
-			d.Destroy = true
-			// Destroy diffs don't have any attribute diffs
-		} else {
-			if priorMap == nil { // creating, then
-				// We'll just make an empty prior map to make things easier below.
-				priorMap = make(map[string]string)
-			}
-
-			for k, new := range plannedMap {
-				old := priorMap[k]
-				newComputed := false
-				if new == config.UnknownVariableValue {
-					new = ""
-					newComputed = true
-				}
-				d.Attributes[k] = &ResourceAttrDiff{
-					Old:         old,
-					New:         new,
-					NewComputed: newComputed,
-					Type:        DiffAttrInput, // not generally used in tests, so just hard-coded
-				}
-			}
-			// Also need any attributes that were removed in "planned"
-			for k, old := range priorMap {
-				if _, ok := plannedMap[k]; ok {
-					continue
-				}
-				d.Attributes[k] = &ResourceAttrDiff{
-					Old:        old,
-					NewRemoved: true,
-					Type:       DiffAttrInput,
-				}
-			}
-		}
-		newState, err := p.ApplyFn(info, s, d)
-		resp := providers.ApplyResourceChangeResponse{}
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-		}
-		if newState != nil {
-			var newVal cty.Value
-			if newState != nil {
-				var err error
-				newVal, err = newState.AttrsAsObjectValue(schema.Block.ImpliedType())
-				if err != nil {
-					resp.Diagnostics = resp.Diagnostics.Append(err)
-				}
-			} else {
-				// If apply returned a nil new state then that's the old way to
-				// indicate that the object was destroyed. Our new interface calls
-				// for that to be signalled as a null value.
-				newVal = cty.NullVal(schema.Block.ImpliedType())
-			}
-			resp.NewState = newVal
-		}
-
-		return resp
-	}
 	if p.ApplyResourceChangeFn != nil {
 		return p.ApplyResourceChangeFn(r)
 	}

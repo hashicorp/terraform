@@ -2,8 +2,13 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -14,6 +19,13 @@ type VersionCommand struct {
 	Version           string
 	VersionPrerelease string
 	CheckFunc         VersionCheckFunc
+}
+
+type VersionOutput struct {
+	Version            string            `json:"terraform_version"`
+	Revision           string            `json:"terraform_revision"`
+	ProviderSelections map[string]string `json:"provider_selections"`
+	Outdated           bool              `json:"terraform_outdated"`
 }
 
 // VersionCheckFunc is the callback called by the Version command to
@@ -30,13 +42,35 @@ type VersionCheckInfo struct {
 }
 
 func (c *VersionCommand) Help() string {
-	return ""
+	helpText := `
+Usage: terraform version [options]
+
+  Displays the version of Terraform and all installed plugins
+
+Options:
+
+  -json       Output the version information as a JSON object.
+`
+	return strings.TrimSpace(helpText)
 }
 
 func (c *VersionCommand) Run(args []string) int {
+	var outdated bool
+	var latest string
 	var versionString bytes.Buffer
-	args, err := c.Meta.process(args, false)
-	if err != nil {
+	args = c.Meta.process(args)
+	var jsonOutput bool
+	cmdFlags := c.Meta.defaultFlagSet("version")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	// Enable but ignore the global version flags. In main.go, if any of the
+	// arguments are -v, -version, or --version, this command will be called
+	// with the rest of the arguments, so we need to be able to cope with
+	// those.
+	cmdFlags.Bool("v", true, "version")
+	cmdFlags.Bool("version", true, "version")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -49,70 +83,86 @@ func (c *VersionCommand) Run(args []string) int {
 		}
 	}
 
-	c.Ui.Output(versionString.String())
-
-	// We'll also attempt to print out the selected plugin versions. We can
-	// do this only if "terraform init" was already run and thus we've committed
-	// to a specific set of plugins. If not, the plugins lock will be empty
-	// and so we'll show _no_ providers.
+	// We'll also attempt to print out the selected plugin versions. We do
+	// this based on the dependency lock file, and so the result might be
+	// empty or incomplete if the user hasn't successfully run "terraform init"
+	// since the most recent change to dependencies.
 	//
 	// Generally-speaking this is a best-effort thing that will give us a good
 	// result in the usual case where the user successfully ran "terraform init"
 	// and then hit a problem running _another_ command.
-	providerPlugins := c.providerPluginSet()
-	pluginsLockFile := c.providerPluginsLock()
-	pluginsLock := pluginsLockFile.Read()
-	var pluginVersions []string
-	for meta := range providerPlugins {
-		name := meta.Name
-		wantHash, wanted := pluginsLock[name]
-		if !wanted {
-			// Ignore providers that aren't used by the current config at all
-			continue
-		}
-		gotHash, err := meta.SHA256()
-		if err != nil {
-			// if we can't read the file to hash it, ignore it.
-			continue
-		}
-		if !bytes.Equal(gotHash, wantHash) {
-			// Not the plugin we've locked, so ignore it.
-			continue
-		}
-
-		// If we get here then we've found a selected plugin, so we'll print
-		// out its details.
-		if meta.Version == "0.0.0" {
-			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider.%s (unversioned)", name))
-		} else {
-			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider.%s v%s", name, meta.Version))
-		}
-	}
-	if len(pluginVersions) != 0 {
-		sort.Strings(pluginVersions)
-		for _, str := range pluginVersions {
-			c.Ui.Output(str)
+	var providerVersions []string
+	var providerLocks map[addrs.Provider]*depsfile.ProviderLock
+	if locks, err := c.lockedDependencies(); err == nil {
+		providerLocks = locks.AllProviders()
+		for providerAddr, lock := range providerLocks {
+			version := lock.Version().String()
+			if version == "0.0.0" {
+				providerVersions = append(providerVersions, fmt.Sprintf("+ provider %s (unversioned)", providerAddr))
+			} else {
+				providerVersions = append(providerVersions, fmt.Sprintf("+ provider %s v%s", providerAddr, version))
+			}
 		}
 	}
 
 	// If we have a version check function, then let's check for
 	// the latest version as well.
 	if c.CheckFunc != nil {
-		// Separate the prior output with a newline
-		c.Ui.Output("")
-
 		// Check the latest version
 		info, err := c.CheckFunc()
-		if err != nil {
+		if err != nil && !jsonOutput {
 			c.Ui.Error(fmt.Sprintf(
-				"Error checking latest version: %s", err))
+				"\nError checking latest version: %s", err))
 		}
 		if info.Outdated {
-			c.Ui.Output(fmt.Sprintf(
-				"Your version of Terraform is out of date! The latest version\n"+
-					"is %s. You can update by downloading from www.terraform.io/downloads.html",
-				info.Latest))
+			outdated = true
+			latest = info.Latest
 		}
+	}
+
+	if jsonOutput {
+		selectionsOutput := make(map[string]string)
+		for providerAddr, lock := range providerLocks {
+			version := lock.Version().String()
+			selectionsOutput[providerAddr.String()] = version
+		}
+
+		var versionOutput string
+		if c.VersionPrerelease != "" {
+			versionOutput = c.Version + "-" + c.VersionPrerelease
+		} else {
+			versionOutput = c.Version
+		}
+
+		output := VersionOutput{
+			Version:            versionOutput,
+			Revision:           c.Revision,
+			ProviderSelections: selectionsOutput,
+			Outdated:           outdated,
+		}
+
+		jsonOutput, err := json.MarshalIndent(output, "", "  ")
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("\nError marshalling JSON: %s", err))
+			return 1
+		}
+		c.Ui.Output(string(jsonOutput))
+		return 0
+	} else {
+		c.Ui.Output(versionString.String())
+		if len(providerVersions) != 0 {
+			sort.Strings(providerVersions)
+			for _, str := range providerVersions {
+				c.Ui.Output(str)
+			}
+		}
+		if outdated {
+			c.Ui.Output(fmt.Sprintf(
+				"\nYour version of Terraform is out of date! The latest version\n"+
+					"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
+				latest))
+		}
+
 	}
 
 	return 0

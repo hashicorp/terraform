@@ -25,8 +25,8 @@ environment and more powerful access controls, without disrupting workflows
 for users who are already comfortable with running Terraform.
 
 Currently, [the `remote` backend](./types/remote.html) is the only backend to
-support remote operations, and [Terraform Enterprise](/docs/enterprise/index.html)
+support remote operations, and [Terraform Cloud](/docs/cloud/index.html)
 is the only remote execution environment that supports it. For more information, see:
 
 - [The `remote` backend](./types/remote.html)
-- [Terraform Enterprise's CLI-driven run workflow](/docs/enterprise/run/cli.html)
+- [Terraform Cloud's CLI-driven run workflow](/docs/cloud/run/cli.html)

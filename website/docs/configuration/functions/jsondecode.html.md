@@ -9,13 +9,17 @@ description: |-
 
 # `jsondecode` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `jsondecode` interprets a given string as JSON, returning a representation
 of the result of decoding that string.
 
 The JSON encoding is defined in [RFC 7159](https://tools.ietf.org/html/rfc7159).
 
 This function maps JSON values to
-[Terraform language values](./expressions.html#types-and-values)
+[Terraform language values](../expressions.html#types-and-values)
 in the following way:
 
 | JSON type | Terraform type                                               |

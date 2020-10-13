@@ -28,12 +28,17 @@ func AssertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 
 func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Value, path cty.Path) []error {
 	var errs []error
+	var atRoot string
+	if len(path) == 0 {
+		atRoot = "Root resource "
+	}
+
 	if planned.IsNull() && !actual.IsNull() {
-		errs = append(errs, path.NewErrorf("was absent, but now present"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas absent, but now present", atRoot)))
 		return errs
 	}
 	if actual.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf("was present, but now absent"))
+		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas present, but now absent", atRoot)))
 		return errs
 	}
 	if planned.IsNull() {
@@ -41,42 +46,51 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		return errs
 	}
 
-	for name := range schema.Attributes {
+	for name, attrS := range schema.Attributes {
 		plannedV := planned.GetAttr(name)
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
-		moreErrs := assertValueCompatible(plannedV, actualV, path)
-		errs = append(errs, moreErrs...)
+
+		// Unmark values here before checking value assertions,
+		// but save the marks so we can see if we should supress
+		// exposing a value through errors
+		unmarkedActualV, marksA := actualV.UnmarkDeep()
+		unmarkedPlannedV, marksP := plannedV.UnmarkDeep()
+		_, isMarkedActual := marksA["sensitive"]
+		_, isMarkedPlanned := marksP["sensitive"]
+
+		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
+		if attrS.Sensitive || isMarkedActual || isMarkedPlanned {
+			if len(moreErrs) > 0 {
+				// Use a vague placeholder message instead, to avoid disclosing
+				// sensitive information.
+				errs = append(errs, path.NewErrorf("inconsistent values for sensitive attribute"))
+			}
+		} else {
+			errs = append(errs, moreErrs...)
+		}
 	}
 	for name, blockS := range schema.BlockTypes {
-		plannedV := planned.GetAttr(name)
-		actualV := actual.GetAttr(name)
+		plannedV, _ := planned.GetAttr(name).Unmark()
+		actualV, _ := actual.GetAttr(name).Unmark()
 
-		// As a special case, we permit a "planned" block with exactly one
-		// element where all of the "leaf" values are unknown, since that's
-		// what HCL's dynamic block extension generates if the for_each
-		// expression is itself unknown and thus it cannot predict how many
-		// child blocks will get created.
-		switch blockS.Nesting {
-		case configschema.NestingSingle:
-			if allLeafValuesUnknown(plannedV) && !plannedV.IsNull() {
-				return errs
-			}
-		case configschema.NestingList, configschema.NestingMap, configschema.NestingSet:
-			if plannedV.IsKnown() && !plannedV.IsNull() && plannedV.LengthInt() == 1 {
-				elemVs := plannedV.AsValueSlice()
-				if allLeafValuesUnknown(elemVs[0]) {
-					return errs
-				}
-			}
-		default:
-			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
-		}
+		// As a special case, if there were any blocks whose leaf attributes
+		// are all unknown then we assume (possibly incorrectly) that the
+		// HCL dynamic block extension is in use with an unknown for_each
+		// argument, and so we will do looser validation here that allows
+		// for those blocks to have expanded into a different number of blocks
+		// if the for_each value is now known.
+		maybeUnknownBlocks := couldHaveUnknownBlockPlaceholder(plannedV, blockS, false)
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
-		case configschema.NestingSingle:
+		case configschema.NestingSingle, configschema.NestingGroup:
+			// If an unknown block placeholder was present then the placeholder
+			// may have expanded out into zero blocks, which is okay.
+			if maybeUnknownBlocks && actualV.IsNull() {
+				continue
+			}
 			moreErrs := assertObjectCompatible(&blockS.Block, plannedV, actualV, path)
 			errs = append(errs, moreErrs...)
 		case configschema.NestingList:
@@ -84,7 +98,15 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			// whether there are dynamically-typed attributes inside. However,
 			// both support a similar-enough API that we can treat them the
 			// same for our purposes here.
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+				continue
+			}
+
+			if maybeUnknownBlocks {
+				// When unknown blocks are present the final blocks may be
+				// at different indices than the planned blocks, so unfortunately
+				// we can't do our usual checks in this case without generating
+				// false negatives.
 				continue
 			}
 
@@ -122,10 +144,12 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 					moreErrs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.GetAttrStep{Name: k}))
 					errs = append(errs, moreErrs...)
 				}
-				for k := range actualAtys {
-					if _, ok := plannedAtys[k]; !ok {
-						errs = append(errs, path.NewErrorf("new block key %q has appeared", k))
-						continue
+				if !maybeUnknownBlocks { // new blocks may appear if unknown blocks were present in the plan
+					for k := range actualAtys {
+						if _, ok := plannedAtys[k]; !ok {
+							errs = append(errs, path.NewErrorf("new block key %q has appeared", k))
+							continue
+						}
 					}
 				}
 			} else {
@@ -134,7 +158,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				}
 				plannedL := plannedV.LengthInt()
 				actualL := actualV.LengthInt()
-				if plannedL != actualL {
+				if plannedL != actualL && !maybeUnknownBlocks { // new blocks may appear if unknown blocks were persent in the plan
 					errs = append(errs, path.NewErrorf("block count changed from %d to %d", plannedL, actualL))
 					continue
 				}
@@ -149,13 +173,29 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				}
 			}
 		case configschema.NestingSet:
-			// We can't do any reasonable matching of set elements since their
-			// content is also their key, and so we have no way to correlate
-			// them. Because of this, we simply verify that we still have the
-			// same number of elements.
-			if !plannedV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
+			if !plannedV.IsKnown() || !actualV.IsKnown() || plannedV.IsNull() || actualV.IsNull() {
 				continue
 			}
+
+			if maybeUnknownBlocks {
+				// When unknown blocks are present the final number of blocks
+				// may be different, either because the unknown set values
+				// become equal and are collapsed, or the count is unknown due
+				// a dynamic block. Unfortunately this means we can't do our
+				// usual checks in this case without generating false
+				// negatives.
+				continue
+			}
+
+			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
+				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
+
+			// There can be fewer elements in a set after its elements are all
+			// known (values that turn out to be equal will coalesce) but the
+			// number of elements must never get larger.
 			plannedL := plannedV.LengthInt()
 			actualL := actualV.LengthInt()
 			if plannedL < actualL {
@@ -254,6 +294,17 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		// to ensure that the number of elements is consistent, along with
 		// the general type-match checks we ran earlier in this function.
 		if planned.IsKnown() && !planned.IsNull() && !actual.IsNull() {
+
+			setErrs := assertSetValuesCompatible(planned, actual, path, func(plannedV, actualV cty.Value) bool {
+				errs := assertValueCompatible(plannedV, actualV, append(path, cty.IndexStep{Key: actualV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
+
+			// There can be fewer elements in a set after its elements are all
+			// known (values that turn out to be equal will coalesce) but the
+			// number of elements must never get larger.
+
 			plannedL := planned.LengthInt()
 			actualL := actual.LengthInt()
 			if plannedL < actualL {
@@ -277,16 +328,134 @@ func indexStrForErrors(v cty.Value) string {
 	}
 }
 
-func allLeafValuesUnknown(v cty.Value) bool {
-	seenKnownValue := false
-	cty.Walk(v, func(path cty.Path, cv cty.Value) (bool, error) {
-		if cv.IsNull() {
-			seenKnownValue = true
+// couldHaveUnknownBlockPlaceholder is a heuristic that recognizes how the
+// HCL dynamic block extension behaves when it's asked to expand a block whose
+// for_each argument is unknown. In such cases, it generates a single placeholder
+// block with all leaf attribute values unknown, and once the for_each
+// expression becomes known the placeholder may be replaced with any number
+// of blocks, so object compatibility checks would need to be more liberal.
+//
+// Set "nested" if testing a block that is nested inside a candidate block
+// placeholder; this changes the interpretation of there being no blocks of
+// a type to allow for there being zero nested blocks.
+func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBlock, nested bool) bool {
+	switch blockS.Nesting {
+	case configschema.NestingSingle, configschema.NestingGroup:
+		if nested && v.IsNull() {
+			return true // for nested blocks, a single block being unset doesn't disqualify from being an unknown block placeholder
 		}
-		if cv.Type().IsPrimitiveType() && cv.IsKnown() {
-			seenKnownValue = true
+		return couldBeUnknownBlockPlaceholderElement(v, &blockS.Block)
+	default:
+		// These situations should be impossible for correct providers, but
+		// we permit the legacy SDK to produce some incorrect outcomes
+		// for compatibility with its existing logic, and so we must be
+		// tolerant here.
+		if !v.IsKnown() {
+			return true
 		}
-		return true, nil
-	})
-	return !seenKnownValue
+		if v.IsNull() {
+			return false // treated as if the list were empty, so we would see zero iterations below
+		}
+
+		// For all other nesting modes, our value should be something iterable.
+		for it := v.ElementIterator(); it.Next(); {
+			_, ev := it.Element()
+			if couldBeUnknownBlockPlaceholderElement(ev, &blockS.Block) {
+				return true
+			}
+		}
+
+		// Our default changes depending on whether we're testing the candidate
+		// block itself or something nested inside of it: zero blocks of a type
+		// can never contain a dynamic block placeholder, but a dynamic block
+		// placeholder might contain zero blocks of one of its own nested block
+		// types, if none were set in the config at all.
+		return nested
+	}
+}
+
+func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.Block) bool {
+	if v.IsNull() {
+		return false // null value can never be a placeholder element
+	}
+	if !v.IsKnown() {
+		return true // this should never happen for well-behaved providers, but can happen with the legacy SDK opt-outs
+	}
+	for name := range schema.Attributes {
+		av := v.GetAttr(name)
+
+		// Unknown block placeholders contain only unknown or null attribute
+		// values, depending on whether or not a particular attribute was set
+		// explicitly inside the content block. Note that this is imprecise:
+		// non-placeholders can also match this, so this function can generate
+		// false positives.
+		if av.IsKnown() && !av.IsNull() {
+			return false
+		}
+	}
+	for name, blockS := range schema.BlockTypes {
+		if !couldHaveUnknownBlockPlaceholder(v.GetAttr(name), blockS, true) {
+			return false
+		}
+	}
+	return true
+}
+
+// assertSetValuesCompatible checks that each of the elements in a can
+// be correlated with at least one equivalent element in b and vice-versa,
+// using the given correlation function.
+//
+// This allows the number of elements in the sets to change as long as all
+// elements in both sets can be correlated, making this function safe to use
+// with sets that may contain unknown values as long as the unknown case is
+// addressed in some reasonable way in the callback function.
+//
+// The callback always recieves values from set a as its first argument and
+// values from set b in its second argument, so it is safe to use with
+// non-commutative functions.
+//
+// As with assertValueCompatible, we assume that the target audience of error
+// messages here is a provider developer (via a bug report from a user) and so
+// we intentionally violate our usual rule of keeping cty implementation
+// details out of error messages.
+func assertSetValuesCompatible(planned, actual cty.Value, path cty.Path, f func(aVal, bVal cty.Value) bool) []error {
+	a := planned
+	b := actual
+
+	// Our methodology here is a little tricky, to deal with the fact that
+	// it's impossible to directly correlate two non-equal set elements because
+	// they don't have identities separate from their values.
+	// The approach is to count the number of equivalent elements each element
+	// of a has in b and vice-versa, and then return true only if each element
+	// in both sets has at least one equivalent.
+	as := a.AsValueSlice()
+	bs := b.AsValueSlice()
+	aeqs := make([]bool, len(as))
+	beqs := make([]bool, len(bs))
+	for ai, av := range as {
+		for bi, bv := range bs {
+			if f(av, bv) {
+				aeqs[ai] = true
+				beqs[bi] = true
+			}
+		}
+	}
+
+	var errs []error
+	for i, eq := range aeqs {
+		if !eq {
+			errs = append(errs, path.NewErrorf("planned set element %#v does not correlate with any element in actual", as[i]))
+		}
+	}
+	if len(errs) > 0 {
+		// Exit early since otherwise we're likely to generate duplicate
+		// error messages from the other perspective in the subsequent loop.
+		return errs
+	}
+	for i, eq := range beqs {
+		if !eq {
+			errs = append(errs, path.NewErrorf("actual set element %#v does not correlate with any element in plan", bs[i]))
+		}
+	}
+	return errs
 }

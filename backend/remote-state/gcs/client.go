@@ -8,8 +8,8 @@ import (
 
 	"cloud.google.com/go/storage"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"golang.org/x/net/context"
 )
 
@@ -79,7 +79,7 @@ func (c *remoteClient) Delete() error {
 
 // Lock writes to a lock file, ensuring file creation. Returns the generation
 // number, which must be passed to Unlock().
-func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	// update the path we're using
 	// we can't set the ID until the info is written
 	info.Path = c.lockFileURL()
@@ -110,7 +110,7 @@ func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
 func (c *remoteClient) Unlock(id string) error {
 	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("Lock ID should be numerical value, got '%s'", id)
 	}
 
 	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {
@@ -120,8 +120,8 @@ func (c *remoteClient) Unlock(id string) error {
 	return nil
 }
 
-func (c *remoteClient) lockError(err error) *state.LockError {
-	lockErr := &state.LockError{
+func (c *remoteClient) lockError(err error) *statemgr.LockError {
+	lockErr := &statemgr.LockError{
 		Err: err,
 	}
 
@@ -136,7 +136,7 @@ func (c *remoteClient) lockError(err error) *state.LockError {
 
 // lockInfo reads the lock file, parses its contents and returns the parsed
 // LockInfo struct.
-func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
+func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
 	r, err := c.lockFile().NewReader(c.storageContext)
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
 		return nil, err
 	}
 
-	info := &state.LockInfo{}
+	info := &statemgr.LockInfo{}
 	if err := json.Unmarshal(rawData, info); err != nil {
 		return nil, err
 	}

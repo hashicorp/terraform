@@ -7,11 +7,18 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// The constants below are the names of the plugins that can be dispensed
-// from the plugin server.
 const (
+	// The constants below are the names of the plugins that can be dispensed
+	// from the plugin server.
 	ProviderPluginName    = "provider"
 	ProvisionerPluginName = "provisioner"
+
+	// DefaultProtocolVersion is the protocol version assumed for legacy clients that don't specify
+	// a particular version during their handshake. This is the version used when Terraform 0.10
+	// and 0.11 launch plugins that were built with support for both versions 4 and 5, and must
+	// stay unchanged at 4 until we intentionally build plugins that are not compatible with 0.10 and
+	// 0.11.
+	DefaultProtocolVersion = 4
 )
 
 // Handshake is the HandshakeConfig used to configure clients and servers.
@@ -21,7 +28,7 @@ var Handshake = plugin.HandshakeConfig{
 	// one or the other that makes it so that they can't safely communicate.
 	// This could be adding a new interface value, it could be how
 	// helper/schema computes diffs, etc.
-	ProtocolVersion: 4,
+	ProtocolVersion: DefaultProtocolVersion,
 
 	// The magic cookie values should NEVER be changed.
 	MagicCookieKey:   "TF_PLUGIN_MAGIC_COOKIE",

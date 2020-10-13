@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -69,18 +71,7 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if op.Targets != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Resource targeting is currently not supported",
-			`The "remote" backend does not support resource targeting at this time.`,
-		))
-	}
-
-	variables, parseDiags := b.parseVariableValues(op)
-	diags = diags.Append(parseDiags)
-
-	if len(variables) > 0 {
+	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Run variables are currently not supported",
@@ -106,6 +97,26 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 				`flag or create a single empty configuration file. Otherwise, please create `+
 				`a Terraform configuration file in the path being executed and try again.`,
 		))
+	}
+
+	if len(op.Targets) != 0 {
+		// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
+		// so if there's an error when parsing the RemoteAPIVersion, it's handled as
+		// equivalent to an API version < 2.3.
+		currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+		desiredAPIVersion, _ := version.NewVersion("2.3")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Resource targeting is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -target option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
 	}
 
 	// Return if there are any errors.
@@ -137,13 +148,41 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	var configDir string
 	if op.ConfigDir != "" {
+		// De-normalize the configuration directory path.
+		configDir, err = filepath.Abs(op.ConfigDir)
+		if err != nil {
+			return nil, generalError(
+				"Failed to get absolute path of the configuration directory: %v", err)
+		}
+
 		// Make sure to take the working directory into account by removing
 		// the working directory from the current path. This will result in
 		// a path that points to the expected root of the workspace.
 		configDir = filepath.Clean(strings.TrimSuffix(
-			filepath.Clean(op.ConfigDir),
+			filepath.Clean(configDir),
 			filepath.Clean(w.WorkingDirectory),
 		))
+
+		// If the workspace has a subdirectory as its working directory then
+		// our configDir will be some parent directory of the current working
+		// directory. Users are likely to find that surprising, so we'll
+		// produce an explicit message about it to be transparent about what
+		// we are doing and why.
+		if w.WorkingDirectory != "" && filepath.Base(configDir) != w.WorkingDirectory {
+			if b.CLI != nil {
+				b.CLI.Output(fmt.Sprintf(strings.TrimSpace(`
+The remote workspace is configured to work with configuration at
+%s relative to the target repository.
+
+Terraform will upload the contents of the following directory,
+excluding files or directories as defined by a .terraformignore file
+at %s/.terraformignore (if it is present),
+in order to capture the filesystem context the remote workspace expects:
+    %s
+`), w.WorkingDirectory, configDir, configDir) + "\n")
+			}
+		}
+
 	} else {
 		// We did a check earlier to make sure we either have a config dir,
 		// or the plan is run with -destroy. So this else clause will only
@@ -191,11 +230,27 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
+	queueMessage := "Queued manually using Terraform"
+	if op.Targets != nil {
+		queueMessage = "Queued manually via Terraform using -target"
+	}
+
 	runOptions := tfe.RunCreateOptions{
 		IsDestroy:            tfe.Bool(op.Destroy),
-		Message:              tfe.String("Queued manually using Terraform"),
+		Message:              tfe.String(queueMessage),
 		ConfigurationVersion: cv,
 		Workspace:            w,
+	}
+
+	if len(op.Targets) != 0 {
+		runOptions.TargetAddrs = make([]string, 0, len(op.Targets))
+		for _, addr := range op.Targets {
+			// The API client wants the normal string representation of a
+			// target address, which will ultimately get inserted into a
+			// -target option when Terraform CLI is launched in the
+			// Cloud/Enterprise execution environment.
+			runOptions.TargetAddrs = append(runOptions.TargetAddrs, addr.String())
+		}
 	}
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
@@ -253,15 +308,27 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 	if err != nil {
 		return r, generalError("Failed to retrieve logs", err)
 	}
-	scanner := bufio.NewScanner(logs)
+	reader := bufio.NewReaderSize(logs, 64*1024)
 
-	for scanner.Scan() {
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(scanner.Text()))
+	if b.CLI != nil {
+		for next := true; next; {
+			var l, line []byte
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return r, generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+				line = append(line, l...)
+			}
+
+			if next || len(line) > 0 {
+				b.CLI.Output(b.Colorize().Color(string(line)))
+			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return r, generalError("Failed to read logs", err)
 	}
 
 	// Retrieve the run to get its current status.
@@ -270,11 +337,18 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 		return r, generalError("Failed to retrieve run", err)
 	}
 
-	// Return if the run errored. We return without an error, even
-	// if the run errored, as the error is already displayed by the
-	// output of the remote run.
-	if r.Status == tfe.RunErrored {
-		return r, nil
+	// If the run is canceled or errored, we still continue to the
+	// cost-estimation and policy check phases to ensure we render any
+	// results available. In the case of a hard-failed policy check, the
+	// status of the run will be "errored", but there is still policy
+	// information which should be shown.
+
+	// Show any cost estimation output.
+	if r.CostEstimate != nil {
+		err = b.costEstimate(stopCtx, cancelCtx, op, r)
+		if err != nil {
+			return r, err
+		}
 	}
 
 	// Check any configured sentinel policies.

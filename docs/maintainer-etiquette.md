@@ -3,6 +3,10 @@
 Are you a core maintainer of Terraform? Great! Here's a few notes
 to help you get comfortable when working on the project.
 
+This documentation is somewhat outdated since it still includes provider-related
+information even though providers are now developed in their own separate
+codebases, but the general information is still valid.
+
 ## Expectations
 
 We value the time you spend on the project and as such your maintainer status
@@ -13,7 +17,7 @@ doesn't imply any obligations to do any specific work.
 These apply to all contributors, but maintainers should lead by examples! :wink:
 
  - for `provider/*` PRs it's useful to attach test results & advise on how to run the relevant tests
- - for `bug`fixes it's useful to attach repro case, ideally in a form of a test
+ - for `bug` fixes it's useful to attach repro case, ideally in a form of a test
 
 ### PRs/issues from others
 
@@ -24,11 +28,11 @@ These apply to all contributors, but maintainers should lead by examples! :wink:
 
  - you're free to review PRs from the community or other HC employees and give :+1: / :-1:
  - if the PR submitter has push privileges (recognizable via `Collaborator`, `Member` or `Owner` badge) - we expect **the submitter** to merge their own PR after receiving a positive review from either HC employee or another maintainer. _Exceptions apply - see below._
- - we prefer to use the Github's interface or API to do this, just click the green button
+ - we prefer to use the GitHub's interface or API to do this, just click the green button
  - squash?
    - squash when you think the commit history is irrelevant (will not be helpful for any readers in T+6months)
  - Add the new PR to the **Changelog** if it may affect the user (almost any PR except test changes and docs updates)
-   - we prefer to use the Github's web interface to modify the Changelog and use `[GH-12345]` to format the PR number. These will be turned into links as part of the release process. Breaking changes should be always documented separately.
+   - we prefer to use the GitHub's web interface to modify the Changelog and use `[GH-12345]` to format the PR number. These will be turned into links as part of the release process. Breaking changes should be always documented separately.
 
 ## Release process
 

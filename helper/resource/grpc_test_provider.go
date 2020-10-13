@@ -37,7 +37,7 @@ func GRPCTestProvider(rp terraform.ResourceProvider) providers.Interface {
 	client, _ := pp.GRPCClient(context.Background(), nil, conn)
 
 	grpcClient := client.(*tfplugin.GRPCProvider)
-	grpcClient.TestListener = listener
+	grpcClient.TestServer = grpcServer
 
 	return grpcClient
 }

@@ -4,6 +4,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+type StringKind int
+
+const (
+	StringPlain StringKind = iota
+	StringMarkdown
+)
+
 // Block represents a configuration block.
 //
 // "Block" here is a logical grouping construct, though it happens to map
@@ -21,6 +28,11 @@ type Block struct {
 	// BlockTypes describes any nested block types that may appear directly
 	// inside the block.
 	BlockTypes map[string]*NestedBlock
+
+	Description     string
+	DescriptionKind StringKind
+
+	Deprecated bool
 }
 
 // Attribute represents a configuration attribute, within a block.
@@ -32,7 +44,8 @@ type Attribute struct {
 	// usage of the attribute. A description should be concise and use only
 	// one or two sentences, leaving full definition to longer-form
 	// documentation defined elsewhere.
-	Description string
+	Description     string
+	DescriptionKind StringKind
 
 	// Required, if set to true, specifies that an omitted or null value is
 	// not permitted.
@@ -55,6 +68,8 @@ type Attribute struct {
 	// future to help Terraform mask sensitive information. (Terraform
 	// currently achieves this in a limited sense via other mechanisms.)
 	Sensitive bool
+
+	Deprecated bool
 }
 
 // NestedBlock represents the embedding of one block within another.
@@ -83,7 +98,7 @@ type NestedBlock struct {
 // blocks.
 type NestingMode int
 
-//go:generate stringer -type=NestingMode
+//go:generate go run golang.org/x/tools/cmd/stringer -type=NestingMode
 
 const (
 	nestingModeInvalid NestingMode = iota
@@ -92,6 +107,23 @@ const (
 	// block type is permitted, with no labels, and its content should be
 	// provided directly as an object value.
 	NestingSingle
+
+	// NestingGroup is similar to NestingSingle in that it calls for only a
+	// single instance of a given block type with no labels, but it additonally
+	// guarantees that its result will never be null, even if the block is
+	// absent, and instead the nested attributes and blocks will be treated
+	// as absent in that case. (Any required attributes or blocks within the
+	// nested block are not enforced unless the block is explicitly present
+	// in the configuration, so they are all effectively optional when the
+	// block is not present.)
+	//
+	// This is useful for the situation where a remote API has a feature that
+	// is always enabled but has a group of settings related to that feature
+	// that themselves have default values. By using NestingGroup instead of
+	// NestingSingle in that case, generated plans will show the block as
+	// present even when not present in configuration, thus allowing any
+	// default values within to be displayed to the user.
+	NestingGroup
 
 	// NestingList indicates that multiple blocks of the given type are
 	// permitted, with no labels, and that their corresponding objects should

@@ -9,6 +9,11 @@ description: |-
 
 # Type Constraints
 
+-> **Note:** This page is about Terraform 0.12 and later, and documents a
+feature that did not exist in older versions. For other information about
+Terraform 0.11 and earlier, see
+[0.11 Configuration Language](../configuration-0-11/index.html).
+
 Terraform module authors and provider developers can use detailed type
 constraints to validate user-provided values for their input variables and
 resource arguments. This requires some additional knowledge about Terraform's
@@ -54,10 +59,6 @@ a valid representation of a number or boolean value.
 * `false` converts to `"false"`, and vice-versa
 * `15` converts to `"15"`, and vice-versa
 
-## The "Any" Type
-
-The type keyword `any` is a special type constraint that accepts any value.
-
 ## Complex Types
 
 A _complex_ type is a type that groups multiple values into a single value.
@@ -94,6 +95,17 @@ The three kinds of collection type in the Terraform language are:
     element type as long as every element is the same type. This is for
     compatibility with older configurations; for new code, we recommend using
     the full form.
+
+    Maps can be made with braces ({}) and colons (:) or equals signs (=):
+    { "foo": "bar", "bar": "baz" } OR { foo = "bar", bar = "baz" }. Quotes
+    may be omitted on keys, unless the key starts with a number, in which
+    case quotes are required. Commas are required between key/value pairs
+    for single line maps. A newline between key/value pairs is sufficient
+    in multi-line maps.
+
+    Note: although colons are valid delimiters between keys and values,
+    they are currently ignored by `terraform fmt` (whereas `terraform fmt`
+    will attempt vertically align equals signs).
 * `set(...)`: a collection of unique values that do not have any secondary
   identifiers or ordering.
 
@@ -201,3 +213,91 @@ On the other hand, automatic conversion will fail if the provided value
 an argument requires a type of `map(string)` and a user provides the object
 `{name = ["Kristy", "Claudia", "Mary Anne", "Stacey"], age = 12}`, Terraform
 will raise a type mismatch error, since a tuple cannot be converted to a string.
+
+## Dynamic Types: The "any" Constraint
+
+The keyword `any` is a special construct that serves as a placeholder for a
+type yet to be decided. `any` is not _itself_ a type: when interpreting a
+value against a type constraint containing `any`, Terraform will attempt to
+find a single actual type that could replace the `any` keyword to produce
+a valid result.
+
+For example, given the type constraint `list(any)`, Terraform will examine
+the given value and try to choose a replacement for the `any` that would
+make the result valid.
+
+If the given value were `["a", "b", "c"]` -- whose physical type is
+`tuple([string, string, string])`, Terraform analyzes this as follows:
+
+* Tuple types and list types are _similar_ per the previous section, so the
+  tuple-to-list conversion rule applies.
+* All of the elements in the tuple are strings, so the type constraint
+  `string` would be valid for all of the list elements.
+* Therefore in this case the `any` argument is replaced with `string`,
+  and the final concrete value type is `list(string)`.
+
+All of the elements of a collection must have the same type, so conversion
+to `list(any)` requires that all of the given elements must be convertible
+to a common type. This implies some other behaviors that result from the
+conversion rules described in earlier sections.
+
+* If the given value were instead `["a", 1, "b"]` then Terraform would still
+  select `list(string)`, because of the primitive type conversion rules, and
+  the resulting value would be `["a", "1", "b"]` due to the string conversion
+  implied by that type constraint.
+* If the given value were instead `["a", [], "b"]` then the value cannot
+  conform to the type constraint: there is no single type that both a string
+  and an empty tuple can convert to. Terraform would reject this value,
+  complaining that all elements must have the same type.
+
+Although the above examples use `list(any)`, a similar principle applies to
+`map(any)` and `set(any)`.
+
+If you wish to apply absolutely no constraint to the given value, the `any`
+keyword can be used in isolation:
+
+```hcl
+variable "no_type_constraint" {
+  type = any
+}
+```
+
+In this case, Terraform will replace `any` with the exact type of the given
+value and thus perform no type conversion whatsoever.
+
+## Experimental: Optional Object Type Attributes
+
+From Terraform v0.14 there is _experimental_ support for marking particular
+attributes as optional in an object type constraint.
+
+To mark an attribute as optional, use the additional `optional(...)` modifier
+around its type declaration:
+
+```hcl
+variable "with_optional_attribute" {
+  type = object({
+    a = string           # a required attribute
+    b = optional(string) # an optional attribute
+  })
+}
+```
+
+By default, for required attributes, Terraform will return an error if the
+source value has no matching attribute. Marking an attribute as optional
+changes the behavior in that situation: Terraform will instead just silently
+insert `null` as the value of the attribute, allowing the recieving module
+to describe an appropriate fallback behavior.
+
+Because this feature is currently experimental, it requires an explicit
+opt-in on a per-module basis. To use it, write a `terraform` block with the
+`experiments` argument set as follows:
+
+```hcl
+terraform {
+  experiments = [module_variable_optional_attrs]
+}
+```
+
+Until the experiment is concluded, the behavior of this feature may see
+breaking changes even in minor releases. We recommend using this feature
+only in prerelease versions of modules as long as it remains experimental.

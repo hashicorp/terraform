@@ -8,17 +8,19 @@ import (
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 type remoteClient struct {
-	client       *tfe.Client
-	lockInfo     *state.LockInfo
-	organization string
-	runID        string
-	workspace    *tfe.Workspace
+	client         *tfe.Client
+	lockInfo       *statemgr.LockInfo
+	organization   string
+	runID          string
+	stateUploadErr bool
+	workspace      *tfe.Workspace
+	forcePush      bool
 }
 
 // Get the remote state.
@@ -31,12 +33,12 @@ func (r *remoteClient) Get() (*remote.Payload, error) {
 			// If no state exists, then return nil.
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Error retrieving remote state: %v", err)
+		return nil, fmt.Errorf("Error retrieving state: %v", err)
 	}
 
 	state, err := r.client.StateVersions.Download(ctx, sv.DownloadURL)
 	if err != nil {
-		return nil, fmt.Errorf("Error downloading remote state: %v", err)
+		return nil, fmt.Errorf("Error downloading state: %v", err)
 	}
 
 	// If the state is empty, then return nil.
@@ -68,6 +70,7 @@ func (r *remoteClient) Put(state []byte) error {
 		Serial:  tfe.Int64(int64(stateFile.Serial)),
 		MD5:     tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
 		State:   tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:   tfe.Bool(r.forcePush),
 	}
 
 	// If we have a run ID, make sure to add it to the options
@@ -79,7 +82,8 @@ func (r *remoteClient) Put(state []byte) error {
 	// Create the new state.
 	_, err = r.client.StateVersions.Create(ctx, r.workspace.ID, options)
 	if err != nil {
-		return fmt.Errorf("Error creating remote state: %v", err)
+		r.stateUploadErr = true
+		return fmt.Errorf("Error uploading state: %v", err)
 	}
 
 	return nil
@@ -95,17 +99,26 @@ func (r *remoteClient) Delete() error {
 	return nil
 }
 
+// EnableForcePush to allow the remote client to overwrite state
+// by implementing remote.ClientForcePusher
+func (r *remoteClient) EnableForcePush() {
+	r.forcePush = true
+}
+
 // Lock the remote state.
-func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
+func (r *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.Background()
 
-	lockErr := &state.LockError{Info: r.lockInfo}
+	lockErr := &statemgr.LockError{Info: r.lockInfo}
 
 	// Lock the workspace.
 	_, err := r.client.Workspaces.Lock(ctx, r.workspace.ID, tfe.WorkspaceLockOptions{
 		Reason: tfe.String("Locked by Terraform"),
 	})
 	if err != nil {
+		if err == tfe.ErrWorkspaceLocked {
+			err = fmt.Errorf("%s (lock ID: \"%s/%s\")", err, r.organization, r.workspace.Name)
+		}
 		lockErr.Err = err
 		return "", lockErr
 	}
@@ -119,7 +132,14 @@ func (r *remoteClient) Lock(info *state.LockInfo) (string, error) {
 func (r *remoteClient) Unlock(id string) error {
 	ctx := context.Background()
 
-	lockErr := &state.LockError{Info: r.lockInfo}
+	// We first check if there was an error while uploading the latest
+	// state. If so, we will not unlock the workspace to prevent any
+	// changes from being applied until the correct state is uploaded.
+	if r.stateUploadErr {
+		return nil
+	}
+
+	lockErr := &statemgr.LockError{Info: r.lockInfo}
 
 	// With lock info this should be treated as a normal unlock.
 	if r.lockInfo != nil {
@@ -141,7 +161,12 @@ func (r *remoteClient) Unlock(id string) error {
 
 	// Verify the optional force-unlock lock ID.
 	if r.organization+"/"+r.workspace.Name != id {
-		lockErr.Err = fmt.Errorf("lock ID does not match existing lock")
+		lockErr.Err = fmt.Errorf(
+			"lock ID %q does not match existing lock ID \"%s/%s\"",
+			id,
+			r.organization,
+			r.workspace.Name,
+		)
 		return lockErr
 	}
 

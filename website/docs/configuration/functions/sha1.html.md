@@ -9,6 +9,10 @@ description: |-
 
 # `sha1` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `sha1` computes the SHA1 hash of a given string and encodes it with
 hexadecimal digits.
 
@@ -26,3 +30,8 @@ relevant literature to understand the security implications.
 > sha1("hello world")
 2aae6c35c94fcfb415dbe95f408b9ce91ee846ed
 ```
+
+## Related Functions
+
+* [`filesha1`](./filesha1.html) calculates the same hash from
+  the contents of a file rather than from a string value.

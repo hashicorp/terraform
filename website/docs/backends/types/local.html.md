@@ -23,7 +23,7 @@ terraform {
 }
 ```
 
-## Example Reference
+## Data Source Configuration
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -41,3 +41,4 @@ The following configuration options are supported:
 
  * `path` - (Optional) The path to the `tfstate` file. This defaults to
    "terraform.tfstate" relative to the root module by default.
+ * `workspace_dir` - (Optional) The path to non-default workspaces.

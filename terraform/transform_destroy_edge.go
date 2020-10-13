@@ -54,32 +54,84 @@ type DestroyEdgeTransformer struct {
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
-	// the list of destroyers. Usually there will be at most one destroyer
-	// per node, but we allow multiple if present for completeness.
+	// the list of destroyers.
 	destroyers := make(map[string][]GraphNodeDestroyer)
-	destroyerAddrs := make(map[string]addrs.AbsResourceInstance)
+
+	// Record the creators, which will need to depend on the destroyers if they
+	// are only being updated.
+	creators := make(map[string]GraphNodeCreator)
+
+	// destroyersByResource records each destroyer by the ConfigResource
+	// address.  We use this because dependencies are only referenced as
+	// resources and have no index or module instance information, but we will
+	// want to connect all the individual instances for correct ordering.
+	destroyersByResource := make(map[string][]GraphNodeDestroyer)
 	for _, v := range g.Vertices() {
-		dn, ok := v.(GraphNodeDestroyer)
-		if !ok {
-			continue
-		}
+		switch n := v.(type) {
+		case GraphNodeDestroyer:
+			addrP := n.DestroyAddr()
+			if addrP == nil {
+				log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", dag.VertexName(n), v)
+				continue
+			}
+			addr := *addrP
 
-		addrP := dn.DestroyAddr()
-		if addrP == nil {
-			continue
-		}
-		addr := *addrP
+			key := addr.String()
+			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
+			destroyers[key] = append(destroyers[key], n)
 
-		key := addr.String()
-		log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(dn), v, key)
-		destroyers[key] = append(destroyers[key], dn)
-		destroyerAddrs[key] = addr
+			resAddr := addr.ContainingResource().Config().String()
+			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
+		case GraphNodeCreator:
+			addr := n.CreateAddr()
+			creators[addr.String()] = n
+		}
 	}
 
 	// If we aren't destroying anything, there will be no edges to make
 	// so just exit early and avoid future work.
 	if len(destroyers) == 0 {
 		return nil
+	}
+
+	// Connect destroy despendencies as stored in the state
+	for _, ds := range destroyers {
+		for _, des := range ds {
+			ri, ok := des.(GraphNodeResourceInstance)
+			if !ok {
+				continue
+			}
+
+			for _, resAddr := range ri.StateDependencies() {
+				for _, desDep := range destroyersByResource[resAddr.String()] {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+						g.Connect(dag.BasicEdge(desDep, des))
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
+					}
+				}
+			}
+		}
+	}
+
+	// connect creators to any destroyers on which they may depend
+	for _, c := range creators {
+		ri, ok := c.(GraphNodeResourceInstance)
+		if !ok {
+			continue
+		}
+
+		for _, resAddr := range ri.StateDependencies() {
+			for _, desDep := range destroyersByResource[resAddr.String()] {
+				if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
+					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
+					g.Connect(dag.BasicEdge(c, desDep))
+				} else {
+					log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
+				}
+			}
+		}
 	}
 
 	// Go through and connect creators to destroyers. Going along with
@@ -95,13 +147,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		key := addr.String()
-		ds := destroyers[key]
-		if len(ds) == 0 {
-			continue
-		}
-
-		for _, d := range ds {
+		for _, d := range destroyers[addr.String()] {
 			// For illustrating our example
 			a_d := d.(dag.Vertex)
 			a := v
@@ -110,170 +156,84 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
 				dag.VertexName(a), dag.VertexName(a_d))
 
-			g.Connect(&DestroyEdge{S: a, T: a_d})
+			g.Connect(dag.BasicEdge(a, a_d))
+		}
+	}
 
-			// Attach the destroy node to the creator
-			// There really shouldn't be more than one destroyer, but even if
-			// there are, any of them will represent the correct
-			// CreateBeforeDestroy status.
-			if n, ok := cn.(GraphNodeAttachDestroyer); ok {
-				if d, ok := d.(GraphNodeDestroyerCBD); ok {
-					n.AttachDestroyNode(d)
+	return nil
+}
+
+// Remove any nodes that aren't needed when destroying modules.
+// Variables, outputs, locals, and expanders may not be able to evaluate
+// correctly, so we can remove these if nothing depends on them. The module
+// closers also need to disable their use of expansion if the module itself is
+// no longer present.
+type pruneUnusedNodesTransformer struct {
+}
+
+func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
+	// We need a reverse depth first walk of modules, processing them in order
+	// from the leaf modules to the root. This allows us to remove unneeded
+	// dependencies from child modules, freeing up nodes in the parent module
+	// to also be removed.
+
+	nodes := g.Vertices()
+
+	for removed := true; removed; {
+		removed = false
+
+		for i := 0; i < len(nodes); i++ {
+			// run this in a closure, so we can return early rather than
+			// dealing with complex looping and labels
+			func() {
+				n := nodes[i]
+				switch n := n.(type) {
+				case graphNodeTemporaryValue:
+					// root module outputs indicate they are not temporary by
+					// returning false here.
+					if !n.temporaryValue() {
+						return
+					}
+
+					// temporary values, which consist of variables, locals,
+					// and outputs, must be kept if anything refers to them.
+					for _, v := range g.UpEdges(n) {
+						// keep any value which is connected through a
+						// reference
+						if _, ok := v.(GraphNodeReferencer); ok {
+							return
+						}
+					}
+
+				case graphNodeExpandsInstances:
+					// Any nodes that expand instances are kept when their
+					// instances may need to be evaluated.
+					for _, v := range g.UpEdges(n) {
+						switch v.(type) {
+						case graphNodeExpandsInstances:
+							// expanders can always depend on module expansion
+							// themselves
+							return
+						case GraphNodeResourceInstance:
+							// resource instances always depend on their
+							// resource node, which is an expander
+							return
+						}
+					}
+
+				default:
+					return
 				}
-			}
-		}
-	}
 
-	// This is strange but is the easiest way to get the dependencies
-	// of a node that is being destroyed. We use another graph to make sure
-	// the resource is in the graph and ask for references. We have to do this
-	// because the node that is being destroyed may NOT be in the graph.
-	//
-	// Example: resource A is force new, then destroy A AND create A are
-	// in the graph. BUT if resource A is just pure destroy, then only
-	// destroy A is in the graph, and create A is not.
-	providerFn := func(a *NodeAbstractProvider) dag.Vertex {
-		return &NodeApplyableProvider{NodeAbstractProvider: a}
-	}
-	steps := []GraphTransformer{
-		// Add the local values
-		&LocalTransformer{Config: t.Config},
+				log.Printf("[DEBUG] pruneUnusedNodes: %s is no longer needed, removing", dag.VertexName(n))
+				g.Remove(n)
+				removed = true
 
-		// Add outputs and metadata
-		&OutputTransformer{Config: t.Config},
-		&AttachResourceConfigTransformer{Config: t.Config},
-		&AttachStateTransformer{State: t.State},
-
-		// Add all the variables. We can depend on resources through
-		// variables due to module parameters, and we need to properly
-		// determine that.
-		&RootVariableTransformer{Config: t.Config},
-		&ModuleVariableTransformer{Config: t.Config},
-
-		TransformProviders(nil, providerFn, t.Config),
-
-		// Must attach schemas before ReferenceTransformer so that we can
-		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: t.Schemas},
-
-		&ReferenceTransformer{},
-	}
-
-	// Go through all the nodes being destroyed and create a graph.
-	// The resulting graph is only of things being CREATED. For example,
-	// following our example, the resulting graph would be:
-	//
-	//   A, B (with no edges)
-	//
-	var tempG Graph
-	var tempDestroyed []dag.Vertex
-	for d := range destroyers {
-		// d is the string key for the resource being destroyed. We actually
-		// want the address value, which we stashed earlier.
-		addr := destroyerAddrs[d]
-
-		// This part is a little bit weird but is the best way to
-		// find the dependencies we need to: build a graph and use the
-		// attach config and state transformers then ask for references.
-		abstract := NewNodeAbstractResourceInstance(addr)
-		tempG.Add(abstract)
-		tempDestroyed = append(tempDestroyed, abstract)
-
-		// We also add the destroy version here since the destroy can
-		// depend on things that the creation doesn't (destroy provisioners).
-		destroy := &NodeDestroyResourceInstance{NodeAbstractResourceInstance: abstract}
-		tempG.Add(destroy)
-		tempDestroyed = append(tempDestroyed, destroy)
-	}
-
-	// Run the graph transforms so we have the information we need to
-	// build references.
-	log.Printf("[TRACE] DestroyEdgeTransformer: constructing temporary graph for analysis of references, starting from:\n%s", tempG.StringWithNodeTypes())
-	for _, s := range steps {
-		log.Printf("[TRACE] DestroyEdgeTransformer: running %T on temporary graph", s)
-		if err := s.Transform(&tempG); err != nil {
-			log.Printf("[TRACE] DestroyEdgeTransformer: %T failed: %s", s, err)
-			return err
-		}
-	}
-	log.Printf("[TRACE] DestroyEdgeTransformer: temporary reference graph:\n%s", tempG.String())
-
-	// Go through all the nodes in the graph and determine what they
-	// depend on.
-	for _, v := range tempDestroyed {
-		// Find all ancestors of this to determine the edges we'll depend on
-		vs, err := tempG.Ancestors(v)
-		if err != nil {
-			return err
-		}
-
-		refs := make([]dag.Vertex, 0, vs.Len())
-		for _, raw := range vs.List() {
-			refs = append(refs, raw.(dag.Vertex))
-		}
-
-		refNames := make([]string, len(refs))
-		for i, ref := range refs {
-			refNames[i] = dag.VertexName(ref)
-		}
-		log.Printf(
-			"[TRACE] DestroyEdgeTransformer: creation node %q references %s",
-			dag.VertexName(v), refNames)
-
-		// If we have no references, then we won't need to do anything
-		if len(refs) == 0 {
-			continue
-		}
-
-		// Get the destroy node for this. In the example of our struct,
-		// we are currently at B and we're looking for B_d.
-		rn, ok := v.(GraphNodeResourceInstance)
-		if !ok {
-			log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s, since it's not a resource", dag.VertexName(v))
-			continue
-		}
-
-		addr := rn.ResourceInstanceAddr()
-		dns := destroyers[addr.String()]
-
-		// We have dependencies, check if any are being destroyed
-		// to build the list of things that we must depend on!
-		//
-		// In the example of the struct, if we have:
-		//
-		//   B_d => A_d => A => B
-		//
-		// Then at this point in the algorithm we started with B_d,
-		// we built B (to get dependencies), and we found A. We're now looking
-		// to see if A_d exists.
-		var depDestroyers []dag.Vertex
-		for _, v := range refs {
-			rn, ok := v.(GraphNodeResourceInstance)
-			if !ok {
-				continue
-			}
-
-			addr := rn.ResourceInstanceAddr()
-			key := addr.String()
-			if ds, ok := destroyers[key]; ok {
-				for _, d := range ds {
-					depDestroyers = append(depDestroyers, d.(dag.Vertex))
-					log.Printf(
-						"[TRACE] DestroyEdgeTransformer: destruction of %q depends on %s",
-						key, dag.VertexName(d))
-				}
-			}
-		}
-
-		// Go through and make the connections. Use the variable
-		// names "a_d" and "b_d" to reference our example.
-		for _, a_d := range dns {
-			for _, b_d := range depDestroyers {
-				if b_d != a_d {
-					log.Printf("[TRACE] DestroyEdgeTransformer: %q depends on %q", dag.VertexName(b_d), dag.VertexName(a_d))
-					g.Connect(dag.BasicEdge(b_d, a_d))
-				}
-			}
+				// remove the node from our iteration as well
+				last := len(nodes) - 1
+				nodes[i], nodes[last] = nodes[last], nodes[i]
+				nodes = nodes[:last]
+			}()
 		}
 	}
 

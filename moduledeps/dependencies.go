@@ -1,13 +1,14 @@
 package moduledeps
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plugin/discovery"
 )
 
 // Providers describes a set of provider dependencies for a given module.
 //
 // Each named provider instance can have one version constraint.
-type Providers map[ProviderInstance]ProviderDependency
+type Providers map[addrs.Provider]ProviderDependency
 
 // ProviderDependency describes the dependency for a particular provider
 // instance, including both the set of allowed versions and the reason for

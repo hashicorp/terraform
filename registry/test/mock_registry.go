@@ -12,11 +12,13 @@ import (
 	"strings"
 
 	version "github.com/hashicorp/go-version"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
-	"github.com/hashicorp/terraform/svchost"
-	"github.com/hashicorp/terraform/svchost/auth"
-	"github.com/hashicorp/terraform/svchost/disco"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Disco return a *disco.Disco mapping registry.terraform.io, localhost,
@@ -29,6 +31,7 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
+	d.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
 
 	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
@@ -77,7 +80,7 @@ var testMods = map[string][]testMod{
 		version:  "1.10.0",
 	}},
 	"registry/local/sub": {{
-		location: "test-fixtures/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
+		location: "testdata/registry-tar-subdir/foo.tgz//*?archive=tar.gz",
 		version:  "0.1.2",
 	}},
 	"exists-in-registry/identifier/provider": {{
@@ -253,102 +256,6 @@ func mockRegHandler() http.Handler {
 		})),
 	)
 
-	providerDownload := func(w http.ResponseWriter, r *http.Request) {
-		p := strings.TrimLeft(r.URL.Path, "/")
-		v := strings.Split(string(p), "/")
-
-		if len(v) != 6 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		name := fmt.Sprintf("%s/%s", v[0], v[1])
-
-		providers, ok := testProviders[name]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-
-		// for this test / moment we will only return the one provider
-		loc := response.TerraformProviderPlatformLocation{
-			DownloadURL: providers[0].url,
-		}
-
-		js, err := json.Marshal(loc)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-
-	}
-
-	providerVersions := func(w http.ResponseWriter, r *http.Request) {
-		p := strings.TrimLeft(r.URL.Path, "/")
-		re := regexp.MustCompile(`^([-a-z]+/\w+)/versions$`)
-		matches := re.FindStringSubmatch(p)
-
-		if len(matches) != 2 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		// check for auth
-		if strings.Contains(matches[1], "private/") {
-			if !strings.Contains(r.Header.Get("Authorization"), testCred) {
-				http.Error(w, "", http.StatusForbidden)
-			}
-		}
-
-		name := providerAlias(fmt.Sprintf("%s", matches[1]))
-		versions, ok := testProviders[name]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-
-		// only adding the single requested provider for now
-		// this is the minimal that any registry is expected to support
-		pvs := &response.TerraformProviderVersions{
-			ID: name,
-		}
-
-		for _, v := range versions {
-			pv := &response.TerraformProviderVersion{
-				Version: v.version,
-			}
-			pvs.Versions = append(pvs.Versions, pv)
-		}
-
-		js, err := json.Marshal(pvs)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-	}
-
-	mux.Handle("/v1/providers/",
-		http.StripPrefix("/v1/providers/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.Contains(r.URL.Path, "/download") {
-				providerDownload(w, r)
-				return
-			}
-
-			if strings.HasSuffix(r.URL.Path, "/versions") {
-				providerVersions(w, r)
-				return
-			}
-
-			http.NotFound(w, r)
-		})),
-	)
-
 	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{"modules.v1":"http://localhost/v1/modules/", "providers.v1":"http://localhost/v1/providers/"}`)
@@ -359,4 +266,17 @@ func mockRegHandler() http.Handler {
 // Registry returns an httptest server that mocks out some registry functionality.
 func Registry() *httptest.Server {
 	return httptest.NewServer(mockRegHandler())
+}
+
+// RegistryRetryableErrorsServer returns an httptest server that mocks out the
+// registry API to return 502 errors.
+func RegistryRetryableErrorsServer() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v1/modules/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	mux.HandleFunc("/v1/providers/", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "mocked server error", http.StatusBadGateway)
+	})
+	return httptest.NewServer(mux)
 }

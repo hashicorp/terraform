@@ -9,21 +9,27 @@ description: |-
 
 # Local Values
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Local Values](../configuration-0-11/locals.html).
+
 A local value assigns a name to an [expression](./expressions.html),
-allowing it to be used multiple times within a module without repeating
+so you can use it multiple times within a module without repeating
 it.
 
-Comparing modules to functions in a traditional programming language:
-if [input variables](./variables.html) are analogous to function arguments and
-[outputs values](./outputs.html) are analogous to function return values, then
-_local values_ are comparable to a function's local temporary symbols.
+If you're familiar with traditional programming languages, it can be useful to
+compare Terraform modules to function definitions:
+
+- [Input variables](./variables.html) are like function arguments.
+- [Output values](./outputs.html) are like function return values.
+- Local values are like a function's temporary local variables.
 
 -> **Note:** For brevity, local values are often referred to as just "locals"
 when the meaning is clear from context.
 
 ## Declaring a Local Value
 
-A set of related local values can be delared together in a single `locals`
+A set of related local values can be declared together in a single `locals`
 block:
 
 ```hcl
@@ -33,15 +39,14 @@ locals {
 }
 ```
 
-The expressions assigned to local value names can either be simple constants
-like the above, allowing these values to be defined only once but used many
-times, or they can be more complex expressions that transform or combine
-values from elsewhere in the module:
+The expressions in local values are not limited to literal constants; they can
+also reference other values in the module in order to transform or combine them,
+including variables, resource attributes, or other local values:
 
 ```hcl
 locals {
   # Ids for multiple sets of EC2 instances, merged together
-  instance_ids = "${concat(aws_instance.blue.*.id, aws_instance.green.*.id)}"
+  instance_ids = concat(aws_instance.blue.*.id, aws_instance.green.*.id)
 }
 
 locals {
@@ -53,9 +58,14 @@ locals {
 }
 ```
 
-As shown above, local values can be referenced from elsewhere in the module
-with an expression like `local.common_tags`, and locals can reference
-each other in order to build more complex values from simpler ones.
+## Using Local Values
+
+Once a local value is declared, you can reference it in
+[expressions](./expressions.html) as `local.<NAME>`.
+
+-> **Note:** Local values are _created_ by a `locals` block (plural), but you
+_reference_ them as attributes on an object named `local` (singular). Make sure
+to leave off the "s" when referencing a local value!
 
 ```
 resource "aws_instance" "example" {
@@ -64,6 +74,9 @@ resource "aws_instance" "example" {
   tags = local.common_tags
 }
 ```
+
+A local value can only be accessed in expressions within the module where it
+was declared.
 
 ## When To Use Local Values
 

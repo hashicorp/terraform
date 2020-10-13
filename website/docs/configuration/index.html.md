@@ -8,7 +8,13 @@ description: |-
   written in the Terraform language.
 ---
 
-# Configuration
+# Configuration Language
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language](../configuration-0-11/index.html).
+
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 Terraform uses its own configuration language, designed to allow concise
 descriptions of infrastructure. The Terraform language is declarative,
@@ -93,7 +99,7 @@ resources into source files in whatever way makes sense for your infrastructure.
 ## Terraform CLI vs. Providers
 
 The Terraform command line interface (CLI) is a general engine for evaluating
-and applying Terraform configuations. It defines the Terraform language syntax
+and applying Terraform configurations. It defines the Terraform language syntax
 and overall structure, and coordinates sequences of changes that must be made to
 make remote infrastructure match the given configuration.
 
@@ -121,6 +127,15 @@ practical network configuration will often contain additional elements not
 shown here.
 
 ```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 1.0.4"
+    }
+  }
+}
+
 variable "aws_region" {}
 
 variable "base_cidr_block" {

@@ -8,6 +8,8 @@ description: |-
 
 # Command: plan
 
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+
 The `terraform plan` command is used to create an execution plan. Terraform
 performs a refresh, unless explicitly disabled, and then determines what
 actions are necessary to achieve the desired state specified in the
@@ -21,21 +23,23 @@ will behave as expected.
 
 The optional `-out` argument can be used to save the generated plan to a file
 for later execution with `terraform apply`, which can be useful when
-[running Terraform in automation](/guides/running-terraform-in-automation.html).
+[running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+
+If Terraform detects no changes to resource or to root module output values,
+`terraform plan` will indicate that no changes are required.
 
 ## Usage
 
-Usage: `terraform plan [options] [dir-or-plan]`
+Usage: `terraform plan [options]`
 
-By default, `plan` requires no flags and looks in the current directory
-for the configuration and state file to refresh.
+The `plan` subcommand looks in the current working directory for the root module
+configuration.
 
-If the command is given an existing saved plan as an argument, the
-command will output the contents of the saved plan. In this scenario,
-the `plan` command will not modify the given plan. This can be used to
-inspect a planfile.
+The available options are:
 
-The command-line flags are all optional. The list of available flags are:
+* `-compact-warnings` - If Terraform produces any warnings that are not
+  accompanied by errors, show them in a more compact form that includes only
+  the summary messages.
 
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
@@ -60,7 +64,8 @@ The command-line flags are all optional. The list of available flags are:
   plans below.
 
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
-  [walks the graph](/docs/internals/graph.html#walking-the-graph).
+  [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
+  to 10.
 
 * `-refresh=true` - Update the state prior to checking for differences.
 
@@ -93,7 +98,7 @@ to specify the constraint. The resource address is interpreted as follows:
 
 * If the given address has a _resource spec_, only the specified resource
   is targeted. If the named resource uses `count` and no explicit index
-  is specified in the address, all of the instances sharing the given
+  is specified in the address (i.e. aws_instance.example[3]), all of the instances sharing the given
   resource name are targeted.
 
 * If the given address _does not_ have a resource spec, and instead just
@@ -112,7 +117,7 @@ large configurations, prefer instead to break large configurations into
 several smaller configurations that can each be independently applied.
 [Data sources](/docs/configuration/data-sources.html) can be used to access
 information about resources created in other configurations, allowing
-a complex system architecture to be broken down into more managable parts
+a complex system architecture to be broken down into more manageable parts
 that can be updated independently.
 
 ## Security Warning
@@ -127,3 +132,24 @@ or keep it at rest for an extended period of time.
 
 Future versions of Terraform will make plan files more
 secure.
+
+## Passing a Different Configuration Directory
+
+Terraform v0.13 and earlier accepted an additional positional argument giving
+a directory path, in which case Terraform would use that directory as the root
+module instead of the current working directory.
+
+That usage is still supported in Terraform v0.14, but is now deprecated and we
+plan to remove it in Terraform v0.15. If your workflow relies on overriding
+the root module directory, use
+[the `-chdir` global option](./#switching-working-directory-with--chdir)
+instead, which works across all commands and makes Terraform consistently look
+in the given directory for all files it would normaly read or write in the
+current working directory.
+
+If your previous use of this legacy pattern was also relying on Terraform
+writing the `.terraform` subdirectory into the current working directory even
+though the root module directory was overridden, use
+[the `TF_DATA_DIR` environment variable](environment-variables.html#TF_DATA_DIR)
+to direct Terraform to write the `.terraform` directory to a location other
+than the current working directory.

@@ -15,16 +15,13 @@ type WorkspaceSelectCommand struct {
 }
 
 func (c *WorkspaceSelectCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace select")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/svchost/disco"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 
@@ -19,14 +19,18 @@ func TestRemote(t *testing.T) {
 }
 
 func TestRemote_backendDefault(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
 	backend.TestBackendStateForceUnlock(t, b, b)
 }
 
 func TestRemote_backendNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	backend.TestBackendStates(t, b)
 }
 
@@ -59,6 +63,19 @@ func TestRemote_config(t *testing.T) {
 				}),
 			}),
 			confErr: "Failed to request discovery document",
+		},
+		// localhost advertises TFE services, but has no token in the credentials
+		"without_a_token": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("localhost"),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			confErr: "terraform login localhost",
 		},
 		"with_a_name": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -106,6 +123,9 @@ func TestRemote_config(t *testing.T) {
 			}),
 			valErr: `Only one of workspace "name" or "prefix" is allowed`,
 		},
+		"null config": {
+			config: cty.NullVal(cty.EmptyObject),
+		},
 	}
 
 	for name, tc := range cases {
@@ -113,7 +133,7 @@ func TestRemote_config(t *testing.T) {
 		b := New(testDisco(s))
 
 		// Validate
-		valDiags := b.ValidateConfig(tc.config)
+		_, valDiags := b.PrepareConfig(tc.config)
 		if (valDiags.Err() != nil || tc.valErr != "") &&
 			(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
 			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
@@ -157,8 +177,8 @@ func TestRemote_versionConstraints(t *testing.T) {
 					"prefix": cty.NullVal(cty.String),
 				}),
 			}),
-			version: "0.10.1",
-			result:  "upgrade Terraform to >= 0.11.8",
+			version: "0.0.1",
+			result:  "upgrade Terraform to >= 0.1.0",
 		},
 		"version too new": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -170,8 +190,8 @@ func TestRemote_versionConstraints(t *testing.T) {
 					"prefix": cty.NullVal(cty.String),
 				}),
 			}),
-			version: "0.12.0",
-			result:  "downgrade Terraform to <= 0.11.11",
+			version: "10.0.1",
+			result:  "downgrade Terraform to <= 10.0.0",
 		},
 	}
 
@@ -192,7 +212,7 @@ func TestRemote_versionConstraints(t *testing.T) {
 		version.Version = tc.version
 
 		// Validate
-		valDiags := b.ValidateConfig(tc.config)
+		_, valDiags := b.PrepareConfig(tc.config)
 		if valDiags.HasErrors() {
 			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
 		}
@@ -207,7 +227,8 @@ func TestRemote_versionConstraints(t *testing.T) {
 }
 
 func TestRemote_localBackend(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	local, ok := b.local.(*backendLocal.Local)
 	if !ok {
@@ -221,7 +242,9 @@ func TestRemote_localBackend(t *testing.T) {
 }
 
 func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
 	if _, err := b.Workspaces(); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
@@ -244,7 +267,9 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 }
 
 func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
-	b := testBackendNoDefault(t)
+	b, bCleanup := testBackendNoDefault(t)
+	defer bCleanup()
+
 	states, err := b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
@@ -323,7 +348,8 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 }
 
 func TestRemote_checkConstraints(t *testing.T) {
-	b := testBackendDefault(t)
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
 
 	cases := map[string]struct {
 		constraints *disco.Constraints

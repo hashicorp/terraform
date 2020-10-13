@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -22,8 +23,9 @@ const FormatVersion = "0.1"
 // state is the top-level representation of the json format of a terraform
 // state.
 type state struct {
-	FormatVersion string      `json:"format_version,omitempty"`
-	Values        stateValues `json:"values,omitempty"`
+	FormatVersion    string       `json:"format_version,omitempty"`
+	TerraformVersion string       `json:"terraform_version,omitempty"`
+	Values           *stateValues `json:"values,omitempty"`
 }
 
 // stateValues is the common representation of resolved values for both the prior
@@ -41,6 +43,8 @@ type output struct {
 // module is the representation of a module in state. This can be the root module
 // or a child module
 type module struct {
+	// Resources are sorted in a user-friendly order that is undefined at this
+	// time, but consistent.
 	Resources []resource `json:"resources,omitempty"`
 
 	// Address is the absolute module address, omitted for the root module
@@ -73,13 +77,23 @@ type resource struct {
 
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
-	SchemaVersion uint64 `json:"schema_version,omitempty"`
+	SchemaVersion uint64 `json:"schema_version"`
 
 	// AttributeValues is the JSON representation of the attribute values of the
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
 	AttributeValues attributeValues `json:"values,omitempty"`
+
+	// DependsOn contains a list of the resource's dependencies. The entries are
+	// addresses relative to the containing module.
+	DependsOn []string `json:"depends_on,omitempty"`
+
+	// Tainted is true if the resource is tainted in terraform state.
+	Tainted bool `json:"tainted,omitempty"`
+
+	// Deposed is set if the resource is deposed in terraform state.
+	DeposedKey string `json:"deposed_key,omitempty"`
 }
 
 // attributeValues is the JSON representation of the attribute values of the
@@ -87,15 +101,17 @@ type resource struct {
 type attributeValues map[string]interface{}
 
 func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
-	if value == cty.NilVal {
+	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
+
 	ret := make(attributeValues)
 
 	it := value.ElementIterator()
 	for it.Next() {
 		k, v := it.Element()
-		ret[k.AsString()] = v
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
 	return ret
 }
@@ -107,16 +123,21 @@ func newState() *state {
 	}
 }
 
-// Marshal returns the json encoding of a terraform plan.
-func Marshal(s *states.State, schemas *terraform.Schemas) ([]byte, error) {
-	if s.Empty() {
-		return nil, nil
-	}
-
+// Marshal returns the json encoding of a terraform state.
+func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	output := newState()
 
+	if sf == nil || sf.State.Empty() {
+		ret, err := json.Marshal(output)
+		return ret, err
+	}
+
+	if sf.TerraformVersion != nil {
+		output.TerraformVersion = sf.TerraformVersion.String()
+	}
+
 	// output.StateValues
-	err := output.marshalStateValues(s, schemas)
+	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +162,7 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 		return err
 	}
 
-	jsonstate.Values = sv
+	jsonstate.Values = &sv
 	return nil
 }
 
@@ -170,7 +191,7 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	var err error
 
 	ret.Address = ""
-	ret.Resources, err = marshalResources(s.RootModule().Resources, schemas)
+	ret.Resources, err = marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
 	if err != nil {
 		return ret, err
 	}
@@ -191,8 +212,8 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	return ret, err
 }
 
-// marshalModules is an ungainly recursive function to build a module
-// structure out of a teraform state.
+// marshalModules is an ungainly recursive function to build a module structure
+// out of terraform state.
 func marshalModules(
 	s *states.State,
 	schemas *terraform.Schemas,
@@ -204,7 +225,7 @@ func marshalModules(
 		stateMod := s.Module(child)
 		// cm for child module, naming things is hard.
 		cm := module{Address: stateMod.Addr.String()}
-		rs, err := marshalResources(stateMod.Resources, schemas)
+		rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
 		if err != nil {
 			return nil, err
 		}
@@ -220,58 +241,109 @@ func marshalModules(
 		ret = append(ret, cm)
 	}
 
+	// sort the child modules by address for consistency.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Address < ret[j].Address
+	})
+
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]resource, error) {
+func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]resource, error) {
 	var ret []resource
 
 	for _, r := range resources {
 		for k, ri := range r.Instances {
 
-			resource := resource{
-				Address:      r.Addr.String(),
-				Type:         r.Addr.Type,
-				Name:         r.Addr.Name,
-				ProviderName: r.ProviderConfig.ProviderConfig.StringCompact(),
+			resAddr := r.Addr.Resource
+
+			current := resource{
+				Address:      r.Addr.Instance(k).String(),
+				Index:        k,
+				Type:         resAddr.Type,
+				Name:         resAddr.Name,
+				ProviderName: r.ProviderConfig.Provider.String(),
 			}
 
-			switch r.Addr.Mode {
+			switch resAddr.Mode {
 			case addrs.ManagedResourceMode:
-				resource.Mode = "managed"
+				current.Mode = "managed"
 			case addrs.DataResourceMode:
-				resource.Mode = "data"
+				current.Mode = "data"
 			default:
 				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
-					r.Addr.String(),
-					r.Addr.Mode.String(),
+					resAddr.String(),
+					resAddr.Mode.String(),
 				)
 			}
 
-			if r.EachMode != states.NoEach {
-				resource.Index = k
-			}
-
 			schema, _ := schemas.ResourceTypeConfig(
-				r.ProviderConfig.ProviderConfig.StringCompact(),
-				r.Addr.Mode,
-				r.Addr.Type,
+				r.ProviderConfig.Provider,
+				resAddr.Mode,
+				resAddr.Type,
 			)
-			resource.SchemaVersion = ri.Current.SchemaVersion
 
-			if schema == nil {
-				return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
+			// It is possible that the only instance is deposed
+			if ri.Current != nil {
+				current.SchemaVersion = ri.Current.SchemaVersion
+
+				if schema == nil {
+					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
+				}
+				riObj, err := ri.Current.Decode(schema.ImpliedType())
+				if err != nil {
+					return nil, err
+				}
+
+				current.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+				if len(riObj.Dependencies) > 0 {
+					dependencies := make([]string, len(riObj.Dependencies))
+					for i, v := range riObj.Dependencies {
+						dependencies[i] = v.String()
+					}
+					current.DependsOn = dependencies
+				}
+
+				if riObj.Status == states.ObjectTainted {
+					current.Tainted = true
+				}
+				ret = append(ret, current)
 			}
-			riObj, err := ri.Current.Decode(schema.ImpliedType())
-			if err != nil {
-				return nil, err
+
+			for deposedKey, rios := range ri.Deposed {
+				// copy the base fields from the current instance
+				deposed := resource{
+					Address:      current.Address,
+					Type:         current.Type,
+					Name:         current.Name,
+					ProviderName: current.ProviderName,
+					Mode:         current.Mode,
+					Index:        current.Index,
+				}
+
+				riObj, err := rios.Decode(schema.ImpliedType())
+				if err != nil {
+					return nil, err
+				}
+
+				deposed.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+
+				if len(riObj.Dependencies) > 0 {
+					dependencies := make([]string, len(riObj.Dependencies))
+					for i, v := range riObj.Dependencies {
+						dependencies[i] = v.String()
+					}
+					deposed.DependsOn = dependencies
+				}
+
+				if riObj.Status == states.ObjectTainted {
+					deposed.Tainted = true
+				}
+				deposed.DeposedKey = deposedKey.String()
+				ret = append(ret, deposed)
 			}
-
-			resource.AttributeValues = marshalAttributeValues(riObj.Value, schema)
-
-			ret = append(ret, resource)
 		}
-
 	}
 
 	sort.Slice(ret, func(i, j int) bool {

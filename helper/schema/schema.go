@@ -12,6 +12,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -19,8 +20,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
@@ -31,6 +33,27 @@ const PanicOnErr = "TF_SCHEMA_PANIC_ON_ERROR"
 
 // type used for schema package context keys
 type contextKey string
+
+var (
+	protoVersionMu sync.Mutex
+	protoVersion5  = false
+)
+
+func isProto5() bool {
+	protoVersionMu.Lock()
+	defer protoVersionMu.Unlock()
+	return protoVersion5
+
+}
+
+// SetProto5 enables a feature flag for any internal changes required required
+// to work with the new plugin protocol.  This should not be called by
+// provider.
+func SetProto5() {
+	protoVersionMu.Lock()
+	defer protoVersionMu.Unlock()
+	protoVersion5 = true
+}
 
 // Schema is used to describe the structure of a value.
 //
@@ -51,6 +74,26 @@ type Schema struct {
 	//   TypeSet - *schema.Set
 	//
 	Type ValueType
+
+	// ConfigMode allows for overriding the default behaviors for mapping
+	// schema entries onto configuration constructs.
+	//
+	// By default, the Elem field is used to choose whether a particular
+	// schema is represented in configuration as an attribute or as a nested
+	// block; if Elem is a *schema.Resource then it's a block and it's an
+	// attribute otherwise.
+	//
+	// If Elem is *schema.Resource then setting ConfigMode to
+	// SchemaConfigModeAttr will force it to be represented in configuration
+	// as an attribute, which means that the Computed flag can be used to
+	// provide default elements when the argument isn't set at all, while still
+	// allowing the user to force zero elements by explicitly assigning an
+	// empty list.
+	//
+	// When Computed is set without Optional, the attribute is not settable
+	// in configuration at all and so SchemaConfigModeAttr is the automatic
+	// behavior, and SchemaConfigModeBlock is not permitted.
+	ConfigMode SchemaConfigMode
 
 	// If one of these is set, then this item can come from the configuration.
 	// Both cannot be set. If Optional is set, the value is optional. If
@@ -124,10 +167,11 @@ type Schema struct {
 	// The following fields are only set for a TypeList, TypeSet, or TypeMap.
 	//
 	// Elem represents the element type. For a TypeMap, it must be a *Schema
-	// with a Type of TypeString, otherwise it may be either a *Schema or a
+	// with a Type that is one of the primitives: TypeString, TypeBool,
+	// TypeInt, or TypeFloat. Otherwise it may be either a *Schema or a
 	// *Resource. If it is *Schema, the element type is just a simple value.
 	// If it is *Resource, the element type is a complex structure,
-	// potentially with its own lifecycle.
+	// potentially managed via its own CRUD actions on the API.
 	Elem interface{}
 
 	// The following fields are only set for a TypeList or TypeSet.
@@ -194,7 +238,8 @@ type Schema struct {
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
 	//
-	// ValidateFunc currently only works for primitive types.
+	// ValidateFunc is honored only when the schema's Type is set to TypeInt,
+	// TypeFloat, TypeString, TypeBool, or TypeMap. It is ignored for all other types.
 	ValidateFunc SchemaValidateFunc
 
 	// Sensitive ensures that the attribute's value does not get displayed in
@@ -203,6 +248,17 @@ type Schema struct {
 	// values.
 	Sensitive bool
 }
+
+// SchemaConfigMode is used to influence how a schema item is mapped into a
+// corresponding configuration construct, using the ConfigMode field of
+// Schema.
+type SchemaConfigMode int
+
+const (
+	SchemaConfigModeAuto SchemaConfigMode = iota
+	SchemaConfigModeAttr
+	SchemaConfigModeBlock
+)
 
 // SchemaDiffSuppressFunc is a function which can be used to determine
 // whether a detected diff on a schema element is "valid" or not, and
@@ -625,6 +681,10 @@ func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 // from a unit test (and not in user-path code) to verify that a schema
 // is properly built.
 func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
+	return m.internalValidate(topSchemaMap, false)
+}
+
+func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) error {
 	if topSchemaMap == nil {
 		topSchemaMap = m
 	}
@@ -643,6 +703,34 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 		if !v.Required && !v.Optional && !v.Computed {
 			return fmt.Errorf("%s: One of optional, required, or computed must be set", k)
+		}
+
+		computedOnly := v.Computed && !v.Optional
+
+		switch v.ConfigMode {
+		case SchemaConfigModeBlock:
+			if _, ok := v.Elem.(*Resource); !ok {
+				return fmt.Errorf("%s: ConfigMode of block is allowed only when Elem is *schema.Resource", k)
+			}
+			if attrsOnly {
+				return fmt.Errorf("%s: ConfigMode of block cannot be used in child of schema with ConfigMode of attribute", k)
+			}
+			if computedOnly {
+				return fmt.Errorf("%s: ConfigMode of block cannot be used for computed schema", k)
+			}
+		case SchemaConfigModeAttr:
+			// anything goes
+		case SchemaConfigModeAuto:
+			// Since "Auto" for Elem: *Resource would create a nested block,
+			// and that's impossible inside an attribute, we require it to be
+			// explicitly overridden as mode "Attr" for clarity.
+			if _, ok := v.Elem.(*Resource); ok {
+				if attrsOnly {
+					return fmt.Errorf("%s: in *schema.Resource with ConfigMode of attribute, so must also have ConfigMode of attribute", k)
+				}
+			}
+		default:
+			return fmt.Errorf("%s: invalid ConfigMode value", k)
 		}
 
 		if v.Computed && v.Default != nil {
@@ -674,7 +762,7 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 					var ok bool
 					if target, ok = sm[part]; !ok {
-						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s)", k, key)
+						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s) at part (%s)", k, key, part)
 					}
 
 					if subResource, ok := target.Elem.(*Resource); ok {
@@ -709,7 +797,9 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 
 			switch t := v.Elem.(type) {
 			case *Resource:
-				if err := t.InternalValidate(topSchemaMap, true); err != nil {
+				attrsOnly := attrsOnly || v.ConfigMode == SchemaConfigModeAttr
+
+				if err := schemaMap(t.Schema).internalValidate(topSchemaMap, attrsOnly); err != nil {
 					return err
 				}
 			case *Schema:
@@ -799,10 +889,19 @@ func (m schemaMap) diff(
 	for attrK, attrV := range unsupressedDiff.Attributes {
 		switch rd := d.(type) {
 		case *ResourceData:
-			if schema.DiffSuppressFunc != nil &&
-				attrV != nil &&
+			if schema.DiffSuppressFunc != nil && attrV != nil &&
 				schema.DiffSuppressFunc(attrK, attrV.Old, attrV.New, rd) {
-				continue
+				// If this attr diff is suppressed, we may still need it in the
+				// overall diff if it's contained within a set. Rather than
+				// dropping the diff, make it a NOOP.
+				if !all {
+					continue
+				}
+
+				attrV = &terraform.ResourceAttrDiff{
+					Old: attrV.Old,
+					New: attrV.Old,
+				}
 			}
 		}
 		diff.Attributes[attrK] = attrV
@@ -1224,7 +1323,7 @@ func (m schemaMap) inputString(
 	input terraform.UIInput,
 	k string,
 	schema *Schema) (interface{}, error) {
-	result, err := input.Input(&terraform.InputOpts{
+	result, err := input.Input(context.Background(), &terraform.InputOpts{
 		Id:          k,
 		Query:       k,
 		Description: schema.Description,
@@ -1266,10 +1365,15 @@ func (m schemaMap) validate(
 			"%q: this field cannot be set", k)}
 	}
 
-	if raw == config.UnknownVariableValue {
-		// If the value is unknown then we can't validate it yet.
-		// In particular, this avoids spurious type errors where downstream
-		// validation code sees UnknownVariableValue as being just a string.
+	// If the value is unknown then we can't validate it yet.
+	// In particular, this avoids spurious type errors where downstream
+	// validation code sees UnknownVariableValue as being just a string.
+	// The SDK has to allow the unknown value through initially, so that
+	// Required fields set via an interpolated value are accepted.
+	if !isWhollyKnown(raw) {
+		if schema.Deprecated != "" {
+			return []string{fmt.Sprintf("%q: [DEPRECATED] %s", k, schema.Deprecated)}, nil
+		}
 		return nil, nil
 	}
 
@@ -1281,6 +1385,28 @@ func (m schemaMap) validate(
 	return m.validateType(k, raw, schema, c)
 }
 
+// isWhollyKnown returns false if the argument contains an UnknownVariableValue
+func isWhollyKnown(raw interface{}) bool {
+	switch raw := raw.(type) {
+	case string:
+		if raw == hcl2shim.UnknownVariableValue {
+			return false
+		}
+	case []interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	case map[string]interface{}:
+		for _, v := range raw {
+			if !isWhollyKnown(v) {
+				return false
+			}
+		}
+	}
+	return true
+}
 func (m schemaMap) validateConflictingAttributes(
 	k string,
 	schema *Schema,
@@ -1292,7 +1418,7 @@ func (m schemaMap) validateConflictingAttributes(
 
 	for _, conflictingKey := range schema.ConflictsWith {
 		if raw, ok := c.Get(conflictingKey); ok {
-			if raw == config.UnknownVariableValue {
+			if raw == hcl2shim.UnknownVariableValue {
 				// An unknown value might become unset (null) once known, so
 				// we must defer validation until it's known.
 				continue
@@ -1312,9 +1438,14 @@ func (m schemaMap) validateList(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == hcl2shim.UnknownVariableValue {
 			return nil, nil
 		}
+	}
+
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
 	}
 
 	// We use reflection to verify the slice because you can't
@@ -1331,6 +1462,15 @@ func (m schemaMap) validateList(
 	if rawV.Kind() != reflect.Slice {
 		return nil, []error{fmt.Errorf(
 			"%s: should be a list", k)}
+	}
+
+	// We can't validate list length if this came from a dynamic block.
+	// Since there's no way to determine if something was from a dynamic block
+	// at this point, we're going to skip validation in the new protocol if
+	// there are any unknowns. Validate will eventually be called again once
+	// all values are known.
+	if isProto5() && !isWhollyKnown(raw) {
+		return nil, nil
 	}
 
 	// Validate length
@@ -1390,11 +1530,15 @@ func (m schemaMap) validateMap(
 	c *terraform.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
-		if s == config.UnknownVariableValue {
+		if s == hcl2shim.UnknownVariableValue {
 			return nil, nil
 		}
 	}
 
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
 	// We use reflection to verify the slice because you can't
 	// case to []interface{} unless the slice is exactly that type.
 	rawV := reflect.ValueOf(raw)
@@ -1521,6 +1665,12 @@ func (m schemaMap) validateObject(
 	schema map[string]*Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
 	raw, _ := c.Get(k)
+
+	// schemaMap can't validate nil
+	if raw == nil {
+		return nil, nil
+	}
+
 	if _, ok := raw.(map[string]interface{}); !ok && !c.IsComputed(k) {
 		return nil, []error{fmt.Errorf(
 			"%s: expected object, got %s",
@@ -1565,6 +1715,14 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+
+	// a nil value shouldn't happen in the old protocol, and in the new
+	// protocol the types have already been validated. Either way, we can't
+	// reflect on nil, so don't panic.
+	if raw == nil {
+		return nil, nil
+	}
+
 	// Catch if the user gave a complex type where a primitive was
 	// expected, so we can return a friendly error message that
 	// doesn't contain Go type system terminology.
@@ -1596,12 +1754,25 @@ func (m schemaMap) validatePrimitive(
 		}
 		decoded = n
 	case TypeInt:
-		// Verify that we can parse this as an int
-		var n int
-		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{fmt.Errorf("%s: %s", k, err)}
+		switch {
+		case isProto5():
+			// We need to verify the type precisely, because WeakDecode will
+			// decode a float as an integer.
+
+			// the config shims only use int for integral number values
+			if v, ok := raw.(int); ok {
+				decoded = v
+			} else {
+				return nil, []error{fmt.Errorf("%s: must be a whole number, got %v", k, raw)}
+			}
+		default:
+			// Verify that we can parse this as an int
+			var n int
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s: %s", k, err)}
+			}
+			decoded = n
 		}
-		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64

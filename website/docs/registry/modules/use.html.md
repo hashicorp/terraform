@@ -51,7 +51,7 @@ a configuration.
 ### Private Registry Module Sources
 
 You can also use modules from a private registry, like the one provided by
-Terraform Enterprise. Private registry modules have source strings of the form
+Terraform Cloud. Private registry modules have source strings of the form
 `<HOSTNAME>/<NAMESPACE>/<NAME>/<PROVIDER>`. This is the same format as the
 public registry, but with an added hostname prefix.
 
@@ -64,7 +64,7 @@ module "vpc" {
 
 Depending on the registry you're using, you might also need to configure
 credentials to access modules. See your registry's documentation for details.
-[Terraform Enterprise's private registry is documented here.](/docs/enterprise/registry/index.html)
+[Terraform Cloud's private registry is documented here.](/docs/cloud/registry/index.html)
 
 Private registry module sources are supported in Terraform v0.11.0 and
 newer.
@@ -76,7 +76,7 @@ follow [semantic versioning](http://semver.org/). In addition to pure syntax,
 we encourage all modules to follow the full guidelines of semantic versioning.
 
 Terraform since version 0.11 will resolve any provided
-[module version constraints](/docs/modules/usage.html#module-versions) and
+[module version constraints](/docs/configuration/modules.html#module-versions) and
 using them is highly recommended to avoid pulling in breaking changes.
 
 Terraform versions after 0.10.6 but before 0.11 have partial support for the registry

@@ -1,6 +1,6 @@
 ---
 layout: "functions"
-page_title: "list - Functions - Configuration Language"
+page_title: "matchkeys - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-matchkeys"
 description: |-
   The matchkeys function takes a subset of elements from one list by matching
@@ -8,6 +8,10 @@ description: |-
 ---
 
 # `matchkeys` Function
+
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `matchkeys` constructs a new list by taking a subset of elements from one
 list whose indexes match the corresponding indexes of values in another

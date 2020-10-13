@@ -10,6 +10,10 @@ description: |-
 
 # Style Conventions
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language](../configuration-0-11/index.html).
+
 The Terraform parser allows you some flexibility in how you lay out the
 elements in your configuration files, but the Terraform language also has some
 idiomatic style conventions which we recommend users always follow

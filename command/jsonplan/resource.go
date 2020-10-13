@@ -49,14 +49,15 @@ type resourceChange struct {
 	// "managed" or "data"
 	Mode string `json:"mode,omitempty"`
 
-	Type  string            `json:"type,omitempty"`
-	Name  string            `json:"name,omitempty"`
-	Index addrs.InstanceKey `json:"index,omitempty"`
+	Type         string            `json:"type,omitempty"`
+	Name         string            `json:"name,omitempty"`
+	Index        addrs.InstanceKey `json:"index,omitempty"`
+	ProviderName string            `json:"provider_name,omitempty"`
 
 	// "deposed", if set, indicates that this action applies to a "deposed"
 	// object of the given instance rather than to its "current" object. Omitted
 	// for changes to the current object.
-	Deposed bool `json:"deposed,omitempty"`
+	Deposed string `json:"deposed,omitempty"`
 
 	// Change describes the change that will be made to this object
 	Change change `json:"change,omitempty"`

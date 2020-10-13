@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -15,6 +16,13 @@ func testResource() *schema.Resource {
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
+		},
+
+		CustomizeDiff: func(d *schema.ResourceDiff, _ interface{}) error {
+			if d.HasChange("optional") {
+				d.SetNewComputed("planned_computed")
+			}
+			return nil
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -45,6 +53,11 @@ func testResource() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+			},
+			"optional_computed": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			"computed_read_only": {
 				Type:     schema.TypeString,
@@ -123,12 +136,38 @@ func testResource() *schema.Resource {
 					},
 				},
 			},
+			"apply_error": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "return and error during apply",
+			},
+			"planned_computed": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "copied the required field during apply, and plans computed when changed",
+			},
+			// this should return unset from GetOkExists
+			"get_ok_exists_false": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Optional:    true,
+				Description: "do not set in config",
+			},
+			"int": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 		},
 	}
 }
 
 func testResourceCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("testId")
+
+	errMsg, _ := d.Get("apply_error").(string)
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
 
 	// Required must make it through to Create
 	if _, ok := d.GetOk("required"); !ok {
@@ -152,11 +191,40 @@ func testResourceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("computed_map", map[string]string{"key1": "value1"})
 	d.Set("computed_list", []string{"listval1", "listval2"})
 	d.Set("computed_set", []string{"setval1", "setval2"})
+
+	d.Set("planned_computed", d.Get("optional"))
+
+	// if there is no "set" value, erroneously set it to an empty set. This
+	// might change a null value to an empty set, but we should be able to
+	// ignore that.
+	s := d.Get("set")
+	if s == nil || s.(*schema.Set).Len() == 0 {
+		d.Set("set", []interface{}{})
+	}
+
+	// This mimics many providers always setting a *string value.
+	// The existing behavior is that this will appear in the state as an empty
+	// string, which we have to maintain.
+	o := d.Get("optional")
+	if o == "" {
+		d.Set("optional", nil)
+	}
+
+	// This should not show as set unless it's set in the config
+	_, ok := d.GetOkExists("get_ok_exists_false")
+	if ok {
+		return errors.New("get_ok_exists_false should not be set")
+	}
+
 	return nil
 }
 
 func testResourceUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
+	errMsg, _ := d.Get("apply_error").(string)
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
+	return testResourceRead(d, meta)
 }
 
 func testResourceDelete(d *schema.ResourceData, meta interface{}) error {

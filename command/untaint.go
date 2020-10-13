@@ -18,11 +18,7 @@ type UntaintCommand struct {
 }
 
 func (c *UntaintCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, false)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	var module string
 	var allowMissing bool
 	cmdFlags := c.Meta.defaultFlagSet("untaint")
@@ -31,10 +27,11 @@ func (c *UntaintCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&module, "module", "", "module")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
@@ -69,7 +66,11 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	workspace := c.Workspace()
+	workspace, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))

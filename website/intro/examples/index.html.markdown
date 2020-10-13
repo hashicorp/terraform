@@ -25,7 +25,7 @@ Experimenting in this way can help you learn how the Terraform lifecycle
 works, as well as how to repeatedly create and destroy infrastructure.
 
 If you're completely new to Terraform, we recommend reading the
-[getting started guide](/intro/getting-started/install.html) before diving into
+[Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn before diving into
 the examples. However, due to the intuitive configuration Terraform
 uses it isn't required.
 

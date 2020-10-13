@@ -9,6 +9,10 @@ description: |-
 
 # `floor` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `floor` returns the closest whole number that is less than or equal to the
 given value, which may be a fraction.
 

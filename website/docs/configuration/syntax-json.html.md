@@ -1,13 +1,18 @@
 ---
 layout: "docs"
 page_title: "JSON Configuration Syntax - Configuration Language"
-sidebar_current: "docs-config-json-syntax"
+sidebar_current: "docs-config-syntax-json"
 description: |-
   In addition to the native syntax that is most commonly used with Terraform,
   the Terraform language can also be expressed in a JSON-compatible syntax.
 ---
 
 # JSON Configuration Syntax
+
+-> **Note:** This page is about Terraform 0.12 and later. The JSON configuration
+syntax in 0.11 and earlier was never formally documented. For other information
+about Terraform 0.11 and earlier, see
+[0.11 Configuration Language](../configuration-0-11/index.html).
 
 Most Terraform configurations are written in
 [the native Terraform language syntax](./syntax.html), which is designed to be
@@ -31,7 +36,7 @@ of a specification called _HCL_. It is not necessary to know all of the details
 of HCL syntax or its JSON mapping in order to use Terraform, and so this page
 summarizes the most important differences between native and JSON syntax.
 If you are interested, you can find a full definition of HCL's JSON syntax
-in [its specification](https://github.com/hashicorp/hcl2/blob/master/hcl/json/spec.md).
+in [its specification](https://github.com/hashicorp/hcl/blob/hcl2/json/spec.md).
 
 ## JSON File Structure
 
@@ -88,7 +93,7 @@ resource "aws_instance" "example" {
 ```
 
 Within each top-level block type the rules for mapping to JSON are slightly
-different (see [Block-type-specific Exceptions][inpage-exceptions] below), but the following general rules apply in most cases:
+different (see the [block-type-specific exceptions](#block-type-specific-exceptions) below), but the following general rules apply in most cases:
 
 * The JSON object representing the block body contains properties that
   correspond either to argument names or to nested block type names.
@@ -311,7 +316,7 @@ mapping rules that apply to each top-level block type.
 
 Some meta-arguments for the `resource` and `data` block types take direct
 references to objects, or literal keywords. When represented in JSON, the
-reference or keyword is given as a JSON string with no additonal surrounding
+reference or keyword is given as a JSON string with no additional surrounding
 spaces or symbols.
 
 For example, the `provider` meta-argument takes a `<PROVIDER>.<ALIAS>` reference
@@ -431,10 +436,15 @@ values are not interpreted as string templates.
 ```json
 {
   "provider": {
-    "aws": {
-      "alias": "usw1",
-      "region": "us-west-1"
-    }
+    "aws": [
+      {
+        "region": "us-east-1"
+      },
+      {
+        "alias": "usw1",
+        "region": "us-west-1"
+      }
+    ]
   }
 }
 ```

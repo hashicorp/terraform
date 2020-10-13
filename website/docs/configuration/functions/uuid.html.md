@@ -8,6 +8,10 @@ description: |-
 
 # `uuid` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `uuid` generates a unique identifier string.
 
 The id is a generated and formatted as required by
@@ -19,7 +23,7 @@ This function produces a new value each time it is called, and so using it
 directly in resource arguments will result in spurious diffs. We do not
 recommend using the `uuid` function in resource configurations, but it can
 be used with care in conjunction with
-[the `ignore_changes` lifecycle meta-argument](./resources.html#ignore_changes).
+[the `ignore_changes` lifecycle meta-argument](../resources.html#ignore_changes).
 
 In most cases we recommend using [the `random` provider](/docs/providers/random/index.html)
 instead, since it allows the one-time generation of random values that are
@@ -34,3 +38,7 @@ equivalent randomness to the `uuid` function.
 > uuid()
 b5ee72a3-54dd-c4b8-551c-4bdc0204cedb
 ```
+
+## Related Functions
+
+* [`uuidv5`](./uuidv5.html), which generates name-based UUIDs.

@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -13,23 +12,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 )
-
-// ResourceProvisionerConfig is used to pair a provisioner
-// with its provided configuration. This allows us to use singleton
-// instances of each ResourceProvisioner and to keep the relevant
-// configuration instead of instantiating a new Provisioner for each
-// resource.
-type ResourceProvisionerConfig struct {
-	Type        string
-	Provisioner ResourceProvisioner
-	Config      *ResourceConfig
-	RawConfig   *config.RawConfig
-	ConnInfo    *config.RawConfig
-}
 
 // Resource is a legacy way to identify a particular resource instance.
 //
@@ -50,7 +35,6 @@ type Resource struct {
 	Diff         *InstanceDiff
 	Provider     ResourceProvider
 	State        *InstanceState
-	Provisioners []*ResourceProvisionerConfig
 	Flags        ResourceFlag
 }
 
@@ -200,15 +184,32 @@ type ResourceConfig struct {
 	ComputedKeys []string
 	Raw          map[string]interface{}
 	Config       map[string]interface{}
-
-	raw *config.RawConfig
 }
 
-// NewResourceConfig creates a new ResourceConfig from a config.RawConfig.
-func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
-	result := &ResourceConfig{raw: c}
-	result.interpolateForce()
-	return result
+// NewResourceConfigRaw constructs a ResourceConfig whose content is exactly
+// the given value.
+//
+// The given value may contain hcl2shim.UnknownVariableValue to signal that
+// something is computed, but it must not contain unprocessed interpolation
+// sequences as we might've seen in Terraform v0.11 and prior.
+func NewResourceConfigRaw(raw map[string]interface{}) *ResourceConfig {
+	v := hcl2shim.HCL2ValueFromConfigValue(raw)
+
+	// This is a little weird but we round-trip the value through the hcl2shim
+	// package here for two reasons: firstly, because that reduces the risk
+	// of it including something unlike what NewResourceConfigShimmed would
+	// produce, and secondly because it creates a copy of "raw" just in case
+	// something is relying on the fact that in the old world the raw and
+	// config maps were always distinct, and thus you could in principle mutate
+	// one without affecting the other. (I sure hope nobody was doing that, though!)
+	cfg := hcl2shim.ConfigValueFromHCL2(v).(map[string]interface{})
+
+	return &ResourceConfig{
+		Raw:    raw,
+		Config: cfg,
+
+		ComputedKeys: newResourceConfigShimmedComputedKeys(v, ""),
+	}
 }
 
 // NewResourceConfigShimmed wraps a cty.Value of object type in a legacy
@@ -236,7 +237,7 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 		// schema here so that we can preserve the expected invariant
 		// that an attribute is always either wholly known or wholly unknown, while
 		// a child block can be partially unknown.
-		ret.ComputedKeys = newResourceConfigShimmedComputedKeys(val, schema, "")
+		ret.ComputedKeys = newResourceConfigShimmedComputedKeys(val, "")
 	} else {
 		ret.Config = make(map[string]interface{})
 	}
@@ -245,72 +246,45 @@ func NewResourceConfigShimmed(val cty.Value, schema *configschema.Block) *Resour
 	return ret
 }
 
-// newResourceConfigShimmedComputedKeys finds all of the unknown values in the
-// given object, which must conform to the given schema, returning them in
-// the format that's expected for ResourceConfig.ComputedKeys.
-func newResourceConfigShimmedComputedKeys(obj cty.Value, schema *configschema.Block, prefix string) []string {
+// Record the any config values in ComputedKeys. This field had been unused in
+// helper/schema, but in the new protocol we're using this so that the SDK can
+// now handle having an unknown collection. The legacy diff code doesn't
+// properly handle the unknown, because it can't be expressed in the same way
+// between the config and diff.
+func newResourceConfigShimmedComputedKeys(val cty.Value, path string) []string {
 	var ret []string
-	ty := obj.Type()
+	ty := val.Type()
 
-	if schema == nil {
-		log.Printf("[WARN] NewResourceConfigShimmed: can't identify computed keys because no schema is available")
-		return nil
+	if val.IsNull() {
+		return ret
 	}
 
-	for attrName := range schema.Attributes {
-		if !ty.HasAttribute(attrName) {
-			// Should never happen, but we'll tolerate it anyway
-			continue
+	if !val.IsKnown() {
+		// we shouldn't have an entirely unknown resource, but prevent empty
+		// strings just in case
+		if len(path) > 0 {
+			ret = append(ret, path)
 		}
-
-		attrVal := obj.GetAttr(attrName)
-		if !attrVal.IsWhollyKnown() {
-			ret = append(ret, prefix+attrName)
-		}
+		return ret
 	}
 
-	for typeName, blockS := range schema.BlockTypes {
-		if !ty.HasAttribute(typeName) {
-			// Should never happen, but we'll tolerate it anyway
-			continue
-		}
-
-		blockVal := obj.GetAttr(typeName)
-		if blockVal.IsNull() || !blockVal.IsKnown() {
-			continue
-		}
-
-		switch blockS.Nesting {
-		case configschema.NestingSingle:
-			keys := newResourceConfigShimmedComputedKeys(blockVal, &blockS.Block, fmt.Sprintf("%s%s.", prefix, typeName))
+	if path != "" {
+		path += "."
+	}
+	switch {
+	case ty.IsListType(), ty.IsTupleType(), ty.IsSetType():
+		i := 0
+		for it := val.ElementIterator(); it.Next(); i++ {
+			_, subVal := it.Element()
+			keys := newResourceConfigShimmedComputedKeys(subVal, fmt.Sprintf("%s%d", path, i))
 			ret = append(ret, keys...)
-		case configschema.NestingList, configschema.NestingSet:
-			// Producing computed keys items for sets is not really useful
-			// since they are not usefully addressable anyway, but we'll treat
-			// them like lists just so that ret.ComputedKeys accounts for them
-			// all. Our legacy system didn't support sets here anyway, so
-			// treating them as lists is the most accurate translation. Although
-			// set traversal isn't in any particular order, it is _stable_ as
-			// long as the list isn't mutated, and so we know we'll see the
-			// same order here as hcl2shim.ConfigValueFromHCL2 would've seen
-			// inside NewResourceConfigShimmed above.
-			i := 0
-			for it := blockVal.ElementIterator(); it.Next(); i++ {
-				_, subVal := it.Element()
-				subPrefix := fmt.Sprintf("%s%d.", prefix, i)
-				keys := newResourceConfigShimmedComputedKeys(subVal, &blockS.Block, subPrefix)
-				ret = append(ret, keys...)
-			}
-		case configschema.NestingMap:
-			for it := blockVal.ElementIterator(); it.Next(); {
-				subK, subVal := it.Element()
-				subPrefix := fmt.Sprintf("%s%s.", prefix, subK.AsString())
-				keys := newResourceConfigShimmedComputedKeys(subVal, &blockS.Block, subPrefix)
-				ret = append(ret, keys...)
-			}
-		default:
-			// Should never happen, since the above is exhaustive.
-			panic(fmt.Errorf("unsupported block nesting type %s", blockS.Nesting))
+		}
+
+	case ty.IsMapType(), ty.IsObjectType():
+		for it := val.ElementIterator(); it.Next(); {
+			subK, subVal := it.Element()
+			keys := newResourceConfigShimmedComputedKeys(subVal, fmt.Sprintf("%s%s", path, subK.AsString()))
+			ret = append(ret, keys...)
 		}
 	}
 
@@ -334,9 +308,6 @@ func (c *ResourceConfig) DeepCopy() *ResourceConfig {
 
 	// Force the type
 	result := copy.(*ResourceConfig)
-
-	// For the raw configuration, we can just use its own copy method
-	result.raw = c.raw.Copy()
 
 	return result
 }
@@ -497,7 +468,7 @@ func (c *ResourceConfig) get(
 				// If any value in a list is computed, this whole thing
 				// is computed and we can't read any part of it.
 				for i := 0; i < cv.Len(); i++ {
-					if v := cv.Index(i).Interface(); v == unknownValue() {
+					if v := cv.Index(i).Interface(); v == hcl2shim.UnknownVariableValue {
 						return v, true
 					}
 				}
@@ -531,38 +502,13 @@ func (c *ResourceConfig) get(
 	return current, true
 }
 
-// interpolateForce is a temporary thing. We want to get rid of interpolate
-// above and likewise this, but it can only be done after the f-ast-graph
-// refactor is complete.
-func (c *ResourceConfig) interpolateForce() {
-	if c.raw == nil {
-		// If we don't have a lowercase "raw" but we _do_ have the uppercase
-		// Raw populated then this indicates that we're recieving a shim
-		// ResourceConfig created by NewResourceConfigShimmed, which is already
-		// fully evaluated and thus this function doesn't need to do anything.
-		if c.Raw != nil {
-			return
-		}
-
-		var err error
-		c.raw, err = config.NewRawConfig(make(map[string]interface{}))
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	c.ComputedKeys = c.raw.UnknownKeys()
-	c.Raw = c.raw.RawMap()
-	c.Config = c.raw.Config()
-}
-
 // unknownCheckWalker
 type unknownCheckWalker struct {
 	Unknown bool
 }
 
 func (w *unknownCheckWalker) Primitive(v reflect.Value) error {
-	if v.Interface() == unknownValue() {
+	if v.Interface() == hcl2shim.UnknownVariableValue {
 		w.Unknown = true
 	}
 

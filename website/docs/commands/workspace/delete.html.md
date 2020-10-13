@@ -1,7 +1,7 @@
 ---
 layout: "commands-workspace"
 page_title: "Command: workspace delete"
-sidebar_current: "docs-workspace-sub-delete"
+sidebar_current: "docs-commands-workspace-sub-delete"
 description: |-
   The terraform workspace delete command is used to delete a workspace.
 ---

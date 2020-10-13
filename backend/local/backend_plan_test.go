@@ -25,7 +25,7 @@ func TestLocal_planBasic(t *testing.T) {
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -41,6 +41,9 @@ func TestLocal_planBasic(t *testing.T) {
 	if !p.PlanResourceChangeCalled {
 		t.Fatal("PlanResourceChange should be called")
 	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
@@ -59,7 +62,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	b.RunningInAutomation = false
 	b.CLI = cli.NewMockUi()
 	{
-		op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+		op, configCleanup := testOperationPlan(t, "./testdata/plan")
 		defer configCleanup()
 		op.PlanRefresh = true
 
@@ -83,7 +86,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	b.RunningInAutomation = true
 	b.CLI = cli.NewMockUi()
 	{
-		op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+		op, configCleanup := testOperationPlan(t, "./testdata/plan")
 		defer configCleanup()
 		op.PlanRefresh = true
 
@@ -111,7 +114,7 @@ func TestLocal_planNoConfig(t *testing.T) {
 
 	b.CLI = cli.NewMockUi()
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/empty")
+	op, configCleanup := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -128,6 +131,114 @@ func TestLocal_planNoConfig(t *testing.T) {
 	if !strings.Contains(output, "configuration") {
 		t.Fatalf("bad: %s", err)
 	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
+}
+
+// This test validates the state lacking behavior when the inner call to
+// Context() fails
+func TestLocal_plan_context_error(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+
+	// we coerce a failure in Context() by omitting the provider schema
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationFailure {
+		t.Fatalf("plan operation succeeded")
+	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
+}
+
+func TestLocal_planOutputsChanged(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "changed"},
+		}, cty.StringVal("before"), false)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "sensitive_before"},
+		}, cty.StringVal("before"), true)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "sensitive_after"},
+		}, cty.StringVal("before"), false)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "removed"}, // not present in the config fixture
+		}, cty.StringVal("before"), false)
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "unchanged"},
+		}, cty.StringVal("before"), false)
+		// NOTE: This isn't currently testing the situation where the new
+		// value of an output is unknown, because to do that requires there to
+		// be at least one managed resource Create action in the plan and that
+		// would defeat the point of this test, which is to ensure that a
+		// plan containing only output changes is considered "non-empty".
+		// For now we're not too worried about testing the "new value is
+		// unknown" situation because that's already common for printing out
+		// resource changes and we already have many tests for that.
+	}))
+	b.CLI = cli.NewMockUi()
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	planPath := filepath.Join(outDir, "plan.tfplan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-outputs-changed")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type:   "local",
+		Config: cfgRaw,
+	}
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+	if run.PlanEmpty {
+		t.Fatal("plan should not be empty")
+	}
+
+	expectedOutput := strings.TrimSpace(`
+Plan: 0 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + added            = "after"
+  ~ changed          = "before" -> "after"
+  - removed          = "before" -> null
+  ~ sensitive_after  = (sensitive value)
+  ~ sensitive_before = (sensitive value)
+`)
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, expectedOutput) {
+		t.Fatalf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
+	}
 }
 
 func TestLocal_planTainted(t *testing.T) {
@@ -139,7 +250,7 @@ func TestLocal_planTainted(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
@@ -176,20 +287,133 @@ Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # test_instance.foo must be replaced
+  # test_instance.foo is tainted, so must be replaced
 -/+ resource "test_instance" "foo" {
-        ami = "bar"
+        # (1 unchanged attribute hidden)
 
-        network_interface {
-            description  = "Main network interface"
-            device_index = 0
-        }
+        # (1 unchanged block hidden)
     }
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, expectedOutput) {
 		t.Fatalf("Unexpected output:\n%s", output)
+	}
+}
+
+func TestLocal_planDeposedOnly(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceDeposed(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			states.DeposedKey("00000000"),
+			&states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: []byte(`{
+				"ami": "bar",
+				"network_interface": [{
+					"device_index": 0,
+					"description": "Main network interface"
+				}]
+			}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	}))
+	b.CLI = cli.NewMockUi()
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	planPath := filepath.Join(outDir, "plan.tfplan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		// Just a placeholder so that we can generate a valid plan file.
+		Type:   "local",
+		Config: cfgRaw,
+	}
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
+	}
+	if run.PlanEmpty {
+		t.Fatal("plan should not be empty")
+	}
+
+	// The deposed object and the current object are distinct, so our
+	// plan includes separate actions for each of them. This strange situation
+	// is not common: it should arise only if Terraform fails during
+	// a create-before-destroy when the create hasn't completed yet but
+	// in a severe way that prevents the previous object from being restored
+	// as "current".
+	//
+	// However, that situation was more common in some earlier Terraform
+	// versions where deposed objects were not managed properly, so this
+	// can arise when upgrading from an older version with deposed objects
+	// already in the state.
+	//
+	// This is one of the few cases where we expose the idea of "deposed" in
+	// the UI, including the user-unfriendly "deposed key" (00000000 in this
+	// case) just so that users can correlate this with what they might
+	// see in `terraform show` and in the subsequent apply output, because
+	// it's also possible for there to be _multiple_ deposed objects, in the
+	// unlikely event that create_before_destroy _keeps_ crashing across
+	// subsequent runs.
+	expectedOutput := `An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+  - destroy
+
+Terraform will perform the following actions:
+
+  # test_instance.foo will be created
+  + resource "test_instance" "foo" {
+      + ami = "bar"
+
+      + network_interface {
+          + description  = "Main network interface"
+          + device_index = 0
+        }
+    }
+
+  # test_instance.foo (deposed object 00000000) will be destroyed
+  - resource "test_instance" "foo" {
+      - ami = "bar" -> null
+
+      - network_interface {
+          - description  = "Main network interface" -> null
+          - device_index = 0 -> null
+        }
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.`
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, expectedOutput) {
+		t.Fatalf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
 	}
 }
 
@@ -202,7 +426,7 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-cbd")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-cbd")
 	defer configCleanup()
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
@@ -239,14 +463,11 @@ Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # test_instance.foo must be replaced
+  # test_instance.foo is tainted, so must be replaced
 +/- resource "test_instance" "foo" {
-        ami = "bar"
+        # (1 unchanged attribute hidden)
 
-        network_interface {
-            description  = "Main network interface"
-            device_index = 0
-        }
+        # (1 unchanged block hidden)
     }
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
@@ -263,7 +484,7 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -295,7 +516,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.Destroy = true
 	op.PlanRefresh = true
@@ -322,8 +543,8 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
 	if run.PlanEmpty {
@@ -351,7 +572,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/destroy-with-ds")
+	op, configCleanup := testOperationPlan(t, "./testdata/destroy-with-ds")
 	defer configCleanup()
 	op.Destroy = true
 	op.PlanRefresh = true
@@ -378,12 +599,12 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
 	}
 
-	if !p.ReadDataSourceCalled {
-		t.Fatal("ReadDataSourceCalled should be called")
+	if p.ReadDataSourceCalled {
+		t.Fatal("ReadDataSourceCalled should not be called")
 	}
 
 	if run.PlanEmpty {
@@ -400,7 +621,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	// Data source should not be rendered in the output
 	expectedOutput := `Terraform will perform the following actions:
 
-  # test_instance.foo will be destroyed
+  # test_instance.foo[0] will be destroyed
   - resource "test_instance" "foo" {
       - ami = "bar" -> null
 
@@ -414,7 +635,7 @@ Plan: 0 to add, 0 to change, 1 to destroy.`
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, expectedOutput) {
-		t.Fatalf("Unexpected output (expected no data source):\n%s", output)
+		t.Fatalf("Unexpected output:\n%s", output)
 	}
 }
 
@@ -436,7 +657,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
@@ -451,6 +672,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 		Type:   "local",
 		Config: cfgRaw,
 	}
+	op.PlanRefresh = true
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -486,7 +708,7 @@ func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
 	outDir := testTempDir(t)
 	defer os.RemoveAll(outDir)
 
-	op, configCleanup := testOperationPlan(t, "./test-fixtures/plan-scaleout")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-scaleout")
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -543,9 +765,10 @@ func testPlanState() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -569,9 +792,10 @@ func testPlanState_withDataSource() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -585,9 +809,10 @@ func testPlanState_withDataSource() *states.State {
 				"filter": "foo"
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -600,7 +825,7 @@ func testPlanState_tainted() *states.State {
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
 			Name: "foo",
-		}.Instance(addrs.IntKey(0)),
+		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
 			Status: states.ObjectTainted,
 			AttrsJSON: []byte(`{
@@ -611,9 +836,10 @@ func testPlanState_tainted() *states.State {
 				}]
 			}`),
 		},
-		addrs.ProviderConfig{
-			Type: "test",
-		}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
 	)
 	return state
 }
@@ -636,7 +862,7 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 }
 
 // planFixtureSchema returns a schema suitable for processing the
-// configuration in test-fixtures/plan . This schema should be
+// configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
 func planFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{

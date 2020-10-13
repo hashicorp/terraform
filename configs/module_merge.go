@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 
-	"github.com/hashicorp/hcl2/hcl"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -35,24 +35,16 @@ func (p *Provider) merge(op *Provider) hcl.Diagnostics {
 	return diags
 }
 
-func mergeProviderVersionConstraints(recv map[string][]VersionConstraint, ovrd []*ProviderRequirement) {
-	// Any provider name that's mentioned in the override gets nilled out in
-	// our map so that we'll rebuild it below. Any provider not mentioned is
-	// left unchanged.
-	for _, reqd := range ovrd {
-		delete(recv, reqd.Name)
-	}
-	for _, reqd := range ovrd {
-		recv[reqd.Name] = append(recv[reqd.Name], reqd.Requirement)
-	}
-}
-
 func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if ov.DescriptionSet {
 		v.Description = ov.Description
 		v.DescriptionSet = ov.DescriptionSet
+	}
+	if ov.SensitiveSet {
+		v.Sensitive = ov.Sensitive
+		v.SensitiveSet = ov.SensitiveSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
@@ -176,6 +168,10 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
 
+	if len(omc.Providers) != 0 {
+		mc.Providers = omc.Providers
+	}
+
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
 	if len(mc.DependsOn) != 0 {
@@ -190,7 +186,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	return diags
 }
 
-func (r *Resource) merge(or *Resource) hcl.Diagnostics {
+func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	if r.Mode != or.Mode {
@@ -205,9 +201,18 @@ func (r *Resource) merge(or *Resource) hcl.Diagnostics {
 	if or.ForEach != nil {
 		r.ForEach = or.ForEach
 	}
+
 	if or.ProviderConfigRef != nil {
 		r.ProviderConfigRef = or.ProviderConfigRef
+		if existing, exists := rps[or.ProviderConfigRef.Name]; exists {
+			r.Provider = existing.Type
+		} else {
+			r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigRef.Name)
+		}
 	}
+
+	// Provider FQN is set by Terraform during Merge
+
 	if r.Mode == addrs.ManagedResourceMode {
 		// or.Managed is always non-nil for managed resource mode
 

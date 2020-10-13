@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -16,15 +15,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hil"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/hcl2shim"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
@@ -33,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var (
@@ -133,259 +128,98 @@ func testContext2(t *testing.T, opts *ContextOpts) *Context {
 	return ctx
 }
 
-func testDataApplyFn(
-	info *InstanceInfo,
-	d *InstanceDiff) (*InstanceState, error) {
-	return testApplyFn(info, new(InstanceState), d)
-}
-
-func testDataDiffFn(
-	info *InstanceInfo,
-	c *ResourceConfig) (*InstanceDiff, error) {
-	return testDiffFn(info, new(InstanceState), c)
-}
-
-func testApplyFn(
-	info *InstanceInfo,
-	s *InstanceState,
-	d *InstanceDiff) (*InstanceState, error) {
-	if d.Destroy {
-		return nil, nil
+func testApplyFn(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+	resp.NewState = req.PlannedState
+	if req.PlannedState.IsNull() {
+		resp.NewState = cty.NullVal(req.PriorState.Type())
+		return
 	}
 
-	// find the OLD id, which is probably in the ID field for now, but eventually
-	// ID should only be in one place.
-	id := s.ID
-	if id == "" {
-		id = s.Attributes["id"]
-	}
-	if idAttr, ok := d.Attributes["id"]; ok && !idAttr.NewComputed {
-		id = idAttr.New
+	planned := req.PlannedState.AsValueMap()
+	if planned == nil {
+		planned = map[string]cty.Value{}
 	}
 
-	if id == "" || id == config.UnknownVariableValue {
-		id = "foo"
+	id, ok := planned["id"]
+	if !ok || id.IsNull() || !id.IsKnown() {
+		planned["id"] = cty.StringVal("foo")
 	}
 
-	result := &InstanceState{
-		ID:         id,
-		Attributes: make(map[string]string),
+	// our default schema has a computed "type" attr
+	if ty, ok := planned["type"]; ok && !ty.IsNull() {
+		planned["type"] = cty.StringVal(req.TypeName)
 	}
 
-	// Copy all the prior attributes
-	for k, v := range s.Attributes {
-		result.Attributes[k] = v
+	if cmp, ok := planned["compute"]; ok && !cmp.IsNull() {
+		computed := cmp.AsString()
+		if val, ok := planned[computed]; ok && !val.IsKnown() {
+			planned[computed] = cty.StringVal("computed_value")
+		}
 	}
 
-	if d != nil {
-		result = result.MergeDiff(d)
-	}
-
-	// The id attribute always matches ID for the sake of this mock
-	// implementation, since it's following the pre-0.12 assumptions where
-	// these two were treated as synonyms.
-	result.Attributes["id"] = result.ID
-	return result, nil
-}
-
-func testDiffFn(
-	info *InstanceInfo,
-	s *InstanceState,
-	c *ResourceConfig) (*InstanceDiff, error) {
-	diff := new(InstanceDiff)
-	diff.Attributes = make(map[string]*ResourceAttrDiff)
-
-	if s != nil {
-		diff.DestroyTainted = s.Tainted
-	}
-
-	for k, v := range c.Raw {
-		// Ignore __-prefixed keys since they're used for magic
-		if k[0] == '_' && k[1] == '_' {
+	for k, v := range planned {
+		if k == "unknown" {
+			// "unknown" should cause an error
 			continue
 		}
 
-		if k == "nil" {
-			return nil, nil
-		}
-
-		// This key is used for other purposes
-		if k == "compute_value" {
-			continue
-		}
-
-		if k == "compute" {
-			if v == hil.UnknownValue || v == "unknown" {
-				// compute wasn't set in the config, so don't use these
-				// computed values from the schema.
-				delete(c.Raw, k)
-				delete(c.Raw, "compute_value")
-
-				// we need to remove this from the list of ComputedKeys too,
-				// since it would get re-added to the diff further down
-				newComputed := make([]string, 0, len(c.ComputedKeys))
-				for _, ck := range c.ComputedKeys {
-					if ck == "compute" || ck == "compute_value" {
-						continue
-					}
-					newComputed = append(newComputed, ck)
-				}
-				c.ComputedKeys = newComputed
-
-				if v == "unknown" {
-					diff.Attributes["unknown"] = &ResourceAttrDiff{
-						Old:         "",
-						New:         "",
-						NewComputed: true,
-					}
-
-					c.ComputedKeys = append(c.ComputedKeys, "unknown")
-				}
-
-				continue
-			}
-
-			attrDiff := &ResourceAttrDiff{
-				Old:         "",
-				New:         "",
-				NewComputed: true,
-			}
-
-			if cv, ok := c.Config["compute_value"]; ok {
-				if cv.(string) == "1" {
-					attrDiff.NewComputed = false
-					attrDiff.New = fmt.Sprintf("computed_%s", v.(string))
-				}
-			}
-
-			diff.Attributes[v.(string)] = attrDiff
-			continue
-		}
-
-		// If this key is not computed, then look it up in the
-		// cleaned config.
-		found := false
-		for _, ck := range c.ComputedKeys {
-			if ck == k {
-				found = true
-				break
-			}
-		}
-		if !found {
-			v = c.Config[k]
-		}
-
-		for k, attrDiff := range testFlatAttrDiffs(k, v) {
-			// we need to ignore 'id' for now, since it's always inferred to be
-			// computed.
-			if k == "id" {
-				continue
-			}
-
-			if k == "require_new" {
-				attrDiff.RequiresNew = true
-			}
-			if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
-				attrDiff.RequiresNew = true
-			}
-
-			if attr, ok := s.Attributes[k]; ok {
-				attrDiff.Old = attr
-			}
-
-			diff.Attributes[k] = attrDiff
-		}
-	}
-
-	for _, k := range c.ComputedKeys {
-		if k == "id" {
-			continue
-		}
-		old := ""
-		if s != nil {
-			old = s.Attributes[k]
-		}
-		diff.Attributes[k] = &ResourceAttrDiff{
-			Old:         old,
-			NewComputed: true,
-		}
-	}
-
-	// If we recreate this resource because it's tainted, we keep all attrs
-	if !diff.RequiresNew() {
-		for k, v := range diff.Attributes {
-			if v.NewComputed {
-				continue
-			}
-
-			old, ok := s.Attributes[k]
-			if !ok {
-				continue
-			}
-
-			if old == v.New {
-				delete(diff.Attributes, k)
+		if !v.IsKnown() {
+			switch k {
+			case "type":
+				planned[k] = cty.StringVal(req.TypeName)
+			default:
+				planned[k] = cty.NullVal(v.Type())
 			}
 		}
 	}
 
-	if !diff.Empty() {
-		diff.Attributes["type"] = &ResourceAttrDiff{
-			Old: "",
-			New: info.Type,
-		}
-		if s != nil && s.Attributes != nil {
-			diff.Attributes["type"].Old = s.Attributes["type"]
-		}
-	}
-
-	return diff, nil
+	resp.NewState = cty.ObjectVal(planned)
+	return
 }
 
-// generate ResourceAttrDiffs for nested data structures in tests
-func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
-	diffs := make(map[string]*ResourceAttrDiff)
-	// check for strings and empty containers first
-	switch t := i.(type) {
-	case string:
-		diffs[k] = &ResourceAttrDiff{New: t}
-		return diffs
-	case map[string]interface{}:
-		if len(t) == 0 {
-			diffs[k] = &ResourceAttrDiff{New: ""}
-			return diffs
-		}
-	case []interface{}:
-		if len(t) == 0 {
-			diffs[k] = &ResourceAttrDiff{New: ""}
-			return diffs
+func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+	var planned map[string]cty.Value
+	if !req.ProposedNewState.IsNull() {
+		planned = req.ProposedNewState.AsValueMap()
+	}
+	if planned == nil {
+		planned = map[string]cty.Value{}
+	}
+
+	// id is always computed for the tests
+	if id, ok := planned["id"]; ok && id.IsNull() {
+		planned["id"] = cty.UnknownVal(cty.String)
+	}
+
+	// the old tests have require_new replace on every plan
+	if _, ok := planned["require_new"]; ok {
+		resp.RequiresReplace = append(resp.RequiresReplace, cty.Path{cty.GetAttrStep{Name: "require_new"}})
+	}
+
+	for k := range planned {
+		requiresNewKey := "__" + k + "_requires_new"
+		_, ok := planned[requiresNewKey]
+		if ok {
+			resp.RequiresReplace = append(resp.RequiresReplace, cty.Path{cty.GetAttrStep{Name: requiresNewKey}})
 		}
 	}
 
-	flat := flatmap.Flatten(map[string]interface{}{k: i})
-
-	for k, v := range flat {
-		attrDiff := &ResourceAttrDiff{
-			Old: "",
-			New: v,
+	if v, ok := planned["compute"]; ok && !v.IsNull() {
+		k := v.AsString()
+		unknown := cty.UnknownVal(cty.String)
+		if strings.HasSuffix(k, ".#") {
+			k = k[:len(k)-2]
+			unknown = cty.UnknownVal(cty.List(cty.String))
 		}
-		diffs[k] = attrDiff
+		planned[k] = unknown
 	}
 
-	// The legacy flatmap-based diff producing done by helper/schema would
-	// additionally insert a k+".%" key here recording the length of the map,
-	// which is for some reason not also done by flatmap.Flatten. To make our
-	// mock shims helper/schema-compatible, we'll just fake that up here.
-	switch t := i.(type) {
-	case map[string]interface{}:
-		attrDiff := &ResourceAttrDiff{
-			Old: "",
-			New: strconv.Itoa(len(t)),
-		}
-		diffs[k+".%"] = attrDiff
+	if t, ok := planned["type"]; ok && t.IsNull() {
+		planned["type"] = cty.UnknownVal(cty.String)
 	}
 
-	return diffs
+	resp.PlannedState = cty.ObjectVal(planned)
+	return
 }
 
 func testProvider(prefix string) *MockProvider {
@@ -520,6 +354,7 @@ func testProviderSchema(name string) *ProviderSchema {
 					"foo": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"bar": {
 						Type:     cty.String,
@@ -538,6 +373,7 @@ func testProviderSchema(name string) *ProviderSchema {
 					"value": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"output": {
 						Type:     cty.String,
@@ -594,16 +430,29 @@ func testProviderSchema(name string) *ProviderSchema {
 						Optional: true,
 					},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network_interface": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"network_interface_id": {Type: cty.String, Optional: true},
+								"device_index":         {Type: cty.Number, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
 			},
 			name + "_ami_list": {
 				Attributes: map[string]*configschema.Attribute{
 					"id": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 					"ids": {
 						Type:     cty.List(cty.String),
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},
@@ -649,11 +498,12 @@ func testProviderSchema(name string) *ProviderSchema {
 				Attributes: map[string]*configschema.Attribute{
 					"id": {
 						Type:     cty.String,
-						Optional: true,
+						Computed: true,
 					},
 					"foo": {
 						Type:     cty.String,
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},
@@ -704,7 +554,7 @@ func testProviderSchema(name string) *ProviderSchema {
 // our context tests try to exercise lots of stuff at once and so having them
 // round-trip things through on-disk files is often an important part of
 // fully representing an old bug in a regression test.
-func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) (*ContextOpts, error) {
+func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, error) {
 	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
 	if err != nil {
 		return nil, err
@@ -715,7 +565,7 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, state *states.St
 	// to run through any of the codepaths that care about Lineage/Serial/etc
 	// here anyway.
 	stateFile := &statefile.File{
-		State: state,
+		State: plan.State,
 	}
 
 	// To make life a little easier for test authors, we'll populate a simple
@@ -931,7 +781,7 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 				v := newAttrs[attrK]
 				u := oldAttrs[attrK]
 
-				if v == config.UnknownVariableValue {
+				if v == hcl2shim.UnknownVariableValue {
 					v = "<computed>"
 				}
 				// NOTE: we don't support <sensitive> here because we would
@@ -1042,18 +892,18 @@ root
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)
   ID = bar
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 
 module.child:
   aws_instance.web:
     ID = new
-    provider = provider.aws
+    provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
 const testContextRefreshOutputStr = `
 aws_instance.web:
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = bar
 
 Outputs:
@@ -1068,5 +918,5 @@ const testContextRefreshOutputPartialStr = `
 const testContextRefreshTaintedStr = `
 aws_instance.web: (tainted)
   ID = foo
-  provider = provider.aws
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 `

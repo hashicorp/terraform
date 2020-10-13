@@ -5,13 +5,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
+)
+
+var (
+	errApplyDiscarded   = errors.New("Apply discarded.")
+	errDestroyDiscarded = errors.New("Destroy discarded.")
+	errRunApproved      = errors.New("approved using the UI or API")
+	errRunDiscarded     = errors.New("discarded using the UI or API")
+	errRunOverridden    = errors.New("overridden using the UI or API")
 )
 
 // backoff will perform exponential backoff based on the iteration and
@@ -190,32 +200,135 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 	}
 }
 
-func (b *Remote) parseVariableValues(op *backend.Operation) (terraform.InputValues, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	result := make(terraform.InputValues)
-
+// hasExplicitVariableValues is a best-effort check to determine whether the
+// user has provided -var or -var-file arguments to a remote operation.
+//
+// The results may be inaccurate if the configuration is invalid or if
+// individual variable values are invalid. That's okay because we only use this
+// result to hint the user to set variables a different way. It's always the
+// remote system's responsibility to do final validation of the input.
+func (b *Remote) hasExplicitVariableValues(op *backend.Operation) bool {
 	// Load the configuration using the caller-provided configuration loader.
 	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
-	diags = diags.Append(configDiags)
-	if diags.HasErrors() {
-		return nil, diags
+	if configDiags.HasErrors() {
+		// If we can't load the configuration then we'll assume no explicit
+		// variable values just to let the remote operation start and let
+		// the remote system return the same set of configuration errors.
+		return false
 	}
 
-	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
-	diags = diags.Append(varDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
+	// We're intentionally ignoring the diagnostics here because validation
+	// of the variable values is the responsibilty of the remote system. Our
+	// goal here is just to make a best effort count of how many variable
+	// values are coming from -var or -var-file CLI arguments so that we can
+	// hint the user that those are not supported for remote operations.
+	variables, _ := backend.ParseVariableValues(op.Variables, config.Module.Variables)
 
-	// Save only the explicitly defined variables.
-	for k, v := range variables {
+	// Check for explicitly-defined (-var and -var-file) variables, which the
+	// remote backend does not support. All other source types are okay,
+	// because they are implicit from the execution context anyway and so
+	// their final values will come from the _remote_ execution context.
+	for _, v := range variables {
 		switch v.SourceType {
 		case terraform.ValueFromCLIArg, terraform.ValueFromNamedFile:
-			result[k] = v
+			return true
 		}
 	}
 
-	return result, diags
+	return false
+}
+
+func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+	if r.CostEstimate == nil {
+		return nil
+	}
+
+	if b.CLI != nil {
+		b.CLI.Output("\n------------------------------------------------------------------------\n")
+	}
+
+	msgPrefix := "Cost estimation"
+	if b.CLI != nil {
+		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+	}
+
+	started := time.Now()
+	updated := started
+	for i := 0; ; i++ {
+		select {
+		case <-stopCtx.Done():
+			return stopCtx.Err()
+		case <-cancelCtx.Done():
+			return cancelCtx.Err()
+		case <-time.After(1 * time.Second):
+		}
+
+		// Retrieve the cost estimate to get its current status.
+		ce, err := b.client.CostEstimates.Read(stopCtx, r.CostEstimate.ID)
+		if err != nil {
+			return generalError("Failed to retrieve cost estimate", err)
+		}
+
+		// If the run is canceled or errored, but the cost-estimate still has
+		// no result, there is nothing further to render.
+		if ce.Status != tfe.CostEstimateFinished {
+			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+				return nil
+			}
+		}
+
+		switch ce.Status {
+		case tfe.CostEstimateFinished:
+			delta, err := strconv.ParseFloat(ce.DeltaMonthlyCost, 64)
+			if err != nil {
+				return generalError("Unexpected error", err)
+			}
+
+			sign := "+"
+			if delta < 0 {
+				sign = "-"
+			}
+
+			deltaRepr := strings.Replace(ce.DeltaMonthlyCost, "-", "", 1)
+
+			if b.CLI != nil {
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
+				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
+
+				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply {
+					b.CLI.Output("\n------------------------------------------------------------------------")
+				}
+			}
+
+			return nil
+		case tfe.CostEstimatePending, tfe.CostEstimateQueued:
+			// Check if 30 seconds have passed since the last update.
+			current := time.Now()
+			if b.CLI != nil && (i == 0 || current.Sub(updated).Seconds() > 30) {
+				updated = current
+				elapsed := ""
+
+				// Calculate and set the elapsed time.
+				if i > 0 {
+					elapsed = fmt.Sprintf(
+						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
+				}
+				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
+			}
+			continue
+		case tfe.CostEstimateSkippedDueToTargeting:
+			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
+			b.CLI.Output("\n------------------------------------------------------------------------")
+			return nil
+		case tfe.CostEstimateErrored:
+			return fmt.Errorf(msgPrefix + " errored.")
+		case tfe.CostEstimateCanceled:
+			return fmt.Errorf(msgPrefix + " canceled.")
+		default:
+			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
+		}
+	}
+	return nil
 }
 
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
@@ -223,16 +336,27 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
 	for i, pc := range r.PolicyChecks {
+		// Read the policy check logs. This is a blocking call that will only
+		// return once the policy check is complete.
 		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("Failed to retrieve policy check logs", err)
 		}
-		scanner := bufio.NewScanner(logs)
+		reader := bufio.NewReaderSize(logs, 64*1024)
 
 		// Retrieve the policy check to get its current status.
 		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
 		if err != nil {
 			return generalError("Failed to retrieve policy check", err)
+		}
+
+		// If the run is canceled or errored, but the policy check still has
+		// no result, there is nothing further to render.
+		if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+			switch pc.Status {
+			case tfe.PolicyPending, tfe.PolicyQueued, tfe.PolicyUnreachable:
+				continue
+			}
 		}
 
 		var msgPrefix string
@@ -249,13 +373,25 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 		}
 
-		for scanner.Scan() {
-			if b.CLI != nil {
-				b.CLI.Output(b.Colorize().Color(scanner.Text()))
+		if b.CLI != nil {
+			for next := true; next; {
+				var l, line []byte
+
+				for isPrefix := true; isPrefix; {
+					l, isPrefix, err = reader.ReadLine()
+					if err != nil {
+						if err != io.EOF {
+							return generalError("Failed to read logs", err)
+						}
+						next = false
+					}
+					line = append(line, l...)
+				}
+
+				if next || len(line) > 0 {
+					b.CLI.Output(b.Colorize().Color(string(line)))
+				}
 			}
-		}
-		if err := scanner.Err(); err != nil {
-			return generalError("Failed to read logs", err)
 		}
 
 		switch pc.Status {
@@ -283,12 +419,15 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			Description: "Only 'override' will be accepted to override.",
 		}
 
-		if err = b.confirm(stopCtx, op, opts, r, "override"); err != nil {
+		err = b.confirm(stopCtx, op, opts, r, "override")
+		if err != nil && err != errRunOverridden {
 			return err
 		}
 
-		if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-			return generalError("Failed to override policy check", err)
+		if err != errRunOverridden {
+			if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
+				return generalError("Failed to override policy check", err)
+			}
 		}
 
 		if b.CLI != nil {
@@ -300,35 +439,115 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 }
 
 func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
-	v, err := op.UIIn.Input(opts)
-	if err != nil {
-		return fmt.Errorf("Error asking %s: %v", opts.Id, err)
-	}
-	if v != keyword {
-		// Retrieve the run again to get its current status.
-		r, err = b.client.Runs.Read(stopCtx, r.ID)
-		if err != nil {
-			return generalError("Failed to retrieve run", err)
-		}
+	doneCtx, cancel := context.WithCancel(stopCtx)
+	result := make(chan error, 2)
 
-		// Make sure we discard the run if possible.
-		if r.Actions.IsDiscardable {
-			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
-			if err != nil {
-				if op.Destroy {
-					return generalError("Failed to discard destroy", err)
+	go func() {
+		// Make sure we cancel doneCtx before we return
+		// so the input command is also canceled.
+		defer cancel()
+
+		for {
+			select {
+			case <-doneCtx.Done():
+				return
+			case <-stopCtx.Done():
+				return
+			case <-time.After(3 * time.Second):
+				// Retrieve the run again to get its current status.
+				r, err := b.client.Runs.Read(stopCtx, r.ID)
+				if err != nil {
+					result <- generalError("Failed to retrieve run", err)
+					return
 				}
-				return generalError("Failed to discard apply", err)
+
+				switch keyword {
+				case "override":
+					if r.Status != tfe.RunPolicyOverride {
+						if r.Status == tfe.RunDiscarded {
+							err = errRunDiscarded
+						} else {
+							err = errRunOverridden
+						}
+					}
+				case "yes":
+					if !r.Actions.IsConfirmable {
+						if r.Status == tfe.RunDiscarded {
+							err = errRunDiscarded
+						} else {
+							err = errRunApproved
+						}
+					}
+				}
+
+				if err != nil {
+					if b.CLI != nil {
+						b.CLI.Output(b.Colorize().Color(
+							fmt.Sprintf("[reset][yellow]%s[reset]", err.Error())))
+					}
+
+					if err == errRunDiscarded {
+						if op.Destroy {
+							err = errDestroyDiscarded
+						}
+						err = errApplyDiscarded
+					}
+
+					result <- err
+					return
+				}
 			}
 		}
+	}()
 
-		// Even if the run was disarding successfully, we still
-		// return an error as the apply command was cancelled.
-		if op.Destroy {
-			return errors.New("Destroy discarded.")
+	result <- func() error {
+		v, err := op.UIIn.Input(doneCtx, opts)
+		if err != nil && err != context.Canceled && stopCtx.Err() != context.Canceled {
+			return fmt.Errorf("Error asking %s: %v", opts.Id, err)
 		}
-		return errors.New("Apply discarded.")
-	}
 
-	return nil
+		// We return the error of our parent channel as we don't
+		// care about the error of the doneCtx which is only used
+		// within this function. So if the doneCtx was canceled
+		// because stopCtx was canceled, this will properly return
+		// a context.Canceled error and otherwise it returns nil.
+		if doneCtx.Err() == context.Canceled || stopCtx.Err() == context.Canceled {
+			return stopCtx.Err()
+		}
+
+		// Make sure we cancel the context here so the loop that
+		// checks for external changes to the run is ended before
+		// we start to make changes ourselves.
+		cancel()
+
+		if v != keyword {
+			// Retrieve the run again to get its current status.
+			r, err = b.client.Runs.Read(stopCtx, r.ID)
+			if err != nil {
+				return generalError("Failed to retrieve run", err)
+			}
+
+			// Make sure we discard the run if possible.
+			if r.Actions.IsDiscardable {
+				err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
+				if err != nil {
+					if op.Destroy {
+						return generalError("Failed to discard destroy", err)
+					}
+					return generalError("Failed to discard apply", err)
+				}
+			}
+
+			// Even if the run was discarded successfully, we still
+			// return an error as the apply command was canceled.
+			if op.Destroy {
+				return errDestroyDiscarded
+			}
+			return errApplyDiscarded
+		}
+
+		return nil
+	}()
+
+	return <-result
 }

@@ -367,7 +367,7 @@ func (d *ResourceDiff) Get(key string) interface{} {
 }
 
 // GetChange gets the change between the state and diff, checking first to see
-// if a overridden diff exists.
+// if an overridden diff exists.
 //
 // This implementation differs from ResourceData's in the way that we first get
 // results from the exact levels for the new diff, then from state and diff as

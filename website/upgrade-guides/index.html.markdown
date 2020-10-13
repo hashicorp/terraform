@@ -1,5 +1,5 @@
 ---
-layout: "downloads"
+layout: "guides"
 page_title: "Upgrade Guides"
 sidebar_current: "upgrade-guides"
 description: |-

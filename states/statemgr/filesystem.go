@@ -44,12 +44,12 @@ type Filesystem struct {
 	stateFileOut *os.File
 
 	// While the stateFileOut will correspond to the lock directly,
-	// store and check the lock ID to maintain a strict state.Locker
+	// store and check the lock ID to maintain a strict statemgr.Locker
 	// implementation.
 	lockID string
 
 	// created is set to true if stateFileOut didn't exist before we created it.
-	// This is mostly so we can clean up emtpy files during tests, but doesn't
+	// This is mostly so we can clean up empty files during tests, but doesn't
 	// hurt to remove file we never wrote to.
 	created bool
 
@@ -336,7 +336,7 @@ func (s *Filesystem) Unlock(id string) error {
 		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
 		info, err := s.lockInfo()
 		if err != nil {
-			err = multierror.Append(idErr, err)
+			idErr = multierror.Append(idErr, err)
 		}
 
 		return &LockError{

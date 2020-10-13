@@ -18,7 +18,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -376,11 +375,12 @@ type TestStep struct {
 
 	// ImportStateVerify, if true, will also check that the state values
 	// that are finally put into the state after import match for all the
-	// IDs returned by the Import.
+	// IDs returned by the Import.  Note that this checks for strict equality
+	// and does not respect DiffSuppressFunc or CustomizeDiff.
 	//
-	// ImportStateVerifyIgnore are fields that should not be verified to
-	// be equal. These can be set to ephemeral fields or fields that can't
-	// be refreshed and don't matter.
+	// ImportStateVerifyIgnore is a list of prefixes of fields that should
+	// not be verified to be equal. These can be set to ephemeral fields or
+	// fields that can't be refreshed and don't matter.
 	ImportStateVerify       bool
 	ImportStateVerifyIgnore []string
 
@@ -395,7 +395,7 @@ const EnvLogPathMask = "TF_LOG_PATH_MASK"
 func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	logOutput = ioutil.Discard
 
-	logLevel := logging.LogLevel()
+	logLevel := logging.CurrentLogLevel()
 	if logLevel == "" {
 		return
 	}
@@ -423,9 +423,9 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	}
 
 	// This was the default since the beginning
-	logOutput = &logutils.LevelFilter{
+	logOutput = &logging.LevelFilter{
 		Levels:   logging.ValidLevels,
-		MinLevel: logutils.LogLevel(logLevel),
+		MinLevel: logging.LogLevel(logLevel),
 		Writer:   logOutput,
 	}
 
@@ -481,10 +481,19 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
+	providerFactories, err := testProviderFactories(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// get instances of all providers, so we can use the individual
 	// resources to shim the state during the tests.
 	providers := make(map[string]terraform.ResourceProvider)
-	for name, pf := range testProviderFactories(c) {
+	legacyProviderFactories, err := testProviderFactoriesLegacy(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, pf := range legacyProviderFactories {
 		p, err := pf()
 		if err != nil {
 			t.Fatal(err)
@@ -492,12 +501,7 @@ func Test(t TestT, c TestCase) {
 		providers[name] = p
 	}
 
-	providerResolver, err := testProviderResolver(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	opts := terraform.ContextOpts{ProviderResolver: providerResolver}
+	opts := terraform.ContextOpts{Providers: providerFactories}
 
 	// A single state variable to track the lifecycle, starting with no state
 	var state *terraform.State
@@ -650,10 +654,14 @@ func testProviderConfig(c TestCase) string {
 	return strings.Join(lines, "")
 }
 
-// testProviderFactories combines the fixed Providers and
-// ResourceProviderFactory functions into a single map of
-// ResourceProviderFactory functions.
-func testProviderFactories(c TestCase) map[string]terraform.ResourceProviderFactory {
+// testProviderFactoriesLegacy is like testProviderFactories but it returns
+// providers implementing the legacy interface terraform.ResourceProvider,
+// rather than the current providers.Interface.
+//
+// It also identifies all providers as legacy-style single names rather than
+// full addresses, for compatibility with legacy code that doesn't understand
+// FQNs.
+func testProviderFactoriesLegacy(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
 	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
 	for k, pf := range c.ProviderFactories {
 		ctxProviders[k] = pf
@@ -663,24 +671,25 @@ func testProviderFactories(c TestCase) map[string]terraform.ResourceProviderFact
 	for k, p := range c.Providers {
 		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
 	}
-	return ctxProviders
+	return ctxProviders, nil
 }
 
-// testProviderResolver is a helper to build a ResourceProviderResolver
-// with pre instantiated ResourceProviders, so that we can reset them for the
-// test, while only calling the factory function once.
-// Any errors are stored so that they can be returned by the factory in
-// terraform to match non-test behavior.
-func testProviderResolver(c TestCase) (providers.Resolver, error) {
-	ctxProviders := testProviderFactories(c)
+// testProviderFactories combines the fixed Providers and
+// ResourceProviderFactory functions into a single map of
+// ResourceProviderFactory functions.
+func testProviderFactories(c TestCase) (map[addrs.Provider]providers.Factory, error) {
+	ctxProviders, err := testProviderFactoriesLegacy(c)
+	if err != nil {
+		return nil, err
+	}
 
-	// wrap the old provider factories in the test grpc server so they can be
-	// called from terraform.
-	newProviders := make(map[string]providers.Factory)
-
-	for k, pf := range ctxProviders {
+	// We additionally wrap all of the factories as a GRPCTestProvider, which
+	// allows them to appear as a new-style providers.Interface, rather than
+	// the legacy terraform.ResourceProvider.
+	newProviders := make(map[addrs.Provider]providers.Factory)
+	for legacyName, pf := range ctxProviders {
 		factory := pf // must copy to ensure each closure sees its own value
-		newProviders[k] = func() (providers.Interface, error) {
+		newProviders[addrs.NewDefaultProvider(legacyName)] = func() (providers.Interface, error) {
 			p, err := factory()
 			if err != nil {
 				return nil, err
@@ -693,7 +702,7 @@ func testProviderResolver(c TestCase) (providers.Resolver, error) {
 		}
 	}
 
-	return providers.ResolverFixed(newProviders), nil
+	return newProviders, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the
@@ -727,7 +736,10 @@ func testIDOnlyRefresh(c TestCase, opts terraform.ContextOpts, step TestStep, r 
 			AttrsFlat: r.Primary.Attributes,
 			Status:    states.ObjectReady,
 		},
-		addrs.ProviderConfig{Type: "placeholder"}.Absolute(addrs.RootModuleInstance),
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("placeholder"),
+			Module:   addrs.RootModule,
+		},
 	)
 
 	// Create the config module. We use the full config because Refresh
@@ -1146,14 +1158,32 @@ func TestCheckModuleResourceAttrPair(mpFirst []string, nameFirst string, keyFirs
 }
 
 func testCheckResourceAttrPair(isFirst *terraform.InstanceState, nameFirst string, keyFirst string, isSecond *terraform.InstanceState, nameSecond string, keySecond string) error {
-	vFirst, ok := isFirst.Attributes[keyFirst]
-	if !ok {
-		return fmt.Errorf("%s: Attribute '%s' not found", nameFirst, keyFirst)
+	vFirst, okFirst := isFirst.Attributes[keyFirst]
+	vSecond, okSecond := isSecond.Attributes[keySecond]
+
+	// Container count values of 0 should not be relied upon, and not reliably
+	// maintained by helper/schema. For the purpose of tests, consider unset and
+	// 0 to be equal.
+	if len(keyFirst) > 2 && len(keySecond) > 2 && keyFirst[len(keyFirst)-2:] == keySecond[len(keySecond)-2:] &&
+		(strings.HasSuffix(keyFirst, ".#") || strings.HasSuffix(keyFirst, ".%")) {
+		// they have the same suffix, and it is a collection count key.
+		if vFirst == "0" || vFirst == "" {
+			okFirst = false
+		}
+		if vSecond == "0" || vSecond == "" {
+			okSecond = false
+		}
 	}
 
-	vSecond, ok := isSecond.Attributes[keySecond]
-	if !ok {
-		return fmt.Errorf("%s: Attribute '%s' not found", nameSecond, keySecond)
+	if okFirst != okSecond {
+		if !okFirst {
+			return fmt.Errorf("%s: Attribute %q not set, but %q is set in %s as %q", nameFirst, keyFirst, keySecond, nameSecond, vSecond)
+		}
+		return fmt.Errorf("%s: Attribute %q is %q, but %q is not set in %s", nameFirst, keyFirst, vFirst, keySecond, nameSecond)
+	}
+	if !(okFirst || okSecond) {
+		// If they both don't exist then they are equally unset, so that's okay.
+		return nil
 	}
 
 	if vFirst != vSecond {

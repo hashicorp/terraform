@@ -9,6 +9,10 @@ description: |-
 
 # `pathexpand` Function
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+
 `pathexpand` takes a filesystem path that might begin with a `~` segment,
 and if so it replaces that segment with the current user's home directory
 path.

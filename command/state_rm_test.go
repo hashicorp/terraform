@@ -9,7 +9,6 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -25,7 +24,10 @@ func TestStateRm(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -37,7 +39,10 @@ func TestStateRm(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -72,6 +77,95 @@ func TestStateRm(t *testing.T) {
 	testStateOutput(t, backups[0], testStateRmOutputOriginal)
 }
 
+func TestStateRmNotChildModule(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		// This second instance has the same local address as the first but
+		// is in a child module. Older versions of Terraform would incorrectly
+		// remove this one too, since they failed to check the module address.
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateRmCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, `
+<no state>
+module.child:
+  test_instance.foo:
+    ID = foo
+    provider = provider["registry.terraform.io/hashicorp/test"]
+    bar = value
+    foo = value
+`)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], `
+test_instance.foo:
+  ID = bar
+  provider = provider["registry.terraform.io/hashicorp/test"]
+  bar = value
+  foo = value
+
+module.child:
+  test_instance.foo:
+    ID = foo
+    provider = provider["registry.terraform.io/hashicorp/test"]
+    bar = value
+    foo = value
+`)
+}
+
 func TestStateRmNoArgs(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -84,7 +178,10 @@ func TestStateRmNoArgs(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -96,7 +193,10 @@ func TestStateRmNoArgs(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -137,7 +237,10 @@ func TestStateRmNonExist(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -149,7 +252,10 @@ func TestStateRmNonExist(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -169,14 +275,9 @@ func TestStateRmNonExist(t *testing.T) {
 		"-state", statePath,
 		"test_instance.baz", // doesn't exist in the state constructed above
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("expected exit status %d, got: %d", 0, code)
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected exit status %d, got: %d", 1, code)
 	}
-
-	if msg := ui.OutputWriter.String(); !strings.Contains(msg, "No matching resources found") {
-		t.Fatalf("unexpected output:\n%s", msg)
-	}
-
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
@@ -191,7 +292,10 @@ func TestStateRm_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -203,7 +307,10 @@ func TestStateRm_backupExplicit(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 	statePath := testStateFile(t, state)
@@ -259,7 +366,7 @@ func TestStateRm_noState(t *testing.T) {
 
 func TestStateRm_needsInit(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-change"), td)
+	testCopyDir(t, testFixturePath("backend-change"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -286,7 +393,7 @@ func TestStateRm_needsInit(t *testing.T) {
 
 func TestStateRm_backendState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -301,7 +408,10 @@ func TestStateRm_backendState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -313,7 +423,10 @@ func TestStateRm_backendState(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
 				Status:    states.ObjectReady,
 			},
-			addrs.ProviderConfig{Type: "test"}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
 	})
 
@@ -360,12 +473,12 @@ func TestStateRm_backendState(t *testing.T) {
 const testStateRmOutputOriginal = `
 test_instance.bar:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo:
   ID = bar
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -373,7 +486,7 @@ test_instance.foo:
 const testStateRmOutput = `
 test_instance.bar:
   ID = foo
-  provider = provider.test
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `

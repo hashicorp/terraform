@@ -115,3 +115,48 @@ Using this environment variable is recommended only for non-interactive usage, s
 
 For more information regarding workspaces, check out the section on [Using Workspaces]
 (https://www.terraform.io/docs/state/workspaces.html).
+
+## TF_IN_AUTOMATION
+
+If `TF_IN_AUTOMATION` is set to any non-empty value, Terraform adjusts its
+output to avoid suggesting specific commands to run next. This can make the
+output more consistent and less confusing in workflows where users don't
+directly execute Terraform commands, like in CI systems or other wrapping
+applications.
+
+This is a purely cosmetic change to Terraform's human-readable output, and the
+exact output differences can change between minor Terraform versions.
+
+For more details, see [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+
+## TF_REGISTRY_DISCOVERY_RETRY
+
+Set `TF_REGISTRY_DISCOVERY_RETRY` to configure the max number of request retries
+the remote registry client will attempt for client connection errors or
+500-range responses that are safe to retry.
+
+## TF_REGISTRY_CLIENT_TIMEOUT
+
+The default client timeout for requests to the remote registry is 10s. `TF_REGISTRY_CLIENT_TIMEOUT` can be configured and increased during extraneous circumstances.
+
+```shell
+export TF_REGISTRY_CLIENT_TIMEOUT=15
+```
+
+## TF_CLI_CONFIG_FILE
+
+The location of the [Terraform CLI configuration file](/docs/commands/cli-config.html).
+
+```shell
+export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
+```
+
+## TF_IGNORE
+
+If `TF_IGNORE` is set to "trace", Terraform will output debug messages to display ignored files and folders. This is useful when debugging large repositories with `.terraformignore` files.
+
+```shell
+export TF_IGNORE=trace
+```
+
+For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/backends/types/remote.html#excluding-files-from-upload-with-terraformignore).

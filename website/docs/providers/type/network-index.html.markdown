@@ -9,7 +9,7 @@ description: |-
 # Network Providers
 
 This is a group of network providers that offer specific network capabilities
-such and DNS, routing, and firewall configuration.  The providers generally
+such as DNS, routing, and firewall configuration.  The providers generally
 offer a cloud-based service and Terraform integrates with these services using
 the specific providers.  These providers are primarily supported by the vendor
 in close collaboration with HashiCorp, and are tested by HashiCorp.
@@ -17,22 +17,26 @@ in close collaboration with HashiCorp, and are tested by HashiCorp.
 ---
 
 
-[Cloudflare](/docs/providers/cloudflare/index.html)
-
-[DNS](/docs/providers/dns/index.html)
-
-[DNSimple](/docs/providers/dnsimple/index.html)
-
-[DNSMadeEasy](/docs/providers/dme/index.html)
-
-[F5 BIG-IP](/docs/providers/bigip/index.html)
-
-[HTTP](/docs/providers/http/index.html)
-
-[NS1](/docs/providers/ns1/index.html)
-
-[Palo Alto Networks](/docs/providers/panos/index.html)
-
-[PowerDNS](/docs/providers/powerdns/index.html)
-
-[UltraDNS](/docs/providers/ultradns/index.html)
+- [Akamai](/docs/providers/akamai/index.html)
+- [Avi Vantage](/docs/providers/avi/index.html)
+- [Aviatrix](/docs/providers/aviatrix/index.html)
+- [A10 Networks](/docs/providers/vthunder/index.html)
+- [Check Point](/docs/providers/checkpoint/index.html)
+- [Cloudflare](/docs/providers/cloudflare/index.html)
+- [Cisco ASA](/docs/providers/ciscoasa/index.html)
+- [Cisco MSO](/docs/providers/mso/index.html)
+- [Constellix](/docs/providers/constellix/index.html)
+- [DNS](/docs/providers/dns/index.html)
+- [DNSimple](/docs/providers/dnsimple/index.html)
+- [DNSMadeEasy](/docs/providers/dme/index.html)
+- [F5 BIG-IP](/docs/providers/bigip/index.html)
+- [FortiOS](/docs/providers/fortios/index.html)
+- [HTTP](/docs/providers/http/index.html)
+- [Incapsula](/docs/providers/incapsula/index.html)
+- [Infoblox](/docs/providers/infoblox/index.html)
+- [NS1](/docs/providers/ns1/index.html)
+- [Palo Alto Networks PANOS](/docs/providers/panos/index.html)
+- [Palo Alto Networks Prisma Cloud](/docs/providers/prismacloud/index.html)
+- [PowerDNS](/docs/providers/powerdns/index.html)
+- [Pureport](/docs/providers/pureport/index.html)
+- [UltraDNS](/docs/providers/ultradns/index.html)

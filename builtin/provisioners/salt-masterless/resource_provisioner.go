@@ -58,10 +58,12 @@ func Provisioner() terraform.ResourceProvisioner {
 			"remote_state_tree": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  DefaultStateTreeDir,
 			},
 			"remote_pillar_roots": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  DefaultPillarRootDir,
 			},
 			"temp_config_dir": &schema.Schema{
 				Type:     schema.TypeString,
@@ -422,7 +424,7 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	var remoteStateTree string
 	remoteStateTreeTmp, ok := c.Get("remote_state_tree")
 	if !ok {
-		remoteStateTree = ""
+		remoteStateTree = DefaultStateTreeDir
 	} else {
 		remoteStateTree = remoteStateTreeTmp.(string)
 	}
@@ -430,12 +432,12 @@ func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
 	var remotePillarRoots string
 	remotePillarRootsTmp, ok := c.Get("remote_pillar_roots")
 	if !ok {
-		remotePillarRoots = ""
+		remotePillarRoots = DefaultPillarRootDir
 	} else {
 		remotePillarRoots = remotePillarRootsTmp.(string)
 	}
 
-	if minionConfig != "" && (remoteStateTree != "" || remotePillarRoots != "") {
+	if minionConfig != "" && (remoteStateTree != DefaultStateTreeDir || remotePillarRoots != DefaultPillarRootDir) {
 		es = append(es,
 			errors.New("remote_state_tree and remote_pillar_roots only apply when minion_config_file is not used"))
 	}

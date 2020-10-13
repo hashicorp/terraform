@@ -1,7 +1,7 @@
 ---
 layout: "commands-workspace"
 page_title: "Command: workspace list"
-sidebar_current: "docs-workspace-sub-list"
+sidebar_current: "docs-commands-workspace-sub-list"
 description: |-
   The terraform workspace list command is used to list all existing workspaces.
 ---

@@ -20,7 +20,7 @@ Here are some of the benefits of backends:
 
   * **Working in a team**: Backends can store their state remotely and
     protect that state with locks to prevent corruption. Some backends
-    such as Terraform Enterprise even automatically store a history of
+    such as Terraform Cloud even automatically store a history of
     all state revisions.
 
   * **Keeping sensitive information off disk**: State is retrieved from

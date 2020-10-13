@@ -16,14 +16,10 @@ type RefreshCommand struct {
 }
 
 func (c *RefreshCommand) Run(args []string) int {
-	args, err := c.Meta.process(args, true)
-	if err != nil {
-		return 1
-	}
-
+	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("refresh")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
@@ -123,6 +119,10 @@ Options:
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
+
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact form
+                      that includes only the summary messages.
 
   -input=true         Ask for input for variables if not directly set.
 

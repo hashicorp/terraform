@@ -48,6 +48,18 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	return ret
 }
 
+// ModuleOutputs returns the set of OutputValues that matches the given path.
+func (s *SyncState) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	var os []*OutputValue
+
+	for _, o := range s.state.ModuleOutputs(parentAddr, module) {
+		os = append(os, o.DeepCopy())
+	}
+	return os
+}
+
 // RemoveModule removes the entire state for the given module, taking with
 // it any resources associated with the module. This should generally be
 // called only for modules whose resources have all been destroyed, but
@@ -185,12 +197,12 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 // SetResourceMeta updates the resource-level metadata for the resource at
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.
-func (s *SyncState) SetResourceMeta(addr addrs.AbsResource, eachMode EachMode, provider addrs.AbsProviderConfig) {
+func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	ms := s.state.EnsureModule(addr.Module)
-	ms.SetResourceMeta(addr.Resource, eachMode, provider)
+	ms.SetResourceProvider(addr.Resource, provider)
 }
 
 // RemoveResource removes the entire state for the given resource, taking with
@@ -246,44 +258,52 @@ func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
 // The state is modified in-place if necessary, moving a resource instance
 // between the two addresses. The return value is true if a change was made,
 // and false otherwise.
-func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.AbsResource, countEnabled bool) bool {
+func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.ConfigResource, countEnabled bool) bool {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	ms := s.state.Module(addr.Module)
-	if ms == nil {
+	// get all modules instances that may match this state
+	modules := s.state.ModuleInstances(addr.Module)
+	if len(modules) == 0 {
 		return false
 	}
 
-	relAddr := addr.Resource
-	rs := ms.Resource(relAddr)
-	if rs == nil {
-		return false
-	}
-	huntKey := addrs.NoKey
-	replaceKey := addrs.InstanceKey(addrs.IntKey(0))
-	if !countEnabled {
-		huntKey, replaceKey = replaceKey, huntKey
+	changed := false
+
+	for _, ms := range modules {
+		relAddr := addr.Resource
+		rs := ms.Resource(relAddr)
+		if rs == nil {
+			continue
+		}
+
+		huntKey := addrs.NoKey
+		replaceKey := addrs.InstanceKey(addrs.IntKey(0))
+		if !countEnabled {
+			huntKey, replaceKey = replaceKey, huntKey
+		}
+
+		is, exists := rs.Instances[huntKey]
+		if !exists {
+			continue
+		}
+
+		if _, exists := rs.Instances[replaceKey]; exists {
+			// If the replacement key also exists then we'll do nothing and keep both.
+			continue
+		}
+
+		// If we get here then we need to "rename" from hunt to replace
+		rs.Instances[replaceKey] = is
+		delete(rs.Instances, huntKey)
+		changed = true
 	}
 
-	is, exists := rs.Instances[huntKey]
-	if !exists {
-		return false
-	}
-
-	if _, exists := rs.Instances[replaceKey]; exists {
-		// If the replacement key also exists then we'll do nothing and keep both.
-		return false
-	}
-
-	// If we get here then we need to "rename" from hunt to replace
-	rs.Instances[replaceKey] = is
-	delete(rs.Instances, huntKey)
-	return true
+	return changed
 }
 
 // SetResourceInstanceCurrent saves the given instance object as the current
-// generation of the resource instance with the given address, simulataneously
+// generation of the resource instance with the given address, simultaneously
 // updating the recorded provider configuration address, dependencies, and
 // resource EachMode.
 //
@@ -296,9 +316,8 @@ func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.AbsReso
 // concurrently mutated during this call, but may be freely used again once
 // this function returns.
 //
-// The provider address and "each mode" are resource-wide settings and so they
-// are updated for all other instances of the same resource as a side-effect of
-// this call.
+// The provider address is a resource-wide settings and is updated
+// for all other instances of the same resource as a side-effect of this call.
 //
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
@@ -464,7 +483,7 @@ func (s *SyncState) RemovePlannedResourceInstanceObjects() {
 		moduleAddr := ms.Addr
 
 		for _, rs := range ms.Resources {
-			resAddr := rs.Addr
+			resAddr := rs.Addr.Resource
 
 			for ik, is := range rs.Instances {
 				instAddr := resAddr.Instance(ik)

@@ -14,7 +14,7 @@ func TestDeprecateBackend(t *testing.T) {
 		deprecateMessage,
 	)
 
-	diags := deprecatedBackend.ValidateConfig(cty.EmptyObjectVal)
+	_, diags := deprecatedBackend.PrepareConfig(cty.EmptyObjectVal)
 	if len(diags) != 1 {
 		t.Errorf("got %d diagnostics; want 1", len(diags))
 		for _, diag := range diags {

@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/registry"
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,11 +19,18 @@ import (
 	"syscall"
 	"testing"
 
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/registry"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
@@ -38,11 +43,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendLocal "github.com/hashicorp/terraform/backend/local"
 )
 
 // These are the directories for our test data and fixtures.
 var (
-	fixtureDir  = "./test-fixtures"
+	fixtureDir  = "./testdata"
 	testDataDir = "./testdata"
 )
 
@@ -99,6 +105,12 @@ func tempDir(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	dir, err = filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if err := os.RemoveAll(dir); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -112,21 +124,17 @@ func testFixturePath(name string) string {
 
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": providers.FactoryFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
+		},
 	}
 }
 
 func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
 	return &testingOverrides{
-		ProviderResolver: providers.ResolverFixed(
-			map[string]providers.Factory{
-				"test": providers.FactoryFixed(p),
-			},
-		),
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
+		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": provisioners.FactoryFixed(pr),
 		},
@@ -259,14 +267,19 @@ func testState() *states.State {
 				// The weird whitespace here is reflective of how this would
 				// get written out in a real state file, due to the indentation
 				// of all of the containing wrapping objects and arrays.
-				AttrsJSON: []byte("{\n            \"id\": \"bar\"\n          }"),
-				Status:    states.ObjectReady,
+				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{},
 			},
-			addrs.ProviderConfig{
-				Type: "test",
-			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
 		)
-	})
+		// DeepCopy is used here to ensure our synthetic state matches exactly
+		// with a state that will have been copied during the command
+		// operation, and all fields have been copied correctly.
+	}).DeepCopy()
 }
 
 // writeStateForTesting is a helper that writes the given naked state to the
@@ -361,7 +374,7 @@ func testStateFile(t *testing.T, s *states.State) string {
 
 // testStateFileDefault writes the state out to the default statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
-func testStateFileDefault(t *testing.T, s *terraform.State) string {
+func testStateFileDefault(t *testing.T, s *states.State) {
 	t.Helper()
 
 	f, err := os.Create(DefaultStateFilename)
@@ -370,11 +383,34 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := writeStateForTesting(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+// testStateFileWorkspaceDefault writes the state out to the default statefile
+// for the given workspace in the cwd. Use `testCwd` to change into a temp cwd.
+func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.State) string {
+	t.Helper()
+
+	workspaceDir := filepath.Join(backendLocal.DefaultWorkspaceDir, workspace)
+	err := os.MkdirAll(workspaceDir, os.ModePerm)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	return DefaultStateFilename
+	path := filepath.Join(workspaceDir, DefaultStateFilename)
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if err := writeStateForTesting(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return path
 }
 
 // testStateFileRemote writes the state out to the remote statefile
@@ -455,9 +491,11 @@ func testStateOutput(t *testing.T, path string, expected string) {
 
 func testProvider() *terraform.MockProvider {
 	p := new(terraform.MockProvider)
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
-		PlannedState: cty.EmptyObjectVal,
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return resp
 	}
+
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{
 			NewState: req.PriorState,
@@ -478,6 +516,11 @@ func testTempDir(t *testing.T) string {
 	d, err := ioutil.TempDir(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	d, err = filepath.EvalSymlinks(d)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	return d
@@ -524,7 +567,7 @@ func testChdir(t *testing.T, new string) func() {
 }
 
 // testCwd is used to change the current working directory
-// into a test directory that should be remoted after
+// into a test directory that should be removed after
 func testCwd(t *testing.T) (string, string) {
 	t.Helper()
 
@@ -687,7 +730,7 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // be returned about the backend configuration having changed and that
 // "terraform init" must be run, since the test backend config cache created
 // by this function contains the hash for an empty configuration.
-func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State, *httptest.Server) {
+func testBackendState(t *testing.T, s *states.State, c int) (*terraform.State, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -709,8 +752,8 @@ func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State
 
 	// If a state was given, make sure we calculate the proper b64md5
 	if s != nil {
-		enc := json.NewEncoder(buf)
-		if err := enc.Encode(s); err != nil {
+		err := statefile.Write(&statefile.File{State: s}, buf)
+		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		md5 := md5.Sum(buf.Bytes())
@@ -808,7 +851,7 @@ func testLockState(sourceDir, path string) (func(), error) {
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
 
-	cmd := exec.Command("go", "build", "-mod=vendor", "-o", lockBin, source)
+	cmd := exec.Command("go", "build", "-o", lockBin, source)
 	cmd.Dir = filepath.Dir(sourceDir)
 
 	out, err := cmd.CombinedOutput()
@@ -851,6 +894,71 @@ func testLockState(sourceDir, path string) (func(), error) {
 	return deferFunc, nil
 }
 
+// testCopyDir recursively copies a directory tree, attempting to preserve
+// permissions. Source directory must exist, destination directory must *not*
+// exist. Symlinks are ignored and skipped.
+func testCopyDir(t *testing.T, src, dst string) {
+	t.Helper()
+
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
+
+	si, err := os.Stat(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !si.IsDir() {
+		t.Fatal("source is not a directory")
+	}
+
+	_, err = os.Stat(dst)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if err == nil {
+		t.Fatal("destination already exists")
+	}
+
+	err = os.MkdirAll(dst, si.Mode())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := ioutil.ReadDir(src)
+	if err != nil {
+		return
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		// If the entry is a symlink, we copy the contents
+		for entry.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(srcPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			entry, err = os.Stat(target)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if entry.IsDir() {
+			testCopyDir(t, srcPath, dstPath)
+		} else {
+			err = copy.CopyFile(srcPath, dstPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	return
+}
+
 // normalizeJSON removes all insignificant whitespace from the given JSON buffer
 // and returns it as a string for easier comparison.
 func normalizeJSON(t *testing.T, src []byte) string {
@@ -861,4 +969,112 @@ func normalizeJSON(t *testing.T, src []byte) string {
 		t.Fatalf("error normalizing JSON: %s", err)
 	}
 	return buf.String()
+}
+
+func mustResourceAddr(s string) addrs.ConfigResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr.Config()
+}
+
+// This map from provider type name to namespace is used by the fake registry
+// when called via LookupLegacyProvider. Providers not in this map will return
+// a 404 Not Found error.
+var legacyProviderNamespaces = map[string]string{
+	"foo": "hashicorp",
+	"bar": "hashicorp",
+	"baz": "terraform-providers",
+	"qux": "hashicorp",
+}
+
+// This map is used to mock the provider redirect feature.
+var movedProviderNamespaces = map[string]string{
+	"qux": "acme",
+}
+
+// testServices starts up a local HTTP server running a fake provider registry
+// service which responds only to discovery requests and legacy provider lookup
+// API calls.
+//
+// The final return value is a function to call at the end of a test function
+// to shut down the test server. After you call that function, the discovery
+// object becomes useless.
+func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
+	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
+
+	services = disco.New()
+	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
+		"providers.v1": server.URL + "/providers/v1/",
+	})
+
+	return services, func() {
+		server.Close()
+	}
+}
+
+// testRegistrySource is a wrapper around testServices that uses the created
+// discovery object to produce a Source instance that is ready to use with the
+// fake registry services.
+//
+// As with testServices, the final return value is a function to call at the end
+// of your test in order to shut down the test server.
+func testRegistrySource(t *testing.T) (source *getproviders.RegistrySource, cleanup func()) {
+	services, close := testServices(t)
+	source = getproviders.NewRegistrySource(services)
+	return source, close
+}
+
+func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
+	path := req.URL.EscapedPath()
+
+	if !strings.HasPrefix(path, "/providers/v1/") {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`not a provider registry endpoint`))
+		return
+	}
+
+	pathParts := strings.Split(path, "/")[3:]
+
+	if len(pathParts) != 3 {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`unrecognized path scheme`))
+		return
+	}
+
+	if pathParts[2] != "versions" {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`this registry only supports legacy namespace lookup requests`))
+		return
+	}
+
+	name := pathParts[1]
+
+	// Legacy lookup
+	if pathParts[0] == "-" {
+		if namespace, ok := legacyProviderNamespaces[name]; ok {
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			if movedNamespace, ok := movedProviderNamespaces[name]; ok {
+				resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","moved_to":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name, movedNamespace, name)))
+			} else {
+				resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name)))
+			}
+		} else {
+			resp.WriteHeader(404)
+			resp.Write([]byte(`provider not found`))
+		}
+		return
+	}
+
+	// Also return versions for redirect target
+	if namespace, ok := movedProviderNamespaces[name]; ok && pathParts[0] == namespace {
+		resp.Header().Set("Content-Type", "application/json")
+		resp.WriteHeader(200)
+		resp.Write([]byte(fmt.Sprintf(`{"id":"%s/%s","versions":[{"version":"1.0.0","protocols":["4"]}]}`, namespace, name)))
+	} else {
+		resp.WriteHeader(404)
+		resp.Write([]byte(`provider not found`))
+	}
 }

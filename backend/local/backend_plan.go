@@ -8,11 +8,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -69,30 +73,17 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
-
-	// Setup the state
-	runningOp.State = tfCtx.State()
-
-	// If we're refreshing before plan, perform that
-	baseState := runningOp.State
-	if op.PlanRefresh {
-		log.Printf("[INFO] backend/local: plan calling Refresh")
-
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
-		}
-
-		refreshedState, err := tfCtx.Refresh()
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
 		if err != nil {
-			diags = diags.Append(err)
-			b.ReportResult(runningOp, diags)
-			return
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
 		}
-		baseState = refreshedState // plan will be relative to our refreshed state
-		if b.CLI != nil {
-			b.CLI.Output("\n------------------------------------------------------------------------")
-		}
-	}
+	}()
+
+	runningOp.State = tfCtx.State()
 
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
@@ -118,7 +109,8 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
-	// Record state
+
+	// Record whether this plan includes any side-effects that could be applied.
 	runningOp.PlanEmpty = plan.Changes.Empty()
 
 	// Save the plan to disk
@@ -137,7 +129,7 @@ func (b *Local) opPlan(
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
 		// only write it if this plan is subsequently applied.
-		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, plan.State)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
 		err := planfile.Create(path, configSnap, plannedStateFile, plan)
@@ -156,12 +148,14 @@ func (b *Local) opPlan(
 	if b.CLI != nil {
 		schemas := tfCtx.Schemas()
 
-		if plan.Changes.Empty() {
+		if runningOp.PlanEmpty {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			// Even if there are no changes, there still could be some warnings
+			b.ShowDiagnostics(diags)
 			return
 		}
 
-		b.renderPlan(plan, schemas)
+		b.renderPlan(plan, plan.State, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -188,7 +182,31 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
+	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize())
+}
+
+// RenderPlan renders the given plan to the given UI.
+//
+// This is exported only so that the "terraform show" command can re-use it.
+// Ideally it would be somewhere outside of this backend code so that both
+// can call into it, but we're leaving it here for now in order to avoid
+// disruptive refactoring.
+//
+// If you find yourself wanting to call this function from a third callsite,
+// please consider whether it's time to do the more disruptive refactoring
+// so that something other than the local backend package is offering this
+// functionality.
+//
+// The difference between baseState and priorState is that baseState is the
+// result of implicitly running refresh (unless that was disabled) while
+// priorState is a snapshot of the state as it was before we took any actions
+// at all. priorState can optionally be nil if the caller has only a saved
+// plan and not the prior state it was built from. In that case, changes to
+// output values will not currently be rendered because their prior values
+// are currently stored only in the prior state. (see the docstring for
+// func planHasSideEffects for why this is and when that might change)
+func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -222,9 +240,9 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 	}
 
-	b.CLI.Output(b.Colorize().Color(headerBuf.String()))
+	ui.Output(colorize.Color(headerBuf.String()))
 
-	b.CLI.Output("Terraform will perform the following actions:\n")
+	ui.Output("Terraform will perform the following actions:\n")
 
 	// Note: we're modifying the backing slice of this plan object in-place
 	// here. The ordering of resource changes in a plan is not significant,
@@ -243,22 +261,35 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 		if rcs.Action == plans.NoOp {
 			continue
 		}
-		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.ProviderConfig.Type)
+
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
 		if providerSchema == nil {
 			// Should never happen
-			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
+			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
 			continue
 		}
 		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
 		if rSchema == nil {
 			// Should never happen
-			b.CLI.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
+			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
 			continue
 		}
-		b.CLI.Output(format.ResourceChange(
+
+		// check if the change is due to a tainted resource
+		tainted := false
+		if !baseState.Empty() {
+			if is := baseState.ResourceInstance(rcs.Addr); is != nil {
+				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
+					tainted = obj.Status == states.ObjectTainted
+				}
+			}
+		}
+
+		ui.Output(format.ResourceChange(
 			rcs,
+			tainted,
 			rSchema,
-			b.CLIColor,
+			colorize,
 		))
 	}
 
@@ -275,22 +306,18 @@ func (b *Local) renderPlan(plan *plans.Plan, schemas *terraform.Schemas) {
 			stats[change.Action]++
 		}
 	}
-	b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
+	ui.Output(colorize.Color(fmt.Sprintf(
 		"[reset][bold]Plan:[reset] "+
 			"%d to add, %d to change, %d to destroy.",
 		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
+
+	// If there is at least one planned change to the root module outputs
+	// then we'll render a summary of those too.
+	if len(plan.Changes.Outputs) > 0 {
+		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(plan.Changes.Outputs, colorize)))
+	}
 }
-
-const planErrNoConfig = `
-No configuration files found!
-
-Plan requires configuration to be present. Planning without a configuration
-would mark everything for destruction, which is normally not what is desired.
-If you would like to destroy everything, please run plan with the "-destroy"
-flag or create a single empty configuration file. Otherwise, please create
-a Terraform configuration file in the path being executed and try again.
-`
 
 const planHeaderIntro = `
 An execution plan has been generated and is shown below.

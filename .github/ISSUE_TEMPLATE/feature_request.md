@@ -1,6 +1,7 @@
 ---
 name: Feature request
 about: Suggest a new feature or other enhancement.
+labels: enhancement, new
 
 ---
 
@@ -14,7 +15,7 @@ If your issue relates to a specific Terraform provider, please open it in the pr
 
 ### Current Terraform Version
 <!---
-Run `terraform -v` to show the version, and paste the result between the ``` marks below. This will record which version was current at the time of your feature request, to help manage the request backlog.
+Run `terraform version` to show the version, and paste the result between the ``` marks below. This will record which version was current at the time of your feature request, to help manage the request backlog.
 
 If you're not using the latest version, please check to see if something related to your request has already been implemented in a later version.
 -->

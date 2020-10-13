@@ -10,9 +10,9 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	statespkg "github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // we keep the states and locks in package-level variables, so that they can be
@@ -36,7 +36,7 @@ func Reset() {
 	}
 
 	locks = lockMap{
-		m: map[string]*state.LockInfo{},
+		m: map[string]*statemgr.LockInfo{},
 	}
 }
 
@@ -76,7 +76,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	// set the default client lock info per the test config
 	data := schema.FromContextBackendConfig(ctx)
 	if v, ok := data.GetOk("lock_id"); ok && v.(string) != "" {
-		info := state.NewLockInfo()
+		info := statemgr.NewLockInfo()
 		info.ID = v.(string)
 		info.Operation = "test"
 		info.Info = "test config"
@@ -113,7 +113,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	states.Lock()
 	defer states.Unlock()
 
@@ -128,7 +128,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 
 		// to most closely replicate other implementations, we are going to
 		// take a lock and create a new state if it doesn't exist.
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockID, err := s.Lock(lockInfo)
 		if err != nil {
@@ -158,16 +158,16 @@ type stateMap struct {
 // Global level locks for inmem backends.
 type lockMap struct {
 	sync.Mutex
-	m map[string]*state.LockInfo
+	m map[string]*statemgr.LockInfo
 }
 
-func (l *lockMap) lock(name string, info *state.LockInfo) (string, error) {
+func (l *lockMap) lock(name string, info *statemgr.LockInfo) (string, error) {
 	l.Lock()
 	defer l.Unlock()
 
 	lockInfo := l.m[name]
 	if lockInfo != nil {
-		lockErr := &state.LockError{
+		lockErr := &statemgr.LockError{
 			Info: lockInfo,
 		}
 
@@ -193,8 +193,8 @@ func (l *lockMap) unlock(name, id string) error {
 		return errors.New("state not locked")
 	}
 
-	lockErr := &state.LockError{
-		Info: &state.LockInfo{},
+	lockErr := &statemgr.LockError{
+		Info: &statemgr.LockInfo{},
 	}
 
 	if id != lockInfo.ID {

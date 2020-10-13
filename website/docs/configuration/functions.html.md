@@ -9,6 +9,10 @@ description: |-
 
 # Built-in Functions
 
+-> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
+earlier, see
+[0.11 Configuration Language: Interpolation Syntax](../configuration-0-11/interpolation.html).
+
 The Terraform language includes a number of built-in functions that you can
 call from within expressions to transform and combine values. The general
 syntax for function calls is a function name followed by comma-separated

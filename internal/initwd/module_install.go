@@ -2,7 +2,6 @@ package initwd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/registry"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,19 +12,36 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
+	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/registry/regsrc"
+	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
 type ModuleInstaller struct {
 	modsDir string
 	reg     *registry.Client
+
+	// The keys in moduleVersions are resolved and trimmed registry source
+	// addresses and the values are the registry response.
+	moduleVersions map[string]*response.ModuleVersions
+
+	// The keys in moduleVersionsUrl are the moduleVersion struct below and
+	// addresses and the values are the download URLs.
+	moduleVersionsUrl map[moduleVersion]string
+}
+
+type moduleVersion struct {
+	module  string
+	version string
 }
 
 func NewModuleInstaller(modsDir string, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
-		modsDir: modsDir,
-		reg:     reg,
+		modsDir:           modsDir,
+		reg:               reg,
+		moduleVersions:    make(map[string]*response.ModuleVersions),
+		moduleVersionsUrl: make(map[moduleVersion]string),
 	}
 }
 
@@ -245,7 +261,18 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	// filesystem at all because the parent already wrote
 	// the files we need, and so we just load up what's already here.
 	newDir := filepath.Join(parentRecord.Dir, req.SourceAddr)
+
 	log.Printf("[TRACE] ModuleInstaller: %s uses directory from parent: %s", key, newDir)
+	// it is possible that the local directory is a symlink
+	newDir, err := filepath.EvalSymlinks(newDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unreadable module directory",
+			fmt.Sprintf("Unable to evaluate directory symlink: %s", err.Error()),
+		))
+	}
+
 	mod, mDiags := earlyconfig.LoadModule(newDir)
 	if mod == nil {
 		// nil indicates missing or unreadable directory, so we'll
@@ -298,24 +325,32 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	}
 
 	reg := i.reg
+	var resp *response.ModuleVersions
+	var exists bool
 
-	log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
-	resp, err := reg.ModuleVersions(addr)
-	if err != nil {
-		if registry.IsModuleNotFound(err) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Module not found",
-				fmt.Sprintf("Module %q (from %s:%d) cannot be found in the module registry at %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname),
-			))
-		} else {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Error accessing remote module registry",
-				fmt.Sprintf("Failed to retrieve available versions for module %q (%s:%d) from %s: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname, err),
-			))
+	// check if we've already looked up this module from the registry
+	if resp, exists = i.moduleVersions[addr.String()]; exists {
+		log.Printf("[TRACE] %s using already found available versions of %s at %s", key, addr, hostname)
+	} else {
+		log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
+		resp, err = reg.ModuleVersions(addr)
+		if err != nil {
+			if registry.IsModuleNotFound(err) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Module not found",
+					fmt.Sprintf("Module %q (from %s:%d) cannot be found in the module registry at %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Error accessing remote module registry",
+					fmt.Sprintf("Failed to retrieve available versions for module %q (%s:%d) from %s: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname, err),
+				))
+			}
+			return nil, nil, diags
 		}
-		return nil, nil, diags
+		i.moduleVersions[addr.String()] = resp
 	}
 
 	// The response might contain information about dependencies to allow us
@@ -394,16 +429,24 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
 	// The response to this is a go-getter-style address string.
-	dlAddr, err := reg.ModuleLocation(addr, latestMatch.String())
-	if err != nil {
-		log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid response from remote module registry",
-			fmt.Sprintf("The remote registry at %s failed to return a download URL for %s %s.", hostname, addr, latestMatch),
-		))
-		return nil, nil, diags
+
+	// first check the cache for the download URL
+	moduleAddr := moduleVersion{module: addr.String(), version: latestMatch.String()}
+	if _, exists := i.moduleVersionsUrl[moduleAddr]; !exists {
+		url, err := reg.ModuleLocation(addr, latestMatch.String())
+		if err != nil {
+			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error accessing remote module registry",
+				fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
+			))
+			return nil, nil, diags
+		}
+		i.moduleVersionsUrl[moduleVersion{module: addr.String(), version: latestMatch.String()}] = url
 	}
+
+	dlAddr := i.moduleVersionsUrl[moduleAddr]
 
 	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, addr, latestMatch, dlAddr)
 
@@ -417,7 +460,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to download module",
-			fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, dlAddr, err),
+			fmt.Sprintf("Could not download module %q (%s:%d) source code from %q: %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, dlAddr, err),
 		))
 		return nil, nil, diags
 	}
@@ -469,19 +512,47 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 	packageAddr, _ := splitAddrSubdir(req.SourceAddr)
 	hooks.Download(key, packageAddr, nil)
 
-	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
-	if err != nil {
-		// Errors returned by go-getter have very inconsistent quality as
-		// end-user error messages, but for now we're accepting that because
-		// we have no way to recognize any specific errors to improve them
-		// and masking the error entirely would hide valuable diagnostic
-		// information from the user.
+	if len(req.VersionConstraints) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Failed to download module",
-			fmt.Sprintf("Error attempting to download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
+			"Invalid version constraint",
+			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it has a non Registry URL.", req.Name, req.CallPos.Filename, req.CallPos.Line),
 		))
 		return nil, diags
+	}
+
+	modDir, err := getter.getWithGoGetter(instPath, req.SourceAddr)
+	if err != nil {
+		if _, ok := err.(*MaybeRelativePathErr); ok {
+			log.Printf(
+				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
+				req.SourceAddr,
+			)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Module not found",
+				fmt.Sprintf(
+					"The module address %q could not be resolved.\n\n"+
+						"If you intended this as a path relative to the current "+
+						"module, use \"./%s\" instead. The \"./\" prefix "+
+						"indicates that the address is a relative filesystem path.",
+					req.SourceAddr, req.SourceAddr,
+				),
+			))
+		} else {
+			// Errors returned by go-getter have very inconsistent quality as
+			// end-user error messages, but for now we're accepting that because
+			// we have no way to recognize any specific errors to improve them
+			// and masking the error entirely would hide valuable diagnostic
+			// information from the user.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to download module",
+				fmt.Sprintf("Could not download module %q (%s:%d) source code from %q: %s", req.Name, req.CallPos.Filename, req.CallPos.Line, packageAddr, err),
+			))
+		}
+		return nil, diags
+
 	}
 
 	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, req.SourceAddr, modDir)

@@ -16,6 +16,13 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 			},
 		},
+		ProviderMetaSchema: map[string]*schema.Schema{
+			// Optionally allow specifying information at a module-level
+			"foo": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
 		ResourcesMap: map[string]*schema.Resource{
 			"test_resource":                  testResource(),
 			"test_resource_gh12183":          testResourceGH12183(),
@@ -27,6 +34,17 @@ func Provider() terraform.ResourceProvider {
 			"test_resource_nested_set":       testResourceNestedSet(),
 			"test_resource_state_func":       testResourceStateFunc(),
 			"test_resource_deprecated":       testResourceDeprecated(),
+			"test_resource_defaults":         testResourceDefaults(),
+			"test_resource_list":             testResourceList(),
+			"test_resource_list_set":         testResourceListSet(),
+			"test_resource_map":              testResourceMap(),
+			"test_resource_computed_set":     testResourceComputedSet(),
+			"test_resource_config_mode":      testResourceConfigMode(),
+			"test_resource_nested_id":        testResourceNestedId(),
+			"test_resource_provider_meta":    testResourceProviderMeta(),
+			"test_resource_signal":           testResourceSignal(),
+			"test_undeleteable":              testResourceUndeleteable(),
+			"test_resource_required_min":     testResourceRequiredMin(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"test_data_source":    testDataSource(),

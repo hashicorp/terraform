@@ -19,16 +19,51 @@ same limitations as the main backend configuration. You can use any number of
 `remote_state` data sources with differently configured backends, and you can
 use interpolations when configuring them.
 
-## Example Usage
+## Example Usage (`remote` Backend)
 
 ```hcl
 data "terraform_remote_state" "vpc" {
-  backend = "atlas"
-  config {
-    name = "hashicorp/vpc-prod"
+  backend = "remote"
+
+  config = {
+    organization = "hashicorp"
+    workspaces = {
+      name = "vpc-prod"
+    }
   }
 }
 
+# Terraform >= 0.12
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+# Terraform <= 0.11
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
+}
+```
+
+## Example Usage (`local` Backend)
+
+```hcl
+data "terraform_remote_state" "vpc" {
+  backend = "local"
+
+  config = {
+    path = "..."
+  }
+}
+
+# Terraform >= 0.12
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+# Terraform <= 0.11
 resource "aws_instance" "foo" {
   # ...
   subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
@@ -42,21 +77,28 @@ The following arguments are supported:
 * `backend` - (Required) The remote backend to use.
 * `workspace` - (Optional) The Terraform workspace to use, if the backend
   supports workspaces.
-* `config` - (Optional; block) The configuration of the remote backend. The
-  `config` block can use any arguments that would be valid in the equivalent
-  `terraform { backend "<TYPE>" { ... } }` block. See
-  [the documentation of your chosen backend](/docs/backends/types/index.html)
-  for details.
-* `defaults` - (Optional; block) Default values for outputs, in case the state
+* `config` - (Optional; object) The configuration of the remote backend.
+  Although this argument is listed as optional, most backends require
+  some configuration.
+
+    The `config` object can use any arguments that would be valid in the
+    equivalent `terraform { backend "<TYPE>" { ... } }` block. See
+    [the documentation of your chosen backend](/docs/backends/types/index.html)
+    for details.
+
+    -> **Note:** If the backend configuration requires a nested block, specify
+    it here as a normal attribute with an object value. (For example,
+    `workspaces = { ... }` instead of `workspaces { ... }`.)
+* `defaults` - (Optional; object) Default values for outputs, in case the state
   file is empty or lacks a required output.
 
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to the above, the following attributes are exported:
 
-* `backend` - See Argument Reference above.
-* `config` - See Argument Reference above.
-* `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
+* (v0.12+) `outputs` - An object containing every root-level
+  [output](/docs/configuration/outputs.html) in the remote state.
+* (<= v0.11) `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
   in the remote state appears as a top level attribute on the data source.
 
 ## Root Outputs Only

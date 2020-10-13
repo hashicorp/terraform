@@ -2,13 +2,15 @@ package initwd
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/earlyconfig"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
@@ -172,7 +174,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			// We've found the module the user requested, which we must
 			// now copy into rootDir so it can be used directly.
 			log.Printf("[TRACE] copying new root module from %s to %s", record.Dir, rootDir)
-			err := copyDir(rootDir, record.Dir)
+			err := copy.CopyDir(rootDir, record.Dir)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -252,21 +254,52 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			var parentKey string
 			if lastDot := strings.LastIndexByte(newKey, '.'); lastDot != -1 {
 				parentKey = newKey[:lastDot]
-			} else {
-				parentKey = "" // parent is the root module
 			}
 
-			parentOld := instManifest[initFromModuleRootKeyPrefix+parentKey]
+			var parentOld modsdir.Record
+			// "" is the root module; all other modules get `root.` added as a prefix
+			if parentKey == "" {
+				parentOld = instManifest[parentKey]
+			} else {
+				parentOld = instManifest[initFromModuleRootKeyPrefix+parentKey]
+			}
 			parentNew := retManifest[parentKey]
 
 			// We need to figure out which portion of our directory is the
 			// parent package path and which portion is the subdirectory
 			// under that.
-			baseDirRel, err := filepath.Rel(parentOld.Dir, record.Dir)
+			var baseDirRel string
+			baseDirRel, err = filepath.Rel(parentOld.Dir, record.Dir)
 			if err != nil {
-				// Should never happen, because we constructed both directories
-				// from the same base and so they must have a common prefix.
-				panic(err)
+				// This error may occur when installing a local module with a
+				// relative path, for e.g. if the source is in a directory above
+				// the destination ("../")
+				if parentOld.Dir == "." {
+					absDir, err := filepath.Abs(parentOld.Dir)
+					if err != nil {
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Failed to determine module install directory",
+							fmt.Sprintf("Error determine relative source directory for module %s: %s.", newKey, err),
+						))
+						continue
+					}
+					baseDirRel, err = filepath.Rel(absDir, record.Dir)
+					if err != nil {
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Failed to determine relative module source location",
+							fmt.Sprintf("Error determining relative source for module %s: %s.", newKey, err),
+						))
+						continue
+					}
+				} else {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to determine relative module source location",
+						fmt.Sprintf("Error determining relative source for module %s: %s.", newKey, err),
+					))
+				}
 			}
 
 			newDir := filepath.Join(parentNew.Dir, baseDirRel)
@@ -292,7 +325,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 		// We copy rather than "rename" here because renaming between directories
 		// can be tricky in edge-cases like network filesystems, etc.
 		log.Printf("[TRACE] copying new module %s from %s to %s", newKey, record.Dir, instPath)
-		err := copyDir(instPath, tempPath)
+		err := copy.CopyDir(instPath, tempPath)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

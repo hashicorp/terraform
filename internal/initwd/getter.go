@@ -9,6 +9,7 @@ import (
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/registry/regsrc"
 )
 
@@ -21,7 +22,9 @@ import (
 
 var goGetterDetectors = []getter.Detector{
 	new(getter.GitHubDetector),
+	new(getter.GitDetector),
 	new(getter.BitBucketDetector),
+	new(getter.GCSDetector),
 	new(getter.S3Detector),
 	new(getter.FileDetector),
 }
@@ -46,6 +49,7 @@ var goGetterDecompressors = map[string]getter.Decompressor{
 
 var goGetterGetters = map[string]getter.Getter{
 	"file":  new(getter.FileGetter),
+	"gcs":   new(getter.GCSGetter),
 	"git":   new(getter.GitGetter),
 	"hg":    new(getter.HgGetter),
 	"s3":    new(getter.S3Getter),
@@ -78,15 +82,19 @@ type reusingGetter map[string]string
 // go-getter library, which have very inconsistent quality as
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
-// the underlying errors are not separatelyr recognizable.
+// the underlying errors are not separately recognizable.
 func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 	packageAddr, subDir := splitAddrSubdir(addr)
 
 	log.Printf("[DEBUG] will download %q to %s", packageAddr, instPath)
 
-	realAddr, err := getter.Detect(packageAddr, instPath, getter.Detectors)
+	realAddr, err := getter.Detect(packageAddr, instPath, goGetterDetectors)
 	if err != nil {
 		return "", err
+	}
+
+	if isMaybeRelativeLocalPath(realAddr) {
+		return "", &MaybeRelativePathErr{addr}
 	}
 
 	var realSubDir string
@@ -105,7 +113,7 @@ func (g reusingGetter) getWithGoGetter(instPath, addr string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to create directory %s: %s", instPath, err)
 		}
-		err = copyDir(instPath, prevDir)
+		err = copy.CopyDir(instPath, prevDir)
 		if err != nil {
 			return "", fmt.Errorf("failed to copy from %s to %s: %s", prevDir, instPath, err)
 		}
@@ -185,4 +193,22 @@ func isLocalSourceAddr(addr string) bool {
 func isRegistrySourceAddr(addr string) bool {
 	_, err := regsrc.ParseModuleSource(addr)
 	return err == nil
+}
+
+type MaybeRelativePathErr struct {
+	Addr string
+}
+
+func (e *MaybeRelativePathErr) Error() string {
+	return fmt.Sprintf("Terraform cannot determine the module source for %s", e.Addr)
+}
+
+func isMaybeRelativeLocalPath(addr string) bool {
+	if strings.HasPrefix(addr, "file://") {
+		_, err := os.Stat(addr[7:])
+		if err != nil {
+			return true
+		}
+	}
+	return false
 }
