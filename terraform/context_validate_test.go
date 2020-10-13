@@ -657,6 +657,38 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 	}
 }
 
+// In this test there is a mismatch between the provider's fqn (hashicorp/test)
+// and it's local name set in required_providers (arbitrary).
+func TestContext2Validate_requiredProviderConfig(t *testing.T) {
+	m := testModule(t, "validate-required-provider-config")
+	p := testProvider("aws")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"required_attribute": {Type: cty.String, Required: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+}
+
 func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
