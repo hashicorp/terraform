@@ -228,7 +228,7 @@ func wrappedMain() int {
 		return 1
 	}
 	if overrideWd != "" {
-		os.Chdir(overrideWd)
+		err := os.Chdir(overrideWd)
 		if err != nil {
 			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
 			return 1
