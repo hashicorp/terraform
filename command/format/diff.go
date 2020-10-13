@@ -307,12 +307,6 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 func getPlanActionAndShow(old cty.Value, new cty.Value) (plans.Action, bool) {
 	var action plans.Action
 	showJustNew := false
-	if old.ContainsMarked() {
-		old, _ = old.UnmarkDeep()
-	}
-	if new.ContainsMarked() {
-		new, _ = new.UnmarkDeep()
-	}
 	switch {
 	case old.IsNull():
 		action = plans.Create
@@ -590,9 +584,6 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 }
 
 func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, new cty.Value, indent int, blankBefore bool, path cty.Path) {
-	unmarkedOld, _ := old.Unmark()
-	unmarkedNew, _ := new.Unmark()
-	eqV := unmarkedNew.Equals(unmarkedOld)
 	var action plans.Action
 	switch {
 	case old.IsNull():
@@ -604,7 +595,7 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 		// that old values must never be unknown, but we'll allow it
 		// anyway to be robust.
 		action = plans.Update
-	case !eqV.IsKnown() || !eqV.True():
+	case !ctyEqualValueAndMarks(old, new):
 		action = plans.Update
 	}
 
@@ -1162,12 +1153,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Delete
 				}
 
-				// Use unmarked values for equality testing
 				if old.HasIndex(kV).True() && new.HasIndex(kV).True() {
-					unmarkedOld, _ := old.Index(kV).Unmark()
-					unmarkedNew, _ := new.Index(kV).Unmark()
-					eqV := unmarkedOld.Equals(unmarkedNew)
-					if eqV.IsKnown() && eqV.True() {
+					if ctyEqualValueAndMarks(old.Index(kV), new.Index(kV)) {
 						action = plans.NoOp
 					} else {
 						action = plans.Update
@@ -1269,7 +1256,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if !new.Type().HasAttribute(kV) {
 					action = plans.Delete
-				} else if eqV := old.GetAttr(kV).Equals(new.GetAttr(kV)); eqV.IsKnown() && eqV.True() {
+				} else if ctyEqualValueAndMarks(old.GetAttr(kV), new.GetAttr(kV)) {
 					action = plans.NoOp
 				} else {
 					action = plans.Update
@@ -1493,11 +1480,23 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	return ret
 }
 
+// ctyEqualValueAndMarks checks equality of two possibly-marked values,
+// considering partially-unknown values and equal values with different marks
+// as inequal
 func ctyEqualWithUnknown(old, new cty.Value) bool {
 	if !old.IsWhollyKnown() || !new.IsWhollyKnown() {
 		return false
 	}
-	return old.Equals(new).True()
+	return ctyEqualValueAndMarks(old, new)
+}
+
+// ctyEqualValueAndMarks checks equality of two possibly-marked values,
+// considering equal values with different marks as inequal
+func ctyEqualValueAndMarks(old, new cty.Value) bool {
+	oldUnmarked, oldMarks := old.UnmarkDeep()
+	newUnmarked, newMarks := new.UnmarkDeep()
+	sameValue := oldUnmarked.Equals(newUnmarked)
+	return sameValue.IsKnown() && sameValue.True() && oldMarks.Equal(newMarks)
 }
 
 // ctyTypesEqual checks equality of two types more loosely
