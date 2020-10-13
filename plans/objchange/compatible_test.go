@@ -151,6 +151,56 @@ func TestAssertObjectCompatible(t *testing.T) {
 						Type:     cty.String,
 						Computed: true,
 					},
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("wotsit").Mark("sensitive"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("thingy"),
+			}),
+			[]string{
+				`.name: inconsistent values for sensitive attribute`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("wotsit"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("thingy").Mark("sensitive"),
+			}),
+			[]string{
+				`.name: inconsistent values for sensitive attribute`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"stuff": {
 						Type:     cty.DynamicPseudoType,
 						Required: true,

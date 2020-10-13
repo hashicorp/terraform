@@ -51,18 +51,17 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
-		// If our value is marked, unmark it here before
-		// checking value assertions
-		unmarkedActualV := actualV
-		if actualV.ContainsMarked() {
-			unmarkedActualV, _ = actualV.UnmarkDeep()
-		}
-		unmarkedPlannedV := plannedV
-		if plannedV.ContainsMarked() {
-			unmarkedPlannedV, _ = actualV.UnmarkDeep()
-		}
+
+		// Unmark values here before checking value assertions,
+		// but save the marks so we can see if we should supress
+		// exposing a value through errors
+		unmarkedActualV, marksA := actualV.UnmarkDeep()
+		unmarkedPlannedV, marksP := plannedV.UnmarkDeep()
+		_, isMarkedActual := marksA["sensitive"]
+		_, isMarkedPlanned := marksP["sensitive"]
+
 		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
-		if attrS.Sensitive {
+		if attrS.Sensitive || isMarkedActual || isMarkedPlanned {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
 				// sensitive information.
@@ -73,9 +72,8 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		}
 	}
 	for name, blockS := range schema.BlockTypes {
-		// Unmark values before testing compatibility
-		plannedV, _ := planned.GetAttr(name).UnmarkDeep()
-		actualV, _ := actual.GetAttr(name).UnmarkDeep()
+		plannedV, _ := planned.GetAttr(name).Unmark()
+		actualV, _ := actual.GetAttr(name).Unmark()
 
 		// As a special case, if there were any blocks whose leaf attributes
 		// are all unknown then we assume (possibly incorrectly) that the
