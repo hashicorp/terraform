@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -475,6 +476,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// things relatively concise. Later it'd be nice to have a progress UI
 	// where statuses update in-place, but we can't do that as long as we
 	// are shimming our vt100 output to the legacy console API on Windows.
+	missingProviders := make(map[addrs.Provider]struct{})
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
 			c.Ui.Output(c.Colorize().Color(
@@ -512,6 +514,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			c.Ui.Info(fmt.Sprintf("- Installing %s v%s...", provider.ForDisplay(), version))
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
+			// We track providers that had missing metadata because we might
+			// generate additional hints for some of them at the end.
+			missingProviders[provider] = struct{}{}
+
 			switch errorTy := err.(type) {
 			case getproviders.ErrProviderNotFound:
 				sources := errorTy.Sources
@@ -741,6 +747,60 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		c.showDiagnostics(diags)
 		c.Ui.Error("Provider installation was canceled by an interrupt signal.")
 		return true, true, diags
+	}
+	if len(missingProviders) > 0 {
+		// If we encountered requirements for one or more providers where we
+		// weren't able to find any metadata, that _might_ be because a
+		// user had previously (before 0.14) been incorrectly using the
+		// .terraform/plugins directory as if it were a local filesystem
+		// mirror, rather than as the main cache directory.
+		//
+		// We no longer allow that because it'd be ambiguous whether plugins in
+		// there are explictly intended to be a local mirror or if they are
+		// just leftover cache entries from provider installation in
+		// Terraform 0.13.
+		//
+		// To help those users migrate we have a specialized warning message
+		// for it, which we'll produce only if one of the missing providers can
+		// be seen in the "legacy" cache directory, which is what we're now
+		// considering .terraform/plugins to be. (The _current_ cache directory
+		// is .terraform/providers.)
+		//
+		// This is only a heuristic, so it might potentially produce false
+		// positives if a user happens to encounter another sort of error
+		// while they are upgrading from Terraform 0.13 to 0.14. Aside from
+		// upgrading users should not end up in here because they won't
+		// have a legacy cache directory at all.
+		legacyDir := c.providerLegacyCacheDir()
+		if legacyDir != nil { // if the legacy directory is present at all
+			for missingProvider := range missingProviders {
+				if missingProvider.IsDefault() {
+					// If we get here for a default provider then it's more
+					// likely that something _else_ went wrong, like a network
+					// problem, so we'll skip the warning in this case to
+					// avoid potentially misleading the user into creating an
+					// unnecessary local mirror for an official provider.
+					continue
+				}
+				entry := legacyDir.ProviderLatestVersion(missingProvider)
+				if entry == nil {
+					continue
+				}
+				// If we get here then the missing provider was cached, which
+				// implies that it might be an in-house provider the user
+				// placed manually to try to make Terraform use it as if it
+				// were a local mirror directory.
+				wantDir := filepath.FromSlash(fmt.Sprintf("terraform.d/plugins/%s/%s/%s", missingProvider, entry.Version, getproviders.CurrentPlatform))
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Missing provider is in legacy cache directory",
+					fmt.Sprintf(
+						"Terraform supports a number of local directories that can serve as automatic local filesystem mirrors, but .terraform/plugins is not one of them because Terraform v0.13 and earlier used this directory to cache copies of provider plugins retrieved from elsewhere.\n\nIf you intended to use this directory as a filesystem mirror for %s, place it instead in the following directory:\n  %s",
+						missingProvider, wantDir,
+					),
+				))
+			}
+		}
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we

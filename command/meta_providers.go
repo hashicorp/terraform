@@ -103,10 +103,7 @@ func (m *Meta) providerCustomLocalDirectorySource(dirs []string) getproviders.So
 // Only one object returned from this method should be live at any time,
 // because objects inside contain caches that must be maintained properly.
 func (m *Meta) providerLocalCacheDir() *providercache.Dir {
-	dir := filepath.Join(m.DataDir(), "plugins")
-	if dir == "" {
-		return nil // cache disabled
-	}
+	dir := filepath.Join(m.DataDir(), "providers")
 	return providercache.NewDir(dir)
 }
 
@@ -124,6 +121,31 @@ func (m *Meta) providerGlobalCacheDir() *providercache.Dir {
 	dir := m.PluginCacheDir
 	if dir == "" {
 		return nil // cache disabled
+	}
+	return providercache.NewDir(dir)
+}
+
+// providerLegacyCacheDir returns an object representing the former location
+// of the local cache directory from Terraform 0.13 and earlier.
+//
+// This is no longer viable for use as a real cache directory because some
+// incorrect documentation called for Terraform Cloud users to use it as if it
+// were an implied local filesystem mirror directory. Therefore we now use it
+// only to generate some hopefully-helpful migration guidance during
+// "terraform init" for anyone who _was_ trying to use it as a local filesystem
+// mirror directory.
+//
+// providerLegacyCacheDir returns nil if the legacy cache directory isn't
+// present or isn't a directory, so that callers can more easily skip over
+// any backward compatibility behavior that applies only when the directory
+// is present.
+//
+// Callers must use the resulting object in a read-only mode only. Don't
+// install any new providers into this directory.
+func (m *Meta) providerLegacyCacheDir() *providercache.Dir {
+	dir := filepath.Join(m.DataDir(), "plugins")
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		return nil
 	}
 	return providercache.NewDir(dir)
 }
