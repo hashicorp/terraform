@@ -223,6 +223,52 @@ modules being altered in-place without your knowledge, we recommend using
 modules only from sources directly under your control, such as a private
 Terraform module registry.
 
+### The local provider cache directory
+
+As an implementation detail of automatic provider installation, Terraform
+has historically unpacked auto-installed plugins under the local cache
+directory in `.terraform/plugins`. That directory was only intended for
+Terraform's internal use, but unfortunately due to a miscommunication within
+our team it was inadvertently documented as if it were a "filesystem mirror"
+directory that you could place local providers in to upload them to
+Terraform Cloud.
+
+Unfortunately the implementation details have changed in Terraform v0.14 in
+order to move the authority for provider version selection to the new dependency
+lock file, and so manually placing extra plugins into that local cache directory
+is no longer effective in Terraform v0.14.
+
+We've included a heuristic in `terraform init` for Terraform v0.14 which should
+detect situations where you're relying on an unofficial provider manually
+installed into the cache directory and generate a warning like the following:
+
+```
+Warning: Missing provider is in legacy cache directory
+
+Terraform supports a number of local directories that can serve as automatic
+local filesystem mirrors, but .terraform/plugins is not one of them because
+Terraform v0.13 and earlier used this directory to cache copies of provider
+plugins retrieved from elsewhere.
+
+If you intended to use this directory as a filesystem mirror for
+tf.example.com/awesomecorp/happycloud, place it instead in the following
+directory:
+  terraform.d/plugins/tf.example.com/awesomecorp/happycloud/1.1.0/linux_amd64
+```
+
+The error message suggests using the `terraform.d` directory, which is a
+local search directory originally introduced in Terraform v0.10 in order to
+allow sending bundled providers along with your configuration up to Terraform
+Cloud. The error message assumes that use-case because it was for Terraform
+Cloud in particular that this approach was previously mis-documented.
+
+If you aren't intending to upload the provider plugin to Terraform Cloud as
+part of your configuration, we recommend instead installing to one of
+[the other implied mirror directories](/docs/commands/cli-config.html#implied-local-mirror-directories),
+or you can explicitly configure some
+[custom provider installation methods](/docs/commands/cli-config.html#provider-installation)
+if your needs are more complicated.
+
 ## Concise Terraform Plan Output
 
 In Terraform v0.11 and earlier, the output from `terraform plan` was designed

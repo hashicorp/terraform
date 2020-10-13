@@ -263,7 +263,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s\n", stderr)
 	}
 
-	path := filepath.FromSlash(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
+	path := filepath.FromSlash(fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
 	content, err := tf.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
@@ -272,7 +272,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("template plugin was not installed from local cache")
 	}
 
-	nullLinkPath := filepath.FromSlash(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
+	nullLinkPath := filepath.FromSlash(fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
 	if runtime.GOOS == "windows" {
 		nullLinkPath = nullLinkPath + ".exe"
 	}
