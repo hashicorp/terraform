@@ -2,7 +2,6 @@ package depsfile
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/replacefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
@@ -108,11 +108,7 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 
 	newContent := f.Bytes()
 
-	// TODO: Create the content in a new file and atomically pivot it into
-	// the target, so that there isn't a brief period where an incomplete
-	// file can be seen at the given location.
-	// But for now, this gets us started.
-	err := ioutil.WriteFile(filename, newContent, os.ModePerm)
+	err := replacefile.AtomicWriteFile(filename, newContent, os.ModePerm)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
