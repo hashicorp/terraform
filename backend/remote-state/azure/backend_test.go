@@ -258,6 +258,9 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 
 	backend.TestBackendStateLocks(t, b1, b2)
 	backend.TestBackendStateForceUnlock(t, b1, b2)
+
+	backend.TestBackendStateLocksInWS(t, b1, b2, "foo")
+	backend.TestBackendStateForceUnlockInWS(t, b1, b2, "foo")
 }
 
 func TestBackendServicePrincipalLocked(t *testing.T) {
@@ -301,4 +304,7 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 
 	backend.TestBackendStateLocks(t, b1, b2)
 	backend.TestBackendStateForceUnlock(t, b1, b2)
+
+	backend.TestBackendStateLocksInWS(t, b1, b2, "foo")
+	backend.TestBackendStateForceUnlockInWS(t, b1, b2, "foo")
 }
