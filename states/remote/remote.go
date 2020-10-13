@@ -10,9 +10,11 @@ import (
 // driver. It supports dumb put/get/delete, and the higher level structs
 // handle persisting the state properly here.
 type Client interface {
-	Get() (*Payload, error)
-	Put([]byte) error
-	Delete() error
+	Get(workspace string) (*Payload, error)
+	Put(workspace string, data []byte) error
+	Delete(workspace string) error
+	// List worksapces.
+	List() (string, error)
 }
 
 // ClientForcePusher is an optional interface that allows a remote
