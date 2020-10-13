@@ -95,9 +95,13 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 
 	stateMgr := &remote.State{Client: client}
 
+	// Grab the value
+	if err := stateMgr.RefreshState(); err != nil {
+		return nil, err
+	}
 	//if this isn't the default state name, we need to create the object so
 	//it's listed by States.
-	if name != backend.DefaultStateName {
+	if v := stateMgr.State(); v == nil {
 		// take a lock on this state while we write it
 		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
@@ -114,29 +118,20 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 			return parent
 		}
 
-		// Grab the value
-		if err := stateMgr.RefreshState(); err != nil {
+		// If we have no state, we have to create an empty state
+		if err := stateMgr.WriteState(states.NewState()); err != nil {
 			err = lockUnlock(err)
 			return nil, err
 		}
-
-		// If we have no state, we have to create an empty state
-		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(states.NewState()); err != nil {
-				err = lockUnlock(err)
-				return nil, err
-			}
-			if err := stateMgr.PersistState(); err != nil {
-				err = lockUnlock(err)
-				return nil, err
-			}
+		if err := stateMgr.PersistState(); err != nil {
+			err = lockUnlock(err)
+			return nil, err
 		}
 
 		// Unlock, the state should now be initialized
 		if err := lockUnlock(nil); err != nil {
 			return nil, err
 		}
-
 	}
 
 	return stateMgr, nil
