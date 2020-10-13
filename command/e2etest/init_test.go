@@ -142,6 +142,12 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "local-only-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
+	// If you run this test on a workstation with a plugin-cache directory
+	// configured, it will leave a bad directory behind and terraform init will
+	// not work until you remove it.
+	//
+	// To avoid this, we will  "zero out" any existing cli config file.
+	tf.AddEnv("TF_CLI_CONFIG_FILE=\"\"")
 	defer tf.Close()
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
