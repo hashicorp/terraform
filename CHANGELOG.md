@@ -1,14 +1,15 @@
 ## 0.13.5 (Unreleased)
 
 BUG FIXES:
-* terraform: fix issue where the provider configuration was not properly attached to the configured provider source address by localname (GH-26567)
+* terraform: fix issue where the provider configuration was not properly attached to the configured provider source address by localname [GH-26567]
+* core: fix a performance issue when a resource contains a very large and deeply nested schema [GH-26577]
 
 ## 0.13.4 (September 30, 2020)
 
 UPGRADE NOTES:
 
 * The built-in vendor (third-party) provisioners, which include `habitat`, `puppet`, `chef`, and `salt-masterless` are now deprecated and will be removed in a future version of Terraform. More information [on Discuss](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-4/13997).
-* Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. Terraform also detects interpolation-only expressions in complex values such as lists and objects. An expression like `"${foo}"` should be rewritten as just `foo`. ([#27272](https://github.com/hashicorp/terraform/issues/27272)] [[#26334](https://github.com/hashicorp/terraform/issues/26334))
+* Deprecated interpolation-only expressions are detected in more contexts in addition to resources and provider configurations. Module calls, data sources, outputs, and locals are now also covered. Terraform also detects interpolation-only expressions in complex values such as lists and objects. An expression like `"${foo}"` should be rewritten as just `foo`. ([#27272](https://github.com/hashicorp/terraform/issues/27272), [#26334](https://github.com/hashicorp/terraform/issues/26334))
 
 BUG FIXES:
 
