@@ -954,6 +954,16 @@ func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value) 
 
 func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty.PathValueMarks {
 	var pvm []cty.PathValueMarks
+	for name, attrS := range schema.Attributes {
+		if attrS.Sensitive {
+			attrPath := append(path, cty.GetAttrStep{Name: name})
+			pvm = append(pvm, cty.PathValueMarks{
+				Path:  attrPath,
+				Marks: cty.NewValueMarks("sensitive"),
+			})
+		}
+	}
+
 	for name, blockS := range schema.BlockTypes {
 		// If our block doesn't contain any sensitive attributes, skip inspecting it
 		if !blockS.Block.ContainsSensitive() {
@@ -978,16 +988,6 @@ func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty
 			continue
 		default:
 			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
-		}
-	}
-
-	for name, attrS := range schema.Attributes {
-		if attrS.Sensitive {
-			attrPath := append(path, cty.GetAttrStep{Name: name})
-			pvm = append(pvm, cty.PathValueMarks{
-				Path:  attrPath,
-				Marks: cty.NewValueMarks("sensitive"),
-			})
 		}
 	}
 	return pvm
