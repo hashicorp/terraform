@@ -17,6 +17,12 @@ var mapLabelNames = []string{"key"}
 // Caching these externally rather than within the struct is required because
 // Blocks are used by value and copied when working with NestedBlocks, and the
 // copying of the value prevents any safe synchronisation of the struct itself.
+//
+// While we are using the *Block pointer as the cache key, and the Block
+// contents are mutable, once a Block is created it is treated as immutable for
+// the duration of its life. Because a Block is a representation of a logical
+// schema, which cannot change while it's being used, any modifications to the
+// schema during execution would be an error.
 type specCache struct {
 	sync.Mutex
 	specs map[uintptr]hcldec.Spec
@@ -26,7 +32,7 @@ var decoderSpecCache = specCache{
 	specs: map[uintptr]hcldec.Spec{},
 }
 
-// get returns the Spec associated with the given Block, or nil if none is
+// get returns the Spec associated with eth given Block, or nil if non is
 // found.
 func (s *specCache) get(b *Block) hcldec.Spec {
 	s.Lock()
