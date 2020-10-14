@@ -955,6 +955,10 @@ func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value) 
 func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty.PathValueMarks {
 	var pvm []cty.PathValueMarks
 	for name, blockS := range schema.BlockTypes {
+		// If our block doesn't contain any sensitive attributes, skip inspecting it
+		if !blockS.Block.ContainsSensitive() {
+			continue
+		}
 		blockV := val.GetAttr(name)
 		blockPath := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
