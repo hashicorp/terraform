@@ -34,7 +34,6 @@ type ResourceProvisioner struct {
 
 func (p *ResourceProvisioner) GetConfigSchema() (*configschema.Block, error) {
 	panic("not implemented")
-	return nil, nil
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
