@@ -148,33 +148,6 @@ resource "test_resource_defaults" "foo" {
 	})
 }
 
-func TestResourceDefaults_import(t *testing.T) {
-	// FIXME: The ReadResource after ImportResourceState sin't returning the
-	// complete state, yet the later refresh does.
-	return
-
-	resource.UnitTest(t, resource.TestCase{
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckResourceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: strings.TrimSpace(`
-resource "test_resource_defaults" "foo" {
-	nested {
-		optional = "val"
-	}
-}
-				`),
-			},
-			{
-				ImportState:       true,
-				ImportStateVerify: true,
-				ResourceName:      "test_resource_defaults.foo",
-			},
-		},
-	})
-}
-
 func TestDefaults_emptyString(t *testing.T) {
 	config := `
 resource "test_resource_defaults" "test" {
