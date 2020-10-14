@@ -328,7 +328,6 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
 		}
 	}
-	return nil
 }
 
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
