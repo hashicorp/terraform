@@ -26,7 +26,7 @@ var decoderSpecCache = specCache{
 	specs: map[uintptr]hcldec.Spec{},
 }
 
-// get returns the Spec associated with eth given Block, or nil if non is
+// get returns the Spec associated with the given Block, or nil if none is
 // found.
 func (s *specCache) get(b *Block) hcldec.Spec {
 	s.Lock()
