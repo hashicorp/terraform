@@ -754,7 +754,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 			// If our schema contains sensitive values, mark those as sensitive
 			if schema.ContainsSensitive() {
-				val = markProviderSensitiveAttributes(schema, val, nil)
+				val = markProviderSensitiveAttributes(schema, val)
 			}
 			instances[key] = val
 			continue
@@ -776,7 +776,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		val := ios.Value
 		// If our schema contains sensitive values, mark those as sensitive
 		if schema.ContainsSensitive() {
-			val = markProviderSensitiveAttributes(schema, val, nil)
+			val = markProviderSensitiveAttributes(schema, val)
 		}
 		instances[key] = val
 	}
@@ -948,16 +948,43 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 
 // markProviderSensitiveAttributes returns an updated value
 // where attributes that are Sensitive are marked
-func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value, path cty.Path) cty.Value {
+func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value) cty.Value {
+	return val.MarkWithPaths(getValMarks(schema, val, nil))
+}
+
+func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty.PathValueMarks {
 	var pvm []cty.PathValueMarks
+	for name, blockS := range schema.BlockTypes {
+		blockV := val.GetAttr(name)
+		blockPath := append(path, cty.GetAttrStep{Name: name})
+		switch blockS.Nesting {
+		case configschema.NestingSingle, configschema.NestingGroup:
+			pvm = append(pvm, getValMarks(&blockS.Block, blockV, blockPath)...)
+		case configschema.NestingList:
+			for it := blockV.ElementIterator(); it.Next(); {
+				idx, blockEV := it.Element()
+				morePaths := getValMarks(&blockS.Block, blockEV, append(blockPath, cty.IndexStep{Key: idx}))
+				pvm = append(pvm, morePaths...)
+			}
+		case configschema.NestingMap:
+			// TODO
+			continue
+		case configschema.NestingSet:
+			// TODO
+			continue
+		default:
+			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
+		}
+	}
+
 	for name, attrS := range schema.Attributes {
 		if attrS.Sensitive {
-			path := append(path, cty.GetAttrStep{Name: name})
+			attrPath := append(path, cty.GetAttrStep{Name: name})
 			pvm = append(pvm, cty.PathValueMarks{
-				Path:  path,
+				Path:  attrPath,
 				Marks: cty.NewValueMarks("sensitive"),
 			})
 		}
 	}
-	return val.MarkWithPaths(pvm)
+	return pvm
 }

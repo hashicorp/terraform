@@ -445,6 +445,15 @@ func testProviderSchema(name string) *ProviderSchema {
 						},
 						Nesting: configschema.NestingSet,
 					},
+					"nesting_single": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"value":           {Type: cty.String, Optional: true},
+								"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
+							},
+						},
+						Nesting: configschema.NestingSingle,
+					},
 				},
 			},
 			name + "_ami_list": {

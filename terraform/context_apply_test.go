@@ -11860,8 +11860,17 @@ resource "test_resource" "foo" {
 }
 
 resource "test_resource" "bar" {
-	value = test_resource.foo.sensitive_value
+	value  = test_resource.foo.sensitive_value
 	random = test_resource.foo.id # not sensitive
+
+	nesting_single {
+		value           = "abc"
+		sensitive_value = "xyz"
+	}
+}
+
+resource "test_resource" "baz" {
+	value = test_resource.bar.nesting_single.sensitive_value
 }
 `,
 	})
@@ -11904,6 +11913,12 @@ resource "test_resource" "bar" {
 	barChangeSrc := plan.Changes.ResourceInstance(barAddr)
 	if len(barChangeSrc.AfterValMarks) != 1 {
 		t.Fatalf("there should only be 1 marked path for bar, there are %v", len(barChangeSrc.AfterValMarks))
+	}
+
+	bazAddr := mustResourceInstanceAddr("test_resource.baz")
+	bazChangeSrc := plan.Changes.ResourceInstance(bazAddr)
+	if len(bazChangeSrc.AfterValMarks) != 1 {
+		t.Fatalf("there should only be 1 marked path for baz, there are %v", len(bazChangeSrc.AfterValMarks))
 	}
 
 	state, diags := ctx.Apply()
