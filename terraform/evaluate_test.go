@@ -135,7 +135,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				Status:    states.ObjectReady,
-				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "value":"hello"}`),
+				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "value":"hello"}`),
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -206,6 +206,22 @@ func TestEvaluatorGetResource(t *testing.T) {
 									},
 									Nesting: configschema.NestingMap,
 								},
+								"nesting_set": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingSet,
+								},
+								"nesting_single": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"boop": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
 							},
 						},
 					},
@@ -229,6 +245,14 @@ func TestEvaluatorGetResource(t *testing.T) {
 		}),
 		"nesting_map": cty.MapVal(map[string]cty.Value{
 			"foo": cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("x").Mark("sensitive")}),
+		}),
+		"nesting_set": cty.SetVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.StringVal("abc").Mark("sensitive"),
+			}),
+		}),
+		"nesting_single": cty.ObjectVal(map[string]cty.Value{
+			"boop": cty.StringVal("abc").Mark("sensitive"),
 		}),
 		"value": cty.StringVal("hello").Mark("sensitive"),
 	})

@@ -974,15 +974,12 @@ func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty
 		switch blockS.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
 			pvm = append(pvm, getValMarks(&blockS.Block, blockV, blockPath)...)
-		case configschema.NestingList, configschema.NestingMap:
+		case configschema.NestingList, configschema.NestingMap, configschema.NestingSet:
 			for it := blockV.ElementIterator(); it.Next(); {
 				idx, blockEV := it.Element()
 				morePaths := getValMarks(&blockS.Block, blockEV, append(blockPath, cty.IndexStep{Key: idx}))
 				pvm = append(pvm, morePaths...)
 			}
-		case configschema.NestingSet:
-			// TODO
-			continue
 		default:
 			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
 		}
