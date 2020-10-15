@@ -2,9 +2,11 @@ package command
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
@@ -16,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // The TF_DISABLE_PLUGIN_TLS environment variable is intended only for use by
@@ -174,6 +177,35 @@ func (m *Meta) providerInstallSource() getproviders.Source {
 	return m.ProviderSource
 }
 
+// providerDevOverrideWarnings returns a diagnostics that contains at least
+// one warning if and only if there is at least one provider development
+// override in effect. If not, the result is always empty. The result never
+// contains error diagnostics.
+//
+// Certain commands can use this to include a warning that their results
+// may differ from what's expected due to the development overrides. It's
+// not necessary to bother the user with this warning on every command, but
+// it's helpful to return it on commands that have externally-visible side
+// effects and on commands that are used to verify conformance to schemas.
+func (m *Meta) providerDevOverrideWarnings() tfdiags.Diagnostics {
+	if len(m.ProviderDevOverrides) == 0 {
+		return nil
+	}
+	var detailMsg strings.Builder
+	detailMsg.WriteString("The following provider development overrides are set in the CLI configuration:\n")
+	for addr, path := range m.ProviderDevOverrides {
+		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
+	}
+	detailMsg.WriteString("\nThe behavior may therefore not match any released version of the provider and applying changes may cause the state to become incompatible with published releases.")
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Provider development overrides are in effect",
+			detailMsg.String(),
+		),
+	}
+}
+
 // providerFactories uses the selections made previously by an installer in
 // the local cache directory (m.providerLocalCacheDir) to produce a map
 // from provider addresses to factory functions to create instances of
@@ -209,10 +241,23 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	// and they'll just be ignored if not used.
 	internalFactories := m.internalProviders()
 
-	// The Terraform SDK test harness (and possibly other callers in future)
+	// We have two different special cases aimed at provider development
+	// use-cases, which are not for "production" use:
+	// - The CLI config can specify that a particular provider should always
+	// use a plugin from a particular local directory, ignoring anything the
+	// lock file or cache directory might have to say about it. This is useful
+	// for manual testing of local development builds.
+	// - The Terraform SDK test harness (and possibly other callers in future)
 	// can ask that we use its own already-started provider servers, which we
 	// call "unmanaged" because Terraform isn't responsible for starting
-	// and stopping them.
+	// and stopping them. This is intended for automated testing where a
+	// calling harness is responsible both for starting the provider server
+	// and orchestrating one or more non-interactive Terraform runs that then
+	// exercise it.
+	// Unmanaged providers take precedence over overridden providers because
+	// overrides are typically a "session-level" setting while unmanaged
+	// providers are typically scoped to a single unattended command.
+	devOverrideProviders := m.ProviderDevOverrides
 	unmanagedProviders := m.UnmanagedProviders
 
 	factories := make(map[addrs.Provider]providers.Factory, len(providerLocks)+len(internalFactories)+len(unmanagedProviders))
@@ -258,6 +303,11 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 			}
 		}
 		factories[provider] = providerFactory(cached)
+	}
+	for provider, localDir := range devOverrideProviders {
+		// It's likely that providers in this map will conflict with providers
+		// in providerLocks
+		factories[provider] = devOverrideProviderFactory(provider, localDir)
 	}
 	for provider, reattach := range unmanagedProviders {
 		factories[provider] = unmanagedProviderFactory(provider, reattach)
@@ -316,6 +366,19 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 
 		return p, nil
 	}
+}
+
+func devOverrideProviderFactory(provider addrs.Provider, localDir getproviders.PackageLocalDir) providers.Factory {
+	// A dev override is essentially a synthetic cache entry for our purposes
+	// here, so that's how we'll construct it. The providerFactory function
+	// doesn't actually care about the version, so we can leave it
+	// unspecified: overridden providers are not explicitly versioned.
+	log.Printf("[DEBUG] Provider %s is overridden to load from %s", provider, localDir)
+	return providerFactory(&providercache.CachedProvider{
+		Provider:   provider,
+		Version:    getproviders.UnspecifiedVersion,
+		PackageDir: string(localDir),
+	})
 }
 
 // unmanagedProviderFactory produces a provider factory that uses the passed

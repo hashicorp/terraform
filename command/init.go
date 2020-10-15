@@ -730,6 +730,12 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		},
 	}
 
+	// Dev overrides cause the result of "terraform init" to be irrelevant for
+	// any overridden providers, so we'll warn about it to avoid later
+	// confusion when Terraform ends up using a different provider than the
+	// lock file called for.
+	diags = diags.Append(c.providerDevOverrideWarnings())
+
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
 		mode = providercache.InstallUpgrades

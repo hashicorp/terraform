@@ -77,6 +77,12 @@ func (c *ValidateCommand) Run(args []string) int {
 	validateDiags := c.validate(dir)
 	diags = diags.Append(validateDiags)
 
+	// Validating with dev overrides in effect means that the result might
+	// not be valid for a stable release, so we'll warn about that in case
+	// the user is trying to use "terraform validate" as a sort of pre-flight
+	// check before submitting a change.
+	diags = diags.Append(c.providerDevOverrideWarnings())
+
 	return c.showResults(diags, jsonOutput)
 }
 
