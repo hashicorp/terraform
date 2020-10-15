@@ -11905,21 +11905,19 @@ resource "test_resource" "baz" {
 	}
 
 	addr := mustResourceInstanceAddr("test_resource.foo")
-
 	fooChangeSrc := plan.Changes.ResourceInstance(addr)
 	verifySensitiveValue(fooChangeSrc.AfterValMarks)
 
+	// Sensitive attributes (defined by the provider) are marked
+	// as sensitive when referenced from another resource
+	// "bar" references sensitive resources in "foo"
 	barAddr := mustResourceInstanceAddr("test_resource.bar")
 	barChangeSrc := plan.Changes.ResourceInstance(barAddr)
-	if len(barChangeSrc.AfterValMarks) != 1 {
-		t.Fatalf("there should only be 1 marked path for bar, there are %v", len(barChangeSrc.AfterValMarks))
-	}
+	verifySensitiveValue(barChangeSrc.AfterValMarks)
 
 	bazAddr := mustResourceInstanceAddr("test_resource.baz")
 	bazChangeSrc := plan.Changes.ResourceInstance(bazAddr)
-	if len(bazChangeSrc.AfterValMarks) != 1 {
-		t.Fatalf("there should only be 1 marked path for baz, there are %v", len(bazChangeSrc.AfterValMarks))
-	}
+	verifySensitiveValue(bazChangeSrc.AfterValMarks)
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
@@ -11928,6 +11926,12 @@ resource "test_resource" "baz" {
 
 	fooState := state.ResourceInstance(addr)
 	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
+
+	barState := state.ResourceInstance(barAddr)
+	verifySensitiveValue(barState.Current.AttrSensitivePaths)
+
+	bazState := state.ResourceInstance(bazAddr)
+	verifySensitiveValue(bazState.Current.AttrSensitivePaths)
 }
 
 func TestContext2Apply_variableSensitivityChange(t *testing.T) {
