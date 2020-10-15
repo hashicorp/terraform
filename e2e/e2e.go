@@ -254,7 +254,8 @@ func (b *binary) Close() {
 }
 
 func GoBuild(pkgPath, tmpPrefix string) string {
-	tmpFile, err := ioutil.TempFile("", tmpPrefix)
+	dir, prefix := filepath.Split(tmpPrefix)
+	tmpFile, err := ioutil.TempFile(dir, prefix)
 	if err != nil {
 		panic(err)
 	}

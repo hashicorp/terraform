@@ -195,6 +195,7 @@ func wrappedMain() int {
 			// We continue to run anyway, because most commands don't do provider installation.
 		}
 	}
+	providerDevOverrides := providerDevOverrides(config.ProviderInstallation)
 
 	// The user can declare that certain providers are being managed on
 	// Terraform's behalf using this environment variable. Thsi is used
@@ -241,7 +242,7 @@ func wrappedMain() int {
 		// in case they need to refer back to it for any special reason, though
 		// they should primarily be working with the override working directory
 		// that we've now switched to above.
-		initCommands(originalWd, config, services, providerSrc, unmanagedProviders)
+		initCommands(originalWd, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
 	}
 
 	// Run checkpoint
@@ -299,10 +300,6 @@ func wrappedMain() int {
 		AutocompleteInstall:   "install-autocomplete",
 		AutocompleteUninstall: "uninstall-autocomplete",
 	}
-
-	// Pass in the overriding plugin paths from config
-	PluginOverrides.Providers = config.Providers
-	PluginOverrides.Provisioners = config.Provisioners
 
 	exitCode, err := cliRunner.Run()
 	if err != nil {

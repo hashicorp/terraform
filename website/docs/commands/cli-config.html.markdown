@@ -352,6 +352,89 @@ Terraform will never itself delete a plugin from the plugin cache once it has
 been placed there. Over time, as plugins are upgraded, the cache directory may
 grow to contain several unused versions which you must delete manually.
 
+### Development Overrides for Provider Developers
+
+-> **Note:** Development overrides work only in Terraform v0.14 and later.
+Using a `dev_overrides` block in your CLI configuration will cause Terraform
+v0.13 to reject the configuration as invalid.
+
+Normally Terraform verifies version selections and checksums for providers
+in order to help ensure that all operations are made with the intended version
+of a provider, and that authors can gradually upgrade to newer provider versions
+in a controlled manner.
+
+These version and checksum rules are inconvenient when developing a provider
+though, because we often want to try a test configuration against a development
+build of a provider that doesn't even have an associated version number yet,
+and doesn't have an official set of checksums listed in a provider registry.
+
+As a convenience for provider development, Terraform supports a special
+additional block `dev_overrides` in `provider_installation` blocks. The contents
+of this block effectively override all of the other configured installation
+methods, so a block of this type must always appear first in the sequence:
+
+```hcl
+provider_installation {
+
+  # Use /home/developer/tmp/terraform-null as an overridden package directory
+  # for the hashicorp/null provider. This disables the version and checksum
+  # verifications for this provider and forces Terraform to look for the
+  # null provider plugin in the given directory.
+  dev_overrides {
+    "hashicorp/null" = "/home/developer/tmp/terraform-null"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+```
+
+With development overrides in effect, the `terraform init` command will still
+attempt to select a suitable published version of your provider to install and
+record in
+[the dependency lock file](/docs/configuration/dependency-lock.html)
+for future use, but other commands like
+`terraform apply` will disregard the lock file's entry for `hashicorp/null` and
+will use the given directory instead. Once your new changes are included in a
+published release of the provider, you can use `terraform init -upgrade` to
+select the new version in the dependency lock file and remove your development
+override.
+
+The override path for a particular provider should be a directory similar to
+what would be included in a `.zip` file when distributing the provider. At
+minimum that includes an executable file named with a prefix like
+`terraform-provider-null`, where `null` is the provider type. If your provider
+makes use of other files in its distribution package then you can copy those
+files into the override directory too.
+
+You may wish to enable a development override only for shell sessions where
+you are actively working on provider development. If so, you can write a
+local CLI configuration file with content like the above in your development
+directory, perhaps called `dev.tfrc` for the sake fo example, and then use the
+`TF_CLI_CONFIG_FILE` environment variable to instruct Terraform to use that
+localized CLI configuration instead of the default one:
+
+```
+export TF_CLI_CONFIG_FILE=/home/developer/tmp/dev.tfrc
+```
+
+Development overrides are not intended for general use as a way to have
+Terraform look for providers on the local filesystem. If you wish to put
+copies of _released_ providers in your local filesystem, see
+[Implied Local Mirror Directories](#implied-local-mirror-directories)
+or
+[Explicit Installation Method Configuration](#explicit-installation-method-configuration)
+instead.
+
+This development overrides mechanism is intended as a pragmatic way to enable
+smoother provider development. The details of how it behaves, how to
+configure it, and how it interacts with the dependency lock file may all evolve
+in future Terraform releases, including possible breaking changes. We therefore
+recommend using development overrides only temporarily during provider
+development work.
+
 ## Removed Settings
 
 The following settings are supported in Terraform 0.12 and earlier but are

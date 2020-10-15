@@ -225,3 +225,14 @@ func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocati
 		panic(fmt.Sprintf("unexpected provider source location type %T", loc))
 	}
 }
+
+func providerDevOverrides(configs []*cliconfig.ProviderInstallation) map[addrs.Provider]getproviders.PackageLocalDir {
+	if len(configs) == 0 {
+		return nil
+	}
+
+	// There should only be zero or one configurations, which is checked by
+	// the validation logic in the cliconfig package. Therefore we'll just
+	// ignore any additional configurations in here.
+	return configs[0].DevOverrides
+}
