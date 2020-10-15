@@ -118,19 +118,28 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 			return parent
 		}
 
-		// If we have no state, we have to create an empty state
-		if err := stateMgr.WriteState(states.NewState()); err != nil {
+		// Grab the value
+		if err := stateMgr.RefreshState(); err != nil {
 			err = lockUnlock(err)
 			return nil, err
 		}
-		if err := stateMgr.PersistState(); err != nil {
-			err = lockUnlock(err)
-			return nil, err
-		}
+		//if this isn't the default state name, we need to create the object so
+		//it's listed by States.
+		if v := stateMgr.State(); v == nil {
+			// If we have no state, we have to create an empty state
+			if err := stateMgr.WriteState(states.NewState()); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+			if err := stateMgr.PersistState(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
 
-		// Unlock, the state should now be initialized
-		if err := lockUnlock(nil); err != nil {
-			return nil, err
+			// Unlock, the state should now be initialized
+			if err := lockUnlock(nil); err != nil {
+				return nil, err
+			}
 		}
 	}
 
