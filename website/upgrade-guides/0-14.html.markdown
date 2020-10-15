@@ -8,6 +8,8 @@ description: |-
 
 # Upgrading to Terraform v0.14
 
+### Please note: the links in this draft version of the upgrade guide will not function correctly until the guide is live on terraform.io. We'd kindly ask that our community not file issues for broken links in this draft version of the document.
+
 Terraform v0.14 is a major release and so it includes some small changes in
 behavior that you may need to consider when upgrading. This guide is intended
 to help with that process.
