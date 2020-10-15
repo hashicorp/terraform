@@ -50,10 +50,9 @@ type Meta struct {
 	// for some reason.
 	OriginalWorkingDir string
 
-	Color            bool             // True if output should be colored
-	GlobalPluginDirs []string         // Additional paths to search for plugins
-	PluginOverrides  *PluginOverrides // legacy overrides from .terraformrc file
-	Ui               cli.Ui           // Ui for output
+	Color            bool     // True if output should be colored
+	GlobalPluginDirs []string // Additional paths to search for plugins
+	Ui               cli.Ui   // Ui for output
 
 	// ExtraHooks are extra hooks to add to the context.
 	ExtraHooks []terraform.Hook
@@ -104,7 +103,21 @@ type Meta struct {
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}
 
-	// UnmanagedProviders are a set of providers that exist as processes predating Terraform, which Terraform should use but not worry about the lifecycle of.
+	// ProviderDevOverrides are providers where we ignore the lock file, the
+	// configured version constraints, and the local cache directory and just
+	// always use exactly the path specified. This is intended to allow
+	// provider developers to easily test local builds without worrying about
+	// what version number they might eventually be released as, or what
+	// checksums they have.
+	ProviderDevOverrides map[addrs.Provider]getproviders.PackageLocalDir
+
+	// UnmanagedProviders are a set of providers that exist as processes
+	// predating Terraform, which Terraform should use but not worry about the
+	// lifecycle of.
+	//
+	// This is essentially a more extreme version of ProviderDevOverrides where
+	// Terraform doesn't even worry about how the provider server gets launched,
+	// just trusting that someone else did it before running Terraform.
 	UnmanagedProviders map[addrs.Provider]*plugin.ReattachConfig
 
 	//----------------------------------------------------------
@@ -192,11 +205,6 @@ type Meta struct {
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
-}
-
-type PluginOverrides struct {
-	Providers    map[string]string
-	Provisioners map[string]string
 }
 
 type testingOverrides struct {

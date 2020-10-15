@@ -131,6 +131,11 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Applying changes with dev overrides in effect could make it impossible
+	// to switch back to a release version if the schema isn't compatible,
+	// so we'll warn about it.
+	diags = diags.Append(c.providerDevOverrideWarnings())
+
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
 	// diagnostics.

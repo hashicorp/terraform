@@ -2,9 +2,12 @@ package cliconfig
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/hashicorp/hcl"
 	hclast "github.com/hashicorp/hcl/hcl/ast"
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -12,6 +15,23 @@ import (
 // nested block within the CLI configuration.
 type ProviderInstallation struct {
 	Methods []*ProviderInstallationMethod
+
+	// DevOverrides allows overriding the normal selection process for
+	// a particular subset of providers to force using a particular
+	// local directory and disregard version numbering altogether.
+	// This is here to allow provider developers to conveniently test
+	// local builds of their plugins in a development environment, without
+	// having to fuss with version constraints, dependency lock files, and
+	// so forth.
+	//
+	// This is _not_ intended for "production" use because it bypasses the
+	// usual version selection and checksum verification mechanisms for
+	// the providers in question. To make that intent/effect clearer, some
+	// Terraform commands emit warnings when overrides are present. Local
+	// mirror directories are a better way to distribute "released"
+	// providers, because they are still subject to version constraints and
+	// checksum verification.
+	DevOverrides map[addrs.Provider]getproviders.PackageLocalDir
 }
 
 // decodeProviderInstallationFromConfig uses the HCL AST API directly to
@@ -65,6 +85,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 		}
 
 		pi := &ProviderInstallation{}
+		devOverrides := make(map[addrs.Provider]getproviders.PackageLocalDir)
 
 		body, ok := block.Val.(*hclast.ObjectType)
 		if !ok {
@@ -188,6 +209,53 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 				location = ProviderInstallationNetworkMirror(bodyContent.URL)
 				include = bodyContent.Include
 				exclude = bodyContent.Exclude
+			case "dev_overrides":
+				if len(pi.Methods) > 0 {
+					// We require dev_overrides to appear first if it's present,
+					// because dev_overrides effectively bypass the normal
+					// selection process for a particular provider altogether,
+					// and so they don't participate in the usual
+					// include/exclude arguments and priority ordering.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider_installation method block",
+						fmt.Sprintf("The dev_overrides block at at %s must appear before all other installation methods, because development overrides always have the highest priority.", methodBlock.Pos()),
+					))
+					continue
+				}
+
+				// The content of a dev_overrides block is a mapping from
+				// provider source addresses to local filesystem paths. To get
+				// our decoding started, we'll use the normal HCL decoder to
+				// populate a map of strings and then decode further from
+				// that.
+				var rawItems map[string]string
+				err := hcl.DecodeObject(&rawItems, methodBody)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid provider_installation method block",
+						fmt.Sprintf("Invalid %s block at %s: %s.", methodTypeStr, block.Pos(), err),
+					))
+					continue
+				}
+
+				for rawAddr, rawPath := range rawItems {
+					addr, moreDiags := addrs.ParseProviderSourceString(rawAddr)
+					if moreDiags.HasErrors() {
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Invalid provider installation dev overrides",
+							fmt.Sprintf("The entry %q in %s is not a valid provider source string.", rawAddr, block.Pos()),
+						))
+						continue
+					}
+					dirPath := filepath.Clean(rawPath)
+					devOverrides[addr] = getproviders.PackageLocalDir(dirPath)
+				}
+
+				continue // We won't add anything to pi.Methods for this one
+
 			default:
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -202,6 +270,10 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 				Include:  include,
 				Exclude:  exclude,
 			})
+		}
+
+		if len(devOverrides) > 0 {
+			pi.DevOverrides = devOverrides
 		}
 
 		ret = append(ret, pi)
