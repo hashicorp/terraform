@@ -4098,11 +4098,14 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 		if val != "computed_value" {
 			t.Fatalf("bad value for foo: %q", val)
 		}
+		req.UIOutput.Output(fmt.Sprintf("Executing: %q", val))
 
 		return
 	}
+	h := new(MockHook)
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
+		Hooks:  []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -4135,6 +4138,14 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner not invoked")
+	}
+
+	// Verify output was rendered
+	if !h.ProvisionOutputCalled {
+		t.Fatalf("ProvisionOutput hook not called")
+	}
+	if got, want := h.ProvisionOutputMessage, `Executing: "computed_value"`; got != want {
+		t.Errorf("expected output to be %q, but was %q", want, got)
 	}
 }
 
@@ -12065,12 +12076,16 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 		if command.IsMarked() {
 			t.Fatalf("unexpectedly marked command argument: %#v", command.Marks())
 		}
+		req.UIOutput.Output(fmt.Sprintf("Executing: %q", command.AsString()))
 		return
 	}
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+
+	h := new(MockHook)
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
+		Hooks:  []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -12105,5 +12120,16 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 	// Verify apply was invoked
 	if !pr.ProvisionResourceCalled {
 		t.Fatalf("provisioner was not called on apply")
+	}
+
+	// Verify output was suppressed
+	if !h.ProvisionOutputCalled {
+		t.Fatalf("ProvisionOutput hook not called")
+	}
+	if got, doNotWant := h.ProvisionOutputMessage, "secret"; strings.Contains(got, doNotWant) {
+		t.Errorf("sensitive value %q included in output:\n%s", doNotWant, got)
+	}
+	if got, want := h.ProvisionOutputMessage, "output suppressed"; !strings.Contains(got, want) {
+		t.Errorf("expected hook to be called with %q, but was:\n%s", want, got)
 	}
 }
