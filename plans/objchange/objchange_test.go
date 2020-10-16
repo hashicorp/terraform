@@ -440,7 +440,7 @@ func TestProposedNewObject(t *testing.T) {
 					}),
 					"b": cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("blep"),
-						"baz": cty.StringVal("boot"),
+						"baz": cty.ListVal([]cty.Value{cty.StringVal("boot")}),
 					}),
 				}),
 			}),
@@ -452,7 +452,7 @@ func TestProposedNewObject(t *testing.T) {
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("bosh"),
-						"baz": cty.NullVal(cty.String),
+						"baz": cty.NullVal(cty.List(cty.String)),
 					}),
 				}),
 			}),
@@ -464,7 +464,7 @@ func TestProposedNewObject(t *testing.T) {
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("bosh"),
-						"baz": cty.NullVal(cty.String),
+						"baz": cty.NullVal(cty.List(cty.String)),
 					}),
 				}),
 			}),
@@ -568,6 +568,288 @@ func TestProposedNewObject(t *testing.T) {
 					}),
 					cty.ObjectVal(map[string]cty.Value{
 						"optional": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+		},
+		"nested list in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingList,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {
+												Type: cty.String,
+											},
+											"qux": {
+												Type:     cty.String,
+												Computed: true,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("beep"),
+								"qux": cty.StringVal("boop"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("beep"),
+								"qux": cty.NullVal(cty.String),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("beep"),
+								"qux": cty.StringVal("boop"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		"empty nested list in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingList,
+									Block:   configschema.Block{},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListValEmpty((&configschema.Block{}).ImpliedType()),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListValEmpty((&configschema.Block{}).ImpliedType()),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ListValEmpty((&configschema.Block{}).ImpliedType()),
+					}),
+				}),
+			}),
+		},
+		"nested list with dynamic in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingList,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {
+												Type: cty.DynamicPseudoType,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.ListVal([]cty.Value{cty.StringVal("true")}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.ListVal([]cty.Value{cty.StringVal("true")}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.ListVal([]cty.Value{cty.StringVal("true")}),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		"nested map with dynamic in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingMap,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {
+												Type:     cty.DynamicPseudoType,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ObjectVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+							"bang": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.ListVal([]cty.Value{cty.StringVal("true")}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ObjectVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.ListVal([]cty.Value{cty.StringVal("true")}),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.ObjectVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.ListVal([]cty.Value{cty.StringVal("true")}),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
+		"empty nested map in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingMap,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+							"baz": cty.String,
+						})),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.MapVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.MapVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+						}),
 					}),
 				}),
 			}),
