@@ -357,13 +357,21 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 					// set and we've not changed the types of any elements here.
 					attrs[name] = cty.SetVal(elems)
 				} else {
-					attrs[name] = cty.ListVal(elems)
+					if blockType.Block.ImpliedType().HasDynamicTypes() {
+						attrs[name] = cty.TupleVal(elems)
+					} else {
+						attrs[name] = cty.ListVal(elems)
+					}
 				}
 			} else {
 				if blockType.Nesting == configschema.NestingSet {
 					attrs[name] = cty.SetValEmpty(blockType.Block.ImpliedType())
 				} else {
-					attrs[name] = cty.ListValEmpty(blockType.Block.ImpliedType())
+					if blockType.Block.ImpliedType().HasDynamicTypes() {
+						attrs[name] = cty.EmptyTupleVal
+					} else {
+						attrs[name] = cty.ListValEmpty(blockType.Block.ImpliedType())
+					}
 				}
 			}
 
@@ -378,7 +386,11 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 				kv, ev := it.Element()
 				elems[kv.AsString()] = setElementCompareValue(&blockType.Block, ev, isConfig)
 			}
-			attrs[name] = cty.ObjectVal(elems)
+			if blockType.Block.ImpliedType().HasDynamicTypes() {
+				attrs[name] = cty.ObjectVal(elems)
+			} else {
+				attrs[name] = cty.MapVal(elems)
+			}
 
 		default:
 			// Should never happen, since the above cases are comprehensive.
