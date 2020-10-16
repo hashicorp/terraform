@@ -866,6 +866,13 @@ aws_instance.bar:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerSensitiveStr = `
+aws_instance.foo:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  type = aws_instance
+`
+
 const testTerraformApplyDestroyStr = `
 <no state>
 `

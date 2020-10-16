@@ -12052,3 +12052,58 @@ output "out" {
 		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
+
+func TestContext2Apply_provisionerSensitive(t *testing.T) {
+	m := testModule(t, "apply-provisioner-sensitive")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+		if req.Config.ContainsMarked() {
+			t.Fatalf("unexpectedly marked config value: %#v", req.Config)
+		}
+		command := req.Config.GetAttr("command")
+		if command.IsMarked() {
+			t.Fatalf("unexpectedly marked command argument: %#v", command.Marks())
+		}
+		return
+	}
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		Variables: InputValues{
+			"password": &InputValue{
+				Value:      cty.StringVal("secret"),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		logDiagnostics(t, diags)
+		t.Fatal("plan failed")
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		logDiagnostics(t, diags)
+		t.Fatal("apply failed")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerSensitiveStr)
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+
+	// Verify apply was invoked
+	if !pr.ProvisionResourceCalled {
+		t.Fatalf("provisioner was not called on apply")
+	}
+}

@@ -683,10 +683,17 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 			})
 		}
 
+		// If our config or connection info contains any marked values, ensure
+		// those are stripped out before sending to the provisioner. Unlike
+		// resources, we have no need to capture the marked paths and reapply
+		// later.
+		unmarkedConfig, _ := config.UnmarkDeep()
+		unmarkedConnInfo, _ := connInfo.UnmarkDeep()
+
 		output := CallbackUIOutput{OutputFn: outputFn}
 		resp := provisioner.ProvisionResource(provisioners.ProvisionResourceRequest{
-			Config:     config,
-			Connection: connInfo,
+			Config:     unmarkedConfig,
+			Connection: unmarkedConnInfo,
 			UIOutput:   &output,
 		})
 		applyDiags := resp.Diagnostics.InConfigBody(prov.Config)
