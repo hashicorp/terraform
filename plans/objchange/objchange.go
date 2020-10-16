@@ -344,34 +344,38 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 				attrs[name] = cv
 				continue
 			}
+
 			if l := cv.LengthInt(); l > 0 {
 				elems := make([]cty.Value, 0, l)
 				for it := cv.ElementIterator(); it.Next(); {
 					_, ev := it.Element()
 					elems = append(elems, setElementCompareValue(&blockType.Block, ev, isConfig))
 				}
-				if blockType.Nesting == configschema.NestingSet {
+
+				switch {
+				case blockType.Nesting == configschema.NestingSet:
 					// SetValEmpty would panic if given elements that are not
 					// all of the same type, but that's guaranteed not to
 					// happen here because our input value was _already_ a
 					// set and we've not changed the types of any elements here.
 					attrs[name] = cty.SetVal(elems)
-				} else {
-					if blockType.Block.ImpliedType().HasDynamicTypes() {
-						attrs[name] = cty.TupleVal(elems)
-					} else {
-						attrs[name] = cty.ListVal(elems)
-					}
+
+				// NestingList cases
+				case blockType.Block.ImpliedType().HasDynamicTypes():
+					attrs[name] = cty.TupleVal(elems)
+				default:
+					attrs[name] = cty.ListVal(elems)
 				}
 			} else {
-				if blockType.Nesting == configschema.NestingSet {
+				switch {
+				case blockType.Nesting == configschema.NestingSet:
 					attrs[name] = cty.SetValEmpty(blockType.Block.ImpliedType())
-				} else {
-					if blockType.Block.ImpliedType().HasDynamicTypes() {
-						attrs[name] = cty.EmptyTupleVal
-					} else {
-						attrs[name] = cty.ListValEmpty(blockType.Block.ImpliedType())
-					}
+
+				// NestingList cases
+				case blockType.Block.ImpliedType().HasDynamicTypes():
+					attrs[name] = cty.EmptyTupleVal
+				default:
+					attrs[name] = cty.ListValEmpty(blockType.Block.ImpliedType())
 				}
 			}
 
@@ -386,9 +390,10 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 				kv, ev := it.Element()
 				elems[kv.AsString()] = setElementCompareValue(&blockType.Block, ev, isConfig)
 			}
-			if blockType.Block.ImpliedType().HasDynamicTypes() {
+			switch {
+			case blockType.Block.ImpliedType().HasDynamicTypes():
 				attrs[name] = cty.ObjectVal(elems)
-			} else {
+			default:
 				attrs[name] = cty.MapVal(elems)
 			}
 
