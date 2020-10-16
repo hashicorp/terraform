@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/logging"
 	statespkg "github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/remote"
 )

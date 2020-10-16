@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/logging"
 )
 
 // GraphTransformer is the interface that transformers implement. This

@@ -14,8 +14,8 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/tfdiags"
 )

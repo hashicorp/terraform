@@ -21,8 +21,8 @@ import (
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 )
 

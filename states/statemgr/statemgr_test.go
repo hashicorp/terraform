@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestNewLockInfo(t *testing.T) {
