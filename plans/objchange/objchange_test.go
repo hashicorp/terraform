@@ -799,6 +799,61 @@ func TestProposedNewObject(t *testing.T) {
 				}),
 			}),
 		},
+		"empty nested map in set": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"bar": {
+									Nesting: configschema.NestingMap,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+							"baz": cty.String,
+						})),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.MapVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.MapVal(map[string]cty.Value{
+							"bing": cty.ObjectVal(map[string]cty.Value{
+								"baz": cty.StringVal("true"),
+							}),
+						}),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
