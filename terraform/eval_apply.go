@@ -687,8 +687,21 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		// those are stripped out before sending to the provisioner. Unlike
 		// resources, we have no need to capture the marked paths and reapply
 		// later.
-		unmarkedConfig, _ := config.UnmarkDeep()
+		unmarkedConfig, configMarks := config.UnmarkDeep()
 		unmarkedConnInfo, _ := connInfo.UnmarkDeep()
+
+		// Marks on the config might result in leaking sensitive values through
+		// provisioner logging, so we conservatively suppress all output in
+		// this case. This should not apply to connection info values, which
+		// provisioners ought not to be logging anyway.
+		if len(configMarks) > 0 {
+			outputFn = func(msg string) {
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					h.ProvisionOutput(absAddr, prov.Type, "(output suppressed due to sensitive value in config)")
+					return HookActionContinue, nil
+				})
+			}
+		}
 
 		output := CallbackUIOutput{OutputFn: outputFn}
 		resp := provisioner.ProvisionResource(provisioners.ProvisionResourceRequest{
