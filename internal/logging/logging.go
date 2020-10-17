@@ -26,6 +26,21 @@ var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 var logger hclog.Logger
 
 func init() {
+	logger = NewHCLogger("")
+}
+
+// LogOutput determines where we should send logs (if anywhere) and the log level.
+func LogOutput() (logOutput io.Writer, err error) {
+	return logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}), nil
+}
+
+// HCLogger returns the default global loggers
+func HCLogger() hclog.Logger {
+	return logger
+}
+
+// NewHCLogger returns a new hclog.Logger instance with the given name
+func NewHCLogger(name string) hclog.Logger {
 	logOutput := io.Writer(os.Stderr)
 	logLevel := CurrentLogLevel()
 	if logLevel == "" {
@@ -41,19 +56,11 @@ func init() {
 		}
 	}
 
-	logger = hclog.New(&hclog.LoggerOptions{
+	return hclog.New(&hclog.LoggerOptions{
+		Name:   name,
 		Level:  hclog.LevelFromString(logLevel),
 		Output: logOutput,
 	})
-}
-
-// LogOutput determines where we should send logs (if anywhere) and the log level.
-func LogOutput() (logOutput io.Writer, err error) {
-	return logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}), nil
-}
-
-func HCLogger() hclog.Logger {
-	return logger
 }
 
 // SetOutput checks for a log destination with LogOutput, and calls

@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	plugin "github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/addrs"
 	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/providercache"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/providers"
@@ -328,12 +328,6 @@ func (m *Meta) internalProviders() map[string]providers.Factory {
 // providers.Interface against it.
 func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 	return func() (providers.Interface, error) {
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "plugin",
-			Level:  hclog.Trace,
-			Output: os.Stderr,
-		})
-
 		execFile, err := meta.ExecutableFile()
 		if err != nil {
 			return nil, err
@@ -341,7 +335,7 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logger,
+			Logger:           logging.NewHCLogger("plugin"),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          true,
 			Cmd:              exec.Command(execFile),
@@ -386,15 +380,10 @@ func devOverrideProviderFactory(provider addrs.Provider, localDir getproviders.P
 // running, and implements providers.Interface against it.
 func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.ReattachConfig) providers.Factory {
 	return func() (providers.Interface, error) {
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "unmanaged-plugin",
-			Level:  hclog.Trace,
-			Output: os.Stderr,
-		})
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logger,
+			Logger:           logging.NewHCLogger("unmanaged-plugin"),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          false,
 			Reattach:         reattach,
