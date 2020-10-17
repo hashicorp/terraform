@@ -1,12 +1,15 @@
 package logging
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"syscall"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // These are the environmental variables that determine if we log, and if
@@ -19,39 +22,38 @@ const (
 // ValidLevels are the log level names that Terraform recognizes.
 var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 
-// LogOutput determines where we should send logs (if anywhere) and the log level.
-func LogOutput() (logOutput io.Writer, err error) {
-	logOutput = ioutil.Discard
+// logger is the global hclog logger
+var logger hclog.Logger
 
+func init() {
+	logOutput := io.Writer(os.Stderr)
 	logLevel := CurrentLogLevel()
 	if logLevel == "" {
-		return
+		logOutput = ioutil.Discard
 	}
 
-	logOutput = os.Stderr
 	if logPath := os.Getenv(EnvLogFile); logPath != "" {
-		var err error
-		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
+		f, err := os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
 		if err != nil {
-			return nil, err
+			fmt.Fprintf(os.Stderr, "Error opening log file: %v\n", err)
+		} else {
+			logOutput = f
 		}
 	}
 
-	if logLevel == "TRACE" {
-		// Just pass through logs directly then, without any level filtering at all.
-		return logOutput, nil
-	}
+	logger = hclog.New(&hclog.LoggerOptions{
+		Level:  hclog.LevelFromString(logLevel),
+		Output: logOutput,
+	})
+}
 
-	// Otherwise we'll use our level filter, which is a heuristic-based
-	// best effort thing that is not totally reliable but helps to reduce
-	// the volume of logs in some cases.
-	logOutput = &LevelFilter{
-		Levels:   ValidLevels,
-		MinLevel: LogLevel(logLevel),
-		Writer:   logOutput,
-	}
+// LogOutput determines where we should send logs (if anywhere) and the log level.
+func LogOutput() (logOutput io.Writer, err error) {
+	return logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}), nil
+}
 
-	return logOutput, nil
+func HCLogger() hclog.Logger {
+	return logger
 }
 
 // SetOutput checks for a log destination with LogOutput, and calls
@@ -67,20 +69,22 @@ func SetOutput() {
 		out = ioutil.Discard
 	}
 
+	// the hclog logger will add the prefix info
+	log.SetFlags(0)
+	log.SetPrefix("")
 	log.SetOutput(out)
 }
 
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
-	envLevel := os.Getenv(EnvLog)
+	envLevel := strings.ToUpper(os.Getenv(EnvLog))
 	if envLevel == "" {
 		return ""
 	}
 
 	logLevel := "TRACE"
 	if isValidLogLevel(envLevel) {
-		// allow following for better ux: info, Info or INFO
-		logLevel = strings.ToUpper(envLevel)
+		logLevel = envLevel
 	} else {
 		log.Printf("[WARN] Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
 			envLevel, ValidLevels)
@@ -100,7 +104,7 @@ func IsDebugOrHigher() bool {
 
 func isValidLogLevel(level string) bool {
 	for _, l := range ValidLevels {
-		if strings.ToUpper(level) == string(l) {
+		if level == string(l) {
 			return true
 		}
 	}

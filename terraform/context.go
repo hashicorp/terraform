@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/instances"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -19,6 +20,10 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
+
+func init() {
+	logging.SetOutput()
+}
 
 // InputMode defines what sort of input will be asked for when Input
 // is called on Context.
