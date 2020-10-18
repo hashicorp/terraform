@@ -26,7 +26,7 @@ terraform {
 
 You specify the backend type as a key to the `backend` stanza. Within the
 stanza are backend-specific configuration keys. The list of supported backends
-and their configuration is in the sidebar to the left.
+and their configuration details can be found [here](https://www.terraform.io/docs/backends/types/index.html).
 
 Only one backend may be specified and the configuration **may not contain
 interpolations**. Terraform will validate this.
