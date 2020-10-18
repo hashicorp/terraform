@@ -146,32 +146,12 @@ func TestAllTrue(t *testing.T) {
 		Err        bool
 	}{
 		{
-			cty.ListValEmpty(cty.String),
-			cty.True,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{}),
-			cty.True,
-			false,
-		},
-		{
-			cty.SetValEmpty(cty.Bool),
+			cty.ListValEmpty(cty.Bool),
 			cty.True,
 			false,
 		},
 		{
 			cty.ListVal([]cty.Value{cty.True}),
-			cty.True,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.StringVal("true")}),
-			cty.True,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{cty.True, cty.StringVal("true")}),
 			cty.True,
 			false,
 		},
@@ -191,23 +171,8 @@ func TestAllTrue(t *testing.T) {
 			false,
 		},
 		{
-			cty.ListVal([]cty.Value{cty.NumberIntVal(1)}),
-			cty.False,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
-			cty.False,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
-			false,
-		},
-		{
-			cty.StringVal("true"),
-			cty.False,
 			true,
 		},
 		{
@@ -244,37 +209,12 @@ func TestAnyTrue(t *testing.T) {
 		Err        bool
 	}{
 		{
-			cty.ListValEmpty(cty.String),
-			cty.False,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{}),
-			cty.False,
-			false,
-		},
-		{
-			cty.SetValEmpty(cty.Bool),
+			cty.ListValEmpty(cty.Bool),
 			cty.False,
 			false,
 		},
 		{
 			cty.ListVal([]cty.Value{cty.True}),
-			cty.True,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.StringVal("true")}),
-			cty.True,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{cty.False, cty.StringVal("true")}),
-			cty.True,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{cty.StringVal("false"), cty.True}),
 			cty.True,
 			false,
 		},
@@ -294,23 +234,8 @@ func TestAnyTrue(t *testing.T) {
 			false,
 		},
 		{
-			cty.ListVal([]cty.Value{cty.NumberIntVal(1)}),
-			cty.False,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
-			cty.False,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
-			false,
-		},
-		{
-			cty.StringVal("true"),
-			cty.False,
 			true,
 		},
 		{
