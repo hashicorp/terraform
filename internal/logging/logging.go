@@ -20,7 +20,7 @@ const (
 )
 
 // ValidLevels are the log level names that Terraform recognizes.
-var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
+var ValidLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 
 // logger is the global hclog logger
 var logger hclog.Logger

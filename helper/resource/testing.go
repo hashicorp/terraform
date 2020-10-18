@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -25,11 +23,12 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // flagSweep is a flag available when running tests on the command line. It
@@ -392,46 +391,6 @@ type TestStep struct {
 // Set to a file mask in sprintf format where %s is test name
 const EnvLogPathMask = "TF_LOG_PATH_MASK"
 
-func LogOutput(t TestT) (logOutput io.Writer, err error) {
-	logOutput = ioutil.Discard
-
-	logLevel := logging.CurrentLogLevel()
-	if logLevel == "" {
-		return
-	}
-
-	logOutput = os.Stderr
-
-	if logPath := os.Getenv(logging.EnvLogFile); logPath != "" {
-		var err error
-		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if logPathMask := os.Getenv(EnvLogPathMask); logPathMask != "" {
-		// Escape special characters which may appear if we have subtests
-		testName := strings.Replace(t.Name(), "/", "__", -1)
-
-		logPath := fmt.Sprintf(logPathMask, testName)
-		var err error
-		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// This was the default since the beginning
-	logOutput = &logging.LevelFilter{
-		Levels:   logging.ValidLevels,
-		MinLevel: logging.LogLevel(logLevel),
-		Writer:   logOutput,
-	}
-
-	return
-}
-
 // ParallelTest performs an acceptance test on a resource, allowing concurrency
 // with other ParallelTest.
 //
@@ -463,12 +422,6 @@ func Test(t TestT, c TestCase) {
 			TestEnvVar))
 		return
 	}
-
-	logWriter, err := LogOutput(t)
-	if err != nil {
-		t.Error(fmt.Errorf("error setting up logging: %s", err))
-	}
-	log.SetOutput(logWriter)
 
 	// We require verbose mode so that the user knows what is going on.
 	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
