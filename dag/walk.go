@@ -383,7 +383,6 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	var diags tfdiags.Diagnostics
 	var upstreamFailed bool
 	if depsSuccess {
-		log.Printf("[TRACE] dag/walk: visiting %q", VertexName(v))
 		diags = w.Callback(v)
 	} else {
 		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", VertexName(v))

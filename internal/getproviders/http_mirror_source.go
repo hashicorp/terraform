@@ -68,11 +68,7 @@ func newHTTPMirrorSourceWithHTTPClient(baseURL *url.URL, creds svcauth.Credentia
 	retryableClient.RequestLogHook = requestLogHook
 	retryableClient.ErrorHandler = maxRetryErrorHandler
 
-	logOutput, err := logging.LogOutput()
-	if err != nil {
-		log.Printf("[WARN] Failed to set up provider HTTP mirror logger, so continuing without client logging: %s", err)
-	}
-	retryableClient.Logger = log.New(logOutput, "", log.Flags())
+	retryableClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
 
 	return &HTTPMirrorSource{
 		baseURL:    baseURL,

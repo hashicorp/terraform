@@ -25,16 +25,25 @@ var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 // logger is the global hclog logger
 var logger hclog.Logger
 
+// logWriter is a global writer for logs, to be used with the std log package
+var logWriter io.Writer
+
 func init() {
 	logger = NewHCLogger("")
+	logWriter = logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true})
+
+	// setup the default std library logger to use our output
+	log.SetFlags(0)
+	log.SetPrefix("")
+	log.SetOutput(logWriter)
 }
 
-// LogOutput determines where we should send logs (if anywhere) and the log level.
-func LogOutput() (logOutput io.Writer, err error) {
-	return logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true}), nil
+// LogOutput return the default global log io.Writer
+func LogOutput() io.Writer {
+	return logWriter
 }
 
-// HCLogger returns the default global loggers
+// HCLogger returns the default global hclog logger
 func HCLogger() hclog.Logger {
 	return logger
 }
@@ -61,25 +70,6 @@ func NewHCLogger(name string) hclog.Logger {
 		Level:  hclog.LevelFromString(logLevel),
 		Output: logOutput,
 	})
-}
-
-// SetOutput checks for a log destination with LogOutput, and calls
-// log.SetOutput with the result. If LogOutput returns nil, SetOutput uses
-// ioutil.Discard. Any error from LogOutout is fatal.
-func SetOutput() {
-	out, err := LogOutput()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if out == nil {
-		out = ioutil.Discard
-	}
-
-	// the hclog logger will add the prefix info
-	log.SetFlags(0)
-	log.SetPrefix("")
-	log.SetOutput(out)
 }
 
 // CurrentLogLevel returns the current log level string based the environment vars

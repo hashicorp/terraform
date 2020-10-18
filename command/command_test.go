@@ -5,11 +5,9 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -30,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
@@ -44,6 +41,7 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // These are the directories for our test data and fixtures.
@@ -82,15 +80,6 @@ func init() {
 
 func TestMain(m *testing.M) {
 	defer os.RemoveAll(testingDir)
-
-	flag.Parse()
-	if testing.Verbose() {
-		// if we're verbose, use the logging requested by TF_LOG
-		logging.SetOutput()
-	} else {
-		// otherwise silence all logs
-		log.SetOutput(ioutil.Discard)
-	}
 
 	// Make sure backend init is initialized, since our tests tend to assume it.
 	backendInit.Init(nil)

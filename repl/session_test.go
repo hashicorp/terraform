@@ -2,8 +2,6 @@ package repl
 
 import (
 	"flag"
-	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -13,23 +11,15 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-
-	if testing.Verbose() {
-		// if we're verbose, use the logging requested by TF_LOG
-		logging.SetOutput()
-	} else {
-		// otherwise silence all logs
-		log.SetOutput(ioutil.Discard)
-	}
-
 	os.Exit(m.Run())
 }
 
