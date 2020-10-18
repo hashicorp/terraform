@@ -303,7 +303,7 @@ func (w *MapFieldWriter) setSet(
 		tempSchemaMap := map[string]*Schema{tempAddr[0]: &tempSchema}
 		tempW := &MapFieldWriter{Schema: tempSchemaMap}
 
-		// Set the entire list, this lets us get sane values out of it
+		// Set the entire list, this lets us get values out of it
 		if err := tempW.WriteField(tempAddr, value); err != nil {
 			return err
 		}

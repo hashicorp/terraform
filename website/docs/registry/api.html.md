@@ -746,8 +746,8 @@ is not in JSON format above due to being returned by an intermediate proxy.
 Endpoints that return lists of results use a common pagination format.
 
 They accept positive integer query variables `offset` and `limit` which have the
-usual SQL-like semantics. Each endpoint will have a sane default limit and a
-default offset of `0`. Each endpoint will also apply a sane maximum limit,
+usual SQL-like semantics. Each endpoint will have a default limit and a
+default offset of `0`. Each endpoint will also apply a maximum limit,
 requesting more results will just result in the maximum limit being used.
 
 The response for a paginated result set will look like:
