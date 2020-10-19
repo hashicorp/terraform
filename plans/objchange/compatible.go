@@ -344,7 +344,7 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 		if nested && v.IsNull() {
 			return true // for nested blocks, a single block being unset doesn't disqualify from being an unknown block placeholder
 		}
-		return couldBeUnknownBlockPlaceholderElement(v, &blockS.Block)
+		return couldBeUnknownBlockPlaceholderElement(v, blockS)
 	default:
 		// These situations should be impossible for correct providers, but
 		// we permit the legacy SDK to produce some incorrect outcomes
@@ -360,7 +360,7 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 		// For all other nesting modes, our value should be something iterable.
 		for it := v.ElementIterator(); it.Next(); {
 			_, ev := it.Element()
-			if couldBeUnknownBlockPlaceholderElement(ev, &blockS.Block) {
+			if couldBeUnknownBlockPlaceholderElement(ev, blockS) {
 				return true
 			}
 		}
@@ -374,7 +374,7 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 	}
 }
 
-func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.Block) bool {
+func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.NestedBlock) bool {
 	if v.IsNull() {
 		return false // null value can never be a placeholder element
 	}
@@ -390,6 +390,19 @@ func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.Blo
 		// non-placeholders can also match this, so this function can generate
 		// false positives.
 		if av.IsKnown() && !av.IsNull() {
+
+			// FIXME: only required for the legacy SDK, but we don't have a
+			// separate codepath to switch the comparisons, and we still want
+			// the rest of the checks from AssertObjectCompatible to apply.
+			//
+			// The legacy SDK cannot handle missing strings from set elements,
+			// and will insert an empty string into the planned value.
+			// Skipping these treats them as null values in this case,
+			// preventing false alerts from AssertObjectCompatible.
+			if schema.Nesting == configschema.NestingSet && av.Type() == cty.String && av.AsString() == "" {
+				continue
+			}
+
 			return false
 		}
 	}
