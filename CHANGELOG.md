@@ -1,5 +1,9 @@
 ## 0.15.0 (Unreleased)
 
+ENHANCEMENTS:
+
+* Improved support for Windows console UI, include bold colors and underline for HCL diagnostics [GH-26588]
+
 ## Previous Releases
 
 For information on prior major releases, see their changelogs:
