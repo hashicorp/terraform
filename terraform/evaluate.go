@@ -956,7 +956,10 @@ func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty
 	var pvm []cty.PathValueMarks
 	for name, attrS := range schema.Attributes {
 		if attrS.Sensitive {
-			attrPath := append(path, cty.GetAttrStep{Name: name})
+			// Create a copy of the path, with this step added, to add to our PathValueMarks slice
+			attrPath := make(cty.Path, len(path), len(path)+1)
+			copy(attrPath, path)
+			attrPath = append(path, cty.GetAttrStep{Name: name})
 			pvm = append(pvm, cty.PathValueMarks{
 				Path:  attrPath,
 				Marks: cty.NewValueMarks("sensitive"),
@@ -969,8 +972,12 @@ func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty
 		if !blockS.Block.ContainsSensitive() {
 			continue
 		}
+		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
+		blockPath := make(cty.Path, len(path), len(path)+1)
+		copy(blockPath, path)
+		blockPath = append(path, cty.GetAttrStep{Name: name})
+
 		blockV := val.GetAttr(name)
-		blockPath := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
 			pvm = append(pvm, getValMarks(&blockS.Block, blockV, blockPath)...)

@@ -135,7 +135,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				Status:    states.ObjectReady,
-				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "value":"hello"}`),
+				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "nesting_nesting": {"nesting_list":[{"sensitive_value":"abc"}]}, "value":"hello"}`),
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -222,6 +222,22 @@ func TestEvaluatorGetResource(t *testing.T) {
 									},
 									Nesting: configschema.NestingSingle,
 								},
+								"nesting_nesting": {
+									Block: configschema.Block{
+										BlockTypes: map[string]*configschema.NestedBlock{
+											"nesting_list": {
+												Block: configschema.Block{
+													Attributes: map[string]*configschema.Attribute{
+														"value":           {Type: cty.String, Optional: true},
+														"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
+													},
+												},
+												Nesting: configschema.NestingList,
+											},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
 							},
 						},
 					},
@@ -246,6 +262,14 @@ func TestEvaluatorGetResource(t *testing.T) {
 		"nesting_map": cty.MapVal(map[string]cty.Value{
 			"foo": cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("x").Mark("sensitive")}),
 		}),
+		"nesting_nesting": cty.ObjectVal(map[string]cty.Value{
+			"nesting_list": cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"sensitive_value": cty.StringVal("abc").Mark("sensitive"),
+					"value":           cty.NullVal(cty.String),
+				}),
+			}),
+		}),
 		"nesting_set": cty.SetVal([]cty.Value{
 			cty.ObjectVal(map[string]cty.Value{
 				"baz": cty.StringVal("abc").Mark("sensitive"),
@@ -269,7 +293,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 	}
 
 	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
+		t.Errorf("wrong result:\ngot: %#v\nwant: %#v", got, want)
 	}
 }
 
