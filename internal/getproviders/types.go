@@ -422,27 +422,34 @@ func VersionConstraintsString(spec VersionConstraints) string {
 			b.WriteString("??? ")
 		}
 
+		// The parser allows writing abbreviated version (such as 2) which
+		// end up being represented in memory with trailing unconstrained parts
+		// (for example 2.*.*). For the purpose of serialization with Ruby
+		// style syntax, these unconstrained parts can all be represented as 0
+		// with no loss of meaning, so we make that conversion here.
+		//
+		// This is possible because we use a different constraint operator to
+		// distinguish between the two types of pessimistic constraint:
+		// minor-only and patch-only. For minor-only constraints, we always
+		// want to display only the major and minor version components, so we
+		// special-case that operator below.
+		//
+		// One final edge case is a minor-only constraint specified with only
+		// the major version, such as ~> 2. We treat this the same as ~> 2.0,
+		// because a major-only pessimistic constraint does not exist: it is
+		// logically identical to >= 2.0.0.
+		boundary := sel.Boundary.ConstrainToZero()
 		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
 			// The minor-pessimistic syntax uses only two version components.
-			if sel.Boundary.Minor.Unconstrained {
-				// The parser allows writing ~> 2, which ends up being
-				// represented in memory as ~> 2.* because the minor
-				// version is unconstrained, but that's not really any
-				// different than saying 2.0 and so we'll prefer that in
-				// our serialization in order to be clearer about how we
-				// understood the version constraint.
-				fmt.Fprintf(&b, "%s.0", sel.Boundary.Major)
-			} else {
-				fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
-			}
+			fmt.Fprintf(&b, "%s.%s", boundary.Major, boundary.Minor)
 		} else {
-			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
+			fmt.Fprintf(&b, "%s.%s.%s", boundary.Major, boundary.Minor, boundary.Patch)
 		}
 		if sel.Boundary.Prerelease != "" {
-			b.WriteString("-" + sel.Boundary.Prerelease)
+			b.WriteString("-" + boundary.Prerelease)
 		}
 		if sel.Boundary.Metadata != "" {
-			b.WriteString("+" + sel.Boundary.Metadata)
+			b.WriteString("+" + boundary.Metadata)
 		}
 	}
 	return b.String()
