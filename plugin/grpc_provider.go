@@ -603,14 +603,17 @@ func (p *GRPCProvider) Close() error {
 // Decode a DynamicValue from either the JSON or MsgPack encoding.
 func decodeDynamicValue(v *proto.DynamicValue, ty cty.Type) (cty.Value, error) {
 	// always return a valid value
+	var err error
 	res := cty.NullVal(ty)
 	if v == nil {
 		return res, nil
 	}
 
-	if len(v.Msgpack) > 0 {
-		return msgpack.Unmarshal(v.Msgpack, ty)
+	switch {
+	case len(v.Msgpack) > 0:
+		res, err = msgpack.Unmarshal(v.Msgpack, ty)
+	case len(v.Json) > 0:
+		res, err = ctyjson.Unmarshal(v.Json, ty)
 	}
-
-	return ctyjson.Unmarshal(v.Json, ty)
+	return res, err
 }
