@@ -2,7 +2,7 @@
 
 ENHANCEMENTS:
 
-* Improved support for Windows console UI, include bold colors and underline for HCL diagnostics [GH-26588]
+* Improved support for Windows console UI, including bold colors and underline for HCL diagnostics [GH-26588]
 
 ## Previous Releases
 
