@@ -165,10 +165,12 @@ func TestSaveLocksToFile(t *testing.T) {
 	fooProvider := addrs.MustParseProviderSourceString("test/foo")
 	barProvider := addrs.MustParseProviderSourceString("test/bar")
 	bazProvider := addrs.MustParseProviderSourceString("test/baz")
+	booProvider := addrs.MustParseProviderSourceString("test/boo")
 	oneDotOh := getproviders.MustParseVersion("1.0.0")
 	oneDotTwo := getproviders.MustParseVersion("1.2.0")
 	atLeastOneDotOh := getproviders.MustParseVersionConstraints(">= 1.0.0")
 	pessimisticOneDotOh := getproviders.MustParseVersionConstraints("~> 1")
+	abbreviatedOneDotTwo := getproviders.MustParseVersionConstraints("1.2")
 	hashes := []getproviders.Hash{
 		getproviders.MustParseHash("test:cccccccccccccccccccccccccccccccccccccccccccccccc"),
 		getproviders.MustParseHash("test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
@@ -177,6 +179,7 @@ func TestSaveLocksToFile(t *testing.T) {
 	locks.SetProvider(fooProvider, oneDotOh, atLeastOneDotOh, hashes)
 	locks.SetProvider(barProvider, oneDotTwo, pessimisticOneDotOh, nil)
 	locks.SetProvider(bazProvider, oneDotTwo, nil, nil)
+	locks.SetProvider(booProvider, oneDotTwo, abbreviatedOneDotTwo, nil)
 
 	dir, err := ioutil.TempDir("", "terraform-internal-depsfile-savelockstofile")
 	if err != nil {
@@ -205,6 +208,11 @@ provider "registry.terraform.io/test/bar" {
 
 provider "registry.terraform.io/test/baz" {
   version = "1.2.0"
+}
+
+provider "registry.terraform.io/test/boo" {
+  version     = "1.2.0"
+  constraints = "1.2.0"
 }
 
 provider "registry.terraform.io/test/foo" {
