@@ -727,7 +727,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		// Planned resources are temporarily stored in state with empty values,
-		// and need to be replaced bu the planned value here.
+		// and need to be replaced by the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
 			if change == nil {
 				// If the object is in planned status then we should not get
@@ -752,6 +752,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				continue
 			}
 
+			// If our schema contains sensitive values, mark those as sensitive
+			if schema.ContainsSensitive() {
+				val = markProviderSensitiveAttributes(schema, val)
+			}
 			instances[key] = val
 			continue
 		}
@@ -768,7 +772,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			})
 			continue
 		}
-		instances[key] = ios.Value
+
+		val := ios.Value
+		// If our schema contains sensitive values, mark those as sensitive
+		if schema.ContainsSensitive() {
+			val = markProviderSensitiveAttributes(schema, val)
+		}
+		instances[key] = val
 	}
 
 	var ret cty.Value
@@ -934,4 +944,52 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 	default:
 		return addr.String()
 	}
+}
+
+// markProviderSensitiveAttributes returns an updated value
+// where attributes that are Sensitive are marked
+func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value) cty.Value {
+	return val.MarkWithPaths(getValMarks(schema, val, nil))
+}
+
+func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty.PathValueMarks {
+	var pvm []cty.PathValueMarks
+	for name, attrS := range schema.Attributes {
+		if attrS.Sensitive {
+			// Create a copy of the path, with this step added, to add to our PathValueMarks slice
+			attrPath := make(cty.Path, len(path), len(path)+1)
+			copy(attrPath, path)
+			attrPath = append(path, cty.GetAttrStep{Name: name})
+			pvm = append(pvm, cty.PathValueMarks{
+				Path:  attrPath,
+				Marks: cty.NewValueMarks("sensitive"),
+			})
+		}
+	}
+
+	for name, blockS := range schema.BlockTypes {
+		// If our block doesn't contain any sensitive attributes, skip inspecting it
+		if !blockS.Block.ContainsSensitive() {
+			continue
+		}
+		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
+		blockPath := make(cty.Path, len(path), len(path)+1)
+		copy(blockPath, path)
+		blockPath = append(path, cty.GetAttrStep{Name: name})
+
+		blockV := val.GetAttr(name)
+		switch blockS.Nesting {
+		case configschema.NestingSingle, configschema.NestingGroup:
+			pvm = append(pvm, getValMarks(&blockS.Block, blockV, blockPath)...)
+		case configschema.NestingList, configschema.NestingMap, configschema.NestingSet:
+			for it := blockV.ElementIterator(); it.Next(); {
+				idx, blockEV := it.Element()
+				morePaths := getValMarks(&blockS.Block, blockEV, append(blockPath, cty.IndexStep{Key: idx}))
+				pvm = append(pvm, morePaths...)
+			}
+		default:
+			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
+		}
+	}
+	return pvm
 }
