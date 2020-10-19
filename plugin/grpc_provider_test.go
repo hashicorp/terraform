@@ -310,6 +310,38 @@ func TestGRPCProvider_ReadResourceJSON(t *testing.T) {
 	}
 }
 
+func TestGRPCProvider_ReadEmptyJSON(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ReadResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ReadResource_Response{
+		NewState: &proto.DynamicValue{
+			Json: []byte(``),
+		},
+	}, nil)
+
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("foo"),
+	})
+	resp := p.ReadResource(providers.ReadResourceRequest{
+		TypeName:   "resource",
+		PriorState: obj,
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expected := cty.NullVal(obj.Type())
+
+	if !cmp.Equal(expected, resp.NewState, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expected, resp.NewState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
 func TestGRPCProvider_PlanResourceChange(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
