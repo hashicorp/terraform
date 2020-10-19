@@ -162,7 +162,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseRootModuleTransformer{},
 
 		// Perform the transitive reduction to make our graph a bit
-		// more sane if possible (it usually is possible).
+		// more understandable if possible (it usually is possible).
 		&TransitiveReductionTransformer{},
 	}
 
