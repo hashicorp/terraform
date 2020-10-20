@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"syscall"
 )
@@ -12,8 +13,9 @@ import (
 // These are the environmental variables that determine if we log, and if
 // we log whether or not the log should go to a file.
 const (
-	EnvLog     = "TF_LOG"      // Set to True
-	EnvLogFile = "TF_LOG_PATH" // Set to a file
+	EnvLog              = "TF_LOG"      // Set to True
+	EnvLogFile          = "TF_LOG_PATH" // Set to a file
+	EnvLogPatternPrefix = "TF_LOG_PATTERN_"
 )
 
 // ValidLevels are the log level names that Terraform recognizes.
@@ -23,8 +25,10 @@ var ValidLevels = []LogLevel{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
 func LogOutput() (logOutput io.Writer, err error) {
 	logOutput = ioutil.Discard
 
+	logPatterns := WhitelistedLogPatterns()
 	logLevel := CurrentLogLevel()
-	if logLevel == "" {
+
+	if logLevel == "" && len(logPatterns) == 0 {
 		return
 	}
 
@@ -45,8 +49,9 @@ func LogOutput() (logOutput io.Writer, err error) {
 	// Otherwise we'll use our level filter, which is a heuristic-based
 	// best effort thing that is not totally reliable but helps to reduce
 	// the volume of logs in some cases.
-	logOutput = &LevelFilter{
+	logOutput = &LogFilter{
 		Levels:   ValidLevels,
+		Patterns: logPatterns,
 		MinLevel: LogLevel(logLevel),
 		Writer:   logOutput,
 	}
@@ -90,6 +95,34 @@ func CurrentLogLevel() string {
 	}
 
 	return logLevel
+}
+
+// WhitelistedLogPatterns returns a list of whitelisted log line patterns.
+// Matching lines will be logged regardless of the log level.
+func WhitelistedLogPatterns() []*regexp.Regexp {
+	patterns := make([]*regexp.Regexp, 0, 0)
+
+	environ := os.Environ()
+
+	for _, e := range environ {
+		if !strings.HasPrefix(e, EnvLogPatternPrefix) {
+			continue
+		}
+
+		splits := strings.SplitN(e, "=", 2)
+		envVarName := splits[0]
+		envVarValue := splits[1]
+
+		pattern, err := regexp.Compile(envVarValue)
+
+		if err != nil {
+			log.Fatalln("Can not compile "+envVarName+":", err)
+		}
+
+		patterns = append(patterns, pattern)
+	}
+
+	return patterns
 }
 
 // IsDebugOrHigher returns whether or not the current log level is debug or trace

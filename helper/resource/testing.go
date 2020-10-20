@@ -423,7 +423,7 @@ func LogOutput(t TestT) (logOutput io.Writer, err error) {
 	}
 
 	// This was the default since the beginning
-	logOutput = &logging.LevelFilter{
+	logOutput = &logging.LogFilter{
 		Levels:   logging.ValidLevels,
 		MinLevel: logging.LogLevel(logLevel),
 		Writer:   logOutput,

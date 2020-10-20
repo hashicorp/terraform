@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"regexp"
 	"testing"
 )
 
 func TestLevelFilter_impl(t *testing.T) {
-	var _ io.Writer = new(LevelFilter)
+	var _ io.Writer = new(LogFilter)
 }
 
 func TestLevelFilter(t *testing.T) {
 	buf := new(bytes.Buffer)
-	filter := &LevelFilter{
+	filter := &LogFilter{
 		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
 		MinLevel: "WARN",
 		Writer:   buf,
@@ -32,7 +33,7 @@ func TestLevelFilter(t *testing.T) {
 }
 
 func TestLevelFilterCheck(t *testing.T) {
-	filter := &LevelFilter{
+	filter := &LogFilter{
 		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
 		MinLevel: "WARN",
 		Writer:   nil,
@@ -56,8 +57,33 @@ func TestLevelFilterCheck(t *testing.T) {
 	}
 }
 
+func TestLevelFilterCheckWithoutMinLevel(t *testing.T) {
+	filter := &LogFilter{
+		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
+		MinLevel: "",
+		Writer:   nil,
+	}
+
+	testCases := []struct {
+		line  string
+		check bool
+	}{
+		{"[WARN] foo\n", false},
+		{"[ERROR] bar\n", false},
+		{"[DEBUG] baz\n", false},
+		{"[WARN] buzz\n", false},
+	}
+
+	for _, testCase := range testCases {
+		result := filter.Check([]byte(testCase.line))
+		if result != testCase.check {
+			t.Errorf("Fail: %s", testCase.line)
+		}
+	}
+}
+
 func TestLevelFilter_SetMinLevel(t *testing.T) {
-	filter := &LevelFilter{
+	filter := &LogFilter{
 		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
 		MinLevel: "ERROR",
 		Writer:   nil,
@@ -87,6 +113,35 @@ func TestLevelFilter_SetMinLevel(t *testing.T) {
 	for _, testCase := range testCases {
 		result := filter.Check([]byte(testCase.line))
 		if result != testCase.checkAfter {
+			t.Errorf("Fail: %s", testCase.line)
+		}
+	}
+}
+
+func TestPatternFilterCheck(t *testing.T) {
+	filter := &LogFilter{
+		Levels:   []LogLevel{"DEBUG", "WARN", "ERROR"},
+		MinLevel: "",
+		Patterns: []*regexp.Regexp{
+			regexp.MustCompile("whitelisted log line"),
+		},
+		Writer: nil,
+	}
+
+	testCases := []struct {
+		line  string
+		check bool
+	}{
+		{"[WARN] foo\n", false},
+		{"[ERROR] bar\n", false},
+		{"[DEBUG] baz\n", false},
+		{"[WARN] buzz\n", false},
+		{"whitelisted log line\n", true},
+	}
+
+	for _, testCase := range testCases {
+		result := filter.Check([]byte(testCase.line))
+		if result != testCase.check {
 			t.Errorf("Fail: %s", testCase.line)
 		}
 	}
