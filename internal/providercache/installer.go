@@ -576,5 +576,5 @@ func (err InstallerError) Error() string {
 		providerErr := err.ProviderErrors[addr]
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
-	return b.String()
+	return strings.TrimSpace(b.String())
 }
