@@ -27,6 +27,12 @@ import (
 // in a leftover temporary file.
 func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	dir, file := filepath.Split(filename)
+	if dir == "" {
+		// If the file is in the current working directory then dir will
+		// end up being "", but that's not right here because TempFile
+		// treats an empty dir as meaning "use the TMPDIR environment variable".
+		dir = "."
+	}
 	f, err := ioutil.TempFile(dir, file) // alongside target file and with a similar name
 	if err != nil {
 		return fmt.Errorf("cannot create temporary file to update %s: %s", filename, err)
