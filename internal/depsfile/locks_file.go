@@ -31,12 +31,32 @@ import (
 // If the returned diagnostics contains errors then the returned Locks may
 // be incomplete or invalid.
 func LoadLocksFromFile(filename string) (*Locks, tfdiags.Diagnostics) {
+	return loadLocks(func(parser *hclparse.Parser) (*hcl.File, hcl.Diagnostics) {
+		return parser.ParseHCLFile(filename)
+	})
+}
+
+// LoadLocksFromBytes reads locks from the given byte array, pretending that
+// it was read from the given filename.
+//
+// The constraints and behaviors are otherwise the same as for
+// LoadLocksFromFile. LoadLocksFromBytes is primarily to allow more convenient
+// integration testing (avoiding creating temporary files on disk); if you
+// are writing non-test code, consider whether LoadLocksFromFile might be
+// more appropriate to call.
+func LoadLocksFromBytes(src []byte, filename string) (*Locks, tfdiags.Diagnostics) {
+	return loadLocks(func(parser *hclparse.Parser) (*hcl.File, hcl.Diagnostics) {
+		return parser.ParseHCL(src, filename)
+	})
+}
+
+func loadLocks(loadParse func(*hclparse.Parser) (*hcl.File, hcl.Diagnostics)) (*Locks, tfdiags.Diagnostics) {
 	ret := NewLocks()
 
 	var diags tfdiags.Diagnostics
 
 	parser := hclparse.NewParser()
-	f, hclDiags := parser.ParseHCLFile(filename)
+	f, hclDiags := loadParse(parser)
 	ret.sources = parser.Sources()
 	diags = diags.Append(hclDiags)
 
