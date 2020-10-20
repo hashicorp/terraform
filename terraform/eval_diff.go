@@ -202,24 +202,24 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
+	// Create an unmarked version of our config val and our prior val.
+	// Store the paths for the config val to re-markafter
+	// we've sent things over the wire.
+	unmarkedConfigVal, unmarkedPaths := origConfigVal.UnmarkDeepWithPaths()
+	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
+
 	// ignore_changes is meant to only apply to the configuration, so it must
 	// be applied before we generate a plan. This ensures the config used for
 	// the proposed value, the proposed value itself, and the config presented
 	// to the provider in the PlanResourceChange request all agree on the
 	// starting values.
-	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal)
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(unmarkedPriorVal, unmarkedConfigVal)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, diags.Err()
 	}
 
-	// Create an unmarked version of our config val and our prior val.
-	// Store the paths for the config val to re-markafter
-	// we've sent things over the wire.
-	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
-	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
-
-	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
+	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, configValIgnored)
 
 	// Call pre-diff hook
 	if !n.Stub {
@@ -238,7 +238,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	validateResp := provider.ValidateResourceTypeConfig(
 		providers.ValidateResourceTypeConfigRequest{
 			TypeName: n.Addr.Resource.Type,
-			Config:   unmarkedConfigVal,
+			Config:   configValIgnored,
 		},
 	)
 	if validateResp.Diagnostics.HasErrors() {
@@ -247,7 +247,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Type,
-		Config:           unmarkedConfigVal,
+		Config:           configValIgnored,
 		PriorState:       unmarkedPriorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
@@ -286,7 +286,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, configValIgnored, plannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
