@@ -4667,6 +4667,65 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 	}), ric.After)
 }
 
+func TestContext2Plan_ignoreChangesSensitive(t *testing.T) {
+	m := testModule(t, "plan-ignore-changes-sensitive")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","type":"aws_instance"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("ami-1234abcd"),
+				SourceType: ValueFromCaller,
+			},
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetSchemaReturn.ResourceTypes["aws_instance"]
+	ty := schema.ImpliedType()
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatal("expected 1 changes, got", len(plan.Changes.Resources))
+	}
+
+	res := plan.Changes.Resources[0]
+	ric, err := res.Decode(ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ric.Addr.String() != "aws_instance.foo" {
+		t.Fatalf("unexpected resource: %s", ric.Addr)
+	}
+
+	checkVals(t, objectVal(t, schema, map[string]cty.Value{
+		"id":   cty.StringVal("bar"),
+		"ami":  cty.StringVal("ami-abcd1234"),
+		"type": cty.StringVal("aws_instance"),
+	}), ric.After)
+}
+
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	m := testModule(t, "plan-module-map-literal")
 	p := testProvider("aws")
