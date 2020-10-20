@@ -18,8 +18,8 @@ import (
 	"golang.org/x/net/idna"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -68,11 +68,7 @@ func newHTTPMirrorSourceWithHTTPClient(baseURL *url.URL, creds svcauth.Credentia
 	retryableClient.RequestLogHook = requestLogHook
 	retryableClient.ErrorHandler = maxRetryErrorHandler
 
-	logOutput, err := logging.LogOutput()
-	if err != nil {
-		log.Printf("[WARN] Failed to set up provider HTTP mirror logger, so continuing without client logging: %s", err)
-	}
-	retryableClient.Logger = log.New(logOutput, "", log.Flags())
+	retryableClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
 
 	return &HTTPMirrorSource{
 		baseURL:    baseURL,

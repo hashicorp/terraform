@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -77,7 +78,11 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 				subDiags := g.walk(walker)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
-					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors", dag.VertexName(v))
+					var errs []string
+					for _, d := range subDiags {
+						errs = append(errs, d.Description().Summary)
+					}
+					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors: %s", dag.VertexName(v), strings.Join(errs, ","))
 					return
 				}
 				log.Printf("[TRACE] vertex %q: dynamic subgraph completed successfully", dag.VertexName(v))

@@ -2,30 +2,20 @@ package inmem
 
 import (
 	"flag"
-	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/logging"
 	statespkg "github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/remote"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-
-	if testing.Verbose() {
-		// if we're verbose, use the logging requested by TF_LOG
-		logging.SetOutput()
-	} else {
-		// otherwise silence all logs
-		log.SetOutput(ioutil.Discard)
-	}
-
 	os.Exit(m.Run())
 }
 

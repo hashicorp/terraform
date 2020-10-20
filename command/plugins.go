@@ -14,6 +14,7 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
+	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/provisioners"
@@ -167,6 +168,8 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 		Managed:          true,
 		VersionedPlugins: tfplugin.VersionedPlugins,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		AutoMTLS:         enableProviderAutoMTLS,
+		Logger:           logging.NewHCLogger("plugin"),
 	}
 
 	return plugin.NewClient(cfg), nil
@@ -174,7 +177,16 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 
 func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
 	return func() (provisioners.Interface, error) {
-		client := tfplugin.Client(meta)
+		cfg := &plugin.ClientConfig{
+			Cmd:              exec.Command(meta.Path),
+			HandshakeConfig:  tfplugin.Handshake,
+			VersionedPlugins: tfplugin.VersionedPlugins,
+			Managed:          true,
+			Logger:           logging.NewHCLogger("provisioner"),
+			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+			AutoMTLS:         enableProviderAutoMTLS,
+		}
+		client := plugin.NewClient(cfg)
 		return newProvisionerClient(client)
 	}
 }

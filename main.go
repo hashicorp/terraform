@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-colorable"
@@ -37,8 +36,6 @@ const (
 )
 
 func main() {
-	// Override global prefix set by go-dynect during init()
-	log.SetPrefix("")
 	os.Exit(realMain())
 }
 
@@ -51,13 +48,6 @@ func realMain() int {
 	}
 
 	if !panicwrap.Wrapped(&wrapConfig) {
-		// Determine where logs should go in general (requested by the user)
-		logWriter, err := logging.LogOutput()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't setup log output: %s", err)
-			return 1
-		}
-
 		// We always send logs to a temporary file that we use in case
 		// there is a panic. Otherwise, we delete it.
 		logTempFile, err := ioutil.TempFile("", "terraform-log")
@@ -76,7 +66,7 @@ func realMain() int {
 
 		// Create the configuration for panicwrap and wrap our executable
 		wrapConfig.Handler = panicHandler(logTempFile)
-		wrapConfig.Writer = io.MultiWriter(logTempFile, logWriter)
+		wrapConfig.Writer = os.Stderr
 		wrapConfig.Stdout = outW
 		wrapConfig.IgnoreSignals = ignoreSignals
 		wrapConfig.ForwardSignals = forwardSignals
@@ -122,7 +112,6 @@ func init() {
 func wrappedMain() int {
 	var err error
 
-	log.SetOutput(os.Stderr)
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",
 		Version, VersionPrerelease, GitCommit)

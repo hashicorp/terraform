@@ -4,7 +4,6 @@ import (
 	"flag"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,13 +18,14 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/helper/experiment"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/registry"
 	"github.com/hashicorp/terraform/states"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // This is the directory where our test fixtures are.
@@ -38,14 +38,6 @@ func TestMain(m *testing.M) {
 
 	experiment.Flag(flag.CommandLine)
 	flag.Parse()
-
-	if testing.Verbose() {
-		// if we're verbose, use the logging requested by TF_LOG
-		logging.SetOutput()
-	} else {
-		// otherwise silence all logs
-		log.SetOutput(ioutil.Discard)
-	}
 
 	// Make sure shadow operations fail our real tests
 	contextFailOnShadowError = true
