@@ -218,8 +218,10 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		// Anything goes, then
 		return errs
 	}
-	if problems := planned.Type().TestConformance(actual.Type()); len(problems) > 0 {
-		errs = append(errs, problems...)
+	if problems := actual.Type().TestConformance(planned.Type()); len(problems) > 0 {
+		for _, p := range problems {
+			errs = append(errs, path.NewErrorf("wrong final value type: %s", p))
+		}
 		// If the types don't match then we can't do any other comparisons,
 		// so we bail early.
 		return errs

@@ -264,7 +264,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				"stuff": cty.True,
 			}),
 			[]string{
-				`.stuff: wrong final value type: string required`,
+				`.stuff: wrong final value type: string required, but received bool`,
 			},
 		},
 		{
@@ -314,7 +314,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				"stuff": cty.EmptyObjectVal,
 			}),
 			[]string{
-				`.stuff: wrong final value type: attribute "nonsense" is required`,
+				`.stuff: wrong final value type: missing required attribute "nonsense"`,
 			},
 		},
 		{
