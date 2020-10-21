@@ -123,7 +123,7 @@ available versions for a given fully-qualified module.
 
 | Method | Path                                  | Produces                   |
 | ------ | ------------------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:system/versions`   | `application/json`         |
+| `GET`  | `:namespace/:name/:provider/versions`   | `application/json`         |
 
 ### Parameters
 
@@ -133,7 +133,7 @@ available versions for a given fully-qualified module.
 - `name` `(string: <required>)` - The name of the module.
   This is required and is specified as part of the URL path.
 
-- `system` `(string: <required>)` - The name of the target system.
+- `provider` `(string: <required>)` - The name of the target system.
   This is required and is specified as part of the URL path.
 
 ### Sample Request
@@ -177,7 +177,7 @@ This endpoint downloads the specified version of a module for a single provider.
 
 | Method | Path                                                   | Produces                   |
 | ------ | ------------------------------------------------------ | -------------------------- |
-| `GET`  | `:namespace/:name/:system/:version/download`           | `application/json`         |
+| `GET`  | `:namespace/:name/:provider/:version/download`           | `application/json`         |
 
 ### Parameters
 
@@ -187,7 +187,7 @@ This endpoint downloads the specified version of a module for a single provider.
 - `name` `(string: <required>)` - The name of the module.
   This is required and is specified as part of the URL path.
 
-- `system` `(string: <required>)` - The name of the target system.
+- `provider` `(string: <required>)` - The name of the target system.
   This is required and is specified as part of the URL path.
 
 - `version` `(string: <required>)` - The version of the module.
