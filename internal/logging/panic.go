@@ -60,6 +60,9 @@ func PanicHandler(logF *os.File) panicwrap.HandlerFunc {
 			return
 		}
 
+		// add the trace back to the log
+		f.WriteString("\n" + m)
+
 		// Tell the user a crash occurred in some helpful way that
 		// they'll hopefully notice.
 		fmt.Printf("\n\n")
