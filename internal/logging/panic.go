@@ -37,7 +37,7 @@ on the issue tracker.
 // within Terraform. It is guaranteed to run after the resulting process has
 // exited so we can take the log file, add in the panic, and store it
 // somewhere locally.
-func PanicHandler(logF *os.File) panicwrap.HandlerFunc {
+func PanicHandler(tmpLogPath string) panicwrap.HandlerFunc {
 	return func(m string) {
 		// Create the crash log file where we'll write the logs
 		f, err := ioutil.TempFile(".", "crash.*.log")
@@ -47,15 +47,16 @@ func PanicHandler(logF *os.File) panicwrap.HandlerFunc {
 		}
 		defer f.Close()
 
-		// Seek the log file back to the beginning
-		if _, err = logF.Seek(0, 0); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to seek log file for crash: %s", err)
+		tmpLog, err := os.Open(tmpLogPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to open log file %q: %v\n", tmpLogPath, err)
 			return
 		}
+		defer tmpLog.Close()
 
 		// Copy the contents to the crash file. This will include
 		// the panic that just happened.
-		if _, err = io.Copy(f, logF); err != nil {
+		if _, err = io.Copy(f, tmpLog); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write crash log: %s", err)
 			return
 		}

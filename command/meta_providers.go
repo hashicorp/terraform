@@ -335,7 +335,7 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logging.NewHCLogger("plugin"),
+			Logger:           logging.NewProviderLogger(),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          true,
 			Cmd:              exec.Command(execFile),

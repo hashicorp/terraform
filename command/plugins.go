@@ -169,7 +169,7 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 		VersionedPlugins: tfplugin.VersionedPlugins,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		AutoMTLS:         enableProviderAutoMTLS,
-		Logger:           logging.NewHCLogger("plugin"),
+		Logger:           logging.NewProviderLogger(),
 	}
 
 	return plugin.NewClient(cfg), nil

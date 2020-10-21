@@ -30,6 +30,9 @@ import (
 const (
 	// EnvCLI is the environment variable name to set additional CLI args.
 	EnvCLI = "TF_CLI_ARGS"
+
+	// The parent process will create a file to collect crash logs
+	envTmpLogPath = "TF_TEMP_LOG_PATH"
 )
 
 func main() {
@@ -52,11 +55,16 @@ func realMain() int {
 			fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
 			return 1
 		}
+		// Now that we have the file, close it and leave it for the wrapped
+		// process to write to.
+		logTempFile.Close()
 		defer os.Remove(logTempFile.Name())
-		defer logTempFile.Close()
+
+		// store the path in the environment for the wrapped executable
+		os.Setenv(envTmpLogPath, logTempFile.Name())
 
 		// Create the configuration for panicwrap and wrap our executable
-		wrapConfig.Handler = logging.PanicHandler(logTempFile)
+		wrapConfig.Handler = logging.PanicHandler(logTempFile.Name())
 		wrapConfig.IgnoreSignals = ignoreSignals
 		wrapConfig.ForwardSignals = forwardSignals
 		exitStatus, err := panicwrap.Wrap(&wrapConfig)
@@ -82,6 +90,20 @@ func init() {
 
 func wrappedMain() int {
 	var err error
+
+	tmpLogPath := os.Getenv(envTmpLogPath)
+	if tmpLogPath != "" {
+		f, err := os.OpenFile(tmpLogPath, os.O_RDWR|os.O_APPEND, 0666)
+		if err == nil {
+			defer os.Remove(f.Name())
+			defer f.Close()
+
+			log.Printf("[DEBUG] Adding temp file log sink: %s", f.Name())
+			logging.RegisterSink(f)
+		} else {
+			log.Printf("[ERROR] Could not open temp log file: %v", err)
+		}
+	}
 
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",
