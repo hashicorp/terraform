@@ -250,17 +250,9 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	// convert the slashes if building for windows.
 	p := filepath.FromSlash("./cache")
 	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR="+p)
-	cmd.Stdin = nil
-	cmd.Stderr = &bytes.Buffer{}
-
 	err = cmd.Run()
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
-	}
-
-	stderr := cmd.Stderr.(*bytes.Buffer).String()
-	if stderr != "" {
-		t.Errorf("unexpected stderr output:\n%s\n", stderr)
 	}
 
 	path := filepath.FromSlash(fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
@@ -375,13 +367,13 @@ func TestInitProviderWarnings(t *testing.T) {
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
-	stdout, _, err := tf.Run("init")
+	_, stderr, err := tf.Run("init")
 	if err == nil {
 		t.Fatal("expected error, got success")
 	}
 
-	if !strings.Contains(stdout, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
-		t.Errorf("expected warning message is missing from output:\n%s", stdout)
+	if !strings.Contains(stderr, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
+		t.Errorf("expected warning message is missing from output:\n%s", stderr)
 	}
 
 }

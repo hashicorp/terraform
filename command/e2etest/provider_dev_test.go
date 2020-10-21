@@ -70,7 +70,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	if got, want := stdout, `The configuration is valid, but`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the success message\nwant: %s\n%s", want, got)
 	}
-	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
+	if got, want := stderr, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
 }
