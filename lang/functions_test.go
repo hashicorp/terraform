@@ -806,6 +806,20 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"textdecodebase64": {
+			{
+				`textdecodebase64("dABlAHMAdAA=", "UTF-16LE")`,
+				cty.StringVal("test"),
+			},
+		},
+
+		"textencodebase64": {
+			{
+				`textencodebase64("test", "UTF-16LE")`,
+				cty.StringVal("dABlAHMAdAA="),
+			},
+		},
+
 		"templatefile": {
 			{
 				`templatefile("hello.tmpl", {name = "Jodie"})`,

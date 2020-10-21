@@ -113,6 +113,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"sum":              funcs.SumFunc,
+			"textdecodebase64": funcs.TextDecodeBase64Func,
+			"textencodebase64": funcs.TextEncodeBase64Func,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
 			"title":            stdlib.TitleFunc,

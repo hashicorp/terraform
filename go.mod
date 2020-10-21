@@ -129,6 +129,7 @@ require (
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20191203134012-c197fd4bf371
 	google.golang.org/api v0.9.0
 	google.golang.org/grpc v1.27.1
