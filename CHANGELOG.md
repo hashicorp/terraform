@@ -3,7 +3,7 @@
 BUG FIXES:
 * terraform: fix issue where the provider configuration was not properly attached to the configured provider source address by localname [GH-26567]
 * core: fix a performance issue when a resource contains a very large and deeply nested schema [GH-26577]
-* backend/azurerm: fix an issue when using the metadata host to lookup environemnts [GH-26463]
+* backend/azurerm: fix an issue when using the metadata host to lookup environments [GH-26463]
 
 ## 0.13.4 (September 30, 2020)
 
