@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
@@ -65,8 +66,7 @@ func realMain() int {
 		go copyOutput(outR, doneCh)
 
 		// Create the configuration for panicwrap and wrap our executable
-		wrapConfig.Handler = panicHandler(logTempFile)
-		wrapConfig.Writer = os.Stderr
+		wrapConfig.Handler = logging.PanicHandler(logTempFile)
 		wrapConfig.Stdout = outW
 		wrapConfig.IgnoreSignals = ignoreSignals
 		wrapConfig.ForwardSignals = forwardSignals
