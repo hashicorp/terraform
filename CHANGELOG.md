@@ -4,6 +4,10 @@ ENHANCEMENTS:
 
 * Improved support for Windows console UI, including bold colors and underline for HCL diagnostics [GH-26588]
 
+BUG FIXES:
+
+* command: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. [GH-26509]
+
 ## Previous Releases
 
 For information on prior major releases, see their changelogs:
