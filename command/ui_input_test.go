@@ -97,3 +97,23 @@ func TestUIInputInput_spaces(t *testing.T) {
 		t.Fatalf("unexpected input: %s", v)
 	}
 }
+
+func TestUIInputInput_Error(t *testing.T) {
+	i := &UIInput{
+		Reader: bytes.NewBuffer(nil),
+		Writer: bytes.NewBuffer(nil),
+	}
+
+	v, err := i.Input(context.Background(), &terraform.InputOpts{})
+	if err == nil {
+		t.Fatalf("Error is not 'nil'")
+	}
+
+	if err.Error() != "EOF" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if v != "" {
+		t.Fatalf("input must be empty")
+	}
+}
