@@ -17,9 +17,10 @@ ENHANCEMENTS:
 
 * `terraform plan` and `terraform apply`: Added an experimental concise diff renderer. By default, Terraform plans now hide most unchanged fields, only displaying the most relevant changes and some identifying context. This experiment can be disabled by setting a `TF_X_CONCISE_DIFF` environment variable to `0`. ([#26187](https://github.com/hashicorp/terraform/issues/26187))
 * cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. ([#26087](https://github.com/hashicorp/terraform/issues/26087))
-* configs: Added `sensitive` argument for variable blocks, which supresses output where that variable is used ([#26183](https://github.com/hashicorp/terraform/pull/26183))
+* config: Added `sensitive` argument for variable blocks, which supresses output where that variable is used ([#26183](https://github.com/hashicorp/terraform/pull/26183))
 * When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI [GH-26611]
-* configs: Added `alltrue` function, which returns `true` if all elements in the given collection are `true`. This is primarily intended to make it easier to write variable validation conditions which operate on collections. ([#25656](https://github.com/hashicorp/terraform/issues/25656))
+* config: Added `alltrue` function, which returns `true` if all elements in the given collection are `true`. This is primarily intended to make it easier to write variable validation conditions which operate on collections. ([#25656](https://github.com/hashicorp/terraform/issues/25656))
+* config: New functions `textencodebase64` and `textdecodebase64` for encoding text in various character encodings other than UTF-8. [GH-25470]
 * core: `terraform plan` no longer uses a separate refresh phase, all resources are updated on-demand during planning ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * core: `ignore_changes` can now apply to map keys that are not listed in the configuration ([#26421](https://github.com/hashicorp/terraform/issues/26421))
 * `terraform console`: Now has distinct rendering of lists, sets, and tuples, and correctly renders objects with `null` attribute values. ([#26189](https://github.com/hashicorp/terraform/issues/26189))
