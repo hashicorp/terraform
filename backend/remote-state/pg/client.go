@@ -1,12 +1,10 @@
 package pg
 
 import (
-	"crypto/md5"
 	"database/sql"
 	"fmt"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	_ "github.com/lib/pq"
 )
@@ -20,7 +18,7 @@ type RemoteClient struct {
 	info *statemgr.LockInfo
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	query := `SELECT data FROM %s.%s WHERE name = $1`
 	row := c.Client.QueryRow(fmt.Sprintf(query, c.SchemaName, statesTableName), c.Name)
 	var data []byte
@@ -32,11 +30,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	case err != nil:
 		return nil, err
 	default:
-		md5 := md5.Sum(data)
-		return &remote.Payload{
-			Data: data,
-			MD5:  md5[:],
-		}, nil
+		return data, nil
 	}
 }
 

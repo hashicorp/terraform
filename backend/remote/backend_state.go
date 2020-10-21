@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
@@ -24,7 +23,7 @@ type remoteClient struct {
 }
 
 // Get the remote state.
-func (r *remoteClient) Get() (*remote.Payload, error) {
+func (r *remoteClient) Get() ([]byte, error) {
 	ctx := context.Background()
 
 	sv, err := r.client.StateVersions.Current(ctx, r.workspace.ID)
@@ -46,13 +45,7 @@ func (r *remoteClient) Get() (*remote.Payload, error) {
 		return nil, nil
 	}
 
-	// Get the MD5 checksum of the state.
-	sum := md5.Sum(state)
-
-	return &remote.Payload{
-		Data: state,
-		MD5:  sum[:],
-	}, nil
+	return state, nil
 }
 
 // Put the remote state.

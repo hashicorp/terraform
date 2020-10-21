@@ -16,7 +16,6 @@ import (
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/pkg/errors"
 )
@@ -53,23 +52,26 @@ type RemoteClient struct {
 	otsTable             string
 }
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	deadline := time.Now().Add(consistencyRetryTimeout)
 
+	var data []byte
 	// If we have a checksum, and the returned payload doesn't match, we retry
 	// up until deadline.
 	for {
-		payload, err = c.getObj()
+		var err error
+		data, err = c.getObj()
 		if err != nil {
 			return nil, err
 		}
 
-		// If the remote state was manually removed the payload will be nil,
+		// If the remote state was manually removed the data will be nil,
 		// but if there's still a digest entry for that state we will still try
 		// to compare the MD5 below.
 		var digest []byte
-		if payload != nil {
-			digest = payload.MD5
+		if data != nil {
+			checksum := md5.Sum(data)
+			digest = checksum[:]
 		}
 
 		// verify that this state is what we expect
@@ -93,7 +95,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 		break
 	}
-	return payload, nil
+	return data, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {
@@ -410,7 +412,7 @@ func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.stateFile)
 }
 
-func (c *RemoteClient) getObj() (*remote.Payload, error) {
+func (c *RemoteClient) getObj() ([]byte, error) {
 	bucket, err := c.ossClient.Bucket(c.bucketName)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting bucket %s: %#v", c.bucketName, err)
@@ -432,18 +434,15 @@ func (c *RemoteClient) getObj() (*remote.Payload, error) {
 	if _, err := io.Copy(buf, output); err != nil {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
-	sum := md5.Sum(buf.Bytes())
-	payload := &remote.Payload{
-		Data: buf.Bytes(),
-		MD5:  sum[:],
-	}
+
+	data := buf.Bytes()
 
 	// If there was no data, then return nil
-	if len(payload.Data) == 0 {
+	if len(data) == 0 {
 		return nil, nil
 	}
 
-	return payload, nil
+	return data, nil
 }
 
 const errBadChecksumFmt = `state data in OSS does not have the expected content.

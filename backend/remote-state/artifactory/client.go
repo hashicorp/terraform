@@ -1,11 +1,9 @@
 package artifactory
 
 import (
-	"crypto/md5"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/states/remote"
 	artifactory "github.com/lusis/go-artifactory/src/artifactory.v401"
 )
 
@@ -20,7 +18,7 @@ type ArtifactoryClient struct {
 	subpath      string
 }
 
-func (c *ArtifactoryClient) Get() (*remote.Payload, error) {
+func (c *ArtifactoryClient) Get() ([]byte, error) {
 	p := fmt.Sprintf("%s/%s/%s", c.repo, c.subpath, ARTIF_TFSTATE_NAME)
 	output, err := c.nativeClient.Get(p, make(map[string]string))
 	if err != nil {
@@ -30,21 +28,12 @@ func (c *ArtifactoryClient) Get() (*remote.Payload, error) {
 		return nil, err
 	}
 
-	// TODO: migrate to using X-Checksum-Md5 header from artifactory
-	// needs to be exposed by go-artifactory first
-
-	hash := md5.Sum(output)
-	payload := &remote.Payload{
-		Data: output,
-		MD5:  hash[:md5.Size],
-	}
-
 	// If there was no data, then return nil
-	if len(payload.Data) == 0 {
+	if len(output) == 0 {
 		return nil, nil
 	}
 
-	return payload, nil
+	return output, nil
 }
 
 func (c *ArtifactoryClient) Put(data []byte) error {

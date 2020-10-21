@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/go-rootcerts"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -41,7 +40,7 @@ type stateClient struct {
 	conflictHandlingAttempted bool
 }
 
-func (c *stateClient) Get() (*remote.Payload, error) {
+func (c *stateClient) Get() ([]byte, error) {
 	// Make the HTTP request
 	req, err := retryablehttp.NewRequest("GET", c.url().String(), nil)
 	if err != nil {
@@ -87,30 +86,27 @@ func (c *stateClient) Get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("Failed to read remote state: %v", err)
 	}
 
-	// Create the payload
-	payload := &remote.Payload{
-		Data: buf.Bytes(),
-	}
+	data := buf.Bytes()
 
-	if len(payload.Data) == 0 {
+	// If there was no data, then return nil
+	if len(data) == 0 {
 		return nil, nil
 	}
 
-	// Check for the MD5
+	// Verify the MD5 checksum if present
 	if raw := resp.Header.Get("Content-MD5"); raw != "" {
-		md5, err := base64.StdEncoding.DecodeString(raw)
+		expected, err := base64.StdEncoding.DecodeString(raw)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to decode Content-MD5 '%s': %v", raw, err)
+			return nil, fmt.Errorf(
+				"Failed to decode Content-MD5 '%s': %s", raw, err)
 		}
-
-		payload.MD5 = md5
-	} else {
-		// Generate the MD5
-		hash := md5.Sum(payload.Data)
-		payload.MD5 = hash[:]
+		digest := md5.Sum(data)
+		if len(expected) != 0 && !bytes.Equal(expected, digest[:]) {
+			return nil, fmt.Errorf("Remote state does not match the expected hash")
+		}
 	}
 
-	return payload, nil
+	return data, nil
 }
 
 func (c *stateClient) Put(state []byte) error {
@@ -280,7 +276,7 @@ func (c *stateClient) handleConflict(msg string, state []byte) error {
 			return conflictHandlingError(err)
 		}
 
-		currentState, err := terraform.ReadState(bytes.NewReader(payload.Data))
+		currentState, err := terraform.ReadState(bytes.NewReader(payload))
 		if err != nil {
 			return conflictHandlingError(err)
 		}

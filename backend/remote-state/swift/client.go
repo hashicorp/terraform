@@ -3,7 +3,6 @@ package swift
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,7 +13,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -95,7 +93,7 @@ func (c *RemoteClient) ListObjectsNames(prefix string, delim string) ([]string, 
 
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	payload, err := c.get(c.objectName)
 
 	// 404 response is to be expected if the object doesn't already exist!
@@ -248,7 +246,7 @@ may happen later.
 
 }
 
-func (c *RemoteClient) get(object string) (*remote.Payload, error) {
+func (c *RemoteClient) get(object string) ([]byte, error) {
 	log.Printf("[DEBUG] Getting object %s/%s", c.container, object)
 	result := objects.Download(c.client, c.container, object, objects.DownloadOpts{Newest: true})
 
@@ -263,13 +261,7 @@ func (c *RemoteClient) get(object string) (*remote.Payload, error) {
 		return nil, err
 	}
 
-	hash := md5.Sum(bytes)
-	payload := &remote.Payload{
-		Data: bytes,
-		MD5:  hash[:md5.Size],
-	}
-
-	return payload, nil
+	return bytes, nil
 }
 
 func (c *RemoteClient) put(object string, data []byte, deleteAfter int, ifNoneMatch string) error {
@@ -424,7 +416,7 @@ func (c *RemoteClient) lockInfo() (*statemgr.LockInfo, error) {
 
 	info := &statemgr.LockInfo{}
 
-	if err := json.Unmarshal(raw.Data, info); err != nil {
+	if err := json.Unmarshal(raw, info); err != nil {
 		return nil, err
 	}
 

@@ -2,7 +2,6 @@ package etcd
 
 import (
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -11,7 +10,6 @@ import (
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	etcdv3sync "github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -33,7 +31,7 @@ type RemoteClient struct {
 	modRevision int64
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -50,13 +48,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 
 	c.modRevision = res.Kvs[0].ModRevision
 
-	payload := res.Kvs[0].Value
-	md5 := md5.Sum(payload)
-
-	return &remote.Payload{
-		Data: payload,
-		MD5:  md5[:],
-	}, nil
+	return res.Kvs[0].Value, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {

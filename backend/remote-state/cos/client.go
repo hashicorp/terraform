@@ -13,7 +13,6 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -37,10 +36,10 @@ type remoteClient struct {
 }
 
 // Get returns remote state file
-func (c *remoteClient) Get() (*remote.Payload, error) {
+func (c *remoteClient) Get() ([]byte, error) {
 	log.Printf("[DEBUG] get remote state file %s", c.stateFile)
 
-	exists, data, checksum, err := c.getObject(c.stateFile)
+	exists, data, _, err := c.getObject(c.stateFile)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +48,7 @@ func (c *remoteClient) Get() (*remote.Payload, error) {
 		return nil, nil
 	}
 
-	payload := &remote.Payload{
-		Data: data,
-		MD5:  []byte(checksum),
-	}
-
-	return payload, nil
+	return data, nil
 }
 
 // Put put state file to remote

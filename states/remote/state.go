@@ -121,7 +121,7 @@ func (s *State) refreshState() error {
 		return nil
 	}
 
-	stateFile, err := statefile.Read(bytes.NewReader(payload.Data))
+	stateFile, err := statefile.Read(bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}

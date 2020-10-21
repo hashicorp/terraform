@@ -3,14 +3,12 @@ package kubernetes
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +38,7 @@ type RemoteClient struct {
 	workspace              string
 }
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
+func (c *RemoteClient) Get() (payload []byte, err error) {
 	secretName, err := c.createSecretName()
 	if err != nil {
 		return nil, err
@@ -67,13 +65,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 		return nil, err
 	}
 
-	md5 := md5.Sum(state)
-
-	p := &remote.Payload{
-		Data: state,
-		MD5:  md5[:],
-	}
-	return p, nil
+	return state, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {

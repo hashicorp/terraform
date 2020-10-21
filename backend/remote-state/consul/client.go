@@ -15,7 +15,6 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -68,7 +67,7 @@ type RemoteClient struct {
 	sessionCancel context.CancelFunc
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -114,10 +113,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("The remote state does not match the expected hash")
 	}
 
-	return &remote.Payload{
-		Data: payload,
-		MD5:  md5[:],
-	}, nil
+	return payload, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {

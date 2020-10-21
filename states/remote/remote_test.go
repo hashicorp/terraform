@@ -2,7 +2,6 @@ package remote
 
 import (
 	"bytes"
-	"crypto/md5"
 	"encoding/json"
 	"testing"
 
@@ -28,7 +27,7 @@ func testClient(t *testing.T, c Client) {
 	if err != nil {
 		t.Fatalf("get: %s", err)
 	}
-	if !bytes.Equal(p.Data, data) {
+	if !bytes.Equal(p, data) {
 		t.Fatalf("bad: %#v", p)
 	}
 
@@ -57,7 +56,7 @@ func TestRemoteClient_noPayload(t *testing.T) {
 // nilClient returns nil for everything
 type nilClient struct{}
 
-func (nilClient) Get() (*Payload, error) { return nil, nil }
+func (nilClient) Get() ([]byte, error) { return nil, nil }
 
 func (c nilClient) Put([]byte) error { return nil }
 
@@ -76,16 +75,12 @@ type mockClientRequest struct {
 	Content map[string]interface{}
 }
 
-func (c *mockClient) Get() (*Payload, error) {
+func (c *mockClient) Get() ([]byte, error) {
 	c.appendLog("Get", c.current)
 	if c.current == nil {
 		return nil, nil
 	}
-	checksum := md5.Sum(c.current)
-	return &Payload{
-		Data: c.current,
-		MD5:  checksum[:],
-	}, nil
+	return c.current, nil
 }
 
 func (c *mockClient) Put(data []byte) error {
@@ -125,16 +120,12 @@ type mockClientForcePusher struct {
 	log     []mockClientRequest
 }
 
-func (c *mockClientForcePusher) Get() (*Payload, error) {
+func (c *mockClientForcePusher) Get() ([]byte, error) {
 	c.appendLog("Get", c.current)
 	if c.current == nil {
 		return nil, nil
 	}
-	checksum := md5.Sum(c.current)
-	return &Payload{
-		Data: c.current,
-		MD5:  checksum[:],
-	}, nil
+	return c.current, nil
 }
 
 func (c *mockClientForcePusher) Put(data []byte) error {

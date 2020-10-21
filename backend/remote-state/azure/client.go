@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -30,7 +29,7 @@ type RemoteClient struct {
 	snapshot           bool
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	options := blobs.GetInput{}
 	if c.leaseID != "" {
 		options.LeaseID = &c.leaseID
@@ -45,16 +44,14 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, err
 	}
 
-	payload := &remote.Payload{
-		Data: blob.Contents,
-	}
+	data := blob.Contents
 
 	// If there was no data, then return nil
-	if len(payload.Data) == 0 {
+	if len(data) == 0 {
 		return nil, nil
 	}
 
-	return payload, nil
+	return data, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {

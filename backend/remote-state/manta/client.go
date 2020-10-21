@@ -10,7 +10,6 @@ import (
 	"path"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	tritonErrors "github.com/joyent/triton-go/errors"
 	"github.com/joyent/triton-go/storage"
@@ -28,7 +27,7 @@ type RemoteClient struct {
 	statePath     string
 }
 
-func (c *RemoteClient) Get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() ([]byte, error) {
 	output, err := c.storageClient.Objects().Get(context.Background(), &storage.GetObjectInput{
 		ObjectPath: path.Join(mantaDefaultRootStore, c.directoryName, c.keyName),
 	})
@@ -45,16 +44,14 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
 
-	payload := &remote.Payload{
-		Data: buf.Bytes(),
-	}
+	data := buf.Bytes()
 
 	// If there was no data, then return nil
-	if len(payload.Data) == 0 {
+	if len(data) == 0 {
 		return nil, nil
 	}
 
-	return payload, nil
+	return data, nil
 
 }
 

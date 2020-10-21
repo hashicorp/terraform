@@ -12,7 +12,6 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -132,7 +131,7 @@ func (c *httpClient) Unlock(id string) error {
 	}
 }
 
-func (c *httpClient) Get() (*remote.Payload, error) {
+func (c *httpClient) Get() ([]byte, error) {
 	resp, err := c.httpRequest("GET", c.URL, nil, "get state")
 	if err != nil {
 		return nil, err
@@ -163,32 +162,27 @@ func (c *httpClient) Get() (*remote.Payload, error) {
 		return nil, fmt.Errorf("Failed to read remote state: %s", err)
 	}
 
-	// Create the payload
-	payload := &remote.Payload{
-		Data: buf.Bytes(),
-	}
+	data := buf.Bytes()
 
 	// If there was no data, then return nil
-	if len(payload.Data) == 0 {
+	if len(data) == 0 {
 		return nil, nil
 	}
 
-	// Check for the MD5
+	// Verify the MD5 checksum if present
 	if raw := resp.Header.Get("Content-MD5"); raw != "" {
-		md5, err := base64.StdEncoding.DecodeString(raw)
+		expected, err := base64.StdEncoding.DecodeString(raw)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"Failed to decode Content-MD5 '%s': %s", raw, err)
 		}
-
-		payload.MD5 = md5
-	} else {
-		// Generate the MD5
-		hash := md5.Sum(payload.Data)
-		payload.MD5 = hash[:]
+		digest := md5.Sum(data)
+		if len(expected) != 0 && !bytes.Equal(expected, digest[:]) {
+			return nil, fmt.Errorf("Remote state does not match the expected hash")
+		}
 	}
 
-	return payload, nil
+	return data, nil
 }
 
 func (c *httpClient) Put(data []byte) error {

@@ -141,7 +141,7 @@ func TestConsul_largeState(t *testing.T) {
 		// 	t.Fatal("the md5 sums do not match")
 		// }
 
-		if !bytes.Equal(payload, remote.Data) {
+		if !bytes.Equal(payload, remote) {
 			t.Fatal("the data do not match")
 		}
 

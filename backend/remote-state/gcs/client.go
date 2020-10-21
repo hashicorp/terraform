@@ -1,6 +1,8 @@
 package gcs
 
 import (
+	"bytes"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -8,7 +10,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"golang.org/x/net/context"
 )
@@ -25,7 +26,7 @@ type remoteClient struct {
 	encryptionKey  []byte
 }
 
-func (c *remoteClient) Get() (payload *remote.Payload, err error) {
+func (c *remoteClient) Get() ([]byte, error) {
 	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
@@ -46,12 +47,13 @@ func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", c.stateFileURL(), err)
 	}
 
-	result := &remote.Payload{
-		Data: stateFileContents,
-		MD5:  stateFileAttrs.MD5,
+	digest := md5.Sum(stateFileContents)
+	expected := stateFileAttrs.MD5
+	if len(stateFileAttrs.MD5) != 0 && !bytes.Equal(expected, digest[:]) {
+		return nil, fmt.Errorf("Remote state does not match the expected hash")
 	}
 
-	return result, nil
+	return stateFileContents, nil
 }
 
 func (c *remoteClient) Put(data []byte) error {

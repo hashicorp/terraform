@@ -27,8 +27,8 @@ func TestClient(t *testing.T, c Client) {
 	if err != nil {
 		t.Fatalf("get: %s", err)
 	}
-	if !bytes.Equal(p.Data, data) {
-		t.Fatalf("expected full state %q\n\ngot: %q", string(p.Data), string(data))
+	if !bytes.Equal(p, data) {
+		t.Fatalf("expected full state %q\n\ngot: %q", string(p), string(data))
 	}
 
 	if err := c.Delete(); err != nil {
@@ -40,7 +40,7 @@ func TestClient(t *testing.T, c Client) {
 		t.Fatalf("get: %s", err)
 	}
 	if p != nil {
-		t.Fatalf("expected empty state, got: %q", string(p.Data))
+		t.Fatalf("expected empty state, got: %q", string(p))
 	}
 }
 

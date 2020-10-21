@@ -10,7 +10,7 @@ import (
 // driver. It supports dumb put/get/delete, and the higher level structs
 // handle persisting the state properly here.
 type Client interface {
-	Get() (*Payload, error)
+	Get() ([]byte, error)
 	Put([]byte) error
 	Delete() error
 }
@@ -28,12 +28,6 @@ type ClientForcePusher interface {
 type ClientLocker interface {
 	Client
 	statemgr.Locker
-}
-
-// Payload is the return value from the remote state storage.
-type Payload struct {
-	MD5  []byte
-	Data []byte
 }
 
 // Factory is the factory function to create a remote client.
