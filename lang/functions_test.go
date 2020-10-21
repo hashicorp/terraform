@@ -282,13 +282,6 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"decodetextbase64": {
-			{
-				`decodetextbase64("dABlAHMAdAA=", "UTF-16LE")`,
-				cty.StringVal("test"),
-			},
-		},
-
 		"dirname": {
 			{
 				`dirname("testdata/hello.txt")`,
@@ -302,13 +295,6 @@ func TestFunctions(t *testing.T) {
 				cty.ListVal([]cty.Value{
 					cty.StringVal("a"), cty.StringVal("b"),
 				}),
-			},
-		},
-
-		"encodetextbase64": {
-			{
-				`encodetextbase64("test", "UTF-16LE")`,
-				cty.StringVal("dABlAHMAdAA="),
 			},
 		},
 
@@ -817,6 +803,20 @@ func TestFunctions(t *testing.T) {
 			{
 				`sum([2340.5,10,3])`,
 				cty.NumberFloatVal(2353.5),
+			},
+		},
+
+		"textdecodebase64": {
+			{
+				`textdecodebase64("dABlAHMAdAA=", "UTF-16LE")`,
+				cty.StringVal("test"),
+			},
+		},
+
+		"textencodebase64": {
+			{
+				`textencodebase64("test", "UTF-16LE")`,
+				cty.StringVal("dABlAHMAdAA="),
 			},
 		},
 

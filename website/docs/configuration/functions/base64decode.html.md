@@ -31,7 +31,7 @@ most cases. Various other functions with names containing "base64" can generate
 or manipulate Base64 data directly.
 
 `base64decode` is, in effect, a shorthand for calling
-[`decodetextbase64`](./decodetextbase64.html) with the encoding name set to
+[`textdecodebase64`](./textdecodebase64.html) with the encoding name set to
 `UTF-8`.
 
 ## Examples
@@ -45,7 +45,7 @@ Hello World
 
 * [`base64encode`](./base64encode.html) performs the opposite operation,
   encoding the UTF-8 bytes for a string as Base64.
-* [`decodetextbase64`](./decodetextbase64.html) is a more general function that
+* [`textdecodebase64`](./textdecodebase64.html) is a more general function that
   supports character encodings other than UTF-8.
 * [`base64gzip`](./base64gzip.html) applies gzip compression to a string
   and returns the result with Base64 encoding.

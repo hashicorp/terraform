@@ -51,8 +51,8 @@ var Base64EncodeFunc = function.New(&function.Spec{
 	},
 })
 
-// Base64TextDecodeFunc constructs a function that encodes a string to a target encoding and then to a base64 sequence.
-var Base64TextEncodeFunc = function.New(&function.Spec{
+// TextEncodeBase64Func constructs a function that encodes a string to a target encoding and then to a base64 sequence.
+var TextEncodeBase64Func = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "string",
@@ -94,8 +94,8 @@ var Base64TextEncodeFunc = function.New(&function.Spec{
 	},
 })
 
-// Base64TextDecodeFunc constructs a function that decodes a base64 sequence to a target encoding.
-var Base64TextDecodeFunc = function.New(&function.Spec{
+// TextDecodeBase64Func constructs a function that decodes a base64 sequence to a target encoding.
+var TextDecodeBase64Func = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
 			Name: "source",
@@ -229,7 +229,7 @@ func URLEncode(str cty.Value) (cty.Value, error) {
 	return URLEncodeFunc.Call([]cty.Value{str})
 }
 
-// Base64TextEncode applies Base64 encoding to a string that was encoded before with a target encoding.
+// TextEncodeBase64 applies Base64 encoding to a string that was encoded before with a target encoding.
 //
 // Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
 //
@@ -237,17 +237,17 @@ func URLEncode(str cty.Value) (cty.Value, error) {
 // Strings in the Terraform language are sequences of unicode characters rather
 // than bytes, so this function will first encode the characters from the string
 // as UTF-8, and then apply Base64 encoding to the result.
-func Base64TextEncode(str, enc cty.Value) (cty.Value, error) {
-	return Base64TextEncodeFunc.Call([]cty.Value{str, enc})
+func TextEncodeBase64(str, enc cty.Value) (cty.Value, error) {
+	return TextEncodeBase64Func.Call([]cty.Value{str, enc})
 }
 
-// Base64TextDecode decodes a string containing a base64 sequence whereas a specific encoding of the string is expected.
+// TextDecodeBase64 decodes a string containing a base64 sequence whereas a specific encoding of the string is expected.
 //
 // Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
 //
 // Strings in the Terraform language are sequences of unicode characters rather
 // than bytes, so this function will also interpret the resulting bytes as
 // the target encoding.
-func Base64TextDecode(str, enc cty.Value) (cty.Value, error) {
-	return Base64TextDecodeFunc.Call([]cty.Value{str, enc})
+func TextDecodeBase64(str, enc cty.Value) (cty.Value, error) {
+	return TextDecodeBase64Func.Call([]cty.Value{str, enc})
 }
