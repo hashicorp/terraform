@@ -1,16 +1,17 @@
 ---
 layout: "functions"
-page_title: "encodetextbase64 - Functions - Configuration Language"
-sidebar_current: "docs-funcs-encoding-encodetextbase64"
+page_title: "textencodebase64 - Functions - Configuration Language"
+sidebar_current: "docs-funcs-encoding-textencodebase64"
 description: |-
-  The encodetextbase64 function applies Base64 encoding to a string that was encoded to target encoding before.
+  The textencodebase64 function encodes the unicode characters in a given string using a
+specified character encoding, returning the result base64 encoded.
 ---
 
-# `encodetextbase64` Function
+# `textencodebase64` Function
 
 -> **Note:** This function is supported only in Terraform v0.14 and later.
 
-`encodetextbase64` encodes the unicode characters in a given string using a
+`textencodebase64` encodes the unicode characters in a given string using a
 specified character encoding, returning the result base64 encoded because
 Terraform language strings are always sequences of unicode characters.
 
@@ -35,13 +36,13 @@ result as [`base64encode`](./base64encode.html).
 ## Examples
 
 ```
-> encodetextbase64("Hello World", "UTF-16LE")
+> textencodebase64("Hello World", "UTF-16LE")
 SABlAGwAbABvACAAVwBvAHIAbABkAA==
 ```
 
 ## Related Functions
 
-* [`decodetextbase64`](./decodetextbase64.html) performs the opposite operation,
+* [`textdecodebase64`](./textdecodebase64.html) performs the opposite operation,
   decoding Base64 data and interpreting it as a particular character encoding.
 * [`base64encode`](./base64encode.html) applies Base64 encoding of the UTF-8
   encoding of a string.

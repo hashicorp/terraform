@@ -216,8 +216,8 @@ func TestBase64TextEncode(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("encodetextbase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
-			got, err := Base64TextEncode(test.String, test.Encoding)
+		t.Run(fmt.Sprintf("textencodebase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
+			got, err := TextEncodeBase64(test.String, test.Encoding)
 
 			if test.Err != "" {
 				if err == nil {
@@ -296,8 +296,8 @@ func TestBase64TextDecode(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("decodetextbase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
-			got, err := Base64TextDecode(test.String, test.Encoding)
+		t.Run(fmt.Sprintf("textdecodebase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
+			got, err := TextDecodeBase64(test.String, test.Encoding)
 
 			if test.Err != "" {
 				if err == nil {
