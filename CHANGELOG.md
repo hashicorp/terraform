@@ -8,7 +8,7 @@ NEW FEATURES:
     If you wish to retain the previous behavior of always taking the newest version allowed by the version constraints on each install, you can run `terraform init -upgrade` to see that behavior.
     
 UPGRADE NOTES:
-* Outputs that reference sensitive values (including other module outputs marked as `sensitive`, or attributes a provider defines as `sensitive`) must _also_ be defined as sensitive, or Terraform will error at plan.
+* Outputs that reference sensitive values (which includes variables marked as sensitive, other module outputs marked as `sensitive`, or attributes a provider defines as `sensitive`) must _also_ be defined as sensitive, or Terraform will error at plan.
 * The `version` argument inside provider configuration blocks has been documented as deprecated since Terraform 0.12. As of 0.14 it will now also generate an explicit deprecation warning. To avoid the warning, use [provider requirements](https://www.terraform.io/docs/configuration/provider-requirements.html) declarations instead. ([#26135](https://github.com/hashicorp/terraform/issues/26135))
 * The official MacOS builds of Terraform now require MacOS 10.12 Sierra or later. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
 * TLS certificate verification for outbound HTTPS requests from Terraform CLI no longer treats the certificate's "common name" as a valid hostname when the certificate lacks any "subject alternative name" entries for the hostname. TLS server certificates must list their hostnames as a "DNS name" in the subject alternative names field. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
