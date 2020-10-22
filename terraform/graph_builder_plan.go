@@ -191,6 +191,7 @@ func (b *PlanGraphBuilder) init() {
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
+			skipRefresh:                  b.skipRefresh,
 		}
 	}
 }
