@@ -1,6 +1,10 @@
 package terraform
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 )
@@ -30,6 +34,28 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 
 // GraphNodeExecutable
 func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation) error {
+	addr := n.ResourceInstanceAddr()
+
+	// Eval info is different depending on what kind of resource this is
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return n.managedResourceExecute(ctx)
+	case addrs.DataResourceMode:
+		return n.dataResourceExecute(ctx)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
+	}
+}
+
+func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) error {
+	// A data source that is no longer in the config is removed from the state
+	log.Printf("[TRACE] NodePlannableResourceInstanceOrphan: removing state object for %s", n.Addr)
+	state := ctx.RefreshState()
+	state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+	return nil
+}
+
+func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) error {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
