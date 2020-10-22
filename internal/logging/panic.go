@@ -1,8 +1,9 @@
-package main
+package logging
 
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -15,7 +16,7 @@ const panicOutput = `
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Terraform crashed! This is always indicative of a bug within Terraform.
-A crash log has been placed at "crash.log" relative to your current
+A crash log has been placed at %[1]q relative to your current
 working directory. It would be immensely helpful if you could please
 report the crash with Terraform[1] so that we can fix this.
 
@@ -23,7 +24,7 @@ When reporting bugs, please include your terraform version. That
 information is available on the first line of crash.log. You can also
 get it by running 'terraform --version' on the command line.
 
-SECURITY WARNING: the "crash.log" file that was created may contain 
+SECURITY WARNING: the %[1]q file that was created may contain 
 sensitive information that must be redacted before it is safe to share 
 on the issue tracker.
 
@@ -36,36 +37,36 @@ on the issue tracker.
 // within Terraform. It is guaranteed to run after the resulting process has
 // exited so we can take the log file, add in the panic, and store it
 // somewhere locally.
-func panicHandler(logF *os.File) panicwrap.HandlerFunc {
+func PanicHandler(tmpLogPath string) panicwrap.HandlerFunc {
 	return func(m string) {
-		// Right away just output this thing on stderr so that it gets
-		// shown in case anything below fails.
-		fmt.Fprintf(os.Stderr, fmt.Sprintf("%s\n", m))
-
 		// Create the crash log file where we'll write the logs
-		f, err := os.Create("crash.log")
+		f, err := ioutil.TempFile(".", "crash.*.log")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create crash log file: %s", err)
 			return
 		}
 		defer f.Close()
 
-		// Seek the log file back to the beginning
-		if _, err = logF.Seek(0, 0); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to seek log file for crash: %s", err)
+		tmpLog, err := os.Open(tmpLogPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to open log file %q: %v\n", tmpLogPath, err)
 			return
 		}
+		defer tmpLog.Close()
 
 		// Copy the contents to the crash file. This will include
 		// the panic that just happened.
-		if _, err = io.Copy(f, logF); err != nil {
+		if _, err = io.Copy(f, tmpLog); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to write crash log: %s", err)
 			return
 		}
 
+		// add the trace back to the log
+		f.WriteString("\n" + m)
+
 		// Tell the user a crash occurred in some helpful way that
 		// they'll hopefully notice.
 		fmt.Printf("\n\n")
-		fmt.Println(strings.TrimSpace(panicOutput))
+		fmt.Printf(strings.TrimSpace(panicOutput), f.Name())
 	}
 }

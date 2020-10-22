@@ -38,6 +38,23 @@ func init() {
 	log.SetOutput(logWriter)
 }
 
+// SetupTempLog adds a new log sink which writes all logs to the given file.
+func RegisterSink(f *os.File) {
+	l, ok := logger.(hclog.InterceptLogger)
+	if !ok {
+		panic("global logger is not an InterceptLogger")
+	}
+
+	if f == nil {
+		return
+	}
+
+	l.RegisterSink(hclog.NewSinkAdapter(&hclog.LoggerOptions{
+		Level:  hclog.Trace,
+		Output: f,
+	}))
+}
+
 // LogOutput return the default global log io.Writer
 func LogOutput() io.Writer {
 	return logWriter
@@ -65,11 +82,15 @@ func NewHCLogger(name string) hclog.Logger {
 		}
 	}
 
-	return hclog.New(&hclog.LoggerOptions{
+	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   name,
 		Level:  hclog.LevelFromString(logLevel),
 		Output: logOutput,
 	})
+}
+
+func NewProviderLogger() hclog.Logger {
+	return logger.Named("plugin")
 }
 
 // CurrentLogLevel returns the current log level string based the environment vars
@@ -83,11 +104,8 @@ func CurrentLogLevel() string {
 	if isValidLogLevel(envLevel) {
 		logLevel = envLevel
 	} else {
-		log.Printf("[WARN] Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
-			envLevel, ValidLevels)
-	}
-	if logLevel != "TRACE" {
-		log.Printf("[WARN] Log levels other than TRACE are currently unreliable, and are supported only for backward compatibility.\n  Use TF_LOG=TRACE to see Terraform's internal logs.\n  ----")
+		logger.Warn(fmt.Sprintf("Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
+			envLevel, ValidLevels))
 	}
 
 	return logLevel
