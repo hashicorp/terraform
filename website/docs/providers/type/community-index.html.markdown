@@ -82,7 +82,7 @@ please fill out this [community providers form](https://docs.google.com/forms/d/
 - [Foreman - HanseMerkur](https://github.com/HanseMerkur/terraform-provider-foreman)
 - [Fortinet - FortiADC](https://github.com/Ouest-France/terraform-provider-fortiadc)
 - [FreeIPA](https://github.com/camptocamp/terraform-provider-freeipa)
-- [Gandi](https://github.com/tiramiseb/terraform-provider-gandi)
+- [Gandi](https://github.com/go-gandi/terraform-provider-gandi)
 - [Generic Rest API](https://github.com/Mastercard/terraform-provider-restapi)
 - [Git](https://github.com/fourplusone/terraform-provider-git)
 - [GitHub Code Owners](https://github.com/form3tech-oss/terraform-provider-codeowners)
