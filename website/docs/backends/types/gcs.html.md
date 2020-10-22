@@ -10,8 +10,8 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state as an object in a configurable prefix in a given bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
-This backend also supports [state locking](/docs/state/locking.html).
+Stores the state as an object in a configurable prefix in a pre-existing bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
+This backend also supports [state locking](/docs/state/locking.html). The bucket must exist prior to configuring the backend.
 
 ~> **Warning!** It is highly recommended that you enable
 [Object Versioning](https://cloud.google.com/storage/docs/object-versioning)
