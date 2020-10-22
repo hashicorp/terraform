@@ -267,7 +267,6 @@ func TestContext2Apply_resourceDependsOnModule(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(order, []string{"child", "parent"}) {
-		fmt.Println("ORDER:", order)
 		t.Fatal("resources applied out of order")
 	}
 

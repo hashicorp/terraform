@@ -242,14 +242,20 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.R
 		return p.ReadResourceFn(r)
 	}
 
-	// make sure the NewState fits the schema
-	newState, err := p.GetSchemaReturn.ResourceTypes[r.TypeName].CoerceValue(p.ReadResourceResponse.NewState)
-	if err != nil {
-		panic(err)
-	}
 	resp := p.ReadResourceResponse
-	resp.NewState = newState
+	if resp.NewState != cty.NilVal {
+		// make sure the NewState fits the schema
+		// This isn't always the case for the existing tests
+		newState, err := p.GetSchemaReturn.ResourceTypes[r.TypeName].CoerceValue(resp.NewState)
+		if err != nil {
+			panic(err)
+		}
+		resp.NewState = newState
+		return resp
+	}
 
+	// just return the same state we received
+	resp.NewState = r.PriorState
 	return resp
 }
 
