@@ -3,7 +3,6 @@ package logging
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -15,12 +14,18 @@ import (
 // These are the environmental variables that determine if we log, and if
 // we log whether or not the log should go to a file.
 const (
-	EnvLog     = "TF_LOG"      // Set to True
-	EnvLogFile = "TF_LOG_PATH" // Set to a file
+	envLog     = "TF_LOG"
+	envLogFile = "TF_LOG_PATH"
+
+	// Allow logging of specific subsystems.
+	// We only separate core and providers for now, but this could be extended
+	// to other loggers, like provisioners and remote-state backends.
+	envLogCore     = "TF_LOG_CORE"
+	envLogProvider = "TF_LOG_PROVIDER"
 )
 
 // ValidLevels are the log level names that Terraform recognizes.
-var ValidLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}
+var ValidLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"}
 
 // logger is the global hclog logger
 var logger hclog.Logger
@@ -29,7 +34,7 @@ var logger hclog.Logger
 var logWriter io.Writer
 
 func init() {
-	logger = NewHCLogger("")
+	logger = newHCLogger("")
 	logWriter = logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true})
 
 	// setup the default std library logger to use our output
@@ -65,15 +70,12 @@ func HCLogger() hclog.Logger {
 	return logger
 }
 
-// NewHCLogger returns a new hclog.Logger instance with the given name
-func NewHCLogger(name string) hclog.Logger {
+// newHCLogger returns a new hclog.Logger instance with the given name
+func newHCLogger(name string) hclog.Logger {
 	logOutput := io.Writer(os.Stderr)
-	logLevel := CurrentLogLevel()
-	if logLevel == "" {
-		logOutput = ioutil.Discard
-	}
+	logLevel := globalLogLevel()
 
-	if logPath := os.Getenv(EnvLogFile); logPath != "" {
+	if logPath := os.Getenv(envLogFile); logPath != "" {
 		f, err := os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error opening log file: %v\n", err)
@@ -83,29 +85,68 @@ func NewHCLogger(name string) hclog.Logger {
 	}
 
 	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   name,
-		Level:  hclog.LevelFromString(logLevel),
-		Output: logOutput,
+		Name:              name,
+		Level:             logLevel,
+		Output:            logOutput,
+		IndependentLevels: true,
 	})
 }
 
-func NewProviderLogger() hclog.Logger {
-	return logger.Named("plugin")
+// NewLogger returns a new logger based in the current global logger, with the
+// given name appended.
+func NewLogger(name string) hclog.Logger {
+	if name == "" {
+		panic("logger name required")
+	}
+	return logger.Named(name)
+}
+
+// NewProviderLogger returns a logger for the provider plugin, possibly with a
+// different log level from the global logger.
+func NewProviderLogger(prefix string) hclog.Logger {
+	l := logger.Named(prefix + "provider")
+
+	level := providerLogLevel()
+	logger.Debug("created provider logger", "level", level)
+
+	l.SetLevel(level)
+	return l
 }
 
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
-	envLevel := strings.ToUpper(os.Getenv(EnvLog))
-	if envLevel == "" {
-		return ""
+	return strings.ToUpper(globalLogLevel().String())
+}
+
+func providerLogLevel() hclog.Level {
+	providerEnvLevel := strings.ToUpper(os.Getenv(envLogProvider))
+	if providerEnvLevel == "" {
+		providerEnvLevel = strings.ToUpper(os.Getenv(envLog))
 	}
 
-	logLevel := "TRACE"
+	return parseLogLevel(providerEnvLevel)
+}
+
+func globalLogLevel() hclog.Level {
+	envLevel := strings.ToUpper(os.Getenv(envLog))
+	if envLevel == "" {
+		envLevel = strings.ToUpper(os.Getenv(envLogCore))
+
+	}
+	return parseLogLevel(envLevel)
+}
+
+func parseLogLevel(envLevel string) hclog.Level {
+	if envLevel == "" {
+		return hclog.Off
+	}
+
+	logLevel := hclog.Trace
 	if isValidLogLevel(envLevel) {
-		logLevel = envLevel
+		logLevel = hclog.LevelFromString(envLevel)
 	} else {
-		logger.Warn(fmt.Sprintf("Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
-			envLevel, ValidLevels))
+		fmt.Fprintf(os.Stderr, "[WARN] Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
+			envLevel, ValidLevels)
 	}
 
 	return logLevel
@@ -113,8 +154,8 @@ func CurrentLogLevel() string {
 
 // IsDebugOrHigher returns whether or not the current log level is debug or trace
 func IsDebugOrHigher() bool {
-	level := string(CurrentLogLevel())
-	return level == "DEBUG" || level == "TRACE"
+	level := globalLogLevel()
+	return level == hclog.Debug || level == hclog.Trace
 }
 
 func isValidLogLevel(level string) bool {

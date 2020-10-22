@@ -335,7 +335,7 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logging.NewProviderLogger(),
+			Logger:           logging.NewProviderLogger(""),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          true,
 			Cmd:              exec.Command(execFile),
@@ -383,7 +383,7 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logging.NewHCLogger("unmanaged-plugin"),
+			Logger:           logging.NewProviderLogger("unmanaged."),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          false,
 			Reattach:         reattach,

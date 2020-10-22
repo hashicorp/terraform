@@ -169,7 +169,7 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 		VersionedPlugins: tfplugin.VersionedPlugins,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		AutoMTLS:         enableProviderAutoMTLS,
-		Logger:           logging.NewProviderLogger(),
+		Logger:           logging.NewLogger(kind),
 	}
 
 	return plugin.NewClient(cfg), nil
@@ -182,7 +182,7 @@ func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory 
 			HandshakeConfig:  tfplugin.Handshake,
 			VersionedPlugins: tfplugin.VersionedPlugins,
 			Managed:          true,
-			Logger:           logging.NewHCLogger("provisioner"),
+			Logger:           logging.NewLogger("provisioner"),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			AutoMTLS:         enableProviderAutoMTLS,
 		}
