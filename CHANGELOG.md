@@ -49,6 +49,7 @@ BUG FIXES:
 * core: Prevent "Inconsistent Plan" errors when using dynamic with a block of TypeSet [GH-26638]
 * core: Errors with data sources reading old data during refresh, failing to refresh, and not appearing to wait on resource dependencies are fixed by updates to the data source lifecycle and the merging of refresh and plan ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * core: Prevent evaluation of deposed instances, which in turn prevents errors when referencing create_before_destroy resources that have changes to their count or for_each values ([#25631](https://github.com/hashicorp/terraform/issues/25631))
+* internal: Fix locksfile constraint output for versions like "1.2". [GH-26637]
 * lang/funcs: fix panic when `element()` is called with a negative offset ([#26079](https://github.com/hashicorp/terraform/issues/26079))
 * lang/funcs: `lookup()` will now only treat map as unknown if it is wholly unknown ([#26427](https://github.com/hashicorp/terraform/issues/26427))
 * states/remote: fix `state push -force` to work for all backends ([#26190](https://github.com/hashicorp/terraform/issues/26190))
