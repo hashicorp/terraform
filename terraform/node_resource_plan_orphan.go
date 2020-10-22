@@ -9,6 +9,8 @@ import (
 // it is ready to be applied and is represented by a diff.
 type NodePlannableResourceInstanceOrphan struct {
 	*NodeAbstractResourceInstance
+
+	skipRefresh bool
 }
 
 var (
@@ -35,7 +37,7 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
 	}
@@ -43,6 +45,40 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	state, err = n.ReadResourceInstanceState(ctx, addr)
 	if err != nil {
 		return err
+	}
+
+	if !n.skipRefresh {
+		// Refresh this instance even though it is going to be destroyed, in
+		// order to catch missing resources. If this is a normal plan,
+		// providers expect a Read request to remove missing resources from the
+		// plan before apply, and may not handle a missing resource during
+		// Delete correctly.  If this is a simple refresh, Terraform is
+		// expected to remove the missing resource from the state entirely
+		refresh := &EvalRefresh{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			Provider:       &provider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			State:          &state,
+			Output:         &state,
+		}
+		_, err = refresh.Eval(ctx)
+		if err != nil {
+			return err
+		}
+
+		writeRefreshState := &EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderSchema: &providerSchema,
+			State:          &state,
+			targetState:    refreshState,
+		}
+		_, err = writeRefreshState.Eval(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	diffDestroy := &EvalDiffDestroy{
