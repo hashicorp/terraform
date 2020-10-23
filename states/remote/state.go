@@ -125,6 +125,9 @@ func (s *State) refreshState() error {
 	if err != nil {
 		return err
 	}
+	if err := stateFile.CheckTerraformVersion(); err != nil {
+		return err
+	}
 
 	s.lineage = stateFile.Lineage
 	s.serial = stateFile.Serial

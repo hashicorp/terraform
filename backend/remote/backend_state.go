@@ -64,6 +64,9 @@ func (r *remoteClient) Put(state []byte) error {
 	if err != nil {
 		return fmt.Errorf("Error reading state: %s", err)
 	}
+	if err := stateFile.CheckTerraformVersion(); err != nil {
+		return fmt.Errorf("Incompatible statefile: %s", err)
+	}
 
 	options := tfe.StateVersionCreateOptions{
 		Lineage: tfe.String(stateFile.Lineage),

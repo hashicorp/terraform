@@ -63,6 +63,10 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
 		return 1
 	}
+	if err := srcStateFile.CheckTerraformVersion(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Incompatible statefile %q: %s", args[0], err))
+		return 1
+	}
 
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
