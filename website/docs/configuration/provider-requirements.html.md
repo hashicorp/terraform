@@ -250,7 +250,7 @@ Terraform won't be able to guess either provider's name from its resource types,
 so you'll need to specify a `provider` meta-argument for every affected
 resource. However, readers and maintainers of your module will be able to easily
 understand what's happening, and avoiding confusion is much more important than
-avoiding typing.  
+avoiding typing.
 
 ## Version Constraints
 
