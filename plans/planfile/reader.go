@@ -101,7 +101,11 @@ func (r *Reader) ReadStateFile() (*statefile.File, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract state from plan file: %s", err)
 			}
-			return statefile.Read(r)
+			stateFile, err := statefile.Read(r)
+			if err == nil {
+				err = stateFile.CheckTerraformVersion()
+			}
+			return stateFile, err
 		}
 	}
 	return nil, statefile.ErrNoState

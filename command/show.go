@@ -241,6 +241,9 @@ func getStateFromPath(path string) (*statefile.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s as a statefile: %s", path, err)
 	}
+	if err := stateFile.CheckTerraformVersion(); err != nil {
+		return nil, fmt.Errorf("Incompatible statefile %s: %s", path, err)
+	}
 	return stateFile, nil
 }
 

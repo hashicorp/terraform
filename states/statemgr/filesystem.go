@@ -280,6 +280,10 @@ func (s *Filesystem) refreshState() error {
 			return err
 		}
 		log.Printf("[TRACE] statemgr.Filesystem: snapshot file has nil snapshot, but that's okay")
+	} else {
+		if err := f.CheckTerraformVersion(); err != nil {
+			return err
+		}
 	}
 
 	s.file = f
@@ -459,6 +463,10 @@ func (s *Filesystem) createStateFiles() error {
 		}
 		log.Printf("[TRACE] statemgr.Filesystem: no previously-stored snapshot exists")
 	} else {
+		if err := s.backupFile.CheckTerraformVersion(); err != nil {
+			return err
+		}
+
 		log.Printf("[TRACE] statemgr.Filesystem: existing snapshot has lineage %q serial %d", s.backupFile.Lineage, s.backupFile.Serial)
 	}
 
