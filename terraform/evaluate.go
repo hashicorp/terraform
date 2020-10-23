@@ -756,7 +756,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			if schema.ContainsSensitive() {
 				val = markProviderSensitiveAttributes(schema, val)
 			}
-			instances[key] = val
+			instances[key] = val.MarkWithPaths(change.AfterValMarks)
 			continue
 		}
 
