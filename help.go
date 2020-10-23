@@ -13,10 +13,10 @@ import (
 // helpFunc is a cli.HelpFunc that can is used to output the help for Terraform.
 func helpFunc(commands map[string]cli.CommandFactory) string {
 	// Determine the maximum key length, and classify based on type
-	porcelain := make(map[string]cli.CommandFactory)
-	plumbing := make(map[string]cli.CommandFactory)
+	var otherCommands []string
 	maxKeyLen := 0
-	for key, f := range commands {
+
+	for key := range commands {
 		if _, ok := HiddenCommands[key]; ok {
 			// We don't consider hidden commands when deciding the
 			// maximum command length.
@@ -27,12 +27,18 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 			maxKeyLen = len(key)
 		}
 
-		if _, ok := PlumbingCommands[key]; ok {
-			plumbing[key] = f
-		} else {
-			porcelain[key] = f
+		isOther := true
+		for _, candidate := range PrimaryCommands {
+			if candidate == key {
+				isOther = false
+				break
+			}
+		}
+		if isOther {
+			otherCommands = append(otherCommands, key)
 		}
 	}
+	sort.Strings(otherCommands)
 
 	// The output produced by this is included in the docs at
 	// website/source/docs/commands/index.html.markdown; if you
@@ -41,50 +47,41 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 Usage: terraform [global options] <subcommand> [args]
 
 The available commands for execution are listed below.
-The most common, useful commands are shown first, followed by
-less common or more advanced commands. If you're just getting
-started with Terraform, stick with the common commands. For the
-other commands, please read the help and docs before usage.
+The primary workflow commands are given first, followed by
+less common or more advanced commands.
 
-Common commands:
+Main commands:
 %s
 All other commands:
 %s
-
 Global options (use these before the subcommand, if any):
-    -chdir=DIR         Switch to a different working directory before executing
-                       the given subcommand.
-    -help              Show this help output, or the help for a specified
-                       subcommand.
-    -version           An alias for the "version" subcommand.
-`, listCommands(porcelain, maxKeyLen), listCommands(plumbing, maxKeyLen))
+    -chdir=DIR      Switch to a different working directory before executing
+                    the given subcommand.
+    -help           Show this help output, or the help for a specified
+                    subcommand.
+    -version        An alias for the "version" subcommand.
+`, listCommands(commands, PrimaryCommands, maxKeyLen), listCommands(commands, otherCommands, maxKeyLen))
 
 	return strings.TrimSpace(helpText)
 }
 
 // listCommands just lists the commands in the map with the
 // given maximum key length.
-func listCommands(commands map[string]cli.CommandFactory, maxKeyLen int) string {
+func listCommands(allCommands map[string]cli.CommandFactory, order []string, maxKeyLen int) string {
 	var buf bytes.Buffer
 
-	// Get the list of keys so we can sort them, and also get the maximum
-	// key length so they can be aligned properly.
-	keys := make([]string, 0, len(commands))
-	for key, _ := range commands {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		commandFunc, ok := commands[key]
+	for _, key := range order {
+		commandFunc, ok := allCommands[key]
 		if !ok {
-			// This should never happen since we JUST built the list of
-			// keys.
+			// This suggests an inconsistency in the command table definitions
+			// in commands.go .
 			panic("command not found: " + key)
 		}
 
 		command, err := commandFunc()
 		if err != nil {
+			// This would be really weird since there's no good reason for
+			// any of our command factories to fail.
 			log.Printf("[ERR] cli: Command '%s' failed to load: %s",
 				key, err)
 			continue
