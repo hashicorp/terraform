@@ -267,7 +267,6 @@ func TestContext2Apply_resourceDependsOnModule(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(order, []string{"child", "parent"}) {
-		fmt.Println("ORDER:", order)
 		t.Fatal("resources applied out of order")
 	}
 
@@ -12163,5 +12162,44 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 	}
 	if got, want := h.ProvisionOutputMessage, "output suppressed"; !strings.Contains(got, want) {
 		t.Errorf("expected hook to be called with %q, but was:\n%s", want, got)
+	}
+}
+
+func TestContext2Apply_warnings(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "foo" {
+}`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		resp := testApplyFn(req)
+
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("warning"))
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	inst := state.ResourceInstance(mustResourceInstanceAddr("test_resource.foo"))
+	if inst == nil {
+		t.Fatal("missing 'test_resource.foo' in state:", state)
 	}
 }
