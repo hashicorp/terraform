@@ -1,8 +1,9 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/tfdiags"
 	"testing"
+
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/apparentlymart/go-dump/dump"
 	"github.com/hashicorp/terraform/backend"
@@ -117,6 +118,26 @@ func TestState_basic(t *testing.T) {
 				"outputs": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
+				"workspace": cty.StringVal(backend.DefaultStateName),
+			}),
+			false,
+		},
+		"future version": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/future.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/future.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
 				"workspace": cty.StringVal(backend.DefaultStateName),
 			}),
 			false,

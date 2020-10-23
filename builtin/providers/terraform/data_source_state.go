@@ -100,7 +100,7 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 
 	newState["workspace"] = cty.StringVal(workspaceName)
 
-	state, err := b.StateMgr(workspaceName)
+	state, err := b.StateMgrWithoutCheckVersion(workspaceName)
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -111,7 +111,7 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		return cty.NilVal, diags
 	}
 
-	if err := state.RefreshState(); err != nil {
+	if err := state.RefreshStateWithoutCheckVersion(); err != nil {
 		diags = diags.Append(err)
 		return cty.NilVal, diags
 	}
