@@ -14,6 +14,11 @@ coverage:
         informational: true
         target: auto
         threshold: "0.5%"
+    patch:
+      default:
+        informational: true
+        target: auto
+        threshold: "0.5%"
 
 github_checks:
     annotations: false
