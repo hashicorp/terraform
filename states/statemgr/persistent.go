@@ -35,7 +35,9 @@ type Persistent interface {
 // PersistState that may be happening in other processes.
 type Refresher interface {
 	// RefreshState retrieves a snapshot of state from persistent storage,
-	// returning an error if this is not possible.
+	// returning an error if this is not possible. If a snapshot is retrieved
+	// but is from an incompatible Terraform version, this will also result
+	// in an error.
 	//
 	// Types that implement RefreshState generally also implement a State
 	// method that returns the result of the latest successful refresh.
@@ -46,6 +48,12 @@ type Refresher interface {
 	// ephemeral portions of the state may be unpopulated after calling
 	// RefreshState.
 	RefreshState() error
+
+	// RefreshStateWithoutCheckVersion is similar to RefreshState, with the
+	// difference that it does not perform a Terraform version check of the
+	// state snapshot. Use with caution, as there is no guarantee that the
+	// state version retrieved is fully compatible.
+	RefreshStateWithoutCheckVersion() error
 }
 
 // Persister is the interface for managers that can write snapshots to

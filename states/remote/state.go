@@ -101,13 +101,19 @@ func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
 func (s *State) RefreshState() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.refreshState()
+	return s.refreshState(true)
+}
+
+func (s *State) RefreshStateWithoutCheckVersion() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.refreshState(false)
 }
 
 // refreshState is the main implementation of RefreshState, but split out so
 // that we can make internal calls to it from methods that are already holding
 // the s.mu lock.
-func (s *State) refreshState() error {
+func (s *State) refreshState(checkVersion bool) error {
 	payload, err := s.Client.Get()
 	if err != nil {
 		return err
@@ -125,8 +131,10 @@ func (s *State) refreshState() error {
 	if err != nil {
 		return err
 	}
-	if err := stateFile.CheckTerraformVersion(); err != nil {
-		return err
+	if checkVersion {
+		if err := stateFile.CheckTerraformVersion(); err != nil {
+			return err
+		}
 	}
 
 	s.lineage = stateFile.Lineage
@@ -159,7 +167,7 @@ func (s *State) PersistState() error {
 		// We might be writing a new state altogether, but before we do that
 		// we'll check to make sure there isn't already a snapshot present
 		// that we ought to be updating.
-		err := s.refreshState()
+		err := s.refreshState(true)
 		if err != nil {
 			return fmt.Errorf("failed checking for existing remote state: %s", err)
 		}
