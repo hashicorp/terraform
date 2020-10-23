@@ -69,8 +69,15 @@ func TestFunctions(t *testing.T) {
 
 		"alltrue": {
 			{
-				`alltrue([true])`,
+				`alltrue(["true", true])`,
 				cty.True,
+			},
+		},
+
+		"anytrue": {
+			{
+				`anytrue([])`,
+				cty.False,
 			},
 		},
 
