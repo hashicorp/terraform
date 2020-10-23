@@ -166,6 +166,26 @@ func TestState_basic(t *testing.T) {
 			}),
 			false,
 		},
+		"future version": {
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/future.tfstate"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"backend": cty.StringVal("local"),
+				"config": cty.ObjectVal(map[string]cty.Value{
+					"path": cty.StringVal("./testdata/future.tfstate"),
+				}),
+				"outputs": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"workspace": cty.NullVal(cty.String),
+			}),
+			false,
+		},
 		"missing": {
 			cty.ObjectVal(map[string]cty.Value{
 				"backend": cty.StringVal("local"),
