@@ -95,7 +95,6 @@ func initCommands(
 
 	PlumbingCommands = map[string]struct{}{
 		"state":        struct{}{}, // includes all subcommands
-		"debug":        struct{}{}, // includes all subcommands
 		"force-unlock": struct{}{},
 		"push":         struct{}{},
 		"0.12upgrade":  struct{}{},
@@ -335,12 +334,6 @@ func initCommands(
 
 		"0.13upgrade": func() (cli.Command, error) {
 			return &command.ZeroThirteenUpgradeCommand{
-				Meta: meta,
-			}, nil
-		},
-
-		"debug": func() (cli.Command, error) {
-			return &command.DebugCommand{
 				Meta: meta,
 			}, nil
 		},
