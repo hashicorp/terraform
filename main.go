@@ -95,7 +95,6 @@ func wrappedMain() int {
 	if tmpLogPath != "" {
 		f, err := os.OpenFile(tmpLogPath, os.O_RDWR|os.O_APPEND, 0666)
 		if err == nil {
-			defer os.Remove(f.Name())
 			defer f.Close()
 
 			log.Printf("[DEBUG] Adding temp file log sink: %s", f.Name())

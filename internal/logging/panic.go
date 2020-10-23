@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/mitchellh/panicwrap"
 )
@@ -67,6 +66,6 @@ func PanicHandler(tmpLogPath string) panicwrap.HandlerFunc {
 		// Tell the user a crash occurred in some helpful way that
 		// they'll hopefully notice.
 		fmt.Printf("\n\n")
-		fmt.Printf(strings.TrimSpace(panicOutput), f.Name())
+		fmt.Printf(panicOutput, f.Name())
 	}
 }

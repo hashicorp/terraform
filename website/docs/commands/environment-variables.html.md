@@ -16,16 +16,16 @@ for debugging.
 
 ## TF_LOG
 
-If set to any value, enables detailed logs to appear on stderr which is useful for debugging. For example:
+Enables detailed logs to appear on stderr which is useful for debugging. For example:
 
 ```shell
-export TF_LOG=TRACE
+export TF_LOG=trace
 ```
 
-To disable, either unset it or set it to empty. When unset, logging will default to stderr. For example:
+To disable, either unset it, or set it to `off`. For example:
 
 ```shell
-export TF_LOG=
+export TF_LOG=off
 ```
 
 For more on debugging Terraform, check out the section on [Debugging](/docs/internals/debugging.html).
