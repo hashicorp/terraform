@@ -67,10 +67,6 @@ var AllTrueFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if args[0].LengthInt() == 0 {
-			return cty.True, nil
-		}
-
 		result := cty.True
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
@@ -97,9 +93,6 @@ var AnyTrueFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if args[0].LengthInt() == 0 {
-			return cty.False, nil
-		}
 		result := cty.False
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
