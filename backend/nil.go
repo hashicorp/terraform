@@ -31,6 +31,10 @@ func (Nil) StateMgr(string) (statemgr.Full, error) {
 	return statemgr.NewFullFake(statemgr.NewTransientInMemory(nil), nil), nil
 }
 
+func (Nil) StateMgrWithoutCheckVersion(string) (statemgr.Full, error) {
+	return statemgr.NewFullFake(statemgr.NewTransientInMemory(nil), nil), nil
+}
+
 func (Nil) DeleteWorkspace(string) error {
 	return nil
 }

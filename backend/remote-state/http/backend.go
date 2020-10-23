@@ -188,6 +188,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	return &remote.State{Client: b.client}, nil
 }
 
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.StateMgr(name)
+}
+
 func (b *Backend) Workspaces() ([]string, error) {
 	return nil, backend.ErrWorkspacesNotSupported
 }

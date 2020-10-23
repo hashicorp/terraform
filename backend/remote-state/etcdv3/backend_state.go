@@ -42,6 +42,14 @@ func (b *Backend) DeleteWorkspace(name string) error {
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+	return b.stateMgr(name, true)
+}
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.stateMgr(name, false)
+}
+
+func (b *Backend) stateMgr(name string, checkVersion bool) (statemgr.Full, error) {
 	var stateMgr statemgr.Full = &remote.State{
 		Client: &RemoteClient{
 			Client: b.client,
@@ -68,9 +76,16 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		return parent
 	}
 
-	if err := stateMgr.RefreshState(); err != nil {
-		err = lockUnlock(err)
-		return nil, err
+	if checkVersion {
+		if err := stateMgr.RefreshState(); err != nil {
+			err = lockUnlock(err)
+			return nil, err
+		}
+	} else {
+		if err := stateMgr.RefreshStateWithoutCheckVersion(); err != nil {
+			err = lockUnlock(err)
+			return nil, err
+		}
 	}
 
 	if v := stateMgr.State(); v == nil {

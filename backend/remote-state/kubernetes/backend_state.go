@@ -72,6 +72,14 @@ func (b *Backend) DeleteWorkspace(name string) error {
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+	return b.stateMgr(name, true)
+}
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.stateMgr(name, false)
+}
+
+func (b *Backend) stateMgr(name string, checkVersion bool) (statemgr.Full, error) {
 	c, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -80,8 +88,14 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	stateMgr := &remote.State{Client: c}
 
 	// Grab the value
-	if err := stateMgr.RefreshState(); err != nil {
-		return nil, err
+	if checkVersion {
+		if err := stateMgr.RefreshState(); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := stateMgr.RefreshStateWithoutCheckVersion(); err != nil {
+			return nil, err
+		}
 	}
 
 	// If we have no state, we have to create an empty state

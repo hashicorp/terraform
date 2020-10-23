@@ -150,6 +150,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	return s, nil
 }
 
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.StateMgr(name)
+}
+
 type stateMap struct {
 	sync.Mutex
 	m map[string]*remote.State

@@ -362,6 +362,10 @@ func (b backendFailsConfigure) StateMgr(workspace string) (statemgr.Full, error)
 	return nil, fmt.Errorf("StateMgr not implemented")
 }
 
+func (b backendFailsConfigure) StateMgrWithoutCheckVersion(workspace string) (statemgr.Full, error) {
+	return nil, fmt.Errorf("StateMgrWithoutCheckVersion not implemented")
+}
+
 func (b backendFailsConfigure) DeleteWorkspace(name string) error {
 	return fmt.Errorf("DeleteWorkspace not implemented")
 }

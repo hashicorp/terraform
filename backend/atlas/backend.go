@@ -179,6 +179,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	return &remote.State{Client: b.stateClient}, nil
 }
 
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.StateMgr(name)
+}
+
 // Colorize returns the Colorize structure that can be used for colorizing
 // output. This is gauranteed to always return a non-nil value and so is useful
 // as a helper to wrap any potentially colored strings.
