@@ -127,7 +127,7 @@ func (s *Filesystem) WriteState(state *states.State) error {
 	defer s.mutex()()
 
 	if s.readFile == nil {
-		err := s.refreshState()
+		err := s.refreshState(true)
 		if err != nil {
 			return err
 		}
@@ -230,10 +230,15 @@ func (s *Filesystem) PersistState() error {
 // RefreshState is an implementation of Refresher.
 func (s *Filesystem) RefreshState() error {
 	defer s.mutex()()
-	return s.refreshState()
+	return s.refreshState(true)
 }
 
-func (s *Filesystem) refreshState() error {
+func (s *Filesystem) RefreshStateWithoutCheckVersion() error {
+	defer s.mutex()()
+	return s.refreshState(false)
+}
+
+func (s *Filesystem) refreshState(checkVersion bool) error {
 	var reader io.Reader
 
 	// The s.readPath file is only OK to read if we have not written any state out
@@ -280,7 +285,7 @@ func (s *Filesystem) refreshState() error {
 			return err
 		}
 		log.Printf("[TRACE] statemgr.Filesystem: snapshot file has nil snapshot, but that's okay")
-	} else {
+	} else if checkVersion {
 		if err := f.CheckTerraformVersion(); err != nil {
 			return err
 		}
@@ -397,7 +402,7 @@ func (s *Filesystem) WriteStateForMigration(f *statefile.File, force bool) error
 	defer s.mutex()()
 
 	if s.readFile == nil {
-		err := s.refreshState()
+		err := s.refreshState(true)
 		if err != nil {
 			return err
 		}
