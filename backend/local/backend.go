@@ -279,6 +279,10 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	return s, nil
 }
 
+func (b *Local) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.StateMgr(name)
+}
+
 // Operation implements backend.Enhanced
 //
 // This will initialize an in-memory terraform.Context to perform the

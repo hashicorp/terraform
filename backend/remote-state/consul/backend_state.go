@@ -65,6 +65,14 @@ func (b *Backend) DeleteWorkspace(name string) error {
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+	return b.stateMgr(name, true)
+}
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (statemgr.Full, error) {
+	return b.stateMgr(name, false)
+}
+
+func (b *Backend) stateMgr(name string, checkVersion bool) (statemgr.Full, error) {
 	// Determine the path of the data
 	path := b.path(name)
 
@@ -110,9 +118,16 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	}
 
 	// Grab the value
-	if err := stateMgr.RefreshState(); err != nil {
-		err = lockUnlock(err)
-		return nil, err
+	if checkVersion {
+		if err := stateMgr.RefreshState(); err != nil {
+			err = lockUnlock(err)
+			return nil, err
+		}
+	} else {
+		if err := stateMgr.RefreshStateWithoutCheckVersion(); err != nil {
+			err = lockUnlock(err)
+			return nil, err
+		}
 	}
 
 	// If we have no state, we have to create an empty state

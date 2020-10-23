@@ -12,9 +12,10 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
 
-	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"log"
 	"path"
+
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 )
 
 const (
@@ -111,6 +112,14 @@ func (b *Backend) DeleteWorkspace(name string) error {
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
+	return b.stateMgr(name, true)
+}
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (state.State, error) {
+	return b.stateMgr(name, false)
+}
+
+func (b *Backend) stateMgr(name string, checkVersion bool) (state.State, error) {
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -151,9 +160,16 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		}
 
 		// Grab the value
-		if err := stateMgr.RefreshState(); err != nil {
-			err = lockUnlock(err)
-			return nil, err
+		if checkVersion {
+			if err := stateMgr.RefreshState(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+		} else {
+			if err := stateMgr.RefreshStateWithoutCheckVersion(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
 		}
 
 		// If we have no state, we have to create an empty state
