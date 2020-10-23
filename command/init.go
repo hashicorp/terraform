@@ -1052,7 +1052,7 @@ Options:
 }
 
 func (c *InitCommand) Synopsis() string {
-	return "Initialize a Terraform working directory"
+	return "Prepare your working directory for other commands"
 }
 
 const errInitConfigError = `

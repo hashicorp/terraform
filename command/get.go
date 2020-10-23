@@ -54,6 +54,10 @@ Usage: terraform get [options] PATH
   already downloaded, it will not be redownloaded or checked for updates
   unless the -update flag is specified.
 
+  Module installation also happens automatically by default as part of
+  the "terraform init" command, so you should rarely need to run this
+  command separately.
+
 Options:
 
   -update             Check already-downloaded modules for available updates
@@ -66,7 +70,7 @@ Options:
 }
 
 func (c *GetCommand) Synopsis() string {
-	return "Download and install modules for the configuration"
+	return "Install or upgrade remote Terraform modules"
 }
 
 func getModules(m *Meta, path string, upgrade bool) tfdiags.Diagnostics {

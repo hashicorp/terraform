@@ -23,7 +23,7 @@ type ProvidersLockCommand struct {
 }
 
 func (c *ProvidersLockCommand) Synopsis() string {
-	return "Creates or updates dependency locks for providers in the configuration"
+	return "Write out dependency locks for the configured providers"
 }
 
 func (c *ProvidersLockCommand) Run(args []string) int {

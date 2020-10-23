@@ -24,7 +24,7 @@ type ProvidersMirrorCommand struct {
 }
 
 func (c *ProvidersMirrorCommand) Synopsis() string {
-	return "Mirrors the provider plugins needed for the current configuration"
+	return "Save local copies of all required provider plugins"
 }
 
 func (c *ProvidersMirrorCommand) Run(args []string) int {
