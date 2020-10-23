@@ -526,7 +526,7 @@ Options:
 }
 
 func (c *FmtCommand) Synopsis() string {
-	return "Rewrites config files to canonical format"
+	return "Reformat your configuration in the standard style"
 }
 
 func bytesDiff(b1, b2 []byte, path string) (data []byte, err error) {
