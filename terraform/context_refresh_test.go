@@ -1743,3 +1743,54 @@ resource "aws_instance" "bar" {
 		t.Fatal("create_before_destroy not updated in instance state")
 	}
 }
+
+func TestContext2Refresh_dataSourceOrphan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": ``,
+	})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "test_data_source",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	p := testProvider("test")
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = cty.NullVal(req.Config.Type())
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Refresh()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if p.ReadResourceCalled {
+		t.Fatal("there are no managed resources to read")
+	}
+
+	if p.ReadDataSourceCalled {
+		t.Fatal("orphaned data source instance should not be read")
+	}
+}

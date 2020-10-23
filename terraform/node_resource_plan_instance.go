@@ -36,7 +36,7 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx, n.skipRefresh)
+		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
 	default:
@@ -123,7 +123,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 	return err
 }
 
-func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext, skipRefresh bool) error {
+func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) error {
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
@@ -162,7 +162,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext, 
 	}
 
 	// Refresh, maybe
-	if !skipRefresh {
+	if !n.skipRefresh {
 		refresh := &EvalRefresh{
 			Addr:           addr.Resource,
 			ProviderAddr:   n.ResolvedProvider,
