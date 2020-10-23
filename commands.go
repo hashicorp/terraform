@@ -26,6 +26,7 @@ const runningInAutomationEnvName = "TF_IN_AUTOMATION"
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
 var PlumbingCommands map[string]struct{}
+var HiddenCommands map[string]struct{}
 
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
@@ -96,9 +97,14 @@ func initCommands(
 	PlumbingCommands = map[string]struct{}{
 		"state":        struct{}{}, // includes all subcommands
 		"force-unlock": struct{}{},
-		"push":         struct{}{},
-		"0.12upgrade":  struct{}{},
-		"0.13upgrade":  struct{}{},
+	}
+
+	HiddenCommands = map[string]struct{}{
+		"0.12upgrade":     struct{}{},
+		"0.13upgrade":     struct{}{},
+		"env":             struct{}{},
+		"internal-plugin": struct{}{},
+		"push":            struct{}{},
 	}
 
 	Commands = map[string]cli.CommandFactory{
