@@ -34,6 +34,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"abs":              stdlib.AbsoluteFunc,
 			"abspath":          funcs.AbsPathFunc,
 			"alltrue":          funcs.AllTrueFunc,
+			"anytrue":          funcs.AnyTrueFunc,
 			"basename":         funcs.BasenameFunc,
 			"base64decode":     funcs.Base64DecodeFunc,
 			"base64encode":     funcs.Base64EncodeFunc,
