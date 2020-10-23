@@ -55,11 +55,10 @@ Main commands:
 All other commands:
 %s
 Global options (use these before the subcommand, if any):
-    -chdir=DIR      Switch to a different working directory before executing
-                    the given subcommand.
-    -help           Show this help output, or the help for a specified
-                    subcommand.
-    -version        An alias for the "version" subcommand.
+  -chdir=DIR    Switch to a different working directory before executing the
+                given subcommand.
+  -help         Show this help output, or the help for a specified subcommand.
+  -version      An alias for the "version" subcommand.
 `, listCommands(commands, PrimaryCommands, maxKeyLen), listCommands(commands, otherCommands, maxKeyLen))
 
 	return strings.TrimSpace(helpText)
@@ -88,7 +87,7 @@ func listCommands(allCommands map[string]cli.CommandFactory, order []string, max
 		}
 
 		key = fmt.Sprintf("%s%s", key, strings.Repeat(" ", maxKeyLen-len(key)))
-		buf.WriteString(fmt.Sprintf("    %s    %s\n", key, command.Synopsis()))
+		buf.WriteString(fmt.Sprintf("  %s  %s\n", key, command.Synopsis()))
 	}
 
 	return buf.String()
