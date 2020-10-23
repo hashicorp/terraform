@@ -196,23 +196,24 @@ func (c *ApplyCommand) Help() string {
 
 func (c *ApplyCommand) Synopsis() string {
 	if c.Destroy {
-		return "Destroy Terraform-managed infrastructure"
+		return "Destroy previously-created infrastructure"
 	}
 
-	return "Builds or changes infrastructure"
+	return "Create or update infrastructure"
 }
 
 func (c *ApplyCommand) helpApply() string {
 	helpText := `
-Usage: terraform apply [options] [DIR-OR-PLAN]
+Usage: terraform apply [options] [PLAN]
 
-  Builds or changes infrastructure according to Terraform configuration
-  files in DIR.
+  Creates or updates infrastructure according to Terraform configuration
+  files in the current directory.
 
-  By default, apply scans the current directory for the configuration
-  and applies the changes appropriately. However, a path to another
-  configuration or an execution plan can be provided. Execution plans can be
-  used to only execute a pre-determined set of actions.
+  By default, Terraform will generate a new plan and present it for your
+  approval before taking any action. You can optionally provide a plan
+  file created by a previous call to "terraform plan", in which case
+  Terraform will take the actions described in that plan without any
+  confirmation prompt.
 
 Options:
 

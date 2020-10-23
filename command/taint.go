@@ -201,20 +201,26 @@ func (c *TaintCommand) Help() string {
 	helpText := `
 Usage: terraform taint [options] <address>
 
-  Manually mark a resource as tainted, forcing a destroy and recreate
-  on the next plan/apply.
+  Terraform uses the term "tainted" to describe a resource instance
+  which may not be fully functional, either because its creation
+  partially failed or because you've manually marked it as such using
+  this command.
 
-  This will not modify your infrastructure. This command changes your
-  state to mark a resource as tainted so that during the next plan or
-  apply that resource will be destroyed and recreated. This command on
-  its own will not modify infrastructure. This command can be undone
-  using the "terraform untaint" command with the same address.
+  This will not modify your infrastructure directly, but subsequent
+  Terraform plans will include actions to destroy the remote object
+  and create a new object to replace it.
 
-  The address is in the usual resource address syntax, as shown in
-  the output from other commands, such as:
+  You can remove the "taint" state from a resource instance using
+  the "terraform untaint" command.
+
+  The address is in the usual resource address syntax, such as:
     aws_instance.foo
     aws_instance.bar[1]
     module.foo.module.bar.aws_instance.baz
+
+  Use your shell's quoting or escaping syntax to ensure that the
+  address will reach Terraform correctly, without any special
+  interpretation.
 
 Options:
 
@@ -240,7 +246,7 @@ Options:
 }
 
 func (c *TaintCommand) Synopsis() string {
-	return "Manually mark a resource for recreation"
+	return "Mark a resource instance as not fully functional"
 }
 
 func (c *TaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {

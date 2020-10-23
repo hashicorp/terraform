@@ -154,5 +154,5 @@ Options:
 }
 
 func (c *RefreshCommand) Synopsis() string {
-	return "Update local state file against real resources"
+	return "Update the state to match remote systems"
 }

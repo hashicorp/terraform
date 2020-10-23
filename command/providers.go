@@ -21,7 +21,7 @@ func (c *ProvidersCommand) Help() string {
 }
 
 func (c *ProvidersCommand) Synopsis() string {
-	return "Prints a tree of the providers used in the configuration"
+	return "Show the providers required for this configuration"
 }
 
 func (c *ProvidersCommand) Run(args []string) int {

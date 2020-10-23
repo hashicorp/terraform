@@ -235,7 +235,7 @@ func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool
 }
 
 func (c *ValidateCommand) Synopsis() string {
-	return "Validates the Terraform files"
+	return "Check whether the configuration is valid"
 }
 
 func (c *ValidateCommand) Help() string {

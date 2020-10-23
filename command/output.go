@@ -223,5 +223,5 @@ Options:
 }
 
 func (c *OutputCommand) Synopsis() string {
-	return "Read an output from a state file"
+	return "Show output values from your root module"
 }

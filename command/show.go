@@ -209,7 +209,7 @@ Options:
 }
 
 func (c *ShowCommand) Synopsis() string {
-	return "Inspect Terraform state or plan"
+	return "Show the current state or a saved plan"
 }
 
 // getPlanFromPath returns a plan and statefile if the user-supplied path points
