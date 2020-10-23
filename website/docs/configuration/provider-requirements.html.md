@@ -215,7 +215,7 @@ provider in a module, so you'll need to use a non-preferred name for at least
 one of them.
 
 When this happens, we recommend combining each provider's namespace with
-its type name to produce compound local names:
+its type name to produce compound local names with a dash:
 
 ```hcl
 terraform {
@@ -223,11 +223,11 @@ terraform {
     # In the rare situation of using two providers that
     # have the same type name -- "http" in this example --
     # use a compound local name to distinguish them.
-    hashicorp_http = {
+    hashicorp-http = {
       source  = "hashicorp/http"
       version = "~> 2.0"
     }
-    mycorp_http = {
+    mycorp-http = {
       source  = "mycorp/http"
       version = "~> 1.0"
     }
@@ -250,7 +250,11 @@ Terraform won't be able to guess either provider's name from its resource types,
 so you'll need to specify a `provider` meta-argument for every affected
 resource. However, readers and maintainers of your module will be able to easily
 understand what's happening, and avoiding confusion is much more important than
-avoiding typing.
+avoiding typing.  
+
+
+
+
 
 ## Version Constraints
 
