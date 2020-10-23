@@ -354,7 +354,17 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	return nil, diags.ErrWithWarnings()
+	// we have to drop warning-only diagnostics for now
+	if diags.HasErrors() {
+		return nil, diags.ErrWithWarnings()
+	}
+
+	// log any warnings since we can't return them
+	if e := diags.ErrWithWarnings(); e != nil {
+		log.Printf("[WARN] EvalApply %s: %v", n.Addr, e)
+	}
+
+	return nil, nil
 }
 
 // EvalApplyPre is an EvalNode implementation that does the pre-Apply work
@@ -738,7 +748,17 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		}
 	}
 
-	return diags.ErrWithWarnings()
+	// we have to drop warning-only diagnostics for now
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
+	}
+
+	// log any warnings since we can't return them
+	if e := diags.ErrWithWarnings(); e != nil {
+		log.Printf("[WARN] EvalApplyProvisioners %s: %v", n.Addr, e)
+	}
+
+	return nil
 }
 
 func (n *EvalApplyProvisioners) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
