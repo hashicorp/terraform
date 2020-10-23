@@ -252,10 +252,6 @@ resource. However, readers and maintainers of your module will be able to easily
 understand what's happening, and avoiding confusion is much more important than
 avoiding typing.  
 
-
-
-
-
 ## Version Constraints
 
 Each provider plugin has its own set of available versions, allowing the
