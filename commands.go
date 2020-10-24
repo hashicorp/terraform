@@ -105,7 +105,7 @@ func initCommands(
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/source/docs/commands/index.html.markdown; if you
+	// website/docs/commands/index.html.markdown; if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
 
