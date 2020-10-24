@@ -111,7 +111,7 @@ the value for a variable. If no type constraint is set then a value of any type
 is accepted.
 
 While type constraints are optional, we recommend specifying them; they
-serve as easy reminders for users of the module, and
+can serve as helpful reminders for users of the module, and they
 allow Terraform to return a helpful error message if the wrong type is used.
 
 Type constraints are created from a mixture of type keywords and type

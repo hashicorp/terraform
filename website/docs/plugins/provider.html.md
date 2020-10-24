@@ -40,12 +40,8 @@ a basic development environment setup.
 ## Provider Plugin Codebases
 
 Provider plugins live outside of the Terraform core codebase in their own
-source code repositories. The official set of provider plugins released by
-HashiCorp (developed by both HashiCorp staff and community contributors)
-all live in repositories in
-[the `terraform-providers` organization](https://github.com/terraform-providers)
-on GitHub, but third-party plugins can be maintained in any source code
-repository.
+source code repositories, and are typically published in a provider registry
+such as [the public Terraform Registry](https://registry.terraform.io/).
 
 When developing a provider plugin, it is recommended to use a common `GOPATH`
 that includes both the core Terraform repository and the repositories of any
@@ -106,20 +102,13 @@ own core providers.
 
 ## helper/schema
 
-The `helper/schema` library is a framework we've built to make creating
-providers extremely easy. This is the same library we use to build most
-of the core providers.
+The `helper/schema` package in the plugin SDK is a framework designed to allow
+building providers at a higher level of abstraction than the raw plugin protocol
+that Terraform expects. This is the same library we've used to build most
+of the official providers.
 
-To give you an idea of how productive you can become with this framework:
-we implemented the Google Cloud provider in about 6 hours of coding work.
-This isn't a simple provider, and we did have knowledge of
-the framework beforehand, but it goes to show how expressive the framework
-can be.
-
-The GoDoc for `helper/schema` can be
-[found here](https://godoc.org/github.com/hashicorp/terraform/helper/schema).
-This is API-level documentation but will be extremely important
-for you going forward.
+For more information on `helper/schema`, see
+[the `helper/schema` package reference documentation](https://pkg.go.dev/github.com/hashicorp/terraform-plugin-sdk/helper/schema).
 
 ## Provider
 

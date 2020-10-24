@@ -8,7 +8,7 @@ description: |-
 
 # Publishing Providers
 
-Anyone can publish and share a provider by signing into the Registry using their GitHub account and following a few easy steps.
+Anyone can publish and share a provider by signing into the Registry using their GitHub account and following a few additional steps.
 
 This page describes how to prepare a [Terraform Provider](/docs/plugins/provider.html) for publishing, and how to publish a prepared provider using the Registry's interface.
 

@@ -57,7 +57,7 @@ Many of the rewrite rules are completely automatic, but in some cases the
 tool cannot determine enough information from the configuration alone to make
 a decision, and so it will instead add a comment to the configuration for
 user review. All such comments contain the string `TF-UPGRADE-TODO` to make
-them easy to find.
+them easier to find.
 
 After upgrading, the configuration will also be reformatted into the standard
 Terraform style and expressions rewritten to use the more-readable v0.12 syntax
