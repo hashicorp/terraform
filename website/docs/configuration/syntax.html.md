@@ -20,8 +20,8 @@ syntax of the language in more detail, revealing the building blocks that
 those constructs are built from.
 
 This page describes the _native syntax_ of the Terraform language, which is
-a rich language designed to be easy for humans to read and write. The
-constructs in the Terraform language can also be expressed in
+a rich language designed to be relatively easy for humans to read and write.
+The constructs in the Terraform language can also be expressed in
 [JSON syntax](./syntax-json.html), which is harder for humans
 to read and edit but easier to generate and parse programmatically.
 

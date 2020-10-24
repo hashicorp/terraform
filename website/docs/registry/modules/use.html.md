@@ -26,9 +26,9 @@ modules as well.
 
 ## Using Modules
 
-The Terraform Registry is integrated directly into Terraform. This makes
-it easy to reference any module in the registry. The syntax for referencing
-a registry module is `<NAMESPACE>/<NAME>/<PROVIDER>`. For example:
+The Terraform Registry is integrated directly into Terraform, so a Terraform
+configuration can refer to any module published in the registry. The syntax for
+specifying a registry module is `<NAMESPACE>/<NAME>/<PROVIDER>`. For example:
 `hashicorp/consul/aws`.
 
 ~> **Note:** Module registry integration was added in Terraform v0.10.6, and full versioning support in v0.11.0.
