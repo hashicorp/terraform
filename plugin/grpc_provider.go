@@ -3,9 +3,6 @@ package plugin
 import (
 	"context"
 	"errors"
-	"fmt"
-	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -15,12 +12,9 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/tfdiags"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var logger = logging.HCLogger()
@@ -624,67 +618,4 @@ func decodeDynamicValue(v *proto.DynamicValue, ty cty.Type) (cty.Value, error) {
 		res, err = ctyjson.Unmarshal(v.Json, ty)
 	}
 	return res, err
-}
-
-// grpcErr extracts some known error types and formats them into better
-// representations for core. This must only be called from plugin methods.
-// Since we don't use RPC status errors for the plugin protocol, these do not
-// contain any useful details, and we can return some text that at least
-// indicates the plugin call and possible error condition.
-func grpcErr(err error) (diags tfdiags.Diagnostics) {
-	if err == nil {
-		return
-	}
-
-	// extract the method name from the caller.
-	pc, _, _, ok := runtime.Caller(1)
-	if !ok {
-		return diags.Append(err)
-	}
-
-	f := runtime.FuncForPC(pc)
-	requestName := f.Name()
-	dot := strings.LastIndex(requestName, ".")
-	if dot > 0 {
-		requestName = requestName[dot+1:]
-	}
-
-	// Here we can at least correlate the error in the logs to a particular binary.
-	logger.Error("GRPCProvider."+requestName, "error", err)
-
-	// TODO: while this expands the error codes into somewhat better messages,
-	// this still does not easily link the error to the an actual
-	// user-recognizable provider. The GRPCProvider does not know its
-	// configured name, and the errors are in a list of diagnostics, making it
-	// hard for the the caller to annotate the returned errors.
-	switch status.Code(err) {
-	case codes.Unavailable:
-		// This case is when the provider has stopped running for some reason,
-		// and is usually the result of a crash.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider did not respond",
-			fmt.Sprintf("The provider encountered an error, and failed to respond to the %s call. "+
-				"The provider logs may contain more details", requestName),
-		))
-	case codes.Canceled:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Request cancelled",
-			fmt.Sprintf("The %s request was cancelled.", requestName),
-		))
-	case codes.Unimplemented:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Unsupported plugin method",
-			fmt.Sprintf("The %s method is not supported by this provider", requestName),
-		))
-	default:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider error",
-			fmt.Sprintf("The provider returned an unexpected error from %s: %v", requestName, err),
-		))
-	}
-	return
 }
