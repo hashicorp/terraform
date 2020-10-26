@@ -10,6 +10,9 @@ BUG FIXES:
 
 * cli: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. [GH-26509]
 
+BREAKING CHANGES:
+* backend/atlas: the `atlas` backend, which was deprecated in v0.12, has been removed. [GH-26651]
+
 ## Previous Releases
 
 For information on prior major releases, see their changelogs:
