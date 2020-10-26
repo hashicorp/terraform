@@ -395,16 +395,36 @@ func VersionConstraintsString(spec VersionConstraints) string {
 	// lock files. Therefore the canonical forms produced here are a compatibility
 	// constraint for the dependency lock file parser.
 
-	// Keep track of selection specifications which have been seen, so that we
-	// don't repeat the same constraint multiple times.
-	rendered := make(map[constraints.SelectionSpec]struct{})
+	if len(spec) == 0 {
+		return ""
+	}
+
+	// VersionConstraints values are typically assembled by combining together
+	// the version constraints from many separate declarations throughout
+	// a configuration, across many modules. As a consequence, they typically
+	// contain duplicates and the terms inside are in no particular order.
+	// For our canonical representation we'll both deduplicate the items
+	// and sort them into a consistent order.
+	sels := make(map[constraints.SelectionSpec]struct{})
+	for _, sel := range spec {
+		sels[sel] = struct{}{}
+	}
+	selsOrder := make([]constraints.SelectionSpec, 0, len(sels))
+	for sel := range sels {
+		selsOrder = append(selsOrder, sel)
+	}
+	sort.Slice(selsOrder, func(i, j int) bool {
+		is, js := selsOrder[i], selsOrder[j]
+		boundaryCmp := versionSelectionBoundaryCompare(is.Boundary, js.Boundary)
+		if boundaryCmp == 0 {
+			// The operator is the decider, then.
+			return versionSelectionOperatorLess(is.Operator, js.Operator)
+		}
+		return boundaryCmp < 0
+	})
 
 	var b strings.Builder
-	for i, sel := range spec {
-		// If we've already rendered this selection spec, skip it.
-		if _, exists := rendered[sel]; exists {
-			continue
-		}
+	for i, sel := range selsOrder {
 		if i > 0 {
 			b.WriteString(", ")
 		}
@@ -459,9 +479,77 @@ func VersionConstraintsString(spec VersionConstraints) string {
 		if sel.Boundary.Metadata != "" {
 			b.WriteString("+" + boundary.Metadata)
 		}
-
-		// Mark this selection spec as rendered.
-		rendered[sel] = struct{}{}
 	}
 	return b.String()
+}
+
+// Our sort for selection operators is somewhat arbitrary and mainly motivated
+// by consistency rather than meaning, but this ordering does at least try
+// to make it so "simple" constraint sets will appear how a human might
+// typically write them, with the lower bounds first and the upper bounds
+// last. Weird mixtures of different sorts of constraints will likely seem
+// less intuitive, but they'd be unintuitive no matter the ordering.
+var versionSelectionsBoundaryPriority = map[constraints.SelectionOp]int{
+	// We skip zero here so that if we end up seeing an invalid
+	// operator (which the string function would render as "???")
+	// then it will have index zero and thus appear first.
+	constraints.OpGreaterThan:                 1,
+	constraints.OpGreaterThanOrEqual:          2,
+	constraints.OpEqual:                       3,
+	constraints.OpGreaterThanOrEqualPatchOnly: 4,
+	constraints.OpGreaterThanOrEqualMinorOnly: 5,
+	constraints.OpLessThanOrEqual:             6,
+	constraints.OpLessThan:                    7,
+	constraints.OpNotEqual:                    8,
+}
+
+func versionSelectionOperatorLess(i, j constraints.SelectionOp) bool {
+	iPrio := versionSelectionsBoundaryPriority[i]
+	jPrio := versionSelectionsBoundaryPriority[j]
+	return iPrio < jPrio
+}
+
+func versionSelectionBoundaryCompare(i, j constraints.VersionSpec) int {
+	// In the Ruby-style constraint syntax, unconstrained parts appear
+	// only for omitted portions of a version string, like writing
+	// "2" instead of "2.0.0". For sorting purposes we'll just
+	// consider those as zero, which also matches how we serialize them
+	// to strings.
+	i, j = i.ConstrainToZero(), j.ConstrainToZero()
+
+	// Once we've removed any unconstrained parts, we can safely
+	// convert to our main Version type so we can use its ordering.
+	iv := Version{
+		Major:      i.Major.Num,
+		Minor:      i.Minor.Num,
+		Patch:      i.Patch.Num,
+		Prerelease: versions.VersionExtra(i.Prerelease),
+		Metadata:   versions.VersionExtra(i.Metadata),
+	}
+	jv := Version{
+		Major:      j.Major.Num,
+		Minor:      j.Minor.Num,
+		Patch:      j.Patch.Num,
+		Prerelease: versions.VersionExtra(j.Prerelease),
+		Metadata:   versions.VersionExtra(j.Metadata),
+	}
+	if iv.Same(jv) {
+		// Although build metadata doesn't normally weigh in to
+		// precedence choices, we'll use it for our visual
+		// ordering just because we need to pick _some_ order.
+		switch {
+		case iv.Metadata.Raw() == jv.Metadata.Raw():
+			return 0
+		case iv.Metadata.LessThan(jv.Metadata):
+			return -1
+		default:
+			return 1 // greater, by elimination
+		}
+	}
+	switch {
+	case iv.LessThan(jv):
+		return -1
+	default:
+		return 1 // greater, by elimination
+	}
 }
