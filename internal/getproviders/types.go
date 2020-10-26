@@ -395,8 +395,16 @@ func VersionConstraintsString(spec VersionConstraints) string {
 	// lock files. Therefore the canonical forms produced here are a compatibility
 	// constraint for the dependency lock file parser.
 
+	// Keep track of selection specifications which have been seen, so that we
+	// don't repeat the same constraint multiple times.
+	rendered := make(map[constraints.SelectionSpec]struct{})
+
 	var b strings.Builder
 	for i, sel := range spec {
+		// If we've already rendered this selection spec, skip it.
+		if _, exists := rendered[sel]; exists {
+			continue
+		}
 		if i > 0 {
 			b.WriteString(", ")
 		}
@@ -451,6 +459,9 @@ func VersionConstraintsString(spec VersionConstraints) string {
 		if sel.Boundary.Metadata != "" {
 			b.WriteString("+" + boundary.Metadata)
 		}
+
+		// Mark this selection spec as rendered.
+		rendered[sel] = struct{}{}
 	}
 	return b.String()
 }
