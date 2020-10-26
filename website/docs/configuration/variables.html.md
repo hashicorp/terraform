@@ -452,8 +452,8 @@ precedence over earlier ones:
 * Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
   of their filenames.
 * Any `-var` and `-var-file` options on the command line, in the order they
-  are provided. (This includes variables set by a Terraform Cloud
-  workspace.)
+  are provided.  
+* Variables set by a Terraform Cloud or Enterprise workspace.
 
 ~> **Important:** In Terraform 0.12 and later, variables with map and object
 values behave the same way as other variables: the last value found overrides
