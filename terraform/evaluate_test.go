@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -168,6 +169,8 @@ func TestEvaluatorGetResource(t *testing.T) {
 				ManagedResources: map[string]*configs.Resource{
 					"test_resource.foo": rc,
 				},
+				// Necessary while provider sensitive attrs are experimental
+				ActiveExperiments: experiments.NewSet(experiments.SuppressProviderSensitiveAttrs),
 			},
 		},
 		State: stateSync,
@@ -286,6 +289,136 @@ func TestEvaluatorGetResource(t *testing.T) {
 		Type: "test_resource",
 		Name: "foo",
 	}
+	got, diags := scope.Data.GetResource(addr, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result:\ngot: %#v\nwant: %#v", got, want)
+	}
+}
+
+// GetResource will return a planned object's After value
+// if there is a change for that resource instance.
+func TestEvaluatorGetResource_changes(t *testing.T) {
+	// Set up existing state
+	stateSync := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_resource",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectPlanned,
+				AttrsJSON: []byte(`{"id":"foo", "to_mark_val":"tacos", "sensitive_value":"abc"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	}).SyncWrapper()
+
+	// Create a change for the existing state resource,
+	// to exercise retrieving the After value of the change
+	changesSync := plans.NewChanges().SyncWrapper()
+	change := &plans.ResourceInstanceChange{
+		Addr: mustResourceInstanceAddr("test_resource.foo"),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Module:   addrs.RootModule,
+			Provider: addrs.NewDefaultProvider("test"),
+		},
+		Change: plans.Change{
+			Action: plans.Update,
+			// Provide an After value that contains a marked value
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":              cty.StringVal("foo"),
+				"to_mark_val":     cty.StringVal("pizza").Mark("sensitive"),
+				"sensitive_value": cty.StringVal("abc"),
+			}),
+		},
+	}
+
+	// Set up our schemas
+	schemas := &Schemas{
+		Providers: map[addrs.Provider]*ProviderSchema{
+			addrs.NewDefaultProvider("test"): {
+				Provider: &configschema.Block{},
+				ResourceTypes: map[string]*configschema.Block{
+					"test_resource": {
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"to_mark_val": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"sensitive_value": {
+								Type:      cty.String,
+								Computed:  true,
+								Sensitive: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// The resource we'll inspect
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_resource",
+		Name: "foo",
+	}
+	schema, _ := schemas.ResourceTypeConfig(addrs.NewDefaultProvider("test"), addr.Mode, addr.Type)
+	// This encoding separates out the After's marks into its AfterValMarks
+	csrc, _ := change.Encode(schema.ImpliedType())
+	changesSync.AppendResourceInstanceChange(csrc)
+
+	evaluator := &Evaluator{
+		Meta: &ContextMeta{
+			Env: "foo",
+		},
+		Changes: changesSync,
+		Config: &configs.Config{
+			Module: &configs.Module{
+				ManagedResources: map[string]*configs.Resource{
+					"test_resource.foo": &configs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "foo",
+						Provider: addrs.Provider{
+							Hostname:  addrs.DefaultRegistryHost,
+							Namespace: "hashicorp",
+							Type:      "test",
+						},
+					},
+				},
+				// Necessary while provider sensitive attrs are experimental
+				ActiveExperiments: experiments.NewSet(experiments.SuppressProviderSensitiveAttrs),
+			},
+		},
+		State:   stateSync,
+		Schemas: schemas,
+	}
+
+	data := &evaluationStateData{
+		Evaluator: evaluator,
+	}
+	scope := evaluator.Scope(data, nil)
+
+	want := cty.ObjectVal(map[string]cty.Value{
+		"id":              cty.StringVal("foo"),
+		"to_mark_val":     cty.StringVal("pizza").Mark("sensitive"),
+		"sensitive_value": cty.StringVal("abc").Mark("sensitive"),
+	})
+
 	got, diags := scope.Data.GetResource(addr, tfdiags.SourceRange{})
 
 	if len(diags) != 0 {
