@@ -246,7 +246,7 @@ we have declared `for_each` on the module block. When using the `count` argument
 [`count`](/docs/configuration/resources.html#the-count-object) object is available.
 
 Resources from child modules are prefixed with `module.module_name[module index]`
-when displayed in plan output and elsewhere in the UI. For a module with without
+when displayed in plan output and elsewhere in the UI. For a module without
 `count` or `for_each`, the address will not contain the module index as the module's
 name suffices to reference the module.
 
