@@ -43,7 +43,7 @@ func TestVersionConstraintsString(t *testing.T) {
 		},
 		"other operators": {
 			MustParseVersionConstraints("> 1.0.0, < 1.0.0, >= 1.0.0, <= 1.0.0, != 1.0.0"),
-			"> 1.0.0, < 1.0.0, >= 1.0.0, <= 1.0.0, != 1.0.0",
+			"> 1.0.0, >= 1.0.0, <= 1.0.0, < 1.0.0, != 1.0.0",
 		},
 		"multiple": {
 			MustParseVersionConstraints(">= 3.0, < 4.0"),
@@ -51,7 +51,33 @@ func TestVersionConstraintsString(t *testing.T) {
 		},
 		"duplicates removed": {
 			MustParseVersionConstraints(">= 1.2.3, 1.2.3, ~> 1.2, 1.2.3"),
-			">= 1.2.3, 1.2.3, ~> 1.2",
+			"~> 1.2, >= 1.2.3, 1.2.3",
+		},
+		"consistent ordering, exhaustive": {
+			// This weird jumble is just to exercise the different sort
+			// ordering codepaths. Hopefully nothing quite this horrific
+			// shows up often in practice.
+			MustParseVersionConstraints("< 1.2.3, <= 1.2.3, != 1.2.3, 1.2.3+local.2, 1.2.3+local.1, = 1.2.4, = 1.2.3, > 2, > 1.2.3, >= 1.2.3, ~> 1.2.3, ~> 1.2"),
+			"~> 1.2, > 1.2.3, >= 1.2.3, 1.2.3, ~> 1.2.3, <= 1.2.3, < 1.2.3, != 1.2.3, 1.2.3+local.1, 1.2.3+local.2, 1.2.4, > 2.0.0",
+		},
+		"consistent ordering, more typical": {
+			// This one is aiming to simulate a common situation where
+			// various different modules express compatible constraints
+			// but some modules are more constrained than others. The
+			// combined results here can be kinda confusing, but hopefully
+			// ordering them consistently makes them a _little_ easier to read.
+			MustParseVersionConstraints("~> 1.2, >= 1.2, 1.2.4"),
+			">= 1.2.0, ~> 1.2, 1.2.4",
+		},
+		"consistent ordering, disjoint": {
+			// One situation where our presentation of version constraints is
+			// particularly important is when a user accidentally ends up with
+			// disjoint constraints that can therefore never match. In that
+			// case, our ordering should hopefully make it easier to determine
+			// that the constraints are disjoint, as a first step to debugging,
+			// by showing > or >= constrains sorted after < or <= constraints.
+			MustParseVersionConstraints(">= 2, >= 1.2, < 1.3"),
+			">= 1.2.0, < 1.3.0, >= 2.0.0",
 		},
 	}
 	for name, tc := range testCases {
