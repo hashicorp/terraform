@@ -288,6 +288,16 @@ func wrappedMain() int {
 		return 1
 	}
 
+	// if we are exiting with a non-zero code, check if it was caused by any
+	// plugins crashing
+	if exitCode != 0 {
+		for _, panicLog := range logging.PluginPanics() {
+			// we don't write this to Error, or else panicwrap will think this
+			// process panicked
+			Ui.Info(panicLog)
+		}
+	}
+
 	return exitCode
 }
 

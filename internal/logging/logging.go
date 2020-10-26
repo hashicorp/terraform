@@ -24,14 +24,22 @@ const (
 	envLogProvider = "TF_LOG_PROVIDER"
 )
 
-// ValidLevels are the log level names that Terraform recognizes.
-var ValidLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"}
+var (
+	// ValidLevels are the log level names that Terraform recognizes.
+	ValidLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"}
 
-// logger is the global hclog logger
-var logger hclog.Logger
+	// logger is the global hclog logger
+	logger hclog.Logger
 
-// logWriter is a global writer for logs, to be used with the std log package
-var logWriter io.Writer
+	// logWriter is a global writer for logs, to be used with the std log package
+	logWriter io.Writer
+
+	// initialize our cache of panic output from providers
+	panics = &panicRecorder{
+		panics:   make(map[string][]string),
+		maxLines: 100,
+	}
+)
 
 func init() {
 	logger = newHCLogger("")
@@ -98,13 +106,17 @@ func NewLogger(name string) hclog.Logger {
 	if name == "" {
 		panic("logger name required")
 	}
-	return logger.Named(name)
+	return &logPanicWrapper{
+		Logger: logger.Named(name),
+	}
 }
 
 // NewProviderLogger returns a logger for the provider plugin, possibly with a
 // different log level from the global logger.
 func NewProviderLogger(prefix string) hclog.Logger {
-	l := logger.Named(prefix + "provider")
+	l := &logPanicWrapper{
+		Logger: logger.Named(prefix + "provider"),
+	}
 
 	level := providerLogLevel()
 	logger.Debug("created provider logger", "level", level)
