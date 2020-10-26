@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"sort"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -11,6 +10,13 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+)
+
+type phaseState int
+
+const (
+	workingState phaseState = iota
+	refreshState
 )
 
 // EvalReadState is an EvalNode implementation that reads the
@@ -143,30 +149,8 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	return obj, nil
 }
 
-// EvalRequireState is an EvalNode implementation that exits early if the given
-// object is null.
-type EvalRequireState struct {
-	State **states.ResourceInstanceObject
-}
-
-func (n *EvalRequireState) Eval(ctx EvalContext) (interface{}, error) {
-	if n.State == nil {
-		return nil, EvalEarlyExitError{}
-	}
-
-	state := *n.State
-	if state == nil || state.Value.IsNull() {
-		return nil, EvalEarlyExitError{}
-	}
-
-	return nil, nil
-}
-
-// EvalUpdateStateHook is an EvalNode implementation that calls the
-// PostStateUpdate hook with the current state.
-type EvalUpdateStateHook struct{}
-
-func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
+// UpdateStateHook calls the PostStateUpdate hook with the current state.
+func UpdateStateHook(ctx EvalContext) error {
 	// In principle we could grab the lock here just long enough to take a
 	// deep copy and then pass that to our hooks below, but we'll instead
 	// hold the hook for the duration to avoid the potential confusing
@@ -180,11 +164,7 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostStateUpdate(state)
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
+	return err
 }
 
 // evalWriteEmptyState wraps EvalWriteState to specifically record an empty
@@ -218,6 +198,10 @@ type EvalWriteState struct {
 	// Dependencies are the inter-resource dependencies to be stored in the
 	// state.
 	Dependencies *[]addrs.ConfigResource
+
+	// targetState determines which context state we're writing to during plan.
+	// The default is the global working state.
+	targetState phaseState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
@@ -228,7 +212,15 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
+
+	var state *states.SyncState
+	switch n.targetState {
+	case refreshState:
+		log.Printf("[TRACE] EvalWriteState: using RefreshState for %s", absAddr)
+		state = ctx.RefreshState()
+	default:
+		state = ctx.State()
+	}
 
 	if n.ProviderAddr.Provider.Type == "" {
 		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
@@ -455,131 +447,35 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 	return nil, nil
 }
 
-// EvalWriteResourceState is an EvalNode implementation that ensures that
-// a suitable resource-level state record is present in the state, if that's
-// required for the "each mode" of that resource.
-//
-// This is important primarily for the situation where count = 0, since this
-// eval is the only change we get to set the resource "each mode" to list
-// in that case, allowing expression evaluation to see it as a zero-element
-// list rather than as not set at all.
-type EvalWriteResourceState struct {
-	Addr         addrs.AbsResource
-	Config       *configs.Resource
-	ProviderAddr addrs.AbsProviderConfig
-}
+// EvalRefreshLifecycle is an EvalNode implementation that updates
+// the status of the lifecycle options stored in the state.
+// This currently only applies to create_before_destroy.
+type EvalRefreshLifecycle struct {
+	Addr addrs.AbsResourceInstance
 
-func (n *EvalWriteResourceState) Eval(ctx EvalContext) (interface{}, error) {
-	var diags tfdiags.Diagnostics
-	state := ctx.State()
-
-	// We'll record our expansion decision in the shared "expander" object
-	// so that later operations (i.e. DynamicExpand and expression evaluation)
-	// can refer to it. Since this node represents the abstract module, we need
-	// to expand the module here to create all resources.
-	expander := ctx.InstanceExpander()
-
-	switch {
-	case n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
-		diags = diags.Append(countDiags)
-		if countDiags.HasErrors() {
-			return nil, diags.Err()
-		}
-
-		state.SetResourceProvider(n.Addr, n.ProviderAddr)
-		expander.SetResourceCount(n.Addr.Module, n.Addr.Resource, count)
-
-	case n.Config.ForEach != nil:
-		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
-		diags = diags.Append(forEachDiags)
-		if forEachDiags.HasErrors() {
-			return nil, diags.Err()
-		}
-
-		// This method takes care of all of the business logic of updating this
-		// while ensuring that any existing instances are preserved, etc.
-		state.SetResourceProvider(n.Addr, n.ProviderAddr)
-		expander.SetResourceForEach(n.Addr.Module, n.Addr.Resource, forEach)
-
-	default:
-		state.SetResourceProvider(n.Addr, n.ProviderAddr)
-		expander.SetResourceSingle(n.Addr.Module, n.Addr.Resource)
-	}
-
-	return nil, nil
-}
-
-// EvalForgetResourceState is an EvalNode implementation that prunes out an
-// empty resource-level state for a given resource address, or produces an
-// error if it isn't empty after all.
-//
-// This should be the last action taken for a resource that has been removed
-// from the configuration altogether, to clean up the leftover husk of the
-// resource in the state after other EvalNodes have destroyed and removed
-// all of the instances and instance objects beneath it.
-type EvalForgetResourceState struct {
-	Addr addrs.Resource
-}
-
-func (n *EvalForgetResourceState) Eval(ctx EvalContext) (interface{}, error) {
-	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
-
-	pruned := state.RemoveResourceIfEmpty(absAddr)
-	if !pruned {
-		// If this produces an error, it indicates a bug elsewhere in Terraform
-		// -- probably missing graph nodes, graph edges, or
-		// incorrectly-implemented evaluation steps.
-		return nil, fmt.Errorf("orphan resource %s still has a non-empty state after apply; this is a bug in Terraform", absAddr)
-	}
-	log.Printf("[TRACE] EvalForgetResourceState: Pruned husk of %s from state", absAddr)
-
-	return nil, nil
-}
-
-// EvalRefreshDependencies is an EvalNode implementation that appends any newly
-// found dependencies to those saved in the state. The existing dependencies
-// are retained, as they may be missing from the config, and will be required
-// for the updates and destroys during the next apply.
-type EvalRefreshDependencies struct {
+	Config *configs.Resource
 	// Prior State
 	State **states.ResourceInstanceObject
-	// Dependencies to write to the new state
-	Dependencies *[]addrs.ConfigResource
+	// ForceCreateBeforeDestroy indicates a create_before_destroy resource
+	// depends on this resource.
+	ForceCreateBeforeDestroy bool
 }
 
-func (n *EvalRefreshDependencies) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalRefreshLifecycle) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 	if state == nil {
-		// no existing state to append
+		// no existing state
 		return nil, nil
 	}
 
-	depMap := make(map[string]addrs.ConfigResource)
-	for _, d := range *n.Dependencies {
-		depMap[d.String()] = d
-	}
-
-	// We have already dependencies in state, so we need to trust those for
-	// refresh. We can't write out new dependencies until apply time in case
-	// the configuration has been changed in a manner the conflicts with the
-	// stored dependencies.
-	if len(state.Dependencies) > 0 {
-		*n.Dependencies = state.Dependencies
+	// In 0.13 we could be refreshing a resource with no config.
+	// We should be operating on managed resource, but check here to be certain
+	if n.Config == nil || n.Config.Managed == nil {
+		log.Printf("[WARN] EvalRefreshLifecycle: no Managed config value found in instance state for %q", n.Addr)
 		return nil, nil
 	}
 
-	deps := make([]addrs.ConfigResource, 0, len(depMap))
-	for _, d := range depMap {
-		deps = append(deps, d)
-	}
-
-	sort.Slice(deps, func(i, j int) bool {
-		return deps[i].String() < deps[j].String()
-	})
-
-	*n.Dependencies = deps
+	state.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
 
 	return nil, nil
 }

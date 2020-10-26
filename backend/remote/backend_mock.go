@@ -12,10 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/copystructure"
 )
 
 type mockClient struct {
@@ -693,6 +695,8 @@ func (m *mockPolicyChecks) Logs(ctx context.Context, policyCheckID string) (io.R
 }
 
 type mockRuns struct {
+	sync.Mutex
+
 	client     *mockClient
 	runs       map[string]*tfe.Run
 	workspaces map[string][]*tfe.Run
@@ -712,13 +716,21 @@ func newMockRuns(client *mockClient) *mockRuns {
 }
 
 func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.RunListOptions) (*tfe.RunList, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	rl := &tfe.RunList{
-		Items: m.workspaces[w.ID],
+	rl := &tfe.RunList{}
+	for _, run := range m.workspaces[w.ID] {
+		rc, err := copystructure.Copy(run)
+		if err != nil {
+			panic(err)
+		}
+		rl.Items = append(rl.Items, rc.(*tfe.Run))
 	}
 
 	rl.Pagination = &tfe.Pagination{
@@ -733,6 +745,9 @@ func (m *mockRuns) List(ctx context.Context, workspaceID string, options tfe.Run
 }
 
 func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*tfe.Run, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	a, err := m.client.Applies.create(options.ConfigurationVersion.ID, options.Workspace.ID)
 	if err != nil {
 		return nil, err
@@ -798,6 +813,9 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 }
 
 func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
+	m.Lock()
+	defer m.Unlock()
+
 	r, ok := m.runs[runID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -833,10 +851,19 @@ func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 		}
 	}
 
-	return r, nil
+	// we must return a copy for the client
+	rc, err := copystructure.Copy(r)
+	if err != nil {
+		panic(err)
+	}
+
+	return rc.(*tfe.Run), nil
 }
 
 func (m *mockRuns) Apply(ctx context.Context, runID string, options tfe.RunApplyOptions) error {
+	m.Lock()
+	defer m.Unlock()
+
 	r, ok := m.runs[runID]
 	if !ok {
 		return tfe.ErrResourceNotFound
@@ -859,6 +886,9 @@ func (m *mockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 }
 
 func (m *mockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
+	m.Lock()
+	defer m.Unlock()
+
 	r, ok := m.runs[runID]
 	if !ok {
 		return tfe.ErrResourceNotFound

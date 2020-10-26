@@ -16,8 +16,8 @@ import (
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/pkg/errors"
 )
 
@@ -48,7 +48,7 @@ type RemoteClient struct {
 	lockFile             string
 	serverSideEncryption bool
 	acl                  string
-	info                 *state.LockInfo
+	info                 *statemgr.LockInfo
 	mu                   sync.Mutex
 	otsTable             string
 }
@@ -147,7 +147,7 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	if c.otsTable == "" {
 		return "", nil
 	}
@@ -195,7 +195,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			log.Printf("[WARN] Error getting lock info: %#v", err)
 			err = multierror.Append(err, infoErr)
 		}
-		lockErr := &state.LockError{
+		lockErr := &statemgr.LockError{
 			Err:  err,
 			Info: lockInfo,
 		}
@@ -324,7 +324,7 @@ func (c *RemoteClient) deleteMD5() error {
 	return nil
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	getParams := &tablestore.SingleRowQueryCriteria{
 		TableName: c.otsTable,
 		PrimaryKey: &tablestore.PrimaryKey{
@@ -352,7 +352,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	if v, ok := object.GetColumnMap().Columns["Info"]; ok && len(v) > 0 {
 		infoData = v[0].Value.(string)
 	}
-	lockInfo := &state.LockInfo{}
+	lockInfo := &statemgr.LockInfo{}
 	err = json.Unmarshal([]byte(infoData), lockInfo)
 	if err != nil {
 		return nil, err
@@ -364,7 +364,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		return nil
 	}
 
-	lockErr := &state.LockError{}
+	lockErr := &statemgr.LockError{}
 
 	lockInfo, err := c.getLockInfo()
 	if err != nil {

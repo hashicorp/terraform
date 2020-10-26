@@ -41,7 +41,11 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	env := c.Workspace()
+	env, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
@@ -121,10 +125,6 @@ Options:
 func (c *StateListCommand) Synopsis() string {
 	return "List resources in the state"
 }
-
-const errStateFilter = `Error filtering state: %[1]s
-
-Please ensure that all your addresses are formatted properly.`
 
 const errStateLoadingState = `Error loading the state: %[1]s
 

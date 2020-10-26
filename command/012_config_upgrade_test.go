@@ -20,7 +20,7 @@ func TestZeroTwelveUpgrade_deprecated(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "The 0.12upgrade command is deprecated.") {
+	if !strings.Contains(output, "The 0.12upgrade command has been removed.") {
 		t.Fatal("unexpected output:", output)
 	}
 }

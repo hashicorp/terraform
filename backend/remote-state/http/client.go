@@ -12,8 +12,8 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // httpClient is a remote client that stores data in Consul or HTTP REST.
@@ -74,7 +74,7 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	return resp, nil
 }
 
-func (c *httpClient) Lock(info *state.LockInfo) (string, error) {
+func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 	if c.LockURL == nil {
 		return "", nil
 	}
@@ -102,7 +102,7 @@ func (c *httpClient) Lock(info *state.LockInfo) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("HTTP remote state already locked, failed to read body")
 		}
-		existing := state.LockInfo{}
+		existing := statemgr.LockInfo{}
 		err = json.Unmarshal(body, &existing)
 		if err != nil {
 			return "", fmt.Errorf("HTTP remote state already locked, failed to unmarshal body")

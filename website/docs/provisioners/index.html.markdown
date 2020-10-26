@@ -14,6 +14,8 @@ for service.
 
 ## Provisioners are a Last Resort
 
+> **Hands-on:** To learn about more declarative ways to handle provisioning actions, try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/collections/terraform/provision?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+
 Terraform includes the concept of provisioners as a measure of pragmatism,
 knowing that there will always be certain behaviors that can't be directly
 represented in Terraform's declarative model.
@@ -75,6 +77,8 @@ process in various ways data passed via the means described above, allowing
 you to run arbitrary scripts and do basic system configuration immediately
 during the boot process and without the need to access the machine over SSH.
 
+> **Hands-on:** Try the [Provision Infrastructure with Cloud-Init](https://learn.hashicorp.com/tutorials/terraform/cloud-init?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 If you are building custom machine images, you can make use of the "user data"
 or "metadata" passed by the above means in whatever way makes sense to your
 application, by referring to your vendor's documentation on how to access the
@@ -102,6 +106,8 @@ steps during a custom image build process. For example,
 configuration management provisioners and can run their installation steps
 during a separate build process, before creating a system disk image that you
 can deploy many times.
+
+> **Hands-on:** Try the [Provision Infrastructure with Packer](https://learn.hashicorp.com/tutorials/terraform/packer?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 If you are using configuration management software that has a centralized server
 component, you will need to delay the _registration_ step until the final
@@ -180,6 +186,10 @@ that resource's attributes. For example, use `self.public_ip` to reference an
 references create dependencies. Referring to a resource by name within its own
 block would create a dependency cycle.
 
+## Suppressing Provisioner Logs in CLI Output
+
+The configuration for a `provisioner` block may use sensitive values, such as [`sensitive` variables](../configuration/variables.html#suppressing-values-in-cli-output) or [`sensitive` output values](../outputs.html#sensitive-suppressing-values-in-cli-output). In this case, all log output from the provider is automatically suppressed to prevent the sensitive values from being displayed.
+
 ## Creation-Time Provisioners
 
 By default, provisioners run when the resource they are defined within is
@@ -199,7 +209,7 @@ which is covered in detail below.
 
 ## Destroy-Time Provisioners
 
-If `when = "destroy"` is specified, the provisioner will run when the
+If `when = destroy` is specified, the provisioner will run when the
 resource it is defined within is _destroyed_.
 
 ```hcl
@@ -207,7 +217,7 @@ resource "aws_instance" "web" {
   # ...
 
   provisioner "local-exec" {
-    when    = "destroy"
+    when    = destroy
     command = "echo 'Destroy-time provisioner'"
   }
 }
@@ -267,9 +277,9 @@ By default, provisioners that fail will also cause the Terraform apply
 itself to fail. The `on_failure` setting can be used to change this. The
 allowed values are:
 
-- `"continue"` - Ignore the error and continue with creation or destruction.
+- `continue` - Ignore the error and continue with creation or destruction.
 
-- `"fail"` - Raise an error and stop applying (the default behavior). If this is a creation provisioner,
+- `fail` - Raise an error and stop applying (the default behavior). If this is a creation provisioner,
     taint the resource.
 
 Example:
@@ -280,7 +290,7 @@ resource "aws_instance" "web" {
 
   provisioner "local-exec" {
     command    = "echo The server's IP address is ${self.private_ip}"
-    on_failure = "continue"
+    on_failure = continue
   }
 }
 ```

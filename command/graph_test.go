@@ -20,7 +20,7 @@ func TestGraph(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -42,7 +42,7 @@ func TestGraph_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -69,7 +69,7 @@ func TestGraph_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -94,7 +94,7 @@ func TestGraph_noConfig(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}
@@ -126,7 +126,7 @@ func TestGraph_plan(t *testing.T) {
 			After:  plans.DynamicValue(`null`),
 		},
 		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	})
@@ -148,7 +148,7 @@ func TestGraph_plan(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 		},
 	}

@@ -2,6 +2,7 @@ package getproviders
 
 import (
 	"archive/zip"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -42,7 +43,7 @@ func NewMockSource(packages []PackageMeta, warns map[addrs.Provider]Warnings) *M
 // AvailableVersions returns all of the versions of the given provider that
 // are available in the fixed set of packages that were passed to
 // NewMockSource when creating the receiving source.
-func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+func (s *MockSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	s.calls = append(s.calls, []interface{}{"AvailableVersions", provider})
 	var ret VersionList
 	for _, pkg := range s.packages {
@@ -78,7 +79,7 @@ func (s *MockSource) AvailableVersions(provider addrs.Provider) (VersionList, Wa
 // always return the first one in the list, which may not match the behavior
 // of other sources in an equivalent situation because it's a degenerate case
 // with undefined results.
-func (s *MockSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *MockSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	s.calls = append(s.calls, []interface{}{"PackageMeta", provider, version, target})
 
 	for _, pkg := range s.packages {
@@ -143,13 +144,15 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 // to a temporary archive file that could actually be installed in principle.
 //
 // Installing it will not produce a working provider though: just a fake file
-// posing as an executable.
+// posing as an executable. The filename for the executable defaults to the
+// standard terraform-provider-NAME_X.Y.Z format, but can be overridden with
+// the execFilename argument.
 //
 // It's the caller's responsibility to call the close callback returned
 // alongside the result in order to clean up the temporary file. The caller
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
-func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform) (PackageMeta, func(), error) {
+func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, func(), error) {
 	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
@@ -162,10 +165,12 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		os.Remove(f.Name())
 	}
 
-	execFilename := fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
-	if target.OS == "windows" {
-		// For a little more (technically unnecessary) realism...
-		execFilename += ".exe"
+	if execFilename == "" {
+		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
+		if target.OS == "windows" {
+			// For a little more (technically unnecessary) realism...
+			execFilename += ".exe"
+		}
 	}
 
 	zw := zip.NewWriter(f)
@@ -202,7 +207,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		// knows what the future holds?)
 		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
 
-		Authentication: NewArchiveChecksumAuthentication(checksum),
+		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
 	return meta, close, nil
 }

@@ -13,12 +13,58 @@ as physical machines, VMs, network switches, containers, and more. Almost any
 infrastructure type can be represented as a resource in Terraform.
 
 A provider is responsible for understanding API interactions and exposing
-resources. Providers generally are an IaaS (e.g. Alibaba Cloud, AWS, GCP, Microsoft Azure,
-OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Cloud,
-DNSimple, Cloudflare).
+resources. Most providers configure a specific infrastructure platform (either
+cloud or self-hosted). Providers can also offer local utilities for tasks like
+generating random numbers for unique resource names.
 
-Use the navigation to the left to find available providers by type or scroll
-down to see all providers.
+## Providers in the Terraform Registry
+
+The [Terraform Registry](https://registry.terraform.io/browse/providers)
+is the main directory of publicly available Terraform providers, and hosts
+providers for most major infrastructure platforms.
+
+Once you've found a provider you want to use, you can require it in your
+Terraform configuration and start using the resource types it provides.
+Terraform can automatically install providers from the Terraform Registry when
+you run `terraform init`.
+
+- To find providers for the infrastructure platforms you use, browse
+  [the providers section of the Terraform Registry](https://registry.terraform.io/browse/providers).
+- For details about how to use providers in your Terraform configurations, see
+  [Provider Requirements](../configuration/provider-requirements.html) and
+  [Provider Configuration](../configuration/providers.html).
+
+### Provider Documentation
+
+Every Terraform provider has its own documentation, describing its resource
+types and their arguments.
+
+The Terraform Registry is also the main home for provider documentation.
+When viewing a provider's page on the Terraform Registry, you can click the
+"Documentation" link in the header to browse its documentation. Provider
+documentation in the registry is versioned, and you can use the dropdown version
+menu in the header to switch which version's documentation you are viewing.
+
+## Lists of Terraform Providers
+
+Provider documentation used to be hosted directly on terraform.io, as part of
+Terraform's core documentation. Although some provider documentation might still
+be hosted here, the Terraform Registry is now the main home for all public
+provider docs. (The exception is the built-in
+[`terraform` provider](/docs/providers/terraform/index.html) for reading state
+data, since it is not available on the Terraform Registry.)
+
+As part of the old provider documentation, this section of the site included
+categorized lists of all of the providers that could be automatically installed
+by older versions of Terraform, plus a supplemental list of community providers
+that needed to be manually installed. Many of these providers have already moved
+to the Terraform Registry, but we will continue to host these lists for a while
+as part of the transition. Links to provider documentation URLs on terraform.io
+should still work, but will now redirect to the equivalent page in the Terraform
+Registry.
+
+Use the navigation to the left to browse the categorized lists, or see the main
+list of historical providers below.
 
 <div style="column-width: 14em;">
 
@@ -48,6 +94,7 @@ down to see all providers.
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
 - [Cisco MSO](/docs/providers/mso/index.html)
+- [CloudAMQP](/docs/providers/cloudamqp/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cloud-init](/docs/providers/cloudinit/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)

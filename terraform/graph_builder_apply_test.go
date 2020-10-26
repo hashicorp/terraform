@@ -104,7 +104,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_list":["x"]}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -184,11 +184,10 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "graph-builder-apply-double-cbd"),
-		Changes:       changes,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "graph-builder-apply-double-cbd"),
+		Changes:    changes,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -273,18 +272,17 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"bar"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.child.test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
 	b := &ApplyGraphBuilder{
-		Config:        testModule(t, "empty"),
-		Changes:       changes,
-		State:         state,
-		Components:    simpleMockComponentFactory(),
-		Schemas:       simpleTestSchemas(),
-		DisableReduce: true,
+		Config:     testModule(t, "empty"),
+		Changes:    changes,
+		State:      state,
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
 	}
 
 	g, diags := b.Build(addrs.RootModuleInstance)
@@ -321,11 +319,33 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 		},
 	}
 
+	state := states.NewState()
+	root := state.RootModule()
+	addrA := mustResourceInstanceAddr("test_object.A[1]")
+	root.SetResourceInstanceCurrent(
+		addrA.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"B"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B"}`),
+			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
 	b := &ApplyGraphBuilder{
 		Config:     testModule(t, "graph-builder-apply-count"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),
 		Schemas:    simpleTestSchemas(),
+		State:      state,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -378,7 +398,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"foo","value":"foo"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.A.test_object.foo")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.A.test_object.foo")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -448,7 +468,6 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Destroy:    true,
 		Config:     testModule(t, "graph-builder-apply-provisioner"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),

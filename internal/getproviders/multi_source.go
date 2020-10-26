@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -28,7 +29,7 @@ var _ Source = MultiSource(nil)
 // AvailableVersions retrieves all of the versions of the given provider
 // that are available across all of the underlying selectors, while respecting
 // each selector's matching patterns.
-func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, Warnings, error) {
+func (s MultiSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	if len(s) == 0 { // Easy case: there can be no available versions
 		return nil, nil, nil
 	}
@@ -42,7 +43,7 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, Wa
 		if !selector.CanHandleProvider(provider) {
 			continue // doesn't match the given patterns
 		}
-		thisSourceVersions, warningsResp, err := selector.Source.AvailableVersions(provider)
+		thisSourceVersions, warningsResp, err := selector.Source.AvailableVersions(ctx, provider)
 		switch err.(type) {
 		case nil:
 		// okay
@@ -80,7 +81,7 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, Wa
 
 // PackageMeta retrieves the package metadata for the requested provider package
 // from the first selector that indicates availability of it.
-func (s MultiSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s MultiSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	if len(s) == 0 { // Easy case: no providers exist at all
 		return PackageMeta{}, ErrProviderNotFound{provider, s.sourcesForProvider(provider)}
 	}
@@ -89,7 +90,7 @@ func (s MultiSource) PackageMeta(provider addrs.Provider, version Version, targe
 		if !selector.CanHandleProvider(provider) {
 			continue // doesn't match the given patterns
 		}
-		meta, err := selector.Source.PackageMeta(provider, version, target)
+		meta, err := selector.Source.PackageMeta(ctx, provider, version, target)
 		switch err.(type) {
 		case nil:
 			return meta, nil

@@ -460,9 +460,9 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeCloseProvider) EvalTree() EvalNode {
-	return CloseProviderEvalTree(n.Addr)
+// GraphNodeExecutable impl.
+func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) error {
+	return ctx.CloseProvider(n.Addr)
 }
 
 // GraphNodeDependable impl.
@@ -721,9 +721,12 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 			continue
 		}
 
+		// Find the localName for the provider fqn
+		localName := mc.Module.LocalNameForProvider(addr.Provider)
+
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
-			if p.Name == addr.Provider.Type && p.Alias == addr.Alias {
+			if p.Name == localName && p.Alias == addr.Alias {
 				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break

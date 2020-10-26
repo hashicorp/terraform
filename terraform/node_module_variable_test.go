@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 )
 
-func TestnodeModuleVariablePath(t *testing.T) {
+func TestNodeModuleVariablePath(t *testing.T) {
 	n := &nodeModuleVariable{
 		Addr: addrs.RootModuleInstance.InputVariable("foo"),
 		Config: &configs.Variable{
@@ -27,7 +27,7 @@ func TestnodeModuleVariablePath(t *testing.T) {
 	}
 }
 
-func TestnodeModuleVariableReferenceableName(t *testing.T) {
+func TestNodeModuleVariableReferenceableName(t *testing.T) {
 	n := &nodeExpandModuleVariable{
 		Addr: addrs.InputVariable{Name: "foo"},
 		Config: &configs.Variable{
@@ -47,7 +47,7 @@ func TestnodeModuleVariableReferenceableName(t *testing.T) {
 
 	{
 		gotSelfPath, gotReferencePath := n.ReferenceOutside()
-		wantSelfPath := addrs.RootModuleInstance.Child("child", addrs.NoKey)
+		wantSelfPath := addrs.RootModuleInstance
 		wantReferencePath := addrs.RootModuleInstance
 		if got, want := gotSelfPath.String(), wantSelfPath.String(); got != want {
 			t.Errorf("wrong self path\ngot:  %s\nwant: %s", got, want)
@@ -59,9 +59,10 @@ func TestnodeModuleVariableReferenceableName(t *testing.T) {
 
 }
 
-func TestnodeModuleVariableReference(t *testing.T) {
+func TestNodeModuleVariableReference(t *testing.T) {
 	n := &nodeExpandModuleVariable{
-		Addr: addrs.InputVariable{Name: "foo"},
+		Addr:   addrs.InputVariable{Name: "foo"},
+		Module: addrs.RootModule.Child("bar"),
 		Config: &configs.Variable{
 			Name: "foo",
 		},
@@ -84,9 +85,10 @@ func TestnodeModuleVariableReference(t *testing.T) {
 	}
 }
 
-func TestnodeModuleVariableReference_grandchild(t *testing.T) {
+func TestNodeModuleVariableReference_grandchild(t *testing.T) {
 	n := &nodeExpandModuleVariable{
-		Addr: addrs.InputVariable{Name: "foo"},
+		Addr:   addrs.InputVariable{Name: "foo"},
+		Module: addrs.RootModule.Child("bar"),
 		Config: &configs.Variable{
 			Name: "foo",
 		},

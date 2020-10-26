@@ -12,6 +12,7 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/providers"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
 )
@@ -185,13 +186,10 @@ func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 		return resp
 	}
 
-	config := cty.NullVal(ty)
-	if protoResp.PreparedConfig != nil {
-		config, err = msgpack.Unmarshal(protoResp.PreparedConfig.Msgpack, ty)
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+	config, err := decodeDynamicValue(protoResp.PreparedConfig, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	resp.PreparedConfig = config
 
@@ -270,16 +268,19 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state := cty.NullVal(resSchema.Block.ImpliedType())
-	if protoResp.UpgradedState != nil {
-		state, err = msgpack.Unmarshal(protoResp.UpgradedState.Msgpack, resSchema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+	ty := resSchema.Block.ImpliedType()
+	resp.UpgradedState = cty.NullVal(ty)
+	if protoResp.UpgradedState == nil {
+		return resp
 	}
 
+	state, err := decodeDynamicValue(protoResp.UpgradedState, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 	resp.UpgradedState = state
+
 	return resp
 }
 
@@ -361,13 +362,10 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state := cty.NullVal(resSchema.Block.ImpliedType())
-	if protoResp.NewState != nil {
-		state, err = msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	resp.NewState = state
 	resp.Private = protoResp.Private
@@ -423,13 +421,10 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state := cty.NullVal(resSchema.Block.ImpliedType())
-	if protoResp.PlannedState != nil {
-		state, err = msgpack.Unmarshal(protoResp.PlannedState.Msgpack, resSchema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+	state, err := decodeDynamicValue(protoResp.PlannedState, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	resp.PlannedState = state
 
@@ -492,13 +487,10 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.Private = protoResp.Private
 
-	state := cty.NullVal(resSchema.Block.ImpliedType())
-	if protoResp.NewState != nil {
-		state, err = msgpack.Unmarshal(protoResp.NewState.Msgpack, resSchema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	resp.NewState = state
 
@@ -529,13 +521,10 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		}
 
 		resSchema := p.getResourceSchema(resource.TypeName)
-		state := cty.NullVal(resSchema.Block.ImpliedType())
-		if imported.State != nil {
-			state, err = msgpack.Unmarshal(imported.State.Msgpack, resSchema.Block.ImpliedType())
-			if err != nil {
-				resp.Diagnostics = resp.Diagnostics.Append(err)
-				return resp
-			}
+		state, err := decodeDynamicValue(imported.State, resSchema.Block.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
 		}
 		resource.State = state
 		resp.ImportedResources = append(resp.ImportedResources, resource)
@@ -579,13 +568,10 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state := cty.NullVal(dataSchema.Block.ImpliedType())
-	if protoResp.State != nil {
-		state, err = msgpack.Unmarshal(protoResp.State.Msgpack, dataSchema.Block.ImpliedType())
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+	state, err := decodeDynamicValue(protoResp.State, dataSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	resp.State = state
 
@@ -612,4 +598,22 @@ func (p *GRPCProvider) Close() error {
 
 	p.PluginClient.Kill()
 	return nil
+}
+
+// Decode a DynamicValue from either the JSON or MsgPack encoding.
+func decodeDynamicValue(v *proto.DynamicValue, ty cty.Type) (cty.Value, error) {
+	// always return a valid value
+	var err error
+	res := cty.NullVal(ty)
+	if v == nil {
+		return res, nil
+	}
+
+	switch {
+	case len(v.Msgpack) > 0:
+		res, err = msgpack.Unmarshal(v.Msgpack, ty)
+	case len(v.Json) > 0:
+		res, err = ctyjson.Unmarshal(v.Json, ty)
+	}
+	return res, err
 }

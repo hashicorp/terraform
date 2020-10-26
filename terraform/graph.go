@@ -1,8 +1,8 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -46,9 +46,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
 		}()
 
-		walker.EnterVertex(v)
-		defer walker.ExitVertex(v, diags)
-
 		// vertexCtx is the context that we use when evaluating. This
 		// is normally the context of our graph but can be overridden
 		// with a GraphNodeModuleInstance impl.
@@ -58,20 +55,9 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			defer walker.ExitPath(pn.Path())
 		}
 
-		// If the node is eval-able, then evaluate it.
-		if ev, ok := v.(GraphNodeEvalable); ok {
-			tree := ev.EvalTree()
-			if tree == nil {
-				panic(fmt.Sprintf("%q (%T): nil eval tree", dag.VertexName(v), v))
-			}
-
-			// Allow the walker to change our tree if needed. Eval,
-			// then callback with the output.
-			log.Printf("[TRACE] vertex %q: evaluating", dag.VertexName(v))
-
-			tree = walker.EnterEvalTree(v, tree)
-			output, err := Eval(tree, vertexCtx)
-			diags = diags.Append(walker.ExitEvalTree(v, output, err))
+		// If the node is exec-able, then execute it.
+		if ev, ok := v.(GraphNodeExecutable); ok {
+			diags = diags.Append(walker.Execute(vertexCtx, ev))
 			if diags.HasErrors() {
 				return
 			}
@@ -92,7 +78,11 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 				subDiags := g.walk(walker)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
-					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors", dag.VertexName(v))
+					var errs []string
+					for _, d := range subDiags {
+						errs = append(errs, d.Description().Summary)
+					}
+					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors: %s", dag.VertexName(v), strings.Join(errs, ","))
 					return
 				}
 				log.Printf("[TRACE] vertex %q: dynamic subgraph completed successfully", dag.VertexName(v))

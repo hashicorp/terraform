@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -47,6 +48,21 @@ func TestMetaColorize(t *testing.T) {
 	m = new(Meta)
 	m.Color = true
 	args = []string{"foo", "-no-color", "bar"}
+	args2 = []string{"foo", "bar"}
+	args = m.process(args)
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if !m.Colorize().Disable {
+		t.Fatal("should be disabled")
+	}
+
+	// Test disable #2
+	// Verify multiple -no-color options are removed from args slice.
+	// E.g. an additional -no-color arg could be added by TF_CLI_ARGS.
+	m = new(Meta)
+	m.Color = true
+	args = []string{"foo", "-no-color", "bar", "-no-color"}
 	args2 = []string{"foo", "bar"}
 	args = m.process(args)
 	if !reflect.DeepEqual(args, args2) {
@@ -170,7 +186,10 @@ func TestMeta_Env(t *testing.T) {
 
 	m := new(Meta)
 
-	env := m.Workspace()
+	env, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if env != backend.DefaultStateName {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
@@ -181,7 +200,7 @@ func TestMeta_Env(t *testing.T) {
 		t.Fatal("error setting env:", err)
 	}
 
-	env = m.Workspace()
+	env, _ = m.Workspace()
 	if env != testEnv {
 		t.Fatalf("expected env %q, got env %q", testEnv, env)
 	}
@@ -190,9 +209,81 @@ func TestMeta_Env(t *testing.T) {
 		t.Fatal("error setting env:", err)
 	}
 
-	env = m.Workspace()
+	env, _ = m.Workspace()
 	if env != backend.DefaultStateName {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
+	}
+}
+
+func TestMeta_Workspace_override(t *testing.T) {
+	defer func(value string) {
+		os.Setenv(WorkspaceNameEnvVar, value)
+	}(os.Getenv(WorkspaceNameEnvVar))
+
+	m := new(Meta)
+
+	testCases := map[string]struct {
+		workspace string
+		err       error
+	}{
+		"": {
+			"default",
+			nil,
+		},
+		"development": {
+			"development",
+			nil,
+		},
+		"invalid name": {
+			"",
+			invalidWorkspaceNameEnvVar,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			os.Setenv(WorkspaceNameEnvVar, name)
+			workspace, err := m.Workspace()
+			if workspace != tc.workspace {
+				t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", workspace, tc.workspace)
+			}
+			if err != tc.err {
+				t.Errorf("Unexpected error\n got: %s\nwant: %s\n", err, tc.err)
+			}
+		})
+	}
+}
+
+func TestMeta_Workspace_invalidSelected(t *testing.T) {
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// this is an invalid workspace name
+	workspace := "test workspace"
+
+	// create the workspace directories
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, workspace), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// create the workspace file to select it
+	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := new(Meta)
+
+	ws, err := m.Workspace()
+	if ws != workspace {
+		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
+	}
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
 	}
 }
 

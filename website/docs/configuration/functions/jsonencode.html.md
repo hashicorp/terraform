@@ -37,6 +37,11 @@ types, passing the `jsonencode` result to `jsondecode` will not produce an
 identical value, but the automatic type conversion rules mean that this is
 rarely a problem in practice.
 
+When encoding strings, this function escapes some characters using
+Unicode escape sequences: replacing `<`, `>`, `&`, `U+2028`, and `U+2029` with
+`\u003c`, `\u003e`, `\u0026`, `\u2028`, and `\u2029`. This is to preserve
+compatibility with Terraform 0.11 behavior.
+
 ## Examples
 
 ```

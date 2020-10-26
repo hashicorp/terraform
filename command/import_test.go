@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
+	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -110,7 +110,7 @@ func TestImport_providerConfig(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		configured = true
 
 		cfg := req.Config
@@ -152,7 +152,7 @@ func TestImport_providerConfig(t *testing.T) {
 // "remote" state provided by the "local" backend
 func TestImport_remoteState(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -217,7 +217,7 @@ func TestImport_remoteState(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -258,7 +258,7 @@ func TestImport_remoteState(t *testing.T) {
 // early failure on import should not leave stale lock
 func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-provider-remote-state"), td)
+	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -364,7 +364,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -495,7 +495,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -568,7 +568,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureNewFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
@@ -746,7 +746,7 @@ func TestImport_missingModuleConfig(t *testing.T) {
 
 func TestImportModuleVarFile(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("import-module-var-file"), td)
+	testCopyDir(t, testFixturePath("import-module-var-file"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -765,6 +765,76 @@ func TestImportModuleVarFile(t *testing.T) {
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"test": []string{"1.2.3"},
+	})
+	defer close()
+
+	// init to install the module
+	ui := new(cli.MockUi)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		ProviderSource:   providerSource,
+	}
+
+	ic := &InitCommand{
+		Meta: m,
+	}
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// import
+	ui = new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+	args := []string{
+		"-state", statePath,
+		"module.child.test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("import failed; expected success")
+	}
+}
+
+// This test covers an edge case where a module with a complex input variable
+// of nested objects has an invalid default which is overridden by the calling
+// context, and is used in locals. If we don't evaluate module call variables
+// for the import walk, this results in an error.
+//
+// The specific example has a variable "foo" which is a nested object:
+//
+//   foo = { bar = { baz = true } }
+//
+// This is used as foo = var.foo in the call to the child module, which then
+// uses the traversal foo.bar.baz in a local. A default value in the child
+// module of {} causes this local evaluation to error, breaking import.
+func TestImportModuleInputVariableEvaluation(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("import-module-input-variable"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	p.GetSchemaReturn = &terraform.ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
 	})
 	defer close()
 

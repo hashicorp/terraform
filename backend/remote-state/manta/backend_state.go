@@ -12,9 +12,9 @@ import (
 	"github.com/joyent/triton-go/storage"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -64,7 +64,7 @@ func (b *Backend) DeleteWorkspace(name string) error {
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (state.State, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	if name == "" {
 		return nil, errors.New("missing state name")
 	}
@@ -81,7 +81,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	//it's listed by States.
 	if name != backend.DefaultStateName {
 		// take a lock on this state while we write it
-		lockInfo := state.NewLockInfo()
+		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {

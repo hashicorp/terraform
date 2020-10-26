@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -143,7 +143,7 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	leaseName, err := c.createLeaseName()
 	if err != nil {
 		return "", err
@@ -187,7 +187,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 			return "", err
 		}
 
-		lockErr := &state.LockError{
+		lockErr := &statemgr.LockError{
 			Info: currentLockInfo,
 			Err:  errors.New("the state is already locked by another terraform client"),
 		}
@@ -224,7 +224,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		return err
 	}
 
-	lockErr := &state.LockError{Info: lockInfo}
+	lockErr := &statemgr.LockError{Info: lockInfo}
 	if *lease.Spec.HolderIdentity != id {
 		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
 		return lockErr
@@ -242,13 +242,13 @@ func (c *RemoteClient) Unlock(id string) error {
 	return nil
 }
 
-func (c *RemoteClient) getLockInfo(lease *coordinationv1.Lease) (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo(lease *coordinationv1.Lease) (*statemgr.LockInfo, error) {
 	lockData, ok := getLockInfo(lease)
 	if len(lockData) == 0 || !ok {
 		return nil, nil
 	}
 
-	lockInfo := &state.LockInfo{}
+	lockInfo := &statemgr.LockInfo{}
 	err := json.Unmarshal(lockData, lockInfo)
 	if err != nil {
 		return nil, err

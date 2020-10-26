@@ -113,6 +113,19 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 					}
 				}
 			}
+			attrTypes := expr.Type().AttributeTypes()
+			for name := range attrTypes {
+				if name == "version" || name == "source" {
+					continue
+				}
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid required_providers object",
+					Detail:   `required_providers objects can only contain "version" and "source" attributes. To configure a provider, use a "provider" block.`,
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+				break
+			}
 
 		default:
 			// should not happen

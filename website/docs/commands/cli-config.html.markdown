@@ -93,6 +93,10 @@ credentials "app.terraform.io" {
 }
 ```
 
+If you are running the Terraform CLI interactively on a computer with a web browser, you can use [the `terraform login` command](./login.html)
+to get credentials and automatically save them in the CLI configuration. If
+not, you can manually write `credentials` blocks.
+
 You can have multiple `credentials` blocks if you regularly use services from
 multiple hosts. Many users will configure only one, for either
 Terraform Cloud (at `app.terraform.io`) or for their organization's own
@@ -111,11 +115,6 @@ sources and/or backend configuration. If your Terraform Enterprise instance
 is available at multiple hostnames, use only one of them consistently.
 Terraform Cloud responds to API calls at both its current hostname
 `app.terraform.io`, and its historical hostname `atlas.hashicorp.com`.
-
-If you are running the Terraform CLI interactively on a computer that is capable
-of also running a web browser, you can optionally obtain credentials and save
-them in the CLI configuration automatically using
-[the `terraform login` command](./login.html).
 
 ### Credentials Helpers
 
@@ -154,8 +153,8 @@ The default way to install provider plugins is from a provider registry. The
 origin registry for a provider is encoded in the provider's source address,
 like `registry.terraform.io/hashicorp/aws`. For convenience in the common case,
 Terraform allows omitting the hostname portion for providers on
-`registry.terraform.io`, so we'd normally write `hashicorp/aws` instead in
-this case.
+`registry.terraform.io`, so you can write shorter public provider addresses like
+`hashicorp/aws`.
 
 Downloading a plugin directly from its origin registry is not always
 appropriate, though. For example, the system where you are running Terraform
@@ -239,6 +238,21 @@ The following are the two supported installation method types:
     You can include multiple `filesystem_mirror` blocks in order to specify
     several different directories to search.
 
+* `network_mirror`: consult a particular HTTPS server for copies of providers,
+  regardless of which registry host they belong to. This method requires the
+  additional argument `url` to indicate the mirror base URL, which should
+  use the `https:` scheme and end with a trailing slash.
+
+    Terraform expects the given URL to be a base URL for an implementation of
+    [the provider network mirror protocol](/docs/internals/provider-network-mirror-protocol.html),
+    which is designed to be relatively easy to implement using typical static
+    website hosting mechanisms.
+
+~> **Warning:** Don't configure `network_mirror` URLs that you do not trust.
+Provider mirror servers are subject to TLS certificate checks to verify
+identity, but a network mirror with a TLS certificate can potentially serve
+modified copies of upstream providers with malicious content.
+
 Terraform will try all of the specified methods whose include and exclude
 patterns match a given provider, and select the newest version available across
 all of those methods that matches the version constraint given in each
@@ -257,18 +271,21 @@ method.
 The set of directories Terraform can select as filesystem mirrors depends on
 the operating system where you are running Terraform:
 
-* **Windows:** `%APPDATA%/HashiCorp/Terraform/plugins`
-* **Mac OS X:** `~/Library/Application Support/io.terraform/plugins` and
+* **Windows:** `%APPDATA%/terraform.d/plugins` and `%APPDATA%/HashiCorp/Terraform/plugins`
+* **Mac OS X:** `$HOME/.terraform.d/plugins/`,
+  `~/Library/Application Support/io.terraform/plugins`, and
   `/Library/Application Support/io.terraform/plugins`
-* **Linux and other Unix-like systems**: Terraform implements the
+* **Linux and other Unix-like systems**:`$HOME/.terraform.d/plugins/`, and
   [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-  specification and appends `terraform/plugins` to all of the specified
-  data directories. Without any XDG environment variables set, Terraform
-  will use `~/.local/share/terraform/plugins`,
+  data directories as configured, after appending `terraform/plugins`.
+  Without any XDG environment variables set, Terraform will use
+  `~/.local/share/terraform/plugins`,
   `/usr/local/share/terraform/plugins`, and `/usr/share/terraform/plugins`.
 
 Terraform will create an implied `filesystem_mirror` method block for each of
 the directories indicated above that exists when Terraform starts up.
+In addition, if a `terraform.d/plugins` directory exists in the current working
+directory, it will be added as a filesystem mirror.
 
 In addition to the zero or more implied `filesystem_mirror` blocks, Terraform
 also creates an implied `direct` block. Terraform will scan all of the
@@ -334,6 +351,89 @@ the filesystem mirror logic when operating on the same directory.
 Terraform will never itself delete a plugin from the plugin cache once it has
 been placed there. Over time, as plugins are upgraded, the cache directory may
 grow to contain several unused versions which you must delete manually.
+
+### Development Overrides for Provider Developers
+
+-> **Note:** Development overrides work only in Terraform v0.14 and later.
+Using a `dev_overrides` block in your CLI configuration will cause Terraform
+v0.13 to reject the configuration as invalid.
+
+Normally Terraform verifies version selections and checksums for providers
+in order to help ensure that all operations are made with the intended version
+of a provider, and that authors can gradually upgrade to newer provider versions
+in a controlled manner.
+
+These version and checksum rules are inconvenient when developing a provider
+though, because we often want to try a test configuration against a development
+build of a provider that doesn't even have an associated version number yet,
+and doesn't have an official set of checksums listed in a provider registry.
+
+As a convenience for provider development, Terraform supports a special
+additional block `dev_overrides` in `provider_installation` blocks. The contents
+of this block effectively override all of the other configured installation
+methods, so a block of this type must always appear first in the sequence:
+
+```hcl
+provider_installation {
+
+  # Use /home/developer/tmp/terraform-null as an overridden package directory
+  # for the hashicorp/null provider. This disables the version and checksum
+  # verifications for this provider and forces Terraform to look for the
+  # null provider plugin in the given directory.
+  dev_overrides {
+    "hashicorp/null" = "/home/developer/tmp/terraform-null"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
+```
+
+With development overrides in effect, the `terraform init` command will still
+attempt to select a suitable published version of your provider to install and
+record in
+[the dependency lock file](/docs/configuration/dependency-lock.html)
+for future use, but other commands like
+`terraform apply` will disregard the lock file's entry for `hashicorp/null` and
+will use the given directory instead. Once your new changes are included in a
+published release of the provider, you can use `terraform init -upgrade` to
+select the new version in the dependency lock file and remove your development
+override.
+
+The override path for a particular provider should be a directory similar to
+what would be included in a `.zip` file when distributing the provider. At
+minimum that includes an executable file named with a prefix like
+`terraform-provider-null`, where `null` is the provider type. If your provider
+makes use of other files in its distribution package then you can copy those
+files into the override directory too.
+
+You may wish to enable a development override only for shell sessions where
+you are actively working on provider development. If so, you can write a
+local CLI configuration file with content like the above in your development
+directory, perhaps called `dev.tfrc` for the sake fo example, and then use the
+`TF_CLI_CONFIG_FILE` environment variable to instruct Terraform to use that
+localized CLI configuration instead of the default one:
+
+```
+export TF_CLI_CONFIG_FILE=/home/developer/tmp/dev.tfrc
+```
+
+Development overrides are not intended for general use as a way to have
+Terraform look for providers on the local filesystem. If you wish to put
+copies of _released_ providers in your local filesystem, see
+[Implied Local Mirror Directories](#implied-local-mirror-directories)
+or
+[Explicit Installation Method Configuration](#explicit-installation-method-configuration)
+instead.
+
+This development overrides mechanism is intended as a pragmatic way to enable
+smoother provider development. The details of how it behaves, how to
+configure it, and how it interacts with the dependency lock file may all evolve
+in future Terraform releases, including possible breaking changes. We therefore
+recommend using development overrides only temporarily during provider
+development work.
 
 ## Removed Settings
 

@@ -10,9 +10,9 @@ description: |-
 
 The [Terraform Registry][terraform-registry] displays documentation for the providers it hosts. This page describes the expected format for provider documentation.
 
-## Publishing
+-> In order to test how documents will render in the Terraform Registry, you can use the [Terraform Registry Doc Preview Tool](https://registry.terraform.io/tools/doc-preview).
 
--> **Note:** Publishing is currently in a closed beta. Although we do not expect this document to change significantly before opening provider publishing to the community, this reference currently only applies to providers already appearing on the [Terraform Registry providers list][terraform-registry-providers].
+## Publishing
 
 The Terraform Registry publishes providers from their Git repositories, creating a version for each Git tag that matches the [Semver](https://semver.org/) versioning format. Provider documentation is published automatically as part of the provider release process.
 
@@ -158,6 +158,11 @@ This would change the navigation hierarchy to the following:
         * example_instance
 
 Resources and data sources without a subcategory will be rendered before any subcategories.
+
+The following subcategories will be rendered at the bottom of the list:
+
+* Beta
+* Deprecated
 
 ### Guides
 

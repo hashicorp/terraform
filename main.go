@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -11,22 +10,19 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/mitchellh/panicwrap"
-	"github.com/mitchellh/prefixedio"
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 )
@@ -34,11 +30,12 @@ import (
 const (
 	// EnvCLI is the environment variable name to set additional CLI args.
 	EnvCLI = "TF_CLI_ARGS"
+
+	// The parent process will create a file to collect crash logs
+	envTmpLogPath = "TF_TEMP_LOG_PATH"
 )
 
 func main() {
-	// Override global prefix set by go-dynect during init()
-	log.SetPrefix("")
 	os.Exit(realMain())
 }
 
@@ -51,13 +48,6 @@ func realMain() int {
 	}
 
 	if !panicwrap.Wrapped(&wrapConfig) {
-		// Determine where logs should go in general (requested by the user)
-		logWriter, err := logging.LogOutput()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't setup log output: %s", err)
-			return 1
-		}
-
 		// We always send logs to a temporary file that we use in case
 		// there is a panic. Otherwise, we delete it.
 		logTempFile, err := ioutil.TempFile("", "terraform-log")
@@ -65,19 +55,16 @@ func realMain() int {
 			fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
 			return 1
 		}
+		// Now that we have the file, close it and leave it for the wrapped
+		// process to write to.
+		logTempFile.Close()
 		defer os.Remove(logTempFile.Name())
-		defer logTempFile.Close()
 
-		// Setup the prefixed readers that send data properly to
-		// stdout/stderr.
-		doneCh := make(chan struct{})
-		outR, outW := io.Pipe()
-		go copyOutput(outR, doneCh)
+		// store the path in the environment for the wrapped executable
+		os.Setenv(envTmpLogPath, logTempFile.Name())
 
 		// Create the configuration for panicwrap and wrap our executable
-		wrapConfig.Handler = panicHandler(logTempFile)
-		wrapConfig.Writer = io.MultiWriter(logTempFile, logWriter)
-		wrapConfig.Stdout = outW
+		wrapConfig.Handler = logging.PanicHandler(logTempFile.Name())
 		wrapConfig.IgnoreSignals = ignoreSignals
 		wrapConfig.ForwardSignals = forwardSignals
 		exitStatus, err := panicwrap.Wrap(&wrapConfig)
@@ -86,20 +73,7 @@ func realMain() int {
 			return 1
 		}
 
-		// If >= 0, we're the parent, so just exit
-		if exitStatus >= 0 {
-			// Close the stdout writer so that our copy process can finish
-			outW.Close()
-
-			// Wait for the output copying to finish
-			<-doneCh
-
-			return exitStatus
-		}
-
-		// We're the child, so just close the tempfile we made in order to
-		// save file handles since the tempfile is only used by the parent.
-		logTempFile.Close()
+		return exitStatus
 	}
 
 	// Call the real main
@@ -107,28 +81,40 @@ func realMain() int {
 }
 
 func init() {
-	Ui = &cli.PrefixedUi{
-		AskPrefix:    OutputPrefix,
-		OutputPrefix: OutputPrefix,
-		InfoPrefix:   OutputPrefix,
-		ErrorPrefix:  ErrorPrefix,
-		Ui: &cli.BasicUi{
-			Writer: os.Stdout,
-			Reader: os.Stdin,
-		},
+	Ui = &cli.BasicUi{
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+		Reader:      os.Stdin,
 	}
 }
 
 func wrappedMain() int {
 	var err error
 
-	log.SetOutput(os.Stderr)
+	tmpLogPath := os.Getenv(envTmpLogPath)
+	if tmpLogPath != "" {
+		f, err := os.OpenFile(tmpLogPath, os.O_RDWR|os.O_APPEND, 0666)
+		if err == nil {
+			defer f.Close()
+
+			log.Printf("[DEBUG] Adding temp file log sink: %s", f.Name())
+			logging.RegisterSink(f)
+		} else {
+			log.Printf("[ERROR] Could not open temp log file: %v", err)
+		}
+	}
+
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",
 		Version, VersionPrerelease, GitCommit)
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
+	// NOTE: We're intentionally calling LoadConfig _before_ handling a possible
+	// -chdir=... option on the command line, so that a possible relative
+	// path in the TERRAFORM_CONFIG_FILE environment variable (though probably
+	// ill-advised) will be resolved relative to the true working directory,
+	// not the overridden one.
 	config, diags := cliconfig.LoadConfig()
 
 	if len(diags) > 0 {
@@ -190,6 +176,7 @@ func wrappedMain() int {
 			// We continue to run anyway, because most commands don't do provider installation.
 		}
 	}
+	providerDevOverrides := providerDevOverrides(config.ProviderInstallation)
 
 	// The user can declare that certain providers are being managed on
 	// Terraform's behalf using this environment variable. Thsi is used
@@ -203,9 +190,40 @@ func wrappedMain() int {
 	// Initialize the backends.
 	backendInit.Init(services)
 
+	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
+	args := os.Args[1:]
+
+	originalWd, err := os.Getwd()
+	if err != nil {
+		// It would be very strange to end up here
+		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
+		return 1
+	}
+
+	// The arguments can begin with a -chdir option to ask Terraform to switch
+	// to a different working directory for the rest of its work. If that
+	// option is present then extractChdirOption returns a trimmed args with that option removed.
+	overrideWd, args, err := extractChdirOption(args)
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
+		return 1
+	}
+	if overrideWd != "" {
+		err := os.Chdir(overrideWd)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
+			return 1
+		}
+	}
+
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
-		initCommands(config, services, providerSrc, unmanagedProviders)
+		// Commands get to hold on to the original working directory here,
+		// in case they need to refer back to it for any special reason, though
+		// they should primarily be working with the override working directory
+		// that we've now switched to above.
+		initCommands(originalWd, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
 	}
 
 	// Run checkpoint
@@ -213,10 +231,6 @@ func wrappedMain() int {
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
-
-	// Get the command line args.
-	binName := filepath.Base(os.Args[0])
-	args := os.Args[1:]
 
 	// Build the CLI so far, we do this so we can query the subcommand.
 	cliRunner := &cli.CLI{
@@ -268,10 +282,6 @@ func wrappedMain() int {
 		AutocompleteUninstall: "uninstall-autocomplete",
 	}
 
-	// Pass in the overriding plugin paths from config
-	PluginOverrides.Providers = config.Providers
-	PluginOverrides.Provisioners = config.Provisioners
-
 	exitCode, err := cliRunner.Run()
 	if err != nil {
 		Ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
@@ -279,65 +289,6 @@ func wrappedMain() int {
 	}
 
 	return exitCode
-}
-
-// copyOutput uses output prefixes to determine whether data on stdout
-// should go to stdout or stderr. This is due to panicwrap using stderr
-// as the log and error channel.
-func copyOutput(r io.Reader, doneCh chan<- struct{}) {
-	defer close(doneCh)
-
-	pr, err := prefixedio.NewReader(r)
-	if err != nil {
-		panic(err)
-	}
-
-	stderrR, err := pr.Prefix(ErrorPrefix)
-	if err != nil {
-		panic(err)
-	}
-	stdoutR, err := pr.Prefix(OutputPrefix)
-	if err != nil {
-		panic(err)
-	}
-	defaultR, err := pr.Prefix("")
-	if err != nil {
-		panic(err)
-	}
-
-	var stdout io.Writer = os.Stdout
-	var stderr io.Writer = os.Stderr
-
-	if runtime.GOOS == "windows" {
-		stdout = colorable.NewColorableStdout()
-		stderr = colorable.NewColorableStderr()
-
-		// colorable is not concurrency-safe when stdout and stderr are the
-		// same console, so we need to add some synchronization to ensure that
-		// we can't be concurrently writing to both stderr and stdout at
-		// once, or else we get intermingled writes that create gibberish
-		// in the console.
-		wrapped := synchronizedWriters(stdout, stderr)
-		stdout = wrapped[0]
-		stderr = wrapped[1]
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		io.Copy(stderr, stderrR)
-	}()
-	go func() {
-		defer wg.Done()
-		io.Copy(stdout, stdoutR)
-	}()
-	go func() {
-		defer wg.Done()
-		io.Copy(stdout, defaultR)
-	}()
-
-	wg.Wait()
 }
 
 func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
@@ -432,4 +383,50 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 		}
 	}
 	return unmanagedProviders, nil
+}
+
+func extractChdirOption(args []string) (string, []string, error) {
+	if len(args) == 0 {
+		return "", args, nil
+	}
+
+	const argName = "-chdir"
+	const argPrefix = argName + "="
+	var argValue string
+	var argPos int
+
+	for i, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			// Because the chdir option is a subcommand-agnostic one, we require
+			// it to appear before any subcommand argument, so if we find a
+			// non-option before we find -chdir then we are finished.
+			break
+		}
+		if arg == argName || arg == argPrefix {
+			return "", args, fmt.Errorf("must include an equals sign followed by a directory path, like -chdir=example")
+		}
+		if strings.HasPrefix(arg, argPrefix) {
+			argPos = i
+			argValue = arg[len(argPrefix):]
+		}
+	}
+
+	// When we fall out here, we'll have populated argValue with a non-empty
+	// string if the -chdir=... option was present and valid, or left it
+	// empty if it wasn't present.
+	if argValue == "" {
+		return "", args, nil
+	}
+
+	// If we did find the option then we'll need to produce a new args that
+	// doesn't include it anymore.
+	if argPos == 0 {
+		// Easy case: we can just slice off the front
+		return argValue, args[1:], nil
+	}
+	// Otherwise we need to construct a new array and copy to it.
+	newArgs := make([]string, len(args)-1)
+	copy(newArgs, args[:argPos])
+	copy(newArgs[argPos:], args[argPos+1:])
+	return argValue, newArgs, nil
 }

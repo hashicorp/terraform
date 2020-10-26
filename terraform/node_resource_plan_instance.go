@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -16,6 +15,7 @@ import (
 type NodePlannableResourceInstance struct {
 	*NodeAbstractResourceInstance
 	ForceCreateBeforeDestroy bool
+	skipRefresh              bool
 }
 
 var (
@@ -26,139 +26,210 @@ var (
 	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeEvalable             = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeExecutable           = (*NodePlannableResourceInstance)(nil)
 )
 
 // GraphNodeEvalable
-func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
+func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr)
+		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr)
+		return n.dataResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
+func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) error {
 	config := n.Config
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
+	addr := n.ResourceInstanceAddr()
+
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
 
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
+	state, err = n.ReadResourceInstanceState(ctx, addr)
+	if err != nil {
+		return err
+	}
 
-				Output: &state,
-			},
+	validateSelfRef := &EvalValidateSelfRef{
+		Addr:           addr.Resource,
+		Config:         config.Config,
+		ProviderSchema: &providerSchema,
+	}
+	_, err = validateSelfRef.Eval(ctx)
+	if err != nil {
+		return err
+	}
 
-			&EvalValidateSelfRef{
-				Addr:           addr.Resource,
-				Config:         config.Config,
-				ProviderSchema: &providerSchema,
-			},
-
-			&evalReadDataPlan{
-				evalReadData: evalReadData{
-					Addr:           addr.Resource,
-					Config:         n.Config,
-					Provider:       &provider,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderMetas:  n.ProviderMetas,
-					ProviderSchema: &providerSchema,
-					OutputChange:   &change,
-					State:          &state,
-					dependsOn:      n.dependsOn,
-				},
-			},
-
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-			},
-
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &change,
-			},
+	readDataPlan := &evalReadDataPlan{
+		evalReadData: evalReadData{
+			Addr:           addr.Resource,
+			Config:         n.Config,
+			Provider:       &provider,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			OutputChange:   &change,
+			State:          &state,
+			dependsOn:      n.dependsOn,
 		},
 	}
+	_, err = readDataPlan.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	// write the data source into both the refresh state and the
+	// working state
+	writeRefreshState := &EvalWriteState{
+		Addr:           addr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+		targetState:    refreshState,
+	}
+	_, err = writeRefreshState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeState := &EvalWriteState{
+		Addr:           addr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+	}
+	_, err = writeState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	_, err = writeDiff.Eval(ctx)
+	return err
 }
 
-func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
+func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) error {
 	config := n.Config
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
+	addr := n.ResourceInstanceAddr()
+
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
+	var instanceRefreshState *states.ResourceInstanceObject
+	var instancePlanState *states.ResourceInstanceObject
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-			},
-
-			&EvalValidateSelfRef{
-				Addr:           addr.Resource,
-				Config:         config.Config,
-				ProviderSchema: &providerSchema,
-			},
-
-			&EvalDiff{
-				Addr:                addr.Resource,
-				Config:              n.Config,
-				CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-				Provider:            &provider,
-				ProviderAddr:        n.ResolvedProvider,
-				ProviderMetas:       n.ProviderMetas,
-				ProviderSchema:      &providerSchema,
-				State:               &state,
-				OutputChange:        &change,
-				OutputState:         &state,
-			},
-			&EvalCheckPreventDestroy{
-				Addr:   addr.Resource,
-				Config: n.Config,
-				Change: &change,
-			},
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				State:          &state,
-				ProviderSchema: &providerSchema,
-			},
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &change,
-			},
-		},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
 	}
+
+	validateSelfRef := &EvalValidateSelfRef{
+		Addr:           addr.Resource,
+		Config:         config.Config,
+		ProviderSchema: &providerSchema,
+	}
+	_, err = validateSelfRef.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
+	if err != nil {
+		return err
+	}
+	refreshLifecycle := &EvalRefreshLifecycle{
+		Addr:                     addr,
+		Config:                   n.Config,
+		State:                    &instanceRefreshState,
+		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+	}
+	_, err = refreshLifecycle.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Refresh, maybe
+	if !n.skipRefresh {
+		refresh := &EvalRefresh{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			Provider:       &provider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			State:          &instanceRefreshState,
+			Output:         &instanceRefreshState,
+		}
+		_, err = refresh.Eval(ctx)
+		if err != nil {
+			return err
+		}
+
+		writeRefreshState := &EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderSchema: &providerSchema,
+			State:          &instanceRefreshState,
+			targetState:    refreshState,
+			Dependencies:   &n.Dependencies,
+		}
+		_, err = writeRefreshState.Eval(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Plan the instance
+	diff := &EvalDiff{
+		Addr:                addr.Resource,
+		Config:              n.Config,
+		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+		Provider:            &provider,
+		ProviderAddr:        n.ResolvedProvider,
+		ProviderMetas:       n.ProviderMetas,
+		ProviderSchema:      &providerSchema,
+		State:               &instanceRefreshState,
+		OutputChange:        &change,
+		OutputState:         &instancePlanState,
+	}
+	_, err = diff.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = n.checkPreventDestroy(change)
+	if err != nil {
+		return err
+	}
+
+	writeState := &EvalWriteState{
+		Addr:           addr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		State:          &instancePlanState,
+		ProviderSchema: &providerSchema,
+	}
+	_, err = writeState.Eval(ctx)
+	if err != nil {
+		return err
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	_, err = writeDiff.Eval(ctx)
+	return err
 }

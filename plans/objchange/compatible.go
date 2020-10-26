@@ -51,8 +51,17 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		actualV := actual.GetAttr(name)
 
 		path := append(path, cty.GetAttrStep{Name: name})
-		moreErrs := assertValueCompatible(plannedV, actualV, path)
-		if attrS.Sensitive {
+
+		// Unmark values here before checking value assertions,
+		// but save the marks so we can see if we should supress
+		// exposing a value through errors
+		unmarkedActualV, marksA := actualV.UnmarkDeep()
+		unmarkedPlannedV, marksP := plannedV.UnmarkDeep()
+		_, isMarkedActual := marksA["sensitive"]
+		_, isMarkedPlanned := marksP["sensitive"]
+
+		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
+		if attrS.Sensitive || isMarkedActual || isMarkedPlanned {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
 				// sensitive information.
@@ -63,8 +72,8 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		}
 	}
 	for name, blockS := range schema.BlockTypes {
-		plannedV := planned.GetAttr(name)
-		actualV := actual.GetAttr(name)
+		plannedV, _ := planned.GetAttr(name).Unmark()
+		actualV, _ := actual.GetAttr(name).Unmark()
 
 		// As a special case, if there were any blocks whose leaf attributes
 		// are all unknown then we assume (possibly incorrectly) that the
@@ -168,12 +177,6 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				continue
 			}
 
-			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
-				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
-				return len(errs) == 0
-			})
-			errs = append(errs, setErrs...)
-
 			if maybeUnknownBlocks {
 				// When unknown blocks are present the final number of blocks
 				// may be different, either because the unknown set values
@@ -183,6 +186,12 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 				// negatives.
 				continue
 			}
+
+			setErrs := assertSetValuesCompatible(plannedV, actualV, path, func(plannedEV, actualEV cty.Value) bool {
+				errs := assertObjectCompatible(&blockS.Block, plannedEV, actualEV, append(path, cty.IndexStep{Key: actualEV}))
+				return len(errs) == 0
+			})
+			errs = append(errs, setErrs...)
 
 			// There can be fewer elements in a set after its elements are all
 			// known (values that turn out to be equal will coalesce) but the
@@ -335,7 +344,7 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 		if nested && v.IsNull() {
 			return true // for nested blocks, a single block being unset doesn't disqualify from being an unknown block placeholder
 		}
-		return couldBeUnknownBlockPlaceholderElement(v, &blockS.Block)
+		return couldBeUnknownBlockPlaceholderElement(v, blockS)
 	default:
 		// These situations should be impossible for correct providers, but
 		// we permit the legacy SDK to produce some incorrect outcomes
@@ -351,7 +360,7 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 		// For all other nesting modes, our value should be something iterable.
 		for it := v.ElementIterator(); it.Next(); {
 			_, ev := it.Element()
-			if couldBeUnknownBlockPlaceholderElement(ev, &blockS.Block) {
+			if couldBeUnknownBlockPlaceholderElement(ev, blockS) {
 				return true
 			}
 		}
@@ -365,7 +374,7 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 	}
 }
 
-func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.Block) bool {
+func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.NestedBlock) bool {
 	if v.IsNull() {
 		return false // null value can never be a placeholder element
 	}
@@ -381,6 +390,19 @@ func couldBeUnknownBlockPlaceholderElement(v cty.Value, schema *configschema.Blo
 		// non-placeholders can also match this, so this function can generate
 		// false positives.
 		if av.IsKnown() && !av.IsNull() {
+
+			// FIXME: only required for the legacy SDK, but we don't have a
+			// separate codepath to switch the comparisons, and we still want
+			// the rest of the checks from AssertObjectCompatible to apply.
+			//
+			// The legacy SDK cannot handle missing strings from set elements,
+			// and will insert an empty string into the planned value.
+			// Skipping these treats them as null values in this case,
+			// preventing false alerts from AssertObjectCompatible.
+			if schema.Nesting == configschema.NestingSet && av.Type() == cty.String && av.AsString() == "" {
+				continue
+			}
+
 			return false
 		}
 	}

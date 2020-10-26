@@ -10,8 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// AcyclicGraph is a specialization of Graph that cannot have cycles. With
-// this property, we get the property of sane graph traversal.
+// AcyclicGraph is a specialization of Graph that cannot have cycles.
 type AcyclicGraph struct {
 	Graph
 }

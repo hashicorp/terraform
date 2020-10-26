@@ -46,78 +46,16 @@ test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
 	`)
-}
 
-func TestLocal_refreshNoConfig(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
-	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
-	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("yes"),
-	})}
-
-	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
-	defer configCleanup()
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
-	}
-
-	checkState(t, b.StateOutPath, `
-test_instance.foo:
-  ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
-	`)
-}
-
-// GH-12174
-func TestLocal_refreshNilModuleWithInput(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
-	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
-	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal("yes"),
-	})}
-
-	b.OpInput = true
-
-	op, configCleanup := testOperationRefresh(t, "./testdata/empty")
-	defer configCleanup()
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-
-	if !p.ReadResourceCalled {
-		t.Fatal("ReadResource should be called")
-	}
-
-	checkState(t, b.StateOutPath, `
-test_instance.foo:
-  ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
-	`)
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
 }
 
 func TestLocal_refreshInput(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
-	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
 
-	p.GetSchemaReturn = &terraform.ProviderSchema{
+	schema := &terraform.ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"value": {Type: cty.String, Optional: true},
@@ -126,22 +64,28 @@ func TestLocal_refreshInput(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Optional: true},
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 		},
 	}
+
+	p := TestLocalProvider(t, b, "test", schema)
+	testStateFile(t, b.StatePath, testRefreshState())
+
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
-		if v, ok := c.Get("value"); !ok || v != "bar" {
-			return fmt.Errorf("no value set")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() || val.AsString() != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("incorrect value %#v", val))
 		}
 
-		return nil
+		return
 	}
 
 	// Enable input asking since it is normally disabled by default
@@ -202,6 +146,28 @@ test_instance.foo:
 	`)
 }
 
+// This test validates the state lacking behavior when the inner call to
+// Context() fails
+func TestLocal_refresh_context_error(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	testStateFile(t, b.StatePath, testRefreshState())
+	op, configCleanup := testOperationRefresh(t, "./testdata/apply")
+	defer configCleanup()
+
+	// we coerce a failure in Context() by omitting the provider schema
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("operation succeeded; want failure")
+	}
+	assertBackendStateUnlocked(t, b)
+}
+
 func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func()) {
 	t.Helper()
 
@@ -211,6 +177,7 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 		Type:         backend.OperationTypeRefresh,
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
+		LockState:    true,
 	}, configCleanup
 }
 

@@ -21,6 +21,27 @@ import (
 // directory structure conventions.
 func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, error) {
 	ret := make(map[addrs.Provider]PackageMetaList)
+
+	// We don't support symlinks at intermediate points inside the directory
+	// heirarchy because that could potentially cause our walk to get into
+	// an infinite loop, but as a measure of pragmatism we'll allow the
+	// top-level location itself to be a symlink, so that a user can
+	// potentially keep their plugins in a non-standard location but use a
+	// symlink to help Terraform find them anyway.
+	originalBaseDir := baseDir
+	if finalDir, err := filepath.EvalSymlinks(baseDir); err == nil {
+		if finalDir != filepath.Clean(baseDir) {
+			log.Printf("[TRACE] getproviders.SearchLocalDirectory: using %s instead of %s", finalDir, baseDir)
+		}
+		baseDir = finalDir
+	} else {
+		// We'll eat this particular error because if we're somehow able to
+		// find plugins via baseDir below anyway then we'd rather do that than
+		// hard fail, but we'll log it in case it's useful for diagnosing why
+		// discovery didn't produce the expected outcome.
+		log.Printf("[TRACE] getproviders.SearchLocalDirectory: failed to resolve symlinks for %s: %s", baseDir, err)
+	}
+
 	err := filepath.Walk(baseDir, func(fullPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("cannot search %s: %s", fullPath, err)
@@ -45,6 +66,15 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		if len(parts) < 3 {
 			// Likely a prefix of a valid path, so we'll ignore it and visit
 			// the full valid path on a later call.
+
+			if (info.Mode() & os.ModeSymlink) != 0 {
+				// We don't allow symlinks for intermediate steps in the
+				// heirarchy because otherwise this walk would risk getting
+				// itself into an infinite loop, but if we do find one then
+				// we'll warn about it to help with debugging.
+				log.Printf("[WARN] Provider plugin search ignored symlink %s: only the base directory %s may be a symlink", fullPath, originalBaseDir)
+			}
+
 			return nil
 		}
 

@@ -19,7 +19,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -83,7 +82,7 @@ func TestRefresh(t *testing.T) {
 func TestRefresh_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("refresh-empty"), td)
+	testCopyDir(t, testFixturePath("refresh-empty"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

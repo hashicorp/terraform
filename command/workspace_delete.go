@@ -40,13 +40,6 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	workspace := args[0]
-
-	if !validWorkspaceName(workspace) {
-		c.Ui.Error(fmt.Sprintf(envInvalidName, workspace))
-		return 1
-	}
-
 	configPath, err := ModulePath(args[1:])
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -78,6 +71,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	workspace := args[0]
 	exists := false
 	for _, ws := range workspaces {
 		if workspace == ws {
@@ -91,7 +85,12 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	if workspace == c.Workspace() {
+	currentWorkspace, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
+	if workspace == currentWorkspace {
 		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDelCurrent), workspace))
 		return 1
 	}

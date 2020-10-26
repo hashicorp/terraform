@@ -90,9 +90,9 @@
     "output_changes": {
         "test": {
             "actions": [
-                "create"
+                "no-op"
             ],
-            "before": null,
+            "before": "bar",
             "after": "bar",
             "after_unknown": false
         }

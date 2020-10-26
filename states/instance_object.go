@@ -87,6 +87,11 @@ const (
 // so the caller must not mutate the receiver any further once once this
 // method is called.
 func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	// If it contains marks, remove these marks before traversing the
+	// structure with UnknownAsNull, and save the PathValueMarks
+	// so we can save them in state.
+	val, pvm := o.Value.UnmarkDeepWithPaths()
+
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
 	// values here and expecting to get them out again later.
@@ -96,7 +101,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// for expression evaluation. The apply step should never produce unknown
 	// values, but if it does it's the responsibility of the caller to detect
 	// and raise an error about that.
-	val := cty.UnknownAsNull(o.Value)
+	val = cty.UnknownAsNull(val)
 
 	src, err := ctyjson.Marshal(val, ty)
 	if err != nil {
@@ -106,6 +111,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
+		AttrSensitivePaths:  pvm,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        o.Dependencies,

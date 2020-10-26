@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -53,6 +56,7 @@ Options:
 
 func (c *VersionCommand) Run(args []string) int {
 	var outdated bool
+	var latest string
 	var versionString bytes.Buffer
 	args = c.Meta.process(args)
 	var jsonOutput bool
@@ -79,29 +83,28 @@ func (c *VersionCommand) Run(args []string) int {
 		}
 	}
 
-	// We'll also attempt to print out the selected plugin versions. We can
-	// do this only if "terraform init" was already run and thus we've committed
-	// to a specific set of plugins. If not, the plugins lock will be empty
-	// and so we'll show _no_ providers.
+	// We'll also attempt to print out the selected plugin versions. We do
+	// this based on the dependency lock file, and so the result might be
+	// empty or incomplete if the user hasn't successfully run "terraform init"
+	// since the most recent change to dependencies.
 	//
 	// Generally-speaking this is a best-effort thing that will give us a good
 	// result in the usual case where the user successfully ran "terraform init"
 	// and then hit a problem running _another_ command.
-	providerInstaller := c.providerInstaller()
-	providerSelections, err := providerInstaller.SelectedPackages()
-	var pluginVersions []string
-	if err != nil {
-		// we'll just ignore it and show no plugins at all, then.
-		providerSelections = nil
-	}
-	for providerAddr, cached := range providerSelections {
-		version := cached.Version.String()
-		if version == "0.0.0" {
-			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider %s (unversioned)", providerAddr))
-		} else {
-			pluginVersions = append(pluginVersions, fmt.Sprintf("+ provider %s v%s", providerAddr, version))
+	var providerVersions []string
+	var providerLocks map[addrs.Provider]*depsfile.ProviderLock
+	if locks, err := c.lockedDependencies(); err == nil {
+		providerLocks = locks.AllProviders()
+		for providerAddr, lock := range providerLocks {
+			version := lock.Version().String()
+			if version == "0.0.0" {
+				providerVersions = append(providerVersions, fmt.Sprintf("+ provider %s (unversioned)", providerAddr))
+			} else {
+				providerVersions = append(providerVersions, fmt.Sprintf("+ provider %s v%s", providerAddr, version))
+			}
 		}
 	}
+
 	// If we have a version check function, then let's check for
 	// the latest version as well.
 	if c.CheckFunc != nil {
@@ -113,20 +116,14 @@ func (c *VersionCommand) Run(args []string) int {
 		}
 		if info.Outdated {
 			outdated = true
-			if !jsonOutput {
-				c.Ui.Output(fmt.Sprintf(
-					"\nYour version of Terraform is out of date! The latest version\n"+
-						"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
-					info.Latest))
-			}
-
+			latest = info.Latest
 		}
 	}
 
 	if jsonOutput {
 		selectionsOutput := make(map[string]string)
-		for providerAddr, cached := range providerSelections {
-			version := cached.Version.String()
+		for providerAddr, lock := range providerLocks {
+			version := lock.Version().String()
 			selectionsOutput[providerAddr.String()] = version
 		}
 
@@ -153,11 +150,17 @@ func (c *VersionCommand) Run(args []string) int {
 		return 0
 	} else {
 		c.Ui.Output(versionString.String())
-		if len(pluginVersions) != 0 {
-			sort.Strings(pluginVersions)
-			for _, str := range pluginVersions {
+		if len(providerVersions) != 0 {
+			sort.Strings(providerVersions)
+			for _, str := range providerVersions {
 				c.Ui.Output(str)
 			}
+		}
+		if outdated {
+			c.Ui.Output(fmt.Sprintf(
+				"\nYour version of Terraform is out of date! The latest version\n"+
+					"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
+				latest))
 		}
 
 	}

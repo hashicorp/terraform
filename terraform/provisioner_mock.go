@@ -1,11 +1,7 @@
 package terraform
 
 import (
-	"fmt"
 	"sync"
-
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/provisioners"
 )
@@ -39,12 +35,6 @@ type MockProvisioner struct {
 	CloseCalled   bool
 	CloseResponse error
 	CloseFn       func() error
-
-	// Legacy callbacks: if these are set, we will shim incoming calls for
-	// new-style methods to these old-fashioned terraform.ResourceProvider
-	// mock callbacks, for the benefit of older tests that were written against
-	// the old mock API.
-	ApplyFn func(rs *InstanceState, c *ResourceConfig) error
 }
 
 func (p *MockProvisioner) GetSchema() provisioners.GetSchemaResponse {
@@ -79,45 +69,6 @@ func (p *MockProvisioner) ProvisionResource(r provisioners.ProvisionResourceRequ
 
 	p.ProvisionResourceCalled = true
 	p.ProvisionResourceRequest = r
-	if p.ApplyFn != nil {
-		if !r.Config.IsKnown() {
-			panic(fmt.Sprintf("cannot provision with unknown value: %#v", r.Config))
-		}
-
-		schema := p.getSchema()
-		rc := NewResourceConfigShimmed(r.Config, schema.Provisioner)
-		connVal := r.Connection
-		connMap := map[string]string{}
-
-		if !connVal.IsNull() && connVal.IsKnown() {
-			for it := connVal.ElementIterator(); it.Next(); {
-				ak, av := it.Element()
-				name := ak.AsString()
-
-				if !av.IsKnown() || av.IsNull() {
-					continue
-				}
-
-				av, _ = convert.Convert(av, cty.String)
-				connMap[name] = av.AsString()
-			}
-		}
-
-		// We no longer pass the full instance state to a provisioner, so we'll
-		// construct a partial one that should be good enough for what existing
-		// test mocks need.
-		is := &InstanceState{
-			Ephemeral: EphemeralState{
-				ConnInfo: connMap,
-			},
-		}
-		var resp provisioners.ProvisionResourceResponse
-		err := p.ApplyFn(is, rc)
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-		}
-		return resp
-	}
 	if p.ProvisionResourceFn != nil {
 		fn := p.ProvisionResourceFn
 		return fn(r)

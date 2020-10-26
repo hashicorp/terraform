@@ -31,6 +31,10 @@ sequences, and so resource types that accept or return binary data will use
 Base64 themselves, and so this function exists primarily to allow string
 data to be easily provided to resource types that expect Base64 bytes.
 
+`base64encode` is, in effect, a shorthand for calling
+[`textencodebase64`](./textencodebase64.html) with the encoding name set to
+`UTF-8`.
+
 ## Examples
 
 ```
@@ -42,6 +46,8 @@ SGVsbG8gV29ybGQ=
 
 * [`base64decode`](./base64decode.html) performs the opposite operation,
   decoding Base64 data and interpreting it as a UTF-8 string.
+* [`textencodebase64`](./textencodebase64.html) is a more general function that
+  supports character encodings other than UTF-8.
 * [`base64gzip`](./base64gzip.html) applies gzip compression to a string
   and returns the result with Base64 encoding all in one operation.
 * [`filebase64`](./filebase64.html) reads a file from the local filesystem

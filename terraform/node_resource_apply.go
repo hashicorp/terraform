@@ -26,7 +26,8 @@ var (
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 )
 
-func (n *nodeExpandApplyableResource) expandsInstances() {}
+func (n *nodeExpandApplyableResource) expandsInstances() {
+}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
@@ -71,7 +72,7 @@ type NodeApplyableResource struct {
 var (
 	_ GraphNodeModuleInstance       = (*NodeApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*NodeApplyableResource)(nil)
-	_ GraphNodeEvalable             = (*NodeApplyableResource)(nil)
+	_ GraphNodeExecutable           = (*NodeApplyableResource)(nil)
 	_ GraphNodeProviderConsumer     = (*NodeApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeApplyableResource)(nil)
 	_ GraphNodeReferencer           = (*NodeApplyableResource)(nil)
@@ -100,17 +101,14 @@ func (n *NodeApplyableResource) References() []*addrs.Reference {
 	return result
 }
 
-// GraphNodeEvalable
-func (n *NodeApplyableResource) EvalTree() EvalNode {
+// GraphNodeExecutable
+func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) error {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
-		return &EvalNoop{}
+		return nil
 	}
 
-	return &EvalWriteResourceState{
-		Addr:         n.Addr,
-		Config:       n.Config,
-		ProviderAddr: n.ResolvedProvider,
-	}
+	err := n.writeResourceState(ctx, n.Addr)
+	return err
 }

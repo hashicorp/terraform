@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -72,7 +73,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("test_object.A")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -82,8 +83,8 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"C","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{
-				mustResourceAddr("test_object.A"),
-				mustResourceAddr("test_object.B"),
+				mustConfigResourceAddr("test_object.A"),
+				mustConfigResourceAddr("test_object.B"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -138,7 +139,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"a"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.b")},
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.child.test_object.b")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
@@ -172,41 +173,46 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 
 func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
-	g.Add(testDestroyNode("module.child[0].test_object.a"))
-	g.Add(testDestroyNode("module.child[0].test_object.b"))
-	g.Add(testDestroyNode("module.child[0].test_object.c"))
 
 	state := states.NewState()
-	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.IntKey(0)))
-	child.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("test_object.a").Resource,
-		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"a"}`),
-		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-	)
-	child.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("test_object.b").Resource,
-		&states.ResourceInstanceObjectSrc{
-			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"b","test_string":"x"}`),
-			Dependencies: []addrs.ConfigResource{mustResourceAddr("module.child.test_object.a")},
-		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-	)
-	child.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("test_object.c").Resource,
-		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"c","test_string":"x"}`),
-			Dependencies: []addrs.ConfigResource{
-				mustResourceAddr("module.child.test_object.a"),
-				mustResourceAddr("module.child.test_object.b"),
+	for moduleIdx := 0; moduleIdx < 2; moduleIdx++ {
+		g.Add(testDestroyNode(fmt.Sprintf("module.child[%d].test_object.a", moduleIdx)))
+		g.Add(testDestroyNode(fmt.Sprintf("module.child[%d].test_object.b", moduleIdx)))
+		g.Add(testDestroyNode(fmt.Sprintf("module.child[%d].test_object.c", moduleIdx)))
+
+		child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.IntKey(moduleIdx)))
+		child.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a").Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"a"}`),
 			},
-		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-	)
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		child.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.b").Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"b","test_string":"x"}`),
+				Dependencies: []addrs.ConfigResource{
+					mustConfigResourceAddr("module.child.test_object.a"),
+				},
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		child.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.c").Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"c","test_string":"x"}`),
+				Dependencies: []addrs.ConfigResource{
+					mustConfigResourceAddr("module.child.test_object.a"),
+					mustConfigResourceAddr("module.child.test_object.b"),
+				},
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	}
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
 		t.Fatal(err)
@@ -220,6 +226,20 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// The analyses done in the destroy edge transformer are between
+	// not-yet-expanded objects, which is conservative and so it will generate
+	// edges that aren't strictly necessary. As a special case we filter out
+	// any edges that are between resources instances that are in different
+	// instances of the same module, because those edges are never needed
+	// (one instance of a module cannot depend on another instance of the
+	// same module) and including them can, in complex cases, cause cycles due
+	// to unnecessary interactions between destroyed and created module
+	// instances in the same plan.
+	//
+	// Therefore below we expect to see the dependencies within each instance
+	// of module.child reflected, but we should not see any dependencies
+	// _between_ instances of module.child.
+
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
 module.child[0].test_object.a (destroy)
@@ -228,6 +248,12 @@ module.child[0].test_object.a (destroy)
 module.child[0].test_object.b (destroy)
   module.child[0].test_object.c (destroy)
 module.child[0].test_object.c (destroy)
+module.child[1].test_object.a (destroy)
+  module.child[1].test_object.b (destroy)
+  module.child[1].test_object.c (destroy)
+module.child[1].test_object.b (destroy)
+  module.child[1].test_object.c (destroy)
+module.child[1].test_object.c (destroy)
 `)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)

@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // UpgradeResourceState will, if necessary, run the provider-defined upgrade
@@ -19,6 +21,17 @@ import (
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
 func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema *configschema.Block, currentVersion uint64) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
+	// Remove any attributes from state that are not present in the schema.
+	// This was previously taken care of by the provider, but data sources do
+	// not go through the UpgradeResourceState process.
+	//
+	// Legacy flatmap state is already taken care of during conversion.
+	// If the schema version is be changed, then allow the provider to handle
+	// removed attributes.
+	if len(src.AttrsJSON) > 0 && src.SchemaVersion == currentVersion {
+		src.AttrsJSON = stripRemovedStateAttributes(src.AttrsJSON, currentSchema.ImpliedType())
+	}
+
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		// We only do state upgrading for managed resources.
 		return src, nil
@@ -104,4 +117,87 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 		))
 	}
 	return new, diags
+}
+
+// stripRemovedStateAttributes deletes any attributes no longer present in the
+// schema, so that the json can be correctly decoded.
+func stripRemovedStateAttributes(state []byte, ty cty.Type) []byte {
+	jsonMap := map[string]interface{}{}
+	err := json.Unmarshal(state, &jsonMap)
+	if err != nil {
+		// we just log any errors here, and let the normal decode process catch
+		// invalid JSON.
+		log.Printf("[ERROR] UpgradeResourceState: %s", err)
+		return state
+	}
+
+	// if no changes were made, we return the original state to ensure nothing
+	// was altered in the marshaling process.
+	if !removeRemovedAttrs(jsonMap, ty) {
+		return state
+	}
+
+	js, err := json.Marshal(jsonMap)
+	if err != nil {
+		// if the json map was somehow mangled enough to not marhsal, something
+		// went horribly wrong
+		panic(err)
+	}
+
+	return js
+}
+
+// strip out the actual missing attributes, and return a bool indicating if any
+// changes were made.
+func removeRemovedAttrs(v interface{}, ty cty.Type) bool {
+	modified := false
+	// we're only concerned with finding maps that correspond to object
+	// attributes
+	switch v := v.(type) {
+	case []interface{}:
+		switch {
+		// If these aren't blocks the next call will be a noop
+		case ty.IsListType() || ty.IsSetType():
+			eTy := ty.ElementType()
+			for _, eV := range v {
+				modified = removeRemovedAttrs(eV, eTy) || modified
+			}
+		}
+		return modified
+	case map[string]interface{}:
+		switch {
+		case ty.IsMapType():
+			// map blocks aren't yet supported, but handle this just in case
+			eTy := ty.ElementType()
+			for _, eV := range v {
+				modified = removeRemovedAttrs(eV, eTy) || modified
+			}
+			return modified
+
+		case ty == cty.DynamicPseudoType:
+			log.Printf("[DEBUG] UpgradeResourceState: ignoring dynamic block: %#v\n", v)
+			return false
+
+		case ty.IsObjectType():
+			attrTypes := ty.AttributeTypes()
+			for attr, attrV := range v {
+				attrTy, ok := attrTypes[attr]
+				if !ok {
+					log.Printf("[DEBUG] UpgradeResourceState: attribute %q no longer present in schema", attr)
+					delete(v, attr)
+					modified = true
+					continue
+				}
+
+				modified = removeRemovedAttrs(attrV, attrTy) || modified
+			}
+			return modified
+		default:
+			// This shouldn't happen, and will fail to decode further on, so
+			// there's no need to handle it here.
+			log.Printf("[WARN] UpgradeResourceState: unexpected type %#v for map in json state", ty)
+			return false
+		}
+	}
+	return modified
 }

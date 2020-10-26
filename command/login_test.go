@@ -76,6 +76,16 @@ func TestLogin(t *testing.T) {
 					"token":  s.URL + "/token",
 				},
 			})
+			svcs.ForceHostServices(svchost.Hostname("with-scopes.example.com"), map[string]interface{}{
+				"login.v1": map[string]interface{}{
+					// with scopes
+					// mock browser launcher below.
+					"client": "scopes_test",
+					"authz":  s.URL + "/authz",
+					"token":  s.URL + "/token",
+					"scopes": []interface{}{"app1.full_access", "app2.read_only"},
+				},
+			})
 			svcs.ForceHostServices(svchost.Hostname("tfe.acme.com"), map[string]interface{}{
 				// This represents a Terraform Enterprise instance which does not
 				// yet support the login API, but does support the TFE tokens API.
@@ -137,6 +147,52 @@ func TestLogin(t *testing.T) {
 		}
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
+		}
+	}))
+
+	t.Run("example.com results in no scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+
+		host, _ := c.Services.Discover("example.com")
+		client, _ := host.ServiceOAuthClient("login.v1")
+		if len(client.Scopes) != 0 {
+			t.Errorf("unexpected scopes %q; expected none", client.Scopes)
+		}
+	}))
+
+	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+		// Enter "yes" at the consent prompt.
+		defer testInputMap(t, map[string]string{
+			"approve": "yes",
+		})()
+		status := c.Run([]string{"with-scopes.example.com"})
+		if status != 0 {
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+		}
+
+		credsSrc := c.Services.CredentialsSource()
+		creds, err := credsSrc.ForHost(svchost.Hostname("with-scopes.example.com"))
+
+		if err != nil {
+			t.Errorf("failed to retrieve credentials: %s", err)
+		}
+
+		if got, want := creds.Token(), "good-token"; got != want {
+			t.Errorf("wrong token %q; want %q", got, want)
+		}
+	}))
+
+	t.Run("with-scopes.example.com results in expected scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+
+		host, _ := c.Services.Discover("with-scopes.example.com")
+		client, _ := host.ServiceOAuthClient("login.v1")
+
+		expectedScopes := [2]string{"app1.full_access", "app2.read_only"}
+
+		var foundScopes [2]string
+		copy(foundScopes[:], client.Scopes)
+
+		if foundScopes != expectedScopes || len(client.Scopes) != len(expectedScopes) {
+			t.Errorf("unexpected scopes %q; want %q", client.Scopes, expectedScopes)
 		}
 	}))
 

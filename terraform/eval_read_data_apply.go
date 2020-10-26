@@ -44,22 +44,6 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, err
 	}
 
-	// We have a change and it is complete, which means we read the data
-	// source during plan and only need to store it in state.
-	if planned.After.IsWhollyKnown() {
-		if err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(absAddr, states.CurrentGen, planned.After, nil)
-		}); err != nil {
-			diags = diags.Append(err)
-		}
-
-		*n.State = &states.ResourceInstanceObject{
-			Value:  planned.After,
-			Status: states.ObjectReady,
-		}
-		return nil, diags.ErrWithWarnings()
-	}
-
 	config := *n.Config
 	providerSchema := *n.ProviderSchema
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())

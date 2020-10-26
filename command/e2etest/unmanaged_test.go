@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -40,19 +41,52 @@ type reattachConfigAddr struct {
 }
 
 type providerServer struct {
+	sync.Mutex
 	*grpcplugin.GRPCProviderServer
 	planResourceChangeCalled  bool
 	applyResourceChangeCalled bool
 }
 
 func (p *providerServer) PlanResourceChange(ctx context.Context, req *proto.PlanResourceChange_Request) (*proto.PlanResourceChange_Response, error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.planResourceChangeCalled = true
 	return p.GRPCProviderServer.PlanResourceChange(ctx, req)
 }
 
 func (p *providerServer) ApplyResourceChange(ctx context.Context, req *proto.ApplyResourceChange_Request) (*proto.ApplyResourceChange_Response, error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.applyResourceChangeCalled = true
 	return p.GRPCProviderServer.ApplyResourceChange(ctx, req)
+}
+
+func (p *providerServer) PlanResourceChangeCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.planResourceChangeCalled
+}
+func (p *providerServer) ResetPlanResourceChangeCalled() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.planResourceChangeCalled = false
+}
+
+func (p *providerServer) ApplyResourceChangeCalled() bool {
+	p.Lock()
+	defer p.Unlock()
+
+	return p.applyResourceChangeCalled
+}
+func (p *providerServer) ResetApplyResourceChangeCalled() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.applyResourceChangeCalled = false
 }
 
 func TestUnmanagedSeparatePlan(t *testing.T) {
@@ -129,7 +163,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !provider.planResourceChangeCalled {
+	if !provider.PlanResourceChangeCalled() {
 		t.Error("PlanResourceChange not called on in-process provider")
 	}
 
@@ -139,10 +173,10 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !provider.applyResourceChangeCalled {
+	if !provider.ApplyResourceChangeCalled() {
 		t.Error("ApplyResourceChange not called on in-process provider")
 	}
-	provider.applyResourceChangeCalled = false
+	provider.ResetApplyResourceChangeCalled()
 
 	//// DESTROY
 	_, stderr, err = tf.Run("destroy", "-auto-approve")
@@ -150,7 +184,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !provider.applyResourceChangeCalled {
+	if !provider.ApplyResourceChangeCalled() {
 		t.Error("ApplyResourceChange (destroy) not called on in-process provider")
 	}
 	cancel()

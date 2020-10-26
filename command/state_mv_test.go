@@ -10,9 +10,7 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestStateMv(t *testing.T) {
@@ -28,7 +26,7 @@ func TestStateMv(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -44,7 +42,7 @@ func TestStateMv(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -162,7 +160,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -178,7 +176,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -189,7 +187,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 				Name: "bar",
 			}.Absolute(addrs.RootModuleInstance),
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -220,12 +218,12 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 	testStateOutput(t, statePath, `
 test_instance.bar.0:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.baz:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `)
@@ -251,7 +249,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -266,7 +264,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -297,12 +295,12 @@ func TestStateMv_instanceToResource(t *testing.T) {
 	testStateOutput(t, statePath, `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.baz:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `)
@@ -315,12 +313,12 @@ test_instance.baz:
 	testStateOutput(t, backups[0], `
 test_instance.baz:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.0:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `)
@@ -339,7 +337,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -370,7 +368,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 	testStateOutput(t, statePath, `
 test_instance.bar["new"]:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `)
@@ -391,7 +389,7 @@ test_instance.bar["new"]:
 module.test:
   test_instance.baz["new"]:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `)
@@ -410,7 +408,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -445,7 +443,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 // don't modify backend state is we supply a -state flag
 func TestStateMv_explicitWithBackend(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("init-backend"), td)
+	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -463,7 +461,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -478,7 +476,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -538,7 +536,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -554,7 +552,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -603,7 +601,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -657,7 +655,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -676,7 +674,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -756,7 +754,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -771,7 +769,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -786,7 +784,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -844,7 +842,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 					Status:    states.ObjectReady,
 				},
 				addrs.AbsProviderConfig{
-					Provider: addrs.NewLegacyProvider("test"),
+					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
 			)
@@ -860,7 +858,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -914,7 +912,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -929,7 +927,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -984,7 +982,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1041,7 +1039,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 
 func TestStateMv_withinBackend(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1057,7 +1055,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1073,7 +1071,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewLegacyProvider("test"),
+				Provider: addrs.NewDefaultProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1119,40 +1117,33 @@ func TestStateMv_withinBackend(t *testing.T) {
 
 func TestStateMv_fromBackendToLocal(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-unchanged"), td)
+	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	state := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-
-					"test_instance.baz": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "foo",
-							Attributes: map[string]string{
-								"foo": "value",
-								"bar": "value",
-							},
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	state.Module(addrs.RootModuleInstance).SetResourceInstanceCurrent(
+		mustResourceAddr("test_instance.foo").Resource.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+			Status:    states.ObjectReady,
 		},
-	}
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	state.Module(addrs.RootModuleInstance).SetResourceInstanceCurrent(
+		mustResourceAddr("test_instance.baz").Resource.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+			Status:    states.ObjectReady,
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
 
 	// the local backend state file is "foo"
 	statePath := "local-state.tfstate"
@@ -1166,7 +1157,7 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(state, f); err != nil {
+	if err := writeStateForTesting(state, f); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1196,10 +1187,66 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	testStateOutput(t, statePath, testStateMvOriginal_backend)
 }
 
+// This test covers moving the only resource in a module to a new address in
+// that module, which triggers the maybePruneModule functionality. This caused
+// a panic report: https://github.com/hashicorp/terraform/issues/25520
+func TestStateMv_onlyResourceInModule(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance.Child("foo", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	statePath := testStateFile(t, state)
+	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_original)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"module.foo.test_instance.foo",
+		"module.foo.test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test it is correct
+	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_output)
+
+	// Test we have backups
+	backups := testStateBackups(t, filepath.Dir(statePath))
+	if len(backups) != 1 {
+		t.Fatalf("bad: %#v", backups)
+	}
+	testStateOutput(t, backups[0], testStateMvOnlyResourceInModule_original)
+}
+
 const testStateMvOutputOriginal = `
 test_instance.baz:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 
@@ -1207,7 +1254,7 @@ test_instance.baz:
     test_instance.foo
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1215,12 +1262,12 @@ test_instance.foo:
 const testStateMvOutput = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.baz:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1228,12 +1275,12 @@ test_instance.baz:
 const testStateMvCount_stateOut = `
 test_instance.bar.0:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.1:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1241,7 +1288,7 @@ test_instance.bar.1:
 const testStateMvCount_stateOutSrc = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1249,17 +1296,17 @@ test_instance.bar:
 const testStateMvCount_stateOutOriginal = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.0:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.1:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1267,57 +1314,57 @@ test_instance.foo.1:
 const testStateMvLargeCount_stateOut = `
 test_instance.bar.0:
   ID = foo0
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.1:
   ID = foo1
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.2:
   ID = foo2
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.3:
   ID = foo3
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.4:
   ID = foo4
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.5:
   ID = foo5
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.6:
   ID = foo6
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.7:
   ID = foo7
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.8:
   ID = foo8
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.9:
   ID = foo9
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.bar.10:
   ID = foo10
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1325,7 +1372,7 @@ test_instance.bar.10:
 const testStateMvLargeCount_stateOutSrc = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1333,62 +1380,62 @@ test_instance.bar:
 const testStateMvLargeCount_stateOutOriginal = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.0:
   ID = foo0
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.1:
   ID = foo1
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.2:
   ID = foo2
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.3:
   ID = foo3
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.4:
   ID = foo4
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.5:
   ID = foo5
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.6:
   ID = foo6
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.7:
   ID = foo7
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.8:
   ID = foo8
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.9:
   ID = foo9
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo.10:
   ID = foo10
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1398,13 +1445,13 @@ const testStateMvNestedModule_stateOut = `
 module.bar.child1:
   test_instance.foo:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 module.bar.child2:
   test_instance.foo:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `
@@ -1414,7 +1461,7 @@ const testStateMvNewModule_stateOut = `
 module.bar:
   test_instance.bar:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `
@@ -1424,7 +1471,7 @@ const testStateMvModuleNewModule_stateOut = `
 module.foo:
   test_instance.bar:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `
@@ -1432,7 +1479,7 @@ module.foo:
 const testStateMvNewModule_stateOutOriginal = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1446,13 +1493,13 @@ const testStateMvNestedModule_stateOutOriginal = `
 module.foo.child1:
   test_instance.foo:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 module.foo.child2:
   test_instance.foo:
     ID = bar
-    provider = provider["registry.terraform.io/-/test"]
+    provider = provider["registry.terraform.io/hashicorp/test"]
     bar = value
     foo = value
 `
@@ -1460,7 +1507,7 @@ module.foo.child2:
 const testStateMvOutput_stateOut = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1472,7 +1519,7 @@ const testStateMvOutput_stateOutSrc = `
 const testStateMvOutput_stateOutOriginal = `
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1484,18 +1531,18 @@ const testStateMvExisting_stateSrc = `
 const testStateMvExisting_stateDst = `
 test_instance.bar:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.qux:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
 `
 
 const testStateMvExisting_stateSrcOriginal = `
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -1503,13 +1550,33 @@ test_instance.foo:
 const testStateMvExisting_stateDstOriginal = `
 test_instance.qux:
   ID = bar
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
 `
 
 const testStateMvOriginal_backend = `
 test_instance.baz:
   ID = foo
-  provider = provider["registry.terraform.io/-/test"]
+  provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value
+`
+
+const testStateMvOnlyResourceInModule_original = `
+<no state>
+module.foo:
+  test_instance.foo.0:
+    ID = bar
+    provider = provider["registry.terraform.io/hashicorp/test"]
+    bar = value
+    foo = value
+`
+
+const testStateMvOnlyResourceInModule_output = `
+<no state>
+module.foo:
+  test_instance.bar.0:
+    ID = bar
+    provider = provider["registry.terraform.io/hashicorp/test"]
+    bar = value
+    foo = value
 `

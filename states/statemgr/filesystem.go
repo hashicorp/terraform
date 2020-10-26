@@ -44,7 +44,7 @@ type Filesystem struct {
 	stateFileOut *os.File
 
 	// While the stateFileOut will correspond to the lock directly,
-	// store and check the lock ID to maintain a strict state.Locker
+	// store and check the lock ID to maintain a strict statemgr.Locker
 	// implementation.
 	lockID string
 

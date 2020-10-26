@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -89,7 +90,7 @@ func TestConfigureRegistryClientTimeout(t *testing.T) {
 	})
 }
 
-// testServices starts up a local HTTP server running a fake provider registry
+// testRegistryServices starts up a local HTTP server running a fake provider registry
 // service and returns a service discovery object pre-configured to consider
 // the host "example.com" to be served by the fake registry service.
 //
@@ -103,7 +104,7 @@ func TestConfigureRegistryClientTimeout(t *testing.T) {
 // The second return value is a function to call at the end of a test function
 // to shut down the test server. After you call that function, the discovery
 // object becomes useless.
-func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup func()) {
+func testRegistryServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup func()) {
 	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
 
 	services = disco.New()
@@ -141,7 +142,7 @@ func testServices(t *testing.T) (services *disco.Disco, baseURL string, cleanup 
 // As with testServices, the second return value is a function to call at the end
 // of your test in order to shut down the test server.
 func testRegistrySource(t *testing.T) (source *RegistrySource, baseURL string, cleanup func()) {
-	services, baseURL, close := testServices(t)
+	services, baseURL, close := testRegistryServices(t)
 	source = NewRegistrySource(services)
 	return source, baseURL, close
 }
@@ -174,7 +175,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		case "/pkg/awesomesauce/happycloud_1.2.0.zip":
 			resp.Write([]byte("some zip file"))
 		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS":
-			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"))
+			resp.Write([]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"))
 		case "/pkg/awesomesauce/happycloud_1.2.0_SHA256SUMS.sig":
 			resp.Write([]byte("GPG signature"))
 		default:
@@ -226,6 +227,11 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			resp.WriteHeader(200)
 			// This response is used for testing LookupLegacyProvider
 			resp.Write([]byte(`{"id":"legacycorp/legacy"}`))
+		case "-/moved":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This response is used for testing LookupLegacyProvider
+			resp.Write([]byte(`{"id":"hashicorp/moved","moved_to":"acme/moved"}`))
 		case "-/changetype":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
@@ -335,7 +341,7 @@ func TestProviderVersions(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			gotVersions, _, err := client.ProviderVersions(test.provider)
+			gotVersions, _, err := client.ProviderVersions(context.Background(), test.provider)
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -414,7 +420,7 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			got, err := client.findClosestProtocolCompatibleVersion(test.provider, test.version)
+			got, err := client.findClosestProtocolCompatibleVersion(context.Background(), test.provider, test.version)
 
 			if err != nil {
 				if test.wantErr == "" {

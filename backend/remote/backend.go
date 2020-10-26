@@ -18,8 +18,8 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -591,7 +591,7 @@ func (b *Remote) DeleteWorkspace(name string) error {
 }
 
 // StateMgr implements backend.Enhanced.
-func (b *Remote) StateMgr(name string) (state.State, error) {
+func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}

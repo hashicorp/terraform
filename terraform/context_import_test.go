@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
 
@@ -196,15 +196,13 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		},
 	}
 
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
 		}
 
-		return nil
+		return
 	}
 
 	m := testModule(t, "import-provider")
@@ -229,7 +227,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !configured {
+	if !p.ConfigureCalled {
 		t.Fatal("didn't configure provider")
 	}
 
@@ -258,15 +256,13 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	}
 
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
 		}
 
-		return nil
+		return
 	}
 
 	_, diags := ctx.Import(&ImportOpts{
@@ -283,7 +279,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !configured {
+	if !p.ConfigureCalled {
 		t.Fatal("didn't configure provider")
 	}
 }
@@ -729,6 +725,95 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	expected := strings.TrimSpace(testImportMultiSameStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextImport_noConfigModuleImport(t *testing.T) {
+	p := testProvider("aws")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  xs = toset(["foo"])
+}
+
+module "a" {
+  for_each = local.xs
+  source   = "./a"
+}
+
+module "b" {
+  for_each = local.xs
+  source   = "./b"
+  y = module.a[each.key].y
+}
+`,
+		"a/main.tf": `
+output "y" {
+  value = "bar"
+}
+`,
+		"b/main.tf": `
+variable "y" {
+  type = string
+}
+
+resource "test_resource" "unused" {
+  value = var.y
+}
+`,
+	})
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_resource",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("test"),
+				}),
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state, diags := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
+				),
+				ID: "test",
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ri := state.ResourceInstance(mustResourceInstanceAddr("test_resource.test"))
+	expected := `{"id":"test"}`
+	if string(ri.Current.AttrsJSON) != expected {
+		t.Fatalf("expected %q, got %q\n", expected, ri.Current.AttrsJSON)
 	}
 }
 

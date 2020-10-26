@@ -4,4 +4,8 @@ module "example" {
 
   kept = "primary kept"
   foo  = "primary foo"
+
+  providers = {
+    test = test.foo
+  }
 }

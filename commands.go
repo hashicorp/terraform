@@ -30,17 +30,19 @@ var PlumbingCommands map[string]struct{}
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
 
-// PluginOverrides is set from wrappedMain during configuration processing
-// and then eventually passed to the "command" package to specify alternative
-// plugin locations via the legacy configuration file mechanism.
-var PluginOverrides command.PluginOverrides
-
 const (
 	ErrorPrefix  = "e:"
 	OutputPrefix = "o:"
 )
 
-func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source, unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig) {
+func initCommands(
+	originalWorkingDir string,
+	config *cliconfig.Config,
+	services *disco.Disco,
+	providerSrc getproviders.Source,
+	providerDevOverrides map[addrs.Provider]getproviders.PackageLocalDir,
+	unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig,
+) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -64,13 +66,13 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
+		OriginalWorkingDir: originalWorkingDir,
+
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
-		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
 		Services:        services,
-		ProviderSource:  providerSrc,
 		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
@@ -78,8 +80,11 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		PluginCacheDir:      config.PluginCacheDir,
 		OverrideDataDir:     dataDir,
 
-		ShutdownCh:         makeShutdownCh(),
-		UnmanagedProviders: unmanagedProviders,
+		ShutdownCh: makeShutdownCh(),
+
+		ProviderSource:       providerSrc,
+		ProviderDevOverrides: providerDevOverrides,
+		UnmanagedProviders:   unmanagedProviders,
 	}
 
 	// The command list is included in the terraform -help
@@ -214,6 +219,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 
 		"providers": func() (cli.Command, error) {
 			return &command.ProvidersCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers lock": func() (cli.Command, error) {
+			return &command.ProvidersLockCommand{
 				Meta: meta,
 			}, nil
 		},

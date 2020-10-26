@@ -14,6 +14,7 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
+	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/provisioners"
@@ -25,7 +26,7 @@ import (
 //
 // The provider-related functions live primarily in meta_providers.go, and
 // lean on some different underlying mechanisms in order to support automatic
-// installation and a heirarchical addressing namespace, neither of which
+// installation and a hierarchical addressing namespace, neither of which
 // are supported for other plugin types.
 
 // store the user-supplied path for plugin discovery
@@ -119,17 +120,6 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	return dirs
 }
 
-func (m *Meta) pluginCache() discovery.PluginCache {
-	dir := m.PluginCacheDir
-	if dir == "" {
-		return nil // cache disabled
-	}
-
-	dir = filepath.Join(dir, pluginMachineName)
-
-	return discovery.NewLocalPluginCache(dir)
-}
-
 func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)
@@ -178,6 +168,8 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 		Managed:          true,
 		VersionedPlugins: tfplugin.VersionedPlugins,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		AutoMTLS:         enableProviderAutoMTLS,
+		Logger:           logging.NewLogger(kind),
 	}
 
 	return plugin.NewClient(cfg), nil
@@ -185,7 +177,16 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 
 func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
 	return func() (provisioners.Interface, error) {
-		client := tfplugin.Client(meta)
+		cfg := &plugin.ClientConfig{
+			Cmd:              exec.Command(meta.Path),
+			HandshakeConfig:  tfplugin.Handshake,
+			VersionedPlugins: tfplugin.VersionedPlugins,
+			Managed:          true,
+			Logger:           logging.NewLogger("provisioner"),
+			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+			AutoMTLS:         enableProviderAutoMTLS,
+		}
+		client := plugin.NewClient(cfg)
 		return newProvisionerClient(client)
 	}
 }

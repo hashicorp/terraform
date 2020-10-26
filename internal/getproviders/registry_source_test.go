@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -59,7 +60,7 @@ func TestSourceAvailableVersions(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.provider, func(t *testing.T) {
 			provider := addrs.MustParseProviderSourceString(test.provider)
-			gotVersions, _, err := source.AvailableVersions(provider)
+			gotVersions, _, err := source.AvailableVersions(context.Background(), provider)
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -95,7 +96,7 @@ func TestSourceAvailableVersions_warnings(t *testing.T) {
 	defer close()
 
 	provider := addrs.MustParseProviderSourceString("example.com/weaksauce/no-versions")
-	_, warnings, err := source.AvailableVersions(provider)
+	_, warnings, err := source.AvailableVersions(context.Background(), provider)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
@@ -111,14 +112,15 @@ func TestSourcePackageMeta(t *testing.T) {
 	defer close()
 
 	tests := []struct {
-		provider string
-		version  string
-		os, arch string
-		want     PackageMeta
-		wantErr  string
+		provider   string
+		version    string
+		os, arch   string
+		want       PackageMeta
+		wantHashes []Hash
+		wantErr    string
 	}{
 		// These test cases are relying on behaviors of the fake provider
-		// registry server implemented in client_test.go.
+		// registry server implemented in registry_client_test.go.
 		{
 			"example.com/awesomesauce/happycloud",
 			"1.2.0",
@@ -134,19 +136,23 @@ func TestSourcePackageMeta(t *testing.T) {
 				Location:         PackageHTTPURL(baseURL + "/pkg/awesomesauce/happycloud_1.2.0.zip"),
 				Authentication: PackageAuthenticationAll(
 					NewMatchingChecksumAuthentication(
-						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
+						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"),
 						"happycloud_1.2.0.zip",
 						[32]byte{30: 0xf0, 31: 0x0d},
 					),
-					NewArchiveChecksumAuthentication([32]byte{30: 0xf0, 31: 0x0d}),
+					NewArchiveChecksumAuthentication(Platform{"linux", "amd64"}, [32]byte{30: 0xf0, 31: 0x0d}),
 					NewSignatureAuthentication(
-						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n"),
+						[]byte("000000000000000000000000000000000000000000000000000000000000f00d happycloud_1.2.0.zip\n000000000000000000000000000000000000000000000000000000000000face happycloud_1.2.0_face.zip\n"),
 						[]byte("GPG signature"),
 						[]SigningKey{
 							{ASCIIArmor: HashicorpPublicKey},
 						},
 					),
 				),
+			},
+			[]Hash{
+				"zh:000000000000000000000000000000000000000000000000000000000000f00d",
+				"zh:000000000000000000000000000000000000000000000000000000000000face",
 			},
 			``,
 		},
@@ -155,6 +161,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"nonexist", "amd64",
 			PackageMeta{},
+			nil,
 			`provider example.com/awesomesauce/happycloud 1.2.0 is not available for nonexist_amd64`,
 		},
 		{
@@ -162,6 +169,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
+			nil,
 			`host not.example.com does not offer a Terraform provider registry`,
 		},
 		{
@@ -169,6 +177,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
+			nil,
 			`host too-new.example.com does not support the provider registry protocol required by this Terraform version, but may be compatible with a different Terraform version`,
 		},
 		{
@@ -176,6 +185,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"1.2.0",
 			"linux", "amd64",
 			PackageMeta{},
+			nil,
 			`could not query provider registry for fails.example.com/awesomesauce/happycloud: the request failed after 2 attempts, please try again later: Get "http://placeholder-origin/fails-immediately/awesomesauce/happycloud/1.2.0/download/linux/amd64": EOF`,
 		},
 	}
@@ -200,7 +210,7 @@ func TestSourcePackageMeta(t *testing.T) {
 
 			version := versions.MustParseVersion(test.version)
 
-			got, err := source.PackageMeta(providerAddr, version, Platform{test.os, test.arch})
+			got, err := source.PackageMeta(context.Background(), providerAddr, version, Platform{test.os, test.arch})
 
 			if err != nil {
 				if test.wantErr == "" {
@@ -219,6 +229,9 @@ func TestSourcePackageMeta(t *testing.T) {
 
 			if diff := cmp.Diff(test.want, got, cmpOpts); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
+			}
+			if diff := cmp.Diff(test.wantHashes, got.AcceptableHashes()); diff != "" {
+				t.Errorf("wrong AcceptableHashes result\n%s", diff)
 			}
 		})
 	}

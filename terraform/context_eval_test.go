@@ -38,7 +38,7 @@ func TestContextEval(t *testing.T) {
 		},
 		{
 			`module.child.result`,
-			cty.UnknownVal(cty.Number),
+			cty.NumberIntVal(6),
 			false,
 		},
 	}

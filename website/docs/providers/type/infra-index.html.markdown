@@ -18,6 +18,7 @@ and are tested by HashiCorp.
 ---
 
 - [Chef](/docs/providers/chef/index.html)
+- [CloudAMQP](/docs/providers/cloudamqp/index.html)
 - [Cohesity](/docs/providers/cohesity/index.html)
 - [Consul](/docs/providers/consul/index.html)
 - [Docker](/docs/providers/docker/index.html)

@@ -1,0 +1,2 @@
+# This is not a real provider executable. It's just here to be discovered
+# during installation and produce a warning about it being in the wrong place.

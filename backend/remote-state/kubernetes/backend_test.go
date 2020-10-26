@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states/statemgr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -100,7 +99,7 @@ func TestBackendLocksSoak(t *testing.T) {
 		go func(locker statemgr.Locker, n int) {
 			defer wg.Done()
 
-			li := state.NewLockInfo()
+			li := statemgr.NewLockInfo()
 			li.Operation = "test"
 			li.Who = fmt.Sprintf("client-%v", n)
 

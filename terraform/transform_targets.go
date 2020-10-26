@@ -22,12 +22,6 @@ type GraphNodeTargetable interface {
 type TargetsTransformer struct {
 	// List of targeted resource names specified by the user
 	Targets []addrs.Targetable
-
-	// If set, the index portions of resource addresses will be ignored
-	// for comparison. This is used when transforming a graph where
-	// counted resources have not yet been expanded, since otherwise
-	// the unexpanded nodes (which never have indices) would not match.
-	IgnoreIndices bool
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
@@ -133,25 +127,29 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
+
 	default:
 		// Only resource and resource instance nodes can be targeted.
 		return false
 	}
 
 	for _, targetAddr := range targets {
-		if t.IgnoreIndices {
-			// If we're ignoring indices then we'll convert any resource instance
-			// addresses into resource addresses. We don't need to convert
-			// vertexAddr because instance addresses are contained within
-			// their associated resources, and so .TargetContains will take
-			// care of this for us.
-			switch instance := targetAddr.(type) {
+		switch vertexAddr.(type) {
+		case addrs.ConfigResource:
+			// Before expansion happens, we only have nodes that know their
+			// ConfigResource address.  We need to take the more specific
+			// target addresses and generalize them in order to compare with a
+			// ConfigResource.
+			switch target := targetAddr.(type) {
 			case addrs.AbsResourceInstance:
-				targetAddr = instance.ContainingResource().Config()
+				targetAddr = target.ContainingResource().Config()
+			case addrs.AbsResource:
+				targetAddr = target.Config()
 			case addrs.ModuleInstance:
-				targetAddr = instance.Module()
+				targetAddr = target.Module()
 			}
 		}
+
 		if targetAddr.TargetContains(vertexAddr) {
 			return true
 		}

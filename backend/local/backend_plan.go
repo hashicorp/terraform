@@ -10,13 +10,11 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -75,39 +73,17 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
-
-	// Before we do anything else we'll take a snapshot of the prior state
-	// so we can use it for some fixups to our detection of whether the plan
-	// includes externally-visible side-effects that need to be applied.
-	// (We should be able to remove this once we complete the planned work
-	// described in the comment for func planHasSideEffects below.)
-	// We go directly to the state manager here because the state inside
-	// tfCtx was already implicitly changed by a validation walk inside
-	// the b.context method.
-	priorState := opState.State().DeepCopy()
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
 
 	runningOp.State = tfCtx.State()
-
-	// If we're refreshing before plan, perform that
-	baseState := runningOp.State
-	if op.PlanRefresh {
-		log.Printf("[INFO] backend/local: plan calling Refresh")
-
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
-		}
-
-		refreshedState, refreshDiags := tfCtx.Refresh()
-		diags = diags.Append(refreshDiags)
-		if diags.HasErrors() {
-			b.ReportResult(runningOp, diags)
-			return
-		}
-		baseState = refreshedState // plan will be relative to our refreshed state
-		if b.CLI != nil {
-			b.CLI.Output("\n------------------------------------------------------------------------")
-		}
-	}
 
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
@@ -133,8 +109,9 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = !planHasSideEffects(priorState, plan.Changes)
+	runningOp.PlanEmpty = plan.Changes.Empty()
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -152,7 +129,7 @@ func (b *Local) opPlan(
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
 		// only write it if this plan is subsequently applied.
-		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, plan.State)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
 		err := planfile.Create(path, configSnap, plannedStateFile, plan)
@@ -178,7 +155,7 @@ func (b *Local) opPlan(
 			return
 		}
 
-		b.renderPlan(plan, baseState, priorState, schemas)
+		b.renderPlan(plan, plan.State, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -205,8 +182,8 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, priorState *states.State, schemas *terraform.Schemas) {
-	RenderPlan(plan, baseState, priorState, schemas, b.CLI, b.Colorize())
+func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
+	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize())
 }
 
 // RenderPlan renders the given plan to the given UI.
@@ -229,7 +206,7 @@ func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, priorState
 // output values will not currently be rendered because their prior values
 // are currently stored only in the prior state. (see the docstring for
 // func planHasSideEffects for why this is and when that might change)
-func RenderPlan(plan *plans.Plan, baseState *states.State, priorState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -336,157 +313,10 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, priorState *states.St
 	)))
 
 	// If there is at least one planned change to the root module outputs
-	// then we'll render a summary of those too. This is easier said than done
-	// because currently output changes are not accurately recorded in
-	// plan.Changes.Outputs (see the func planHasSideEffects docstring for why)
-	// and so we must use priorState to produce an actually-accurate changeset
-	// to display.
-	//
-	// Some callers (i.e. "terraform show") only have the plan and therefore
-	// can't provide the prior state. In that case we'll skip showing the
-	// outputs for now, until we can make plan.Changes.Outputs itself be
-	// accurate and self-contained.
-	if priorState != nil {
-		var synthOutputChanges []*plans.OutputChangeSrc
-		outputChangeCount := 0
-		for _, addr := range allRootModuleOutputs(priorState, plan.Changes) {
-			before := cty.NullVal(cty.DynamicPseudoType)
-			after := cty.NullVal(cty.DynamicPseudoType)
-			sensitive := false
-			if changeSrc := plan.Changes.OutputValue(addr); changeSrc != nil {
-				sensitive = sensitive || changeSrc.Sensitive
-				change, err := changeSrc.Decode()
-				if err != nil {
-					// It would be very strange to get here because changeSrc was
-					// presumably just created by Terraform Core and so should never
-					// be invalid.
-					panic(fmt.Sprintf("failed to decode change for %s: %s", addr, err))
-				}
-				after = change.After
-			}
-			if priorOutputState := priorState.OutputValue(addr); priorOutputState != nil {
-				sensitive = sensitive || priorOutputState.Sensitive
-				before = priorOutputState.Value
-			}
-
-			// We'll now construct ourselves a new, accurate change.
-			change := &plans.OutputChange{
-				Addr:      addr,
-				Sensitive: sensitive,
-				Change: plans.Change{
-					Action: objchange.ActionForChange(before, after),
-					Before: before,
-					After:  after,
-				},
-			}
-			if change.Action == plans.NoOp {
-				continue // ignore non-changes
-			}
-			outputChangeCount++
-			newChangeSrc, err := change.Encode()
-			if err != nil {
-				// Again, it would be very strange to see an error here because
-				// we've literally just created this value in memory above.
-				panic(fmt.Sprintf("failed to encode change for %s: %s", addr, err))
-			}
-			synthOutputChanges = append(synthOutputChanges, newChangeSrc)
-		}
-		if outputChangeCount > 0 {
-			ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(synthOutputChanges, colorize)))
-		}
+	// then we'll render a summary of those too.
+	if len(plan.Changes.Outputs) > 0 {
+		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(plan.Changes.Outputs, colorize)))
 	}
-}
-
-// planHasSideEffects determines whether the given planned changeset has
-// externally-visible side-effects that warrant giving the user an opportunity
-// to apply the plan. If planHasSideEffects returns false, the caller should
-// return a "No changes" message and not offer to apply the plan.
-//
-// This is currently implemented here, rather than in the "terraform" package,
-// because with the current separation of the refresh vs. plan walks there is
-// never any single point in the "terraform" package where both the prior and
-// planned new values for outputs are available at once. We have this out here
-// as a temporary workaround for that design problem, with the intent of moving
-// this down into the "terraform" package once we've completed some work to
-// combine the refresh and plan walks together into a single walk and thus
-// that walk will be able to see both the prior and new values for outputs.
-func planHasSideEffects(priorState *states.State, changes *plans.Changes) bool {
-	if !changes.Empty() {
-		// At the time of writing, changes.Empty considers only resource
-		// changes because the planned changes for outputs are inaccurate.
-		// If we have at least one resource change then we know we have
-		// side-effects though, regardless of outputs.
-		return true
-	}
-
-	// If we get here then there are definitely no resource changes in the plan
-	// but we may have some changes to outputs that "changes" hasn't properly
-	// captured, because it treats all outputs as being either created or
-	// deleted regardless of their prior values. To work around that for now,
-	// we'll use priorState to see if those planned changes really are changes.
-	for _, addr := range allRootModuleOutputs(priorState, changes) {
-		before := cty.NullVal(cty.DynamicPseudoType)
-		after := cty.NullVal(cty.DynamicPseudoType)
-		if changeSrc := changes.OutputValue(addr); changeSrc != nil {
-			change, err := changeSrc.Decode()
-			if err != nil {
-				// It would be very strange to get here because changeSrc was
-				// presumably just created by Terraform Core and so should never
-				// be invalid. In this unlikely event, we'll just conservatively
-				// assume there is a change.
-				return true
-			}
-			after = change.After
-		}
-		if priorState != nil {
-			if priorOutputState := priorState.OutputValue(addr); priorOutputState != nil {
-				before = priorOutputState.Value
-			}
-		}
-		if objchange.ActionForChange(before, after) != plans.NoOp {
-			return true
-		}
-	}
-
-	// If we fall out here then we didn't find any effective changes in the
-	// outputs, and we already showed that there were no resource changes, so
-	// this plan has no side-effects.
-	return false
-}
-
-// allRootModuleOutputs is a helper function to produce the union of all
-// root module output values across both the given prior state and the given
-// changeset. This is to compensate for the fact that the outputs portion of
-// a plans.Changes is currently incomplete and inaccurate due to limitations of
-// Terraform Core's design; we need to use information from the prior state
-// to compensate for those limitations when making decisions based on the
-// effective output changes.
-func allRootModuleOutputs(priorState *states.State, changes *plans.Changes) []addrs.AbsOutputValue {
-	m := make(map[string]addrs.AbsOutputValue)
-	if priorState != nil {
-		for _, os := range priorState.RootModule().OutputValues {
-			m[os.Addr.String()] = os.Addr
-		}
-	}
-	if changes != nil {
-		for _, oc := range changes.Outputs {
-			if !oc.Addr.Module.IsRoot() {
-				continue
-			}
-			m[oc.Addr.String()] = oc.Addr
-		}
-	}
-	if len(m) == 0 {
-		return nil
-	}
-	ret := make([]addrs.AbsOutputValue, 0, len(m))
-	for _, addr := range m {
-		ret = append(ret, addr)
-	}
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].OutputValue.Name < ret[j].OutputValue.Name
-	})
-	return ret
 }
 
 const planHeaderIntro = `

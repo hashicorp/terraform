@@ -150,6 +150,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Computed: true},
 					"value": {Type: cty.String, Optional: true},
 				},
 			},
@@ -165,21 +166,21 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		if !c.IsComputed("value") {
-			return nil, []error{fmt.Errorf("value isn't computed")}
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsKnown() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value isn't computed"))
 		}
 
-		return nil, c.CheckSet([]string{"value"})
-	}
-
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		return fmt.Errorf("Configure should not be called for provider")
+		return
 	}
 
 	diags := c.Validate()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+	if p.ConfigureCalled {
+		t.Fatal("Configure should not be called for provider")
 	}
 }
 
@@ -464,8 +465,11 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		if req.Config.GetAttr("foo").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
+		}
+		return
 	}
 
 	diags := c.Validate()
@@ -499,8 +503,11 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		if req.Config.GetAttr("foo").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
+		}
+		return
 	}
 
 	diags := c.Validate()
@@ -628,6 +635,38 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+}
+
+// In this test there is a mismatch between the provider's fqn (hashicorp/test)
+// and it's local name set in required_providers (arbitrary).
+func TestContext2Validate_requiredProviderConfig(t *testing.T) {
+	m := testModule(t, "validate-required-provider-config")
+	p := testProvider("aws")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"required_attribute": {Type: cty.String, Required: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
@@ -921,8 +960,8 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	m := testModule(t, "validate-targeted")
 	p := testProvider("aws")
 	pr := simpleMockProvisioner()
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -1010,8 +1049,8 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 
 	m := testModule(t, "input-interpolate-var")
 	p := testProvider("null")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"template_file": {
@@ -1043,8 +1082,8 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 
 	m := testModule(t, "validate-computed-module-var-ref")
 	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -1075,8 +1114,8 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 
 	m := testModule(t, "issue-9549")
 	p := testProvider("template")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1475,7 +1514,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1504,7 +1543,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1536,7 +1575,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1619,7 +1658,7 @@ output "out" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1708,6 +1747,50 @@ output "out" {
 	for _, d := range diags {
 		des := d.Description().Summary
 		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
+	}
+}
+
+func TestContext2Validate_invalidIgnoreChanges(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = [foo]
+  }
+}
+
+`,
+	})
+
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Computed: true, Optional: true},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Cannot ignore") {
 			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
 		}
 	}

@@ -336,16 +336,6 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		defer stop()
 		defer cancel()
 
-		// the state was locked during context creation, unlock the state when
-		// the operation completes
-		defer func() {
-			err := op.StateLocker.Unlock(nil)
-			if err != nil {
-				b.ShowDiagnostics(err)
-				runningOp.Result = backend.OperationFailure
-			}
-		}()
-
 		defer b.opLock.Unlock()
 		f(stopCtx, cancelCtx, op, runningOp)
 	}()

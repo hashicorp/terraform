@@ -63,8 +63,6 @@ will be removed in a future Terraform version.
 }
 
 const (
-	envNotSupported = `Backend does not support multiple workspaces`
-
 	envExists = `Workspace %q already exists`
 
 	envDoesNotExist = `

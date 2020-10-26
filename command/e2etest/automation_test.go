@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/e2e"
+	"github.com/hashicorp/terraform/plans"
 )
 
 // The tests in this file run through different scenarios recommended in our
@@ -72,9 +73,22 @@ func TestPlanApplyInAutomation(t *testing.T) {
 
 	// stateResources := plan.Changes.Resources
 	diffResources := plan.Changes.Resources
-
-	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
+	if len(diffResources) != 1 {
 		t.Errorf("incorrect number of resources in plan")
+	}
+
+	expected := map[string]plans.Action{
+		"null_resource.test": plans.Create,
+	}
+
+	for _, r := range diffResources {
+		expectedAction, ok := expected[r.Addr.String()]
+		if !ok {
+			t.Fatalf("unexpected change for %q", r.Addr)
+		}
+		if r.Action != expectedAction {
+			t.Fatalf("unexpected action %q for %q", r.Action, r.Addr)
+		}
 	}
 
 	//// APPLY

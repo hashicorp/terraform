@@ -130,7 +130,11 @@ func (c *ShowCommand) Run(args []string) int {
 			}
 		}
 	} else {
-		env := c.Workspace()
+		env, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
 		stateFile, stateErr = getStateFromEnv(b, env)
 		if stateErr != nil {
 			c.Ui.Error(stateErr.Error())
@@ -139,7 +143,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		if jsonOutput == true {
+		if jsonOutput {
 			config := ctx.Config()
 			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
 
@@ -159,14 +163,11 @@ func (c *ShowCommand) Run(args []string) int {
 		// package rather than in the backends themselves, but for now we're
 		// accepting this oddity because "terraform show" is a less commonly
 		// used way to render a plan than "terraform plan" is.
-		// We're setting priorState to null because a saved plan file only
-		// records the base state (possibly updated by refresh), not the
-		// prior state (direct result of the previous apply).
-		localBackend.RenderPlan(plan, stateFile.State, nil, schemas, c.Ui, c.Colorize())
+		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize())
 		return 0
 	}
 
-	if jsonOutput == true {
+	if jsonOutput {
 		// At this point, it is possible that there is neither state nor a plan.
 		// That's ok, we'll just return an empty object.
 		jsonState, err := jsonstate.Marshal(stateFile, schemas)

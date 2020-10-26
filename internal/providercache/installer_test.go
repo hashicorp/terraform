@@ -11,11 +11,112 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
+
+func TestEnsureProviderVersions_local_source(t *testing.T) {
+	// create filesystem source using the test provider cache dir
+	source := getproviders.NewFilesystemMirrorSource("testdata/cachedir")
+
+	// create a temporary workdir
+	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDirPath)
+
+	// set up the installer using the temporary directory and filesystem source
+	platform := getproviders.Platform{OS: "linux", Arch: "amd64"}
+	dir := NewDirWithPlatform(tmpDirPath, platform)
+	installer := NewInstaller(dir, source)
+
+	tests := map[string]struct {
+		provider string
+		version  string
+		wantHash getproviders.Hash // getproviders.NilHash if not expected to be installed
+		err      string
+	}{
+		"install-unpacked": {
+			provider: "null",
+			version:  "2.0.0",
+			wantHash: getproviders.HashScheme1.New("qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g="),
+		},
+		"invalid-zip-file": {
+			provider: "null",
+			version:  "2.1.0",
+			wantHash: getproviders.NilHash,
+			err:      "zip: not a valid zip file",
+		},
+		"version-constraint-unmet": {
+			provider: "null",
+			version:  "2.2.0",
+			wantHash: getproviders.NilHash,
+			err:      "no available releases match the given constraints 2.2.0",
+		},
+		"missing-executable": {
+			provider: "missing/executable",
+			version:  "2.0.0",
+			wantHash: getproviders.NilHash, // installation fails for a provider with no executable
+			err:      "provider binary not found: could not find executable file starting with terraform-provider-executable",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.TODO()
+
+			provider := addrs.MustParseProviderSourceString(test.provider)
+			versionConstraint := getproviders.MustParseVersionConstraints(test.version)
+			version := getproviders.MustParseVersion(test.version)
+			reqs := getproviders.Requirements{
+				provider: versionConstraint,
+			}
+
+			newLocks, err := installer.EnsureProviderVersions(ctx, depsfile.NewLocks(), reqs, InstallNewProvidersOnly)
+			gotProviderlocks := newLocks.AllProviders()
+			wantProviderLocks := map[addrs.Provider]*depsfile.ProviderLock{
+				provider: depsfile.NewProviderLock(
+					provider,
+					version,
+					getproviders.MustParseVersionConstraints("= 2.0.0"),
+					[]getproviders.Hash{
+						test.wantHash,
+					},
+				),
+			}
+			if test.wantHash == getproviders.NilHash {
+				wantProviderLocks = map[addrs.Provider]*depsfile.ProviderLock{}
+			}
+
+			if diff := cmp.Diff(wantProviderLocks, gotProviderlocks, depsfile.ProviderLockComparer); diff != "" {
+				t.Errorf("wrong selected\n%s", diff)
+			}
+
+			if test.err == "" && err == nil {
+				return
+			}
+
+			switch err := err.(type) {
+			case InstallerError:
+				providerError, ok := err.ProviderErrors[provider]
+				if !ok {
+					t.Fatalf("did not get error for provider %s", provider)
+				}
+
+				if got := providerError.Error(); got != test.err {
+					t.Fatalf("wrong result\ngot:  %s\nwant: %s\n", got, test.err)
+				}
+			default:
+				t.Fatalf("wrong error type. Expected InstallerError, got %T", err)
+			}
+		})
+	}
+}
 
 // This test only verifies protocol errors and does not try for successfull
 // installation (at the time of writing, the test files aren't signed so the
@@ -68,7 +169,7 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 				test.provider: test.inputVersion,
 			}
 			ctx := context.TODO()
-			_, err := installer.EnsureProviderVersions(ctx, reqs, InstallNewProvidersOnly)
+			_, err := installer.EnsureProviderVersions(ctx, depsfile.NewLocks(), reqs, InstallNewProvidersOnly)
 
 			switch err := err.(type) {
 			case nil:

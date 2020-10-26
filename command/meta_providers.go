@@ -2,19 +2,23 @@ package command
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
-	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 	plugin "github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/addrs"
 	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/providercache"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // The TF_DISABLE_PLUGIN_TLS environment variable is intended only for use by
@@ -102,10 +106,7 @@ func (m *Meta) providerCustomLocalDirectorySource(dirs []string) getproviders.So
 // Only one object returned from this method should be live at any time,
 // because objects inside contain caches that must be maintained properly.
 func (m *Meta) providerLocalCacheDir() *providercache.Dir {
-	dir := filepath.Join(m.DataDir(), "plugins")
-	if dir == "" {
-		return nil // cache disabled
-	}
+	dir := filepath.Join(m.DataDir(), "providers")
 	return providercache.NewDir(dir)
 }
 
@@ -123,6 +124,31 @@ func (m *Meta) providerGlobalCacheDir() *providercache.Dir {
 	dir := m.PluginCacheDir
 	if dir == "" {
 		return nil // cache disabled
+	}
+	return providercache.NewDir(dir)
+}
+
+// providerLegacyCacheDir returns an object representing the former location
+// of the local cache directory from Terraform 0.13 and earlier.
+//
+// This is no longer viable for use as a real cache directory because some
+// incorrect documentation called for Terraform Cloud users to use it as if it
+// were an implied local filesystem mirror directory. Therefore we now use it
+// only to generate some hopefully-helpful migration guidance during
+// "terraform init" for anyone who _was_ trying to use it as a local filesystem
+// mirror directory.
+//
+// providerLegacyCacheDir returns nil if the legacy cache directory isn't
+// present or isn't a directory, so that callers can more easily skip over
+// any backward compatibility behavior that applies only when the directory
+// is present.
+//
+// Callers must use the resulting object in a read-only mode only. Don't
+// install any new providers into this directory.
+func (m *Meta) providerLegacyCacheDir() *providercache.Dir {
+	dir := filepath.Join(m.DataDir(), "plugins")
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		return nil
 	}
 	return providercache.NewDir(dir)
 }
@@ -151,6 +177,35 @@ func (m *Meta) providerInstallSource() getproviders.Source {
 	return m.ProviderSource
 }
 
+// providerDevOverrideWarnings returns a diagnostics that contains at least
+// one warning if and only if there is at least one provider development
+// override in effect. If not, the result is always empty. The result never
+// contains error diagnostics.
+//
+// Certain commands can use this to include a warning that their results
+// may differ from what's expected due to the development overrides. It's
+// not necessary to bother the user with this warning on every command, but
+// it's helpful to return it on commands that have externally-visible side
+// effects and on commands that are used to verify conformance to schemas.
+func (m *Meta) providerDevOverrideWarnings() tfdiags.Diagnostics {
+	if len(m.ProviderDevOverrides) == 0 {
+		return nil
+	}
+	var detailMsg strings.Builder
+	detailMsg.WriteString("The following provider development overrides are set in the CLI configuration:\n")
+	for addr, path := range m.ProviderDevOverrides {
+		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
+	}
+	detailMsg.WriteString("\nThe behavior may therefore not match any released version of the provider and applying changes may cause the state to become incompatible with published releases.")
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Provider development overrides are in effect",
+			detailMsg.String(),
+		),
+	}
+}
+
 // providerFactories uses the selections made previously by an installer in
 // the local cache directory (m.providerLocalCacheDir) to produce a map
 // from provider addresses to factory functions to create instances of
@@ -160,34 +215,104 @@ func (m *Meta) providerInstallSource() getproviders.Source {
 // be honored with what is currently in the cache, such as if a selected
 // package has been removed from the cache or if the contents of a selected
 // package have been modified outside of the installer. If it returns an error,
-// the returned map may be incomplete or invalid.
+// the returned map may be incomplete or invalid, but will be as complete
+// as possible given the cause of the error.
 func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error) {
-	// We don't have to worry about potentially calling
-	// providerInstallerCustomSource here because we're only using this
-	// installer for its SelectedPackages method, which does not consult
-	// any provider sources.
-	inst := m.providerInstaller()
-	selected, err := inst.SelectedPackages()
-	if err != nil {
-		return nil, fmt.Errorf("failed to recall provider packages selected by earlier 'terraform init': %s", err)
+	locks, diags := m.lockedDependencies()
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
 	}
+
+	// We'll always run through all of our providers, even if one of them
+	// encounters an error, so that we can potentially report multiple errors
+	// where appropriate and so that callers can potentially make use of the
+	// partial result we return if e.g. they want to enumerate which providers
+	// are available, or call into one of the providers that didn't fail.
+	var err error
+
+	// For the providers from the lock file, we expect them to be already
+	// available in the provider cache because "terraform init" should already
+	// have put them there.
+	providerLocks := locks.AllProviders()
+	cacheDir := m.providerLocalCacheDir()
 
 	// The internal providers are _always_ available, even if the configuration
 	// doesn't request them, because they don't need any special installation
 	// and they'll just be ignored if not used.
 	internalFactories := m.internalProviders()
 
-	factories := make(map[addrs.Provider]providers.Factory, len(selected)+len(internalFactories)+len(m.UnmanagedProviders))
+	// We have two different special cases aimed at provider development
+	// use-cases, which are not for "production" use:
+	// - The CLI config can specify that a particular provider should always
+	// use a plugin from a particular local directory, ignoring anything the
+	// lock file or cache directory might have to say about it. This is useful
+	// for manual testing of local development builds.
+	// - The Terraform SDK test harness (and possibly other callers in future)
+	// can ask that we use its own already-started provider servers, which we
+	// call "unmanaged" because Terraform isn't responsible for starting
+	// and stopping them. This is intended for automated testing where a
+	// calling harness is responsible both for starting the provider server
+	// and orchestrating one or more non-interactive Terraform runs that then
+	// exercise it.
+	// Unmanaged providers take precedence over overridden providers because
+	// overrides are typically a "session-level" setting while unmanaged
+	// providers are typically scoped to a single unattended command.
+	devOverrideProviders := m.ProviderDevOverrides
+	unmanagedProviders := m.UnmanagedProviders
+
+	factories := make(map[addrs.Provider]providers.Factory, len(providerLocks)+len(internalFactories)+len(unmanagedProviders))
 	for name, factory := range internalFactories {
 		factories[addrs.NewBuiltInProvider(name)] = factory
 	}
-	for provider, reattach := range m.UnmanagedProviders {
-		factories[provider] = unmanagedProviderFactory(provider, reattach)
-	}
-	for provider, cached := range selected {
+	for provider, lock := range providerLocks {
+		reportError := func(thisErr error) {
+			err = multierror.Append(err, thisErr)
+			// We'll populate a provider factory that just echoes our error
+			// again if called, which allows us to still report a helpful
+			// error even if it gets detected downstream somewhere from the
+			// caller using our partial result.
+			factories[provider] = providerFactoryError(thisErr)
+		}
+
+		version := lock.Version()
+		cached := cacheDir.ProviderVersion(provider, version)
+		if cached == nil {
+			reportError(fmt.Errorf(
+				"there is no package for %s %s cached in %s",
+				provider, version, cacheDir.BasePath(),
+			))
+			continue
+		}
+		// The cached package must match one of the checksums recorded in
+		// the lock file, if any.
+		if allowedHashes := lock.PreferredHashes(); len(allowedHashes) != 0 {
+			matched, err := cached.MatchesAnyHash(allowedHashes)
+			if err != nil {
+				reportError(fmt.Errorf(
+					"failed to verify checksum of %s %s package cached in in %s: %s",
+					provider, version, cacheDir.BasePath(), err,
+				))
+				continue
+			}
+			if !matched {
+				reportError(fmt.Errorf(
+					"the cached package for %s %s (in %s) does not match any of the checksums recorded in the dependency lock file",
+					provider, version, cacheDir.BasePath(),
+				))
+				continue
+			}
+		}
 		factories[provider] = providerFactory(cached)
 	}
-	return factories, nil
+	for provider, localDir := range devOverrideProviders {
+		// It's likely that providers in this map will conflict with providers
+		// in providerLocks
+		factories[provider] = devOverrideProviderFactory(provider, localDir)
+	}
+	for provider, reattach := range unmanagedProviders {
+		factories[provider] = unmanagedProviderFactory(provider, reattach)
+	}
+	return factories, err
 }
 
 func (m *Meta) internalProviders() map[string]providers.Factory {
@@ -203,18 +328,17 @@ func (m *Meta) internalProviders() map[string]providers.Factory {
 // providers.Interface against it.
 func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 	return func() (providers.Interface, error) {
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "plugin",
-			Level:  hclog.Trace,
-			Output: os.Stderr,
-		})
+		execFile, err := meta.ExecutableFile()
+		if err != nil {
+			return nil, err
+		}
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logger,
+			Logger:           logging.NewProviderLogger(""),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          true,
-			Cmd:              exec.Command(meta.ExecutableFile),
+			Cmd:              exec.Command(execFile),
 			AutoMTLS:         enableProviderAutoMTLS,
 			VersionedPlugins: tfplugin.VersionedPlugins,
 		}
@@ -238,20 +362,28 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 	}
 }
 
+func devOverrideProviderFactory(provider addrs.Provider, localDir getproviders.PackageLocalDir) providers.Factory {
+	// A dev override is essentially a synthetic cache entry for our purposes
+	// here, so that's how we'll construct it. The providerFactory function
+	// doesn't actually care about the version, so we can leave it
+	// unspecified: overridden providers are not explicitly versioned.
+	log.Printf("[DEBUG] Provider %s is overridden to load from %s", provider, localDir)
+	return providerFactory(&providercache.CachedProvider{
+		Provider:   provider,
+		Version:    getproviders.UnspecifiedVersion,
+		PackageDir: string(localDir),
+	})
+}
+
 // unmanagedProviderFactory produces a provider factory that uses the passed
 // reattach information to connect to go-plugin processes that are already
 // running, and implements providers.Interface against it.
 func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.ReattachConfig) providers.Factory {
 	return func() (providers.Interface, error) {
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "unmanaged-plugin",
-			Level:  hclog.Trace,
-			Output: os.Stderr,
-		})
 
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
-			Logger:           logger,
+			Logger:           logging.NewProviderLogger("unmanaged."),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          false,
 			Reattach:         reattach,
@@ -279,5 +411,15 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 
 		p := raw.(*tfplugin.GRPCProvider)
 		return p, nil
+	}
+}
+
+// providerFactoryError is a stub providers.Factory that returns an error
+// when called. It's used to allow providerFactories to still produce a
+// factory for each available provider in an error case, for situations
+// where the caller can do something useful with that partial result.
+func providerFactoryError(err error) providers.Factory {
+	return func() (providers.Interface, error) {
+		return nil, err
 	}
 }

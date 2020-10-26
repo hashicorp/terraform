@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -23,8 +22,8 @@ type StateMeta struct {
 // the backend, but changes the way that backups are done. This configures
 // backups to be timestamped rather than just the original state path plus a
 // backup path.
-func (c *StateMeta) State() (state.State, error) {
-	var realState state.State
+func (c *StateMeta) State() (statemgr.Full, error) {
+	var realState statemgr.Full
 	backupPath := c.backupPath
 	stateOutPath := c.statePath
 
@@ -38,7 +37,10 @@ func (c *StateMeta) State() (state.State, error) {
 			return nil, backendDiags.Err()
 		}
 
-		workspace := c.Workspace()
+		workspace, err := c.Workspace()
+		if err != nil {
+			return nil, err
+		}
 		// Get the state
 		s, err := b.StateMgr(workspace)
 		if err != nil {
@@ -144,10 +146,6 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 	})
 
 	return ret, diags
-}
-
-func (c *StateMeta) lookupSingleResourceInstanceAddr(state *states.State, addrStr string) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {
-	return addrs.ParseAbsResourceInstanceStr(addrStr)
 }
 
 func (c *StateMeta) lookupSingleStateObjectAddr(state *states.State, addrStr string) (addrs.Targetable, tfdiags.Diagnostics) {

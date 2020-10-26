@@ -1,12 +1,16 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandLocal represents a named local value in a configuration module,
@@ -55,7 +59,7 @@ func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *nodeExpandLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
 func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -85,7 +89,7 @@ var (
 	_ GraphNodeModuleInstance = (*NodeLocal)(nil)
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
-	_ GraphNodeEvalable       = (*NodeLocal)(nil)
+	_ GraphNodeExecutable     = (*NodeLocal)(nil)
 	_ graphNodeTemporaryValue = (*NodeLocal)(nil)
 	_ dag.GraphNodeDotter     = (*NodeLocal)(nil)
 )
@@ -117,15 +121,52 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
-// GraphNodeEvalable
-func (n *NodeLocal) EvalTree() EvalNode {
-	return &EvalLocal{
-		Addr: n.Addr.LocalValue,
-		Expr: n.Config.Expr,
+// GraphNodeExecutable
+// NodeLocal.Execute is an Execute implementation that evaluates the
+// expression for a local value and writes it into a transient part of
+// the state.
+func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) error {
+
+	var diags tfdiags.Diagnostics
+
+	expr := n.Config.Expr
+	addr := n.Addr.LocalValue
+
+	// We ignore diags here because any problems we might find will be found
+	// again in EvaluateExpr below.
+	refs, _ := lang.ReferencesInExpr(expr)
+	for _, ref := range refs {
+		if ref.Subject == addr {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self-referencing local value",
+				Detail:   fmt.Sprintf("Local value %s cannot use its own result as part of its expression.", addr),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+				Context:  expr.Range().Ptr(),
+			})
+		}
 	}
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+
+	val, moreDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags.Err()
+	}
+
+	state := ctx.State()
+	if state == nil {
+		return fmt.Errorf("cannot write local value to nil state")
+	}
+
+	state.SetLocalValue(addr.Absolute(ctx.Path()), val)
+
+	return nil
 }
 
 // dag.GraphNodeDotter impl.

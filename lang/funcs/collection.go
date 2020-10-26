@@ -56,6 +56,58 @@ var LengthFunc = function.New(&function.Spec{
 	},
 })
 
+// AllTrueFunc constructs a function that returns true if all elements of the
+// list are true. If the list is empty, return true.
+var AllTrueFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.Bool),
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		result := cty.True
+		for it := args[0].ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			if v.IsNull() {
+				return cty.False, nil
+			}
+			result = result.And(v)
+			if result.False() {
+				return cty.False, nil
+			}
+		}
+		return result, nil
+	},
+})
+
+// AnyTrueFunc constructs a function that returns true if any element of the
+// list is true. If the list is empty, return false.
+var AnyTrueFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.List(cty.Bool),
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		result := cty.False
+		for it := args[0].ElementIterator(); it.Next(); {
+			_, v := it.Element()
+			if v.IsNull() {
+				continue
+			}
+			result = result.Or(v)
+			if result.True() {
+				return cty.True, nil
+			}
+		}
+		return result, nil
+	},
+})
+
 // CoalesceFunc constructs a function that takes any number of arguments and
 // returns the first one that isn't empty. This function was copied from go-cty
 // stdlib and modified so that it returns the first *non-empty* non-null element
@@ -277,7 +329,7 @@ var LookupFunc = function.New(&function.Spec{
 		mapVar := args[0]
 		lookupKey := args[1].AsString()
 
-		if !mapVar.IsWhollyKnown() {
+		if !mapVar.IsKnown() {
 			return cty.UnknownVal(retType), nil
 		}
 
@@ -580,6 +632,18 @@ func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) 
 // Unicode characters in the given string.
 func Length(collection cty.Value) (cty.Value, error) {
 	return LengthFunc.Call([]cty.Value{collection})
+}
+
+// AllTrue returns true if all elements of the list are true. If the list is empty,
+// return true.
+func AllTrue(collection cty.Value) (cty.Value, error) {
+	return AllTrueFunc.Call([]cty.Value{collection})
+}
+
+// AnyTrue returns true if any element of the list is true. If the list is empty,
+// return false.
+func AnyTrue(collection cty.Value) (cty.Value, error) {
+	return AnyTrueFunc.Call([]cty.Value{collection})
 }
 
 // Coalesce takes any number of arguments and returns the first one that isn't empty.

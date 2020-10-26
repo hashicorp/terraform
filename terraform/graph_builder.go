@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 

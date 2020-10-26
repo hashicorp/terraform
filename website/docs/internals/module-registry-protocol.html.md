@@ -81,7 +81,7 @@ blocks have the same source address.
 ## Service Discovery
 
 The providers protocol begins with Terraform CLI using
-[./remote-service-discovery.html](Terraform's remote service discovery protocol),
+[Terraform's remote service discovery protocol](./remote-service-discovery.html),
 with the hostname in the module address acting as the "User-facing Hostname".
 
 The service identifier for the module registry protocol is `modules.v1`.

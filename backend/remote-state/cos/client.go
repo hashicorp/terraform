@@ -13,8 +13,8 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
@@ -72,7 +72,7 @@ func (c *remoteClient) Delete() error {
 }
 
 // Lock lock remote state file for writing
-func (c *remoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	log.Printf("[DEBUG] lock remote state file %s", c.lockFile)
 
 	err := c.cosLock(c.bucket, c.lockFile)
@@ -126,11 +126,11 @@ func (c *remoteClient) Unlock(check string) error {
 	return nil
 }
 
-// lockError returns state.LockError
-func (c *remoteClient) lockError(err error) *state.LockError {
+// lockError returns statemgr.LockError
+func (c *remoteClient) lockError(err error) *statemgr.LockError {
 	log.Printf("[DEBUG] failed to lock or unlock %s: %v", c.lockFile, err)
 
-	lockErr := &state.LockError{
+	lockErr := &statemgr.LockError{
 		Err: err,
 	}
 
@@ -145,7 +145,7 @@ func (c *remoteClient) lockError(err error) *state.LockError {
 }
 
 // lockInfo returns LockInfo from lock file
-func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
+func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
 	exists, data, checksum, err := c.getObject(c.lockFile)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (c *remoteClient) lockInfo() (*state.LockInfo, error) {
 		return nil, fmt.Errorf("lock file %s not exists", c.lockFile)
 	}
 
-	info := &state.LockInfo{}
+	info := &statemgr.LockInfo{}
 	if err := json.Unmarshal(data, info); err != nil {
 		return nil, err
 	}

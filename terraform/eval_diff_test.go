@@ -68,6 +68,164 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				"b": cty.StringVal("new b value"),
 			}),
 		},
+		"list_index": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("a0 value"),
+					cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("new a0 value"),
+					cty.StringVal("new a1 value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{"a[1]"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("new a0 value"),
+					cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+		},
+		"map_index": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("new a0 value"),
+					"a1": cty.StringVal("new a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			[]string{`a["a1"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("new a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
+		"map_index_no_config": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Map(cty.String)),
+				"b": cty.StringVal("b value"),
+			}),
+			[]string{`a["a1"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
+		"missing_map_index": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapValEmpty(cty.String),
+				"b": cty.StringVal("b value"),
+			}),
+			[]string{`a["a1"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
+		"missing_map_index_empty": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapValEmpty(cty.String),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a0 value"),
+				}),
+			}),
+			[]string{`a["a"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapValEmpty(cty.String),
+			}),
+		},
+		"missing_map_index_to_object": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("aa0"),
+						"b": cty.StringVal("ab0"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("ba0"),
+						"b": cty.StringVal("bb0"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapValEmpty(
+					cty.Object(map[string]cty.Type{
+						"a": cty.String,
+						"b": cty.String,
+					}),
+				),
+			}),
+			// we expect the config to be used here, as the ignore changes was
+			// `a["a"].b`, but the change was larger than that removing
+			// `a["a"]` entirely.
+			[]string{`a["a"].b`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapValEmpty(
+					cty.Object(map[string]cty.Type{
+						"a": cty.String,
+						"b": cty.String,
+					}),
+				),
+			}),
+		},
+		"missing_prior_map_index": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("new a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			[]string{`a["a1"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
 		"object attribute": {
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.ObjectVal(map[string]cty.Value{

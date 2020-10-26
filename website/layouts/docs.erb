@@ -11,7 +11,11 @@
             <ul class="nav">
 
               <li>
-                <a href="#">Configuration Blocks</a>
+                <a href="/docs/configuration/index.html">Language Overview</a>
+              </li>
+
+              <li>
+                <a href="/docs/configuration/resources.html">Configuration Blocks</a>
                 <ul class="nav nav-auto-expand">
 
                   <li<%= sidebar_current("docs-config-resources") %>>
@@ -54,11 +58,63 @@
                     <a href="/docs/configuration/terraform.html">Terraform Settings</a>
                   </li>
 
+                  <li<%= sidebar_current("docs-provisioners") %>>
+                    <a href="/docs/provisioners/index.html">Provisioners</a>
+                    <ul class="nav">
+                      <li<%= sidebar_current("docs-provisioners-connection") %>>
+                        <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
+                      </li>
+
+                      <li<%= sidebar_current("docs-provisioners-null-resource") %>>
+                        <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
+                      </li>
+
+                      <li>
+                        <a href="#">Generic Provisioners</a>
+                        <ul class="nav nav-auto-expand">
+                          <li<%= sidebar_current("docs-provisioners-file") %>>
+                            <a href="/docs/provisioners/file.html">file Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-local") %>>
+                            <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-remote") %>>
+                            <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
+                          </li>
+                        </ul>
+                      </li>
+
+                      <li>
+                        <a href="#">Vendor Provisioners</a>
+                        <ul class="nav nav-auto-expand">
+                          <li<%= sidebar_current("docs-provisioners-chef") %>>
+                            <a href="/docs/provisioners/chef.html">chef Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-habitat") %>>
+                            <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-puppet") %>>
+                            <a href="/docs/provisioners/puppet.html">puppet Provisioner</a>
+                          </li>
+
+                          <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
+                            <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
+                          </li>
+                        </ul>
+                      </li>
+
+                    </ul>
+                  </li>
+
                 </ul>
               </li>
 
               <li>
-                <a href="#">Syntax</a>
+                <a href="/docs/configuration/syntax.html">Syntax</a>
                 <ul class="nav nav-auto-expand">
 
                   <li<%= sidebar_current("docs-config-syntax") %>>
@@ -149,6 +205,10 @@
 
               <li<%= sidebar_current("docs-conf-old-terraform") %>>
                 <a href="/docs/configuration-0-11/terraform.html">Terraform</a>
+              </li>
+
+              <li<%= sidebar_current("docs-provisioners") %>>
+                <a href="/docs/provisioners/index.html?v=011">Provisioners</a>
               </li>
 
               <li<%= sidebar_current("docs-conf-old-push") %>>
@@ -361,53 +421,6 @@
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-provisioners") %>>
-        <a href="/docs/provisioners/index.html">Provisioners</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-provisioners-connection") %>>
-            <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
-          </li>
-
-          <li<%= sidebar_current("docs-provisioners-null-resource") %>>
-            <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
-          </li>
-
-          <li>
-            <a href="#">Built-in Provisioners</a>
-            <ul class="nav nav-auto-expand">
-              <li<%= sidebar_current("docs-provisioners-chef") %>>
-                <a href="/docs/provisioners/chef.html">chef Provisioner</a>
-              </li>
-
-              <li<%= sidebar_current("docs-provisioners-file") %>>
-                <a href="/docs/provisioners/file.html">file Provisioner</a>
-              </li>
-
-              <li<%= sidebar_current("docs-provisioners-habitat") %>>
-                <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
-              </li>
-
-              <li<%= sidebar_current("docs-provisioners-local") %>>
-                <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
-              </li>
-
-              <li<%= sidebar_current("docs-provisioners-puppet") %>>
-                <a href="/docs/provisioners/puppet.html">puppet Provisioner</a>
-              </li>
-
-              <li<%= sidebar_current("docs-provisioners-remote") %>>
-                <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
-              </li>
-
-              <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
-                <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
-              </li>
-            </ul>
-          </li>
-
-        </ul>
-      </li>
-
       <li<%= sidebar_current("docs-modules") %>>
         <a href="/docs/modules/index.html">Modules</a>
         <ul class="nav">
@@ -484,6 +497,10 @@
 
           <li<%= sidebar_current("docs-internals-module-registry-protocol") %>>
             <a href="/docs/internals/module-registry-protocol.html">Module Registry Protocol</a>
+          </li>
+
+          <li<%= sidebar_current("docs-internals-provider-network-mirror-protocol") %>>
+            <a href="/docs/internals/provider-network-mirror-protocol.html">Provider Network Mirror Protocol</a>
           </li>
 
           <li<%= sidebar_current("docs-internals-provider-registry-protocol") %>>

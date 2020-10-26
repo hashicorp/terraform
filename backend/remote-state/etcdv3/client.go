@@ -11,8 +11,8 @@ import (
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	etcdv3sync "github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/state"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 const (
@@ -28,7 +28,7 @@ type RemoteClient struct {
 
 	etcdMutex   *etcdv3sync.Mutex
 	etcdSession *etcdv3sync.Session
-	info        *state.LockInfo
+	info        *statemgr.LockInfo
 	mu          sync.Mutex
 	modRevision int64
 }
@@ -92,7 +92,7 @@ func (c *RemoteClient) Delete() error {
 	return err
 }
 
-func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
+func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -118,7 +118,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	return c.unlock(id)
 }
 
-func (c *RemoteClient) deleteLockInfo(info *state.LockInfo) error {
+func (c *RemoteClient) deleteLockInfo(info *statemgr.LockInfo) error {
 	res, err := c.Client.KV.Delete(context.TODO(), c.Key+lockInfoSuffix)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (c *RemoteClient) deleteLockInfo(info *state.LockInfo) error {
 	return nil
 }
 
-func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	res, err := c.Client.KV.Get(context.TODO(), c.Key+lockInfoSuffix)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 		return nil, nil
 	}
 
-	li := &state.LockInfo{}
+	li := &statemgr.LockInfo{}
 	err = json.Unmarshal(res.Kvs[0].Value, li)
 	if err != nil {
 		return nil, fmt.Errorf("Error unmarshaling lock info: %s.", err)
@@ -147,7 +147,7 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	return li, nil
 }
 
-func (c *RemoteClient) putLockInfo(info *state.LockInfo) error {
+func (c *RemoteClient) putLockInfo(info *statemgr.LockInfo) error {
 	c.info.Path = c.etcdMutex.Key()
 	c.info.Created = time.Now().UTC()
 
@@ -168,9 +168,9 @@ func (c *RemoteClient) lock() (string, error) {
 	if err1 := mutex.Lock(ctx); err1 != nil {
 		lockInfo, err2 := c.getLockInfo()
 		if err2 != nil {
-			return "", &state.LockError{Err: err2}
+			return "", &statemgr.LockError{Err: err2}
 		}
-		return "", &state.LockError{Info: lockInfo, Err: err1}
+		return "", &statemgr.LockError{Info: lockInfo, Err: err1}
 	}
 
 	c.etcdMutex = mutex

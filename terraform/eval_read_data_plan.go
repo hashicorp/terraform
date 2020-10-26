@@ -7,6 +7,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
@@ -88,7 +89,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		}
 
 		*n.State = &states.ResourceInstanceObject{
-			Value:  cty.NullVal(objTy),
+			Value:  proposedNewVal,
 			Status: states.ObjectPlanned,
 		}
 
@@ -101,22 +102,8 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.ErrWithWarnings()
 	}
 
-	var proposedVal cty.Value
-
-	// If we have a stored state we may not need to re-read the data source.
-	// Check the config against the state to see if there are any difference.
-	if !priorVal.IsNull() {
-		// Applying the configuration to the prior state lets us see if there
-		// are any differences.
-		proposedVal = objchange.ProposedNewObject(schema, priorVal, configVal)
-		if proposedVal.Equals(priorVal).True() {
-			log.Printf("[TRACE] evalReadDataPlan: %s no change detected, using existing state", absAddr)
-			// state looks up to date, and must have been read during refresh
-			return nil, diags.ErrWithWarnings()
-		}
-		log.Printf("[TRACE] evalReadDataPlan: %s configuration changed, planning data source", absAddr)
-	}
-
+	// We have a complete configuration with no dependencies to wait on, so we
+	// can read the data source into the state.
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
@@ -125,6 +112,10 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 
 	// if we have a prior value, we can check for any irregularities in the response
 	if !priorVal.IsNull() {
+		// While we don't propose planned changes for data sources, we can
+		// generate a proposed value for comparison to ensure the data source
+		// is returning a result following the rules of the provider contract.
+		proposedVal := objchange.ProposedNewObject(schema, priorVal, configVal)
 		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
 			// Resources have the LegacyTypeSystem field to signal when they are
 			// using an SDK which may not produce precise values. While data
@@ -132,7 +123,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 			// compatible with the config+schema. Since we can't detect the legacy
 			// type system, we can only warn about this for now.
 			var buf strings.Builder
-			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s."+
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s.",
 				n.ProviderAddr.Provider.String(), absAddr)
 			for _, err := range errs {
 				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
@@ -141,28 +132,9 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	action := plans.Read
-	if priorVal.Equals(newVal).True() {
-		action = plans.NoOp
-	}
-
-	// The returned value from ReadDataSource must be non-nil and known,
-	// which we store in the change. Apply will use the fact that the After
-	// value is wholly kown to save the state directly, rather than reading the
-	// data source again.
-	*n.OutputChange = &plans.ResourceInstanceChange{
-		Addr:         absAddr,
-		ProviderAddr: n.ProviderAddr,
-		Change: plans.Change{
-			Action: action,
-			Before: priorVal,
-			After:  newVal,
-		},
-	}
-
 	*n.State = &states.ResourceInstanceObject{
 		Value:  newVal,
-		Status: states.ObjectPlanned,
+		Status: states.ObjectReady,
 	}
 
 	if err := ctx.Hook(func(h Hook) (HookAction, error) {
@@ -183,6 +155,14 @@ func (n *evalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
 	// configuration.
 	changes := ctx.Changes()
 	for _, d := range n.dependsOn {
+		if d.Resource.Mode == addrs.DataResourceMode {
+			// Data sources have no external side effects, so they pose a need
+			// to delay this read. If they do have a change planned, it must be
+			// because of a dependency on a managed resource, in which case
+			// we'll also encounter it in this list of dependencies.
+			continue
+		}
+
 		for _, change := range changes.GetChangesForConfigResource(d) {
 			if change != nil && change.Action != plans.NoOp {
 				return true

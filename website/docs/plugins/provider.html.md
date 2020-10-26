@@ -10,10 +10,13 @@ description: |-
 
 ~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
-If you don't plan on writing any plugins, this section of the documentation is 
-not necessary to read. For general use of Terraform, please see our
-[Intro to Terraform](/intro/index.html) and [Getting
-Started](https://learn.hashicorp.com/terraform/getting-started/install) guides.
+If you don't plan on writing any plugins, this section of the documentation is
+not necessary to read. For general use of Terraform, please see
+[Intro to Terraform](/intro/index.html) or the
+[Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+collection on HashiCorp Learn.
+
+> **Hands-on:** Try the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 A provider in Terraform is responsible for the lifecycle of a resource:
 create, read, update, delete. An example of a provider is AWS, which
