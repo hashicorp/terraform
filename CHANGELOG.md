@@ -2,11 +2,13 @@
 
 ENHANCEMENTS:
 
-* Improved support for Windows console UI, including bold colors and underline for HCL diagnostics [GH-26588]
+* cli: Improved support for Windows console UI on Windows 10, including bold colors and underline for HCL diagnostics. [GH-26588]
+* cli: Small reorganization and tidier formatting for the main help text printed by `terraform` with no subcommands. [GH-26695]
+* cli: Removed the `terraform debug` container command, which has not had any subcommands under it for a long time. [GH-26695]
 
 BUG FIXES:
 
-* command: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. [GH-26509]
+* cli: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. [GH-26509]
 
 ## Previous Releases
 
