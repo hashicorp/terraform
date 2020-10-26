@@ -11869,6 +11869,60 @@ variable "sensitive_map" {
 
 resource "test_resource" "foo" {
 	value = var.sensitive_map.x
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
+		if len(pvms) != 1 {
+			t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
+		}
+		pvm := pvms[0]
+		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
+			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
+		}
+		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
+		}
+	}
+
+	addr := mustResourceInstanceAddr("test_resource.foo")
+	fooChangeSrc := plan.Changes.ResourceInstance(addr)
+	verifySensitiveValue(fooChangeSrc.AfterValMarks)
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+
+	fooState := state.ResourceInstance(addr)
+	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
+}
+
+func TestContext2Apply_variableSensitivityProviders(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+	experiments = [provider_sensitive_attrs]
+}
+
+resource "test_resource" "foo" {
 	sensitive_value = "should get marked"
 }
 
@@ -11917,10 +11971,6 @@ resource "test_resource" "baz" {
 		}
 	}
 
-	addr := mustResourceInstanceAddr("test_resource.foo")
-	fooChangeSrc := plan.Changes.ResourceInstance(addr)
-	verifySensitiveValue(fooChangeSrc.AfterValMarks)
-
 	// Sensitive attributes (defined by the provider) are marked
 	// as sensitive when referenced from another resource
 	// "bar" references sensitive resources in "foo"
@@ -11936,9 +11986,6 @@ resource "test_resource" "baz" {
 	if diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
-
-	fooState := state.ResourceInstance(addr)
-	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
 
 	barState := state.ResourceInstance(barAddr)
 	verifySensitiveValue(barState.Current.AttrSensitivePaths)
