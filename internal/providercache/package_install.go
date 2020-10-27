@@ -160,6 +160,52 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 		return nil, fmt.Errorf("failed to determine if %s and %s are the same: %s", sourceDir, targetDir, err)
 	}
 
+	var authResult *getproviders.PackageAuthenticationResult
+	if meta.Authentication != nil {
+		// (we have this here for completeness but note that local filesystem
+		// mirrors typically don't include enough information for package
+		// authentication and so we'll rarely get in here in practice.)
+		var err error
+		if authResult, err = meta.Authentication.AuthenticatePackage(meta.Location); err != nil {
+			return nil, err
+		}
+	}
+
+	// If the caller provided at least one hash in allowedHashes then at
+	// least one of those hashes ought to match. However, for local directories
+	// in particular we can't actually verify the legacy "zh:" hash scheme
+	// because it requires access to the original .zip archive, and so as a
+	// measure of pragmatism we'll treat a set of hashes where all are "zh:"
+	// the same as no hashes at all, and let anything pass. This is definitely
+	// non-ideal but accepted for two reasons:
+	// - Packages we find on local disk can be considered a little more trusted
+	//   than packages coming from over the network, because we assume that
+	//   they were either placed intentionally by an operator or they were
+	//   automatically installed by a previous network operation that would've
+	//   itself verified the hashes.
+	// - Our installer makes a concerted effort to record at least one new-style
+	//   hash for each lock entry, so we should very rarely end up in this
+	//   situation anyway.
+	suitableHashCount := 0
+	for _, hash := range allowedHashes {
+		if !hash.HasScheme(getproviders.HashSchemeZip) {
+			suitableHashCount++
+		}
+	}
+	if suitableHashCount > 0 {
+		if matches, err := meta.MatchesAnyHash(allowedHashes); err != nil {
+			return authResult, fmt.Errorf(
+				"failed to calculate checksum for %s %s package at %s: %s",
+				meta.Provider, meta.Version, meta.Location, err,
+			)
+		} else if !matches {
+			return authResult, fmt.Errorf(
+				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms)",
+				meta.Provider, meta.Version,
+			)
+		}
+	}
+
 	// Delete anything that's already present at this path first.
 	err = os.RemoveAll(targetDir)
 	if err != nil && !os.IsNotExist(err) {
