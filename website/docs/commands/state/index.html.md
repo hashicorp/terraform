@@ -1,5 +1,5 @@
 ---
-layout: "commands-state"
+layout: "docs"
 page_title: "Command: state"
 sidebar_current: "docs-commands-state-index"
 description: |-

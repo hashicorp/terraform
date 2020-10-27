@@ -1,5 +1,5 @@
 ---
-layout: "commands-providers"
+layout: "docs"
 page_title: "Command: providers"
 sidebar_current: "docs-commands-providers"
 description: |-
