@@ -1,41 +1,31 @@
 ---
 layout: "language"
-page_title: "Configuration Language"
-sidebar_current: "docs-config-index"
-description: |-
-  Terraform uses text files to describe infrastructure and to set variables.
-  These text files are called Terraform _configurations_ and are
-  written in the Terraform language.
+page_title: "Overview - Configuration Language"
 ---
 
-# Configuration Language
+# Terraform Language Documentation
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language](../configuration-0-11/index.html).
+This is the documentation for Terraform's configuration language. It is relevant
+to users of [Terraform CLI](/docs/cli-index.html),
+[Terraform Cloud](/docs/cloud/index.html), and
+[Terraform Enterprise](/docs/enterprise/index.html).
 
 > **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
-Terraform uses its own configuration language, designed to allow concise
-descriptions of infrastructure. The Terraform language is declarative,
-describing an intended goal rather than the steps to reach that goal.
+_The Terraform language is Terraform's primary user interface._ In every edition
+of Terraform, a configuration written in the Terraform language is always at the
+heart of the workflow.
 
-## Resources and Modules
+## About the Terraform Language
 
-The main purpose of the Terraform language is declaring [resources](./resources.html).
-All other language features exist only to make the definition of resources
-more flexible and convenient.
+The main purpose of the Terraform language is declaring
+[resources](./resources.html), which represent infrastructure objects. All other
+language features exist only to make the definition of resources more flexible
+and convenient.
 
-A group of resources can be gathered into a [module](./modules.html),
-which creates a larger unit of configuration. A resource describes a single
-infrastructure object, while a module might describe a set of objects and the
-necessary relationships between them in order to create a higher-level system.
-
-A _Terraform configuration_ consists of a _root module_, where evaluation
-begins, along with a tree of child modules created when one module calls
-another.
-
-## Arguments, Blocks, and Expressions
+A _Terraform configuration_ is a complete document in the Terraform language
+that tells Terraform how to manage a given collection of infrastructure. A
+configuration can consist of multiple files and directories.
 
 The syntax of the Terraform language consists of only a few basic elements:
 
@@ -60,66 +50,15 @@ resource "aws_vpc" "main" {
   combining other values. They appear as values for arguments, or within other
   expressions.
 
-For full details about Terraform's syntax, see:
+The Terraform language is declarative, describing an intended goal rather than
+the steps to reach that goal. The ordering of blocks and the files they are
+organized into are generally not significant; Terraform only considers implicit
+and explicit relationships between resources when determining an order of
+operations.
 
-- [Configuration Syntax](./syntax.html)
-- [Expressions](./expressions.html)
+### Example
 
-## Code Organization
-
-The Terraform language uses configuration files that are named with the `.tf`
-file extension. There is also [a JSON-based variant of the language](./syntax-json.html)
-that is named with the `.tf.json` file extension.
-
-Configuration files must always use UTF-8 encoding, and by convention are
-usually maintained with Unix-style line endings (LF) rather than Windows-style
-line endings (CRLF), though both are accepted.
-
-A _module_ is a collection of `.tf` or `.tf.json` files kept together in a
-directory. The root module is built from the configuration files in the
-current working directory when Terraform is run, and this module may reference
-child modules in other directories, which can in turn reference other modules,
-etc.
-
-The simplest Terraform configuration is a single root module containing only
-a single `.tf` file. A configuration can grow gradually as more resources
-are added, either by creating new configuration files within the root module
-or by organizing sets of resources into child modules.
-
-## Configuration Ordering
-
-Because Terraform's configuration language is declarative, the ordering of
-blocks is generally not significant. (The order of `provisioner` blocks within a
-resource is the only major feature where block order matters.)
-
-Terraform automatically processes resources in the correct order based on
-relationships defined between them in configuration, and so you can organize
-resources into source files in whatever way makes sense for your infrastructure.
-
-## Terraform CLI vs. Providers
-
-The Terraform command line interface (CLI) is a general engine for evaluating
-and applying Terraform configurations. It defines the Terraform language syntax
-and overall structure, and coordinates sequences of changes that must be made to
-make remote infrastructure match the given configuration.
-
-This general engine has no knowledge about specific types of infrastructure
-objects. Instead, Terraform uses plugins called
-[providers](./providers.html) that each define and manage a
-set of resource types. Most providers are associated with a particular cloud or
-on-premises infrastructure service, allowing Terraform to manage infrastructure
-objects within that service.
-
-Terraform doesn't have a concept of platform-independent resource types
-— resources are always tied to a provider, since the features of similar
-resources can vary greatly from provider to provider. But Terraform CLI's shared
-configuration engine ensures that the same language constructs and syntax are
-available across all services and allows resource types from different services
-to be combined as needed.
-
-## Example
-
-The following simple example describes a simple network topology for Amazon Web
+The following example describes a simple network topology for Amazon Web
 Services, just to give a sense of the overall structure and syntax of the
 Terraform language. Similar configurations can be created for other virtual
 network services, using resource types defined by other providers, and a
@@ -177,6 +116,3 @@ resource "aws_subnet" "az" {
 }
 ```
 
-For more information on the configuration elements shown here, use the
-site navigation to explore the Terraform language documentation sub-sections.
-To start, see [_Resource Configuration_](./resources.html).
