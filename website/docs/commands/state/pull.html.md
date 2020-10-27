@@ -1,5 +1,5 @@
 ---
-layout: "commands-state"
+layout: "docs"
 page_title: "Command: state pull"
 sidebar_current: "docs-commands-state-sub-pull"
 description: |-

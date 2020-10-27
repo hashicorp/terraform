@@ -1,5 +1,5 @@
 ---
-layout: "commands-workspace"
+layout: "docs"
 page_title: "Command: workspace select"
 sidebar_current: "docs-commands-workspace-sub-select"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "commands-workspace"
+layout: "docs"
 page_title: "Command: workspace delete"
 sidebar_current: "docs-commands-workspace-sub-delete"
 description: |-
