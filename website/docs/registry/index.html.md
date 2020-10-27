@@ -1,12 +1,12 @@
 ---
 layout: "registry"
-page_title: "Terraform Registry"
+page_title: "Publishing Providers and Modules"
 sidebar_current: "docs-registry-home"
 description: |-
   The Terraform Registry is a repository of providers and modules written by the Terraform community.
 ---
 
-# Terraform Registry
+# Publishing Providers and Modules on the Terraform Registry
 
 The [Terraform Registry](https://registry.terraform.io) is an interactive resource for discovering a wide selection of integrations (providers) and configuration packages (modules) for use with Terraform. The Registry includes solutions developed by HashiCorp, third-party vendors, and our Terraform community. Our goal with the Registry is to provide plugins to manage any infrastructure API, pre-made modules to quickly configure common infrastructure components, and examples of how to write quality Terraform code.
 
