@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -123,6 +124,8 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 
 // GraphNodeExecutable
 func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
+	var diags tfdiags.Diagnostics
+
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
@@ -178,9 +181,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		State:  &state,
 		Change: &changeApply,
 	}
-	_, err = evalApplyPre.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalApplyPre.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// Run destroy provisioners if not tainted
@@ -192,9 +195,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			Error:          &provisionerErr,
 			When:           configs.ProvisionerWhenDestroy,
 		}
-		_, err := evalApplyProvisioners.Eval(ctx)
-		if err != nil {
-			return err
+		diags = evalApplyProvisioners.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 		if provisionerErr != nil {
 			// If we have a provisioning error, then we just call
@@ -204,9 +207,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 				State: &state,
 				Error: &provisionerErr,
 			}
-			_, err = evalApplyPost.Eval(ctx)
-			if err != nil {
-				return err
+			diags = evalApplyPost.Eval(ctx)
+			if diags.HasErrors() {
+				return diags.ErrWithWarnings()
 			}
 		}
 	}
@@ -226,9 +229,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			Output:         &state,
 			Error:          &provisionerErr,
 		}
-		_, err = evalApply.Eval(ctx)
-		if err != nil {
-			return err
+		diags = evalApply.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 
 		evalWriteState := &EvalWriteState{
@@ -252,9 +255,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		State: &state,
 		Error: &provisionerErr,
 	}
-	_, err = evalApplyPost.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalApplyPost.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	err = UpdateStateHook(ctx)

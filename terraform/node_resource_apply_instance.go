@@ -197,6 +197,8 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 }
 
 func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) error {
+	var diags tfdiags.Diagnostics
+
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var state *states.ResourceInstanceObject
@@ -327,9 +329,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:  &state,
 		Change: &diffApply,
 	}
-	_, err = evalApplyPre.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalApplyPre.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	var applyError error
@@ -347,9 +349,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		CreateNew:           &createNew,
 		CreateBeforeDestroy: n.CreateBeforeDestroy(),
 	}
-	_, err = evalApply.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalApply.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// We clear the change out here so that future nodes don't see a change
@@ -370,9 +372,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Change: &diffApply,
 		Error:  &applyError,
 	}
-	_, err = evalMaybeTainted.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalMaybeTainted.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	writeState := &EvalWriteState{
@@ -395,9 +397,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Error:          &applyError,
 		When:           configs.ProvisionerWhenCreate,
 	}
-	_, err = applyProvisioners.Eval(ctx)
-	if err != nil {
-		return err
+	diags = applyProvisioners.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	evalMaybeTainted = &EvalMaybeTainted{
@@ -406,9 +408,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Change: &diffApply,
 		Error:  &applyError,
 	}
-	_, err = evalMaybeTainted.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalMaybeTainted.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	writeState = &EvalWriteState{
@@ -440,9 +442,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State: &state,
 		Error: &applyError,
 	}
-	_, err = applyPost.Eval(ctx)
-	if err != nil {
-		return err
+	diags = applyPost.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	UpdateStateHook(ctx)

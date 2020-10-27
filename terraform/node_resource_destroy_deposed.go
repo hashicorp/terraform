@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceInstanceDeposedNodeFunc is a callback type used to convert
@@ -182,6 +183,8 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) error {
+	var diags tfdiags.Diagnostics
+
 	addr := n.ResourceInstanceAddr().Resource
 
 	var state *states.ResourceInstanceObject
@@ -222,9 +225,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		State:  &state,
 		Change: &change,
 	}
-	_, err = applyPre.Eval(ctx)
-	if err != nil {
-		return err
+	diags = applyPre.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	apply := &EvalApply{
@@ -238,9 +241,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		Output:         &state,
 		Error:          &applyError,
 	}
-	_, err = apply.Eval(ctx)
-	if err != nil {
-		return err
+	diags = apply.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// Always write the resource back to the state deposed. If it
@@ -263,9 +266,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		State: &state,
 		Error: &applyError,
 	}
-	_, err = applyPost.Eval(ctx)
-	if err != nil {
-		return err
+	diags = applyPost.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 	if applyError != nil {
 		return applyError

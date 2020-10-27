@@ -145,7 +145,6 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 		return nil
 	}
 
-	//  If we early exit, it isn't an error.
 	if _, isEarlyExit := err.(EvalEarlyExitError); isEarlyExit {
 		return nil
 	}
