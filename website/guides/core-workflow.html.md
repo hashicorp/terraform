@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "intro"
 page_title: "The Core Terraform Workflow - Guides"
 sidebar_current: "guides-core-workflow"
 description: |-
