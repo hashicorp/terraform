@@ -25,6 +25,7 @@ website/node_modules
 *.iml
 
 website/vendor
+vendor/
 
 # Test exclusions
 !command/testdata/**/*.tfstate
