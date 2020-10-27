@@ -1,0 +1,57 @@
+---
+layout: "language"
+page_title: "Files and Directories - Configuration Language"
+---
+
+# Files and Directories
+
+## File Extension
+
+Code in the Terraform language is stored in plain text files with the `.tf` file
+extension. There is also
+[a JSON-based variant of the language](./syntax-json.html) that is named with
+the `.tf.json` file extension.
+
+Files containing Terraform code are often called _configuration files._
+
+## Text Encoding
+
+Configuration files must always use UTF-8 encoding, and by convention
+usually use Unix-style line endings (LF) rather than Windows-style
+line endings (CRLF), though both are accepted.
+
+## Directories and Modules
+
+A _module_ is a collection of `.tf` and/or `.tf.json` files kept together in a
+directory.
+
+A Terraform module only consists of the top-level configuration files in a
+directory; nested directories are treated as completely separate modules, and
+are not automatically included in the configuration.
+
+Terraform evaluates all of the configuration files in a module, effectively
+treating the entire module as a single document. Separating various blocks into
+different files is purely for the convenience of readers and maintainers, and
+has no effect on the module's behavior.
+
+A Terraform module can use [module calls](/docs/configuration/modules.html) to
+explicitly include other modules into the configuration. These child modules can
+come from local directories (nested in the parent module's directory, or
+anywhere else on disk), or from external sources like the
+[Terraform Registry](https://registry.terraform.io).
+
+## The Root Module
+
+Terraform always runs in the context of a single _root module._ A complete
+_Terraform configuration_ consists of a root module and the tree of child
+modules (which includes the modules called by the root module, any modules
+called by those modules, etc.).
+
+- In Terraform CLI, the root module is the working directory where Terraform is
+  invoked. (You can use command line options to specify a root module outside
+  the working directory, but in practice this is rare. )
+- In Terraform Cloud and Terraform Enterprise, the root module for a workspace
+  defaults to the top level of the configuration directory (supplied via version
+  control repository or direct upload), but the workspace settings can specify a
+  subdirectory to use instead.
+

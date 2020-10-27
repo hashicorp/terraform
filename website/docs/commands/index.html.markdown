@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Commands"
+page_title: "Basic CLI Features"
 sidebar_current: "docs-commands"
 description: |-
   Main usage information for the Terraform CLI tool.
 ---
 
-# Terraform Commands (CLI)
+# Basic CLI Features
 
 > **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
