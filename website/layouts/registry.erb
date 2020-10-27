@@ -1,6 +1,6 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
-    <h4><a href="/docs/registry/index.html">Terraform Registry</a></h4>
+    <h4><a href="/docs/registry/index.html">Publishing Providers &amp; Modules</a></h4>
 
     <ul class="nav docs-sidenav">
       <li>
@@ -10,19 +10,19 @@
       <li>
         <a href="#">Providers</a>
         <ul class="nav nav-auto-expand">
-          <li<%= sidebar_current("docs-registry-provider-overview") %>>
+          <li>
             <a href="/docs/registry/providers/index.html">Overview</a>
           </li>
 
-          <li<%= sidebar_current("docs-registry-provider-publishing") %>>
+          <li>
             <a href="/docs/registry/providers/publishing.html">Publishing Providers</a>
           </li>
 
-          <li<%= sidebar_current("docs-registry-provider-docs") %>>
+          <li>
             <a href="/docs/registry/providers/docs.html">Documenting Providers</a>
           </li>
 
-          <li<%= sidebar_current("docs-registry-provider-os-arch") %>>
+          <li>
             <a href="/docs/registry/providers/os-arch.html">Recommended OS and Architecture</a>
           </li>
 
@@ -35,31 +35,31 @@
       <li>
         <a href="#">Modules</a>
         <ul class="nav nav-auto-expand">
-          <li<%= sidebar_current("docs-registry-use") %>>
+          <li>
             <a href="/docs/registry/modules/use.html">Finding and Using Modules</a>
           </li>
 
-          <li<%= sidebar_current("docs-registry-publish") %>>
+          <li>
             <a href="/docs/registry/modules/publish.html">Publishing Modules</a>
           </li>
 
-          <li<%= sidebar_current("docs-registry-verified") %>>
+          <li>
             <a href="/docs/registry/modules/verified.html">Verified Modules</a>
           </li>
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-registry-private") %>>
+      <li>
         <a href="/docs/registry/private.html">Private Registries</a>
       </li>
 
-      <li<%= sidebar_current("docs-registry-api") %>>
+      <li>
         <a href="/docs/registry/api.html">Registry API</a>
       </li>
 
     </ul>
 
-    <%= partial("layouts/otherdocs", :locals => { :skip => "Terraform Registry" }) %>
+    <%= partial("layouts/otherdocs", :locals => { :skip => "Publishing Providers and Modules" }) %>
   <% end %>
 
   <%= yield %>
