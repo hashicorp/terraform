@@ -1085,6 +1085,8 @@ func TestEnsureProviderVersions(t *testing.T) {
 			Reqs: getproviders.Requirements{
 				beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
 			},
+			WantErr: `some providers could not be installed:
+- example.com/foo/beep: the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms)`,
 			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
 				return map[addrs.Provider][]*testInstallerEventLogItem{
 					noProvider: {
@@ -1092,12 +1094,6 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Event: "PendingProviders",
 							Args: map[addrs.Provider]getproviders.VersionConstraints{
 								beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
-							},
-						},
-						{
-							Event: "ProvidersFetched",
-							Args: map[addrs.Provider]*getproviders.PackageAuthenticationResult{
-								beepProvider: nil,
 							},
 						},
 					},
@@ -1129,21 +1125,14 @@ func TestEnsureProviderVersions(t *testing.T) {
 							}{"1.0.0", beepProviderDir},
 						},
 						{
-							// FIXME: This ending in success with "unauthenticated"
-							// is technically okay within the interface as stated
-							// but doesn't really match our intent of treating
-							// a mismatch error against the lockfile as
-							// an error. We should make this an error in future.
-							Event:    "FetchPackageSuccess",
+							Event:    "FetchPackageFailure",
 							Provider: beepProvider,
 							Args: struct {
-								Version    string
-								LocalDir   string
-								AuthResult string
+								Version string
+								Error   string
 							}{
 								"1.0.0",
-								filepath.Join(dir.BasePath(), "example.com/foo/beep/1.0.0/bleep_bloop"),
-								"unauthenticated",
+								`the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms)`,
 							},
 						},
 					},
