@@ -16,7 +16,7 @@ jobs:
         run: |
           backport-assistant backport
         env:
-          BACKPORT_LABEL_REGEXP: "(?P<target>\\d\\.\\d)-backport"
+          BACKPORT_LABEL_REGEXP: "(?P<target>\\d+\\.\\d+)-backport"
           BACKPORT_TARGET_TEMPLATE: "v{{.target}}"
           GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
           GITHUB_REVIEW_TEAMS: "hashicorp/terraform-core"
