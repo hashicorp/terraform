@@ -17,7 +17,6 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -25,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 )
 
@@ -965,12 +963,27 @@ func TestInit_getProvider(t *testing.T) {
 		}
 		defer f.Close()
 
-		s := &statefile.File{
-			Lineage:          "",
-			State:            states.NewState(),
-			TerraformVersion: version.Must(version.NewVersion("100.1.0")),
+		// Construct a mock state file from the far future
+		type FutureState struct {
+			Version          uint                     `json:"version"`
+			Lineage          string                   `json:"lineage"`
+			TerraformVersion string                   `json:"terraform_version"`
+			Outputs          map[string]interface{}   `json:"outputs"`
+			Resources        []map[string]interface{} `json:"resources"`
 		}
-		statefile.WriteForTest(s, f)
+		fs := &FutureState{
+			Version:          999,
+			Lineage:          "123-456-789",
+			TerraformVersion: "999.0.0",
+			Outputs:          make(map[string]interface{}, 0),
+			Resources:        make([]map[string]interface{}, 0),
+		}
+		src, err := json.MarshalIndent(fs, "", "  ")
+		if err != nil {
+			t.Fatalf("failed to marshal future state: %s", err)
+		}
+		src = append(src, '\n')
+		_, err = f.Write(src)
 
 		ui := new(cli.MockUi)
 		m.Ui = ui
@@ -983,7 +996,7 @@ func TestInit_getProvider(t *testing.T) {
 		}
 
 		errMsg := ui.ErrorWriter.String()
-		if !strings.Contains(errMsg, "which is newer than current") {
+		if !strings.Contains(errMsg, "Unsupported state file format") {
 			t.Fatal("unexpected error:", errMsg)
 		}
 	})
