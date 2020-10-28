@@ -12288,7 +12288,12 @@ resource "test_instance" "a" {
 
 	p := testProvider("test")
 	p.PlanResourceChangeFn = testDiffFn
-	p.ApplyResourceChangeFn = testApplyFn
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp = testApplyFn(req)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("don't frobble"))
+		return resp
+	}
+
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -12297,10 +12302,6 @@ resource "test_instance" "a" {
 				},
 			},
 		},
-	}
-
-	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
-		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't frobble")),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -12317,6 +12318,10 @@ resource "test_instance" "a" {
 	_, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
 	}
 
 	for _, d := range diags {
