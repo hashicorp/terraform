@@ -9,7 +9,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
@@ -100,7 +99,10 @@ type resource struct {
 // resource, whose structure depends on the resource type schema.
 type attributeValues map[string]interface{}
 
-func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+func marshalAttributeValues(value cty.Value) attributeValues {
+	// unmark our value to show all values
+	value, _ = value.UnmarkDeep()
+
 	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
@@ -295,7 +297,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					return nil, err
 				}
 
-				current.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+				current.AttributeValues = marshalAttributeValues(riObj.Value)
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
@@ -327,7 +329,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					return nil, err
 				}
 
-				deposed.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
