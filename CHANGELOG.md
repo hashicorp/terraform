@@ -21,11 +21,11 @@ ENHANCEMENTS:
 
 * `terraform plan` and `terraform apply`: Added an experimental concise diff renderer. By default, Terraform plans now hide most unchanged fields, only displaying the most relevant changes and some identifying context. This experiment can be disabled by setting a `TF_X_CONCISE_DIFF` environment variable to `0`. ([#26187](https://github.com/hashicorp/terraform/issues/26187))
 * cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. ([#26087](https://github.com/hashicorp/terraform/issues/26087))
-* command/help: text has been reorganized to be clearer and more helpful [GH-26695]
+* command/help: text has been reorganized to be clearer and more helpful ([#26695](https://github.com/hashicorp/terraform/issues/26695))
 * config: Added `sensitive` argument for variable blocks, which supresses output where that variable is used ([#26183](https://github.com/hashicorp/terraform/pull/26183))
-* When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI [GH-26611]
-* config: Added `alltrue` and `anytrue` functions, which serve as a sort of dynamic version of the `&&` and `||` or operators, respectively. These are intended to allow evaluating boolean conditions, such as in variable `validation` blocks, across all of the items in a collection using `for` expressions. [GH-25656], [GH-26498]
-* config: New functions `textencodebase64` and `textdecodebase64` for encoding text in various character encodings other than UTF-8. [GH-25470]
+* When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI ([#26611](https://github.com/hashicorp/terraform/issues/26611))
+* config: Added `alltrue` and `anytrue` functions, which serve as a sort of dynamic version of the `&&` and `||` or operators, respectively. These are intended to allow evaluating boolean conditions, such as in variable `validation` blocks, across all of the items in a collection using `for` expressions. ([#25656](https://github.com/hashicorp/terraform/issues/25656)], [[#26498](https://github.com/hashicorp/terraform/issues/26498))
+* config: New functions `textencodebase64` and `textdecodebase64` for encoding text in various character encodings other than UTF-8. ([#25470](https://github.com/hashicorp/terraform/issues/25470))
 * core: `terraform plan` no longer uses a separate refresh phase, all resources are updated on-demand during planning ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * core: `ignore_changes` can now apply to map keys that are not listed in the configuration ([#26421](https://github.com/hashicorp/terraform/issues/26421))
 * `terraform console`: Now has distinct rendering of lists, sets, and tuples, and correctly renders objects with `null` attribute values. ([#26189](https://github.com/hashicorp/terraform/issues/26189))
@@ -45,16 +45,16 @@ BUG FIXES:
 * build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249)
 * command/clistate: return an error on a state unlock failure [[#25729](https://github.com/hashicorp/terraform/issues/25729)] 
 * command/format: Fix incorrect heredoc syntax in plan diff output ([#25725](https://github.com/hashicorp/terraform/issues/25725))
-* command/show: Hide sensitive outputs from display [GH-26740]
+* command/show: Hide sensitive outputs from display ([#26740](https://github.com/hashicorp/terraform/issues/26740))
 * command/taint: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. ([#26345](https://github.com/hashicorp/terraform/issues/26345))
 * command/taint, untaint: Fix issue when using `taint` (and `untaint`) with workspaces where statefile was not found. ([#22467](https://github.com/hashicorp/terraform/issues/22467))
 * configs: Report an error when provider configuration attributes are incorrectly added to a `required_providers` object. ([#26184](https://github.com/hashicorp/terraform/issues/26184))
 * configs: Better errors for invalid terraform version constraints ([#26543](https://github.com/hashicorp/terraform/issues/26543))
-* core: Prevent "Inconsistent Plan" errors when using dynamic with a block of TypeSet [GH-26638]
+* core: Prevent "Inconsistent Plan" errors when using dynamic with a block of TypeSet ([#26638](https://github.com/hashicorp/terraform/issues/26638))
 * core: Errors with data sources reading old data during refresh, failing to refresh, and not appearing to wait on resource dependencies are fixed by updates to the data source lifecycle and the merging of refresh and plan ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * core: Prevent evaluation of deposed instances, which in turn prevents errors when referencing create_before_destroy resources that have changes to their count or for_each values ([#25631](https://github.com/hashicorp/terraform/issues/25631))
-* internal: Fix locksfile constraint output for versions like "1.2". [GH-26637]
-* internal: Omit duplicate version constraints when installing packages or writing locksfile. [GH-26678]
+* internal: Fix locksfile constraint output for versions like "1.2". ([#26637](https://github.com/hashicorp/terraform/issues/26637))
+* internal: Omit duplicate version constraints when installing packages or writing locksfile. ([#26678](https://github.com/hashicorp/terraform/issues/26678))
 * lang/funcs: fix panic when `element()` is called with a negative offset ([#26079](https://github.com/hashicorp/terraform/issues/26079))
 * lang/funcs: `lookup()` will now only treat map as unknown if it is wholly unknown ([#26427](https://github.com/hashicorp/terraform/issues/26427))
 * states/remote: fix `state push -force` to work for all backends ([#26190](https://github.com/hashicorp/terraform/issues/26190))
