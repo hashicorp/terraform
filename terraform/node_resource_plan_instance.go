@@ -68,9 +68,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		Config:         config.Config,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = validateSelfRef.Eval(ctx)
-	if err != nil {
-		return err
+	diags = validateSelfRef.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	readDataPlan := &evalReadDataPlan{
@@ -144,9 +144,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Config:         config.Config,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = validateSelfRef.Eval(ctx)
-	if err != nil {
-		return err
+	diags = validateSelfRef.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
