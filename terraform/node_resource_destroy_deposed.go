@@ -65,6 +65,8 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 
 // GraphNodeEvalable impl.
 func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) error {
+	var diags tfdiags.Diagnostics
+
 	addr := n.ResourceInstanceAddr()
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
@@ -84,9 +86,9 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		Provider:       &provider,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = readStateDeposed.Eval(ctx)
-	if err != nil {
-		return err
+	diags = readStateDeposed.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	diffDestroy := &EvalDiffDestroy{
@@ -96,7 +98,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		State:        &state,
 		Output:       &change,
 	}
-	diags := diffDestroy.Eval(ctx)
+	diags = diffDestroy.Eval(ctx)
 	if diags.HasErrors() {
 		return diags.ErrWithWarnings()
 	}
@@ -203,9 +205,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		Provider:       &provider,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = readStateDeposed.Eval(ctx)
-	if err != nil {
-		return err
+	diags = readStateDeposed.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	diffDestroy := &EvalDiffDestroy{
@@ -256,9 +258,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	_, err = writeStateDeposed.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeStateDeposed.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	applyPost := &EvalApplyPost{

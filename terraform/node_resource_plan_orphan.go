@@ -104,9 +104,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			State:          &state,
 			targetState:    refreshState,
 		}
-		_, err = writeRefreshState.Eval(ctx)
-		if err != nil {
-			return err
+		diags = writeRefreshState.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 	}
 
@@ -143,9 +143,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeState.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 	return nil
 }

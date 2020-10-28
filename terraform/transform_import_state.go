@@ -260,6 +260,7 @@ func (n *graphNodeImportStateSub) Path() addrs.ModuleInstance {
 
 // GraphNodeExecutable impl.
 func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) error {
+	var diags tfdiags.Diagnostics
 	// If the Ephemeral type isn't set, then it is an error
 	if n.State.TypeName == "" {
 		return fmt.Errorf("import of %s didn't set type", n.TargetAddr.String())
@@ -280,14 +281,13 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) err
 		State:          &state,
 		Output:         &state,
 	}
-	diags := evalRefresh.Eval(ctx)
+	diags = evalRefresh.Eval(ctx)
 	if diags.HasErrors() {
 		return diags.ErrWithWarnings()
 	}
 
 	// Verify the existance of the imported resource
 	if state.Value.IsNull() {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Cannot import non-existent remote object",
@@ -306,6 +306,6 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) err
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	_, err = evalWriteState.Eval(ctx)
-	return err
+	diags = diags.Append(evalWriteState.Eval(ctx))
+	return diags.ErrWithWarnings()
 }

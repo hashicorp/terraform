@@ -240,9 +240,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			ProviderSchema: &providerSchema,
 			State:          &state,
 		}
-		_, err = evalWriteState.Eval(ctx)
-		if err != nil {
-			return err
+		diags = evalWriteState.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 	} else {
 		log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)

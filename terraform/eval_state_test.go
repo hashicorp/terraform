@@ -67,15 +67,12 @@ func TestEvalReadState(t *testing.T) {
 			ctx.StateState = state.SyncWrapper()
 			ctx.PathPath = addrs.RootModuleInstance
 
-			result, err := c.Node.Eval(ctx)
-			if err != nil {
-				t.Fatalf("[%s] Got err: %#v", k, err)
+			diags := c.Node.Eval(ctx)
+			if diags.HasErrors() {
+				t.Fatalf("[%s] Got err: %#v", k, diags.ErrWithWarnings())
 			}
 
 			expected := c.ExpectedInstanceId
-			if !(result != nil && instanceObjectIdForTests(result.(*states.ResourceInstanceObject)) == expected) {
-				t.Fatalf("[%s] Expected return with ID %#v, got: %#v", k, expected, result)
-			}
 
 			if !(output != nil && output.Value.GetAttr("id") == cty.StringVal(expected)) {
 				t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, output)
@@ -141,15 +138,12 @@ func TestEvalReadStateDeposed(t *testing.T) {
 			ctx.StateState = state.SyncWrapper()
 			ctx.PathPath = addrs.RootModuleInstance
 
-			result, err := c.Node.Eval(ctx)
-			if err != nil {
-				t.Fatalf("[%s] Got err: %#v", k, err)
+			diags := c.Node.Eval(ctx)
+			if diags.HasErrors() {
+				t.Fatalf("[%s] Got err: %#v", k, diags.ErrWithWarnings())
 			}
 
 			expected := c.ExpectedInstanceId
-			if !(result != nil && instanceObjectIdForTests(result.(*states.ResourceInstanceObject)) == expected) {
-				t.Fatalf("[%s] Expected return with ID %#v, got: %#v", k, expected, result)
-			}
 
 			if !(output != nil && output.Value.GetAttr("id") == cty.StringVal(expected)) {
 				t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, output)
@@ -194,9 +188,9 @@ func TestEvalWriteState(t *testing.T) {
 		ProviderSchema: &providerSchema,
 		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("aws")),
 	}
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("Got err: %#v", err)
+	diags := node.Eval(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("Got err: %#v", diags.ErrWithWarnings())
 	}
 
 	checkStateString(t, state, `
@@ -241,9 +235,9 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 		ProviderSchema: &providerSchema,
 		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("aws")),
 	}
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("Got err: %#v", err)
+	diags := node.Eval(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("Got err: %#v", diags.ErrWithWarnings())
 	}
 
 	checkStateString(t, state, `

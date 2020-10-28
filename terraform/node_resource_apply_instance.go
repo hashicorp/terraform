@@ -178,9 +178,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeState.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -239,9 +239,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			ForceKey:  n.PreallocatedDeposedKey,
 			OutputKey: &deposedKey,
 		}
-		_, err = deposeState.Eval(ctx)
-		if err != nil {
-			return err
+		diags = deposeState.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 	}
 
@@ -252,9 +252,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		Output: &state,
 	}
-	_, err = readState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = readState.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// Get the saved diff
@@ -302,9 +302,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		Output: &state,
 	}
-	_, err = readState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = readState.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	reduceDiff := &EvalReduceDiff{
@@ -385,9 +385,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:          &state,
 		Dependencies:   &n.Dependencies,
 	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeState.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	applyProvisioners := &EvalApplyProvisioners{
@@ -421,9 +421,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:          &state,
 		Dependencies:   &n.Dependencies,
 	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeState.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	if createBeforeDestroyEnabled && applyError != nil {
@@ -432,9 +432,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			PlannedChange: &diffApply,
 			Key:           &deposedKey,
 		}
-		_, err := maybeRestoreDesposedObject.Eval(ctx)
-		if err != nil {
-			return err
+		diags := maybeRestoreDesposedObject.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 	}
 
