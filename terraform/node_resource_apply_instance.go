@@ -101,7 +101,7 @@ func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigRe
 }
 
 // GraphNodeExecutable
-func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
@@ -110,7 +110,6 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		//    https://github.com/hashicorp/terraform/issues/21258
 		// To avoid an outright crash here, we'll instead return an explicit
 		// error.
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Resource node has no configuration attached",
@@ -119,7 +118,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 				addr,
 			),
 		))
-		return diags.Err()
+		return diags
 	}
 
 	// Eval info is different depending on what kind of resource this is
@@ -133,22 +132,24 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	}
 }
 
-func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) error {
-	var diags tfdiags.Diagnostics
+func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr().Resource
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	change, err := n.readDiff(ctx, providerSchema)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 	// Stop early if we don't actually have a diff
 	if change == nil {
-		return EvalEarlyExitError{}
+		diags = diags.Append(EvalEarlyExitError{})
+		return diags
 	}
 
 	// In this particular call to EvalReadData we include our planned
@@ -167,9 +168,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 			State:          &state,
 		},
 	}
-	diags = readDataApply.Eval(ctx)
+	diags = diags.Append(readDataApply.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	writeState := &EvalWriteState{
@@ -178,9 +179,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	diags = writeState.Eval(ctx)
+	diags = diags.Append(writeState.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -188,18 +189,16 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		Change:         nil,
 	}
-	diags = writeDiff.Eval(ctx)
+	diags = diags.Append(writeDiff.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
-	UpdateStateHook(ctx)
-	return nil
+	diags = diags.Append(UpdateStateHook(ctx))
+	return diags
 }
 
-func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) error {
-	var diags tfdiags.Diagnostics
-
+func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var state *states.ResourceInstanceObject
@@ -209,20 +208,23 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	addr := n.ResourceInstanceAddr().Resource
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Get the saved diff for apply
 	diffApply, err := n.readDiff(ctx, providerSchema)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
 	if diffApply == nil || diffApply.Action == plans.Delete {
-		return EvalEarlyExitError{}
+		diags = diags.Append(EvalEarlyExitError{})
+		return diags
 	}
 
 	destroy := (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
@@ -239,9 +241,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			ForceKey:  n.PreallocatedDeposedKey,
 			OutputKey: &deposedKey,
 		}
-		diags = deposeState.Eval(ctx)
+		diags = diags.Append(deposeState.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 	}
 
@@ -252,15 +254,16 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		Output: &state,
 	}
-	diags = readState.Eval(ctx)
+	diags = diags.Append(readState.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// Get the saved diff
 	diff, err := n.readDiff(ctx, providerSchema)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Make a new diff, in case we've learned new values in the state
@@ -277,9 +280,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		OutputChange:   &diffApply,
 		OutputState:    &state,
 	}
-	diags = evalDiff.Eval(ctx)
+	diags = diags.Append(evalDiff.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// Compare the diffs
@@ -290,9 +293,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Planned:        &diff,
 		Actual:         &diffApply,
 	}
-	diags = checkPlannedChange.Eval(ctx)
+	diags = diags.Append(checkPlannedChange.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	readState = &EvalReadState{
@@ -302,9 +305,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		Output: &state,
 	}
-	diags = readState.Eval(ctx)
+	diags = diags.Append(readState.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	reduceDiff := &EvalReduceDiff{
@@ -313,16 +316,17 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Destroy:   false,
 		OutChange: &diffApply,
 	}
-	diags = reduceDiff.Eval(ctx)
+	diags = diags.Append(reduceDiff.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// EvalReduceDiff may have simplified our planned change
 	// into a NoOp if it only requires destroying, since destroying
 	// is handled by NodeDestroyResourceInstance.
 	if diffApply == nil || diffApply.Action == plans.NoOp {
-		return EvalEarlyExitError{}
+		diags = diags.Append(EvalEarlyExitError{})
+		return diags
 	}
 
 	evalApplyPre := &EvalApplyPre{
@@ -330,9 +334,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:  &state,
 		Change: &diffApply,
 	}
-	diags = evalApplyPre.Eval(ctx)
+	diags = diags.Append(evalApplyPre.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	var applyError error
@@ -350,9 +354,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		CreateNew:           &createNew,
 		CreateBeforeDestroy: n.CreateBeforeDestroy(),
 	}
-	diags = evalApply.Eval(ctx)
+	diags = diags.Append(evalApply.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// We clear the change out here so that future nodes don't see a change
@@ -362,9 +366,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderSchema: &providerSchema,
 		Change:         nil,
 	}
-	diags = writeDiff.Eval(ctx)
+	diags = diags.Append(writeDiff.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	evalMaybeTainted := &EvalMaybeTainted{
@@ -373,9 +377,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Change: &diffApply,
 		Error:  &applyError,
 	}
-	diags = evalMaybeTainted.Eval(ctx)
+	diags = diags.Append(evalMaybeTainted.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	writeState := &EvalWriteState{
@@ -385,9 +389,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:          &state,
 		Dependencies:   &n.Dependencies,
 	}
-	diags = writeState.Eval(ctx)
+	diags = diags.Append(writeState.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	applyProvisioners := &EvalApplyProvisioners{
@@ -398,9 +402,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Error:          &applyError,
 		When:           configs.ProvisionerWhenCreate,
 	}
-	diags = applyProvisioners.Eval(ctx)
+	diags = diags.Append(applyProvisioners.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	evalMaybeTainted = &EvalMaybeTainted{
@@ -409,9 +413,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Change: &diffApply,
 		Error:  &applyError,
 	}
-	diags = evalMaybeTainted.Eval(ctx)
+	diags = diags.Append(evalMaybeTainted.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	writeState = &EvalWriteState{
@@ -421,9 +425,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:          &state,
 		Dependencies:   &n.Dependencies,
 	}
-	diags = writeState.Eval(ctx)
+	diags = diags.Append(writeState.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	if createBeforeDestroyEnabled && applyError != nil {
@@ -432,9 +436,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			PlannedChange: &diffApply,
 			Key:           &deposedKey,
 		}
-		diags := maybeRestoreDesposedObject.Eval(ctx)
+		diags := diags.Append(maybeRestoreDesposedObject.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 	}
 
@@ -443,11 +447,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State: &state,
 		Error: &applyError,
 	}
-	diags = applyPost.Eval(ctx)
+	diags = diags.Append(applyPost.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
-	UpdateStateHook(ctx)
-	return nil
+	diags = diags.Append(UpdateStateHook(ctx))
+	return diags
 }

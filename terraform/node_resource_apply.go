@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // nodeExpandApplyableResource handles the first layer of resource
@@ -102,13 +103,12 @@ func (n *NodeApplyableResource) References() []*addrs.Reference {
 }
 
 // GraphNodeExecutable
-func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
 		return nil
 	}
 
-	err := n.writeResourceState(ctx, n.Addr)
-	return err
+	return n.writeResourceState(ctx, n.Addr)
 }

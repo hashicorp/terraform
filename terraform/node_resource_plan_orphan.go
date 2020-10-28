@@ -34,7 +34,7 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 }
 
 // GraphNodeExecutable
-func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
@@ -48,7 +48,7 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	}
 }
 
-func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) error {
+func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
 	// A data source that is no longer in the config is removed from the state
 	log.Printf("[TRACE] NodePlannableResourceInstanceOrphan: removing state object for %s", n.Addr)
 	state := ctx.RefreshState()
@@ -56,9 +56,7 @@ func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContex
 	return nil
 }
 
-func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) error {
-	var diags tfdiags.Diagnostics
-
+func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
@@ -67,13 +65,15 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	var state *states.ResourceInstanceObject
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	state, err = n.ReadResourceInstanceState(ctx, addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	if !n.skipRefresh {
@@ -92,9 +92,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			State:          &state,
 			Output:         &state,
 		}
-		diags = refresh.Eval(ctx)
+		diags = diags.Append(refresh.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 
 		writeRefreshState := &EvalWriteState{
@@ -104,9 +104,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			State:          &state,
 			targetState:    refreshState,
 		}
-		diags = writeRefreshState.Eval(ctx)
+		diags = diags.Append(writeRefreshState.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 	}
 
@@ -117,14 +117,14 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		Output:       &change,
 		OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
 	}
-	diags = diffDestroy.Eval(ctx)
-	if err != nil {
-		return diags.ErrWithWarnings()
+	diags = diags.Append(diffDestroy.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	err = n.checkPreventDestroy(change)
-	if err != nil {
-		return err
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -132,9 +132,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	diags = writeDiff.Eval(ctx)
+	diags = diags.Append(writeDiff.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	writeState := &EvalWriteState{
@@ -143,9 +143,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	diags = writeState.Eval(ctx)
-	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
-	}
-	return nil
+	diags = diags.Append(writeState.Eval(ctx))
+	return diags
 }

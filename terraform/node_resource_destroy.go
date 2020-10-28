@@ -123,9 +123,7 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 }
 
 // GraphNodeExecutable
-func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
-	var diags tfdiags.Diagnostics
-
+func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
@@ -140,13 +138,15 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	var provisionerErr error
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	changeApply, err = n.readDiff(ctx, providerSchema)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	evalReduceDiff := &EvalReduceDiff{
@@ -155,25 +155,28 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		Destroy:   true,
 		OutChange: &changeApply,
 	}
-	diags = evalReduceDiff.Eval(ctx)
+	diags = diags.Append(evalReduceDiff.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// EvalReduceDiff may have simplified our planned change
 	// into a NoOp if it does not require destroying.
 	if changeApply == nil || changeApply.Action == plans.NoOp {
-		return EvalEarlyExitError{}
+		diags = diags.Append(EvalEarlyExitError{})
+		return diags
 	}
 
 	state, err = n.ReadResourceInstanceState(ctx, addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Exit early if the state object is null after reading the state
 	if state == nil || state.Value.IsNull() {
-		return EvalEarlyExitError{}
+		diags = diags.Append(EvalEarlyExitError{})
+		return diags
 	}
 
 	evalApplyPre := &EvalApplyPre{
@@ -181,9 +184,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		State:  &state,
 		Change: &changeApply,
 	}
-	diags = evalApplyPre.Eval(ctx)
+	diags = diags.Append(evalApplyPre.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// Run destroy provisioners if not tainted
@@ -195,9 +198,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			Error:          &provisionerErr,
 			When:           configs.ProvisionerWhenDestroy,
 		}
-		diags = evalApplyProvisioners.Eval(ctx)
+		diags = diags.Append(evalApplyProvisioners.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 		if provisionerErr != nil {
 			// If we have a provisioning error, then we just call
@@ -207,9 +210,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 				State: &state,
 				Error: &provisionerErr,
 			}
-			diags = evalApplyPost.Eval(ctx)
+			diags = diags.Append(evalApplyPost.Eval(ctx))
 			if diags.HasErrors() {
-				return diags.ErrWithWarnings()
+				return diags
 			}
 		}
 	}
@@ -229,9 +232,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			Output:         &state,
 			Error:          &provisionerErr,
 		}
-		diags = evalApply.Eval(ctx)
+		diags = diags.Append(evalApply.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 
 		evalWriteState := &EvalWriteState{
@@ -240,9 +243,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 			ProviderSchema: &providerSchema,
 			State:          &state,
 		}
-		diags = evalWriteState.Eval(ctx)
+		diags = diags.Append(evalWriteState.Eval(ctx))
 		if diags.HasErrors() {
-			return diags.ErrWithWarnings()
+			return diags
 		}
 	} else {
 		log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
@@ -255,15 +258,11 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		State: &state,
 		Error: &provisionerErr,
 	}
-	diags = evalApplyPost.Eval(ctx)
+	diags = diags.Append(evalApplyPost.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
-	err = UpdateStateHook(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	diags = diags.Append(UpdateStateHook(ctx))
+	return diags
 }

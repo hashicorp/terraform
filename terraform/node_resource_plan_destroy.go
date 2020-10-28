@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlanDestroyableResourceInstance represents a resource that is ready
@@ -32,7 +33,7 @@ func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceIn
 }
 
 // GraphNodeEvalable
-func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
@@ -42,13 +43,15 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 	var state *states.ResourceInstanceObject
 
 	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	state, err = n.ReadResourceInstanceState(ctx, addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	diffDestroy := &EvalDiffDestroy{
@@ -57,14 +60,14 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 		State:        &state,
 		Output:       &change,
 	}
-	diags := diffDestroy.Eval(ctx)
+	diags = diags.Append(diffDestroy.Eval(ctx))
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
-	err = n.checkPreventDestroy(change)
-	if err != nil {
-		return err
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -72,6 +75,6 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	diags = writeDiff.Eval(ctx)
-	return diags.ErrWithWarnings()
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }

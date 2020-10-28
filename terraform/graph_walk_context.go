@@ -125,29 +125,20 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
 
-	err := n.Execute(ctx, w.Operation)
+	diags := n.Execute(ctx, w.Operation)
 
 	// Release the semaphore
 	w.Context.parallelSem.Release()
 
-	if err == nil {
-		return nil
+	if !diags.HasErrors() {
+		return diags
 	}
 
 	// Acquire the lock because anything is going to require a lock.
 	w.errorLock.Lock()
 	defer w.errorLock.Unlock()
 
-	// If the error is non-fatal then we'll accumulate its diagnostics in our
-	// non-fatal list, rather than returning it directly, so that the graph
-	// walk can continue.
-	if nferr, ok := err.(tfdiags.NonFatalError); ok {
-		w.NonFatalDiagnostics = w.NonFatalDiagnostics.Append(nferr.Diagnostics)
-		return nil
-	}
-
-	var diags tfdiags.Diagnostics
-
+	err := diags.Err()
 	// Handle a simple early exit error
 	if errors.Is(err, EvalEarlyExitError{}) {
 		return nil
@@ -174,6 +165,5 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	// unpack this as one or more diagnostic messages and return that. If we
 	// get down here then the returned diagnostics will contain at least one
 	// error, causing the graph walk to halt.
-	diags = diags.Append(err)
 	return diags
 }

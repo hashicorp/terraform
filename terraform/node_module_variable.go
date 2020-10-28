@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -141,7 +142,7 @@ func (n *nodeModuleVariable) ModulePath() addrs.Module {
 }
 
 // GraphNodeExecutable
-func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
+func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// If we have no value, do nothing
 	if n.Expr == nil {
 		return nil
@@ -155,13 +156,15 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
 	switch op {
 	case walkValidate:
 		vals, err = n.EvalModuleCallArgument(ctx, true)
-		if err != nil {
-			return err
+		diags = diags.Append(err)
+		if diags.HasErrors() {
+			return diags
 		}
 	default:
 		vals, err = n.EvalModuleCallArgument(ctx, false)
-		if err != nil {
-			return err
+		diags = diags.Append(err)
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 

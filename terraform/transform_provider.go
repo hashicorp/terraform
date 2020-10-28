@@ -449,6 +449,7 @@ type graphNodeCloseProvider struct {
 
 var (
 	_ GraphNodeCloseProvider = (*graphNodeCloseProvider)(nil)
+	_ GraphNodeExecutable    = (*graphNodeCloseProvider)(nil)
 )
 
 func (n *graphNodeCloseProvider) Name() string {
@@ -461,8 +462,8 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 }
 
 // GraphNodeExecutable impl.
-func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) error {
-	return ctx.CloseProvider(n.Addr)
+func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	return diags.Append(ctx.CloseProvider(n.Addr))
 }
 
 // GraphNodeDependable impl.

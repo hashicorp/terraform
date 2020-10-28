@@ -99,7 +99,7 @@ func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Mod
 }
 
 // GraphNodeExecutable
-func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) error {
+func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	expander := ctx.InstanceExpander()
 	_, call := n.Addr.Call()
 
@@ -110,16 +110,18 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) error {
 		ctx = ctx.WithPath(module)
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, diags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			diags = diags.Append(ctDiags)
 			if diags.HasErrors() {
-				return diags.Err()
+				return diags
 			}
 			expander.SetModuleCount(module, call, count)
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, diags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			forEach, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
-				return diags.Err()
+				return diags
 			}
 			expander.SetModuleForEach(module, call, forEach)
 
@@ -128,7 +130,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) error {
 		}
 	}
 
-	return nil
+	return diags
 
 }
 
@@ -146,6 +148,7 @@ type nodeCloseModule struct {
 var (
 	_ GraphNodeReferenceable    = (*nodeCloseModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeCloseModule)(nil)
+	_ GraphNodeExecutable       = (*nodeCloseModule)(nil)
 )
 
 func (n *nodeCloseModule) ModulePath() addrs.Module {
@@ -170,7 +173,7 @@ func (n *nodeCloseModule) Name() string {
 	return n.Addr.String() + " (close)"
 }
 
-func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) error {
+func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	switch op {
 	case walkApply, walkDestroy:
 		state := ctx.State().Lock()
@@ -206,10 +209,11 @@ type nodeValidateModule struct {
 	nodeExpandModule
 }
 
+var _ GraphNodeExecutable = (*nodeValidateModule)(nil)
+
 // GraphNodeEvalable
-func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) error {
+func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	_, call := n.Addr.Call()
-	var diags tfdiags.Diagnostics
 	expander := ctx.InstanceExpander()
 
 	// Modules all evaluate to single instances during validation, only to
@@ -238,9 +242,5 @@ func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) error {
 		expander.SetModuleSingle(module, call)
 	}
 
-	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
-	}
-
-	return nil
+	return diags
 }
