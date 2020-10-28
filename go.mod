@@ -1,7 +1,7 @@
 module github.com/hashicorp/terraform
 
 require (
-	cloud.google.com/go v0.45.1
+	cloud.google.com/go/storage v1.10.0
 	github.com/Azure/azure-sdk-for-go v45.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.3
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
@@ -23,9 +23,7 @@ require (
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/bmatcuk/doublestar v1.1.5
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
-	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/coreos/bbolt v1.3.0 // indirect
 	github.com/coreos/etcd v3.3.10+incompatible
 	github.com/coreos/go-semver v0.2.0 // indirect
@@ -36,9 +34,8 @@ require (
 	github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 	github.com/go-test/deep v1.0.3
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
-	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
-	github.com/golang/mock v1.3.1
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/mock v1.4.4
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.10.1-0.20200424014253-c3bfe50899e5
@@ -124,14 +121,14 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/mod v0.2.0
-	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
-	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20191203134012-c197fd4bf371
-	google.golang.org/api v0.9.0
-	google.golang.org/grpc v1.27.1
+	golang.org/x/mod v0.3.0
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/text v0.3.3
+	golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb
+	google.golang.org/api v0.34.0
+	google.golang.org/grpc v1.31.1
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
@@ -143,3 +140,5 @@ require (
 replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
 go 1.14
+
+replace google.golang.org/grpc v1.31.1 => google.golang.org/grpc v1.27.1
