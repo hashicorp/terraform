@@ -321,7 +321,9 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
 		case tfe.CostEstimateErrored:
-			return fmt.Errorf(msgPrefix + " errored.")
+			b.CLI.Output(msgPrefix + " errored.\n")
+			b.CLI.Output("\n------------------------------------------------------------------------")
+			return nil
 		case tfe.CostEstimateCanceled:
 			return fmt.Errorf(msgPrefix + " canceled.")
 		default:
