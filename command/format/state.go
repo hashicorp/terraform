@@ -74,7 +74,11 @@ func State(opts *StateOpts) string {
 		for _, k := range ks {
 			v := m.OutputValues[k]
 			p.buf.WriteString(fmt.Sprintf("%s = ", k))
-			p.writeValue(v.Value, plans.NoOp, 0)
+			if v.Sensitive {
+				p.buf.WriteString("(sensitive value)")
+			} else {
+				p.writeValue(v.Value, plans.NoOp, 0)
+			}
 			p.buf.WriteString("\n")
 		}
 	}

@@ -219,7 +219,7 @@ map_var = {
     "first"  = "foo"
     "second" = "bar"
 }
-sensitive_var = "secret!!!"
+sensitive_var = (sensitive value)
 string_var = "string value"`
 
 func basicState(t *testing.T) *states.State {
