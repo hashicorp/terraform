@@ -12230,3 +12230,52 @@ resource "test_resource" "foo" {
 		t.Fatal("missing 'test_resource.foo' in state:", state)
 	}
 }
+
+func TestContext2Apply_rpcDiagnostics(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't frobble")),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "frobble") {
+			t.Fatalf(`expected frobble, got %q`, des)
+		}
+	}
+}
