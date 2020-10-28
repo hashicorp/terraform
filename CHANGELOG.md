@@ -45,6 +45,7 @@ BUG FIXES:
 * build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249)
 * command/clistate: return an error on a state unlock failure [[#25729](https://github.com/hashicorp/terraform/issues/25729)] 
 * command/format: Fix incorrect heredoc syntax in plan diff output ([#25725](https://github.com/hashicorp/terraform/issues/25725))
+* command/show: Hide sensitive outputs from display [GH-26740]
 * command/taint: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. ([#26345](https://github.com/hashicorp/terraform/issues/26345))
 * command/taint, untaint: Fix issue when using `taint` (and `untaint`) with workspaces where statefile was not found. ([#22467](https://github.com/hashicorp/terraform/issues/22467))
 * configs: Report an error when provider configuration attributes are incorrectly added to a `required_providers` object. ([#26184](https://github.com/hashicorp/terraform/issues/26184))
