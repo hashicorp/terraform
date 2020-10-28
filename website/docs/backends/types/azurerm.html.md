@@ -79,7 +79,7 @@ terraform {
 
 ## Data Source Configuration
 
-When authenticating using a Service Principall (either with a Client Certificate or a Client Secret):
+When authenticating using a Service Principal (either with a Client Certificate or a Client Secret):
 
 ```hcl
 data "terraform_remote_state" "foo" {
