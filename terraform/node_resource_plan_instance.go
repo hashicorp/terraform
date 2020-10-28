@@ -119,8 +119,8 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	return err
+	diags := writeDiff.Eval(ctx)
+	return diags.ErrWithWarnings()
 }
 
 func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) error {
@@ -204,9 +204,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		OutputChange:        &change,
 		OutputState:         &instancePlanState,
 	}
-	_, err = diff.Eval(ctx)
-	if err != nil {
-		return err
+	diags := diff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	err = n.checkPreventDestroy(change)
@@ -230,6 +230,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	return err
+	diags = writeDiff.Eval(ctx)
+	return diags.ErrWithWarnings()
 }

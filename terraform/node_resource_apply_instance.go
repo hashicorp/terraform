@@ -187,9 +187,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		Change:         nil,
 	}
-	_, err = writeDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags := writeDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	UpdateStateHook(ctx)
@@ -276,9 +276,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		OutputChange:   &diffApply,
 		OutputState:    &state,
 	}
-	_, err = evalDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// Compare the diffs
@@ -289,9 +289,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Planned:        &diff,
 		Actual:         &diffApply,
 	}
-	_, err = checkPlannedChange.Eval(ctx)
-	if err != nil {
-		return err
+	diags = checkPlannedChange.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	readState = &EvalReadState{
@@ -312,9 +312,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Destroy:   false,
 		OutChange: &diffApply,
 	}
-	_, err = reduceDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = reduceDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// EvalReduceDiff may have simplified our planned change
@@ -361,9 +361,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderSchema: &providerSchema,
 		Change:         nil,
 	}
-	_, err = writeDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	evalMaybeTainted := &EvalMaybeTainted{

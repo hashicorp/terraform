@@ -96,9 +96,9 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		State:        &state,
 		Output:       &change,
 	}
-	_, err = diffDestroy.Eval(ctx)
-	if err != nil {
-		return err
+	diags := diffDestroy.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -107,9 +107,9 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	return nil
@@ -214,9 +214,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		State:        &state,
 		Output:       &change,
 	}
-	_, err = diffDestroy.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diffDestroy.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// Call pre-apply hook

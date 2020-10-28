@@ -155,9 +155,9 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		Destroy:   true,
 		OutChange: &changeApply,
 	}
-	_, err = evalReduceDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = evalReduceDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// EvalReduceDiff may have simplified our planned change

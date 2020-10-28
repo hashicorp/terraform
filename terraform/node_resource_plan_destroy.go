@@ -57,9 +57,9 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 		State:        &state,
 		Output:       &change,
 	}
-	_, err = diffDestroy.Eval(ctx)
-	if err != nil {
-		return err
+	diags := diffDestroy.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	err = n.checkPreventDestroy(change)
@@ -72,6 +72,6 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	return err
+	diags = writeDiff.Eval(ctx)
+	return diags.ErrWithWarnings()
 }

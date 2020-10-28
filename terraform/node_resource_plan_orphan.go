@@ -114,9 +114,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		Output:       &change,
 		OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
 	}
-	_, err = diffDestroy.Eval(ctx)
+	diags := diffDestroy.Eval(ctx)
 	if err != nil {
-		return err
+		return diags.ErrWithWarnings()
 	}
 
 	err = n.checkPreventDestroy(change)
@@ -129,9 +129,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = writeDiff.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	writeState := &EvalWriteState{
