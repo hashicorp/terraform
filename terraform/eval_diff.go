@@ -37,7 +37,9 @@ type EvalCheckPlannedChange struct {
 	Planned, Actual **plans.ResourceInstanceChange
 }
 
-func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	providerSchema := *n.ProviderSchema
 	plannedChange := *n.Planned
 	actualChange := *n.Actual
@@ -45,10 +47,10 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support %q", n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider does not support %q", n.Addr.Resource.Type))
+		return diags
 	}
 
-	var diags tfdiags.Diagnostics
 	absAddr := n.Addr.Absolute(ctx.Path())
 
 	log.Printf("[TRACE] EvalCheckPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
@@ -96,7 +98,7 @@ func (n *EvalCheckPlannedChange) Eval(ctx EvalContext) (interface{}, error) {
 			),
 		))
 	}
-	return nil, diags.Err()
+	return diags
 }
 
 // EvalDiff is an EvalNode implementation that detects changes for a given
@@ -124,7 +126,9 @@ type EvalDiff struct {
 }
 
 // TODO: test
-func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	state := *n.State
 	config := *n.Config
 	provider := *n.Provider
@@ -137,26 +141,26 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if providerSchema == nil {
-		return nil, fmt.Errorf("provider schema is unavailable for %s", n.Addr)
+		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
+		return diags
 	}
 	if n.ProviderAddr.Provider.Type == "" {
 		panic(fmt.Sprintf("EvalDiff for %s does not have ProviderAddr set", n.Addr.Absolute(ctx.Path())))
 	}
 
-	var diags tfdiags.Diagnostics
-
 	// Evaluate the configuration
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type))
+		return diags
 	}
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
 	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return nil, diags.Err()
+		return diags
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -175,7 +179,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 				if configDiags.HasErrors() {
-					return nil, diags.Err()
+					return diags
 				}
 			}
 		}
@@ -216,18 +220,18 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(unmarkedPriorVal, unmarkedConfigVal)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
-		return nil, diags.Err()
+		return diags
 	}
 
 	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, configValIgnored)
 
 	// Call pre-diff hook
 	if !n.Stub {
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
-		})
-		if err != nil {
-			return nil, err
+		}))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
@@ -242,7 +246,8 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		},
 	)
 	if validateResp.Diagnostics.HasErrors() {
-		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
+		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config))
+		return diags
 	}
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -255,7 +260,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return diags
 	}
 
 	plannedNewVal := resp.PlannedState
@@ -283,7 +288,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		))
 	}
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return diags
 	}
 
 	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, configValIgnored, plannedNewVal); len(errs) > 0 {
@@ -313,7 +318,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 					),
 				))
 			}
-			return nil, diags.Err()
+			return diags
 		}
 	}
 
@@ -380,7 +385,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			}
 		}
 		if diags.HasErrors() {
-			return nil, diags.Err()
+			return diags
 		}
 	}
 
@@ -447,7 +452,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
-			return nil, diags.Err()
+			return diags
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
@@ -467,7 +472,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 			))
 		}
 		if diags.HasErrors() {
-			return nil, diags.Err()
+			return diags
 		}
 	}
 
@@ -506,11 +511,11 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Call post-refresh hook
 	if !n.Stub {
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PostDiff(absAddr, states.CurrentGen, action, priorVal, plannedNewVal)
-		})
-		if err != nil {
-			return nil, err
+		}))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
@@ -547,7 +552,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	return nil, nil
+	return diags
 }
 
 func (n *EvalDiff) processIgnoreChanges(prior, config cty.Value) (cty.Value, tfdiags.Diagnostics) {
@@ -738,7 +743,9 @@ type EvalDiffDestroy struct {
 }
 
 // TODO: test
-func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalDiffDestroy) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := *n.State
 
@@ -753,19 +760,19 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	// If there is no state or our attributes object is null then we're already
 	// destroyed.
 	if state == nil || state.Value.IsNull() {
-		return nil, nil
+		return nil
 	}
 
 	// Call pre-diff hook
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreDiff(
 			absAddr, n.DeposedKey.Generation(),
 			state.Value,
 			cty.NullVal(cty.DynamicPseudoType),
 		)
-	})
-	if err != nil {
-		return nil, err
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Change is always the same for a destroy. We don't need the provider's
@@ -784,7 +791,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Call post-diff hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostDiff(
 			absAddr,
 			n.DeposedKey.Generation(),
@@ -792,9 +799,9 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 			change.Before,
 			change.After,
 		)
-	})
-	if err != nil {
-		return nil, err
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Update our output
@@ -805,7 +812,7 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
 		*n.OutputState = nil
 	}
 
-	return nil, nil
+	return diags
 }
 
 // EvalReduceDiff is an EvalNode implementation that takes a planned resource
@@ -829,7 +836,7 @@ type EvalReduceDiff struct {
 }
 
 // TODO: test
-func (n *EvalReduceDiff) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalReduceDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	in := *n.InChange
 	out := in.Simplify(n.Destroy)
 	if n.OutChange != nil {
@@ -842,7 +849,7 @@ func (n *EvalReduceDiff) Eval(ctx EvalContext) (interface{}, error) {
 			log.Printf("[TRACE] EvalReduceDiff: %s change simplified from %s to %s for apply node", n.Addr, in.Action, out.Action)
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // EvalWriteDiff is an EvalNode implementation that saves a planned change
@@ -855,7 +862,9 @@ type EvalWriteDiff struct {
 }
 
 // TODO: test
-func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalWriteDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	changes := ctx.Changes()
 	addr := n.Addr.Absolute(ctx.Path())
 	if n.Change == nil || *n.Change == nil {
@@ -866,7 +875,7 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 			gen = n.DeposedKey
 		}
 		changes.RemoveResourceInstanceChange(addr, gen)
-		return nil, nil
+		return nil
 	}
 
 	providerSchema := *n.ProviderSchema
@@ -880,12 +889,14 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type))
+		return diags
 	}
 
 	csrc, err := change.Encode(schema.ImpliedType())
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode planned changes for %s: %s", addr, err)
+		diags = diags.Append(fmt.Errorf("failed to encode planned changes for %s: %s", addr, err))
+		return diags
 	}
 
 	changes.AppendResourceInstanceChange(csrc)
@@ -895,5 +906,5 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 		log.Printf("[TRACE] EvalWriteDiff: recorded %s change for %s deposed object %s", change.Action, addr, n.DeposedKey)
 	}
 
-	return nil, nil
+	return diags
 }

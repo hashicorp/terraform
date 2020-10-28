@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -31,7 +32,7 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 }
 
 // GraphNodeEvalable
-func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceAddr()
 	config := n.Config
 
@@ -40,8 +41,9 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) err
 	// passed to the EvalNodes.
 	var configVal cty.Value
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	evalValidateResource := &EvalValidateResource{
@@ -52,9 +54,9 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) err
 		Config:         config,
 		ConfigVal:      &configVal,
 	}
-	err = evalValidateResource.Validate(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(evalValidateResource.Validate(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	if managed := n.Config.Managed; managed != nil {
@@ -71,11 +73,13 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) err
 
 			provisioner := ctx.Provisioner(p.Type)
 			if provisioner == nil {
-				return fmt.Errorf("provisioner %s not initialized", p.Type)
+				diags = diags.Append(fmt.Errorf("provisioner %s not initialized", p.Type))
+				return diags
 			}
 			provisionerSchema := ctx.ProvisionerSchema(p.Type)
 			if provisionerSchema == nil {
-				return fmt.Errorf("provisioner %s not initialized", p.Type)
+				diags = diags.Append(fmt.Errorf("provisioner %s not initialized", p.Type))
+				return diags
 			}
 
 			// Validate Provisioner Config
@@ -87,11 +91,11 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) err
 				ResourceHasCount:   hasCount,
 				ResourceHasForEach: hasForEach,
 			}
-			err := validateProvisioner.Validate(ctx)
-			if err != nil {
-				return err
+			diags = diags.Append(validateProvisioner.Validate(ctx))
+			if diags.HasErrors() {
+				return diags
 			}
 		}
 	}
-	return nil
+	return diags
 }

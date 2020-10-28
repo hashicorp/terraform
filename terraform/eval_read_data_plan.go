@@ -21,14 +21,15 @@ type evalReadDataPlan struct {
 	evalReadData
 }
 
-func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
+func (n *evalReadDataPlan) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	absAddr := n.Addr.Absolute(ctx.Path())
 
 	var diags tfdiags.Diagnostics
 	var configVal cty.Value
 
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
+		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+		return diags
 	}
 
 	config := *n.Config
@@ -36,7 +37,8 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type))
+		return diags
 	}
 
 	objTy := schema.ImpliedType()
@@ -52,7 +54,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	configKnown := configVal.IsWhollyKnown()
@@ -69,11 +71,11 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
 
-		if err := ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(absAddr, states.CurrentGen, priorVal, proposedNewVal)
-		}); err != nil {
-			diags = diags.Append(err)
-			return nil, diags.ErrWithWarnings()
+		}))
+		if diags.HasErrors() {
+			return diags
 		}
 
 		// Apply detects that the data source will need to be read by the After
@@ -93,13 +95,11 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 			Status: states.ObjectPlanned,
 		}
 
-		if err := ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PostDiff(absAddr, states.CurrentGen, plans.Read, priorVal, proposedNewVal)
-		}); err != nil {
-			diags = diags.Append(err)
-		}
+		}))
 
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	// We have a complete configuration with no dependencies to wait on, so we
@@ -107,7 +107,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	// if we have a prior value, we can check for any irregularities in the response
@@ -137,13 +137,10 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 		Status: states.ObjectReady,
 	}
 
-	if err := ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostDiff(absAddr, states.CurrentGen, plans.Update, priorVal, newVal)
-	}); err != nil {
-		return nil, err
-	}
-
-	return nil, diags.ErrWithWarnings()
+	}))
+	return diags
 }
 
 // forcePlanRead determines if we need to override the usual behavior of

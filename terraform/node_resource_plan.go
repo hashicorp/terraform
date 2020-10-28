@@ -178,15 +178,14 @@ func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
 }
 
 // GraphNodeExecutable
-func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
 		return nil
 	}
 
-	err := n.writeResourceState(ctx, n.Addr)
-	return err
+	return n.writeResourceState(ctx, n.Addr)
 }
 
 // GraphNodeDestroyerCBD

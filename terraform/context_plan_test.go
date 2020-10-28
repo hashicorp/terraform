@@ -6421,3 +6421,46 @@ data "test_data_source" "b" {
 		t.Fatal("data source b was not read during plan")
 	}
 }
+
+func TestContext2Plan_rpcDiagnostics(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't herd cats")),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "cats") {
+			t.Fatalf(`expected cats, got %q`, des)
+		}
+	}
+}

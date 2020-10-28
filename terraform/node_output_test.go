@@ -81,11 +81,11 @@ func TestNodeApplyableOutputExecute_invalidDependsOn(t *testing.T) {
 	})
 	ctx.EvaluateExprResult = val
 
-	err := node.Execute(ctx, walkApply)
-	if err == nil {
+	diags := node.Execute(ctx, walkApply)
+	if !diags.HasErrors() {
 		t.Fatal("expected execute error, but there was none")
 	}
-	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
 		t.Errorf("expected error to include %q, but was: %s", want, got)
 	}
 }
@@ -102,11 +102,11 @@ func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
 	})
 	ctx.EvaluateExprResult = val
 
-	err := node.Execute(ctx, walkApply)
-	if err == nil {
+	diags := node.Execute(ctx, walkApply)
+	if !diags.HasErrors() {
 		t.Fatal("expected execute error, but there was none")
 	}
-	if got, want := err.Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
 		t.Errorf("expected error to include %q, but was: %s", want, got)
 	}
 }
@@ -151,9 +151,9 @@ func TestNodeDestroyableOutputExecute(t *testing.T) {
 	}
 	node := NodeDestroyableOutput{Addr: outputAddr}
 
-	err := node.Execute(ctx, walkApply)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkApply)
+	if diags.HasErrors() {
+		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
 	if state.OutputValue(outputAddr) != nil {
 		t.Fatal("Unexpected outputs in state after removal")

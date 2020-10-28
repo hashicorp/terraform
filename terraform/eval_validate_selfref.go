@@ -20,7 +20,7 @@ type EvalValidateSelfRef struct {
 	ProviderSchema **ProviderSchema
 }
 
-func (n *EvalValidateSelfRef) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalValidateSelfRef) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	addr := n.Addr
 
@@ -33,7 +33,8 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return nil, fmt.Errorf("provider schema unavailable while validating %s for self-references; this is a bug in Terraform and should be reported", addr)
+		diags = diags.Append(fmt.Errorf("provider schema unavailable while validating %s for self-references; this is a bug in Terraform and should be reported", addr))
+		return diags
 	}
 
 	providerSchema := *n.ProviderSchema
@@ -46,7 +47,8 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if schema == nil {
-		return nil, fmt.Errorf("no schema available for %s to validate for self-references; this is a bug in Terraform and should be reported", addr)
+		diags = diags.Append(fmt.Errorf("no schema available for %s to validate for self-references; this is a bug in Terraform and should be reported", addr))
+		return diags
 	}
 
 	refs, _ := lang.ReferencesInBlock(n.Config, schema)
@@ -63,5 +65,5 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	return nil, diags.NonFatalErr()
+	return diags
 }

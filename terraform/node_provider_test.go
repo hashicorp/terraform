@@ -65,13 +65,13 @@ func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 
-	err := n.Execute(ctx, walkImport)
-	if err == nil {
+	diags := n.Execute(ctx, walkImport)
+	if !diags.HasErrors() {
 		t.Fatal("expected error, got success")
 	}
 
 	detail := `Invalid provider configuration: The configuration for provider["registry.terraform.io/hashicorp/foo"] depends on values that cannot be determined until apply.`
-	if got, want := err.Error(), detail; got != want {
+	if got, want := diags.Err().Error(), detail; got != want {
 		t.Errorf("wrong diagnostic detail\n got: %q\nwant: %q", got, want)
 	}
 

@@ -39,7 +39,7 @@ type EvalApply struct {
 }
 
 // TODO: test
-func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	change := *n.Change
@@ -54,7 +54,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := (*n.ProviderSchema).SchemaForResourceType(n.Addr.Resource.Mode, n.Addr.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type))
+		return diags
 	}
 
 	if n.CreateNew != nil {
@@ -69,15 +70,16 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return nil, diags.Err()
+			return diags
 		}
 	}
 
 	if !configVal.IsWhollyKnown() {
-		return nil, fmt.Errorf(
+		diags = diags.Append(fmt.Errorf(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			absAddr,
-		)
+		))
+		return diags
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -99,7 +101,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 				if configDiags.HasErrors() {
-					return nil, diags.Err()
+					return diags
 				}
 			}
 		}
@@ -120,7 +122,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	eqV := unmarkedBefore.Equals(unmarkedAfter)
 	eq := eqV.IsKnown() && eqV.True()
 	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
@@ -189,7 +191,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return nil, diags.Err()
+		return diags
 	}
 
 	// After this point we have a type-conforming result object and so we
@@ -350,21 +352,11 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			err := diags.Err()
 			*n.Error = err
 			log.Printf("[DEBUG] %s: apply errored, but we're indicating that via the Error pointer rather than returning it: %s", n.Addr.Absolute(ctx.Path()), err)
-			return nil, nil
+			return nil
 		}
 	}
 
-	// we have to drop warning-only diagnostics for now
-	if diags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
-	}
-
-	// log any warnings since we can't return them
-	if e := diags.ErrWithWarnings(); e != nil {
-		log.Printf("[WARN] EvalApply %s: %v", n.Addr, e)
-	}
-
-	return nil, nil
+	return diags
 }
 
 // EvalApplyPre is an EvalNode implementation that does the pre-Apply work
@@ -376,7 +368,8 @@ type EvalApplyPre struct {
 }
 
 // TODO: test
-func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApplyPre) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	change := *n.Change
 	absAddr := n.Addr.Absolute(ctx.Path())
 
@@ -388,15 +381,15 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 		priorState := change.Before
 		plannedNewState := change.After
 
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreApply(absAddr, n.Gen, change.Action, priorState, plannedNewState)
-		})
-		if err != nil {
-			return nil, err
+		}))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 // EvalApplyPost is an EvalNode implementation that does the post-Apply work
@@ -408,7 +401,8 @@ type EvalApplyPost struct {
 }
 
 // TODO: test
-func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApplyPost) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	state := *n.State
 
 	if resourceHasUserVisibleApply(n.Addr) {
@@ -419,20 +413,14 @@ func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 		} else {
 			newState = cty.NullVal(cty.DynamicPseudoType)
 		}
-		var err error
-		if n.Error != nil {
-			err = *n.Error
-		}
-
-		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(absAddr, n.Gen, newState, err)
-		})
-		if hookErr != nil {
-			return nil, hookErr
-		}
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostApply(absAddr, n.Gen, newState, *n.Error)
+		}))
 	}
 
-	return nil, *n.Error
+	diags = diags.Append(*n.Error)
+
+	return diags
 }
 
 // EvalMaybeTainted is an EvalNode that takes the planned change, new value,
@@ -449,9 +437,9 @@ type EvalMaybeTainted struct {
 	Error  *error
 }
 
-func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalMaybeTainted) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	if n.State == nil || n.Change == nil || n.Error == nil {
-		return nil, nil
+		return nil
 	}
 
 	state := *n.State
@@ -460,12 +448,12 @@ func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
 
 	// nothing to do if everything went as planned
 	if err == nil {
-		return nil, nil
+		return nil
 	}
 
 	if state != nil && state.Status == states.ObjectTainted {
 		log.Printf("[TRACE] EvalMaybeTainted: %s was already tainted, so nothing to do", n.Addr.Absolute(ctx.Path()))
-		return nil, nil
+		return nil
 	}
 
 	if change.Action == plans.Create {
@@ -482,7 +470,7 @@ func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
 		*n.State = state.AsTainted()
 	}
 
-	return nil, nil
+	return nil
 }
 
 // resourceHasUserVisibleApply returns true if the given resource is one where
@@ -516,44 +504,44 @@ type EvalApplyProvisioners struct {
 }
 
 // TODO: test
-func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApplyProvisioners) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := *n.State
 	if state == nil {
 		log.Printf("[TRACE] EvalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
-		return nil, nil
+		return nil
 	}
 	if n.When == configs.ProvisionerWhenCreate && n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] EvalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
-		return nil, nil
+		return nil
 	}
 	if state.Status == states.ObjectTainted {
 		// No point in provisioning an object that is already tainted, since
 		// it's going to get recreated on the next apply anyway.
 		log.Printf("[TRACE] EvalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
-		return nil, nil
+		return nil
 	}
 
 	provs := n.filterProvisioners()
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
-		return nil, nil
+		return nil
 	}
 
 	if n.Error != nil && *n.Error != nil {
 		// We're already tainted, so just return out
-		return nil, nil
+		return nil
 	}
 
-	{
-		// Call pre hook
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreProvisionInstance(absAddr, state.Value)
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Call pre hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreProvisionInstance(absAddr, state.Value)
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// If there are no errors, then we append it to our output error
@@ -561,25 +549,19 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	err := n.apply(ctx, provs)
 	if err != nil {
 		*n.Error = multierror.Append(*n.Error, err)
-		if n.Error == nil {
-			return nil, err
-		} else {
-			log.Printf("[TRACE] EvalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", absAddr)
-			return nil, nil
-		}
+		log.Printf("[TRACE] EvalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", absAddr)
+		return nil
 	}
 
-	{
-		// Call post hook
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostProvisionInstance(absAddr, state.Value)
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Call post hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostProvisionInstance(absAddr, state.Value)
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	return nil, nil
+	return diags
 }
 
 // filterProvisioners filters the provisioners on the resource to only

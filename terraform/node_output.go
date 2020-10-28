@@ -246,11 +246,10 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 }
 
 // GraphNodeExecutable
-func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
-	var diags tfdiags.Diagnostics
+func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	state := ctx.State()
 	if state == nil {
-		return nil
+		return
 	}
 
 	changes := ctx.Changes() // may be nil, if we're not working on a changeset
@@ -297,9 +296,24 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
 			n.setValue(state, changes, cty.UnknownVal(val.Type()))
-			return EvalEarlyExitError{}
+
+			// Keep existing warnings, while converting errors to warnings.
+			// This is not meant to be the normal path, so there no need to
+			// make the errors pretty.
+			var warnings tfdiags.Diagnostics
+			for _, d := range diags {
+				switch d.Severity() {
+				case tfdiags.Warning:
+					warnings = warnings.Append(d)
+				case tfdiags.Error:
+					desc := d.Description()
+					warnings = warnings.Append(tfdiags.SimpleWarning(fmt.Sprintf("%s:%s", desc.Summary, desc.Detail)))
+				}
+			}
+
+			return warnings
 		}
-		return diags.Err()
+		return diags
 	}
 	n.setValue(state, changes, val)
 
@@ -309,7 +323,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) error {
 		n.setValue(state, changes, val)
 	}
 
-	return nil
+	return diags
 }
 
 // dag.GraphNodeDotter impl.
@@ -350,7 +364,7 @@ func (n *NodeDestroyableOutput) temporaryValue() bool {
 }
 
 // GraphNodeExecutable
-func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	state := ctx.State()
 	if state == nil {
 		return nil

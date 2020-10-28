@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeCountBoundary fixes up any transitions between "each modes" in objects
@@ -14,12 +15,14 @@ type NodeCountBoundary struct {
 	Config *configs.Config
 }
 
+var _ GraphNodeExecutable = (*NodeCountBoundary)(nil)
+
 func (n *NodeCountBoundary) Name() string {
 	return "meta.count-boundary (EachMode fixup)"
 }
 
 // GraphNodeExecutable
-func (n *NodeCountBoundary) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeCountBoundary) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// We'll temporarily lock the state to grab the modules, then work on each
 	// one separately while taking a lock again for each separate resource.
 	// This means that if another caller concurrently adds a module here while
@@ -42,10 +45,11 @@ func (n *NodeCountBoundary) Execute(ctx EvalContext, op walkOperation) error {
 			continue
 		}
 		if err := n.fixModule(ctx, addr); err != nil {
-			return err
+			diags = diags.Append(err)
+			return diags
 		}
 	}
-	return nil
+	return diags
 }
 
 func (n *NodeCountBoundary) fixModule(ctx EvalContext, moduleAddr addrs.ModuleInstance) error {

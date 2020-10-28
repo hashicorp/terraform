@@ -15,54 +15,6 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// EvalValidateCount is an EvalNode implementation that validates
-// the count of a resource.
-type EvalValidateCount struct {
-	Resource *configs.Resource
-}
-
-// TODO: test
-func (n *EvalValidateCount) Eval(ctx EvalContext) (interface{}, error) {
-	var diags tfdiags.Diagnostics
-	var count int
-	var err error
-
-	val, valDiags := ctx.EvaluateExpr(n.Resource.Count, cty.Number, nil)
-	diags = diags.Append(valDiags)
-	if valDiags.HasErrors() {
-		goto RETURN
-	}
-	if val.IsNull() || !val.IsKnown() {
-		goto RETURN
-	}
-
-	err = gocty.FromCtyValue(val, &count)
-	if err != nil {
-		// The EvaluateExpr call above already guaranteed us a number value,
-		// so if we end up here then we have something that is out of range
-		// for an int, and the error message will include a description of
-		// the valid range.
-		rawVal := val.AsBigFloat()
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count value",
-			Detail:   fmt.Sprintf("The number %s is not a valid count value: %s.", rawVal, err),
-			Subject:  n.Resource.Count.Range().Ptr(),
-		})
-	} else if count < 0 {
-		rawVal := val.AsBigFloat()
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count value",
-			Detail:   fmt.Sprintf("The number %s is not a valid count value: count must not be negative.", rawVal),
-			Subject:  n.Resource.Count.Range().Ptr(),
-		})
-	}
-
-RETURN:
-	return nil, diags.NonFatalErr()
-}
-
 // EvalValidateProvisioner validates the configuration of a provisioner
 // belonging to a resource. The provisioner config is expected to contain the
 // merged connection configurations.

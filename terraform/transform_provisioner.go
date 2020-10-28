@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // GraphNodeProvisioner is an interface that nodes that can be a provisioner
@@ -165,13 +166,15 @@ type graphNodeCloseProvisioner struct {
 	ProvisionerNameValue string
 }
 
+var _ GraphNodeExecutable = (*graphNodeCloseProvisioner)(nil)
+
 func (n *graphNodeCloseProvisioner) Name() string {
 	return fmt.Sprintf("provisioner.%s (close)", n.ProvisionerNameValue)
 }
 
 // GraphNodeExecutable impl.
-func (n *graphNodeCloseProvisioner) Execute(ctx EvalContext, op walkOperation) error {
-	return ctx.CloseProvisioner(n.ProvisionerNameValue)
+func (n *graphNodeCloseProvisioner) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	return diags.Append(ctx.CloseProvisioner(n.ProvisionerNameValue))
 }
 
 func (n *graphNodeCloseProvisioner) CloseProvisionerName() string {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -30,7 +31,7 @@ var (
 )
 
 // GraphNodeEvalable
-func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
@@ -44,7 +45,7 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	}
 }
 
-func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) error {
+func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
@@ -52,13 +53,15 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 	var state *states.ResourceInstanceObject
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	state, err = n.ReadResourceInstanceState(ctx, addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	validateSelfRef := &EvalValidateSelfRef{
@@ -66,9 +69,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		Config:         config.Config,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = validateSelfRef.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(validateSelfRef.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	readDataPlan := &evalReadDataPlan{
@@ -84,9 +87,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 			dependsOn:      n.dependsOn,
 		},
 	}
-	_, err = readDataPlan.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(readDataPlan.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// write the data source into both the refresh state and the
@@ -98,9 +101,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		State:          &state,
 		targetState:    refreshState,
 	}
-	_, err = writeRefreshState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(writeRefreshState.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	writeState := &EvalWriteState{
@@ -109,9 +112,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(writeState.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -119,11 +122,11 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	return err
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }
 
-func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) error {
+func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
@@ -132,8 +135,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var instancePlanState *states.ResourceInstanceObject
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	validateSelfRef := &EvalValidateSelfRef{
@@ -141,14 +145,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Config:         config.Config,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = validateSelfRef.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(validateSelfRef.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 	refreshLifecycle := &EvalRefreshLifecycle{
 		Addr:                     addr,
@@ -156,9 +161,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:                    &instanceRefreshState,
 		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
 	}
-	_, err = refreshLifecycle.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(refreshLifecycle.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Refresh, maybe
@@ -172,9 +177,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			State:          &instanceRefreshState,
 			Output:         &instanceRefreshState,
 		}
-		_, err = refresh.Eval(ctx)
-		if err != nil {
-			return err
+		diags := diags.Append(refresh.Eval(ctx))
+		if diags.HasErrors() {
+			return diags
 		}
 
 		writeRefreshState := &EvalWriteState{
@@ -185,9 +190,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			targetState:    refreshState,
 			Dependencies:   &n.Dependencies,
 		}
-		_, err = writeRefreshState.Eval(ctx)
-		if err != nil {
-			return err
+		diags = diags.Append(writeRefreshState.Eval(ctx))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
@@ -204,14 +209,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		OutputChange:        &change,
 		OutputState:         &instancePlanState,
 	}
-	_, err = diff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(diff.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	err = n.checkPreventDestroy(change)
-	if err != nil {
-		return err
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	writeState := &EvalWriteState{
@@ -220,9 +225,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		State:          &instancePlanState,
 		ProviderSchema: &providerSchema,
 	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(writeState.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	writeDiff := &EvalWriteDiff{
@@ -230,6 +235,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	_, err = writeDiff.Eval(ctx)
-	return err
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }

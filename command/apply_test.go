@@ -924,7 +924,7 @@ func TestApply_shutdown(t *testing.T) {
 		"-auto-approve",
 		testFixturePath("apply-shutdown"),
 	}
-	if code := c.Run(args); code != 0 {
+	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
