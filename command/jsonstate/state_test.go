@@ -75,60 +75,27 @@ func TestMarshalOutputs(t *testing.T) {
 
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
-		Attr   cty.Value
-		Schema *configschema.Block
-		Want   attributeValues
+		Attr cty.Value
+		Want attributeValues
 	}{
 		{
 			cty.NilVal,
-			&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
-			},
 			nil,
 		},
 		{
 			cty.NullVal(cty.String),
-			&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
-			},
 			nil,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("bar"),
 			}),
-			&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
-			},
 			attributeValues{"foo": json.RawMessage(`"bar"`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.NullVal(cty.String),
 			}),
-			&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
-			},
 			attributeValues{"foo": json.RawMessage(`null`)},
 		},
 		{
@@ -141,18 +108,22 @@ func TestMarshalAttributeValues(t *testing.T) {
 					cty.StringVal("moon"),
 				}),
 			}),
-			&configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"bar": {
-						Type:     cty.Map(cty.String),
-						Required: true,
-					},
-					"baz": {
-						Type:     cty.List(cty.String),
-						Optional: true,
-					},
-				},
+			attributeValues{
+				"bar": json.RawMessage(`{"hello":"world"}`),
+				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
+		},
+		// Marked values
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.MapVal(map[string]cty.Value{
+					"hello": cty.StringVal("world"),
+				}),
+				"baz": cty.ListVal([]cty.Value{
+					cty.StringVal("goodnight"),
+					cty.StringVal("moon").Mark("sensitive"),
+				}),
+			}),
 			attributeValues{
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
@@ -161,7 +132,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := marshalAttributeValues(test.Attr, test.Schema)
+		got := marshalAttributeValues(test.Attr)
 		eq := reflect.DeepEqual(got, test.Want)
 		if !eq {
 			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
