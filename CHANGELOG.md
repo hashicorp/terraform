@@ -12,6 +12,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 * backend/atlas: the `atlas` backend, which was deprecated in v0.12, has been removed. [GH-26651]
+* cli: Interrupting execution will now cause terraform to exit with a non-0 status [GH-26738]
 
 ## Previous Releases
 
