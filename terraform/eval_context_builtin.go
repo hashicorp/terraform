@@ -107,7 +107,7 @@ func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
 		case HookActionHalt:
 			// Return an early exit error to trigger an early exit
 			log.Printf("[WARN] Early exit triggered by hook: %T", h)
-			return EvalEarlyExitError{}
+			return nil
 		}
 	}
 

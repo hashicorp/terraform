@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"sync/atomic"
 
 	"github.com/zclconf/go-cty/cty"
@@ -76,11 +77,7 @@ func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {
 
 func (h *stopHook) hook() (HookAction, error) {
 	if h.Stopped() {
-		// FIXME: This should really return an error since stopping partway
-		// through is not a successful run-to-completion, but we'll need to
-		// introduce that cautiously since existing automation solutions may
-		// be depending on this behavior.
-		return HookActionHalt, nil
+		return HookActionHalt, errors.New("execution halted")
 	}
 
 	return HookActionContinue, nil

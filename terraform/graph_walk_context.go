@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -36,7 +35,6 @@ type ContextGraphWalker struct {
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	errorLock          sync.Mutex
 	once               sync.Once
 	contexts           map[string]*BuiltinEvalContext
 	contextLock        sync.Mutex
@@ -124,46 +122,7 @@ func (w *ContextGraphWalker) init() {
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
+	defer w.Context.parallelSem.Release()
 
-	diags := n.Execute(ctx, w.Operation)
-
-	// Release the semaphore
-	w.Context.parallelSem.Release()
-
-	if !diags.HasErrors() {
-		return diags
-	}
-
-	// Acquire the lock because anything is going to require a lock.
-	w.errorLock.Lock()
-	defer w.errorLock.Unlock()
-
-	err := diags.Err()
-	// Handle a simple early exit error
-	if errors.Is(err, EvalEarlyExitError{}) {
-		return nil
-	}
-
-	// we need to see if this wraps only EarlyExitErrors
-	if wrapper, ok := err.(interface{ WrappedErrors() []error }); ok {
-		//WrappedErrors only returns native error values, so we can't extract
-		//them from diagnostics. Just return the whole thing if we have a
-		//combination.
-		errs := wrapper.WrappedErrors()
-		earlyExit := true
-		for _, err := range errs {
-			if err != (EvalEarlyExitError{}) {
-				earlyExit = false
-			}
-		}
-		if len(errs) > 0 && earlyExit {
-			return nil
-		}
-	}
-
-	// Otherwise, we'll let our usual diagnostics machinery figure out how to
-	// unpack this as one or more diagnostic messages and return that. If we
-	// get down here then the returned diagnostics will contain at least one
-	// error, causing the graph walk to halt.
-	return diags
+	return n.Execute(ctx, w.Operation)
 }

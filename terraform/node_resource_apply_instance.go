@@ -148,7 +148,6 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 	// Stop early if we don't actually have a diff
 	if change == nil {
-		diags = diags.Append(EvalEarlyExitError{})
 		return diags
 	}
 
@@ -223,7 +222,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
 	if diffApply == nil || diffApply.Action == plans.Delete {
-		diags = diags.Append(EvalEarlyExitError{})
 		return diags
 	}
 
@@ -325,7 +323,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// into a NoOp if it only requires destroying, since destroying
 	// is handled by NodeDestroyResourceInstance.
 	if diffApply == nil || diffApply.Action == plans.NoOp {
-		diags = diags.Append(EvalEarlyExitError{})
 		return diags
 	}
 

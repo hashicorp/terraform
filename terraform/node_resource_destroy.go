@@ -163,7 +163,6 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// EvalReduceDiff may have simplified our planned change
 	// into a NoOp if it does not require destroying.
 	if changeApply == nil || changeApply.Action == plans.NoOp {
-		diags = diags.Append(EvalEarlyExitError{})
 		return diags
 	}
 
@@ -175,7 +174,6 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 
 	// Exit early if the state object is null after reading the state
 	if state == nil || state.Value.IsNull() {
-		diags = diags.Append(EvalEarlyExitError{})
 		return diags
 	}
 

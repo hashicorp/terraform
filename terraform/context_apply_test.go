@@ -1734,8 +1734,16 @@ func TestContext2Apply_cancel(t *testing.T) {
 	}()
 
 	state := <-stateCh
-	if applyDiags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", applyDiags.Err())
+	// only expecting an early exit error
+	if !applyDiags.HasErrors() {
+		t.Fatal("expected early exit error")
+	}
+
+	for _, d := range applyDiags {
+		desc := d.Description()
+		if desc.Summary != "execution halted" {
+			t.Fatalf("unexpected error: %v", applyDiags.Err())
+		}
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -1812,8 +1820,16 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 
 	// Wait for apply to complete
 	state := <-stateCh
-	if applyDiags.HasErrors() {
-		t.Fatalf("unexpected error: %s", applyDiags.Err())
+	// only expecting an early exit error
+	if !applyDiags.HasErrors() {
+		t.Fatal("expected early exit error")
+	}
+
+	for _, d := range applyDiags {
+		desc := d.Description()
+		if desc.Summary != "execution halted" {
+			t.Fatalf("unexpected error: %v", applyDiags.Err())
+		}
 	}
 
 	checkStateString(t, state, `
@@ -1882,7 +1898,18 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 
 	// Wait for completion
 	state := <-stateCh
-	assertNoErrors(t, applyDiags)
+
+	// we are expecting only an early exit error
+	if !applyDiags.HasErrors() {
+		t.Fatal("expected early exit error")
+	}
+
+	for _, d := range applyDiags {
+		desc := d.Description()
+		if desc.Summary != "execution halted" {
+			t.Fatalf("unexpected error: %v", applyDiags.Err())
+		}
+	}
 
 	checkStateString(t, state, `
 aws_instance.foo: (tainted)
