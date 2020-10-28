@@ -6431,7 +6431,12 @@ resource "test_instance" "a" {
 	})
 
 	p := testProvider("test")
-	p.PlanResourceChangeFn = testDiffFn
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		resp := testDiffFn(req)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("don't frobble"))
+		return resp
+	}
+
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -6440,10 +6445,6 @@ resource "test_instance" "a" {
 				},
 			},
 		},
-	}
-
-	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
-		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't herd cats")),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -6457,10 +6458,14 @@ resource "test_instance" "a" {
 		t.Fatal(diags.Err())
 	}
 
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
+	}
+
 	for _, d := range diags {
 		des := d.Description().Summary
-		if !strings.Contains(des, "cats") {
-			t.Fatalf(`expected cats, got %q`, des)
+		if !strings.Contains(des, "frobble") {
+			t.Fatalf(`expected frobble, got %q`, des)
 		}
 	}
 }

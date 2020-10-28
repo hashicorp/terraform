@@ -1831,6 +1831,10 @@ resource "test_instance" "a" {
 		t.Fatal(diags.Err())
 	}
 
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
+	}
+
 	for _, d := range diags {
 		des := d.Description().Summary
 		if !strings.Contains(des, "frobble") {
