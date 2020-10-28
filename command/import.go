@@ -327,7 +327,7 @@ Options:
 }
 
 func (c *ImportCommand) Synopsis() string {
-	return "Import existing infrastructure into Terraform"
+	return "Associate existing infrastructure with a Terraform resource"
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:

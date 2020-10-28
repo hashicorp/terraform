@@ -169,5 +169,5 @@ func (c *VersionCommand) Run(args []string) int {
 }
 
 func (c *VersionCommand) Synopsis() string {
-	return "Prints the Terraform version"
+	return "Show the current Terraform version"
 }

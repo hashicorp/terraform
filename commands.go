@@ -25,7 +25,23 @@ const runningInAutomationEnvName = "TF_IN_AUTOMATION"
 
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
-var PlumbingCommands map[string]struct{}
+
+// PrimaryCommands is an ordered sequence of the top-level commands (not
+// subcommands) that we emphasize at the top of our help output. This is
+// ordered so that we can show them in the typical workflow order, rather
+// than in alphabetical order. Anything not in this sequence or in the
+// HiddenCommands set appears under "all other commands".
+var PrimaryCommands []string
+
+// HiddenCommands is a set of top-level commands (not subcommands) that are
+// not advertised in the top-level help at all. This is typically because
+// they are either just stubs that return an error message about something
+// no longer being supported or backward-compatibility aliases for other
+// commands.
+//
+// No commands in the PrimaryCommands sequence should also appear in the
+// HiddenCommands set, because that would be rather silly.
+var HiddenCommands map[string]struct{}
 
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
@@ -89,18 +105,9 @@ func initCommands(
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/source/docs/commands/index.html.markdown; if you
+	// website/docs/commands/index.html.markdown; if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
-
-	PlumbingCommands = map[string]struct{}{
-		"state":        struct{}{}, // includes all subcommands
-		"debug":        struct{}{}, // includes all subcommands
-		"force-unlock": struct{}{},
-		"push":         struct{}{},
-		"0.12upgrade":  struct{}{},
-		"0.13upgrade":  struct{}{},
-	}
 
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
@@ -339,12 +346,6 @@ func initCommands(
 			}, nil
 		},
 
-		"debug": func() (cli.Command, error) {
-			return &command.DebugCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"force-unlock": func() (cli.Command, error) {
 			return &command.UnlockCommand{
 				Meta: meta,
@@ -403,6 +404,23 @@ func initCommands(
 			}, nil
 		},
 	}
+
+	PrimaryCommands = []string{
+		"init",
+		"validate",
+		"plan",
+		"apply",
+		"destroy",
+	}
+
+	HiddenCommands = map[string]struct{}{
+		"0.12upgrade":     struct{}{},
+		"0.13upgrade":     struct{}{},
+		"env":             struct{}{},
+		"internal-plugin": struct{}{},
+		"push":            struct{}{},
+	}
+
 }
 
 // makeShutdownCh creates an interrupt listener and returns a channel.
