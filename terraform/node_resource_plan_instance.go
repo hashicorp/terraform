@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 )
@@ -45,6 +46,7 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) error {
+	var diags tfdiags.Diagnostics
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
@@ -84,9 +86,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 			dependsOn:      n.dependsOn,
 		},
 	}
-	_, err = readDataPlan.Eval(ctx)
-	if err != nil {
-		return err
+	diags = readDataPlan.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// write the data source into both the refresh state and the
@@ -119,7 +121,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		Change:         &change,
 	}
-	diags := writeDiff.Eval(ctx)
+	diags = writeDiff.Eval(ctx)
 	return diags.ErrWithWarnings()
 }
 

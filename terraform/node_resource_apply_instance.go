@@ -134,6 +134,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) error {
+	var diags tfdiags.Diagnostics
 	addr := n.ResourceInstanceAddr().Resource
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
@@ -166,9 +167,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 			State:          &state,
 		},
 	}
-	_, err = readDataApply.Eval(ctx)
-	if err != nil {
-		return err
+	diags = readDataApply.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	writeState := &EvalWriteState{
@@ -187,7 +188,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) err
 		ProviderSchema: &providerSchema,
 		Change:         nil,
 	}
-	diags := writeDiff.Eval(ctx)
+	diags = writeDiff.Eval(ctx)
 	if diags.HasErrors() {
 		return diags.ErrWithWarnings()
 	}

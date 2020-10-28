@@ -15,7 +15,7 @@ type evalReadDataApply struct {
 	evalReadData
 }
 
-func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
+func (n *evalReadDataApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	absAddr := n.Addr.Absolute(ctx.Path())
 
 	var diags tfdiags.Diagnostics
@@ -26,22 +26,25 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return nil, fmt.Errorf("provider schema not available for %s", n.Addr)
+		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+		return diags
 	}
 
 	if planned != nil && planned.Action != plans.Read {
 		// If any other action gets in here then that's always a bug; this
 		// EvalNode only deals with reading.
-		return nil, fmt.Errorf(
+		diags = diags.Append(fmt.Errorf(
 			"invalid action %s for %s: only Read is supported (this is a bug in Terraform; please report it!)",
 			planned.Action, absAddr,
-		)
+		))
+		return diags
 	}
 
-	if err := ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreApply(absAddr, states.CurrentGen, planned.Action, planned.Before, planned.After)
-	}); err != nil {
-		return nil, err
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	config := *n.Config
@@ -49,7 +52,8 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ProviderAddr.Provider.String(), n.Addr.Resource.Type))
+		return diags
 	}
 
 	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
@@ -58,13 +62,13 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	*n.State = &states.ResourceInstanceObject{
@@ -72,11 +76,9 @@ func (n *evalReadDataApply) Eval(ctx EvalContext) (interface{}, error) {
 		Status: states.ObjectReady,
 	}
 
-	if err := ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostApply(absAddr, states.CurrentGen, newVal, diags.Err())
-	}); err != nil {
-		diags = diags.Append(err)
-	}
+	}))
 
-	return nil, diags.ErrWithWarnings()
+	return diags
 }
