@@ -280,9 +280,9 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) err
 		State:          &state,
 		Output:         &state,
 	}
-	_, err = evalRefresh.Eval(ctx)
-	if err != nil {
-		return err
+	diags := evalRefresh.Eval(ctx)
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
 	}
 
 	// Verify the existance of the imported resource

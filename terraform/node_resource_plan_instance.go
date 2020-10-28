@@ -174,9 +174,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			State:          &instanceRefreshState,
 			Output:         &instanceRefreshState,
 		}
-		_, err = refresh.Eval(ctx)
-		if err != nil {
-			return err
+		diags := refresh.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 
 		writeRefreshState := &EvalWriteState{

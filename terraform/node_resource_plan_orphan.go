@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlannableResourceInstanceOrphan represents a resource that is "applyable":
@@ -56,6 +57,8 @@ func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContex
 }
 
 func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) error {
+	var diags tfdiags.Diagnostics
+
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
@@ -89,9 +92,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			State:          &state,
 			Output:         &state,
 		}
-		_, err = refresh.Eval(ctx)
-		if err != nil {
-			return err
+		diags = refresh.Eval(ctx)
+		if diags.HasErrors() {
+			return diags.ErrWithWarnings()
 		}
 
 		writeRefreshState := &EvalWriteState{
@@ -114,7 +117,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		Output:       &change,
 		OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
 	}
-	diags := diffDestroy.Eval(ctx)
+	diags = diffDestroy.Eval(ctx)
 	if err != nil {
 		return diags.ErrWithWarnings()
 	}
