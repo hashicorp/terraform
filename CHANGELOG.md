@@ -15,11 +15,13 @@ UPGRADE NOTES:
 * Outbound HTTPS requests from Terraform CLI now enforce [RFC 8446](https://tools.ietf.org/html/rfc8446)'s client-side downgrade protection checks. This should not significantly affect normal operation, but may result in connection errors in environments where outgoing requests are forced through proxy servers and other "middleboxes", if they have behavior that resembles a downgrade attack. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
 * Terraform's HTTP client code is now slightly stricter than before in HTTP header parsing, but in ways that should not affect typical server implementations: Terraform now trims only _ASCII_ whitespace characters, and does not allow `Transfer-Encoding: identity`. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
 * The `terraform 0.13upgrade` subcommand and the associated upgrade mechanisms are no longer available. Complete the v0.13 upgrade process before upgrading to Terraform v0.14.
+* The `debug` command, which did not offer additional functionality, has been removed.
 
 ENHANCEMENTS:
 
 * `terraform plan` and `terraform apply`: Added an experimental concise diff renderer. By default, Terraform plans now hide most unchanged fields, only displaying the most relevant changes and some identifying context. This experiment can be disabled by setting a `TF_X_CONCISE_DIFF` environment variable to `0`. ([#26187](https://github.com/hashicorp/terraform/issues/26187))
 * cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. ([#26087](https://github.com/hashicorp/terraform/issues/26087))
+* command/help: text has been reorganized to be clearer and more helpful [GH-26695]
 * config: Added `sensitive` argument for variable blocks, which supresses output where that variable is used ([#26183](https://github.com/hashicorp/terraform/pull/26183))
 * When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI [GH-26611]
 * config: Added `alltrue` and `anytrue` functions, which serve as a sort of dynamic version of the `&&` and `||` or operators, respectively. These are intended to allow evaluating boolean conditions, such as in variable `validation` blocks, across all of the items in a collection using `for` expressions. [GH-25656], [GH-26498]
