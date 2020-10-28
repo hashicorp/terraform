@@ -48,6 +48,32 @@ resource "template_file" "bar" {
 }
 ```
 
+## Authentication
+
+IAM Changes to buckets are [eventually consistent](https://cloud.google.com/storage/docs/consistency#eventually_consistent_operations) and may take upto a few minutes to take effect. Terraform will return 403 errors till it is eventually consistent.
+
+### Running Terraform on your workstation.
+
+If you are using terraform on your workstation, you will need to install the Google Cloud SDK and authenticate using [User Application Default
+Credentials](https://cloud.google.com/sdk/gcloud/reference/auth/application-default).
+
+User ADCs do [expire](https://developers.google.com/identity/protocols/oauth2#expiration) and you can refresh them by running `gcloud auth application-default login`.
+
+### Running Terraform on Google Cloud
+
+If you are running terraform on Google Cloud, you can configure that instance or cluster to use a [Google Service
+Account](https://cloud.google.com/compute/docs/authentication). This will allow Terraform to authenticate to Google Cloud without having to bake in a separate
+credential/authentication file. Make sure that the scope of the VM/Cluster is set to cloud-platform.
+
+### Running Terraform outside of Google Cloud
+
+If you are running terraform outside of Google Cloud, generate a service account key and set the `GOOGLE_APPPLICATION_CREDENTIALS` environment variable to
+the path of the service account key. Terraform will use that key for authentication.
+
+### Impersonating Service Accounts
+
+Terraform can impersonate a Google Service Account as described [here](https://cloud.google.com/iam/docs/creating-short-lived-service-account-credentials). A valid credential must be provided as mentioned in the earlier section and that identity must have the `roles/iam.serviceAccountTokenCreator` role on the service account you are impersonating.
+
 ## Configuration variables
 
 The following configuration options are supported:
@@ -59,10 +85,15 @@ The following configuration options are supported:
     (Optional) Local path to Google Cloud Platform account credentials in JSON
     format.  If unset, [Google Application Default
     Credentials](https://developers.google.com/identity/protocols/application-default-credentials)
-    are used.  The provided credentials need to have the
-    `devstorage.read_write` scope and `WRITER` permissions on the bucket.
+    are used.  The provided credentials must have Storage Object Admin role on the bucket.
     **Warning**: if using the Google Cloud Platform provider as well, it will
     also pick up the `GOOGLE_CREDENTIALS` environment variable.
+ * `impersonate_service_account` - (Optional) The service account to impersonate for accessing the State Bucket.
+    You must have `roles/iam.serviceAccountTokenCreator` role on that account for the impersonation to succeed. 
+    If you are using a delegation chain, you can specify that using the `impersonate_service_account_delegates` field.
+    Alternatively, this can be specified using the `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` environment
+    variable.
+ * `impersonate_service_account_delegates` - (Optional) The delegation chain for an impersonating a service account as described [here](https://cloud.google.com/iam/docs/creating-short-lived-service-account-credentials#sa-credentials-delegated).
  * `access_token` - (Optional) A temporary [OAuth 2.0 access token] obtained
    from the Google Authorization server, i.e. the `Authorization: Bearer` token
    used to authenticate HTTP requests to GCP APIs. This is an alternative to
@@ -70,8 +101,6 @@ The following configuration options are supported:
    `credentials` field.
  *  `prefix` - (Optional) GCS prefix inside the bucket. Named states for
     workspaces are stored in an object called `<prefix>/<name>.tfstate`.
- *  `path` - (Deprecated) GCS path to the state file of the default state. For
-    backwards compatibility only, use `prefix` instead.
  *  `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64
     encoded 'customer supplied encryption key' used to encrypt all state. For
     more information see [Customer Supplied Encryption

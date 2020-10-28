@@ -74,6 +74,22 @@ func New() backend.Backend {
 				Description: "An OAuth2 token used for GCP authentication",
 			},
 
+			"impersonate_service_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_IMPERSONATE_SERVICE_ACCOUNT",
+				}, nil),
+				Description: "The service account to impersonate for all Google API Calls",
+			},
+
+			"impersonate_service_account_delegates": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "The delegation chain for the impersonated service account",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+
 			"encryption_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -166,6 +182,24 @@ func (b *Backend) configure(ctx context.Context) error {
 		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
 	} else {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+	}
+
+	// Service Account Impersonation
+	if v, ok := data.GetOk("impersonate_service_account"); ok {
+		ServiceAccount := v.(string)
+		opts = append(opts, option.ImpersonateCredentials(ServiceAccount))
+
+		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
+			var delegates []string
+			d := v.([]interface{})
+			if len(delegates) > 0 {
+				delegates = make([]string, len(d))
+			}
+			for _, delegate := range d {
+				delegates = append(delegates, delegate.(string))
+			}
+			opts = append(opts, option.ImpersonateCredentials(ServiceAccount, delegates...))
+		}
 	}
 
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
