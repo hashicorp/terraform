@@ -10,7 +10,7 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.0.0
+    container: hashicorpdev/backport-assistant:0.2.1
     steps:
       - name: Run Backport Assistant
         run: |
