@@ -129,10 +129,12 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 		if convErr != nil {
 			val = cty.UnknownVal(wantType)
 			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Incorrect value type",
-				Detail:   fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
-				Subject:  expr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Incorrect value type",
+				Detail:      fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
+				Subject:     expr.Range().Ptr(),
+				Expression:  expr,
+				EvalContext: ctx,
 			})
 		}
 	}

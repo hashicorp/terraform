@@ -150,6 +150,16 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			if got, want := diags[0].Description().Detail, test.DetailSubstring; !strings.Contains(got, want) {
 				t.Errorf("wrong diagnostic detail %#v; want %#v", got, want)
 			}
+			if fromExpr := diags[0].FromExpr(); fromExpr != nil {
+				if fromExpr.Expression == nil {
+					t.Errorf("diagnostic does not refer to an expression")
+				}
+				if fromExpr.EvalContext == nil {
+					t.Errorf("diagnostic does not refer to an EvalContext")
+				}
+			} else {
+				t.Errorf("diagnostic does not support FromExpr\ngot: %s", spew.Sdump(diags[0]))
+			}
 		})
 	}
 }
@@ -164,7 +174,7 @@ func TestEvaluateForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
+			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx, true)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
