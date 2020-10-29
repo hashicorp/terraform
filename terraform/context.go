@@ -5,11 +5,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/instances"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -64,6 +68,14 @@ type ContextOpts struct {
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
 	ProviderSHA256s map[string][]byte
+
+	// If non-nil, will be verified to ensure that provider requirements from
+	// configuration can be satisfied by the set of locked dependencies.
+	LockedDependencies *depsfile.Locks
+
+	// Set of providers to exclude from the requirements check process, as they
+	// are marked as in local development.
+	ProvidersInDevelopment map[addrs.Provider]struct{}
 
 	UIInput UIInput
 }
@@ -208,6 +220,50 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	config := opts.Config
 	if config == nil {
 		config = configs.NewEmptyConfig()
+	}
+
+	// If we have a configuration and a set of locked dependencies, verify that
+	// the provider requirements from the configuration can be satisfied by the
+	// locked dependencies.
+	if opts.LockedDependencies != nil {
+		reqs, providerDiags := config.ProviderRequirements()
+		diags = diags.Append(providerDiags)
+
+		locked := opts.LockedDependencies.AllProviders()
+		unmetReqs := make(getproviders.Requirements)
+		for provider, versionConstraints := range reqs {
+			// Builtin providers are not listed in the locks file
+			if provider.IsBuiltIn() {
+				continue
+			}
+			// Development providers must be excluded from this check
+			if _, ok := opts.ProvidersInDevelopment[provider]; ok {
+				continue
+			}
+			// If the required provider doesn't exist in the lock, or the
+			// locked version doesn't meet the constraints, mark the
+			// requirement unmet
+			acceptable := versions.MeetingConstraints(versionConstraints)
+			if lock, ok := locked[provider]; !ok || !acceptable.Has(lock.Version()) {
+				unmetReqs[provider] = versionConstraints
+			}
+		}
+
+		if len(unmetReqs) > 0 {
+			var buf strings.Builder
+			for provider, versionConstraints := range unmetReqs {
+				fmt.Fprintf(&buf, "\n- %s", provider)
+				if len(versionConstraints) > 0 {
+					fmt.Fprintf(&buf, " (%s)", getproviders.VersionConstraintsString(versionConstraints))
+				}
+			}
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider requirements cannot be satisfied by locked dependencies",
+				fmt.Sprintf("The following required providers are not installed:\n%s\n\nPlease run \"terraform init\".", buf.String()),
+			))
+			return nil, diags
+		}
 	}
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
