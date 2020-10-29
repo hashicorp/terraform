@@ -65,7 +65,13 @@ EXPERIMENTS:
 
     Marking an attribute as "optional" changes the type conversion behavior for that type constraint so that if the given value is a map or object that has no attribute of that name then Terraform will silently give that attribute the value `null`, rather than returning an error saying that it is required. The resulting value still conforms to the type constraint in that the attribute is considered to be present, but references to it in the recieving module will find a null value and can act on that accordingly.
     
-    If you try this feature during its experimental period and have feedback about it, please open a feature request issue. We are aiming to stabilize this feature in the forthcoming 0.15 release, but its design may change in the meantime based on feedback. If we make further changes to the feature during the 0.15 period then they will be reflected in 0.15 alpha releases.
+* `provider_sensitive_attrs`: This is an unusual experiment in that it doesn't directly allow you to use a new feature in your module configuration but instead it changes the automatic behavior of Terraform in modules where it's enabled.
+
+    For modules where this experiment is active, Terraform will consider the attribute sensitivity flags set in provider resource type schemas when propagating the "sensitive" flag through expressions in the configuration. This is experimental because it has the potential to make far more items in the output be marked as sensitive than before, and so we want to get some experience and feedback about it before hopefully making this the default behavior.
+    
+    One important consequence of enabling this experiment is that you may need to mark more of your module's output values as `sensitive = true`, in any case where a particular output value is derived from a value a provider has indicated as being sensitive. Without that explicit annotation, Terraform will return an error to avoid implicitly exposing a sensitive value via an output value.
+
+If you try either of these features during their experimental periods and have feedback about them, please open a feature request issue. We are aiming to stabilize both features in the forthcoming v0.15 release, but their design may change in the meantime based on feedback. If we make further changes to the features during the v0.15 period then they will be reflected in v0.15 alpha releases.
 
 ## Previous Releases
 
