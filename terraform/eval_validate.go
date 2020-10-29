@@ -519,7 +519,7 @@ func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expressio
 }
 
 func (n *EvalValidateResource) validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	val, forEachDiags := evaluateForEachExpressionValue(expr, ctx)
+	val, forEachDiags := evaluateForEachExpressionValue(expr, ctx, true)
 	// If the value isn't known then that's the best we can do for now, but
 	// we'll check more thoroughly during the plan walk
 	if !val.IsKnown() {

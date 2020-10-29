@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -17,16 +18,9 @@ import (
 // returning an error if the count value is not known, and converting the
 // cty.Value to a map[string]cty.Value for compatibility with other calls.
 func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
-	forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
-	if !forEachVal.IsKnown() {
-		// Attach a diag as we do with count, with the same downsides
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid for_each argument",
-			Detail:   `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`,
-			Subject:  expr.Range().Ptr(),
-		})
-	}
+	forEachVal, diags := evaluateForEachExpressionValue(expr, ctx, false)
+	// forEachVal might be unknown, but if it is then there should already
+	// be an error about it in diags, which we'll return below.
 
 	if forEachVal.IsNull() || !forEachVal.IsKnown() || forEachVal.LengthInt() == 0 {
 		// we check length, because an empty set return a nil map
@@ -38,7 +32,7 @@ func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach ma
 
 // evaluateForEachExpressionValue is like evaluateForEachExpression
 // except that it returns a cty.Value map or set which can be unknown.
-func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	nullMap := cty.NullVal(cty.Map(cty.DynamicPseudoType))
 
@@ -46,14 +40,32 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 		return nullMap, diags
 	}
 
-	forEachVal, forEachDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+	refs, moreDiags := lang.ReferencesInExpr(expr)
+	diags = diags.Append(moreDiags)
+	scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+	var hclCtx *hcl.EvalContext
+	if scope != nil {
+		hclCtx, moreDiags = scope.EvalContext(refs)
+	} else {
+		// This shouldn't happen in real code, but it can unfortunately arise
+		// in unit tests due to incompletely-implemented mocks. :(
+		hclCtx = &hcl.EvalContext{}
+	}
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() { // Can't continue if we don't even have a valid scope
+		return nullMap, diags
+	}
+
+	forEachVal, forEachDiags := expr.Value(hclCtx)
 	diags = diags.Append(forEachDiags)
 	if forEachVal.ContainsMarked() {
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid for_each argument",
-			Detail:   "Sensitive variable, or values derived from sensitive variables, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
-			Subject:  expr.Range().Ptr(),
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid for_each argument",
+			Detail:      "Sensitive variable, or values derived from sensitive variables, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			Subject:     expr.Range().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
 		})
 	}
 	if diags.HasErrors() {
@@ -64,22 +76,36 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 	switch {
 	case forEachVal.IsNull():
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid for_each argument",
-			Detail:   `The given "for_each" argument value is unsuitable: the given "for_each" argument value is null. A map, or set of strings is allowed.`,
-			Subject:  expr.Range().Ptr(),
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid for_each argument",
+			Detail:      `The given "for_each" argument value is unsuitable: the given "for_each" argument value is null. A map, or set of strings is allowed.`,
+			Subject:     expr.Range().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
 		})
 		return nullMap, diags
 	case !forEachVal.IsKnown():
+		if !allowUnknown {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid for_each argument",
+				Detail:      errInvalidForEachUnknownDetail,
+				Subject:     expr.Range().Ptr(),
+				Expression:  expr,
+				EvalContext: hclCtx,
+			})
+		}
 		// ensure that we have a map, and not a DynamicValue
 		return cty.UnknownVal(cty.Map(cty.DynamicPseudoType)), diags
 
 	case !(ty.IsMapType() || ty.IsSetType() || ty.IsObjectType()):
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid for_each argument",
-			Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: the "for_each" argument must be a map, or set of strings, and you have provided a value of type %s.`, ty.FriendlyName()),
-			Subject:  expr.Range().Ptr(),
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid for_each argument",
+			Detail:      fmt.Sprintf(`The given "for_each" argument value is unsuitable: the "for_each" argument must be a map, or set of strings, and you have provided a value of type %s.`, ty.FriendlyName()),
+			Subject:     expr.Range().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
 		})
 		return nullMap, diags
 
@@ -94,15 +120,27 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 		// since we can't use a set values that are unknown, we treat the
 		// entire set as unknown
 		if !forEachVal.IsWhollyKnown() {
+			if !allowUnknown {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid for_each argument",
+					Detail:      errInvalidForEachUnknownDetail,
+					Subject:     expr.Range().Ptr(),
+					Expression:  expr,
+					EvalContext: hclCtx,
+				})
+			}
 			return cty.UnknownVal(ty), diags
 		}
 
 		if ty.ElementType() != cty.String {
 			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid for_each set argument",
-				Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" supports maps and sets of strings, but you have provided a set containing type %s.`, forEachVal.Type().ElementType().FriendlyName()),
-				Subject:  expr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid for_each set argument",
+				Detail:      fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" supports maps and sets of strings, but you have provided a set containing type %s.`, forEachVal.Type().ElementType().FriendlyName()),
+				Subject:     expr.Range().Ptr(),
+				Expression:  expr,
+				EvalContext: hclCtx,
 			})
 			return cty.NullVal(ty), diags
 		}
@@ -114,10 +152,12 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 			item, _ := it.Element()
 			if item.IsNull() {
 				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid for_each set argument",
-					Detail:   fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" sets must not contain null values.`),
-					Subject:  expr.Range().Ptr(),
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid for_each set argument",
+					Detail:      fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" sets must not contain null values.`),
+					Subject:     expr.Range().Ptr(),
+					Expression:  expr,
+					EvalContext: hclCtx,
 				})
 				return cty.NullVal(ty), diags
 			}
@@ -126,3 +166,5 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 
 	return forEachVal, nil
 }
+
+const errInvalidForEachUnknownDetail = `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`
