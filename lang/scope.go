@@ -6,6 +6,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/experiments"
 )
 
 // Scope is the main type in this package, allowing dynamic evaluation of
@@ -31,4 +32,16 @@ type Scope struct {
 
 	funcs     map[string]function.Function
 	funcsLock sync.Mutex
+
+	// activeExperiments is an optional set of experiments that should be
+	// considered as active in the module that this scope will be used for.
+	// Callers can populate it by calling the SetActiveExperiments method.
+	activeExperiments experiments.Set
+}
+
+// SetActiveExperiments allows a caller to declare that a set of experiments
+// is active for the module that the receiving Scope belongs to, which might
+// then cause the scope to activate some additional experimental behaviors.
+func (s *Scope) SetActiveExperiments(active experiments.Set) {
+	s.activeExperiments = active
 }

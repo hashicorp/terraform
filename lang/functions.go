@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 
+	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/lang/funcs"
 )
 
@@ -169,3 +170,32 @@ var unimplFunc = function.New(&function.Spec{
 		return cty.DynamicVal, fmt.Errorf("function not yet implemented")
 	},
 })
+
+// experimentalFunction checks whether the given experiment is enabled for
+// the recieving scope. If so, it will return the given function verbatim.
+// If not, it will return a placeholder function that just returns an
+// error explaining that the function requires the experiment to be enabled.
+func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn function.Function) function.Function {
+	if s.activeExperiments.Has(experiment) {
+		return fn
+	}
+
+	err := fmt.Errorf(
+		"this function is experimental and available only when the experiment keyword %s is enabled for the current module",
+		experiment.Keyword(),
+	)
+
+	return function.New(&function.Spec{
+		Params:   fn.Params(),
+		VarParam: fn.VarParam(),
+		Type: func(args []cty.Value) (cty.Type, error) {
+			return cty.DynamicPseudoType, err
+		},
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			// It would be weird to get here because the Type function always
+			// fails, but we'll return an error here too anyway just to be
+			// robust.
+			return cty.DynamicVal, err
+		},
+	})
+}
