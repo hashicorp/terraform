@@ -62,7 +62,7 @@ State snapshots are stored in JSON format and new Terraform versions are
 generally backward compatible with state snapshots produced by earlier versions.
 However, the state format is subject to change in new Terraform versions, so
 if you build software that parses or modifies it directly you should expect
-to perform ongoing maintenence of that software as the state format evolves
+to perform ongoing maintenance of that software as the state format evolves
 in new versions.
 
 Alternatively, there are several integration points which produce JSON output
