@@ -241,7 +241,7 @@ provider "mycorp_http" {
 }
 
 data "http" "example" {
-  provider = hashicorp_http
+  provider = hashicorp-http
   #...
 }
 ```
