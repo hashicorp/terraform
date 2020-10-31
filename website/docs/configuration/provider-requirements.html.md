@@ -236,12 +236,12 @@ terraform {
 
 # References to these providers elsewhere in the
 # module will use these compound local names.
-provider "mycorp_http" {
+provider "mycorp-http" {
   # ...
 }
 
 data "http" "example" {
-  provider = hashicorp_http
+  provider = hashicorp-http
   #...
 }
 ```
