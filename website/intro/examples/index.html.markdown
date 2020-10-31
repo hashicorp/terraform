@@ -45,6 +45,11 @@ cd terraform-provider-aws/examples/two-tier
 ```
 
 You can then use your preferred code editor to browse and read the configurations.
+
+Note that in this example, the connection block defaults to using a local SSH agent for authentication with the instance. 
+Therefore ensure that the appropriate private key has been added to the agent before running the below steps. 
+Alternatively, as can be seen in some of the other examples, the `private_key` argument can also be used. 
+
 To try out an example, run Terraform's init and apply commands while in the example's directory:
 
 ```
