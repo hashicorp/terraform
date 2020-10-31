@@ -189,7 +189,7 @@ terraform {
 
 # References to these providers elsewhere in the
 # module will use these compound local names.
-provider "mycorp_http" {
+provider "mycorp-http" {
   # ...
 }
 
