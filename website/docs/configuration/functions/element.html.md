@@ -19,7 +19,7 @@ element(list, index)
 ```
 
 The index is zero-based. This function produces an error if used with an
-empty list. The index must be non-negative integer.
+empty list. The index must be a non-negative integer.
 
 Use the built-in index syntax `list[index]` in most cases. Use this function
 only for the special additional "wrap-around" behavior described below.
