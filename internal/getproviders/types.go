@@ -407,7 +407,18 @@ func VersionConstraintsString(spec VersionConstraints) string {
 	// and sort them into a consistent order.
 	sels := make(map[constraints.SelectionSpec]struct{})
 	for _, sel := range spec {
-		sels[sel] = struct{}{}
+		// The parser allows writing abbreviated version (such as 2) which
+		// end up being represented in memory with trailing unconstrained parts
+		// (for example 2.*.*). For the purpose of serialization with Ruby
+		// style syntax, these unconstrained parts can all be represented as 0
+		// with no loss of meaning, so we make that conversion here. Doing so
+		// allows us to deduplicate equivalent constraints, such as >= 2.0 and
+		// >= 2.0.0.
+		normalizedSel := constraints.SelectionSpec{
+			Operator: sel.Operator,
+			Boundary: sel.Boundary.ConstrainToZero(),
+		}
+		sels[normalizedSel] = struct{}{}
 	}
 	selsOrder := make([]constraints.SelectionSpec, 0, len(sels))
 	for sel := range sels {
@@ -450,34 +461,26 @@ func VersionConstraintsString(spec VersionConstraints) string {
 			b.WriteString("??? ")
 		}
 
-		// The parser allows writing abbreviated version (such as 2) which
-		// end up being represented in memory with trailing unconstrained parts
-		// (for example 2.*.*). For the purpose of serialization with Ruby
-		// style syntax, these unconstrained parts can all be represented as 0
-		// with no loss of meaning, so we make that conversion here.
-		//
-		// This is possible because we use a different constraint operator to
-		// distinguish between the two types of pessimistic constraint:
-		// minor-only and patch-only. For minor-only constraints, we always
-		// want to display only the major and minor version components, so we
-		// special-case that operator below.
+		// We use a different constraint operator to distinguish between the
+		// two types of pessimistic constraint: minor-only and patch-only. For
+		// minor-only constraints, we always want to display only the major and
+		// minor version components, so we special-case that operator below.
 		//
 		// One final edge case is a minor-only constraint specified with only
 		// the major version, such as ~> 2. We treat this the same as ~> 2.0,
 		// because a major-only pessimistic constraint does not exist: it is
 		// logically identical to >= 2.0.0.
-		boundary := sel.Boundary.ConstrainToZero()
 		if sel.Operator == constraints.OpGreaterThanOrEqualMinorOnly {
 			// The minor-pessimistic syntax uses only two version components.
-			fmt.Fprintf(&b, "%s.%s", boundary.Major, boundary.Minor)
+			fmt.Fprintf(&b, "%s.%s", sel.Boundary.Major, sel.Boundary.Minor)
 		} else {
-			fmt.Fprintf(&b, "%s.%s.%s", boundary.Major, boundary.Minor, boundary.Patch)
+			fmt.Fprintf(&b, "%s.%s.%s", sel.Boundary.Major, sel.Boundary.Minor, sel.Boundary.Patch)
 		}
 		if sel.Boundary.Prerelease != "" {
-			b.WriteString("-" + boundary.Prerelease)
+			b.WriteString("-" + sel.Boundary.Prerelease)
 		}
 		if sel.Boundary.Metadata != "" {
-			b.WriteString("+" + boundary.Metadata)
+			b.WriteString("+" + sel.Boundary.Metadata)
 		}
 	}
 	return b.String()
