@@ -1,3 +1,7 @@
+module "submodule" {
+  source = "./submodule"
+}
+
 output "changed" {
   value = "after"
 }
