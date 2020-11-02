@@ -798,9 +798,6 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		planPath,
 	}
 	apply.Run(args)
-	if p.PrepareProviderConfigCalled {
-		t.Fatal("Prepare provider config should not be called with a plan")
-	}
 }
 
 func TestApply_refresh(t *testing.T) {

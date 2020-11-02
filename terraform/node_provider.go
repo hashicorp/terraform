@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeApplyableProvider represents a provider during an apply.
@@ -108,8 +109,29 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 		return diags
 	}
 
-	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
-	configDiags = configDiags.InConfigBody(configBody)
+	// Allow the provider to validate and insert any defaults into the full
+	// configuration.
+	req := providers.PrepareProviderConfigRequest{
+		Config: configVal,
+	}
 
-	return configDiags
+	// PrepareProviderConfig is only used for validation. We are intentionally
+	// ignoring the PreparedConfig field to maintain existing behavior.
+	prepareResp := provider.PrepareProviderConfig(req)
+	diags = diags.Append(prepareResp.Diagnostics)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// If the provider returns something different, log a warning to help
+	// indicate to provider developers that the value is not used.
+	preparedCfg := prepareResp.PreparedConfig
+	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(configVal) {
+		log.Printf("[WARN] PrepareProviderConfig from %q changed the config value, but that value is unused", n.Addr)
+	}
+
+	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
+	diags = diags.Append(configDiags.InConfigBody(configBody))
+
+	return diags
 }
