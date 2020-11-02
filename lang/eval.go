@@ -72,8 +72,13 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 
 // EvalSelfBlock evaluates the given body only within the scope of the provided
 // object and instance key data. References to the object must use self, and the
-// key data will only contain count.index or each.key.
+// key data will only contain count.index or each.key. The static values for
+// terraform and path will also be available in this context.
 func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschema.Block, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	spec := schema.DecoderSpec()
+
 	vals := make(map[string]cty.Value)
 	vals["self"] = self
 
@@ -88,12 +93,55 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 		})
 	}
 
+	refs, refDiags := References(hcldec.Variables(body, spec))
+	diags = diags.Append(refDiags)
+
+	terraformAttrs := map[string]cty.Value{}
+	pathAttrs := map[string]cty.Value{}
+
+	// We could always load the static values for Path and Terraform values,
+	// but we want to parse the references so that we can get source ranges for
+	// user diagnostics.
+	for _, ref := range refs {
+		// we already loaded the self value
+		if ref.Subject == addrs.Self {
+			continue
+		}
+
+		switch subj := ref.Subject.(type) {
+		case addrs.PathAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetPathAttr(subj, ref.SourceRange))
+			diags = diags.Append(valDiags)
+			pathAttrs[subj.Name] = val
+
+		case addrs.TerraformAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, ref.SourceRange))
+			diags = diags.Append(valDiags)
+			terraformAttrs[subj.Name] = val
+
+		case addrs.CountAttr, addrs.ForEachAttr:
+			// each and count have already been handled.
+
+		default:
+			// This should have been caught in validation, but point the user
+			// to the correct location in case something slipped through.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid reference`,
+				Detail:   fmt.Sprintf("The reference to %q is not valid in this context", ref.Subject),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
+	vals["path"] = cty.ObjectVal(pathAttrs)
+	vals["terraform"] = cty.ObjectVal(terraformAttrs)
+
 	ctx := &hcl.EvalContext{
 		Variables: vals,
 		Functions: s.Functions(),
 	}
 
-	var diags tfdiags.Diagnostics
 	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
 	diags = diags.Append(decDiags)
 	return val, diags

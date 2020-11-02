@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -641,4 +642,129 @@ func formattedJSONValue(val cty.Value) string {
 	var buf bytes.Buffer
 	json.Indent(&buf, j, "", "  ")
 	return buf.String()
+}
+
+func TestScopeEvalSelfBlock(t *testing.T) {
+	data := &dataForTests{
+		PathAttrs: map[string]cty.Value{
+			"module": cty.StringVal("foo/bar"),
+			"cwd":    cty.StringVal("/home/foo/bar"),
+			"root":   cty.StringVal("/home/foo"),
+		},
+		TerraformAttrs: map[string]cty.Value{
+			"workspace": cty.StringVal("default"),
+		},
+	}
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"attr": {
+				Type: cty.String,
+			},
+			"num": {
+				Type: cty.Number,
+			},
+		},
+	}
+
+	tests := []struct {
+		Config  string
+		Self    cty.Value
+		KeyData instances.RepetitionData
+		Want    map[string]cty.Value
+	}{
+		{
+			Config: `attr = self.foo`,
+			Self: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+			KeyData: instances.RepetitionData{
+				CountIndex: cty.NumberIntVal(0),
+			},
+			Want: map[string]cty.Value{
+				"attr": cty.StringVal("bar"),
+				"num":  cty.NullVal(cty.Number),
+			},
+		},
+		{
+			Config: `num = count.index`,
+			KeyData: instances.RepetitionData{
+				CountIndex: cty.NumberIntVal(0),
+			},
+			Want: map[string]cty.Value{
+				"attr": cty.NullVal(cty.String),
+				"num":  cty.NumberIntVal(0),
+			},
+		},
+		{
+			Config: `attr = each.key`,
+			KeyData: instances.RepetitionData{
+				EachKey: cty.StringVal("a"),
+			},
+			Want: map[string]cty.Value{
+				"attr": cty.StringVal("a"),
+				"num":  cty.NullVal(cty.Number),
+			},
+		},
+		{
+			Config: `attr = path.cwd`,
+			Want: map[string]cty.Value{
+				"attr": cty.StringVal("/home/foo/bar"),
+				"num":  cty.NullVal(cty.Number),
+			},
+		},
+		{
+			Config: `attr = path.module`,
+			Want: map[string]cty.Value{
+				"attr": cty.StringVal("foo/bar"),
+				"num":  cty.NullVal(cty.Number),
+			},
+		},
+		{
+			Config: `attr = path.root`,
+			Want: map[string]cty.Value{
+				"attr": cty.StringVal("/home/foo"),
+				"num":  cty.NullVal(cty.Number),
+			},
+		},
+		{
+			Config: `attr = terraform.workspace`,
+			Want: map[string]cty.Value{
+				"attr": cty.StringVal("default"),
+				"num":  cty.NullVal(cty.Number),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Config, func(t *testing.T) {
+			file, parseDiags := hclsyntax.ParseConfig([]byte(test.Config), "", hcl.Pos{Line: 1, Column: 1})
+			if len(parseDiags) != 0 {
+				t.Errorf("unexpected diagnostics during parse")
+				for _, diag := range parseDiags {
+					t.Errorf("- %s", diag)
+				}
+				return
+			}
+
+			body := file.Body
+
+			scope := &Scope{
+				Data: data,
+			}
+
+			gotVal, ctxDiags := scope.EvalSelfBlock(body, test.Self, schema, test.KeyData)
+			if ctxDiags.HasErrors() {
+				t.Fatal(ctxDiags.Err())
+			}
+
+			wantVal := cty.ObjectVal(test.Want)
+
+			if !gotVal.RawEquals(wantVal) {
+				t.Errorf(
+					"wrong result\nexpr: %s\ngot:  %#v\nwant: %#v",
+					test.Config, gotVal, wantVal,
+				)
+			}
+		})
+	}
 }
