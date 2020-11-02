@@ -314,8 +314,18 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Sc
 
 	// If there is at least one planned change to the root module outputs
 	// then we'll render a summary of those too.
-	if len(plan.Changes.Outputs) > 0 {
-		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(plan.Changes.Outputs, colorize)))
+	var changedRootModuleOutputs []*plans.OutputChangeSrc
+	for _, output := range plan.Changes.Outputs {
+		if !output.Addr.Module.IsRoot() {
+			continue
+		}
+		if output.ChangeSrc.Action == plans.NoOp {
+			continue
+		}
+		changedRootModuleOutputs = append(changedRootModuleOutputs, output)
+	}
+	if len(changedRootModuleOutputs) > 0 {
+		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(changedRootModuleOutputs, colorize)))
 	}
 }
 
