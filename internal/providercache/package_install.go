@@ -126,7 +126,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 
 	filename := meta.Location.String()
 
-	err := unzip.Decompress(targetDir, filename, true)
+	err := unzip.Decompress(targetDir, filename, true, 0000)
 	if err != nil {
 		return authResult, err
 	}
