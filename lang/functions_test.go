@@ -224,7 +224,7 @@ func TestFunctions(t *testing.T) {
 
 		"coalescelist": {
 			{
-				`coalescelist(list("a", "b"), list("c", "d"))`,
+				`coalescelist(tolist(["a", "b"]), tolist(["c", "d"]))`,
 				cty.ListVal([]cty.Value{
 					cty.StringVal("a"),
 					cty.StringVal("b"),
@@ -512,12 +512,8 @@ func TestFunctions(t *testing.T) {
 		},
 
 		"list": {
-			{
-				`list("hello")`,
-				cty.ListVal([]cty.Value{
-					cty.StringVal("hello"),
-				}),
-			},
+			// There are intentionally no test cases for "list" because
+			// it is a stub that always returns an error.
 		},
 
 		"log": {
@@ -542,12 +538,8 @@ func TestFunctions(t *testing.T) {
 		},
 
 		"map": {
-			{
-				`map("hello", "world")`,
-				cty.MapVal(map[string]cty.Value{
-					"hello": cty.StringVal("world"),
-				}),
-			},
+			// There are intentionally no test cases for "map" because
+			// it is a stub that always returns an error.
 		},
 
 		"matchkeys": {
@@ -759,7 +751,7 @@ func TestFunctions(t *testing.T) {
 		"slice": {
 			{
 				// force a list type here for testing
-				`slice(list("a", "b", "c", "d"), 1, 3)`,
+				`slice(tolist(["a", "b", "c", "d"]), 1, 3)`,
 				cty.ListVal([]cty.Value{
 					cty.StringVal("b"), cty.StringVal("c"),
 				}),
