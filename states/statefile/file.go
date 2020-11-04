@@ -1,6 +1,8 @@
 package statefile
 
 import (
+	"fmt"
+
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/states"
@@ -59,4 +61,16 @@ func (f *File) DeepCopy() *File {
 		Lineage:          f.Lineage,
 		State:            f.State.DeepCopy(),
 	}
+}
+
+func (f *File) CheckTerraformVersion() error {
+	if f.TerraformVersion != nil && f.TerraformVersion.GreaterThan(tfversion.SemVer) {
+		return fmt.Errorf(
+			"state snapshot was created by Terraform v%s, which is newer than current v%s; upgrade to Terraform v%s or greater to work with this state",
+			f.TerraformVersion,
+			tfversion.SemVer,
+			f.TerraformVersion,
+		)
+	}
+	return nil
 }

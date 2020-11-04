@@ -23,6 +23,10 @@ func (s *LockDisabled) RefreshState() error {
 	return s.Inner.RefreshState()
 }
 
+func (s *LockDisabled) RefreshStateWithoutCheckVersion() error {
+	return s.Inner.RefreshStateWithoutCheckVersion()
+}
+
 func (s *LockDisabled) PersistState() error {
 	return s.Inner.PersistState()
 }

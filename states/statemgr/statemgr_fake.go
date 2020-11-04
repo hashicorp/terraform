@@ -61,6 +61,10 @@ func (m *fakeFull) RefreshState() error {
 	return m.t.WriteState(m.fakeP.State())
 }
 
+func (m *fakeFull) RefreshStateWithoutCheckVersion() error {
+	return m.t.WriteState(m.fakeP.State())
+}
+
 func (m *fakeFull) PersistState() error {
 	return m.fakeP.WriteState(m.t.State())
 }
@@ -116,6 +120,10 @@ func (m *fakeErrorFull) WriteState(s *states.State) error {
 }
 
 func (m *fakeErrorFull) RefreshState() error {
+	return errors.New("fake state manager error")
+}
+
+func (m *fakeErrorFull) RefreshStateWithoutCheckVersion() error {
 	return errors.New("fake state manager error")
 }
 

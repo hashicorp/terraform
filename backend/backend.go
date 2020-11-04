@@ -103,6 +103,18 @@ type Backend interface {
 	// PersistState is called, depending on the state manager implementation.
 	StateMgr(workspace string) (statemgr.Full, error)
 
+	// StateMgrWithoutCheckVersion returns the state manager for the given
+	// workspace name, while ensuring that Terraform version checks are not
+	// performed if the backend needs to read a state file in order to
+	// initialize the state manager.
+	//
+	// For backends which do not need to read a state file at this point, this
+	// is identical to StateMgr.
+	//
+	// This is used to facilitate reading compatible state files from newer
+	// versions of Terraform.
+	StateMgrWithoutCheckVersion(workspace string) (statemgr.Full, error)
+
 	// DeleteWorkspace removes the workspace with the given name if it exists.
 	//
 	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
