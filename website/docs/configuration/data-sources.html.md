@@ -133,7 +133,7 @@ own variant of the constraint arguments, producing an indexed result.
 
 ## Selecting a Non-default Provider Configuration
 
-Data resources support [the `providers` meta-argument](./resources.html#provider-selecting-a-non-default-provider-configuration)
+Data resources support [the `provider` meta-argument](./resources.html#provider-selecting-a-non-default-provider-configuration)
 as defined for managed resources, with the same syntax and behavior.
 
 ## Lifecycle Customizations
