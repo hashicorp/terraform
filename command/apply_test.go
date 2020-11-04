@@ -661,6 +661,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 		"unlock_address":         cty.NullVal(cty.String),
 		"lock_method":            cty.NullVal(cty.String),
 		"unlock_method":          cty.NullVal(cty.String),
+		"locking":                cty.NullVal(cty.Bool),
 		"username":               cty.NullVal(cty.String),
 		"password":               cty.NullVal(cty.String),
 		"skip_cert_verification": cty.NullVal(cty.Bool),
