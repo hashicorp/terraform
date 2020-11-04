@@ -57,7 +57,8 @@ BUG FIXES:
 * backend/consul: Fix bug which prevented state locking when path has trailing `/` ([#25842](https://github.com/hashicorp/terraform/issues/25842))
 * backend/pg: Always have the default workspace in the pg backend ([#26420](https://github.com/hashicorp/terraform/pull/26420))
 * backend/pg: Properly quote schema_name in the pg backend configuration ([#26476](https://github.com/hashicorp/terraform/issues/26476))
-* build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249)
+* build: Fix crash with terraform binary on OpenBSD. ([#26249](https://github.com/hashicorp/terraform/issues/26249))
+* internal: Use default AWS credential handling when fetching modules ([#26762](https://github.com/hashicorp/terraform/pull/26762))
 
 EXPERIMENTS:
 
