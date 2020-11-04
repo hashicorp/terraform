@@ -78,6 +78,11 @@ func TestContext2Plan_basic(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 	}
+
+	if !p.PrepareProviderConfigCalled {
+		t.Fatal("provider config was not checked before Configure")
+	}
+
 }
 
 func TestContext2Plan_createBefore_deposed(t *testing.T) {

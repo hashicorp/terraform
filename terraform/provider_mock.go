@@ -133,6 +133,7 @@ func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 	if p.PrepareProviderConfigFn != nil {
 		return p.PrepareProviderConfigFn(r)
 	}
+	p.PrepareProviderConfigResponse.PreparedConfig = r.Config
 	return p.PrepareProviderConfigResponse
 }
 
