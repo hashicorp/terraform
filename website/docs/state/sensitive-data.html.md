@@ -9,7 +9,7 @@ description: |-
 # Sensitive Data in State
 
 Terraform state can contain sensitive data, depending on the resources in use
-and your definition of "sensitive." The state contains resource IDs and all
+and your definition of "sensitive". The state contains resource IDs and all
 resource attributes. For resources such as databases, this may contain initial
 passwords.
 
