@@ -5,7 +5,7 @@ resource "aws_instance" "one" {
 }
 
 locals {
-  one_id = element(concat(aws_instance.one.*.id, list("")), 0)
+  one_id = element(concat(aws_instance.one.*.id, [""]), 0)
 }
 
 resource "aws_instance" "two" {

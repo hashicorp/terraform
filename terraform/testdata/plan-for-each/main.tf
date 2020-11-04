@@ -13,7 +13,7 @@ resource "aws_instance" "bar" {
     for_each = toset([])
 }
 resource "aws_instance" "bar2" {
-    for_each = toset(list("z", "y", "x"))
+    for_each = toset(["z", "y", "x"])
 }
 
 # an empty map should generate no resource
