@@ -1,5 +1,9 @@
 ## 0.13.6 (Unreleased)
 
+UPGRADE NOTES:
+
+* The builtin provider's `terraform_remote_state` data source no longer enforces Terraform version checks on the remote state file. This allows Terraform 0.13.6 to access remote state from future Terraform versions, up until a future incompatible state file version upgrade is required. [GH-26692]
+
 ## 0.13.5 (October 21, 2020)
 
 BUG FIXES:
