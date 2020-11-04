@@ -252,10 +252,6 @@ type EvalValidateResource struct {
 	Config         *configs.Resource
 	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 
-	// IgnoreWarnings means that warnings will not be passed through. This allows
-	// "just-in-time" passes of validation to continue execution through warnings.
-	IgnoreWarnings bool
-
 	// ConfigVal, if non-nil, will be updated with the value resulting from
 	// evaluating the given configuration body. Since validation is performed
 	// very early, this value is likely to contain lots of unknown values,
@@ -264,12 +260,14 @@ type EvalValidateResource struct {
 	ConfigVal *cty.Value
 }
 
-func (n *EvalValidateResource) Validate(ctx EvalContext) error {
-	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr)
+func (n *EvalValidateResource) Validate(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if *n.ProviderSchema == nil {
+		diags = diags.Append(fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr))
+		return diags
 	}
 
-	var diags tfdiags.Diagnostics
 	provider := *n.Provider
 	cfg := *n.Config
 	schema := *n.ProviderSchema
@@ -351,13 +349,13 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.", cfg.ProviderConfigAddr(), cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
-			return diags.Err()
+			return diags
 		}
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
@@ -394,13 +392,13 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 				Detail:   fmt.Sprintf("The provider %s does not support data source %q.", cfg.ProviderConfigAddr(), cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
-			return diags.Err()
+			return diags
 		}
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		req := providers.ValidateDataSourceConfigRequest{
@@ -412,17 +410,7 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 		diags = diags.Append(resp.Diagnostics.InConfigBody(cfg.Config))
 	}
 
-	if n.IgnoreWarnings {
-		// If we _only_ have warnings then we'll return nil.
-		if diags.HasErrors() {
-			return diags.NonFatalErr()
-		}
-		return nil
-	} else {
-		// We'll return an error if there are any diagnostics at all, even if
-		// some of them are warnings.
-		return diags.NonFatalErr()
-	}
+	return diags
 }
 
 func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expression) tfdiags.Diagnostics {
