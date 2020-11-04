@@ -48,6 +48,9 @@ The following configuration options / environment variables are supported:
  * `address` / `TF_HTTP_ADDRESS` - (Required) The address of the REST endpoint
  * `update_method` / `TF_HTTP_UPDATE_METHOD` - (Optional) HTTP method to use
    when updating state. Defaults to `POST`.
+ * `locking` / `TF_HTTP_LOCKING` - (Optional) Wether to enable locking use on
+   the REST endpoint. Defaults to `false`. Overriden by setting `lock_address`
+   and `unlock_address`.
  * `lock_address` / `TF_HTTP_LOCK_ADDRESS` - (Optional) The address of the lock
    REST endpoint. Defaults to disabled.
  * `lock_method` / `TF_HTTP_LOCK_METHOD` - (Optional) The HTTP method to use
