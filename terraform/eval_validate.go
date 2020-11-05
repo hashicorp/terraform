@@ -252,10 +252,6 @@ type EvalValidateResource struct {
 	Config         *configs.Resource
 	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 
-	// IgnoreWarnings means that warnings will not be passed through. This allows
-	// "just-in-time" passes of validation to continue execution through warnings.
-	IgnoreWarnings bool
-
 	// ConfigVal, if non-nil, will be updated with the value resulting from
 	// evaluating the given configuration body. Since validation is performed
 	// very early, this value is likely to contain lots of unknown values,
@@ -264,12 +260,14 @@ type EvalValidateResource struct {
 	ConfigVal *cty.Value
 }
 
-func (n *EvalValidateResource) Validate(ctx EvalContext) error {
-	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
-		return fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr)
+func (n *EvalValidateResource) Validate(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if *n.ProviderSchema == nil {
+		diags = diags.Append(fmt.Errorf("EvalValidateResource has nil schema for %s", n.Addr))
+		return diags
 	}
 
-	var diags tfdiags.Diagnostics
 	provider := *n.Provider
 	cfg := *n.Config
 	schema := *n.ProviderSchema
@@ -351,50 +349,25 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.", cfg.ProviderConfigAddr(), cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
-			return diags.Err()
+			return diags
 		}
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		if cfg.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range cfg.Managed.IgnoreChanges {
-				// This will error out if the traversal contains an invalid
-				// index step. That is OK if we want users to be able to ignore
-				// a key that is no longer specified in the config.
+				// validate the ignore_changes traversals apply.
 				moreDiags := schema.StaticValidateTraversal(traversal)
 				diags = diags.Append(moreDiags)
-				if diags.HasErrors() {
-					continue
-				}
 
-				// first check to see if this assigned in the config
-				v, _ := traversal.TraverseRel(configVal)
-				if !v.IsNull() {
-					// it's assigned, so we can also assume it's not computed-only
-					continue
-				}
-
-				// We can't ignore changes that don't exist in the configuration.
-				// We're not checking specifically if the traversal resolves to
-				// a computed-only value, but we can hint to the user that it
-				// might also be the case.
-				sourceRange := traversal.SourceRange()
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cannot ignore argument not set in the configuration",
-					Detail: fmt.Sprintf("The ignore_changes argument is not set in the configuration.\n" +
-						"The ignore_changes mechanism only applies to changes " +
-						"within the configuration, and must be used with " +
-						"arguments set in the configuration and not computed by " +
-						"the provider.",
-					),
-					Subject: &sourceRange,
-				})
-				return diags.Err()
+				// TODO: we want to notify users that they can't use
+				// ignore_changes for computed attributes, but we don't have an
+				// easy way to correlate the config value, schema and
+				// traversal together.
 			}
 		}
 
@@ -419,13 +392,13 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 				Detail:   fmt.Sprintf("The provider %s does not support data source %q.", cfg.ProviderConfigAddr(), cfg.Type),
 				Subject:  &cfg.TypeRange,
 			})
-			return diags.Err()
+			return diags
 		}
 
 		configVal, _, valDiags := ctx.EvaluateBlock(cfg.Config, schema, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		req := providers.ValidateDataSourceConfigRequest{
@@ -437,17 +410,7 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 		diags = diags.Append(resp.Diagnostics.InConfigBody(cfg.Config))
 	}
 
-	if n.IgnoreWarnings {
-		// If we _only_ have warnings then we'll return nil.
-		if diags.HasErrors() {
-			return diags.NonFatalErr()
-		}
-		return nil
-	} else {
-		// We'll return an error if there are any diagnostics at all, even if
-		// some of them are warnings.
-		return diags.NonFatalErr()
-	}
+	return diags
 }
 
 func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expression) tfdiags.Diagnostics {

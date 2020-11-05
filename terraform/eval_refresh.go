@@ -127,6 +127,8 @@ func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
 
 	// We have no way to exempt provider using the legacy SDK from this check,
 	// so we can only log inconsistencies with the updated state values.
+	// In most cases these are not errors anyway, and represent "drift" from
+	// external changes which will be handled by the subsequent plan.
 	if errs := objchange.AssertObjectCompatible(schema, priorVal, resp.NewState); len(errs) > 0 {
 		var buf strings.Builder
 		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ProviderAddr.Provider.String(), absAddr)

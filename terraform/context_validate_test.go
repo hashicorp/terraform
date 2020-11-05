@@ -1752,50 +1752,6 @@ output "out" {
 	}
 }
 
-func TestContext2Validate_invalidIgnoreChanges(t *testing.T) {
-	// validate module and output depends_on
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-resource "test_instance" "a" {
-  lifecycle {
-    ignore_changes = [foo]
-  }
-}
-
-`,
-	})
-
-	p := testProvider("test")
-	p.GetSchemaReturn = &ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
-			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Computed: true},
-					"foo": {Type: cty.String, Computed: true, Optional: true},
-				},
-			},
-		},
-	}
-
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-	diags := ctx.Validate()
-	if !diags.HasErrors() {
-		t.Fatal("succeeded; want errors")
-	}
-
-	for _, d := range diags {
-		des := d.Description().Summary
-		if !strings.Contains(des, "Cannot ignore") {
-			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
-		}
-	}
-}
-
 func TestContext2Validate_rpcDiagnostics(t *testing.T) {
 	// validate module and output depends_on
 	m := testModuleInline(t, map[string]string{

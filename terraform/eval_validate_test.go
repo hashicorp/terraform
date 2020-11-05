@@ -238,45 +238,6 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	}
 }
 
-func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
-	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.SimpleWarning("warn"))
-		return providers.ValidateResourceTypeConfigResponse{
-			Diagnostics: diags,
-		}
-	}
-
-	p := providers.Interface(mp)
-	rc := &configs.Resource{
-		Mode:   addrs.ManagedResourceMode,
-		Type:   "test_object",
-		Name:   "foo",
-		Config: configs.SynthBody("", map[string]cty.Value{}),
-	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test-object",
-			Name: "foo",
-		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
-
-		IgnoreWarnings: true,
-	}
-
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	err := node.Validate(ctx)
-	if err != nil {
-		t.Fatalf("Expected no error, got: %s", err)
-	}
-}
-
 func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
@@ -323,9 +284,9 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	err := node.Validate(ctx)
-	if err != nil {
-		t.Fatalf("error for supposedly-valid config: %s", err)
+	diags := node.Validate(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("error for supposedly-valid config: %s", diags.ErrWithWarnings())
 	}
 
 	// Now we'll make it invalid by adding additional traversal steps at
@@ -344,11 +305,11 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	err = node.Validate(ctx)
-	if err == nil {
+	diags = node.Validate(ctx)
+	if !diags.HasErrors() {
 		t.Fatal("no error for invalid depends_on")
 	}
-	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
 	}
 
@@ -360,11 +321,11 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	err = node.Validate(ctx)
-	if err == nil {
+	diags = node.Validate(ctx)
+	if !diags.HasErrors() {
 		t.Fatal("no error for invalid depends_on")
 	}
-	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
 	}
 }
