@@ -6,7 +6,9 @@ NEW FEATURES:
 * `terraform init` will now generate a lock file in the configuration directory which you can check in to your version control so that Terraform can make the same version selections in future. ([#26524](https://github.com/hashicorp/terraform/issues/26524))
 
     If you wish to retain the previous behavior of always taking the newest version allowed by the version constraints on each install, you can run `terraform init -upgrade` to see that behavior.
-    
+
+* Terraform will now support reading and writing all compatible state files, even from future versions of Terraform. This means that users of Terraform 0.14.0 will be able to share state files with future Terraform versions until a new state file format version is needed. We have no plans to change the state file format at this time. [GH-26752]
+
 UPGRADE NOTES:
 * Outputs that reference sensitive values (which includes variables marked as sensitive, other module outputs marked as `sensitive`, or attributes a provider defines as `sensitive` if the `provider_sensitive_attrs` experiment is activated) must _also_ be defined as sensitive, or Terraform will error at plan.
 * The `version` argument inside provider configuration blocks has been documented as deprecated since Terraform 0.12. As of 0.14 it will now also generate an explicit deprecation warning. To avoid the warning, use [provider requirements](https://www.terraform.io/docs/configuration/provider-requirements.html) declarations instead. ([#26135](https://github.com/hashicorp/terraform/issues/26135))
