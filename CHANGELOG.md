@@ -2,8 +2,9 @@
 
 UPGRADE NOTES:
 
-* backend/atlas: the `atlas` backend, which was deprecated in v0.12, has been removed. [GH-26651]
-* cli: Interrupting execution will now cause terraform to exit with a non-0 status [GH-26738]
+* config: The `list` and `map` functions, both of which were deprecated since Terraform v0.12, are now removed. You can replace uses of these functions with `tolist([...])` and `tomap({...})` respectively. [GH-26818]
+* cli: Interrupting execution will now cause terraform to exit with a non-0 status. [GH-26738]
+* backend/atlas: the `atlas` backend, which was deprecated since v0.12, has been removed. [GH-26651]
 
 ENHANCEMENTS:
 
