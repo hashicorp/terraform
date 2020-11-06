@@ -27,9 +27,8 @@ type Backend struct {
 	storageClient  *storage.Client
 	storageContext context.Context
 
-	bucketName       string
-	prefix           string
-	defaultStateFile string
+	bucketName string
+	prefix     string
 
 	encryptionKey []byte
 }
@@ -43,13 +42,6 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the Google Cloud Storage bucket",
-			},
-
-			"path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Path of the default state file",
-				Deprecated:  "Use the \"prefix\" option instead",
 			},
 
 			"prefix": {
@@ -136,8 +128,6 @@ func (b *Backend) configure(ctx context.Context) error {
 	if b.prefix != "" && !strings.HasSuffix(b.prefix, "/") {
 		b.prefix = b.prefix + "/"
 	}
-
-	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
 
 	var opts []option.ClientOption
 
