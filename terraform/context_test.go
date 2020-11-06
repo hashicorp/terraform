@@ -15,10 +15,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
@@ -112,6 +114,181 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			})
 			if diags.HasErrors() != tc.Err {
 				t.Fatalf("err: %s", diags.Err())
+			}
+		})
+	}
+}
+
+func TestNewContext_lockedDependencies(t *testing.T) {
+	configBeepGreaterThanOne := `
+terraform {
+  required_providers {
+    beep = {
+      source  = "example.com/foo/beep"
+      version = ">= 1.0.0"
+    }
+  }
+}
+`
+	configBeepLessThanOne := `
+terraform {
+  required_providers {
+    beep = {
+      source  = "example.com/foo/beep"
+      version = "< 1.0.0"
+    }
+  }
+}
+`
+	configBuiltin := `
+terraform {
+  required_providers {
+    terraform = {
+      source = "terraform.io/builtin/terraform"
+	}
+  }
+}
+`
+	locksBeepGreaterThanOne := `
+provider "example.com/foo/beep" {
+	version     = "1.0.0"
+	constraints = ">= 1.0.0"
+	hashes = [
+		"h1:does-not-match",
+	]
+}
+`
+	configBeepBoop := `
+terraform {
+  required_providers {
+    beep = {
+      source  = "example.com/foo/beep"
+      version = "< 1.0.0" # different from locks
+    }
+    boop = {
+      source  = "example.com/foo/boop"
+      version = ">= 2.0.0"
+    }
+  }
+}
+`
+	locksBeepBoop := `
+provider "example.com/foo/beep" {
+	version     = "1.0.0"
+	constraints = ">= 1.0.0"
+	hashes = [
+		"h1:does-not-match",
+	]
+}
+provider "example.com/foo/boop" {
+	version     = "2.3.4"
+	constraints = ">= 2.0.0"
+	hashes = [
+		"h1:does-not-match",
+	]
+}
+`
+	beepAddr := addrs.MustParseProviderSourceString("example.com/foo/beep")
+	boopAddr := addrs.MustParseProviderSourceString("example.com/foo/boop")
+
+	testCases := map[string]struct {
+		Config       string
+		LockFile     string
+		DevProviders []addrs.Provider
+		WantErr      string
+	}{
+		"dependencies met": {
+			Config:   configBeepGreaterThanOne,
+			LockFile: locksBeepGreaterThanOne,
+		},
+		"no locks given": {
+			Config: configBeepGreaterThanOne,
+		},
+		"builtin provider with empty locks": {
+			Config:   configBuiltin,
+			LockFile: `# This file is maintained automatically by "terraform init".`,
+		},
+		"multiple providers, one in development": {
+			Config:       configBeepBoop,
+			LockFile:     locksBeepBoop,
+			DevProviders: []addrs.Provider{beepAddr},
+		},
+		"development provider with empty locks": {
+			Config:       configBeepGreaterThanOne,
+			LockFile:     `# This file is maintained automatically by "terraform init".`,
+			DevProviders: []addrs.Provider{beepAddr},
+		},
+		"multiple providers, one in development, one missing": {
+			Config:       configBeepBoop,
+			LockFile:     locksBeepGreaterThanOne,
+			DevProviders: []addrs.Provider{beepAddr},
+			WantErr: `Provider requirements cannot be satisfied by locked dependencies: The following required providers are not installed:
+
+- example.com/foo/boop (>= 2.0.0)
+
+Please run "terraform init".`,
+		},
+		"wrong provider version": {
+			Config:   configBeepLessThanOne,
+			LockFile: locksBeepGreaterThanOne,
+			WantErr: `Provider requirements cannot be satisfied by locked dependencies: The following required providers are not installed:
+
+- example.com/foo/beep (< 1.0.0)
+
+Please run "terraform init".`,
+		},
+		"empty locks": {
+			Config:   configBeepGreaterThanOne,
+			LockFile: `# This file is maintained automatically by "terraform init".`,
+			WantErr: `Provider requirements cannot be satisfied by locked dependencies: The following required providers are not installed:
+
+- example.com/foo/beep (>= 1.0.0)
+
+Please run "terraform init".`,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			var locks *depsfile.Locks
+			if tc.LockFile != "" {
+				var diags tfdiags.Diagnostics
+				locks, diags = depsfile.LoadLocksFromBytes([]byte(tc.LockFile), "test.lock.hcl")
+				if len(diags) > 0 {
+					t.Fatalf("unexpected error loading locks file: %s", diags.Err())
+				}
+			}
+			devProviders := make(map[addrs.Provider]struct{})
+			for _, provider := range tc.DevProviders {
+				devProviders[provider] = struct{}{}
+			}
+			opts := &ContextOpts{
+				Config: testModuleInline(t, map[string]string{
+					"main.tf": tc.Config,
+				}),
+				LockedDependencies:     locks,
+				ProvidersInDevelopment: devProviders,
+				Providers: map[addrs.Provider]providers.Factory{
+					beepAddr:                              testProviderFuncFixed(testProvider("beep")),
+					boopAddr:                              testProviderFuncFixed(testProvider("boop")),
+					addrs.NewBuiltInProvider("terraform"): testProviderFuncFixed(testProvider("terraform")),
+				},
+			}
+
+			ctx, diags := NewContext(opts)
+			if tc.WantErr != "" {
+				if len(diags) == 0 {
+					t.Fatal("expected diags but none returned")
+				}
+				if got, want := diags.Err().Error(), tc.WantErr; got != want {
+					t.Errorf("wrong diags\n got: %s\nwant: %s", got, want)
+				}
+			} else {
+				if len(diags) > 0 {
+					t.Errorf("unexpected diags: %s", diags.Err())
+				}
+				if ctx == nil {
+					t.Error("ctx is nil")
+				}
 			}
 		})
 	}
