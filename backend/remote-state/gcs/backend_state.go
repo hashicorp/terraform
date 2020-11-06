@@ -146,15 +146,9 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 }
 
 func (b *Backend) stateFile(name string) string {
-	if name == backend.DefaultStateName && b.defaultStateFile != "" {
-		return b.defaultStateFile
-	}
 	return path.Join(b.prefix, name+stateFileSuffix)
 }
 
 func (b *Backend) lockFile(name string) string {
-	if name == backend.DefaultStateName && b.defaultStateFile != "" {
-		return strings.TrimSuffix(b.defaultStateFile, stateFileSuffix) + lockFileSuffix
-	}
 	return path.Join(b.prefix, name+lockFileSuffix)
 }
