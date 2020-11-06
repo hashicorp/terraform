@@ -101,8 +101,6 @@ The following configuration options are supported:
    `credentials` field.
  *  `prefix` - (Optional) GCS prefix inside the bucket. Named states for
     workspaces are stored in an object called `<prefix>/<name>.tfstate`.
- *  `path` - (Deprecated) GCS path to the state file of the default state. For
-    backwards compatibility only, use `prefix` instead.
  *  `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64
     encoded 'customer supplied encryption key' used to encrypt all state. For
     more information see [Customer Supplied Encryption

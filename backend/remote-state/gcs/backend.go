@@ -45,13 +45,6 @@ func New() backend.Backend {
 				Description: "The name of the Google Cloud Storage bucket",
 			},
 
-			"path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Path of the default state file",
-				Deprecated:  "Use the \"prefix\" option instead",
-			},
-
 			"prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
