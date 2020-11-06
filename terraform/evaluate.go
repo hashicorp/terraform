@@ -260,6 +260,10 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
 	if d.Operation == walkValidate {
+		// Ensure variable sensitivity is captured in the validate walk
+		if config.Sensitive {
+			return cty.UnknownVal(wantType).Mark("sensitive"), diags
+		}
 		return cty.UnknownVal(wantType), diags
 	}
 
