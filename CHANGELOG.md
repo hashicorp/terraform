@@ -33,6 +33,7 @@ ENHANCEMENTS:
 * `terraform init`'s provider installation step will now abort promptly if Terraform receives an interrupt signal. ([#26405](https://github.com/hashicorp/terraform/issues/26405))
 * cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. ([#26087](https://github.com/hashicorp/terraform/issues/26087))
 * cli: help text is been reorganized to emphasize the main commands and improve consistency ([#26695](https://github.com/hashicorp/terraform/issues/26695))
+* cli: Ensure that provider requirements are met by the locked dependencies for every command. This will help catch errors if the configuration has changed since the last run of `terraform init`. [GH-26761]
 * core: When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI ([#26611](https://github.com/hashicorp/terraform/issues/26611))
 * core: `terraform plan` no longer uses a separate refresh phase. Instead, all resources are updated on-demand during planning ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * backend/consul: Split state into chunks when outgrowing the limit of the Consul KV store. This allows storing state larger than the Consul 512KB limit. ([#25856](https://github.com/hashicorp/terraform/issues/25856))
