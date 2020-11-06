@@ -27,9 +27,8 @@ type Backend struct {
 	storageClient  *storage.Client
 	storageContext context.Context
 
-	bucketName       string
-	prefix           string
-	defaultStateFile string
+	bucketName string
+	prefix     string
 
 	encryptionKey []byte
 }
