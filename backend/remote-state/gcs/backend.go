@@ -130,8 +130,6 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.prefix = b.prefix + "/"
 	}
 
-	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
-
 	var opts []option.ClientOption
 
 	// Add credential source
