@@ -21,6 +21,7 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
+* backend/gcs: Add service account impersonation to GCS backend [GH-26837]
 * config: Added `sensitive` argument for variable blocks, which supresses output where that variable is used ([#26183](https://github.com/hashicorp/terraform/pull/26183))
 * config: Added `alltrue` and `anytrue` functions, which serve as a sort of dynamic version of the `&&` and `||` or operators, respectively. These are intended to allow evaluating boolean conditions, such as in variable `validation` blocks, across all of the items in a collection using `for` expressions. ([#25656](https://github.com/hashicorp/terraform/issues/25656)], [[#26498](https://github.com/hashicorp/terraform/issues/26498))
 * config: New functions `textencodebase64` and `textdecodebase64` for encoding text in various character encodings other than UTF-8. ([#25470](https://github.com/hashicorp/terraform/issues/25470))
