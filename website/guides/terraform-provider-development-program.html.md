@@ -116,7 +116,7 @@ At this stage, it is expected that the provider is fully developed, all tests an
 
 -> **Important:** This step requires that you have signed and accepted our Technology Partner Agreement. If you have not received this, please see step #1 above.
 
-Please send your public key to terraform-registry@hashicorp.com, indicating you are a partner seeking verification, and a HashiCorp employee will be in touch to help verify, and add your key.
+Register your organizations GitHub namespace with your GPG key through this self service [new key portal](https://registry.terraform.io/settings/gpg-keys/new) then inform your HashiCorp partner alliances contact once complete so the namespace can be verified. 
 
 To export your public key in ASCII-armor format, use the following command:
 
