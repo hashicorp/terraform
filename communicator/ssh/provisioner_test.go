@@ -50,7 +50,7 @@ func TestProvisioner_connInfo(t *testing.T) {
 	if conf.Timeout != "30s" {
 		t.Fatalf("bad: %v", conf)
 	}
-	if conf.ScriptPath != DefaultScriptPath {
+	if conf.ScriptPath != DefaultUnixScriptPath {
 		t.Fatalf("bad: %v", conf)
 	}
 	if conf.BastionHost != "127.0.1.1" {
