@@ -624,7 +624,7 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 
 	diags := c.Validate()
 	if diags.HasErrors() {
-		t.Fatalf("unexpected error: %v", diags)
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 
