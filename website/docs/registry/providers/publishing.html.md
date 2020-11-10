@@ -114,6 +114,12 @@ The ASCII-armored public key to the Terraform Registry by going to [User Setting
 
 In the top-right navigation, select [Publish > Provider](https://registry.terraform.io/publish/provider) to begin the publishing process. Follow the prompts to select the organization and repository you would like to publish.
 
+#### Webhooks
+
+Publishing a provider will create a webhook on the GitHub repository subscribed to `release` events. Future versions released will notify the Terraform Registry, which will then ingress that version.
+
+If the webhook is missing or not functioning, you can use the Resync button on the provider settings page. First, remove any existing webhooks for registry.terraform.io. Then, click the Resync button on the Terraform Registry's provider settings page. A new webhook should be created.
+
 #### Terms of Use
 
 Anything published to the Terraform Registry is subject to our terms of use. A copy of the terms are available for viewing at https://registry.terraform.io/terms
