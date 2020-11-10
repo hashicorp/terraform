@@ -44,6 +44,9 @@ var (
 	// max time to wait for for a KeepAlive response before considering the
 	// connection to be dead.
 	maxKeepAliveDelay = 120 * time.Second
+
+	// isWindows, determines whether or not the target ssh is a windows machine, determined by the path. On windows SSH some things need to be skipped, like chmodding the file
+	isWindows = false
 )
 
 // Communicator represents the SSH communicator
@@ -343,7 +346,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr
 
-	if !c.config.noPty {
+	if !c.config.noPty && !isWindows {
 		// Request a PTY
 		termModes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // do not echo
@@ -357,6 +360,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	}
 
 	log.Printf("[DEBUG] starting remote command: %s", cmd.Command)
+
 	err = session.Start(strings.TrimSpace(cmd.Command) + "\n")
 	if err != nil {
 		return err
@@ -420,40 +424,44 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 
 // UploadScript implementation of communicator.Communicator interface
 func (c *Communicator) UploadScript(path string, input io.Reader) error {
+	// Check if path is specified as windows driveletter, if so: set noPty to true, if not, insert defaultSheBang as first line of the script if it doesn't exist
+	if isWindowsPath(path) {
+		isWindows = true
+	}
 	reader := bufio.NewReader(input)
 	prefix, err := reader.Peek(2)
 	if err != nil {
 		return fmt.Errorf("Error reading script: %s", err)
 	}
-
 	var script bytes.Buffer
-	if string(prefix) != "#!" {
+
+	if string(prefix) != "#!" && !isWindows {
 		script.WriteString(DefaultShebang)
 	}
-
 	script.ReadFrom(reader)
+
 	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
+	if !isWindows {
+		var stdout, stderr bytes.Buffer
+		cmd := &remote.Cmd{
+			Command: fmt.Sprintf("chmod 0777 %s", path),
+			Stdout:  &stdout,
+			Stderr:  &stderr,
+		}
+		if err := c.Start(cmd); err != nil {
+			return fmt.Errorf(
+				"Error chmodding script file to 0777 in remote "+
+					"machine: %s", err)
+		}
 
-	var stdout, stderr bytes.Buffer
-	cmd := &remote.Cmd{
-		Command: fmt.Sprintf("chmod 0777 %s", path),
-		Stdout:  &stdout,
-		Stderr:  &stderr,
+		if err := cmd.Wait(); err != nil {
+			return fmt.Errorf(
+				"Error chmodding script file to 0777 in remote "+
+					"machine %v: %s %s", err, stdout.String(), stderr.String())
+		}
 	}
-	if err := c.Start(cmd); err != nil {
-		return fmt.Errorf(
-			"Error chmodding script file to 0777 in remote "+
-				"machine: %s", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf(
-			"Error chmodding script file to 0777 in remote "+
-				"machine %v: %s %s", err, stdout.String(), stderr.String())
-	}
-
 	return nil
 }
 
@@ -811,4 +819,14 @@ type bastionConn struct {
 func (c *bastionConn) Close() error {
 	c.Conn.Close()
 	return c.Bastion.Close()
+}
+
+func isWindowsPath(path string) bool {
+	// Check if first letter of path is in range a-z:A-Z
+	c := rune(path[0:1][0])
+	if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') {
+		// if second rune is a colon, we know it's a windows path
+		return rune(path[1:2][0]) == ':'
+	}
+	return false
 }
