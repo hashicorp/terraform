@@ -360,7 +360,6 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	}
 
 	log.Printf("[DEBUG] starting remote command: %s", cmd.Command)
-
 	err = session.Start(strings.TrimSpace(cmd.Command) + "\n")
 	if err != nil {
 		return err
@@ -424,7 +423,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 
 // UploadScript implementation of communicator.Communicator interface
 func (c *Communicator) UploadScript(path string, input io.Reader) error {
-	// Check if path is specified as windows driveletter, if so: set noPty to true, if not, insert defaultSheBang as first line of the script if it doesn't exist
+	// Check if path is specified as windows driveletter, if so set isWindows to true
 	if isWindowsPath(path) {
 		isWindows = true
 	}
