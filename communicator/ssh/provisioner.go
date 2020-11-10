@@ -29,9 +29,12 @@ const (
 	// DefaultPort is used if there is no port given
 	DefaultPort = 22
 
-	// DefaultScriptPath is used as the path to copy the file to
-	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/terraform_%RAND%.sh"
+	// DefaultUnixScriptPath is used as the path to copy the file to
+	// for remote execution on unix if not provided otherwise.
+	DefaultUnixScriptPath = "/tmp/terraform_%RAND%.sh"
+	// DefaultWindowsScriptPath is used as the path to copy the file to
+	// for remote execution on windows if not provided otherwise.
+	DefaultWindowsScriptPath = "C:/windows/temp/terraform_%RAND%.cmd"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
@@ -110,18 +113,20 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
-	if connInfo.ScriptPath == "" {
-		connInfo.ScriptPath = DefaultScriptPath
+	// Set default targetPlatform to unix
+	if connInfo.TargetPlatform == "" {
+		connInfo.TargetPlatform = DefaultTargetPlatform
+	}
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == DefaultTargetPlatform {
+		connInfo.ScriptPath = DefaultUnixScriptPath
+	}
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == "windows" {
+		connInfo.ScriptPath = DefaultWindowsScriptPath
 	}
 	if connInfo.Timeout != "" {
 		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)
 	} else {
 		connInfo.TimeoutVal = DefaultTimeout
-	}
-
-	// Set default targetPlatform to unix
-	if connInfo.TargetPlatform == "" {
-		connInfo.TargetPlatform = DefaultTargetPlatform
 	}
 
 	// Default all bastion config attrs to their non-bastion counterparts
