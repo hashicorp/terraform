@@ -35,23 +35,27 @@ const (
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
+
+	// DefaultTargetPlatform is used if no target platform has been specified
+	DefaultTargetPlatform = "unix"
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User        string
-	Password    string
-	PrivateKey  string `mapstructure:"private_key"`
-	Certificate string `mapstructure:"certificate"`
-	Host        string
-	HostKey     string `mapstructure:"host_key"`
-	Port        int
-	Agent       bool
-	Timeout     string
-	ScriptPath  string        `mapstructure:"script_path"`
-	TimeoutVal  time.Duration `mapstructure:"-"`
+	User           string
+	Password       string
+	PrivateKey     string `mapstructure:"private_key"`
+	Certificate    string `mapstructure:"certificate"`
+	Host           string
+	HostKey        string `mapstructure:"host_key"`
+	Port           int
+	Agent          bool
+	Timeout        string
+	ScriptPath     string        `mapstructure:"script_path"`
+	TimeoutVal     time.Duration `mapstructure:"-"`
+	TargetPlatform string        `mapstructure:"target_platform"`
 
 	BastionUser        string `mapstructure:"bastion_user"`
 	BastionPassword    string `mapstructure:"bastion_password"`
@@ -113,6 +117,11 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)
 	} else {
 		connInfo.TimeoutVal = DefaultTimeout
+	}
+
+	// Set default targetPlatform to unix
+	if connInfo.TargetPlatform == "" {
+		connInfo.TargetPlatform = DefaultTargetPlatform
 	}
 
 	// Default all bastion config attrs to their non-bastion counterparts

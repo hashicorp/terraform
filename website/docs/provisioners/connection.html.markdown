@@ -123,6 +123,8 @@ block would create a dependency cycle.
 
 * `host_key` - The public key from the remote host or the signing CA, used to
   verify the connection.
+* `target_platform` - The target platform to connect to. Valid value are:  
+* `windows` and `unix`. Defaults to `unix` if not set.
 
 **Additional arguments only supported by the `winrm` connection type:**
 

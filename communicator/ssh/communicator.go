@@ -44,9 +44,6 @@ var (
 	// max time to wait for for a KeepAlive response before considering the
 	// connection to be dead.
 	maxKeepAliveDelay = 120 * time.Second
-
-	// isWindows, determines whether or not the target ssh is a windows machine, determined by the path. On windows SSH some things need to be skipped, like chmodding the file
-	isWindows = false
 )
 
 // Communicator represents the SSH communicator
@@ -142,13 +139,15 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  Private key: %t\n"+
 				"  Certificate: %t\n"+
 				"  SSH Agent: %t\n"+
-				"  Checking Host Key: %t",
+				"  Checking Host Key: %t\n"+
+				"  Target Platform: %s\n",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
 			c.connInfo.Certificate != "",
 			c.connInfo.Agent,
 			c.connInfo.HostKey != "",
+			c.connInfo.TargetPlatform,
 		))
 
 		if c.connInfo.BastionHost != "" {
@@ -346,7 +345,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr
 
-	if !c.config.noPty && !isWindows {
+	if !c.config.noPty && c.connInfo.TargetPlatform != "windows" {
 		// Request a PTY
 		termModes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // do not echo
@@ -423,10 +422,6 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 
 // UploadScript implementation of communicator.Communicator interface
 func (c *Communicator) UploadScript(path string, input io.Reader) error {
-	// Check if path is specified as windows driveletter, if so set isWindows to true
-	if isWindowsPath(path) {
-		isWindows = true
-	}
 	reader := bufio.NewReader(input)
 	prefix, err := reader.Peek(2)
 	if err != nil {
@@ -434,7 +429,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	}
 	var script bytes.Buffer
 
-	if string(prefix) != "#!" && !isWindows {
+	if string(prefix) != "#!" && c.connInfo.TargetPlatform != "windows" {
 		script.WriteString(DefaultShebang)
 	}
 	script.ReadFrom(reader)
@@ -442,7 +437,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
-	if !isWindows {
+	if c.connInfo.TargetPlatform != "windows" {
 		var stdout, stderr bytes.Buffer
 		cmd := &remote.Cmd{
 			Command: fmt.Sprintf("chmod 0777 %s", path),
@@ -818,14 +813,4 @@ type bastionConn struct {
 func (c *bastionConn) Close() error {
 	c.Conn.Close()
 	return c.Bastion.Close()
-}
-
-func isWindowsPath(path string) bool {
-	// Check if first letter of path is in range a-z:A-Z
-	c := rune(path[0:1][0])
-	if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') {
-		// if second rune is a colon, we know it's a windows path
-		return rune(path[1:2][0]) == ':'
-	}
-	return false
 }
