@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang/blocktoattr"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -69,6 +70,83 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	return val, diags
 }
 
+// EvalSelfBlock evaluates the given body only within the scope of the provided
+// object and instance key data. References to the object must use self, and the
+// key data will only contain count.index or each.key. The static values for
+// terraform and path will also be available in this context.
+func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschema.Block, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	spec := schema.DecoderSpec()
+
+	vals := make(map[string]cty.Value)
+	vals["self"] = self
+
+	if !keyData.CountIndex.IsNull() {
+		vals["count"] = cty.ObjectVal(map[string]cty.Value{
+			"index": keyData.CountIndex,
+		})
+	}
+	if !keyData.EachKey.IsNull() {
+		vals["each"] = cty.ObjectVal(map[string]cty.Value{
+			"key": keyData.EachKey,
+		})
+	}
+
+	refs, refDiags := References(hcldec.Variables(body, spec))
+	diags = diags.Append(refDiags)
+
+	terraformAttrs := map[string]cty.Value{}
+	pathAttrs := map[string]cty.Value{}
+
+	// We could always load the static values for Path and Terraform values,
+	// but we want to parse the references so that we can get source ranges for
+	// user diagnostics.
+	for _, ref := range refs {
+		// we already loaded the self value
+		if ref.Subject == addrs.Self {
+			continue
+		}
+
+		switch subj := ref.Subject.(type) {
+		case addrs.PathAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetPathAttr(subj, ref.SourceRange))
+			diags = diags.Append(valDiags)
+			pathAttrs[subj.Name] = val
+
+		case addrs.TerraformAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, ref.SourceRange))
+			diags = diags.Append(valDiags)
+			terraformAttrs[subj.Name] = val
+
+		case addrs.CountAttr, addrs.ForEachAttr:
+			// each and count have already been handled.
+
+		default:
+			// This should have been caught in validation, but point the user
+			// to the correct location in case something slipped through.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid reference`,
+				Detail:   fmt.Sprintf("The reference to %q is not valid in this context", ref.Subject),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
+	vals["path"] = cty.ObjectVal(pathAttrs)
+	vals["terraform"] = cty.ObjectVal(terraformAttrs)
+
+	ctx := &hcl.EvalContext{
+		Variables: vals,
+		Functions: s.Functions(),
+	}
+
+	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
+	diags = diags.Append(decDiags)
+	return val, diags
+}
+
 // EvalExpr evaluates a single expression in the receiving context and returns
 // the resulting value. The value will be converted to the given type before
 // it is returned if possible, or else an error diagnostic will be produced
@@ -99,10 +177,12 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 		if convErr != nil {
 			val = cty.UnknownVal(wantType)
 			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Incorrect value type",
-				Detail:   fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
-				Subject:  expr.Range().Ptr(),
+				Severity:    hcl.DiagError,
+				Summary:     "Incorrect value type",
+				Detail:      fmt.Sprintf("Invalid expression value: %s.", tfdiags.FormatError(convErr)),
+				Subject:     expr.Range().Ptr(),
+				Expression:  expr,
+				EvalContext: ctx,
 			})
 		}
 	}

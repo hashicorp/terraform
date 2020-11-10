@@ -32,7 +32,7 @@ The full flow illustrated above does not actually apply to _all_ commands,
 but it applies to the main Terraform workflow commands `terraform plan` and
 `terraform apply`, along with a few others.
 
-For these commands, the role of the command implemtation is to read and parse
+For these commands, the role of the command implementation is to read and parse
 any command line arguments, command line options, and environment variables
 that are needed for the given command and use them to produce a
 [`backend.Operation`](https://godoc.org/github.com/hashicorp/terraform/backend#Operation)

@@ -53,6 +53,9 @@ var (
 	// Shadow graph. This is already on by default. Disabling it will be
 	// allowed for awhile in order for it to not block operations.
 	X_shadow = newBasicID("shadow", "SHADOW", false)
+
+	// Concise plan diff output
+	X_concise_diff = newBasicID("concise_diff", "CONCISE_DIFF", true)
 )
 
 // Global variables this package uses because we are a package
@@ -73,6 +76,7 @@ func init() {
 	// The list of all experiments, update this when an experiment is added.
 	All = []ID{
 		X_shadow,
+		X_concise_diff,
 		x_force,
 	}
 

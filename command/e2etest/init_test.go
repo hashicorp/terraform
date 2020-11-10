@@ -44,8 +44,8 @@ func TestInitProviders(t *testing.T) {
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 
-	if !strings.Contains(stdout, "* hashicorp/template: version = ") {
-		t.Errorf("provider pinning recommendation is missing from output:\n%s", stdout)
+	if !strings.Contains(stdout, "Terraform has created a lock file") {
+		t.Errorf("lock file notification is missing from output:\n%s", stdout)
 	}
 
 }
@@ -142,6 +142,12 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "local-only-provider")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
+	// If you run this test on a workstation with a plugin-cache directory
+	// configured, it will leave a bad directory behind and terraform init will
+	// not work until you remove it.
+	//
+	// To avoid this, we will  "zero out" any existing cli config file.
+	tf.AddEnv("TF_CLI_CONFIG_FILE=\"\"")
 	defer tf.Close()
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
@@ -246,21 +252,16 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	}
 
 	cmd := tf.Cmd("init")
-	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR=./cache")
-	cmd.Stdin = nil
-	cmd.Stderr = &bytes.Buffer{}
 
+	// convert the slashes if building for windows.
+	p := filepath.FromSlash("./cache")
+	cmd.Env = append(cmd.Env, "TF_PLUGIN_CACHE_DIR="+p)
 	err = cmd.Run()
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	stderr := cmd.Stderr.(*bytes.Buffer).String()
-	if stderr != "" {
-		t.Errorf("unexpected stderr output:\n%s\n", stderr)
-	}
-
-	path := fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)
+	path := filepath.FromSlash(fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/template/2.1.0/%s_%s/terraform-provider-template_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
 	content, err := tf.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read installed plugin from %s: %s", path, err)
@@ -269,12 +270,20 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Errorf("template plugin was not installed from local cache")
 	}
 
-	if !tf.FileExists(fmt.Sprintf(".terraform/plugins/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
-		t.Errorf("null plugin was not installed")
+	nullLinkPath := filepath.FromSlash(fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
+	if runtime.GOOS == "windows" {
+		nullLinkPath = nullLinkPath + ".exe"
+	}
+	if !tf.FileExists(nullLinkPath) {
+		t.Errorf("null plugin was not installed into %s", nullLinkPath)
 	}
 
-	if !tf.FileExists(fmt.Sprintf("cache/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH)) {
-		t.Errorf("null plugin is not in cache after install")
+	nullCachePath := filepath.FromSlash(fmt.Sprintf("cache/registry.terraform.io/hashicorp/null/2.1.0/%s_%s/terraform-provider-null_v2.1.0_x4", runtime.GOOS, runtime.GOARCH))
+	if runtime.GOOS == "windows" {
+		nullCachePath = nullCachePath + ".exe"
+	}
+	if !tf.FileExists(nullCachePath) {
+		t.Errorf("null plugin is not in cache after install. expected in: %s", nullCachePath)
 	}
 }
 
@@ -310,4 +319,67 @@ func TestInit_fromModule(t *testing.T) {
 	if !bytes.Contains(content, []byte("vault")) {
 		t.Fatalf("main.tf doesn't appear to be a vault configuration: \n%s", content)
 	}
+}
+
+func TestInitProviderNotFound(t *testing.T) {
+	t.Parallel()
+
+	// This test will reach out to registry.terraform.io as one of the possible
+	// installation locations for hashicorp/nonexist, which should not exist.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "provider-not-found")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	t.Run("registry provider not found", func(t *testing.T) {
+		_, stderr, err := tf.Run("init")
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		oneLineStderr := strings.ReplaceAll(stderr, "\n", " ")
+		if !strings.Contains(oneLineStderr, "provider registry registry.terraform.io does not have a provider named registry.terraform.io/hashicorp/nonexist") {
+			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
+	})
+
+	t.Run("local provider not found", func(t *testing.T) {
+		// The -plugin-dir directory must exist for the provider installer to search it.
+		pluginDir := tf.Path("empty")
+		if err := os.Mkdir(pluginDir, os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+
+		_, stderr, err := tf.Run("init", "-plugin-dir="+pluginDir)
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		if !strings.Contains(stderr, "provider registry.terraform.io/hashicorp/nonexist was not\nfound in any of the search locations\n\n  - "+pluginDir) {
+			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
+	})
+}
+
+func TestInitProviderWarnings(t *testing.T) {
+	t.Parallel()
+
+	// This test will reach out to registry.terraform.io as one of the possible
+	// installation locations for hashicorp/nonexist, which should not exist.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "provider-warnings")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	_, stderr, err := tf.Run("init")
+	if err == nil {
+		t.Fatal("expected error, got success")
+	}
+
+	if !strings.Contains(stderr, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
+		t.Errorf("expected warning message is missing from output:\n%s", stderr)
+	}
+
 }

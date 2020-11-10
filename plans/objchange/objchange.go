@@ -333,8 +333,9 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 	}
 
 	for name, blockType := range schema.BlockTypes {
-		switch blockType.Nesting {
+		elementType := blockType.Block.ImpliedType()
 
+		switch blockType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
 			attrs[name] = setElementCompareValue(&blockType.Block, v.GetAttr(name), isConfig)
 
@@ -344,32 +345,44 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 				attrs[name] = cv
 				continue
 			}
+
 			if l := cv.LengthInt(); l > 0 {
 				elems := make([]cty.Value, 0, l)
 				for it := cv.ElementIterator(); it.Next(); {
 					_, ev := it.Element()
 					elems = append(elems, setElementCompareValue(&blockType.Block, ev, isConfig))
 				}
-				if blockType.Nesting == configschema.NestingSet {
+
+				switch {
+				case blockType.Nesting == configschema.NestingSet:
 					// SetValEmpty would panic if given elements that are not
 					// all of the same type, but that's guaranteed not to
 					// happen here because our input value was _already_ a
 					// set and we've not changed the types of any elements here.
 					attrs[name] = cty.SetVal(elems)
-				} else {
+
+				// NestingList cases
+				case elementType.HasDynamicTypes():
 					attrs[name] = cty.TupleVal(elems)
+				default:
+					attrs[name] = cty.ListVal(elems)
 				}
 			} else {
-				if blockType.Nesting == configschema.NestingSet {
-					attrs[name] = cty.SetValEmpty(blockType.Block.ImpliedType())
-				} else {
+				switch {
+				case blockType.Nesting == configschema.NestingSet:
+					attrs[name] = cty.SetValEmpty(elementType)
+
+				// NestingList cases
+				case elementType.HasDynamicTypes():
 					attrs[name] = cty.EmptyTupleVal
+				default:
+					attrs[name] = cty.ListValEmpty(elementType)
 				}
 			}
 
 		case configschema.NestingMap:
 			cv := v.GetAttr(name)
-			if cv.IsNull() || !cv.IsKnown() {
+			if cv.IsNull() || !cv.IsKnown() || cv.LengthInt() == 0 {
 				attrs[name] = cv
 				continue
 			}
@@ -378,7 +391,13 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 				kv, ev := it.Element()
 				elems[kv.AsString()] = setElementCompareValue(&blockType.Block, ev, isConfig)
 			}
-			attrs[name] = cty.ObjectVal(elems)
+
+			switch {
+			case elementType.HasDynamicTypes():
+				attrs[name] = cty.ObjectVal(elems)
+			default:
+				attrs[name] = cty.MapVal(elems)
+			}
 
 		default:
 			// Should never happen, since the above cases are comprehensive.

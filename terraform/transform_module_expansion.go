@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -42,6 +43,16 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// handled by the RemovedModuleTransformer, and those module closers are in
 	// the graph already, and need to be connected to their parent closers.
 	for _, v := range g.Vertices() {
+		switch v.(type) {
+		case GraphNodeDestroyer:
+			// Destroy nodes can only be ordered relative to other resource
+			// instances.
+			continue
+		case *nodeCloseModule:
+			// a module closer cannot connect to itself
+			continue
+		}
+
 		// any node that executes within the scope of a module should be a
 		// GraphNodeModulePath
 		pather, ok := v.(GraphNodeModulePath)
@@ -49,10 +60,20 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 			continue
 		}
 		if closer, ok := t.closers[pather.ModulePath().String()]; ok {
-			// The module root depends on each child resource instance, since
+			// The module closer depends on each child resource instance, since
 			// during apply the module expansion will complete before the
 			// individual instances are applied.
 			g.Connect(dag.BasicEdge(closer, v))
+		}
+	}
+
+	// Modules implicitly depend on their child modules, so connect closers to
+	// other which contain their path.
+	for _, c := range t.closers {
+		for _, d := range t.closers {
+			if len(d.Addr) > len(c.Addr) && c.Addr.Equal(d.Addr[:len(c.Addr)]) {
+				g.Connect(dag.BasicEdge(c, d))
+			}
 		}
 	}
 
@@ -68,17 +89,17 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		Config:     c.Module,
 		ModuleCall: modCall,
 	}
-	var v dag.Vertex = n
+	var expander dag.Vertex = n
 	if t.Concrete != nil {
-		v = t.Concrete(n)
+		expander = t.Concrete(n)
 	}
 
-	g.Add(v)
-	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, v)
+	g.Add(expander)
+	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, expander)
 
 	if parentNode != nil {
-		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(v), dag.VertexName(parentNode))
-		g.Connect(dag.BasicEdge(v, parentNode))
+		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(expander), dag.VertexName(parentNode))
+		g.Connect(dag.BasicEdge(expander, parentNode))
 	}
 
 	// Add the closer (which acts as the root module node) to provide a
@@ -87,23 +108,38 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		Addr: c.Path,
 	}
 	g.Add(closer)
-	g.Connect(dag.BasicEdge(closer, v))
+	g.Connect(dag.BasicEdge(closer, expander))
 	t.closers[c.Path.String()] = closer
 
 	for _, childV := range g.Vertices() {
-		pather, ok := childV.(GraphNodeModulePath)
-		if !ok {
+		// don't connect a node to itself
+		if childV == expander {
 			continue
 		}
-		if pather.ModulePath().Equal(c.Path) {
+
+		var path addrs.Module
+		switch t := childV.(type) {
+		case GraphNodeDestroyer:
+			// skip destroyers, as they can only depend on other resources.
+			continue
+
+		case GraphNodeModulePath:
+			path = t.ModulePath()
+		default:
+			continue
+		}
+
+		if path.Equal(c.Path) {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
-			g.Connect(dag.BasicEdge(childV, v))
+			g.Connect(dag.BasicEdge(childV, expander))
 		}
 	}
 
 	// Also visit child modules, recursively.
 	for _, cc := range c.Children {
-		return t.transform(g, cc, v)
+		if err := t.transform(g, cc, expander); err != nil {
+			return err
+		}
 	}
 
 	return nil

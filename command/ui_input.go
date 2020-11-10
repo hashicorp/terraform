@@ -15,7 +15,9 @@ import (
 	"sync/atomic"
 	"unicode"
 
+	"github.com/bgentry/speakeasy"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/colorstring"
 )
 
@@ -37,6 +39,7 @@ type UIInput struct {
 
 	listening int32
 	result    chan string
+	err       chan string
 
 	interrupted bool
 	l           sync.Mutex
@@ -128,16 +131,26 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		}
 		defer atomic.CompareAndSwapInt32(&i.listening, 1, 0)
 
-		buf := bufio.NewReader(r)
-		line, err := buf.ReadString('\n')
+		var line string
+		var err error
+		if opts.Secret && isatty.IsTerminal(os.Stdin.Fd()) {
+			line, err = speakeasy.Ask("")
+		} else {
+			buf := bufio.NewReader(r)
+			line, err = buf.ReadString('\n')
+		}
 		if err != nil {
 			log.Printf("[ERR] UIInput scan err: %s", err)
+			i.err <- string(err.Error())
+		} else {
+			i.result <- strings.TrimRightFunc(line, unicode.IsSpace)
 		}
-
-		i.result <- strings.TrimRightFunc(line, unicode.IsSpace)
 	}()
 
 	select {
+	case err := <-i.err:
+		return "", errors.New(err)
+
 	case line := <-i.result:
 		fmt.Fprint(w, "\n")
 
@@ -166,6 +179,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 
 func (i *UIInput) init() {
 	i.result = make(chan string)
+	i.err = make(chan string)
 
 	if i.Colorize == nil {
 		i.Colorize = &colorstring.Colorize{

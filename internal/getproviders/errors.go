@@ -2,6 +2,7 @@ package getproviders
 
 import (
 	"fmt"
+	"net/url"
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/addrs"
@@ -73,7 +74,22 @@ func (err ErrUnauthorized) Error() string {
 	}
 }
 
-// ErrProviderNotKnown is an error type used to indicate that the hostname
+// ErrProviderNotFound is an error type used to indicate that requested provider
+// was not found in the source(s) included in the Description field. This can be
+// used to produce user-friendly error messages.
+type ErrProviderNotFound struct {
+	Provider addrs.Provider
+	Sources  []string
+}
+
+func (err ErrProviderNotFound) Error() string {
+	return fmt.Sprintf(
+		"provider %s was not found in any of the search locations",
+		err.Provider,
+	)
+}
+
+// ErrRegistryProviderNotKnown is an error type used to indicate that the hostname
 // given in a provider address does appear to be a provider registry but that
 // registry does not know about the given provider namespace or type.
 //
@@ -85,11 +101,11 @@ func (err ErrUnauthorized) Error() string {
 // because we expect that the caller will have better context to decide what
 // hints are appropriate, e.g. by looking at the configuration given by the
 // user.
-type ErrProviderNotKnown struct {
+type ErrRegistryProviderNotKnown struct {
 	Provider addrs.Provider
 }
 
-func (err ErrProviderNotKnown) Error() string {
+func (err ErrRegistryProviderNotKnown) Error() string {
 	return fmt.Sprintf(
 		"provider registry %s does not have a provider named %s",
 		err.Provider.Hostname.ForDisplay(),
@@ -108,14 +124,49 @@ type ErrPlatformNotSupported struct {
 	Provider addrs.Provider
 	Version  Version
 	Platform Platform
+
+	// MirrorURL, if non-nil, is the base URL of the mirror that serviced
+	// the request in place of the provider's origin registry. MirrorURL
+	// is nil for a direct query.
+	MirrorURL *url.URL
 }
 
 func (err ErrPlatformNotSupported) Error() string {
+	if err.MirrorURL != nil {
+		return fmt.Sprintf(
+			"provider mirror %s does not have a package of %s %s for %s",
+			err.MirrorURL.String(),
+			err.Provider,
+			err.Version,
+			err.Platform,
+		)
+	}
 	return fmt.Sprintf(
 		"provider %s %s is not available for %s",
 		err.Provider,
 		err.Version,
 		err.Platform,
+	)
+}
+
+// ErrProtocolNotSupported is an error type used to indicate that a particular
+// version of a provider is not supported by the current version of Terraform.
+//
+// Specfically, this is returned when the version's plugin protocol is not supported.
+//
+// When available, the error will include a suggested version that can be displayed to
+// the user. Otherwise it will return UnspecifiedVersion
+type ErrProtocolNotSupported struct {
+	Provider   addrs.Provider
+	Version    Version
+	Suggestion Version
+}
+
+func (err ErrProtocolNotSupported) Error() string {
+	return fmt.Sprintf(
+		"provider %s %s is not supported by this version of terraform",
+		err.Provider,
+		err.Version,
 	)
 }
 
@@ -130,9 +181,22 @@ func (err ErrPlatformNotSupported) Error() string {
 type ErrQueryFailed struct {
 	Provider addrs.Provider
 	Wrapped  error
+
+	// MirrorURL, if non-nil, is the base URL of the mirror that serviced
+	// the request in place of the provider's origin registry. MirrorURL
+	// is nil for a direct query.
+	MirrorURL *url.URL
 }
 
 func (err ErrQueryFailed) Error() string {
+	if err.MirrorURL != nil {
+		return fmt.Sprintf(
+			"failed to query provider mirror %s for %s: %s",
+			err.MirrorURL.String(),
+			err.Provider.String(),
+			err.Wrapped.Error(),
+		)
+	}
 	return fmt.Sprintf(
 		"could not query provider registry for %s: %s",
 		err.Provider.String(),
@@ -144,6 +208,19 @@ func (err ErrQueryFailed) Error() string {
 // indicated host.
 func (err ErrQueryFailed) Unwrap() error {
 	return err.Wrapped
+}
+
+// ErrRequestCancelled is an error type used to indicate that an operation
+// failed due to being cancelled via the given context.Context object.
+//
+// This error type doesn't include information about what was cancelled,
+// because the expected treatment of this error type is to quickly abort and
+// exit with minimal ceremony.
+type ErrRequestCanceled struct {
+}
+
+func (err ErrRequestCanceled) Error() string {
+	return "request canceled"
 }
 
 // ErrIsNotExist returns true if and only if the given error is one of the
@@ -160,7 +237,7 @@ func (err ErrQueryFailed) Unwrap() error {
 // grow in future.
 func ErrIsNotExist(err error) bool {
 	switch err.(type) {
-	case ErrProviderNotKnown, ErrPlatformNotSupported:
+	case ErrProviderNotFound, ErrRegistryProviderNotKnown, ErrPlatformNotSupported:
 		return true
 	default:
 		return false

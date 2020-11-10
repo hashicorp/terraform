@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -83,7 +82,6 @@ func TestShow_aliasedProvider(t *testing.T) {
 				AttrsJSON:    []byte("{\n            \"id\": \"bar\"\n          }"),
 				Status:       states.ObjectReady,
 				Dependencies: []addrs.ConfigResource{},
-				DependsOn:    []addrs.Referenceable{},
 			},
 			addrs.RootModuleInstance.ProviderConfigAliased(addrs.NewDefaultProvider("test"), "alias"),
 		)
@@ -244,7 +242,7 @@ func TestShow_json_output(t *testing.T) {
 		t.Run(entry.Name(), func(t *testing.T) {
 			td := tempDir(t)
 			inputDir := filepath.Join(fixtureDir, entry.Name())
-			copy.CopyDir(inputDir, td)
+			testCopyDir(t, inputDir, td)
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
@@ -343,7 +341,7 @@ func TestShow_json_output_state(t *testing.T) {
 		t.Run(entry.Name(), func(t *testing.T) {
 			td := tempDir(t)
 			inputDir := filepath.Join(fixtureDir, entry.Name())
-			copy.CopyDir(inputDir, td)
+			testCopyDir(t, inputDir, td)
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
@@ -412,6 +410,11 @@ func TestShow_json_output_state(t *testing.T) {
 // named "test".
 func showFixtureSchema() *terraform.ProviderSchema {
 	return &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"region": {Type: cty.String, Optional: true},
+			},
+		},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{

@@ -39,11 +39,11 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
+
+	// skipRefresh indicates that we should skip refreshing managed resources
+	skipRefresh bool
 
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
@@ -84,10 +84,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Config:   b.Config,
 		},
 
-		// Add the local values
+		// Add dynamic values
+		&RootVariableTransformer{Config: b.Config},
+		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-
-		// Add the outputs
 		&OutputTransformer{Config: b.Config},
 
 		// Add orphan resources
@@ -106,29 +106,20 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			State:           b.State,
 		},
 
+		// Attach the state
+		&AttachStateTransformer{State: b.State},
+
 		// Create orphan output nodes
-		&OrphanOutputTransformer{
-			Config: b.Config,
-			State:  b.State,
-		},
+		&OrphanOutputTransformer{Config: b.Config, State: b.State},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		// Attach the state
-		&AttachStateTransformer{State: b.State},
-
-		// Add root variables
-		&RootVariableTransformer{Config: b.Config},
-
+		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
 
-		// Add module variables
-		&ModuleVariableTransformer{
-			Config: b.Config,
-		},
-
+		// add providers
 		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
 
 		// Remove modules no longer present in the config
@@ -141,47 +132,38 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
 		// objects that can belong to modules.
-		&ModuleExpansionTransformer{
-			Concrete: b.ConcreteModule,
-			Config:   b.Config,
-		},
+		&ModuleExpansionTransformer{Concrete: b.ConcreteModule, Config: b.Config},
 
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+		&AttachDependenciesTransformer{},
+
+		// Make sure data sources are aware of any depends_on from the
+		// configuration
+		&attachDataResourceDependenciesTransformer{},
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
+
+		// Detect when create_before_destroy must be forced on for a particular
+		// node due to dependency edges, to avoid graph cycles during apply.
+		&ForcedCBDTransformer{},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{
 			Config: b.Config,
 		},
 
-		// Target
-		&TargetsTransformer{
-			Targets: b.Targets,
-
-			// Resource nodes from config have not yet been expanded for
-			// "count", so we must apply targeting without indices. Exact
-			// targeting will be dealt with later when these resources
-			// DynamicExpand.
-			IgnoreIndices: true,
-		},
-
-		// Detect when create_before_destroy must be forced on for a particular
-		// node due to dependency edges, to avoid graph cycles during apply.
-		&ForcedCBDTransformer{},
-
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
-		&CloseProvisionerTransformer{},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},
-	}
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
-		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		// more understandable if possible (it usually is possible).
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps
@@ -202,12 +184,14 @@ func (b *PlanGraphBuilder) init() {
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
+			skipRefresh:          b.skipRefresh,
 		}
 	}
 
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
+			skipRefresh:                  b.skipRefresh,
 		}
 	}
 }

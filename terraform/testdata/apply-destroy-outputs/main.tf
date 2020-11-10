@@ -1,12 +1,34 @@
-resource "aws_instance" "foo" {
-    num = "2"
+data "test_data_source" "bar" {
+  for_each = {
+    a = "b"
+  }
+  foo = "zing"
 }
 
-resource "aws_instance" "bar" {
-    foo = "{aws_instance.foo.num}"
-    dep = "foo"
+data "test_data_source" "foo" {
+  for_each = data.test_data_source.bar
+  foo = "ok"
 }
 
-output "foo" {
-    value = "${aws_instance.foo.id}"
+locals {
+  l = [
+    {
+      name = data.test_data_source.foo["a"].id
+      val = "null"
+    },
+  ]
+
+  m = { for v in local.l :
+    v.name => v
+  }
+}
+
+resource "test_instance" "bar" {
+  for_each = local.m
+  foo = format("%s", each.value.name)
+  dep = each.value.val
+}
+
+output "out" {
+  value = test_instance.bar
 }

@@ -25,7 +25,7 @@ Experimenting in this way can help you learn how the Terraform lifecycle
 works, as well as how to repeatedly create and destroy infrastructure.
 
 If you're completely new to Terraform, we recommend reading the
-[getting started guide](https://learn.hashicorp.com/terraform/getting-started/install) before diving into
+[Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn before diving into
 the examples. However, due to the intuitive configuration Terraform
 uses it isn't required.
 
@@ -45,6 +45,11 @@ cd terraform-provider-aws/examples/two-tier
 ```
 
 You can then use your preferred code editor to browse and read the configurations.
+
+Note that in this example, the connection block defaults to using a local SSH agent for authentication with the instance. 
+Therefore ensure that the appropriate private key has been added to the agent before running the below steps. 
+Alternatively, as can be seen in some of the other examples, the `private_key` argument can also be used. 
+
 To try out an example, run Terraform's init and apply commands while in the example's directory:
 
 ```

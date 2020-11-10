@@ -3,16 +3,15 @@ package providercache
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/internal/copydir"
+	copydir "github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Installer is the main type in this package, representing a provider installer
@@ -43,15 +42,12 @@ type Installer struct {
 	// and thus do not need any separate installation step.
 	builtInProviderTypes []string
 
-	// pluginProtocolVersion is the protocol version terrafrom core supports to
-	// communicate with servers, and is used to resolve plugin discovery with
-	// terraform registry, in addition to any specified plugin version
-	// constraints.
-	pluginProtocolVersion getproviders.VersionConstraints
+	// unmanagedProviderTypes is a set of provider addresses that should be
+	// considered implemented, but that Terraform does not manage the
+	// lifecycle for, and therefore does not need to worry about the
+	// installation of.
+	unmanagedProviderTypes map[addrs.Provider]struct{}
 }
-
-// The currently-supported plugin protocol version.
-var SupportedPluginProtocols = getproviders.MustParseVersionConstraints("~> 5")
 
 // NewInstaller constructs and returns a new installer with the given target
 // directory and provider source.
@@ -64,9 +60,8 @@ var SupportedPluginProtocols = getproviders.MustParseVersionConstraints("~> 5")
 // or the result is undefined.
 func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	return &Installer{
-		targetDir:             targetDir,
-		source:                source,
-		pluginProtocolVersion: SupportedPluginProtocols,
+		targetDir: targetDir,
+		source:    source,
 	}
 }
 
@@ -105,6 +100,16 @@ func (i *Installer) SetBuiltInProviderTypes(types []string) {
 	i.builtInProviderTypes = types
 }
 
+// SetUnmanagedProviderTypes tells the receiver to consider the providers
+// indicated by the passed addrs.Providers as unmanaged. Terraform does not
+// need to control the lifecycle of these providers, and they are assumed to be
+// running already when Terraform is started. Because these are essentially
+// processes, not binaries, Terraform will not do any work to ensure presence
+// or versioning of these binaries.
+func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{}) {
+	i.unmanagedProviderTypes = types
+}
+
 // EnsureProviderVersions compares the given provider requirements with what
 // is already available in the installer's target directory and then takes
 // appropriate installation actions to ensure that suitable packages
@@ -124,29 +129,28 @@ func (i *Installer) SetBuiltInProviderTypes(types []string) {
 // failures then those notifications will be redundant with the ones included
 // in the final returned error value so callers should show either one or the
 // other, and not both.
-func (i *Installer) EnsureProviderVersions(ctx context.Context, reqs getproviders.Requirements, mode InstallMode) (getproviders.Selections, error) {
-	// FIXME: Currently the context isn't actually propagated into all of the
-	// other functions we call here, because they are not context-aware.
-	// Anything that could be making network requests here should take a
-	// context and ideally respond to the cancellation of that context.
-
+func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode) (*depsfile.Locks, error) {
 	errs := map[addrs.Provider]error{}
 	evts := installerEventsForContext(ctx)
+
+	// We'll work with a copy of the given locks, so we can modify it and
+	// return the updated locks without affecting the caller's object.
+	// We'll add or replace locks in here during our work so that the final
+	// locks file reflects what the installer has selected.
+	locks = locks.DeepCopy()
 
 	if cb := evts.PendingProviders; cb != nil {
 		cb(reqs)
 	}
 
-	// Here we'll keep track of which exact version we've selected for each
-	// provider in the requirements.
-	selected := map[addrs.Provider]getproviders.Version{}
-
 	// Step 1: Which providers might we need to fetch a new version of?
 	// This produces the subset of requirements we need to ask the provider
-	// source about.
-	have := i.targetDir.AllAvailablePackages()
+	// source about. If we're in the normal (non-upgrade) mode then we'll
+	// just ask the source to confirm the continued existence of what
+	// was locked, or otherwise we'll find the newest version matching the
+	// configured version constraint.
 	mightNeed := map[addrs.Provider]getproviders.VersionSet{}
-MightNeedProvider:
+	locked := map[addrs.Provider]bool{}
 	for provider, versionConstraints := range reqs {
 		if provider.IsBuiltIn() {
 			// Built in providers do not require installation but we'll still
@@ -184,36 +188,40 @@ MightNeedProvider:
 			}
 			continue
 		}
+		if _, ok := i.unmanagedProviderTypes[provider]; ok {
+			// unmanaged providers do not require installation
+			continue
+		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)
-		if mode.forceQueryAllProviders() {
-			// If our mode calls for us to look for newer versions regardless
-			// of whether an existing version is acceptable, we "might need"
-			// _all_ of the requested providers.
-			mightNeed[provider] = acceptableVersions
-			continue
-		}
-		havePackages, ok := have[provider]
-		if !ok { // If we don't have any versions at all then we'll definitely need it
-			mightNeed[provider] = acceptableVersions
-			continue
-		}
-		// If we already have some versions installed and our mode didn't
-		// force us to check for new ones anyway then we'll check only if
-		// there isn't already at least one version in our cache that is
-		// in the set of acceptable versions.
-		for _, pkg := range havePackages {
-			if acceptableVersions.Has(pkg.Version) {
-				// We will take no further actions for this provider, because
-				// a version we have is already acceptable.
-				selected[provider] = pkg.Version
-				if cb := evts.ProviderAlreadyInstalled; cb != nil {
-					cb(provider, pkg.Version)
+		if !mode.forceQueryAllProviders() {
+			// If we're not forcing potential changes of version then an
+			// existing selection from the lock file takes priority over
+			// the currently-configured version constraints.
+			if lock := locks.Provider(provider); lock != nil {
+				if !acceptableVersions.Has(lock.Version()) {
+					err := fmt.Errorf(
+						"locked provider %s %s does not match configured version constraint %s; must use terraform init -upgrade to allow selection of new versions",
+						provider, lock.Version(), getproviders.VersionConstraintsString(versionConstraints),
+					)
+					errs[provider] = err
+					// This is a funny case where we're returning an error
+					// before we do any querying at all. To keep the event
+					// stream consistent without introducing an extra event
+					// type, we'll emit an artificial QueryPackagesBegin for
+					// this provider before we indicate that it failed using
+					// QueryPackagesFailure.
+					if cb := evts.QueryPackagesBegin; cb != nil {
+						cb(provider, versionConstraints, true)
+					}
+					if cb := evts.QueryPackagesFailure; cb != nil {
+						cb(provider, err)
+					}
+					continue
 				}
-				continue MightNeedProvider
+				acceptableVersions = versions.Only(lock.Version())
+				locked[provider] = true
 			}
 		}
-		// If we get here then we didn't find any cached version that is
-		// in our set of acceptable versions.
 		mightNeed[provider] = acceptableVersions
 	}
 
@@ -225,10 +233,17 @@ MightNeedProvider:
 	need := map[addrs.Provider]getproviders.Version{}
 NeedProvider:
 	for provider, acceptableVersions := range mightNeed {
-		if cb := evts.QueryPackagesBegin; cb != nil {
-			cb(provider, reqs[provider])
+		if err := ctx.Err(); err != nil {
+			// If our context has been cancelled or reached a timeout then
+			// we'll abort early, because subsequent operations against
+			// that context will fail immediately anyway.
+			return nil, err
 		}
-		available, err := i.source.AvailableVersions(provider)
+
+		if cb := evts.QueryPackagesBegin; cb != nil {
+			cb(provider, reqs[provider], locked[provider])
+		}
+		available, warnings, err := i.source.AvailableVersions(ctx, provider)
 		if err != nil {
 			// TODO: Consider retrying a few times for certain types of
 			// source errors that seem likely to be transient.
@@ -238,6 +253,11 @@ NeedProvider:
 			}
 			// We will take no further actions for this provider.
 			continue
+		}
+		if len(warnings) > 0 {
+			if cb := evts.QueryPackagesWarning; cb != nil {
+				cb(provider, warnings)
+			}
 		}
 		available.Sort()                           // put the versions in increasing order of precedence
 		for i := len(available) - 1; i >= 0; i-- { // walk backwards to consider newer versions first
@@ -251,7 +271,15 @@ NeedProvider:
 		}
 		// If we get here then the source has no packages that meet the given
 		// version constraint, which we model as a query error.
-		err = fmt.Errorf("no available releases match the given constraints %s", getproviders.VersionConstraintsString(reqs[provider]))
+		if locked[provider] {
+			// This situation should be a rare one: it suggests that a
+			// version was previously available but was yanked for some
+			// reason.
+			lock := locks.Provider(provider)
+			err = fmt.Errorf("the previously-selected version %s is no longer available", lock.Version())
+		} else {
+			err = fmt.Errorf("no available releases match the given constraints %s", getproviders.VersionConstraintsString(reqs[provider]))
+		}
 		errs[provider] = err
 		if cb := evts.QueryPackagesFailure; cb != nil {
 			cb(provider, err)
@@ -260,8 +288,22 @@ NeedProvider:
 
 	// Step 3: For each provider version we've decided we need to install,
 	// install its package into our target cache (possibly via the global cache).
-	targetPlatform := i.targetDir.targetPlatform // we inherit this to behave correctly in unit tests
+	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
+	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
 	for provider, version := range need {
+		if err := ctx.Err(); err != nil {
+			// If our context has been cancelled or reached a timeout then
+			// we'll abort early, because subsequent operations against
+			// that context will fail immediately anyway.
+			return nil, err
+		}
+
+		lock := locks.Provider(provider)
+		var preferredHashes []getproviders.Hash
+		if lock != nil && lock.Version() == version { // hash changes are expected if the version is also changing
+			preferredHashes = lock.PreferredHashes()
+		}
+
 		if i.globalCacheDir != nil {
 			// Step 3a: If our global cache already has this version available then
 			// we'll just link it in.
@@ -269,7 +311,16 @@ NeedProvider:
 				if cb := evts.LinkFromCacheBegin; cb != nil {
 					cb(provider, version, i.globalCacheDir.baseDir)
 				}
-				err := i.targetDir.LinkFromOtherCache(cached)
+				if _, err := cached.ExecutableFile(); err != nil {
+					err := fmt.Errorf("provider binary not found: %s", err)
+					errs[provider] = err
+					if cb := evts.LinkFromCacheFailure; cb != nil {
+						cb(provider, version, err)
+					}
+					continue
+				}
+
+				err := i.targetDir.LinkFromOtherCache(cached, preferredHashes)
 				if err != nil {
 					errs[provider] = err
 					if cb := evts.LinkFromCacheFailure; cb != nil {
@@ -282,12 +333,60 @@ NeedProvider:
 				new := i.targetDir.ProviderVersion(provider, version)
 				if new == nil {
 					err := fmt.Errorf("after linking %s from provider cache at %s it is still not detected in the target directory; this is a bug in Terraform", provider, i.globalCacheDir.baseDir)
+					errs[provider] = err
 					if cb := evts.LinkFromCacheFailure; cb != nil {
 						cb(provider, version, err)
 					}
 					continue
 				}
-				selected[provider] = version
+
+				// The LinkFromOtherCache call above should've verified that
+				// the package matches one of the hashes previously recorded,
+				// if any. We'll now augment those hashes with one freshly
+				// calculated from the package we just linked, which allows
+				// the lock file to gradually transition to recording newer hash
+				// schemes when they become available.
+				var newHashes []getproviders.Hash
+				if lock != nil && lock.Version() == version {
+					// If the version we're installing is identical to the
+					// one we previously locked then we'll keep all of the
+					// hashes we saved previously and add to it. Otherwise
+					// we'll be starting fresh, because each version has its
+					// own set of packages and thus its own hashes.
+					newHashes = append(newHashes, preferredHashes...)
+
+					// NOTE: The behavior here is unfortunate when a particular
+					// provider version was already cached on the first time
+					// the current configuration requested it, because that
+					// means we don't currently get the opportunity to fetch
+					// and verify the checksums for the new package from
+					// upstream. That's currently unavoidable because upstream
+					// checksums are in the "ziphash" format and so we can't
+					// verify them against our cache directory's unpacked
+					// packages: we'd need to go fetch the package from the
+					// origin and compare against it, which would defeat the
+					// purpose of the global cache.
+					//
+					// If we fetch from upstream on the first encounter with
+					// a particular provider then we'll end up in the other
+					// codepath below where we're able to also include the
+					// checksums from the origin registry.
+				}
+				newHash, err := cached.Hash()
+				if err != nil {
+					err := fmt.Errorf("after linking %s from provider cache at %s, failed to compute a checksum for it: %s", provider, i.globalCacheDir.baseDir, err)
+					errs[provider] = err
+					if cb := evts.LinkFromCacheFailure; cb != nil {
+						cb(provider, version, err)
+					}
+					continue
+				}
+				// The hashes slice gets deduplicated in the lock file
+				// implementation, so we don't worry about potentially
+				// creating a duplicate here.
+				newHashes = append(newHashes, newHash)
+				lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+
 				if cb := evts.LinkFromCacheSuccess; cb != nil {
 					cb(provider, version, new.PackageDir)
 				}
@@ -303,53 +402,13 @@ NeedProvider:
 		if cb := evts.FetchPackageMeta; cb != nil {
 			cb(provider, version)
 		}
-		meta, err := i.source.PackageMeta(provider, version, targetPlatform)
+		meta, err := i.source.PackageMeta(ctx, provider, version, targetPlatform)
 		if err != nil {
 			errs[provider] = err
 			if cb := evts.FetchPackageFailure; cb != nil {
 				cb(provider, version, err)
 			}
 			continue
-		}
-
-		// if the package meta includes provider protocol versions, verify that terraform supports it.
-		if len(meta.ProtocolVersions) > 0 {
-			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
-			match := false
-			for _, version := range meta.ProtocolVersions {
-				if protoVersions.Has(version) {
-					match = true
-				}
-			}
-			if match == false {
-				// Find the closest matching version
-				closestAvailable := i.findClosestProtocolCompatibleVersion(provider, version)
-				if closestAvailable == versions.Unspecified {
-					err := fmt.Errorf(errProviderVersionIncompatible, provider)
-					errs[provider] = err
-					if cb := evts.FetchPackageFailure; cb != nil {
-						cb(provider, version, err)
-					}
-					continue
-				}
-
-				// Determine if the closest matching provider is newer or older
-				// than the requirement in order to send the appropriate error
-				// message.
-				var protoErr string
-				if version.GreaterThan(closestAvailable) {
-					protoErr = providerProtocolTooNew
-				} else {
-					protoErr = providerProtocolTooOld
-				}
-
-				err := fmt.Errorf(protoErr, provider, version, tfversion.String(), closestAvailable.String(), closestAvailable.String(), getproviders.VersionConstraintsString(reqs[provider]))
-				errs[provider] = err
-				if cb := evts.FetchPackageFailure; cb != nil {
-					cb(provider, version, err)
-				}
-				continue
-			}
 		}
 
 		// Step 3c: Retrieve the package indicated by the metadata we received,
@@ -366,7 +425,7 @@ NeedProvider:
 			installTo = i.targetDir
 			linkTo = nil // no linking needed
 		}
-		authResult, err := installTo.InstallPackage(ctx, meta)
+		authResult, err := installTo.InstallPackage(ctx, meta, preferredHashes)
 		if err != nil {
 			// TODO: Consider retrying for certain kinds of error that seem
 			// likely to be transient. For now, we just treat all errors equally.
@@ -385,12 +444,22 @@ NeedProvider:
 			}
 			continue
 		}
+		if _, err := new.ExecutableFile(); err != nil {
+			err := fmt.Errorf("provider binary not found: %s", err)
+			errs[provider] = err
+			if cb := evts.FetchPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		}
 		if linkTo != nil {
 			// We skip emitting the "LinkFromCache..." events here because
 			// it's simpler for the caller to treat them as mutually exclusive.
 			// We can just subsume the linking step under the "FetchPackage..."
 			// series here (and that's why we use FetchPackageFailure below).
-			err := linkTo.LinkFromOtherCache(new)
+			// We also don't do a hash check here because we already did that
+			// as part of the installTo.InstallPackage call above.
+			err := linkTo.LinkFromOtherCache(new, nil)
 			if err != nil {
 				errs[provider] = err
 				if cb := evts.FetchPackageFailure; cb != nil {
@@ -399,107 +468,67 @@ NeedProvider:
 				continue
 			}
 		}
-		selected[provider] = version
+		authResults[provider] = authResult
+
+		// The InstallPackage call above should've verified that
+		// the package matches one of the hashes previously recorded,
+		// if any. We'll now augment those hashes with a new set populated
+		// with the hashes returned by the upstream source and from the
+		// package we've just installed, which allows the lock file to
+		// gradually transition to newer hash schemes when they become
+		// available.
+		//
+		// This is assuming that if a package matches both a hash we saw before
+		// _and_ a new hash then the new hash is a valid substitute for
+		// the previous hash.
+		//
+		// The hashes slice gets deduplicated in the lock file
+		// implementation, so we don't worry about potentially
+		// creating duplicates here.
+		var newHashes []getproviders.Hash
+		if lock != nil && lock.Version() == version {
+			// If the version we're installing is identical to the
+			// one we previously locked then we'll keep all of the
+			// hashes we saved previously and add to it. Otherwise
+			// we'll be starting fresh, because each version has its
+			// own set of packages and thus its own hashes.
+			newHashes = append(newHashes, preferredHashes...)
+		}
+		newHash, err := new.Hash()
+		if err != nil {
+			err := fmt.Errorf("after installing %s, failed to compute a checksum for it: %s", provider, err)
+			errs[provider] = err
+			if cb := evts.FetchPackageFailure; cb != nil {
+				cb(provider, version, err)
+			}
+			continue
+		}
+		newHashes = append(newHashes, newHash)
+		if authResult.SignedByAnyParty() {
+			// We'll trust new hashes from upstream only if they were verified
+			// as signed by a suitable key. Otherwise, we'd record only
+			// a new hash we just calculated ourselves from the bytes on disk,
+			// and so the hashes would cover only the current platform.
+			newHashes = append(newHashes, meta.AcceptableHashes()...)
+		}
+		lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)
 		}
 	}
 
-	// We'll remember our selections in a lock file inside the target directory,
-	// so callers can recover those exact selections later by calling
-	// SelectedPackages on the same installer.
-	lockEntries := map[addrs.Provider]lockFileEntry{}
-	for provider, version := range selected {
-		cached := i.targetDir.ProviderVersion(provider, version)
-		if cached == nil {
-			err := fmt.Errorf("selected package for %s is no longer present in the target directory; this is a bug in Terraform", provider)
-			errs[provider] = err
-			if cb := evts.HashPackageFailure; cb != nil {
-				cb(provider, version, err)
-			}
-			continue
-		}
-		hash, err := cached.Hash()
-		if err != nil {
-			errs[provider] = fmt.Errorf("failed to calculate checksum for installed provider %s package: %s", provider, err)
-			if cb := evts.HashPackageFailure; cb != nil {
-				cb(provider, version, err)
-			}
-			continue
-		}
-		lockEntries[provider] = lockFileEntry{
-			SelectedVersion: version,
-			PackageHash:     hash,
-		}
-	}
-	err := i.lockFile().Write(lockEntries)
-	if err != nil {
-		// This is one of few cases where this function does _not_ return an
-		// InstallerError, because failure to write the lock file is a more
-		// general problem, not specific to a certain provider.
-		return selected, fmt.Errorf("failed to record a manifest of selected providers: %s", err)
+	// Emit final event for fetching if any were successfully fetched
+	if cb := evts.ProvidersFetched; cb != nil && len(authResults) > 0 {
+		cb(authResults)
 	}
 
 	if len(errs) > 0 {
-		return selected, InstallerError{
+		return locks, InstallerError{
 			ProviderErrors: errs,
 		}
 	}
-	return selected, nil
-}
-
-func (i *Installer) lockFile() *lockFile {
-	return &lockFile{
-		filename: filepath.Join(i.targetDir.baseDir, "selections.json"),
-	}
-}
-
-// SelectedPackages returns the metadata about the packages chosen by the
-// most recent call to EnsureProviderVersions, which are recorded in a lock
-// file in the installer's target directory.
-//
-// If EnsureProviderVersions has never been run against the current target
-// directory, the result is a successful empty response indicating that nothing
-// is selected.
-//
-// SelectedPackages also verifies that the package contents are consistent
-// with the checksums that were recorded at installation time, reporting an
-// error if not.
-func (i *Installer) SelectedPackages() (map[addrs.Provider]*CachedProvider, error) {
-	entries, err := i.lockFile().Read()
-	if err != nil {
-		// Read does not return an error for "file not found", so this should
-		// always be some other error.
-		return nil, fmt.Errorf("failed to read selections file: %s", err)
-	}
-
-	ret := make(map[addrs.Provider]*CachedProvider, len(entries))
-	errs := make(map[addrs.Provider]error)
-	for provider, entry := range entries {
-		cached := i.targetDir.ProviderVersion(provider, entry.SelectedVersion)
-		if cached == nil {
-			errs[provider] = fmt.Errorf("package for selected version %s is no longer available in the local cache directory", entry.SelectedVersion)
-			continue
-		}
-
-		ok, err := cached.MatchesHash(entry.PackageHash)
-		if err != nil {
-			errs[provider] = fmt.Errorf("failed to verify checksum for v%s package: %s", entry.SelectedVersion, err)
-			continue
-		}
-		if !ok {
-			errs[provider] = fmt.Errorf("checksum mismatch for v%s package", entry.SelectedVersion)
-			continue
-		}
-		ret[provider] = cached
-	}
-
-	if len(errs) > 0 {
-		return ret, InstallerError{
-			ProviderErrors: errs,
-		}
-	}
-	return ret, nil
+	return locks, nil
 }
 
 // InstallMode customizes the details of how an install operation treats
@@ -547,61 +576,5 @@ func (err InstallerError) Error() string {
 		providerErr := err.ProviderErrors[addr]
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
-	return b.String()
+	return strings.TrimSpace(b.String())
 }
-
-// findClosestProtocolCompatibleVersion searches for the provider version with the closest protocol match.
-func (i *Installer) findClosestProtocolCompatibleVersion(provider addrs.Provider, version versions.Version) versions.Version {
-	var match versions.Version
-	available, _ := i.source.AvailableVersions(provider)
-	available.Sort()
-	// put the versions in increasing order of precedence
-FindMatch:
-	for index := len(available) - 1; index >= 0; index-- { // walk backwards to consider newer versions first
-		meta, _ := i.source.PackageMeta(provider, available[index], i.targetDir.targetPlatform)
-		if len(meta.ProtocolVersions) > 0 {
-			protoVersions := versions.MeetingConstraints(i.pluginProtocolVersion)
-			for _, version := range meta.ProtocolVersions {
-				if protoVersions.Has(version) {
-					match = available[index]
-					break FindMatch // we will only consider the newest matching version
-				}
-			}
-		}
-
-	}
-	return match
-}
-
-// providerProtocolTooOld is a message sent to the CLI UI if the provider's
-// supported protocol versions are too old for the user's version of terraform,
-// but an older version of the provider is compatible.
-const providerProtocolTooOld = `
-Provider %q v%s is not compatible with Terraform %s.
-Provider version %s is the earliest compatible version. Select it with 
-the following version constraint:
-	version = %q
-Terraform checked all of the plugin versions matching the given constraint:
-	%s
-Consult the documentation for this provider for more information on
-compatibility between provider and Terraform versions.
-`
-
-// providerProtocolTooNew is a message sent to the CLI UI if the provider's
-// supported protocol versions are too new for the user's version of terraform,
-// and the user could either upgrade terraform or choose an older version of the
-// provider
-const providerProtocolTooNew = `
-Provider %q v%s is not compatible with Terraform %s.
-Provider version %s is the latest compatible version. Select it with 
-the following constraint:
-	version = %q
-Terraform checked all of the plugin versions matching the given constraint:
-	%s
-Consult the documentation for this provider for more information on
-compatibility between provider and Terraform versions.
-Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
-`
-
-// there does exist a version outside of the constaints that is compatible.
-const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`

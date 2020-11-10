@@ -109,15 +109,21 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(diags) > 0 {
+	if len(diags) > 0 && isCount != 0 {
 		c.showDiagnostics(diags)
 	}
 
 	if isCount == 0 {
-		c.Ui.Output("No matching resource instances found.")
-	} else {
-		c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
+		))
+		c.showDiagnostics(diags)
+		return 1
 	}
+
+	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
 	return 0
 }
 
@@ -160,12 +166,6 @@ Options:
 func (c *StateRmCommand) Synopsis() string {
 	return "Remove instances from the state"
 }
-
-const errStateRm = `Error removing items from the state: %s
-
-The state was not saved. No items were removed from the persisted
-state. No backup was created since no modification occurred. Please
-resolve the issue above and try again.`
 
 const errStateRmPersist = `Error saving the state: %s
 

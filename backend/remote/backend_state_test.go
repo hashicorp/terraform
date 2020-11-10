@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statefile"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -46,14 +47,13 @@ func TestRemoteClient_withRunID(t *testing.T) {
 	client := testRemoteClient(t)
 
 	// Create a new empty state.
-	state := bytes.NewBuffer(nil)
-	if err := terraform.WriteState(terraform.NewState(), state); err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
+	sf := statefile.New(states.NewState(), "", 0)
+	var buf bytes.Buffer
+	statefile.Write(sf, &buf)
 
 	// Store the new state to verify (this will be done
 	// by the mock that is used) that the run ID is set.
-	if err := client.Put(state.Bytes()); err != nil {
+	if err := client.Put(buf.Bytes()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }

@@ -54,6 +54,37 @@ func TestProviderString(t *testing.T) {
 	}
 }
 
+func TestProviderLegacyString(t *testing.T) {
+	tests := []struct {
+		Input Provider
+		Want  string
+	}{
+		{
+			Provider{
+				Type:      "test",
+				Hostname:  DefaultRegistryHost,
+				Namespace: LegacyProviderNamespace,
+			},
+			"test",
+		},
+		{
+			Provider{
+				Type:      "terraform",
+				Hostname:  BuiltInProviderHost,
+				Namespace: BuiltInProviderNamespace,
+			},
+			"terraform",
+		},
+	}
+
+	for _, test := range tests {
+		got := test.Input.LegacyString()
+		if got != test.Want {
+			t.Errorf("wrong result for %s\ngot:  %s\nwant: %s", test.Input.String(), got, test.Want)
+		}
+	}
+}
+
 func TestProviderDisplay(t *testing.T) {
 	tests := []struct {
 		Input Provider
@@ -282,20 +313,15 @@ func TestParseProviderSourceStr(t *testing.T) {
 		"aws": {
 			Provider{
 				Type:      "aws",
-				Namespace: "-",
+				Namespace: "hashicorp",
 				Hostname:  DefaultRegistryHost,
 			},
 			false,
 		},
 		"AWS": {
 			Provider{
-				// No case folding here because we're currently handling this
-				// as a legacy one. When this changes to be a _default_
-				// address in future (registry.terraform.io/hashicorp/aws)
-				// then we should start applying case folding to it, making
-				// Type appear as "aws" here instead.
-				Type:      "AWS",
-				Namespace: "-",
+				Type:      "aws",
+				Namespace: "hashicorp",
 				Hostname:  DefaultRegistryHost,
 			},
 			false,
@@ -381,6 +407,20 @@ func TestParseProviderSourceStr(t *testing.T) {
 			true,
 		},
 		"example.com/hashicorp/bad.type": {
+			Provider{},
+			true,
+		},
+
+		// We forbid the terraform- prefix both because it's redundant to
+		// include "terraform" in a Terraform provider name and because we use
+		// the longer prefix terraform-provider- to hint for users who might be
+		// accidentally using the git repository name or executable file name
+		// instead of the provider type.
+		"example.com/hashicorp/terraform-provider-bad": {
+			Provider{},
+			true,
+		},
+		"example.com/hashicorp/terraform-bad": {
 			Provider{},
 			true,
 		},

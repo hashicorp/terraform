@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/state/remote"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -205,6 +205,12 @@ func testServer(t *testing.T) *httptest.Server {
   "minimum": "0.1.0",
   "maximum": "10.0.0"
 }`, path.Base(r.URL.Path)))
+	})
+
+	// Respond to pings to get the API version header.
+	mux.HandleFunc("/api/v2/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("TFP-API-Version", "2.3")
 	})
 
 	// Respond to the initial query to read the hashicorp org entitlements.

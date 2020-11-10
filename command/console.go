@@ -92,20 +92,19 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Get the context
 	ctx, _, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
-	// Creating the context can result in a lock, so ensure we release it
+	// Successfully creating the context can result in a lock, so ensure we release it
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}()
-
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
 
 	// Setup the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
@@ -204,5 +203,5 @@ Options:
 }
 
 func (c *ConsoleCommand) Synopsis() string {
-	return "Interactive console for Terraform interpolations"
+	return "Try Terraform expressions at an interactive command prompt"
 }

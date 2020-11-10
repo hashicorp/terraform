@@ -63,12 +63,13 @@ type InstallerEvents struct {
 	// identifier to correlate between successive events.
 	//
 	// The Begin, Success, and Failure events will each occur only once per
-	// distinct provider. The Retry event can occur zero or more times, and
-	// signals a failure that the installer is considering transient.
-	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints)
+	// distinct provider.
+	//
+	// The Warning event is unique to the registry source
+	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool)
 	QueryPackagesSuccess func(provider addrs.Provider, selectedVersion getproviders.Version)
-	QueryPackagesRetry   func(provider addrs.Provider, err error)
 	QueryPackagesFailure func(provider addrs.Provider, err error)
+	QueryPackagesWarning func(provider addrs.Provider, warn []string)
 
 	// The LinkFromCache... family of events delimit the operation of linking
 	// a selected provider package from the system-wide shared cache into the
@@ -99,13 +100,15 @@ type InstallerEvents struct {
 	// or the FetchPackage... events, never both in the same install operation.
 	//
 	// The Query, Begin, Success, and Failure events will each occur only once
-	// per distinct provider. The Retry event can occur zero or more times, and
-	// signals a failure that the installer is considering transient.
+	// per distinct provider.
 	FetchPackageMeta    func(provider addrs.Provider, version getproviders.Version) // fetching metadata prior to real download
 	FetchPackageBegin   func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
 	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
-	FetchPackageRetry   func(provider addrs.Provider, version getproviders.Version, err error)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
+
+	// The ProvidersFetched event is called after all fetch operations if at
+	// least one provider was fetched successfully.
+	ProvidersFetched func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult)
 
 	// HashPackageFailure is called if the installer is unable to determine
 	// the hash of the contents of an installed package after installation.

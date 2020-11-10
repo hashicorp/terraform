@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
@@ -22,21 +24,22 @@ import (
 // EvalApply is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalApply struct {
-	Addr           addrs.ResourceInstance
-	Config         *configs.Resource
-	State          **states.ResourceInstanceObject
-	Change         **plans.ResourceInstanceChange
-	ProviderAddr   addrs.AbsProviderConfig
-	Provider       *providers.Interface
-	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
-	ProviderSchema **ProviderSchema
-	Output         **states.ResourceInstanceObject
-	CreateNew      *bool
-	Error          *error
+	Addr                addrs.ResourceInstance
+	Config              *configs.Resource
+	State               **states.ResourceInstanceObject
+	Change              **plans.ResourceInstanceChange
+	ProviderAddr        addrs.AbsProviderConfig
+	Provider            *providers.Interface
+	ProviderMetas       map[addrs.Provider]*configs.ProviderMeta
+	ProviderSchema      **ProviderSchema
+	Output              **states.ResourceInstanceObject
+	CreateNew           *bool
+	Error               *error
+	CreateBeforeDestroy bool
 }
 
 // TODO: test
-func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	change := *n.Change
@@ -51,7 +54,8 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	schema, _ := (*n.ProviderSchema).SchemaForResourceType(n.Addr.Resource.Mode, n.Addr.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type))
+		return diags
 	}
 
 	if n.CreateNew != nil {
@@ -66,15 +70,16 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return nil, diags.Err()
+			return diags
 		}
 	}
 
 	if !configVal.IsWhollyKnown() {
-		return nil, fmt.Errorf(
+		diags = diags.Append(fmt.Errorf(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			absAddr,
-		)
+		))
+		return diags
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -96,18 +101,35 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 				if configDiags.HasErrors() {
-					return nil, diags.Err()
+					return diags
 				}
 			}
 		}
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr.Absolute(ctx.Path()), change.Action)
+
+	// If our config, Before or After value contain any marked values,
+	// ensure those are stripped out before sending
+	// this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	unmarkedBefore, beforePaths := change.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, afterPaths := change.After.UnmarkDeepWithPaths()
+
+	// If we have an Update action, our before and after values are equal,
+	// and only differ on their sensitivity, the newVal is the after val
+	// and we should not communicate with the provider or perform further action.
+	eqV := unmarkedBefore.Equals(unmarkedAfter)
+	eq := eqV.IsKnown() && eqV.True()
+	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
+		return diags
+	}
+
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 		TypeName:       n.Addr.Resource.Type,
-		PriorState:     change.Before,
-		Config:         configVal,
-		PlannedState:   change.After,
+		PriorState:     unmarkedBefore,
+		Config:         unmarkedConfigVal,
+		PlannedState:   unmarkedAfter,
 		PlannedPrivate: change.Private,
 		ProviderMeta:   metaConfigVal,
 	})
@@ -123,6 +145,11 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	// to completion but must be defensive against the new value being
 	// incomplete.
 	newVal := resp.NewState
+
+	// If we have paths to mark, mark those on this new value
+	if len(afterPaths) > 0 {
+		newVal = newVal.MarkWithPaths(afterPaths)
+	}
 
 	if newVal == cty.NilVal {
 		// Providers are supposed to return a partial new value even when errors
@@ -164,7 +191,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return nil, diags.Err()
+		return diags
 	}
 
 	// After this point we have a type-conforming result object and so we
@@ -244,7 +271,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 						tfdiags.Error,
 						"Provider produced inconsistent result after apply",
 						fmt.Sprintf(
-							"When applying changes to %s, provider %q produced an unexpected new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							"When applying changes to %s, provider %q produced an unexpected new value: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 							absAddr, n.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
 						),
 					))
@@ -305,9 +332,10 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	var newState *states.ResourceInstanceObject
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:  newStatus,
-			Value:   newVal,
-			Private: resp.Private,
+			Status:              newStatus,
+			Value:               newVal,
+			Private:             resp.Private,
+			CreateBeforeDestroy: n.CreateBeforeDestroy,
 		}
 	}
 
@@ -324,11 +352,11 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			err := diags.Err()
 			*n.Error = err
 			log.Printf("[DEBUG] %s: apply errored, but we're indicating that via the Error pointer rather than returning it: %s", n.Addr.Absolute(ctx.Path()), err)
-			return nil, nil
+			return nil
 		}
 	}
 
-	return nil, diags.ErrWithWarnings()
+	return diags
 }
 
 // EvalApplyPre is an EvalNode implementation that does the pre-Apply work
@@ -340,7 +368,8 @@ type EvalApplyPre struct {
 }
 
 // TODO: test
-func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApplyPre) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	change := *n.Change
 	absAddr := n.Addr.Absolute(ctx.Path())
 
@@ -352,15 +381,15 @@ func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
 		priorState := change.Before
 		plannedNewState := change.After
 
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreApply(absAddr, n.Gen, change.Action, priorState, plannedNewState)
-		})
-		if err != nil {
-			return nil, err
+		}))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 // EvalApplyPost is an EvalNode implementation that does the post-Apply work
@@ -372,7 +401,8 @@ type EvalApplyPost struct {
 }
 
 // TODO: test
-func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApplyPost) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	state := *n.State
 
 	if resourceHasUserVisibleApply(n.Addr) {
@@ -383,20 +413,14 @@ func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 		} else {
 			newState = cty.NullVal(cty.DynamicPseudoType)
 		}
-		var err error
-		if n.Error != nil {
-			err = *n.Error
-		}
-
-		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(absAddr, n.Gen, newState, err)
-		})
-		if hookErr != nil {
-			return nil, hookErr
-		}
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostApply(absAddr, n.Gen, newState, *n.Error)
+		}))
 	}
 
-	return nil, *n.Error
+	diags = diags.Append(*n.Error)
+
+	return diags
 }
 
 // EvalMaybeTainted is an EvalNode that takes the planned change, new value,
@@ -413,9 +437,9 @@ type EvalMaybeTainted struct {
 	Error  *error
 }
 
-func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalMaybeTainted) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	if n.State == nil || n.Change == nil || n.Error == nil {
-		return nil, nil
+		return nil
 	}
 
 	state := *n.State
@@ -424,12 +448,12 @@ func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
 
 	// nothing to do if everything went as planned
 	if err == nil {
-		return nil, nil
+		return nil
 	}
 
 	if state != nil && state.Status == states.ObjectTainted {
 		log.Printf("[TRACE] EvalMaybeTainted: %s was already tainted, so nothing to do", n.Addr.Absolute(ctx.Path()))
-		return nil, nil
+		return nil
 	}
 
 	if change.Action == plans.Create {
@@ -446,7 +470,7 @@ func (n *EvalMaybeTainted) Eval(ctx EvalContext) (interface{}, error) {
 		*n.State = state.AsTainted()
 	}
 
-	return nil, nil
+	return nil
 }
 
 // resourceHasUserVisibleApply returns true if the given resource is one where
@@ -480,44 +504,44 @@ type EvalApplyProvisioners struct {
 }
 
 // TODO: test
-func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalApplyProvisioners) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := *n.State
 	if state == nil {
 		log.Printf("[TRACE] EvalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
-		return nil, nil
+		return nil
 	}
 	if n.When == configs.ProvisionerWhenCreate && n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] EvalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
-		return nil, nil
+		return nil
 	}
 	if state.Status == states.ObjectTainted {
 		// No point in provisioning an object that is already tainted, since
 		// it's going to get recreated on the next apply anyway.
 		log.Printf("[TRACE] EvalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
-		return nil, nil
+		return nil
 	}
 
 	provs := n.filterProvisioners()
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
-		return nil, nil
+		return nil
 	}
 
 	if n.Error != nil && *n.Error != nil {
 		// We're already tainted, so just return out
-		return nil, nil
+		return nil
 	}
 
-	{
-		// Call pre hook
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreProvisionInstance(absAddr, state.Value)
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Call pre hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreProvisionInstance(absAddr, state.Value)
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// If there are no errors, then we append it to our output error
@@ -525,25 +549,19 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	err := n.apply(ctx, provs)
 	if err != nil {
 		*n.Error = multierror.Append(*n.Error, err)
-		if n.Error == nil {
-			return nil, err
-		} else {
-			log.Printf("[TRACE] EvalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", absAddr)
-			return nil, nil
-		}
+		log.Printf("[TRACE] EvalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", absAddr)
+		return nil
 	}
 
-	{
-		// Call post hook
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostProvisionInstance(absAddr, state.Value)
-		})
-		if err != nil {
-			return nil, err
-		}
+	// Call post hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostProvisionInstance(absAddr, state.Value)
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	return nil, nil
+	return diags
 }
 
 // filterProvisioners filters the provisioners on the resource to only
@@ -573,6 +591,18 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 	instanceAddr := n.Addr
 	absAddr := instanceAddr.Absolute(ctx.Path())
 
+	// this self is only used for destroy provisioner evaluation, and must
+	// refer to the last known value of the resource.
+	self := (*n.State).Value
+
+	var evalScope func(EvalContext, hcl.Body, cty.Value, *configschema.Block) (cty.Value, tfdiags.Diagnostics)
+	switch n.When {
+	case configs.ProvisionerWhenDestroy:
+		evalScope = n.evalDestroyProvisionerConfig
+	default:
+		evalScope = n.evalProvisionerConfig
+	}
+
 	// If there's a connection block defined directly inside the resource block
 	// then it'll serve as a base connection configuration for all of the
 	// provisioners.
@@ -588,25 +618,8 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		provisioner := ctx.Provisioner(prov.Type)
 		schema := ctx.ProvisionerSchema(prov.Type)
 
-		var forEach map[string]cty.Value
-
-		// For a destroy-time provisioner forEach is intentionally nil here,
-		// which EvalDataForInstanceKey responds to by not populating EachValue
-		// in its result. That's okay because each.value is prohibited for
-		// destroy-time provisioners.
-		if n.When != configs.ProvisionerWhenDestroy {
-			m, forEachDiags := evaluateForEachExpression(n.ResourceConfig.ForEach, ctx)
-			diags = diags.Append(forEachDiags)
-			forEach = m
-		}
-
-		keyData := EvalDataForInstanceKey(instanceAddr.Key, forEach)
-
-		// Evaluate the main provisioner configuration.
-		config, _, configDiags := ctx.EvaluateBlock(prov.Config, schema, instanceAddr, keyData)
+		config, configDiags := evalScope(ctx, prov.Config, self, schema)
 		diags = diags.Append(configDiags)
-
-		// we can't apply the provisioner if the config has errors
 		if diags.HasErrors() {
 			return diags.Err()
 		}
@@ -637,11 +650,9 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 
 		if connBody != nil {
 			var connInfoDiags tfdiags.Diagnostics
-			connInfo, _, connInfoDiags = ctx.EvaluateBlock(connBody, connectionBlockSupersetSchema, instanceAddr, keyData)
+			connInfo, connInfoDiags = evalScope(ctx, connBody, self, connectionBlockSupersetSchema)
 			diags = diags.Append(connInfoDiags)
 			if diags.HasErrors() {
-				// "on failure continue" setting only applies to failures of the
-				// provisioner itself, not to invalid configuration.
 				return diags.Err()
 			}
 		}
@@ -664,10 +675,30 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 			})
 		}
 
+		// If our config or connection info contains any marked values, ensure
+		// those are stripped out before sending to the provisioner. Unlike
+		// resources, we have no need to capture the marked paths and reapply
+		// later.
+		unmarkedConfig, configMarks := config.UnmarkDeep()
+		unmarkedConnInfo, _ := connInfo.UnmarkDeep()
+
+		// Marks on the config might result in leaking sensitive values through
+		// provisioner logging, so we conservatively suppress all output in
+		// this case. This should not apply to connection info values, which
+		// provisioners ought not to be logging anyway.
+		if len(configMarks) > 0 {
+			outputFn = func(msg string) {
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					h.ProvisionOutput(absAddr, prov.Type, "(output suppressed due to sensitive value in config)")
+					return HookActionContinue, nil
+				})
+			}
+		}
+
 		output := CallbackUIOutput{OutputFn: outputFn}
 		resp := provisioner.ProvisionResource(provisioners.ProvisionResourceRequest{
-			Config:     config,
-			Connection: connInfo,
+			Config:     unmarkedConfig,
+			Connection: unmarkedConnInfo,
 			UIOutput:   &output,
 		})
 		applyDiags := resp.Diagnostics.InConfigBody(prov.Config)
@@ -699,5 +730,46 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*configs.Provisio
 		}
 	}
 
-	return diags.ErrWithWarnings()
+	// we have to drop warning-only diagnostics for now
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
+	}
+
+	// log any warnings since we can't return them
+	if e := diags.ErrWithWarnings(); e != nil {
+		log.Printf("[WARN] EvalApplyProvisioners %s: %v", n.Addr, e)
+	}
+
+	return nil
+}
+
+func (n *EvalApplyProvisioners) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	forEach, forEachDiags := evaluateForEachExpression(n.ResourceConfig.ForEach, ctx)
+	diags = diags.Append(forEachDiags)
+
+	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
+
+	config, _, configDiags := ctx.EvaluateBlock(body, schema, n.Addr, keyData)
+	diags = diags.Append(configDiags)
+
+	return config, diags
+}
+
+// during destroy a provisioner can only evaluate within the scope of the parent resource
+func (n *EvalApplyProvisioners) evalDestroyProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// For a destroy-time provisioner forEach is intentionally nil here,
+	// which EvalDataForInstanceKey responds to by not populating EachValue
+	// in its result. That's okay because each.value is prohibited for
+	// destroy-time provisioners.
+	keyData := EvalDataForInstanceKey(n.Addr.Key, nil)
+
+	evalScope := ctx.EvaluationScope(n.Addr, keyData)
+	config, evalDiags := evalScope.EvalSelfBlock(body, self, schema, keyData)
+	diags = diags.Append(evalDiags)
+
+	return config, diags
 }

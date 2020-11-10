@@ -9,36 +9,14 @@ description: |-
 
 # Command: providers
 
-The `terraform providers` command prints information about the providers
-used in the current configuration.
+The `terraform providers` command shows information about the
+[provider requirements](/docs/configuration/provider-requirements.html) of the
+configuration in the current working directory, as an aid to understanding
+where each requirement was detected from.
 
-Provider dependencies are created in several different ways:
-
-* Explicit use of a `terraform.required_providers` block in configuration,
-  optionally including a version constraint.
-
-* Explicit use of a `provider` block in configuration, optionally including
-  a version constraint.
-
-* Use of any resource belonging to a particular provider in a `resource` or
-  `data` block in configuration.
-
-* Existence of any resource instance belonging to a particular provider in
-  the current _state_. For example, if a particular resource is removed
-  from configuration, it continues to create a dependency on its provider
-  until its instances have been destroyed.
-
-This command gives an overview of all of the current dependencies, as an aid
-to understanding why a particular provider is needed.
-
-This command is a nested subcommand, meaning that it has further subcommands.
-These subcommands are listed to the left.
+This command also has several subcommands with different purposes, which
+are listed in the navigation bar.
 
 ## Usage
 
-Usage: `terraform providers [config-path]`
-
-Pass an explicit configuration path to override the default of using the
-current working directory.
-
-Please refer to the subcommands to the left for additional usages.
+Usage: `terraform providers`

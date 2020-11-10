@@ -4,11 +4,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -17,6 +16,7 @@ import (
 type NodePlannableResourceInstance struct {
 	*NodeAbstractResourceInstance
 	ForceCreateBeforeDestroy bool
+	skipRefresh              bool
 }
 
 var (
@@ -27,176 +27,214 @@ var (
 	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeEvalable             = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeExecutable           = (*NodePlannableResourceInstance)(nil)
 )
 
 // GraphNodeEvalable
-func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
+func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.evalTreeManagedResource(addr)
+		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
-		return n.evalTreeDataResource(addr)
+		return n.dataResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlannableResourceInstance) evalTreeDataResource(addr addrs.AbsResourceInstance) EvalNode {
+func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	config := n.Config
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
+	addr := n.ResourceInstanceAddr()
+
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var configVal cty.Value
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
 
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
+	state, err = n.ReadResourceInstanceState(ctx, addr)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
 
-				Output: &state,
-			},
+	validateSelfRef := &EvalValidateSelfRef{
+		Addr:           addr.Resource,
+		Config:         config.Config,
+		ProviderSchema: &providerSchema,
+	}
+	diags = diags.Append(validateSelfRef.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
 
-			// If we already have a non-planned state then we already dealt
-			// with this during the refresh walk and so we have nothing to do
-			// here.
-			&EvalIf{
-				If: func(ctx EvalContext) (bool, error) {
-					depChanges := false
-
-					// Check and see if any of our dependencies have changes.
-					changes := ctx.Changes()
-					for _, d := range n.References() {
-						ri, ok := d.Subject.(addrs.ResourceInstance)
-						if !ok {
-							continue
-						}
-						change := changes.GetResourceInstanceChange(ri.Absolute(ctx.Path()), states.CurrentGen)
-						if change != nil && change.Action != plans.NoOp {
-							depChanges = true
-							break
-						}
-					}
-
-					refreshed := state != nil && state.Status != states.ObjectPlanned
-
-					// If there are no dependency changes, and it's not a forced
-					// read because we there was no Refresh, then we don't need
-					// to re-read. If any dependencies have changes, it means
-					// our config may also have changes and we need to Read the
-					// data source again.
-					if !depChanges && refreshed {
-						return false, EvalEarlyExitError{}
-					}
-					return true, nil
-				},
-				Then: EvalNoop{},
-			},
-
-			&EvalValidateSelfRef{
-				Addr:           addr.Resource,
-				Config:         config.Config,
-				ProviderSchema: &providerSchema,
-			},
-
-			&EvalReadData{
-				Addr:           addr.Resource,
-				Config:         n.Config,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				ForcePlanRead:  true, // _always_ produce a Read change, even if the config seems ready
-				OutputChange:   &change,
-				OutputValue:    &configVal,
-				OutputState:    &state,
-			},
-
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-			},
-
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &change,
-			},
+	readDataPlan := &evalReadDataPlan{
+		evalReadData: evalReadData{
+			Addr:           addr.Resource,
+			Config:         n.Config,
+			Provider:       &provider,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			OutputChange:   &change,
+			State:          &state,
+			dependsOn:      n.dependsOn,
 		},
 	}
+	diags = diags.Append(readDataPlan.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// write the data source into both the refresh state and the
+	// working state
+	writeRefreshState := &EvalWriteState{
+		Addr:           addr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+		targetState:    refreshState,
+	}
+	diags = diags.Append(writeRefreshState.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	writeState := &EvalWriteState{
+		Addr:           addr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+	}
+	diags = diags.Append(writeState.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }
 
-func (n *NodePlannableResourceInstance) evalTreeManagedResource(addr addrs.AbsResourceInstance) EvalNode {
+func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	config := n.Config
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
+	addr := n.ResourceInstanceAddr()
+
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
+	var instanceRefreshState *states.ResourceInstanceObject
+	var instancePlanState *states.ResourceInstanceObject
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-
-				Output: &state,
-			},
-
-			&EvalValidateSelfRef{
-				Addr:           addr.Resource,
-				Config:         config.Config,
-				ProviderSchema: &providerSchema,
-			},
-
-			&EvalDiff{
-				Addr:                addr.Resource,
-				Config:              n.Config,
-				CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-				Provider:            &provider,
-				ProviderAddr:        n.ResolvedProvider,
-				ProviderMetas:       n.ProviderMetas,
-				ProviderSchema:      &providerSchema,
-				State:               &state,
-				OutputChange:        &change,
-				OutputState:         &state,
-			},
-			&EvalCheckPreventDestroy{
-				Addr:   addr.Resource,
-				Config: n.Config,
-				Change: &change,
-			},
-			&EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				State:          &state,
-				ProviderSchema: &providerSchema,
-			},
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &change,
-			},
-		},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
+
+	validateSelfRef := &EvalValidateSelfRef{
+		Addr:           addr.Resource,
+		Config:         config.Config,
+		ProviderSchema: &providerSchema,
+	}
+	diags = diags.Append(validateSelfRef.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+	refreshLifecycle := &EvalRefreshLifecycle{
+		Addr:                     addr,
+		Config:                   n.Config,
+		State:                    &instanceRefreshState,
+		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+	}
+	diags = diags.Append(refreshLifecycle.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Refresh, maybe
+	if !n.skipRefresh {
+		refresh := &EvalRefresh{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			Provider:       &provider,
+			ProviderMetas:  n.ProviderMetas,
+			ProviderSchema: &providerSchema,
+			State:          &instanceRefreshState,
+			Output:         &instanceRefreshState,
+		}
+		diags := diags.Append(refresh.Eval(ctx))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		writeRefreshState := &EvalWriteState{
+			Addr:           addr.Resource,
+			ProviderAddr:   n.ResolvedProvider,
+			ProviderSchema: &providerSchema,
+			State:          &instanceRefreshState,
+			targetState:    refreshState,
+			Dependencies:   &n.Dependencies,
+		}
+		diags = diags.Append(writeRefreshState.Eval(ctx))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	// Plan the instance
+	diff := &EvalDiff{
+		Addr:                addr.Resource,
+		Config:              n.Config,
+		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+		Provider:            &provider,
+		ProviderAddr:        n.ResolvedProvider,
+		ProviderMetas:       n.ProviderMetas,
+		ProviderSchema:      &providerSchema,
+		State:               &instanceRefreshState,
+		OutputChange:        &change,
+		OutputState:         &instancePlanState,
+	}
+	diags = diags.Append(diff.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	writeState := &EvalWriteState{
+		Addr:           addr.Resource,
+		ProviderAddr:   n.ResolvedProvider,
+		State:          &instancePlanState,
+		ProviderSchema: &providerSchema,
+	}
+	diags = diags.Append(writeState.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }

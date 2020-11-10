@@ -30,7 +30,7 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	}
 
 	// if there is not a local name for a provider, it should return the type name
-	localName = mod.LocalNameForProvider(addrs.NewLegacyProvider("nonexist"))
+	localName = mod.LocalNameForProvider(addrs.NewDefaultProvider("nonexist"))
 	if localName != "nonexist" {
 		t.Error("wrong local name returned for a non-local provider")
 	}

@@ -4,7 +4,7 @@
 # Remote-state backend                  # Maintainer
 /backend/remote-state/artifactory       Unmaintained
 /backend/remote-state/azure             @hashicorp/terraform-azure
-/backend/remote-state/consul            @hashicorp/consul
+/backend/remote-state/consul            @hashicorp/consul @remilapeyre
 /backend/remote-state/cos               @likexian
 /backend/remote-state/etcdv2            Unmaintained
 /backend/remote-state/etcdv3            @bmcustodio
@@ -12,16 +12,17 @@
 /backend/remote-state/http              @hashicorp/terraform-core
 /backend/remote-state/manta             Unmaintained
 /backend/remote-state/oss               @xiaozhu36
-/backend/remote-state/pg                Unmaintained
+/backend/remote-state/pg                @remilapeyre
 /backend/remote-state/s3                @hashicorp/terraform-aws
 /backend/remote-state/swift             Unmaintained
+/backend/remote-state/kubernetes        @jrhouston @alexsomesan 
 
 # Provisioners
-builtin/provisioners/chef               Unmaintained
+builtin/provisioners/chef               Deprecated
 builtin/provisioners/file               @hashicorp/terraform-core
-builtin/provisioners/habitat            Unmaintained
+builtin/provisioners/habitat            Deprecated
 builtin/provisioners/local-exec         @hashicorp/terraform-core
-builtin/provisioners/puppet             Unmaintained
+builtin/provisioners/puppet             Deprecated
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
-builtin/provisioners/salt-masterless    Unmaintained
+builtin/provisioners/salt-masterless    Deprecated
 

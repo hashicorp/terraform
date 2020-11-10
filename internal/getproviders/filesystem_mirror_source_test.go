@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -92,9 +93,19 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 	}
 }
 
+// In this test the directory layout is invalid (missing the hostname
+// subdirectory). The provider installer should ignore the invalid directory.
+func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
+	source := NewFilesystemMirrorSource("testdata/filesystem-mirror-invalid")
+	_, err := source.AllAvailablePackages()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
-	got, err := source.AvailableVersions(nullProvider)
+	got, _, err := source.AvailableVersions(context.Background(), nullProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +124,10 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 	t.Run("available platform", func(t *testing.T) {
 		source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
 		got, err := source.PackageMeta(
-			nullProvider, versions.MustParseVersion("2.0.0"), Platform{"linux", "amd64"},
+			context.Background(),
+			nullProvider,
+			versions.MustParseVersion("2.0.0"),
+			Platform{"linux", "amd64"},
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -130,13 +144,20 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("incorrect result\n%s", diff)
 		}
+
+		if gotHashes := got.AcceptableHashes(); len(gotHashes) != 0 {
+			t.Errorf("wrong acceptable hashes\ngot:  %#v\nwant: none", gotHashes)
+		}
 	})
 	t.Run("unavailable platform", func(t *testing.T) {
 		source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
 		// We'll request a version that does exist in the fixture directory,
 		// but for a platform that isn't supported.
 		_, err := source.PackageMeta(
-			nullProvider, versions.MustParseVersion("2.0.0"), Platform{"nonexist", "nonexist"},
+			context.Background(),
+			nullProvider,
+			versions.MustParseVersion("2.0.0"),
+			Platform{"nonexist", "nonexist"},
 		)
 
 		if err == nil {

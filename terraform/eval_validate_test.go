@@ -52,7 +52,7 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -98,7 +98,7 @@ func TestEvalValidateResource_managedResourceCount(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -144,7 +144,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -181,7 +181,7 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("Expected nil error, got: %s", err)
 	}
@@ -219,7 +219,7 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err == nil {
 		t.Fatal("unexpected success; want error")
 	}
@@ -235,45 +235,6 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	}
 	if len(bySeverity[tfdiags.Error]) != 1 || bySeverity[tfdiags.Error][0].Description().Summary != "err" {
 		t.Errorf("Expected 1 error 'err', got: %s", bySeverity[tfdiags.Error].Err())
-	}
-}
-
-func TestEvalValidateResource_ignoreWarnings(t *testing.T) {
-	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.SimpleWarning("warn"))
-		return providers.ValidateResourceTypeConfigResponse{
-			Diagnostics: diags,
-		}
-	}
-
-	p := providers.Interface(mp)
-	rc := &configs.Resource{
-		Mode:   addrs.ManagedResourceMode,
-		Type:   "test_object",
-		Name:   "foo",
-		Config: configs.SynthBody("", map[string]cty.Value{}),
-	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test-object",
-			Name: "foo",
-		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
-
-		IgnoreWarnings: true,
-	}
-
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("Expected no error, got: %s", err)
 	}
 }
 
@@ -323,9 +284,9 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("error for supposedly-valid config: %s", err)
+	diags := node.Validate(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("error for supposedly-valid config: %s", diags.ErrWithWarnings())
 	}
 
 	// Now we'll make it invalid by adding additional traversal steps at
@@ -344,11 +305,11 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	_, err = node.Eval(ctx)
-	if err == nil {
+	diags = node.Validate(ctx)
+	if !diags.HasErrors() {
 		t.Fatal("no error for invalid depends_on")
 	}
-	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
 	}
 
@@ -360,11 +321,11 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	_, err = node.Eval(ctx)
-	if err == nil {
+	diags = node.Validate(ctx)
+	if !diags.HasErrors() {
 		t.Fatal("no error for invalid depends_on")
 	}
-	if got, want := err.Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
 	}
 }
@@ -397,14 +358,10 @@ func TestEvalValidateProvisioner_valid(t *testing.T) {
 		},
 	}
 
-	result, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err != nil {
 		t.Fatalf("node.Eval failed: %s", err)
 	}
-	if result != nil {
-		t.Errorf("node.Eval returned non-nil result")
-	}
-
 	if !mp.ValidateProvisionerConfigCalled {
 		t.Fatalf("p.ValidateProvisionerConfig not called")
 	}
@@ -453,7 +410,7 @@ func TestEvalValidateProvisioner_warning(t *testing.T) {
 		}
 	}
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err == nil {
 		t.Fatalf("node.Eval succeeded; want error")
 	}
@@ -504,7 +461,7 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 		},
 	}
 
-	_, err := node.Eval(ctx)
+	err := node.Validate(ctx)
 	if err == nil {
 		t.Fatalf("node.Eval succeeded; want error")
 	}
@@ -518,120 +475,5 @@ func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
 	errStr := diags.Err().Error()
 	if !(strings.Contains(errStr, "bananananananana") && strings.Contains(errStr, "bazaz")) {
 		t.Fatalf("wrong errors %q; want something about each of our invalid connInfo keys", errStr)
-	}
-}
-
-func TestEvalValidateProvider_empty(t *testing.T) {
-	mp := simpleMockProvider()
-	mp.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"required": {
-					Required: true,
-				},
-			},
-		},
-	}
-
-	p := providers.Interface(mp)
-	rc := &configs.Provider{
-		Name:   "foo",
-		Config: hcl.EmptyBody(),
-	}
-
-	node := &EvalValidateProvider{
-		Provider: &p,
-		Config:   rc,
-	}
-
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
-func TestEvalValidateProvider_nonempty_invalid(t *testing.T) {
-	mp := simpleMockProvider()
-	mp.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"required_a": {
-					Type:     cty.String,
-					Required: true,
-				},
-				"required_b": {
-					Type:     cty.String,
-					Required: true,
-				},
-			},
-		},
-	}
-
-	p := providers.Interface(mp)
-	rc := &configs.Provider{
-		Name: "foo",
-		Config: configs.SynthBody("", map[string]cty.Value{
-			"required_a": cty.StringVal("set"),
-		}),
-	}
-
-	node := &EvalValidateProvider{
-		Provider: &p,
-		Config:   rc,
-	}
-
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	_, err := node.Eval(ctx)
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
-
-	if !strings.Contains(err.Error(), "required_b") || strings.Contains(err.Error(), "required_a") {
-		t.Fatalf("expected only attribute 'required_b' is required error, got %v", err)
-	}
-}
-
-func TestEvalValidateProvider_nonempty_valid(t *testing.T) {
-	mp := simpleMockProvider()
-	mp.GetSchemaReturn = &ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"required_a": {
-					Type:     cty.String,
-					Required: true,
-				},
-				"required_b": {
-					Type:     cty.String,
-					Required: true,
-				},
-			},
-		},
-	}
-
-	p := providers.Interface(mp)
-	rc := &configs.Provider{
-		Name: "foo",
-		Config: configs.SynthBody("", map[string]cty.Value{
-			"required_a": cty.StringVal("set"),
-			"required_b": cty.StringVal("set"),
-		}),
-	}
-
-	node := &EvalValidateProvider{
-		Provider: &p,
-		Config:   rc,
-	}
-
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	_, err := node.Eval(ctx)
-	if err != nil {
-		t.Fatalf("err: %s", err)
 	}
 }

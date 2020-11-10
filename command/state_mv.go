@@ -190,10 +190,7 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 			diags = diags.Append(c.validateResourceMove(addrFrom, addrTo))
-			if stateTo.Module(addrTo.Module) == nil {
-				// moving something to a mew module, so we need to ensure it exists
-				stateTo.EnsureModule(addrTo.Module)
-			}
+
 			if stateTo.Resource(addrTo) != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -223,7 +220,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 				// Update the address before adding it to the state.
 				rs.Addr = addrTo
-				stateTo.Module(addrTo.Module).Resources[addrTo.Resource.String()] = rs
+				stateTo.EnsureModule(addrTo.Module).Resources[addrTo.Resource.String()] = rs
 			}
 
 		case addrs.AbsResourceInstance:
@@ -506,9 +503,3 @@ const errStateMv = `Error moving state: %s
 
 Please ensure your addresses and state paths are valid. No
 state was persisted. Your existing states are untouched.`
-
-const errStateMvPersist = `Error saving the state: %s
-
-The state wasn't saved properly. If the error happening after a partial
-write occurred, a backup file will have been created. Otherwise, the state
-is in the same state it was when the operation started.`

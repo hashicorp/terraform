@@ -3,12 +3,14 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -27,7 +29,7 @@ type EvalRefresh struct {
 }
 
 // TODO: test
-func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	state := *n.State
 	absAddr := n.Addr.Absolute(ctx.Path())
 
@@ -36,13 +38,14 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	// If we have no state, we don't do any refreshing
 	if state == nil {
 		log.Printf("[DEBUG] refresh: %s: no state, so not refreshing", n.Addr.Absolute(ctx.Path()))
-		return nil, diags.ErrWithWarnings()
+		return diags
 	}
 
 	schema, _ := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		return nil, fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type)
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type))
+		return diags
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
@@ -64,22 +67,29 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 				if configDiags.HasErrors() {
-					return nil, diags.Err()
+					return diags
 				}
 			}
 		}
 	}
 
 	// Call pre-refresh hook
-	err := ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreRefresh(absAddr, states.CurrentGen, state.Value)
-	})
-	if err != nil {
-		return nil, diags.ErrWithWarnings()
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Refresh!
 	priorVal := state.Value
+
+	// Unmarked before sending to provider
+	var priorPaths []cty.PathValueMarks
+	if priorVal.ContainsMarked() {
+		priorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
+	}
+
 	req := providers.ReadResourceRequest{
 		TypeName:     n.Addr.Resource.Type,
 		PriorState:   priorVal,
@@ -91,7 +101,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 	resp := provider.ReadResource(req)
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return diags
 	}
 
 	if resp.NewState == cty.NilVal {
@@ -112,25 +122,44 @@ func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
 		))
 	}
 	if diags.HasErrors() {
-		return nil, diags.Err()
+		return diags
+	}
+
+	// We have no way to exempt provider using the legacy SDK from this check,
+	// so we can only log inconsistencies with the updated state values.
+	// In most cases these are not errors anyway, and represent "drift" from
+	// external changes which will be handled by the subsequent plan.
+	if errs := objchange.AssertObjectCompatible(schema, priorVal, resp.NewState); len(errs) > 0 {
+		var buf strings.Builder
+		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ProviderAddr.Provider.String(), absAddr)
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+		}
+		log.Print(buf.String())
 	}
 
 	newState := state.DeepCopy()
 	newState.Value = resp.NewState
 	newState.Private = resp.Private
 	newState.Dependencies = state.Dependencies
+	newState.CreateBeforeDestroy = state.CreateBeforeDestroy
 
 	// Call post-refresh hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, newState.Value)
-	})
-	if err != nil {
-		return nil, err
+	}))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Mark the value if necessary
+	if len(priorPaths) > 0 {
+		newState.Value = newState.Value.MarkWithPaths(priorPaths)
 	}
 
 	if n.Output != nil {
 		*n.Output = newState
 	}
 
-	return nil, diags.ErrWithWarnings()
+	return diags
 }

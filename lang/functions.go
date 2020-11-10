@@ -33,6 +33,8 @@ func (s *Scope) Functions() map[string]function.Function {
 		s.funcs = map[string]function.Function{
 			"abs":              stdlib.AbsoluteFunc,
 			"abspath":          funcs.AbsPathFunc,
+			"alltrue":          funcs.AllTrueFunc,
+			"anytrue":          funcs.AnyTrueFunc,
 			"basename":         funcs.BasenameFunc,
 			"base64decode":     funcs.Base64DecodeFunc,
 			"base64encode":     funcs.Base64EncodeFunc,
@@ -112,6 +114,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"sum":              funcs.SumFunc,
+			"textdecodebase64": funcs.TextDecodeBase64Func,
+			"textencodebase64": funcs.TextEncodeBase64Func,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
 			"title":            stdlib.TitleFunc,

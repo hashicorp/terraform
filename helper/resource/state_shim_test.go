@@ -31,15 +31,6 @@ func TestStateShim(t *testing.T) {
 			Status:        states.ObjectReady,
 			AttrsFlat:     map[string]string{"id": "foo", "bazzle": "dazzle"},
 			SchemaVersion: 7,
-			DependsOn: []addrs.Referenceable{
-				addrs.ResourceInstance{
-					Resource: addrs.Resource{
-						Mode: 'M',
-						Type: "test_thing",
-						Name: "baz",
-					},
-				},
-			},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -55,7 +46,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsFlat: map[string]string{"id": "baz", "bazzle": "dazzle"},
-			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -74,7 +64,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id": "bar", "fuzzle":"wuzzle"}`),
-			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -90,15 +79,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id": "bar", "fizzle":"wizzle"}`),
-			DependsOn: []addrs.Referenceable{
-				addrs.ResourceInstance{
-					Resource: addrs.Resource{
-						Mode: 'D',
-						Type: "test_data_thing",
-						Name: "foo",
-					},
-				},
-			},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -116,15 +96,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsFlat: map[string]string{"id": "old", "fizzle": "wizzle"},
-			DependsOn: []addrs.Referenceable{
-				addrs.ResourceInstance{
-					Resource: addrs.Resource{
-						Mode: 'D',
-						Type: "test_data_thing",
-						Name: "foo",
-					},
-				},
-			},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -141,7 +112,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsFlat: map[string]string{"id": "0", "bazzle": "dazzle"},
-			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -157,7 +127,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectTainted,
 			AttrsFlat: map[string]string{"id": "1", "bazzle": "dazzle"},
-			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -174,7 +143,6 @@ func TestStateShim(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id": "single", "bazzle":"dazzle"}`),
-			DependsOn: []addrs.Referenceable{},
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
@@ -223,7 +191,6 @@ func TestStateShim(t *testing.T) {
 								"schema_version": 7,
 							},
 						},
-						Dependencies: []string{"test_thing.baz"},
 					},
 				},
 			},
@@ -249,7 +216,6 @@ func TestStateShim(t *testing.T) {
 								},
 							},
 						},
-						Dependencies: []string{"data.test_data_thing.foo"},
 					},
 					"data.test_data_thing.foo": &terraform.ResourceState{
 						Type:     "test_data_thing",
@@ -386,7 +352,6 @@ func TestShimLegacyState(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsFlat:    map[string]string{"id": "baz", "bazzle": "dazzle"},
-			DependsOn:    []addrs.Referenceable{},
 			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
@@ -404,7 +369,6 @@ func TestShimLegacyState(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsFlat:    map[string]string{"id": "bar", "fizzle": "wizzle"},
-			DependsOn:    []addrs.Referenceable{},
 			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{

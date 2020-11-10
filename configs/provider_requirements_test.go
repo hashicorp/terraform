@@ -78,8 +78,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"my_test": {
-							Name: "my_test",
+						"my-test": {
+							Name: "my-test",
 							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
 								"source":  cty.StringVal("mycloud/test"),
 								"version": cty.StringVal("2.0.0"),
@@ -91,8 +91,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
-					"my_test": {
-						Name:        "my_test",
+					"my-test": {
+						Name:        "my-test",
 						Source:      "mycloud/test",
 						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
 						Requirement: testVC("2.0.0"),
@@ -111,8 +111,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 							Name: "legacy",
 							Expr: hcltest.MockExprLiteral(cty.StringVal("1.0.0")),
 						},
-						"my_test": {
-							Name: "my_test",
+						"my-test": {
+							Name: "my-test",
 							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
 								"source":  cty.StringVal("mycloud/test"),
 								"version": cty.StringVal("2.0.0"),
@@ -130,8 +130,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
 					},
-					"my_test": {
-						Name:        "my_test",
+					"my-test": {
+						Name:        "my-test",
 						Source:      "mycloud/test",
 						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
 						Requirement: testVC("2.0.0"),
@@ -173,8 +173,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"my_test": {
-							Name: "my_test",
+						"my-test": {
+							Name: "my-test",
 							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
 								"source":  cty.StringVal("some/invalid/provider/source/test"),
 								"version": cty.StringVal("~>2.0.0"),
@@ -186,10 +186,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
-					"my_test": {
-						Name:        "my_test",
+					"my-test": {
+						Name:        "my-test",
 						Source:      "some/invalid/provider/source/test",
-						Type:        addrs.Provider{},
 						Requirement: testVC("~>2.0.0"),
 						DeclRange:   mockRange,
 					},
@@ -198,7 +197,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Error: "Invalid provider source string",
 		},
-		"localname is invalid provider name": {
+		"invalid localname": {
 			Block: &hcl.Block{
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
@@ -224,15 +223,43 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				},
 				DeclRange: blockRange,
 			},
-			Error: "Invalid provider name",
+			Error: "Invalid provider local name",
+		},
+		"invalid localname caps": {
+			Block: &hcl.Block{
+				Type: "required_providers",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"MYTEST": {
+							Name: "MYTEST",
+							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+								"version": cty.StringVal("~>2.0.0"),
+							})),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			Want: &RequiredProviders{
+				RequiredProviders: map[string]*RequiredProvider{
+					"MYTEST": {
+						Name:        "MYTEST",
+						Type:        addrs.Provider{},
+						Requirement: testVC("~>2.0.0"),
+						DeclRange:   mockRange,
+					},
+				},
+				DeclRange: blockRange,
+			},
+			Error: "Invalid provider local name",
 		},
 		"version constraint error": {
 			Block: &hcl.Block{
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"my_test": {
-							Name: "my_test",
+						"my-test": {
+							Name: "my-test",
 							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
 								"source":  cty.StringVal("mycloud/test"),
 								"version": cty.StringVal("invalid"),
@@ -244,8 +271,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
-					"my_test": {
-						Name:      "my_test",
+					"my-test": {
+						Name:      "my-test",
 						Source:    "mycloud/test",
 						Type:      addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
 						DeclRange: mockRange,
@@ -272,13 +299,69 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				RequiredProviders: map[string]*RequiredProvider{
 					"test": {
 						Name:      "test",
-						Type:      addrs.NewDefaultProvider("test"),
 						DeclRange: mockRange,
 					},
 				},
 				DeclRange: blockRange,
 			},
 			Error: "Invalid required_providers syntax",
+		},
+		"invalid source attribute type": {
+			Block: &hcl.Block{
+				Type: "required_providers",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"my-test": {
+							Name: "my-test",
+							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+								"source": cty.DynamicVal,
+							})),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			Want: &RequiredProviders{
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:      "my-test",
+						DeclRange: mockRange,
+					},
+				},
+				DeclRange: blockRange,
+			},
+			Error: "Invalid source",
+		},
+		"additional attributes": {
+			Block: &hcl.Block{
+				Type: "required_providers",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"my-test": {
+							Name: "my-test",
+							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+								"source":  cty.StringVal("mycloud/test"),
+								"version": cty.StringVal("2.0.0"),
+								"invalid": cty.BoolVal(true),
+							})),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			Want: &RequiredProviders{
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:        "my-test",
+						Source:      "mycloud/test",
+						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
+						Requirement: testVC("2.0.0"),
+						DeclRange:   mockRange,
+					},
+				},
+				DeclRange: blockRange,
+			},
+			Error: "Invalid required_providers object",
 		},
 	}
 

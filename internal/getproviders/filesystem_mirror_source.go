@@ -1,6 +1,8 @@
 package getproviders
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform/addrs"
 )
 
@@ -28,11 +30,11 @@ func NewFilesystemMirrorSource(baseDir string) *FilesystemMirrorSource {
 // AvailableVersions scans the directory structure under the source's base
 // directory for locally-mirrored packages for the given provider, returning
 // a list of version numbers for the providers it found.
-func (s *FilesystemMirrorSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *FilesystemMirrorSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	// s.allPackages is populated if scanAllVersions succeeds
 	err := s.scanAllVersions()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// There might be multiple packages for a given version in the filesystem,
@@ -47,13 +49,13 @@ func (s *FilesystemMirrorSource) AvailableVersions(provider addrs.Provider) (Ver
 		ret = append(ret, v)
 	}
 	ret.Sort()
-	return ret, nil
+	return ret, nil, nil
 }
 
 // PackageMeta checks to see if the source's base directory contains a
 // local copy of the distribution package for the given provider version on
 // the given target, and returns the metadata about it if so.
-func (s *FilesystemMirrorSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *FilesystemMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	// s.allPackages is populated if scanAllVersions succeeds
 	err := s.scanAllVersions()
 	if err != nil {
@@ -119,4 +121,8 @@ func (s *FilesystemMirrorSource) scanAllVersions() error {
 	}
 	s.allPackages = ret
 	return nil
+}
+
+func (s *FilesystemMirrorSource) ForDisplay(provider addrs.Provider) string {
+	return s.baseDir
 }

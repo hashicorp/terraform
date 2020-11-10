@@ -12,8 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -44,7 +44,7 @@ func New() backend.Backend {
 			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The region of the S3 bucket.",
+				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_REGION",
 					"AWS_DEFAULT_REGION",
@@ -114,14 +114,6 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
-			"lock_table": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "DynamoDB table for state locking",
-				Default:     "",
-				Deprecated:  "please use the dynamodb_table attribute",
-			},
-
 			"dynamodb_table": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -157,27 +149,11 @@ func New() backend.Backend {
 				Default:     false,
 			},
 
-			"skip_get_ec2_platforms": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip getting the supported EC2 platforms.",
-				Default:     false,
-				Deprecated:  "The S3 Backend does not require EC2 functionality and this attribute is no longer used.",
-			},
-
 			"skip_region_validation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Skip static validation of region name.",
 				Default:     false,
-			},
-
-			"skip_requesting_account_id": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip requesting the account ID.",
-				Default:     false,
-				Deprecated:  "The S3 Backend no longer automatically looks up the AWS Account ID and this attribute is no longer used.",
 			},
 
 			"skip_metadata_api_check": {
@@ -223,11 +199,38 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
+			"assume_role_duration_seconds": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Seconds to restrict the assume role session duration.",
+			},
+
 			"assume_role_policy": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The permissions applied when assuming a role.",
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
 				Default:     "",
+			},
+
+			"assume_role_policy_arns": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+
+			"assume_role_tags": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Assume role session tags.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
+
+			"assume_role_transitive_tag_keys": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 
 			"workspace_key_prefix": {
@@ -302,6 +305,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
+	b.ddbTable = data.Get("dynamodb_table").(string)
 
 	customerKeyString := data.Get("sse_customer_key").(string)
 	if customerKeyString != "" {
@@ -316,29 +320,26 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
-	b.ddbTable = data.Get("dynamodb_table").(string)
-	if b.ddbTable == "" {
-		// try the deprecated field
-		b.ddbTable = data.Get("lock_table").(string)
-	}
-
 	cfg := &awsbase.Config{
-		AccessKey:             data.Get("access_key").(string),
-		AssumeRoleARN:         data.Get("role_arn").(string),
-		AssumeRoleExternalID:  data.Get("external_id").(string),
-		AssumeRolePolicy:      data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName: data.Get("session_name").(string),
-		CredsFilename:         data.Get("shared_credentials_file").(string),
-		DebugLogging:          logging.IsDebugOrHigher(),
-		IamEndpoint:           data.Get("iam_endpoint").(string),
-		MaxRetries:            data.Get("max_retries").(int),
-		Profile:               data.Get("profile").(string),
-		Region:                data.Get("region").(string),
-		SecretKey:             data.Get("secret_key").(string),
-		SkipCredsValidation:   data.Get("skip_credentials_validation").(bool),
-		SkipMetadataApiCheck:  data.Get("skip_metadata_api_check").(bool),
-		StsEndpoint:           data.Get("sts_endpoint").(string),
-		Token:                 data.Get("token").(string),
+		AccessKey:                 data.Get("access_key").(string),
+		AssumeRoleARN:             data.Get("role_arn").(string),
+		AssumeRoleDurationSeconds: data.Get("assume_role_duration_seconds").(int),
+		AssumeRoleExternalID:      data.Get("external_id").(string),
+		AssumeRolePolicy:          data.Get("assume_role_policy").(string),
+		AssumeRoleSessionName:     data.Get("session_name").(string),
+		CallerDocumentationURL:    "https://www.terraform.io/docs/backends/types/s3.html",
+		CallerName:                "S3 Backend",
+		CredsFilename:             data.Get("shared_credentials_file").(string),
+		DebugLogging:              logging.IsDebugOrHigher(),
+		IamEndpoint:               data.Get("iam_endpoint").(string),
+		MaxRetries:                data.Get("max_retries").(int),
+		Profile:                   data.Get("profile").(string),
+		Region:                    data.Get("region").(string),
+		SecretKey:                 data.Get("secret_key").(string),
+		SkipCredsValidation:       data.Get("skip_credentials_validation").(bool),
+		SkipMetadataApiCheck:      data.Get("skip_metadata_api_check").(bool),
+		StsEndpoint:               data.Get("sts_endpoint").(string),
+		Token:                     data.Get("token").(string),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
@@ -346,9 +347,47 @@ func (b *Backend) configure(ctx context.Context) error {
 		},
 	}
 
+	if policyARNSet := data.Get("assume_role_policy_arns").(*schema.Set); policyARNSet.Len() > 0 {
+		for _, policyARNRaw := range policyARNSet.List() {
+			policyARN, ok := policyARNRaw.(string)
+
+			if !ok {
+				continue
+			}
+
+			cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, policyARN)
+		}
+	}
+
+	if tagMap := data.Get("assume_role_tags").(map[string]interface{}); len(tagMap) > 0 {
+		cfg.AssumeRoleTags = make(map[string]string)
+
+		for k, vRaw := range tagMap {
+			v, ok := vRaw.(string)
+
+			if !ok {
+				continue
+			}
+
+			cfg.AssumeRoleTags[k] = v
+		}
+	}
+
+	if transitiveTagKeySet := data.Get("assume_role_transitive_tag_keys").(*schema.Set); transitiveTagKeySet.Len() > 0 {
+		for _, transitiveTagKeyRaw := range transitiveTagKeySet.List() {
+			transitiveTagKey, ok := transitiveTagKeyRaw.(string)
+
+			if !ok {
+				continue
+			}
+
+			cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, transitiveTagKey)
+		}
+	}
+
 	sess, err := awsbase.GetSession(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("error configuring S3 Backend: %w", err)
 	}
 
 	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{

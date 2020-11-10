@@ -123,8 +123,8 @@ distinguished from official release archives and from each other when multiple
 bundles contain the same core Terraform version.
 
 ## Custom Plugins
-To include custom plugins in the bundle file, create a local directory
-"./plugins" and put all the plugins you want to include there, under the
+To include custom plugins in the bundle file, create a local directory named
+`./plugins` and put all the plugins you want to include there, under the
 required [sub directory](#plugins-directory-layout). Optionally, you can use the
 `-plugin-dir` flag to specify a location where to find the plugins. To be
 recognized as a valid plugin, the file must have a name of the form
@@ -135,7 +135,7 @@ Typically this will be `linux` and `amd64`.
 ### Plugins Directory Layout
 To include custom plugins in the bundle file, you must specify a "source"
 attribute in the configuration and place the plugin in the appropriate
-subdirectory under "./plugins". The directory must have the following layout:
+subdirectory under `./plugins`. The directory must have the following layout:
 
 ```
 ./plugins/$SOURCEHOST/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/

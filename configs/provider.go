@@ -40,8 +40,15 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	content, config, moreDiags := block.Body.PartialContent(providerBlockSchema)
 	diags = append(diags, moreDiags...)
 
+	// Provider names must be localized. Produce an error with a message
+	// indicating the action the user can take to fix this message if the local
+	// name is not localized.
+	name := block.Labels[0]
+	nameDiags := checkProviderNameNormalized(name, block.DefRange)
+	diags = append(diags, nameDiags...)
+
 	provider := &Provider{
-		Name:      block.Labels[0],
+		Name:      name,
 		NameRange: block.LabelRanges[0],
 		Config:    config,
 		DeclRange: block.DefRange,
@@ -62,6 +69,12 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["version"]; exists {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Version constraints inside provider configuration blocks are deprecated",
+			Detail:   "Terraform 0.13 and earlier allowed provider version constraints inside the provider configuration block, but that is now deprecated and will be removed in a future version of Terraform. To silence this warning, move the provider version constraint into the required_providers block.",
+			Subject:  attr.Expr.Range().Ptr(),
+		})
 		var versionDiags hcl.Diagnostics
 		provider.Version, versionDiags = decodeVersionConstraint(attr)
 		diags = append(diags, versionDiags...)
@@ -206,4 +219,32 @@ var providerBlockSchema = &hcl.BodySchema{
 		{Type: "lifecycle"},
 		{Type: "locals"},
 	},
+}
+
+// checkProviderNameNormalized verifies that the given string is already
+// normalized and returns an error if not.
+func checkProviderNameNormalized(name string, declrange hcl.Range) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+	// verify that the provider local name is normalized
+	normalized, err := addrs.IsProviderPartNormalized(name)
+	if err != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider local name",
+			Detail:   fmt.Sprintf("%s is an invalid provider local name: %s", name, err),
+			Subject:  &declrange,
+		})
+		return diags
+	}
+	if !normalized {
+		// we would have returned this error already
+		normalizedProvider, _ := addrs.ParseProviderPart(name)
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid provider local name",
+			Detail:   fmt.Sprintf("Provider names must be normalized. Replace %q with %q to fix this error.", name, normalizedProvider),
+			Subject:  &declrange,
+		})
+	}
+	return diags
 }

@@ -1,4 +1,4 @@
-provider foo {
+provider "foo" {
   version = "1.2.3"
 }
 
@@ -17,3 +17,5 @@ terraform {
     }
   }
 }
+
+provider "terraform" {}

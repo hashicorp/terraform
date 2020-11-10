@@ -67,6 +67,44 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
+func TestBackendConfigWorkSpace(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"region":              "cn-beijing",
+		"bucket":              "terraform-backend-oss-test",
+		"prefix":              "mystate",
+		"key":                 "first.tfstate",
+		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_table":    "TableStore",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+	createOSSBucket(t, b.ossClient, "terraform-backend-oss-test")
+	defer deleteOSSBucket(t, b.ossClient, "terraform-backend-oss-test")
+	if _, err := b.Workspaces(); err != nil {
+		t.Fatal(err.Error())
+	}
+	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
+		t.Fatalf("Incorrect region was provided")
+	}
+	if b.bucketName != "terraform-backend-oss-test" {
+		t.Fatalf("Incorrect bucketName was provided")
+	}
+	if b.statePrefix != "mystate" {
+		t.Fatalf("Incorrect state file path was provided")
+	}
+	if b.stateKey != "first.tfstate" {
+		t.Fatalf("Incorrect keyName was provided")
+	}
+
+	if b.ossClient.Config.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was provided")
+	}
+	if b.ossClient.Config.AccessKeySecret == "" {
+		t.Fatalf("No Secret Access Key was provided")
+	}
+}
+
 func TestBackendConfigProfile(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{

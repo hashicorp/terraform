@@ -55,36 +55,36 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Config: config},
 
+		// Add dynamic values
+		&RootVariableTransformer{Config: b.Config},
+		&ModuleVariableTransformer{Config: b.Config},
+		&LocalTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config},
+
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
-		// Add root variables
-		&RootVariableTransformer{Config: b.Config},
-
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
-
-		// Add the local values
-		&LocalTransformer{Config: b.Config},
-
-		// Add the outputs
-		&OutputTransformer{Config: b.Config},
-
-		// Add module variables
-		&ModuleVariableTransformer{Config: b.Config},
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
 
+		// Create expansion nodes for all of the module calls. This must
+		// come after all other transformers that create nodes representing
+		// objects that can belong to modules.
+		&ModuleExpansionTransformer{Config: b.Config},
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
 
-		// This validates that the providers only depend on variables
-		&ImportProviderValidateTransformer{},
+		// Make sure data sources are aware of any depends_on from the
+		// configuration
+		&attachDataResourceDependenciesTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

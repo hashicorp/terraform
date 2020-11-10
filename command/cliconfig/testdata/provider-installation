@@ -1,4 +1,8 @@
 provider_installation {
+  dev_overrides {
+    "hashicorp/boop" = "/tmp/bloop/../boop"
+    "hashicorp/blorp" = "/tmp/blorp"
+  }
   filesystem_mirror {
     path    = "/tmp/example1"
     include = ["example.com/*/*"]

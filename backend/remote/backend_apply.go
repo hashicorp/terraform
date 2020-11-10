@@ -8,6 +8,7 @@ import (
 	"log"
 
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -67,14 +68,6 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		))
 	}
 
-	if op.Targets != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Resource targeting is currently not supported",
-			`The "remote" backend does not support resource targeting at this time.`,
-		))
-	}
-
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -100,6 +93,26 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 				`If you would like to destroy everything, please run 'terraform destroy' which `+
 				`does not require any configuration files.`,
 		))
+	}
+
+	if len(op.Targets) != 0 {
+		// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
+		// so if there's an error when parsing the RemoteAPIVersion, it's handled as
+		// equivalent to an API version < 2.3.
+		currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+		desiredAPIVersion, _ := version.NewVersion("2.3")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Resource targeting is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -target option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
 	}
 
 	// Return if there are any errors.

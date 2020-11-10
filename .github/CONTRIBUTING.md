@@ -70,7 +70,9 @@ We are working to remove ourselves from the critical path of state storage backe
 
 #### Provisioners
 
-Provisioners are an area of concern in Terraform for a number of reasons. Chiefly, they are often used in the place of configuration management tools or custom providers.
+Provisioners are an area of concern in Terraform for a number of reasons. Chiefly, they are often used in the place of configuration management tools or custom providers. 
+
+There are two main types of provisioners in Terraform, the generic provisioners (`file`,`local-exec`, and `remote-exec`) and the tool-specific provisioners (`chef`, `habbitat`, `puppet` & `salt-masterless`). **The tool-specific provisioners [are deprecated](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-4/13997).** In practice this means we will not be accepting PRs for these areas of the codebase. 
 
 From our [documentation](https://www.terraform.io/docs/provisioners/index.html):
 
@@ -137,7 +139,7 @@ If you wish to work on the Terraform CLI source code, you'll first need to insta
 
 At this time the Terraform development environment is targeting only Linux and Mac OS X systems. While Terraform itself is compatible with Windows, unfortunately the unit test suite currently contains Unix-specific assumptions around maximum path lengths, path separators, etc.
 
-Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/master/.github/.go-version) to see which version of Go Terraform is currently built with. Other versions will often work, but if you run into any build or testing problems please try with the specific Go version indicated. You can optionally simplify the installation of multiple specific versions of Go on your system by installing [`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and automatically selects the correct Go version.
+Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/master/.go-version) to see which version of Go Terraform is currently built with. Other versions will often work, but if you run into any build or testing problems please try with the specific Go version indicated. You can optionally simplify the installation of multiple specific versions of Go on your system by installing [`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and automatically selects the correct Go version.
 
 Use Git to clone this repository into a location of your choice. Terraform is using [Go Modules](https://blog.golang.org/using-go-modules), and so you should *not* clone it inside your `GOPATH`.
 
@@ -201,7 +203,7 @@ make protobuf
 
 ## External Dependencies
 
-Terraform uses Go Modules for dependency management, but currently uses "vendoring" to include copies of all of the external library dependencies in the Terraform repository to allow builds to complete even if third-party dependency sources are unavailable.
+Terraform uses Go Modules for dependency management.
 
 Our dependency licensing policy for Terraform excludes proprietary licenses and "copyleft"-style licenses. We accept the common Mozilla Public License v2, MIT License, and BSD licenses. We will consider other open source licenses in similar spirit to those three, but if you plan to include such a dependency in a contribution we'd recommend opening a GitHub issue first to discuss what you intend to implement and what dependencies it will require so that the Terraform team can review the relevant licenses to for whether they meet our licensing needs.
 
@@ -213,24 +215,23 @@ go get github.com/hashicorp/hcl/v2@2.0.0
 
 This command will download the requested version (2.0.0 in the above example) and record that version selection in the `go.mod` file. It will also record checksums for the module in the `go.sum`.
 
-To complete the dependency change, clean up any redundancy in the module metadata files and resynchronize the `vendor` directory with the new package selections by running the following commands:
+To complete the dependency change, clean up any redundancy in the module metadata files by running:
 
 ```
 go mod tidy
-go mod vendor
 ```
 
-To ensure that the vendoring has worked correctly, be sure to run the unit test suite at least once in *vendoring* mode, where Go will use the vendored dependencies to build the test programs:
+To ensure that the upgrade has worked correctly, be sure to run the unit test suite at least once:
 
 ```
-go test -mod=vendor ./...
+go test ./...
 ```
 
 Because dependency changes affect a shared, top-level file, they are more likely than some other change types to become conflicted with other proposed changes during the code review process. For that reason, and to make dependency changes more visible in the change history, we prefer to record dependency changes as separate commits that include only the results of the above commands and the minimal set of changes to Terraform's own code for compatibility with the new version:
 
 ```
-git add go.mod go.sum vendor
-git commit -m "vendor: go get github.com/hashicorp/hcl/v2@2.0.0"
+git add go.mod go.sum
+git commit -m "go get github.com/hashicorp/hcl/v2@2.0.0"
 ```
 
 You can then make use of the new or updated dependency in new code added in subsequent commits.

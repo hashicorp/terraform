@@ -200,20 +200,19 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Get the context
 	ctx, state, ctxDiags := local.Context(opReq)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
-	// Creating the context can result in a lock, so ensure we release it
+	// Successfully creating the context can result in a lock, so ensure we release it
 	defer func() {
 		err := opReq.StateLocker.Unlock(nil)
 		if err != nil {
 			c.Ui.Error(err.Error())
 		}
 	}()
-
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
 
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
@@ -328,7 +327,7 @@ Options:
 }
 
 func (c *ImportCommand) Synopsis() string {
-	return "Import existing infrastructure into Terraform"
+	return "Associate existing infrastructure with a Terraform resource"
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:

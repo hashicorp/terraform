@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeProvisioner represents a provider that has no associated operations.
@@ -16,7 +17,7 @@ type NodeProvisioner struct {
 var (
 	_ GraphNodeModuleInstance = (*NodeProvisioner)(nil)
 	_ GraphNodeProvisioner    = (*NodeProvisioner)(nil)
-	_ GraphNodeEvalable       = (*NodeProvisioner)(nil)
+	_ GraphNodeExecutable     = (*NodeProvisioner)(nil)
 )
 
 func (n *NodeProvisioner) Name() string {
@@ -38,7 +39,7 @@ func (n *NodeProvisioner) ProvisionerName() string {
 	return n.NameValue
 }
 
-// GraphNodeEvalable impl.
-func (n *NodeProvisioner) EvalTree() EvalNode {
-	return &EvalInitProvisioner{Name: n.NameValue}
+// GraphNodeExecutable impl.
+func (n *NodeProvisioner) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	return diags.Append(ctx.InitProvisioner(n.NameValue))
 }

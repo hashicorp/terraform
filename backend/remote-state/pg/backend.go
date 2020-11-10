@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 const (
@@ -19,24 +19,36 @@ const (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"conn_str": &schema.Schema{
+			"conn_str": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Postgres connection string; a `postgres://` URL",
 			},
 
-			"schema_name": &schema.Schema{
+			"schema_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Name of the automatically managed Postgres schema to store state",
 				Default:     "terraform_remote_state",
 			},
 
-			"skip_schema_creation": &schema.Schema{
+			"skip_schema_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set to `true`, Terraform won't try to create the Postgres schema",
 				Default:     false,
+			},
+
+			"skip_table_creation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If set to `true`, Terraform won't try to create the Postgres table",
+			},
+
+			"skip_index_creation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If set to `true`, Terraform won't try to create the Postgres index",
 			},
 		},
 	}
@@ -62,7 +74,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	data := b.configData
 
 	b.connStr = data.Get("conn_str").(string)
-	b.schemaName = data.Get("schema_name").(string)
+	b.schemaName = pq.QuoteIdentifier(data.Get("schema_name").(string))
 
 	db, err := sql.Open("postgres", b.connStr)
 	if err != nil {
@@ -75,8 +87,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	if !data.Get("skip_schema_creation").(bool) {
 		// list all schemas to see if it exists
 		var count int
-		query = `select count(1) from information_schema.schemata where lower(schema_name) = lower('%s')`
-		if err := db.QueryRow(fmt.Sprintf(query, b.schemaName)).Scan(&count); err != nil {
+		query = `select count(1) from information_schema.schemata where schema_name = $1`
+		if err := db.QueryRow(query, data.Get("schema_name").(string)).Scan(&count); err != nil {
 			return err
 		}
 
@@ -91,17 +103,23 @@ func (b *Backend) configure(ctx context.Context) error {
 			}
 		}
 	}
-	query = `CREATE TABLE IF NOT EXISTS %s.%s (
-		id SERIAL PRIMARY KEY,
-		name TEXT,
-		data TEXT
-	)`
-	if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
-		return err
+
+	if !data.Get("skip_table_creation").(bool) {
+		query = `CREATE TABLE IF NOT EXISTS %s.%s (
+			id SERIAL PRIMARY KEY,
+			name TEXT,
+			data TEXT
+			)`
+		if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
+			return err
+		}
 	}
-	query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
-	if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
-		return err
+
+	if !data.Get("skip_index_creation").(bool) {
+		query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
+		if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
+			return err
+		}
 	}
 
 	// Assign db after its schema is prepared.

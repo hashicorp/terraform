@@ -9,11 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -74,6 +76,12 @@ func TestRemote_applyBasic(t *testing.T) {
 	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
 		t.Fatalf("expected apply summery in output: %s", output)
 	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
+	}
 }
 
 func TestRemote_applyCanceled(t *testing.T) {
@@ -96,6 +104,11 @@ func TestRemote_applyCanceled(t *testing.T) {
 	<-run.Done()
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
+	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after cancelling apply: %s", err.Error())
 	}
 }
 
@@ -278,6 +291,48 @@ func TestRemote_applyWithTarget(t *testing.T) {
 	}
 
 	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected apply operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
+	}
+
+	// We should find a run inside the mock client that has the same
+	// target address we requested above.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
+			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
+		}
+	}
+}
+
+func TestRemote_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	// Set the tfe client's RemoteAPIVersion to an empty string, to mimic
+	// API versions prior to 2.3.
+	b.client.SetFakeRemoteAPIVersion("")
+
+	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
+
+	op.Targets = []addrs.Targetable{addr}
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
@@ -286,7 +341,7 @@ func TestRemote_applyWithTarget(t *testing.T) {
 	}
 
 	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(errOutput, "targeting is currently not supported") {
+	if !strings.Contains(errOutput, "Resource targeting is not supported") {
 		t.Fatalf("expected a targeting error, got: %v", errOutput)
 	}
 }
@@ -342,6 +397,12 @@ func TestRemote_applyNoConfig(t *testing.T) {
 	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
 	if !strings.Contains(errOutput, "configuration files found") {
 		t.Fatalf("expected configuration files error, got: %v", errOutput)
+	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after failed apply: %s", err.Error())
 	}
 }
 

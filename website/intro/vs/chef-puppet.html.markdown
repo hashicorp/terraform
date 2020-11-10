@@ -13,11 +13,13 @@ that already exists. Terraform is not a configuration management tool,
 and it allows existing tooling to focus on their strengths: bootstrapping
 and initializing resources.
 
-Using provisioners, Terraform enables any configuration management tool
-to be used to setup a resource once it has been created. Terraform
-focuses on the higher-level abstraction of the datacenter and associated
-services, without sacrificing the ability to use configuration management
-tools to do what they do best. It also embraces the same codification that
-is responsible for the success of those tools, making entire infrastructure
-deployments easy and reliable.
+Terraform focuses on the higher-level abstraction of the datacenter and
+associated services, while allowing you to use configuration management
+tools on individual systems. It also aims to bring the same benefits of
+codification of your system configuration to infrastructure management.
+
+If you are using traditional configuration management within your compute
+instances, you can use Terraform to configure bootstrapping software like
+cloud-init to activate your configuration management software on first
+system boot.
 

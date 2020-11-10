@@ -5,7 +5,11 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/zclconf/go-cty/cty"
 
+	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -28,6 +32,7 @@ func TestConfigProviderTypes(t *testing.T) {
 		addrs.NewDefaultProvider("aws"),
 		addrs.NewDefaultProvider("null"),
 		addrs.NewDefaultProvider("template"),
+		addrs.NewDefaultProvider("test"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)
@@ -69,7 +74,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewLegacyProvider("test"),
+			Provider: addrs.NewDefaultProvider("test"),
 			Alias:    "boop",
 		}
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
@@ -111,7 +116,12 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 
 func TestConfigProviderRequirements(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
-	assertNoDiagnostics(t, diags)
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
 
 	tlsProvider := addrs.NewProvider(
 		addrs.DefaultRegistryHost,
@@ -126,6 +136,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 	impliedProvider := addrs.NewDefaultProvider("implied")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
 	configuredProvider := addrs.NewDefaultProvider("configured")
+	grandchildProvider := addrs.NewDefaultProvider("grandchild")
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
@@ -138,9 +149,79 @@ func TestConfigProviderRequirements(t *testing.T) {
 		impliedProvider:    nil,
 		happycloudProvider: nil,
 		terraformProvider:  nil,
+		grandchildProvider: nil,
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestConfigProviderRequirementsByModule(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultRegistryHost,
+		"hashicorp", "tls",
+	)
+	happycloudProvider := addrs.NewProvider(
+		svchost.Hostname("tf.example.com"),
+		"awesomecorp", "happycloud",
+	)
+	nullProvider := addrs.NewDefaultProvider("null")
+	randomProvider := addrs.NewDefaultProvider("random")
+	impliedProvider := addrs.NewDefaultProvider("implied")
+	terraformProvider := addrs.NewBuiltInProvider("terraform")
+	configuredProvider := addrs.NewDefaultProvider("configured")
+	grandchildProvider := addrs.NewDefaultProvider("grandchild")
+
+	got, diags := cfg.ProviderRequirementsByModule()
+	assertNoDiagnostics(t, diags)
+	want := &ModuleRequirements{
+		Name:       "",
+		SourceAddr: "",
+		SourceDir:  "testdata/provider-reqs",
+		Requirements: getproviders.Requirements{
+			// Only the root module's version is present here
+			nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
+			randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
+			tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
+			configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+			impliedProvider:    nil,
+			terraformProvider:  nil,
+		},
+		Children: map[string]*ModuleRequirements{
+			"kinder": {
+				Name:       "kinder",
+				SourceAddr: "./child",
+				SourceDir:  "testdata/provider-reqs/child",
+				Requirements: getproviders.Requirements{
+					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
+					happycloudProvider: nil,
+				},
+				Children: map[string]*ModuleRequirements{
+					"nested": {
+						Name:       "nested",
+						SourceAddr: "./grandchild",
+						SourceDir:  "testdata/provider-reqs/child/grandchild",
+						Requirements: getproviders.Requirements{
+							grandchildProvider: nil,
+						},
+						Children: map[string]*ModuleRequirements{},
+					},
+				},
+			},
+		},
+	}
+
+	ignore := cmpopts.IgnoreUnexported(version.Constraint{}, cty.Value{}, hclsyntax.Body{})
+	if diff := cmp.Diff(want, got, ignore); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
 	}
 }
@@ -161,4 +242,15 @@ func TestConfigProviderForConfigAddr(t *testing.T) {
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}
+}
+
+func TestConfigAddProviderRequirements(t *testing.T) {
+	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
+	assertNoDiagnostics(t, diags)
+
+	reqs := getproviders.Requirements{
+		addrs.NewDefaultProvider("null"): nil,
+	}
+	diags = cfg.addProviderRequirements(reqs, true)
+	assertNoDiagnostics(t, diags)
 }

@@ -156,8 +156,8 @@ func (pt Provider) LegacyString() string {
 	if pt.IsZero() {
 		panic("called LegacyString on zero-value addrs.Provider")
 	}
-	if pt.Namespace != LegacyProviderNamespace {
-		panic(pt.String() + " is not a legacy addrs.Provider")
+	if pt.Namespace != LegacyProviderNamespace && pt.Namespace != BuiltInProviderNamespace {
+		panic(pt.String() + " cannot be represented as a legacy string")
 	}
 	return pt.Type
 }
@@ -272,8 +272,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	ret.Hostname = DefaultRegistryHost
 
 	if len(parts) == 1 {
-		// FIXME: update this to NewDefaultProvider in the provider source release
-		return NewLegacyProvider(parts[0]), diags
+		return NewDefaultProvider(parts[0]), diags
 	}
 
 	if len(parts) >= 2 {
@@ -325,7 +324,62 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 		return Provider{}, diags
 	}
 
+	// Due to how plugin executables are named and provider git repositories
+	// are conventionally named, it's a reasonable and
+	// apparently-somewhat-common user error to incorrectly use the
+	// "terraform-provider-" prefix in a provider source address. There is
+	// no good reason for a provider to have the prefix "terraform-" anyway,
+	// so we've made that invalid from the start both so we can give feedback
+	// to provider developers about the terraform- prefix being redundant
+	// and give specialized feedback to folks who incorrectly use the full
+	// terraform-provider- prefix to help them self-correct.
+	const redundantPrefix = "terraform-"
+	const userErrorPrefix = "terraform-provider-"
+	if strings.HasPrefix(ret.Type, redundantPrefix) {
+		if strings.HasPrefix(ret.Type, userErrorPrefix) {
+			// Likely user error. We only return this specialized error if
+			// whatever is after the prefix would otherwise be a
+			// syntactically-valid provider type, so we don't end up advising
+			// the user to try something that would be invalid for another
+			// reason anyway.
+			// (This is mainly just for robustness, because the validation
+			// we already did above should've rejected most/all ways for
+			// the suggestedType to end up invalid here.)
+			suggestedType := ret.Type[len(userErrorPrefix):]
+			if _, err := ParseProviderPart(suggestedType); err == nil {
+				suggestedAddr := ret
+				suggestedAddr.Type = suggestedType
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid provider type",
+					fmt.Sprintf("Provider source %q has a type with the prefix %q, which isn't valid. Although that prefix is often used in the names of version control repositories for Terraform providers, provider source strings should not include it.\n\nDid you mean %q?", ret.ForDisplay(), userErrorPrefix, suggestedAddr.ForDisplay()),
+				))
+				return Provider{}, diags
+			}
+		}
+		// Otherwise, probably instead an incorrectly-named provider, perhaps
+		// arising from a similar instinct to what causes there to be
+		// thousands of Python packages on PyPI with "python-"-prefixed
+		// names.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid provider type",
+			fmt.Sprintf("Provider source %q has a type with the prefix %q, which isn't allowed because it would be redundant to name a Terraform provider with that prefix. If you are the author of this provider, rename it to not include the prefix.", ret, redundantPrefix),
+		))
+		return Provider{}, diags
+	}
+
 	return ret, diags
+}
+
+// MustParseProviderSourceString is a wrapper around ParseProviderSourceString that panics if
+// it returns an error.
+func MustParseProviderSourceString(str string) Provider {
+	result, diags := ParseProviderSourceString(str)
+	if diags.HasErrors() {
+		panic(diags.Err().Error())
+	}
+	return result
 }
 
 // ParseProviderPart processes an addrs.Provider namespace or type string
@@ -395,4 +449,16 @@ func MustParseProviderPart(given string) string {
 		panic(err.Error())
 	}
 	return result
+}
+
+// IsProviderPartNormalized compares a given string to the result of ParseProviderPart(string)
+func IsProviderPartNormalized(str string) (bool, error) {
+	normalized, err := ParseProviderPart(str)
+	if err != nil {
+		return false, err
+	}
+	if str == normalized {
+		return true, nil
+	}
+	return false, nil
 }

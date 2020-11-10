@@ -15,6 +15,7 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -70,14 +71,6 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if op.Targets != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Resource targeting is currently not supported",
-			`The "remote" backend does not support resource targeting at this time.`,
-		))
-	}
-
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -104,6 +97,26 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 				`flag or create a single empty configuration file. Otherwise, please create `+
 				`a Terraform configuration file in the path being executed and try again.`,
 		))
+	}
+
+	if len(op.Targets) != 0 {
+		// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
+		// so if there's an error when parsing the RemoteAPIVersion, it's handled as
+		// equivalent to an API version < 2.3.
+		currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+		desiredAPIVersion, _ := version.NewVersion("2.3")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Resource targeting is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -target option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
 	}
 
 	// Return if there are any errors.
@@ -217,11 +230,27 @@ in order to capture the filesystem context the remote workspace expects:
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
+	queueMessage := "Queued manually using Terraform"
+	if op.Targets != nil {
+		queueMessage = "Queued manually via Terraform using -target"
+	}
+
 	runOptions := tfe.RunCreateOptions{
 		IsDestroy:            tfe.Bool(op.Destroy),
-		Message:              tfe.String("Queued manually using Terraform"),
+		Message:              tfe.String(queueMessage),
 		ConfigurationVersion: cv,
 		Workspace:            w,
+	}
+
+	if len(op.Targets) != 0 {
+		runOptions.TargetAddrs = make([]string, 0, len(op.Targets))
+		for _, addr := range op.Targets {
+			// The API client wants the normal string representation of a
+			// target address, which will ultimately get inserted into a
+			// -target option when Terraform CLI is launched in the
+			// Cloud/Enterprise execution environment.
+			runOptions.TargetAddrs = append(runOptions.TargetAddrs, addr.String())
+		}
 	}
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)

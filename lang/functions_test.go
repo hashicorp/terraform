@@ -67,6 +67,20 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"alltrue": {
+			{
+				`alltrue(["true", true])`,
+				cty.True,
+			},
+		},
+
+		"anytrue": {
+			{
+				`anytrue([])`,
+				cty.False,
+			},
+		},
+
 		"base64decode": {
 			{
 				`base64decode("YWJjMTIzIT8kKiYoKSctPUB+")`,
@@ -210,7 +224,7 @@ func TestFunctions(t *testing.T) {
 
 		"coalescelist": {
 			{
-				`coalescelist(list("a", "b"), list("c", "d"))`,
+				`coalescelist(tolist(["a", "b"]), tolist(["c", "d"]))`,
 				cty.ListVal([]cty.Value{
 					cty.StringVal("a"),
 					cty.StringVal("b"),
@@ -472,6 +486,12 @@ func TestFunctions(t *testing.T) {
 				`jsonencode({"hello"="world"})`,
 				cty.StringVal("{\"hello\":\"world\"}"),
 			},
+			// We are intentionally choosing to escape <, >, and & characters
+			// to preserve backwards compatibility with Terraform 0.11
+			{
+				`jsonencode({"hello"="<cats & kittens>"})`,
+				cty.StringVal("{\"hello\":\"\\u003ccats \\u0026 kittens\\u003e\"}"),
+			},
 		},
 
 		"keys": {
@@ -492,12 +512,8 @@ func TestFunctions(t *testing.T) {
 		},
 
 		"list": {
-			{
-				`list("hello")`,
-				cty.ListVal([]cty.Value{
-					cty.StringVal("hello"),
-				}),
-			},
+			// There are intentionally no test cases for "list" because
+			// it is a stub that always returns an error.
 		},
 
 		"log": {
@@ -522,12 +538,8 @@ func TestFunctions(t *testing.T) {
 		},
 
 		"map": {
-			{
-				`map("hello", "world")`,
-				cty.MapVal(map[string]cty.Value{
-					"hello": cty.StringVal("world"),
-				}),
-			},
+			// There are intentionally no test cases for "map" because
+			// it is a stub that always returns an error.
 		},
 
 		"matchkeys": {
@@ -739,7 +751,7 @@ func TestFunctions(t *testing.T) {
 		"slice": {
 			{
 				// force a list type here for testing
-				`slice(list("a", "b", "c", "d"), 1, 3)`,
+				`slice(tolist(["a", "b", "c", "d"]), 1, 3)`,
 				cty.ListVal([]cty.Value{
 					cty.StringVal("b"), cty.StringVal("c"),
 				}),
@@ -790,6 +802,20 @@ func TestFunctions(t *testing.T) {
 			{
 				`sum([2340.5,10,3])`,
 				cty.NumberFloatVal(2353.5),
+			},
+		},
+
+		"textdecodebase64": {
+			{
+				`textdecodebase64("dABlAHMAdAA=", "UTF-16LE")`,
+				cty.StringVal("test"),
+			},
+		},
+
+		"textencodebase64": {
+			{
+				`textencodebase64("test", "UTF-16LE")`,
+				cty.StringVal("dABlAHMAdAA="),
 			},
 		},
 
@@ -977,6 +1003,12 @@ func TestFunctions(t *testing.T) {
 			{
 				`yamldecode("true")`,
 				cty.True,
+			},
+			{
+				`yamldecode("key: 0ba")`,
+				cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("0ba"),
+				}),
 			},
 		},
 

@@ -95,6 +95,17 @@ The three kinds of collection type in the Terraform language are:
     element type as long as every element is the same type. This is for
     compatibility with older configurations; for new code, we recommend using
     the full form.
+
+    Maps can be made with braces ({}) and colons (:) or equals signs (=):
+    { "foo": "bar", "bar": "baz" } OR { foo = "bar", bar = "baz" }. Quotes
+    may be omitted on keys, unless the key starts with a number, in which
+    case quotes are required. Commas are required between key/value pairs
+    for single line maps. A newline between key/value pairs is sufficient
+    in multi-line maps.
+
+    Note: although colons are valid delimiters between keys and values,
+    they are currently ignored by `terraform fmt` (whereas `terraform fmt`
+    will attempt vertically align equals signs).
 * `set(...)`: a collection of unique values that do not have any secondary
   identifiers or ordering.
 
@@ -253,3 +264,40 @@ variable "no_type_constraint" {
 
 In this case, Terraform will replace `any` with the exact type of the given
 value and thus perform no type conversion whatsoever.
+
+## Experimental: Optional Object Type Attributes
+
+From Terraform v0.14 there is _experimental_ support for marking particular
+attributes as optional in an object type constraint.
+
+To mark an attribute as optional, use the additional `optional(...)` modifier
+around its type declaration:
+
+```hcl
+variable "with_optional_attribute" {
+  type = object({
+    a = string           # a required attribute
+    b = optional(string) # an optional attribute
+  })
+}
+```
+
+By default, for required attributes, Terraform will return an error if the
+source value has no matching attribute. Marking an attribute as optional
+changes the behavior in that situation: Terraform will instead just silently
+insert `null` as the value of the attribute, allowing the recieving module
+to describe an appropriate fallback behavior.
+
+Because this feature is currently experimental, it requires an explicit
+opt-in on a per-module basis. To use it, write a `terraform` block with the
+`experiments` argument set as follows:
+
+```hcl
+terraform {
+  experiments = [module_variable_optional_attrs]
+}
+```
+
+Until the experiment is concluded, the behavior of this feature may see
+breaking changes even in minor releases. We recommend using this feature
+only in prerelease versions of modules as long as it remains experimental.

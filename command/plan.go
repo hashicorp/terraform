@@ -135,7 +135,12 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 		var backendForPlan plans.Backend
 		backendForPlan.Type = backendPseudoState.Type
-		backendForPlan.Workspace = c.Workspace()
+		workspace, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		backendForPlan.Workspace = workspace
 
 		// Configuration is a little more awkward to handle here because it's
 		// stored in state as raw JSON but we need it as a plans.DynamicValue
@@ -188,12 +193,12 @@ func (c *PlanCommand) Help() string {
 	helpText := `
 Usage: terraform plan [options] [DIR]
 
-  Generates an execution plan for Terraform.
+  Generates a speculative execution plan, showing what actions Terraform
+  would take to apply the current configuration. This command will not
+  actually perform the planned actions.
 
-  This execution plan can be reviewed prior to running apply to get a
-  sense for what Terraform will do. Optionally, the plan can be saved to
-  a Terraform plan file, and apply can take this plan file to execute
-  this plan exactly.
+  You can optionally save the plan to a file, which you can then pass to
+  the "apply" command to perform exactly the actions described in the plan.
 
 Options:
 
@@ -244,5 +249,5 @@ Options:
 }
 
 func (c *PlanCommand) Synopsis() string {
-	return "Generate and show an execution plan"
+	return "Show changes required by the current configuration"
 }

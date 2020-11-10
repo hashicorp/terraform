@@ -2,7 +2,6 @@ package registry
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -367,91 +366,4 @@ func TestLookupModuleNetworkError(t *testing.T) {
 	if !strings.Contains(err.Error(), "the request failed after 2 attempts, please try again later") {
 		t.Fatal("unexpected error, got:", err)
 	}
-}
-
-func TestLookupProviderVersions(t *testing.T) {
-	server := test.Registry()
-	defer server.Close()
-
-	client := NewClient(test.Disco(server), nil)
-
-	tests := []struct {
-		name string
-	}{
-		{"foo"},
-		{"bar"},
-	}
-	for _, tt := range tests {
-		provider := regsrc.NewTerraformProvider(tt.name, "", "")
-		resp, err := client.TerraformProviderVersions(provider)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		name := fmt.Sprintf("terraform-providers/%s", tt.name)
-		if resp.ID != name {
-			t.Fatalf("expected provider name %q, got %q", name, resp.ID)
-		}
-
-		if len(resp.Versions) != 2 {
-			t.Fatal("expected 2 versions, got", len(resp.Versions))
-		}
-
-		for _, v := range resp.Versions {
-			_, err := version.NewVersion(v.Version)
-			if err != nil {
-				t.Fatalf("invalid version %#v: %v", v, err)
-			}
-		}
-	}
-}
-
-func TestLookupProviderLocation(t *testing.T) {
-	server := test.Registry()
-	defer server.Close()
-
-	client := NewClient(test.Disco(server), nil)
-
-	tests := []struct {
-		Name    string
-		Version string
-		Err     bool
-	}{
-		{
-			"foo",
-			"0.2.3",
-			false,
-		},
-		{
-			"bar",
-			"0.1.1",
-			false,
-		},
-		{
-			"baz",
-			"0.0.0",
-			true,
-		},
-	}
-	for _, tt := range tests {
-		// FIXME: the tests are set up to succeed - os/arch is not being validated at this time
-		p := regsrc.NewTerraformProvider(tt.Name, "linux", "amd64")
-
-		locationMetadata, err := client.TerraformProviderLocation(p, tt.Version)
-		if tt.Err {
-			if err == nil {
-				t.Fatal("succeeded; want error")
-			}
-			return
-		} else if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		downloadURL := fmt.Sprintf("https://releases.hashicorp.com/terraform-provider-%s/%s/terraform-provider-%s.zip", tt.Name, tt.Version, tt.Name)
-
-		if locationMetadata.DownloadURL != downloadURL {
-			t.Fatalf("incorrect download URL: expected %q, got %q", downloadURL, locationMetadata.DownloadURL)
-		}
-	}
-
 }

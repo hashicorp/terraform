@@ -15,7 +15,6 @@ func TestInit_backend(t *testing.T) {
 	}{
 		{"local", "*local.Local"},
 		{"remote", "*remote.Remote"},
-		{"atlas", "*atlas.Backend"},
 		{"azurerm", "*azure.Backend"},
 		{"consul", "*consul.Backend"},
 		{"cos", "*cos.Backend"},

@@ -1,11 +1,9 @@
 package providercache
 
 import (
-	"io/ioutil"
 	"log"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -66,6 +64,12 @@ func NewDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
 		baseDir:        baseDir,
 		targetPlatform: platform,
 	}
+}
+
+// BasePath returns the filesystem path of the base directory of this
+// cache directory.
+func (d *Dir) BasePath() string {
+	return filepath.Clean(d.baseDir)
 }
 
 // AllAvailablePackages returns a description of all of the packages already
@@ -136,6 +140,7 @@ func (d *Dir) fillMetaCache() error {
 
 	allData, err := getproviders.SearchLocalDirectory(d.baseDir)
 	if err != nil {
+		log.Printf("[TRACE] providercache.fillMetaCache: error while scanning directory %s: %s", d.baseDir, err)
 		return err
 	}
 
@@ -164,20 +169,12 @@ func (d *Dir) fillMetaCache() error {
 			}
 
 			packageDir := filepath.Clean(string(meta.Location.(getproviders.PackageLocalDir)))
-			execFile := findProviderExecutableInLocalPackage(meta)
-			if execFile == "" {
-				// If the package doesn't contain a suitable executable then
-				// it isn't considered to be part of our cache.
-				log.Printf("[TRACE] providercache.fillMetaCache: ignoring %s because it is does not seem to contain a suitable plugin executable", meta.Location)
-				continue
-			}
 
 			log.Printf("[TRACE] providercache.fillMetaCache: including %s as a candidate package for %s %s", meta.Location, providerAddr, meta.Version)
 			data[providerAddr] = append(data[providerAddr], CachedProvider{
-				Provider:       providerAddr,
-				Version:        meta.Version,
-				PackageDir:     filepath.ToSlash(packageDir),
-				ExecutableFile: filepath.ToSlash(execFile),
+				Provider:   providerAddr,
+				Version:    meta.Version,
+				PackageDir: filepath.ToSlash(packageDir),
 			})
 		}
 	}
@@ -198,76 +195,4 @@ func (d *Dir) fillMetaCache() error {
 
 	d.metaCache = data
 	return nil
-}
-
-// This is a helper function to peep into the unpacked directory associated
-// with the given package meta and find something that looks like it's intended
-// to be the executable file for the plugin.
-//
-// This is a bit messy and heuristic-y because historically Terraform used the
-// filename itself for local filesystem discovery, allowing some variance in
-// the filenames to capture extra metadata, whereas now we're using the
-// directory structure leading to the executable instead but need to remain
-// compatible with the executable names bundled into existing provider packages.
-//
-// It will return a zero-length string if it can't find a file following
-// the expected convention in the given directory.
-func findProviderExecutableInLocalPackage(meta getproviders.PackageMeta) string {
-	packageDir, ok := meta.Location.(getproviders.PackageLocalDir)
-	if !ok {
-		// This should never happen because the providercache package only
-		// uses the local unpacked directory layout. If anything else ends
-		// up in here then we'll indicate that no executable is available,
-		// because all other locations require a fetch/unpack step first.
-		return ""
-	}
-
-	infos, err := ioutil.ReadDir(string(packageDir))
-	if err != nil {
-		// If the directory itself doesn't exist or isn't readable then we
-		// can't access an executable in it.
-		return ""
-	}
-
-	// For a provider named e.g. tf.example.com/awesomecorp/happycloud, we
-	// expect an executable file whose name starts with
-	// "terraform-provider-happycloud", followed by zero or more additional
-	// characters. If there _are_ additional characters then the first one
-	// must be an underscore or a period, like in thse examples:
-	// - terraform-provider-happycloud_v1.0.0
-	// - terraform-provider-happycloud.exe
-	//
-	// We don't require the version in the filename to match because the
-	// executable's name is no longer authoritative, but packages of "official"
-	// providers may continue to use versioned executable names for backward
-	// compatibility with Terraform 0.12.
-	//
-	// We also presume that providers packaged for Windows will include the
-	// necessary .exe extension on their filenames but do not explicitly check
-	// for that. If there's a provider package for Windows that has a file
-	// without that suffix then it will be detected as an executable but then
-	// we'll presumably fail later trying to run it.
-	wantPrefix := "terraform-provider-" + meta.Provider.Type
-
-	// We'll visit all of the directory entries and take the first (in
-	// name-lexical order) that looks like a plausible provider executable
-	// name. A package with multiple files meeting these criteria is degenerate
-	// but we will tolerate it by ignoring the subsequent entries.
-	for _, info := range infos {
-		if info.IsDir() {
-			continue // A directory can never be an executable
-		}
-		name := info.Name()
-		if !strings.HasPrefix(name, wantPrefix) {
-			continue
-		}
-		remainder := name[len(wantPrefix):]
-		if len(remainder) > 0 && (remainder[0] != '_' && remainder[0] != '.') {
-			continue // subsequent characters must be delimited by _
-		}
-		return filepath.Join(string(packageDir), name)
-	}
-
-	// If we fall out here then nothing has matched.
-	return ""
 }

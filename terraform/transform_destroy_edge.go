@@ -61,9 +61,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// are only being updated.
 	creators := make(map[string]GraphNodeCreator)
 
-	// destroyersByResource records each destroyer by the AbsResourceAddress.
-	// We use this because dependencies are only referenced as resources, but we
-	// will want to connect all the individual instances for correct ordering.
+	// destroyersByResource records each destroyer by the ConfigResource
+	// address.  We use this because dependencies are only referenced as
+	// resources and have no index or module instance information, but we will
+	// want to connect all the individual instances for correct ordering.
 	destroyersByResource := make(map[string][]GraphNodeDestroyer)
 	for _, v := range g.Vertices() {
 		switch n := v.(type) {
@@ -79,7 +80,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
 			destroyers[key] = append(destroyers[key], n)
 
-			resAddr := addr.Resource.Resource.Absolute(addr.Module).String()
+			resAddr := addr.ContainingResource().Config().String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
@@ -103,9 +104,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 			for _, resAddr := range ri.StateDependencies() {
 				for _, desDep := range destroyersByResource[resAddr.String()] {
-					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
-					g.Connect(dag.BasicEdge(desDep, des))
-
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+						g.Connect(dag.BasicEdge(desDep, des))
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
+					}
 				}
 			}
 		}
@@ -120,9 +124,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 		for _, resAddr := range ri.StateDependencies() {
 			for _, desDep := range destroyersByResource[resAddr.String()] {
-				log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-				g.Connect(dag.BasicEdge(c, desDep))
-
+				if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
+					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
+					g.Connect(dag.BasicEdge(c, desDep))
+				} else {
+					log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
+				}
 			}
 		}
 	}
@@ -150,59 +157,85 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				dag.VertexName(a), dag.VertexName(a_d))
 
 			g.Connect(dag.BasicEdge(a, a_d))
-
-			// Attach the destroy node to the creator
-			// There really shouldn't be more than one destroyer, but even if
-			// there are, any of them will represent the correct
-			// CreateBeforeDestroy status.
-			if n, ok := cn.(GraphNodeAttachDestroyer); ok {
-				if d, ok := d.(GraphNodeDestroyerCBD); ok {
-					n.AttachDestroyNode(d)
-				}
-			}
 		}
 	}
 
-	return t.pruneResources(g)
+	return nil
 }
 
-// If there are only destroy instances for a particular resource, there's no
-// reason for the resource node to prepare the state. Remove Resource nodes so
-// that they don't fail by trying to evaluate a resource that is only being
-// destroyed along with its dependencies.
-func (t *DestroyEdgeTransformer) pruneResources(g *Graph) error {
-	for _, v := range g.Vertices() {
-		n, ok := v.(*nodeExpandApplyableResource)
-		if !ok {
-			continue
-		}
+// Remove any nodes that aren't needed when destroying modules.
+// Variables, outputs, locals, and expanders may not be able to evaluate
+// correctly, so we can remove these if nothing depends on them. The module
+// closers also need to disable their use of expansion if the module itself is
+// no longer present.
+type pruneUnusedNodesTransformer struct {
+}
 
-		// if there are only destroy dependencies, we don't need this node
-		descendents, err := g.Descendents(n)
-		if err != nil {
-			return err
-		}
+func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
+	// We need a reverse depth first walk of modules, processing them in order
+	// from the leaf modules to the root. This allows us to remove unneeded
+	// dependencies from child modules, freeing up nodes in the parent module
+	// to also be removed.
 
-		nonDestroyInstanceFound := false
-		for _, v := range descendents {
-			if _, ok := v.(*NodeApplyableResourceInstance); ok {
-				nonDestroyInstanceFound = true
-				break
-			}
-		}
+	nodes := g.Vertices()
 
-		if nonDestroyInstanceFound {
-			continue
-		}
+	for removed := true; removed; {
+		removed = false
 
-		// connect all the through-edges, then delete the node
-		for _, d := range g.DownEdges(n) {
-			for _, u := range g.UpEdges(n) {
-				g.Connect(dag.BasicEdge(u, d))
-			}
+		for i := 0; i < len(nodes); i++ {
+			// run this in a closure, so we can return early rather than
+			// dealing with complex looping and labels
+			func() {
+				n := nodes[i]
+				switch n := n.(type) {
+				case graphNodeTemporaryValue:
+					// root module outputs indicate they are not temporary by
+					// returning false here.
+					if !n.temporaryValue() {
+						return
+					}
+
+					// temporary values, which consist of variables, locals,
+					// and outputs, must be kept if anything refers to them.
+					for _, v := range g.UpEdges(n) {
+						// keep any value which is connected through a
+						// reference
+						if _, ok := v.(GraphNodeReferencer); ok {
+							return
+						}
+					}
+
+				case graphNodeExpandsInstances:
+					// Any nodes that expand instances are kept when their
+					// instances may need to be evaluated.
+					for _, v := range g.UpEdges(n) {
+						switch v.(type) {
+						case graphNodeExpandsInstances:
+							// expanders can always depend on module expansion
+							// themselves
+							return
+						case GraphNodeResourceInstance:
+							// resource instances always depend on their
+							// resource node, which is an expander
+							return
+						}
+					}
+
+				default:
+					return
+				}
+
+				log.Printf("[DEBUG] pruneUnusedNodes: %s is no longer needed, removing", dag.VertexName(n))
+				g.Remove(n)
+				removed = true
+
+				// remove the node from our iteration as well
+				last := len(nodes) - 1
+				nodes[i], nodes[last] = nodes[last], nodes[i]
+				nodes = nodes[:last]
+			}()
 		}
-		log.Printf("DestroyEdgeTransformer: pruning unused resource node %s", dag.VertexName(n))
-		g.Remove(n)
 	}
+
 	return nil
 }

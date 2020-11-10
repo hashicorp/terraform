@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"sync"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -26,6 +27,7 @@ type MemoizeSource struct {
 
 type memoizeAvailableVersionsRet struct {
 	VersionList VersionList
+	Warnings    Warnings
 	Err         error
 }
 
@@ -55,26 +57,27 @@ func NewMemoizeSource(underlying Source) *MemoizeSource {
 // AvailableVersions requests the available versions from the underlying source
 // and caches them before returning them, or on subsequent calls returns the
 // result directly from the cache.
-func (s *MemoizeSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s *MemoizeSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if existing, exists := s.availableVersions[provider]; exists {
-		return existing.VersionList, existing.Err
+		return existing.VersionList, nil, existing.Err
 	}
 
-	ret, err := s.underlying.AvailableVersions(provider)
+	ret, warnings, err := s.underlying.AvailableVersions(ctx, provider)
 	s.availableVersions[provider] = memoizeAvailableVersionsRet{
 		VersionList: ret,
 		Err:         err,
+		Warnings:    warnings,
 	}
-	return ret, err
+	return ret, warnings, err
 }
 
 // PackageMeta requests package metadata from the underlying source and caches
 // the result before returning it, or on subsequent calls returns the result
 // directly from the cache.
-func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s *MemoizeSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -87,10 +90,14 @@ func (s *MemoizeSource) PackageMeta(provider addrs.Provider, version Version, ta
 		return existing.PackageMeta, existing.Err
 	}
 
-	ret, err := s.underlying.PackageMeta(provider, version, target)
+	ret, err := s.underlying.PackageMeta(ctx, provider, version, target)
 	s.packageMetas[key] = memoizePackageMetaRet{
 		PackageMeta: ret,
 		Err:         err,
 	}
 	return ret, err
+}
+
+func (s *MemoizeSource) ForDisplay(provider addrs.Provider) string {
+	return s.underlying.ForDisplay(provider)
 }

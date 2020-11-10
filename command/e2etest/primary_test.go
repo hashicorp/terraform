@@ -9,6 +9,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/e2e"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // The tests in this file are for the "primary workflow", which includes
@@ -70,8 +72,22 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	}
 
 	diffResources := plan.Changes.Resources
-	if len(diffResources) != 1 || diffResources[0].Addr.String() != "null_resource.test" {
-		t.Errorf("incorrect diff in plan; want just null_resource.test to have been rendered, but have:\n%s", spew.Sdump(diffResources))
+	if len(diffResources) != 1 {
+		t.Errorf("incorrect number of resources in plan")
+	}
+
+	expected := map[string]plans.Action{
+		"null_resource.test": plans.Create,
+	}
+
+	for _, r := range diffResources {
+		expectedAction, ok := expected[r.Addr.String()]
+		if !ok {
+			t.Fatalf("unexpected change for %q", r.Addr)
+		}
+		if r.Action != expectedAction {
+			t.Fatalf("unexpected action %q for %q", r.Action, r.Addr)
+		}
 	}
 
 	//// APPLY
@@ -125,4 +141,91 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
 	}
 
+}
+
+func TestPrimaryChdirOption(t *testing.T) {
+	t.Parallel()
+
+	// This test case does not include any provider dependencies, so it's
+	// safe to run it even when network access is disallowed.
+
+	fixturePath := filepath.Join("testdata", "chdir-option")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	//// INIT
+	stdout, stderr, err := tf.Run("-chdir=subdir", "init")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	//// PLAN
+	stdout, stderr, err = tf.Run("-chdir=subdir", "plan", "-out=tfplan")
+	if err != nil {
+		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "0 to add, 0 to change, 0 to destroy") {
+		t.Errorf("incorrect plan tally; want 0 to add:\n%s", stdout)
+	}
+
+	if !strings.Contains(stdout, "This plan was saved to: tfplan") {
+		t.Errorf("missing \"This plan was saved to...\" message in plan output\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
+		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
+	}
+
+	// The saved plan is in the subdirectory because -chdir switched there
+	plan, err := tf.Plan("subdir/tfplan")
+	if err != nil {
+		t.Fatalf("failed to read plan file: %s", err)
+	}
+
+	diffResources := plan.Changes.Resources
+	if len(diffResources) != 0 {
+		t.Errorf("incorrect diff in plan; want no resource changes, but have:\n%s", spew.Sdump(diffResources))
+	}
+
+	//// APPLY
+	stdout, stderr, err = tf.Run("-chdir=subdir", "apply", "tfplan")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 0 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 0 added:\n%s", stdout)
+	}
+
+	// The state file is in subdir because -chdir changed the current working directory.
+	state, err := tf.StateFromFile("subdir/terraform.tfstate")
+	if err != nil {
+		t.Fatalf("failed to read state file: %s", err)
+	}
+
+	gotOutput := state.RootModule().OutputValues["cwd"]
+	wantOutputValue := cty.StringVal(tf.Path()) // path.cwd returns the original path, because path.root is how we get the overridden path
+	if gotOutput == nil || !wantOutputValue.RawEquals(gotOutput.Value) {
+		t.Errorf("incorrect value for cwd output\ngot: %#v\nwant Value: %#v", gotOutput, wantOutputValue)
+	}
+
+	gotOutput = state.RootModule().OutputValues["root"]
+	wantOutputValue = cty.StringVal(tf.Path("subdir")) // path.root is a relative path, but the text fixture uses abspath on it.
+	if gotOutput == nil || !wantOutputValue.RawEquals(gotOutput.Value) {
+		t.Errorf("incorrect value for root output\ngot: %#v\nwant Value: %#v", gotOutput, wantOutputValue)
+	}
+
+	if len(state.RootModule().Resources) != 0 {
+		t.Errorf("unexpected resources in state")
+	}
+
+	//// DESTROY
+	stdout, stderr, err = tf.Run("-chdir=subdir", "destroy", "-auto-approve")
+	if err != nil {
+		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 0 destroyed") {
+		t.Errorf("incorrect destroy tally; want 0 destroyed:\n%s", stdout)
+	}
 }

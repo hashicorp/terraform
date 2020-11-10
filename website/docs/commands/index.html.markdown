@@ -3,77 +3,112 @@ layout: "docs"
 page_title: "Commands"
 sidebar_current: "docs-commands"
 description: |-
-  Terraform is controlled via a very easy to use command-line interface (CLI). Terraform is only a single command-line application: terraform. This application then takes a subcommand such as "apply" or "plan". The complete list of subcommands is in the navigation to the left.
+  Main usage information for the Terraform CLI tool.
 ---
 
 # Terraform Commands (CLI)
 
-Terraform is controlled via a very easy to use command-line interface (CLI).
-Terraform is only a single command-line application: terraform. This application
-then takes a subcommand such as "apply" or "plan". The complete list of subcommands
-is in the navigation to the left.
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
-The terraform CLI is a well-behaved command line application. In erroneous cases,
-a non-zero exit status will be returned. It also responds to -h and --help as you'd
-most likely expect.
+The command line interface to Terraform is via the `terraform` command, which
+accepts a variety of subcommands such as `terraform init` or `terraform plan`.
+A full list of all of the supported subcommands is in the navigation section
+of this page.
 
-To view a list of the available commands at any time, just run terraform with no arguments:
+We refer to the `terraform` command line tool as "Terraform CLI" elsewhere
+in the documentation. This terminology is often used to distinguish it from
+other components you might use in the Terraform product family, such as
+[Terraform Cloud](/docs/cloud/) or
+the various [Terraform providers](/docs/providers/), which are developed and
+released separately from Terraform CLI.
+
+To view a list of the commands available in your current Terraform version,
+run `terraform` with no additional arguments:
 
 ```text
-$ terraform
-Usage: terraform [-version] [-help] <command> [args]
+Usage: terraform [global options] <subcommand> [args]
 
 The available commands for execution are listed below.
-The most common, useful commands are shown first, followed by
-less common or more advanced commands. If you're just getting
-started with Terraform, stick with the common commands. For the
-other commands, please read the help and docs before usage.
+The primary workflow commands are given first, followed by
+less common or more advanced commands.
 
-Common commands:
-    apply              Builds or changes infrastructure
-    console            Interactive console for Terraform interpolations
-    destroy            Destroy Terraform-managed infrastructure
-    env                Workspace management
-    fmt                Rewrites config files to canonical format
-    get                Download and install modules for the configuration
-    graph              Create a visual graph of Terraform resources
-    import             Import existing infrastructure into Terraform
-    init               Initialize a Terraform working directory
-    output             Read an output from a state file
-    plan               Generate and show an execution plan
-    providers          Prints a tree of the providers used in the configuration
-    refresh            Update local state file against real resources
-    show               Inspect Terraform state or plan
-    taint              Manually mark a resource for recreation
-    untaint            Manually unmark a resource as tainted
-    validate           Validates the Terraform files
-    version            Prints the Terraform version
-    workspace          Workspace management
+Main commands:
+  init          Prepare your working directory for other commands
+  validate      Check whether the configuration is valid
+  plan          Show changes required by the current configuration
+  apply         Create or update infrastructure
+  destroy       Destroy previously-created infrastructure
 
 All other commands:
-    0.12upgrade        Rewrites pre-0.12 module source code for v0.12
-    debug              Debug output management (experimental)
-    force-unlock       Manually unlock the terraform state
-    push               Obsolete command for Terraform Enterprise legacy (v1)
-    state              Advanced state management
+  console       Try Terraform expressions at an interactive command prompt
+  fmt           Reformat your configuration in the standard style
+  force-unlock  Release a stuck lock on the current workspace
+  get           Install or upgrade remote Terraform modules
+  graph         Generate a Graphviz graph of the steps in an operation
+  import        Associate existing infrastructure with a Terraform resource
+  login         Obtain and save credentials for a remote host
+  logout        Remove locally-stored credentials for a remote host
+  output        Show output values from your root module
+  providers     Show the providers required for this configuration
+  refresh       Update the state to match remote systems
+  show          Show the current state or a saved plan
+  state         Advanced state management
+  taint         Mark a resource instance as not fully functional
+  untaint       Remove the 'tainted' state from a resource instance
+  version       Show the current Terraform version
+  workspace     Workspace management
+
+Global options (use these before the subcommand, if any):
+  -chdir=DIR    Switch to a different working directory before executing the
+                given subcommand.
+  -help         Show this help output, or the help for a specified subcommand.
+  -version      An alias for the "version" subcommand.
 ```
 
-To get help for any specific command, pass the -h flag to the relevant subcommand. For example,
-to see help about the graph subcommand:
+(The output from your current Terraform version may be different than the
+above example.)
 
-```text
-$ terraform graph -h
-Usage: terraform graph [options] PATH
+To get specific help for any specific command, use the `-help` option with the
+relevant subcommand. For example, to see help about the "validate" subcommand
+you can run `terraform validate -help`.
 
-  Outputs the visual graph of Terraform resources. If the path given is
-  the path to a configuration, the dependency graph of the resources are
-  shown. If the path is a plan file, then the dependency graph of the
-  plan itself is shown.
+The inline help built in to Terraform CLI describes the most important
+characteristics of each command. For more detailed information, refer to each
+command's section of this documentation, available in the navigation
+section of this page.
 
-  The graph is outputted in DOT format. The typical program that can
-  read this format is GraphViz, but many web services are also available
-  to read this format.
+## Switching working directory with `-chdir`
+
+The usual way to run Terraform is to first switch to the directory containing
+the `.tf` files for your root module (for example, using the `cd` command), so
+that Terraform will find those files automatically without any extra arguments.
+
+In some cases though — particularly when wrapping Terraform in automation
+scripts — it can be convenient to run Terraform from a different directory than
+the root module directory. To allow that, Terraform supports a global option
+`-chdir=...` which you can include before the name of the subcommand you intend
+to run:
+
 ```
+terraform -chdir=environments/production apply
+```
+
+The `chdir` option instructs Terraform to change its working directory to the
+given directory before running the given subcommand. This means that any files
+that Terraform would normally read or write in the current working directory
+will be read or written in the given directory instead.
+
+There are two exceptions where Terraform will use the original working directory
+even when you specify `-chdir=...`:
+
+* Settings in the [CLI Configuration](cli-config.html) are not for a specific
+  subcommand and Terraform processes them before acting on the `-chdir`
+  option.
+
+* In case you need to use files from the original working directory as part
+  of your configuration, a reference to `path.cwd` in the configuration will
+  produce the original working directory instead of the overridden working
+  directory. Use `path.root` to get the root module directory.
 
 ## Shell Tab-completion
 

@@ -219,7 +219,7 @@ elements in the input variables.
 
 * [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
-* [`flatten`](./flatten.html) is useful for flattening heirarchical data
+* [`flatten`](./flatten.html) is useful for flattening hierarchical data
   into a single list, for situations where the relationships between two
   object types are defined explicitly.
 * [`setintersection`](./setintersection.html) computes the _intersection_ of

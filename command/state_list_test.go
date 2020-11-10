@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -99,7 +98,7 @@ func TestStateListWithNonExistentID(t *testing.T) {
 func TestStateList_backendDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-list-backend-default"), td)
+	testCopyDir(t, testFixturePath("state-list-backend-default"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -128,7 +127,7 @@ func TestStateList_backendDefaultState(t *testing.T) {
 func TestStateList_backendCustomState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-list-backend-custom"), td)
+	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -157,7 +156,7 @@ func TestStateList_backendCustomState(t *testing.T) {
 func TestStateList_backendOverrideState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-list-backend-custom"), td)
+	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

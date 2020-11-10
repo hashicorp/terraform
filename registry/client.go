@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
 	"github.com/hashicorp/terraform/version"
@@ -87,11 +87,7 @@ func NewClient(services *disco.Disco, client *http.Client) *Client {
 	retryableClient.RequestLogHook = requestLogHook
 	retryableClient.ErrorHandler = maxRetryErrorHandler
 
-	logOutput, err := logging.LogOutput()
-	if err != nil {
-		log.Printf("[WARN] Failed to set up registry client logger, "+
-			"continuing without client logging: %s", err)
-	}
+	logOutput := logging.LogOutput()
 	retryableClient.Logger = log.New(logOutput, "", log.Flags())
 
 	services.Transport = retryableClient.HTTPClient.Transport
@@ -271,121 +267,6 @@ func (c *Client) ModuleLocation(module *regsrc.Module, version string) (string, 
 	}
 
 	return location, nil
-}
-
-// TerraformProviderVersions queries the registry for a provider, and returns the available versions.
-func (c *Client) TerraformProviderVersions(provider *regsrc.TerraformProvider) (*response.TerraformProviderVersions, error) {
-	host, err := provider.SvcHost()
-	if err != nil {
-		return nil, err
-	}
-
-	service, err := c.Discover(host, providersServiceID)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := url.Parse(path.Join(provider.TerraformProvider(), "versions"))
-	if err != nil {
-		return nil, err
-	}
-
-	service = service.ResolveReference(p)
-
-	log.Printf("[DEBUG] fetching provider versions from %q", service)
-
-	req, err := retryablehttp.NewRequest("GET", service.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.addRequestCreds(host, req.Request)
-	req.Header.Set(xTerraformVersion, tfVersion)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// OK
-	case http.StatusNotFound:
-		return nil, &errProviderNotFound{addr: provider}
-	default:
-		return nil, fmt.Errorf("error looking up provider versions: %s", resp.Status)
-	}
-
-	var versions response.TerraformProviderVersions
-
-	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&versions); err != nil {
-		return nil, err
-	}
-
-	return &versions, nil
-}
-
-// TerraformProviderLocation queries the registry for a provider download metadata
-func (c *Client) TerraformProviderLocation(provider *regsrc.TerraformProvider, version string) (*response.TerraformProviderPlatformLocation, error) {
-	host, err := provider.SvcHost()
-	if err != nil {
-		return nil, err
-	}
-
-	service, err := c.Discover(host, providersServiceID)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := url.Parse(path.Join(
-		provider.TerraformProvider(),
-		version,
-		"download",
-		provider.OS,
-		provider.Arch,
-	))
-	if err != nil {
-		return nil, err
-	}
-
-	service = service.ResolveReference(p)
-
-	log.Printf("[DEBUG] fetching provider location from %q", service)
-
-	req, err := retryablehttp.NewRequest("GET", service.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.addRequestCreds(host, req.Request)
-	req.Header.Set(xTerraformVersion, tfVersion)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var loc response.TerraformProviderPlatformLocation
-
-	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&loc); err != nil {
-		return nil, err
-	}
-
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusNoContent:
-		// OK
-	case http.StatusNotFound:
-		return nil, fmt.Errorf("provider %q version %q not found", provider.TerraformProvider(), version)
-	default:
-		// anything else is an error:
-		return nil, fmt.Errorf("error getting download location for %q: %s", provider.TerraformProvider(), resp.Status)
-	}
-
-	return &loc, nil
 }
 
 // configureDiscoveryRetry configures the number of retries the registry client

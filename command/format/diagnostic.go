@@ -100,7 +100,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 				if !lineRange.Overlaps(snippetRange) {
 					continue
 				}
-				if lineRange.Overlaps(highlightRange) {
+				if !lineRange.Overlap(highlightRange).Empty() {
 					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
 					before := beforeRange.SliceBytes(src)
 					highlighted := highlightedRange.SliceBytes(src)
@@ -149,9 +149,17 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 						continue Traversals // don't show duplicates when the same variable is referenced multiple times
 					}
 					switch {
+					case val.IsMarked():
+						// We won't say anything at all about sensitive values,
+						// because we might give away something that was
+						// sensitive about them.
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] has a sensitive value"), traversalStr))
 					case !val.IsKnown():
-						// Can't say anything about this yet, then.
-						continue Traversals
+						if ty := val.Type(); ty != cty.DynamicPseudoType {
+							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is a %s, known only after apply"), traversalStr, ty.FriendlyName()))
+						} else {
+							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] will be known only after apply"), traversalStr))
+						}
 					case val.IsNull():
 						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
 					default:
@@ -175,11 +183,17 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	}
 
 	if desc.Detail != "" {
-		detail := desc.Detail
 		if width != 0 {
-			detail = wordwrap.WrapString(detail, uint(width))
+			lines := strings.Split(desc.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(line, uint(width))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", desc.Detail)
 		}
-		fmt.Fprintf(&buf, "%s\n", detail)
 	}
 
 	return buf.String()
@@ -295,6 +309,10 @@ func compactValueStr(val cty.Value) string {
 	// This is a specialized subset of value rendering tailored to producing
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
+
+	if val.ContainsMarked() {
+		return "(sensitive value)"
+	}
 
 	ty := val.Type()
 	switch {

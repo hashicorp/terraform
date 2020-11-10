@@ -23,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -305,8 +304,8 @@ func TestApply_defaultState(t *testing.T) {
 	}
 
 	// create an existing state file
-	localState := &state.LocalState{Path: statePath}
-	if err := localState.WriteState(terraform.NewState()); err != nil {
+	localState := statemgr.NewFilesystem(statePath)
+	if err := localState.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -342,43 +341,26 @@ func TestApply_error(t *testing.T) {
 
 	var lock sync.Mutex
 	errored := false
-	p.ApplyFn = func(info *terraform.InstanceInfo, s *terraform.InstanceState, d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 		lock.Lock()
 		defer lock.Unlock()
 
 		if !errored {
 			errored = true
-			return nil, fmt.Errorf("error")
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("error"))
 		}
 
-		newState := &terraform.InstanceState{
-			ID:         "foo",
-			Attributes: map[string]string{},
-		}
-		newState.Attributes["id"] = newState.ID
-		if ad, ok := d.Attributes["ami"]; ok {
-			newState.Attributes["ami"] = ad.New
-		}
-		if ad, ok := d.Attributes["error"]; ok {
-			newState.Attributes["error"] = ad.New
-		}
-		return newState, nil
+		s := req.PlannedState.AsValueMap()
+		s["id"] = cty.StringVal("foo")
+
+		resp.NewState = cty.ObjectVal(s)
+		return
 	}
-	p.DiffFn = func(info *terraform.InstanceInfo, s *terraform.InstanceState, rc *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		ret := &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{},
-		}
-		if new, ok := rc.Get("ami"); ok {
-			ret.Attributes["ami"] = &terraform.ResourceAttrDiff{
-				New: new.(string),
-			}
-		}
-		if new, ok := rc.Get("error"); ok {
-			ret.Attributes["error"] = &terraform.ResourceAttrDiff{
-				New: fmt.Sprintf("%t", new.(bool)),
-			}
-		}
-		return ret, nil
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		s := req.ProposedNewState.AsValueMap()
+		s["id"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(s)
+		return
 	}
 	p.GetSchemaReturn = &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -816,9 +798,6 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		planPath,
 	}
 	apply.Run(args)
-	if p.PrepareProviderConfigCalled {
-		t.Fatal("Prepare provider config should not be called with a plan")
-	}
 }
 
 func TestApply_refresh(t *testing.T) {
@@ -903,25 +882,13 @@ func TestApply_shutdown(t *testing.T) {
 		return nil
 	}
 
-	p.DiffFn = func(
-		*terraform.InstanceInfo,
-		*terraform.InstanceState,
-		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-		return &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		return
 	}
 
 	var once sync.Once
-	p.ApplyFn = func(
-		*terraform.InstanceInfo,
-		*terraform.InstanceState,
-		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
-
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 		// only cancel once
 		once.Do(func() {
 			shutdownCh <- struct{}{}
@@ -935,12 +902,8 @@ func TestApply_shutdown(t *testing.T) {
 		// canceled.
 		time.Sleep(200 * time.Millisecond)
 
-		return &terraform.InstanceState{
-			ID: "foo",
-			Attributes: map[string]string{
-				"ami": "2",
-			},
-		}, nil
+		resp.NewState = req.PlannedState
+		return
 	}
 
 	p.GetSchemaReturn = &terraform.ProviderSchema{
@@ -958,7 +921,7 @@ func TestApply_shutdown(t *testing.T) {
 		"-auto-approve",
 		testFixturePath("apply-shutdown"),
 	}
-	if code := c.Run(args); code != 0 {
+	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
@@ -1108,7 +1071,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "notsensitive = Hello world") {
+	if !strings.Contains(output, "notsensitive = \"Hello world\"") {
 		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
 	}
 	if !strings.Contains(output, "sensitive = <sensitive>") {

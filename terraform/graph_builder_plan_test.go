@@ -49,7 +49,6 @@ func TestPlanGraphBuilder(t *testing.T) {
 				addrs.NewDefaultProvider("openstack"): openstackProvider.GetSchemaReturn,
 			},
 		},
-		DisableReduce: true,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -105,7 +104,6 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 				addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
 			},
 		},
-		DisableReduce: true,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -125,27 +123,20 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
 meta.count-boundary (EachMode fixup)
-  provider["registry.terraform.io/hashicorp/test"]
-  test_thing.a
-  test_thing.b
-  test_thing.c
+  test_thing.c (expand)
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
-  provider["registry.terraform.io/hashicorp/test"]
-  test_thing.a
-  test_thing.b
-  test_thing.c
+  test_thing.c (expand)
 root
   meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
-test_thing.a
+test_thing.a (expand)
   provider["registry.terraform.io/hashicorp/test"]
-test_thing.b
+test_thing.b (expand)
   provider["registry.terraform.io/hashicorp/test"]
-test_thing.c
-  provider["registry.terraform.io/hashicorp/test"]
-  test_thing.a
-  test_thing.b
+test_thing.c (expand)
+  test_thing.a (expand)
+  test_thing.b (expand)
 `)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -184,7 +175,6 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 				addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
 			},
 		},
-		DisableReduce: true,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -204,22 +194,17 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(`
 meta.count-boundary (EachMode fixup)
-  provider["registry.terraform.io/hashicorp/test"]
-  test_thing.a
-  test_thing.b
+  test_thing.b (expand)
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
-  provider["registry.terraform.io/hashicorp/test"]
-  test_thing.a
-  test_thing.b
+  test_thing.b (expand)
 root
   meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
-test_thing.a
+test_thing.a (expand)
   provider["registry.terraform.io/hashicorp/test"]
-test_thing.b
-  provider["registry.terraform.io/hashicorp/test"]
-  test_thing.a
+test_thing.b (expand)
+  test_thing.a (expand)
 `)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
@@ -271,7 +256,6 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 				addrs.NewDefaultProvider("aws"): awsProvider.GetSchemaReturn,
 			},
 		},
-		DisableReduce: true,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -293,42 +277,29 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 }
 
 const testPlanGraphBuilderStr = `
-aws_instance.web
-  aws_security_group.firewall
-  provider["registry.terraform.io/hashicorp/aws"]
+aws_instance.web (expand)
+  aws_security_group.firewall (expand)
   var.foo
-aws_load_balancer.weblb
-  aws_instance.web
+aws_load_balancer.weblb (expand)
+  aws_instance.web (expand)
+aws_security_group.firewall (expand)
   provider["registry.terraform.io/hashicorp/aws"]
-aws_security_group.firewall
-  provider["registry.terraform.io/hashicorp/aws"]
-local.instance_id
-  aws_instance.web
+local.instance_id (expand)
+  aws_instance.web (expand)
 meta.count-boundary (EachMode fixup)
-  aws_instance.web
-  aws_load_balancer.weblb
-  aws_security_group.firewall
-  local.instance_id
-  openstack_floating_ip.random
+  aws_load_balancer.weblb (expand)
   output.instance_id
-  provider["registry.terraform.io/hashicorp/aws"]
-  provider["registry.terraform.io/hashicorp/openstack"]
-  var.foo
-openstack_floating_ip.random
+openstack_floating_ip.random (expand)
   provider["registry.terraform.io/hashicorp/openstack"]
 output.instance_id
-  local.instance_id
+  local.instance_id (expand)
 provider["registry.terraform.io/hashicorp/aws"]
-  openstack_floating_ip.random
+  openstack_floating_ip.random (expand)
 provider["registry.terraform.io/hashicorp/aws"] (close)
-  aws_instance.web
-  aws_load_balancer.weblb
-  aws_security_group.firewall
-  provider["registry.terraform.io/hashicorp/aws"]
+  aws_load_balancer.weblb (expand)
 provider["registry.terraform.io/hashicorp/openstack"]
 provider["registry.terraform.io/hashicorp/openstack"] (close)
-  openstack_floating_ip.random
-  provider["registry.terraform.io/hashicorp/openstack"]
+  openstack_floating_ip.random (expand)
 root
   meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/aws"] (close)
@@ -336,36 +307,31 @@ root
 var.foo
 `
 const testPlanGraphBuilderForEachStr = `
-aws_instance.bar
+aws_instance.bar (expand)
   provider["registry.terraform.io/hashicorp/aws"]
-aws_instance.bar2
+aws_instance.bar2 (expand)
   provider["registry.terraform.io/hashicorp/aws"]
-aws_instance.bat
-  aws_instance.boo
+aws_instance.bat (expand)
+  aws_instance.boo (expand)
+aws_instance.baz (expand)
   provider["registry.terraform.io/hashicorp/aws"]
-aws_instance.baz
+aws_instance.boo (expand)
   provider["registry.terraform.io/hashicorp/aws"]
-aws_instance.boo
-  provider["registry.terraform.io/hashicorp/aws"]
-aws_instance.foo
+aws_instance.foo (expand)
   provider["registry.terraform.io/hashicorp/aws"]
 meta.count-boundary (EachMode fixup)
-  aws_instance.bar
-  aws_instance.bar2
-  aws_instance.bat
-  aws_instance.baz
-  aws_instance.boo
-  aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
+  aws_instance.bar (expand)
+  aws_instance.bar2 (expand)
+  aws_instance.bat (expand)
+  aws_instance.baz (expand)
+  aws_instance.foo (expand)
 provider["registry.terraform.io/hashicorp/aws"]
 provider["registry.terraform.io/hashicorp/aws"] (close)
-  aws_instance.bar
-  aws_instance.bar2
-  aws_instance.bat
-  aws_instance.baz
-  aws_instance.boo
-  aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
+  aws_instance.bar (expand)
+  aws_instance.bar2 (expand)
+  aws_instance.bat (expand)
+  aws_instance.baz (expand)
+  aws_instance.foo (expand)
 root
   meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/aws"] (close)

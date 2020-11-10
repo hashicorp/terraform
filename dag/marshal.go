@@ -108,9 +108,14 @@ func newMarshalVertex(v Vertex) *marshalVertex {
 		dn = nil
 	}
 
+	// the name will be quoted again later, so we need to ensure it's properly
+	// escaped without quotes.
+	name := strconv.Quote(VertexName(v))
+	name = name[1 : len(name)-1]
+
 	return &marshalVertex{
 		ID:              marshalVertexID(v),
-		Name:            VertexName(v),
+		Name:            name,
 		Attrs:           make(map[string]string),
 		graphNodeDotter: dn,
 	}

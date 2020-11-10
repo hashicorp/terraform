@@ -42,6 +42,9 @@ func (b *Local) opRefresh(
 		}
 	}
 
+	// Refresh now happens via a plan, so we need to ensure this is enabled
+	op.PlanRefresh = true
+
 	// Get our context
 	tfCtx, _, opState, contextDiags := b.context(op)
 	diags = diags.Append(contextDiags)
@@ -49,6 +52,16 @@ func (b *Local) opRefresh(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
 
 	// Set our state
 	runningOp.State = opState.State()

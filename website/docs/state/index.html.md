@@ -21,6 +21,13 @@ infrastructure. Prior to any operation, Terraform does a
 [refresh](/docs/commands/refresh.html) to update the state with the
 real infrastructure.
 
+The primary purpose of Terraform state is to store bindings between objects in
+a remote system and resource instances declared in your configuration.
+When Terraform creates a remote object in response to a change of configuration,
+it will record the identity of that remote object against a particular
+resource instance, and then potentially update or delete that object in
+response to future configuration changes.
+
 For more information on why Terraform requires state and why Terraform cannot
 function without state, please see the page [state purpose](/docs/state/purpose.html).
 
@@ -37,15 +44,40 @@ insulates users from any format changes within the state itself. The Terraform
 project will keep the CLI working while the state format underneath it may
 shift.
 
-Finally, the CLI manages backups for you automatically. If you make a mistake
-modifying your state, the state CLI will always have a backup available for
-you that you can restore.
+Terraform expects a one-to-one mapping between configured resource instances
+and remote objects. Normally that is guaranteed by Terraform being the one
+to create each object and record its identity in the state, or to destroy
+an object and then remove the binding for it.
+
+If you add or remove bindings in the state by other means, such as by importing
+externally-created objects with `terraform import`, or by asking Terraform to
+"forget" an existing object with `terraform state rm`, you'll then need to
+ensure for yourself that this one-to-one rule is followed, such as by manually
+deleting an object that you asked Terraform to "forget", or by re-importing it
+to bind it to some other resource instance.
 
 ## Format
 
-The state is in JSON format and Terraform will promise backwards compatibility
-with the state file. The JSON format makes it easy to write tools around the
-state if you want or to modify it by hand in the case of a Terraform bug.
-The "version" field on the state contents allows us to transparently move
-the format forward if we make modifications.
+State snapshots are stored in JSON format and new Terraform versions are
+generally backward compatible with state snapshots produced by earlier versions.
+However, the state format is subject to change in new Terraform versions, so
+if you build software that parses or modifies it directly you should expect
+to perform ongoing maintenance of that software as the state format evolves
+in new versions.
 
+Alternatively, there are several integration points which produce JSON output
+that is specifically intended for consumption by external software:
+
+* [The `terraform output` command](/docs/commands/output.html)
+has a `-json` option, for obtaining either the full set of root module output
+values or a specific named output value from the latest state snapshot.
+* [The `terraform show` command](/docs/commands/show.html) has a `-json`
+option for inspecting the latest state snapshot in full, and also for
+inspecting saved plan files which include a copy of the prior state at the
+time the plan was made.
+
+A typical way to use these in situations where Terraform is running in
+automation is to run them immediately after a successful `terraform apply`
+to obtain a representation of the latest state snapshot, and then store that
+result as an artifact associated with the automated run so that other software
+can potentially consume it without needing to run Terraform itself.

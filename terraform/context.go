@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/instances"
@@ -18,6 +20,10 @@ import (
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -47,13 +53,14 @@ var (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Config    *configs.Config
-	Changes   *plans.Changes
-	State     *states.State
-	Targets   []addrs.Targetable
-	Variables InputValues
-	Meta      *ContextMeta
-	Destroy   bool
+	Config      *configs.Config
+	Changes     *plans.Changes
+	State       *states.State
+	Targets     []addrs.Targetable
+	Variables   InputValues
+	Meta        *ContextMeta
+	Destroy     bool
+	SkipRefresh bool
 
 	Hooks        []Hook
 	Parallelism  int
@@ -62,8 +69,15 @@ type ContextOpts struct {
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
-	ProviderSHA256s    map[string][]byte
-	SkipProviderVerify bool
+	ProviderSHA256s map[string][]byte
+
+	// If non-nil, will be verified to ensure that provider requirements from
+	// configuration can be satisfied by the set of locked dependencies.
+	LockedDependencies *depsfile.Locks
+
+	// Set of providers to exclude from the requirements check process, as they
+	// are marked as in local development.
+	ProvidersInDevelopment map[addrs.Provider]struct{}
 
 	UIInput UIInput
 }
@@ -74,19 +88,34 @@ type ContextOpts struct {
 // initializer.
 type ContextMeta struct {
 	Env string // Env is the state environment
+
+	// OriginalWorkingDir is the working directory where the Terraform CLI
+	// was run from, which may no longer actually be the current working
+	// directory if the user included the -chdir=... option.
+	//
+	// If this string is empty then the original working directory is the same
+	// as the current working directory.
+	//
+	// In most cases we should respect the user's override by ignoring this
+	// path and just using the current working directory, but this is here
+	// for some exceptional cases where the original working directory is
+	// needed.
+	OriginalWorkingDir string
 }
 
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
 // NewContext.
 type Context struct {
-	config    *configs.Config
-	changes   *plans.Changes
-	state     *states.State
-	targets   []addrs.Targetable
-	variables InputValues
-	meta      *ContextMeta
-	destroy   bool
+	config       *configs.Config
+	changes      *plans.Changes
+	state        *states.State
+	refreshState *states.State
+	skipRefresh  bool
+	targets      []addrs.Targetable
+	variables    InputValues
+	meta         *ContextMeta
+	destroy      bool
 
 	hooks      []Hook
 	components contextComponentFactory
@@ -195,6 +224,50 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		config = configs.NewEmptyConfig()
 	}
 
+	// If we have a configuration and a set of locked dependencies, verify that
+	// the provider requirements from the configuration can be satisfied by the
+	// locked dependencies.
+	if opts.LockedDependencies != nil {
+		reqs, providerDiags := config.ProviderRequirements()
+		diags = diags.Append(providerDiags)
+
+		locked := opts.LockedDependencies.AllProviders()
+		unmetReqs := make(getproviders.Requirements)
+		for provider, versionConstraints := range reqs {
+			// Builtin providers are not listed in the locks file
+			if provider.IsBuiltIn() {
+				continue
+			}
+			// Development providers must be excluded from this check
+			if _, ok := opts.ProvidersInDevelopment[provider]; ok {
+				continue
+			}
+			// If the required provider doesn't exist in the lock, or the
+			// locked version doesn't meet the constraints, mark the
+			// requirement unmet
+			acceptable := versions.MeetingConstraints(versionConstraints)
+			if lock, ok := locked[provider]; !ok || !acceptable.Has(lock.Version()) {
+				unmetReqs[provider] = versionConstraints
+			}
+		}
+
+		if len(unmetReqs) > 0 {
+			var buf strings.Builder
+			for provider, versionConstraints := range unmetReqs {
+				fmt.Fprintf(&buf, "\n- %s", provider)
+				if len(versionConstraints) > 0 {
+					fmt.Fprintf(&buf, " (%s)", getproviders.VersionConstraintsString(versionConstraints))
+				}
+			}
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider requirements cannot be satisfied by locked dependencies",
+				fmt.Sprintf("The following required providers are not installed:\n%s\n\nPlease run \"terraform init\".", buf.String()),
+			))
+			return nil, diags
+		}
+	}
+
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	// By the time we get here, we should have values defined for all of
@@ -210,17 +283,19 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	}
 
 	return &Context{
-		components: components,
-		schemas:    schemas,
-		destroy:    opts.Destroy,
-		changes:    changes,
-		hooks:      hooks,
-		meta:       opts.Meta,
-		config:     config,
-		state:      state,
-		targets:    opts.Targets,
-		uiInput:    opts.UIInput,
-		variables:  variables,
+		components:   components,
+		schemas:      schemas,
+		destroy:      opts.Destroy,
+		changes:      changes,
+		hooks:        hooks,
+		meta:         opts.Meta,
+		config:       config,
+		state:        state,
+		refreshState: state.DeepCopy(),
+		skipRefresh:  opts.SkipRefresh,
+		targets:      opts.Targets,
+		uiInput:      opts.UIInput,
+		variables:    variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
@@ -259,45 +334,35 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
-			Destroy:    c.destroy,
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeValidate:
-		// The validate graph is just a slightly modified plan graph
-		fallthrough
-	case GraphTypePlan:
-		// Create the plan graph builder
-		p := &PlanGraphBuilder{
+		// The validate graph is just a slightly modified plan graph: an empty
+		// state is substituted in for Validate.
+		return ValidateGraphBuilder(&PlanGraphBuilder{
 			Config:     c.config,
-			State:      c.state,
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
-		}
+			State:      states.NewState(),
+		}).Build(addrs.RootModuleInstance)
 
-		// Some special cases for other graph types shared with plan currently
-		var b GraphBuilder = p
-		switch typ {
-		case GraphTypeValidate:
-			b = ValidateGraphBuilder(p)
-		}
-
-		return b.Build(addrs.RootModuleInstance)
+	case GraphTypePlan:
+		// Create the plan graph builder
+		return (&PlanGraphBuilder{
+			Config:      c.config,
+			State:       c.state,
+			Components:  c.components,
+			Schemas:     c.schemas,
+			Targets:     c.targets,
+			Validate:    opts.Validate,
+			skipRefresh: c.skipRefresh,
+		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypeRefresh:
-		return (&RefreshGraphBuilder{
 			Config:     c.config,
 			State:      c.state,
 			Components: c.components,
@@ -477,10 +542,15 @@ Note that the -target option is not suitable for routine use, and is provided on
 		))
 	}
 
+	// This isn't technically needed, but don't leave an old refreshed state
+	// around in case we re-use the context in internal tests.
+	c.refreshState = c.state.DeepCopy()
+
 	return c.state, diags
 }
 
-// Plan generates an execution plan for the given context.
+// Plan generates an execution plan for the given context, and returns the
+// refreshed state.
 //
 // The execution plan encapsulates the context and can be stored
 // in order to reinstantiate a context later for Apply.
@@ -490,7 +560,6 @@ Note that the -target option is not suitable for routine use, and is provided on
 func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
 	c.changes = plans.NewChanges()
-
 	var diags tfdiags.Diagnostics
 
 	if len(c.targets) > 0 {
@@ -526,31 +595,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 		ProviderSHA256s: c.providerSHA256s,
 	}
 
-	var operation walkOperation
-	if c.destroy {
-		operation = walkPlanDestroy
-	} else {
-		// Set our state to be something temporary. We do this so that
-		// the plan can update a fake state so that variables work, then
-		// we replace it back with our old state.
-		old := c.state
-		if old == nil {
-			c.state = states.NewState()
-		} else {
-			c.state = old.DeepCopy()
-		}
-		defer func() {
-			c.state = old
-		}()
-
-		operation = walkPlan
-	}
-
-	// Build the graph.
+	operation := walkPlan
 	graphType := GraphTypePlan
 	if c.destroy {
+		operation = walkPlanDestroy
 		graphType = GraphTypePlanDestroy
 	}
+
 	graph, graphDiags := c.Graph(graphType, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
@@ -566,55 +617,30 @@ The -target option is not for routine use, and is provided only for exceptional 
 	}
 	p.Changes = c.changes
 
+	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
+
+	refreshedState := c.refreshState.DeepCopy()
+	p.State = refreshedState
+
+	// replace the working state with the updated state, so that immediate calls
+	// to Apply work as expected.
+	c.state = refreshedState
+
 	return p, diags
 }
 
 // Refresh goes through all the resources in the state and refreshes them
-// to their latest state. This will update the state that this context
-// works with, along with returning it.
+// to their latest state. This is done by executing a plan, and retaining the
+// state while discarding the change set.
 //
-// Even in the case an error is returned, the state may be returned and
-// will potentially be partially updated.
+// In the case of an error, there is no state returned.
 func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
-	defer c.acquireRun("refresh")()
-
-	// Copy our own state
-	c.state = c.state.DeepCopy()
-
-	// Refresh builds a partial changeset as part of its work because it must
-	// create placeholder stubs for any resource instances that'll be created
-	// in subsequent plan so that provider configurations and data resources
-	// can interpolate from them. This plan is always thrown away after
-	// the operation completes, restoring any existing changeset.
-	oldChanges := c.changes
-	defer func() { c.changes = oldChanges }()
-	c.changes = plans.NewChanges()
-
-	// Build the graph.
-	graph, diags := c.Graph(GraphTypeRefresh, nil)
+	p, diags := c.Plan()
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	// Do the walk
-	_, walkDiags := c.walk(graph, walkRefresh)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// During our walk we will have created planned object placeholders in
-	// state for resource instances that are in configuration but not yet
-	// created. These were created only to allow expression evaluation to
-	// work properly in provider and data blocks during the walk and must
-	// now be discarded, since a subsequent plan walk is responsible for
-	// creating these "for real".
-	// TODO: Consolidate refresh and plan into a single walk, so that the
-	// refresh walk doesn't need to emulate various aspects of the plan
-	// walk in order to properly evaluate provider and data blocks.
-	c.state.SyncWrapper().RemovePlannedResourceInstanceObjects()
-
-	return c.state, diags
+	return p.State, diags
 }
 
 // Stop stops the running task.
@@ -769,9 +795,30 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 }
 
 func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
+	var state *states.SyncState
+	var refreshState *states.SyncState
+
+	switch operation {
+	case walkValidate:
+		// validate should not use any state
+		state = states.NewState().SyncWrapper()
+
+		// validate currently uses the plan graph, so we have to populate the
+		// refreshState.
+		refreshState = states.NewState().SyncWrapper()
+
+	case walkPlan:
+		state = c.state.SyncWrapper()
+		refreshState = c.refreshState.SyncWrapper()
+
+	default:
+		state = c.state.SyncWrapper()
+	}
+
 	return &ContextGraphWalker{
 		Context:            c,
-		State:              c.state.SyncWrapper(),
+		State:              state,
+		RefreshState:       refreshState,
 		Changes:            c.changes.SyncWrapper(),
 		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,

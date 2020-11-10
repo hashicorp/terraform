@@ -37,6 +37,13 @@ func (c *Changes) Empty() bool {
 			return false
 		}
 	}
+
+	for _, out := range c.Outputs {
+		if out.Action != NoOp {
+			return false
+		}
+	}
+
 	return true
 }
 
@@ -52,6 +59,22 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 	}
 
 	return nil
+
+}
+
+// InstancesForConfigResource returns the planned change for the current objects
+// of the resource instances of the given address, if any. Returns nil if no
+// changes are planned.
+func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+	var changes []*ResourceInstanceChangeSrc
+	for _, rc := range c.Resources {
+		resAddr := rc.Addr.ContainingResource().Config()
+		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+			changes = append(changes, rc)
+		}
+	}
+
+	return changes
 }
 
 // ResourceInstanceDeposed returns the plan change of a deposed object of
@@ -321,18 +344,33 @@ type Change struct {
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
 func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
-	beforeDV, err := NewDynamicValue(c.Before, ty)
+	// Storing unmarked values so that we can encode unmarked values
+	// and save the PathValueMarks for re-marking the values later
+	var beforeVM, afterVM []cty.PathValueMarks
+	unmarkedBefore := c.Before
+	unmarkedAfter := c.After
+
+	if c.Before.ContainsMarked() {
+		unmarkedBefore, beforeVM = c.Before.UnmarkDeepWithPaths()
+	}
+	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
 	if err != nil {
 		return nil, err
 	}
-	afterDV, err := NewDynamicValue(c.After, ty)
+
+	if c.After.ContainsMarked() {
+		unmarkedAfter, afterVM = c.After.UnmarkDeepWithPaths()
+	}
+	afterDV, err := NewDynamicValue(unmarkedAfter, ty)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ChangeSrc{
-		Action: c.Action,
-		Before: beforeDV,
-		After:  afterDV,
+		Action:         c.Action,
+		Before:         beforeDV,
+		After:          afterDV,
+		BeforeValMarks: beforeVM,
+		AfterValMarks:  afterVM,
 	}, nil
 }

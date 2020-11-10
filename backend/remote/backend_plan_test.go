@@ -9,11 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -61,6 +63,12 @@ func TestRemote_planBasic(t *testing.T) {
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	// An error suggests that the state was not unlocked after the operation finished
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after successful plan: %s", err.Error())
+	}
 }
 
 func TestRemote_planCanceled(t *testing.T) {
@@ -83,6 +91,12 @@ func TestRemote_planCanceled(t *testing.T) {
 	<-run.Done()
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("expected plan operation to fail")
+	}
+
+	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	// An error suggests that the state was not unlocked after the operation finished
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after cancelled plan: %s", err.Error())
 	}
 }
 
@@ -269,8 +283,84 @@ func TestRemote_planWithTarget(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
+	// When the backend code creates a new run, we'll tweak it so that it
+	// has a cost estimation object with the "skipped_due_to_targeting" status,
+	// emulating how a real server is expected to behave in that case.
+	b.client.Runs.(*mockRuns).modifyNewRun = func(client *mockClient, options tfe.RunCreateOptions, run *tfe.Run) {
+		const fakeID = "fake"
+		// This is the cost estimate object embedded in the run itself which
+		// the backend will use to learn the ID to request from the cost
+		// estimates endpoint. It's pending to simulate what a freshly-created
+		// run is likely to look like.
+		run.CostEstimate = &tfe.CostEstimate{
+			ID:     fakeID,
+			Status: "pending",
+		}
+		// The backend will then use the main cost estimation API to retrieve
+		// the same ID indicated in the object above, where we'll then return
+		// the status "skipped_due_to_targeting" to trigger the special skip
+		// message in the backend output.
+		client.CostEstimates.estimations[fakeID] = &tfe.CostEstimate{
+			ID:     fakeID,
+			Status: "skipped_due_to_targeting",
+		}
+	}
+
 	op, configCleanup := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
+
+	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
+
+	op.Targets = []addrs.Targetable{addr}
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected plan operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
+	}
+
+	// testBackendDefault above attached a "mock UI" to our backend, so we
+	// can retrieve its non-error output via the OutputWriter in-memory buffer.
+	gotOutput := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if wantOutput := "Not available for this plan, because it was created with the -target option."; !strings.Contains(gotOutput, wantOutput) {
+		t.Errorf("missing message about skipped cost estimation\ngot:\n%s\nwant substring: %s", gotOutput, wantOutput)
+	}
+
+	// We should find a run inside the mock client that has the same
+	// target address we requested above.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
+			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
+		}
+
+		if !strings.Contains(run.Message, "using -target") {
+			t.Errorf("incorrect Message on the created run: %s", run.Message)
+		}
+	}
+}
+
+func TestRemote_planWithTargetIncompatibleAPIVersion(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	// Set the tfe client's RemoteAPIVersion to an empty string, to mimic
+	// API versions prior to 2.3.
+	b.client.SetFakeRemoteAPIVersion("")
 
 	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
 
@@ -291,7 +381,7 @@ func TestRemote_planWithTarget(t *testing.T) {
 	}
 
 	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(errOutput, "targeting is currently not supported") {
+	if !strings.Contains(errOutput, "Resource targeting is not supported") {
 		t.Fatalf("expected a targeting error, got: %v", errOutput)
 	}
 }

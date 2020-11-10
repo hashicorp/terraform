@@ -40,6 +40,30 @@ func TestContext2Validate_badCount(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_badResource_reference(t *testing.T) {
+	p := testProvider("aws")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
+
+	m := testModule(t, "validate-bad-resource-count")
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate()
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+}
+
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
@@ -126,6 +150,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Computed: true},
 					"value": {Type: cty.String, Optional: true},
 				},
 			},
@@ -141,21 +166,21 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		if !c.IsComputed("value") {
-			return nil, []error{fmt.Errorf("value isn't computed")}
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsKnown() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value isn't computed"))
 		}
 
-		return nil, c.CheckSet([]string{"value"})
-	}
-
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		return fmt.Errorf("Configure should not be called for provider")
+		return
 	}
 
 	diags := c.Validate()
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+	if p.ConfigureCalled {
+		t.Fatal("Configure should not be called for provider")
 	}
 }
 
@@ -440,8 +465,11 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		if req.Config.GetAttr("foo").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
+		}
+		return
 	}
 
 	diags := c.Validate()
@@ -475,8 +503,11 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		},
 	})
 
-	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
+	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+		if req.Config.GetAttr("foo").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
+		}
+		return
 	}
 
 	diags := c.Validate()
@@ -604,6 +635,38 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{},
+			},
+		},
+	}
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+}
+
+// In this test there is a mismatch between the provider's fqn (hashicorp/test)
+// and it's local name set in required_providers (arbitrary).
+func TestContext2Validate_requiredProviderConfig(t *testing.T) {
+	m := testModule(t, "validate-required-provider-config")
+	p := testProvider("aws")
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"required_attribute": {Type: cty.String, Required: true},
 			},
 		},
 		ResourceTypes: map[string]*configschema.Block{
@@ -897,8 +960,8 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	m := testModule(t, "validate-targeted")
 	p := testProvider("aws")
 	pr := simpleMockProvisioner()
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -986,8 +1049,8 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 
 	m := testModule(t, "input-interpolate-var")
 	p := testProvider("null")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"template_file": {
@@ -1019,8 +1082,8 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 
 	m := testModule(t, "validate-computed-module-var-ref")
 	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaReturn = &ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -1051,8 +1114,8 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 
 	m := testModule(t, "issue-9549")
 	p := testProvider("template")
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1183,6 +1246,46 @@ resource "aws_instance" "foo" {
 	// Should get this error:
 	// Unsupported attribute: This object does not have an attribute named "missing"
 	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_invalidSensitiveModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+variable "foo" {
+  default = "xyz"
+  sensitive = true
+}
+
+output "out" {
+  value = var.foo
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "aws_instance" "foo" {
+  foo = module.child.out
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Output refers to sensitive values: Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; strings.Index(got, want) == -1 {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1371,14 +1474,6 @@ func TestContext2Validate_variableCustomValidationsRoot(t *testing.T) {
 	// altogether. (Root module variables are never known during validation.)
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-# This feature is currently experimental.
-# (If you're currently cleaning up after concluding the experiment,
-# remember to also clean up similar references in the configs package
-# under "invalid-files" and "invalid-modules".)
-terraform {
-  experiments = [variable_validation]
-}
-
 variable "test" {
   type = string
 
@@ -1459,7 +1554,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1488,7 +1583,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1520,7 +1615,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.DiffFn = testDiffFn
+	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1534,5 +1629,212 @@ resource "aws_instance" "foo" {
 	}
 	if got, want := diags.Err().Error(), `Invalid for_each argument`; strings.Index(got, want) == -1 {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_expandMultipleNestedModules(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "modA" {
+  for_each = {
+    first = "m"
+	second = "n"
+  }
+  source = "./modA"
+}
+`,
+		"modA/main.tf": `
+locals {
+  m = {
+    first = "m"
+	second = "n"
+  }
+}
+
+module "modB" {
+  for_each = local.m
+  source = "./modB"
+  y = each.value
+}
+
+module "modC" {
+  for_each = local.m
+  source = "./modC"
+  x = module.modB[each.key].out
+  y = module.modB[each.key].out
+}
+
+`,
+		"modA/modB/main.tf": `
+variable "y" {
+  type = string
+}
+
+resource "aws_instance" "foo" {
+  foo = var.y
+}
+
+output "out" {
+  value = aws_instance.foo.id
+}
+`,
+		"modA/modC/main.tf": `
+variable "x" {
+  type = string
+}
+
+variable "y" {
+  type = string
+}
+
+resource "aws_instance" "foo" {
+  foo = var.x
+}
+
+output "out" {
+  value = var.y
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_invalidModuleDependsOn(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+  depends_on = [resource_foo.bar.baz]
+}
+
+module "mod2" {
+  source = "./mod"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+		"mod/main.tf": `
+output "out" {
+  value = "foo"
+}
+`,
+	})
+
+	diags := testContext2(t, &ContextOpts{
+		Config: m,
+	}).Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("wanted 2 diagnostic errors, got %q", diags)
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
+	}
+}
+
+func TestContext2Validate_invalidOutputDependsOn(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod1" {
+  source = "./mod"
+}
+
+output "out" {
+  value = "bar"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+		"mod/main.tf": `
+output "out" {
+  value = "bar"
+  depends_on = [resource_foo.bar.baz]
+}
+`,
+	})
+
+	diags := testContext2(t, &ContextOpts{
+		Config: m,
+	}).Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("wanted 2 diagnostic errors, got %q", diags)
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "Invalid depends_on reference") {
+			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		}
+	}
+}
+
+func TestContext2Validate_rpcDiagnostics(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't frobble")),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "frobble") {
+			t.Fatalf(`expected frobble, got %q`, des)
+		}
 	}
 }

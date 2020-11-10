@@ -1,6 +1,7 @@
 package addrs
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -167,25 +168,25 @@ func TestAbsProviderConfigString(t *testing.T) {
 		{
 			AbsProviderConfig{
 				Module:   RootModule.Child("child_module"),
-				Provider: NewLegacyProvider("foo"),
+				Provider: NewDefaultProvider("foo"),
 			},
-			`module.child_module.provider["registry.terraform.io/-/foo"]`,
+			`module.child_module.provider["registry.terraform.io/hashicorp/foo"]`,
 		},
 		{
 			AbsProviderConfig{
 				Module:   RootModule,
 				Alias:    "bar",
-				Provider: NewLegacyProvider("foo"),
+				Provider: NewDefaultProvider("foo"),
 			},
-			`provider["registry.terraform.io/-/foo"].bar`,
+			`provider["registry.terraform.io/hashicorp/foo"].bar`,
 		},
 		{
 			AbsProviderConfig{
 				Module:   RootModule.Child("child_module"),
 				Alias:    "bar",
-				Provider: NewLegacyProvider("foo"),
+				Provider: NewDefaultProvider("foo"),
 			},
-			`module.child_module.provider["registry.terraform.io/-/foo"].bar`,
+			`module.child_module.provider["registry.terraform.io/hashicorp/foo"].bar`,
 		},
 	}
 
@@ -237,6 +238,42 @@ func TestAbsProviderConfigLegacyString(t *testing.T) {
 	for _, test := range tests {
 		got := test.Config.LegacyString()
 		if got != test.Want {
+			t.Errorf("wrong result. Got %s, want %s\n", got, test.Want)
+		}
+	}
+}
+
+func TestParseLegacyAbsProviderConfigStr(t *testing.T) {
+	tests := []struct {
+		Config string
+		Want   AbsProviderConfig
+	}{
+		{
+			`provider.foo`,
+			AbsProviderConfig{
+				Module:   RootModule,
+				Provider: NewLegacyProvider("foo"),
+			},
+		},
+		{
+			`module.child_module.provider.foo`,
+			AbsProviderConfig{
+				Module:   RootModule.Child("child_module"),
+				Provider: NewLegacyProvider("foo"),
+			},
+		},
+		{
+			`provider.terraform`,
+			AbsProviderConfig{
+				Module:   RootModule,
+				Provider: NewBuiltInProvider("terraform"),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got, _ := ParseLegacyAbsProviderConfigStr(test.Config)
+		if !reflect.DeepEqual(got, test.Want) {
 			t.Errorf("wrong result. Got %s, want %s\n", got, test.Want)
 		}
 	}

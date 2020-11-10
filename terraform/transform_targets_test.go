@@ -118,12 +118,12 @@ func TestTargetsTransformer_downstream(t *testing.T) {
 	// outputs that descend from it are also targeted.
 	expected := strings.TrimSpace(`
 module.child.module.grandchild.aws_instance.foo
-module.child.module.grandchild.output.id
+module.child.module.grandchild.output.id (expand)
   module.child.module.grandchild.aws_instance.foo
-module.child.output.grandchild_id
-  module.child.module.grandchild.output.id
+module.child.output.grandchild_id (expand)
+  module.child.module.grandchild.output.id (expand)
 output.grandchild_id
-  module.child.output.grandchild_id
+  module.child.output.grandchild_id (expand)
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
@@ -189,64 +189,12 @@ func TestTargetsTransformer_wholeModule(t *testing.T) {
 	// outputs that descend from it are also targeted.
 	expected := strings.TrimSpace(`
 module.child.module.grandchild.aws_instance.foo
-module.child.module.grandchild.output.id
+module.child.module.grandchild.output.id (expand)
   module.child.module.grandchild.aws_instance.foo
-module.child.output.grandchild_id
-  module.child.module.grandchild.output.id
+module.child.output.grandchild_id (expand)
+  module.child.module.grandchild.output.id (expand)
 output.grandchild_id
-  module.child.output.grandchild_id
-	`)
-	if actual != expected {
-		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
-	}
-}
-
-func TestTargetsTransformer_destroy(t *testing.T) {
-	mod := testModule(t, "transform-targets-destroy")
-
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &AttachResourceConfigTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &ReferenceTransformer{}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &TargetsTransformer{
-			Targets: []addrs.Targetable{
-				addrs.RootModuleInstance.Resource(
-					addrs.ManagedResourceMode, "aws_instance", "me",
-				),
-			},
-			Destroy: true,
-		}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-aws_elb.me
-  aws_instance.me
-aws_instance.me
-aws_instance.metoo
-  aws_instance.me
+  module.child.output.grandchild_id (expand)
 	`)
 	if actual != expected {
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)

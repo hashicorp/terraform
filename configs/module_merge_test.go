@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -109,6 +110,32 @@ func TestModuleOverrideModule(t *testing.T) {
 				Byte:   17,
 			},
 		},
+		Providers: []PassedProviderConfig{
+			{
+				InChild: &ProviderConfigRef{
+					Name: "test",
+					NameRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 5, Byte: 97},
+						End:      hcl.Pos{Line: 7, Column: 9, Byte: 101},
+					},
+				},
+				InParent: &ProviderConfigRef{
+					Name: "test",
+					NameRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 104},
+						End:      hcl.Pos{Line: 7, Column: 16, Byte: 108},
+					},
+					Alias: "b_override",
+					AliasRange: &hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 16, Byte: 108},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 119},
+					},
+				},
+			},
+		},
 	}
 
 	// We're going to extract and nil out our hcl.Body here because DeepEqual
@@ -199,6 +226,61 @@ func TestModuleOverrideDynamic(t *testing.T) {
 			t.Fatalf("wrong dynamic block label %q; want %q", got, want)
 		}
 	})
+}
+
+func TestModuleOverrideSensitiveVariable(t *testing.T) {
+	type testCase struct {
+		sensitive    bool
+		sensitiveSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+		"true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"false_false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+		"true_true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"false_true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"true_false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-sensitive")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Sensitive != want.sensitive {
+				t.Errorf("wrong result for sensitive\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+			}
+
+			if got[v].SensitiveSet != want.sensitiveSet {
+				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+			}
+		})
+	}
 }
 
 func TestModuleOverrideResourceFQNs(t *testing.T) {

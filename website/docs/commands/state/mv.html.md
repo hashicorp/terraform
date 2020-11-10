@@ -71,7 +71,7 @@ The example below moves the `packet_device` resource named `worker` into a modul
 named `app`. The module will be created if it doesn't exist.
 
 ```shell
-$ terraform state mv 'packet_device.worker' 'module.app'
+$ terraform state mv 'packet_device.worker' 'module.app.packet_device.worker'
 ```
 
 ## Example: Move a Module Into a Module

@@ -40,12 +40,6 @@ type ApplyGraphBuilder struct {
 	// outputs should go into the diff so that this is unnecessary.
 	Targets []addrs.Targetable
 
-	// DisableReduce, if true, will not reduce the graph. Great for testing.
-	DisableReduce bool
-
-	// Destroy, if true, represents a pure destroy operation
-	Destroy bool
-
 	// Validate will do structural validation of the graph.
 	Validate bool
 }
@@ -90,6 +84,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:   b.Config,
 		},
 
+		// Add dynamic values
+		&RootVariableTransformer{Config: b.Config},
+		&ModuleVariableTransformer{Config: b.Config},
+		&LocalTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config, Changes: b.Changes},
+
 		// Creates all the resource instances represented in the diff, along
 		// with dependency edges against the whole-resource nodes added by
 		// ConfigTransformer above.
@@ -99,30 +99,18 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Changes:  b.Changes,
 		},
 
+		// Attach the state
+		&AttachStateTransformer{State: b.State},
+
 		// Create orphan output nodes
 		&OrphanOutputTransformer{Config: b.Config, State: b.State},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		// Attach the state
-		&AttachStateTransformer{State: b.State},
-
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
 		&ProvisionerTransformer{},
-
-		// Add root variables
-		&RootVariableTransformer{Config: b.Config},
-
-		// Add the local values
-		&LocalTransformer{Config: b.Config},
-
-		// Add the outputs
-		&OutputTransformer{Config: b.Config},
-
-		// Add module variables
-		&ModuleVariableTransformer{Config: b.Config},
 
 		// add providers
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
@@ -143,35 +131,34 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
 
+		// Detect when create_before_destroy must be forced on for a particular
+		// node due to dependency edges, to avoid graph cycles during apply.
+		&ForcedCBDTransformer{},
+
 		// Destruction ordering
 		&DestroyEdgeTransformer{
 			Config:  b.Config,
 			State:   b.State,
 			Schemas: b.Schemas,
 		},
-
 		&CBDEdgeTransformer{
 			Config:  b.Config,
 			State:   b.State,
 			Schemas: b.Schemas,
 		},
 
-		// Create a destroy node for outputs to remove them from the state.
-		&DestroyOutputTransformer{Destroy: b.Destroy},
+		// We need to remove configuration nodes that are not used at all, as
+		// they may not be able to evaluate, especially during destroy.
+		// These include variables, locals, and instance expanders.
+		&pruneUnusedNodesTransformer{},
 
-		// Prune unreferenced values, which may have interpolations that can't
-		// be resolved.
-		&PruneUnusedValuesTransformer{
-			Destroy: b.Destroy,
-		},
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Add the node to fix the state count boundaries
 		&CountBoundaryTransformer{
 			Config: b.Config,
 		},
-
-		// Target
-		&TargetsTransformer{Targets: b.Targets},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
@@ -179,12 +166,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// close the root module
 		&CloseRootModuleTransformer{},
-	}
 
-	if !b.DisableReduce {
 		// Perform the transitive reduction to make our graph a bit
-		// more sane if possible (it usually is possible).
-		steps = append(steps, &TransitiveReductionTransformer{})
+		// more understandable if possible (it usually is possible).
+		&TransitiveReductionTransformer{},
 	}
 
 	return steps

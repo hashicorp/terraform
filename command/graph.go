@@ -190,5 +190,5 @@ Options:
 }
 
 func (c *GraphCommand) Synopsis() string {
-	return "Create a visual graph of Terraform resources"
+	return "Generate a Graphviz graph of the steps in an operation"
 }

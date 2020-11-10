@@ -103,3 +103,12 @@ func (s Set) List() []interface{} {
 
 	return r
 }
+
+// Copy returns a shallow copy of the set.
+func (s Set) Copy() Set {
+	c := make(Set)
+	for k, v := range s {
+		c[k] = v
+	}
+	return c
+}

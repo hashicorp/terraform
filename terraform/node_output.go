@@ -4,40 +4,70 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
-// NodePlannableOutput is the placeholder for an output that has not yet had
-// its module path expanded.
-type NodePlannableOutput struct {
-	Addr   addrs.OutputValue
-	Module addrs.Module
-	Config *configs.Output
+// nodeExpandOutput is the placeholder for a non-root module output that has
+// not yet had its module path expanded.
+type nodeExpandOutput struct {
+	Addr    addrs.OutputValue
+	Module  addrs.Module
+	Config  *configs.Output
+	Changes []*plans.OutputChangeSrc
+	Destroy bool
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*NodePlannableOutput)(nil)
-	_ GraphNodeReferenceable     = (*NodePlannableOutput)(nil)
-	_ GraphNodeReferencer        = (*NodePlannableOutput)(nil)
-	_ GraphNodeDynamicExpandable = (*NodePlannableOutput)(nil)
-	_ graphNodeTemporaryValue    = (*NodeApplyableOutput)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceOutside  = (*nodeExpandOutput)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)
 )
 
-func (n *NodePlannableOutput) temporaryValue() bool {
-	// this must always be evaluated if it is a root module output
+func (n *nodeExpandOutput) expandsInstances() {}
+
+func (n *nodeExpandOutput) temporaryValue() bool {
+	// non root outputs are temporary
 	return !n.Module.IsRoot()
 }
 
-func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	var g Graph
+func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	if n.Destroy {
+		// if we're planning a destroy, we only need to handle the root outputs.
+		// The destroy plan doesn't evaluate any other config, so we can skip
+		// the rest of the outputs.
+		return n.planDestroyRootOutput(ctx)
+	}
+
 	expander := ctx.InstanceExpander()
+
+	var g Graph
 	for _, module := range expander.ExpandModule(n.Module) {
+		absAddr := n.Addr.Absolute(module)
+
+		// Find any recorded change for this output
+		var change *plans.OutputChangeSrc
+		for _, c := range n.Changes {
+			if c.Addr.String() == absAddr.String() {
+				change = c
+				break
+			}
+		}
+
 		o := &NodeApplyableOutput{
-			Addr:   n.Addr.Absolute(module),
+			Addr:   absAddr,
 			Config: n.Config,
+			Change: change,
 		}
 		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
@@ -45,9 +75,30 @@ func (n *NodePlannableOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	return &g, nil
 }
 
-func (n *NodePlannableOutput) Name() string {
+// if we're planing a destroy operation, add a destroy node for any root output
+func (n *nodeExpandOutput) planDestroyRootOutput(ctx EvalContext) (*Graph, error) {
+	if !n.Module.IsRoot() {
+		return nil, nil
+	}
+	state := ctx.State()
+	if state == nil {
+		return nil, nil
+	}
+
+	var g Graph
+	o := &NodeDestroyableOutput{
+		Addr:   n.Addr.Absolute(addrs.RootModuleInstance),
+		Config: n.Config,
+	}
+	log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
+	g.Add(o)
+
+	return &g, nil
+}
+
+func (n *nodeExpandOutput) Name() string {
 	path := n.Module.String()
-	addr := n.Addr.String()
+	addr := n.Addr.String() + " (expand)"
 	if path != "" {
 		return path + "." + addr
 	}
@@ -55,12 +106,12 @@ func (n *NodePlannableOutput) Name() string {
 }
 
 // GraphNodeModulePath
-func (n *NodePlannableOutput) ModulePath() addrs.Module {
+func (n *nodeExpandOutput) ModulePath() addrs.Module {
 	return n.Module
 }
 
 // GraphNodeReferenceable
-func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
+func (n *nodeExpandOutput) ReferenceableAddrs() []addrs.Referenceable {
 	// An output in the root module can't be referenced at all.
 	if n.Module.IsRoot() {
 		return nil
@@ -80,7 +131,7 @@ func (n *NodePlannableOutput) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // GraphNodeReferenceOutside implementation
-func (n *NodePlannableOutput) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Module) {
 	// Output values have their expressions resolved in the context of the
 	// module where they are defined.
 	referencePath = n.Module
@@ -92,18 +143,10 @@ func (n *NodePlannableOutput) ReferenceOutside() (selfPath, referencePath addrs.
 }
 
 // GraphNodeReferencer
-func (n *NodePlannableOutput) References() []*addrs.Reference {
-	return appendResourceDestroyReferences(referencesForOutput(n.Config))
-}
-
-// RemovableIfNotTargeted
-func (n *NodePlannableOutput) RemoveIfNotTargeted() bool {
-	return true
-}
-
-// GraphNodeTargetDownstream
-func (n *NodePlannableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	return true
+func (n *nodeExpandOutput) References() []*addrs.Reference {
+	// root outputs might be destroyable, and may not reference anything in
+	// that case
+	return referencesForOutput(n.Config)
 }
 
 // NodeApplyableOutput represents an output that is "applyable":
@@ -111,16 +154,16 @@ func (n *NodePlannableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.
 type NodeApplyableOutput struct {
 	Addr   addrs.AbsOutputValue
 	Config *configs.Output // Config is the output in the config
+	// If this is being evaluated during apply, we may have a change recorded already
+	Change *plans.OutputChangeSrc
 }
 
 var (
 	_ GraphNodeModuleInstance   = (*NodeApplyableOutput)(nil)
-	_ RemovableIfNotTargeted    = (*NodeApplyableOutput)(nil)
-	_ GraphNodeTargetDownstream = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceable    = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
-	_ GraphNodeEvalable         = (*NodeApplyableOutput)(nil)
+	_ GraphNodeExecutable       = (*NodeApplyableOutput)(nil)
 	_ graphNodeTemporaryValue   = (*NodeApplyableOutput)(nil)
 	_ dag.GraphNodeDotter       = (*NodeApplyableOutput)(nil)
 )
@@ -142,21 +185,6 @@ func (n *NodeApplyableOutput) Path() addrs.ModuleInstance {
 // GraphNodeModulePath
 func (n *NodeApplyableOutput) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
-}
-
-// RemovableIfNotTargeted
-func (n *NodeApplyableOutput) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
-}
-
-// GraphNodeTargetDownstream
-func (n *NodeApplyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	// If any of the direct dependencies of an output are targeted then
-	// the output must always be targeted as well, so its value will always
-	// be up-to-date at the completion of an apply walk.
-	return true
 }
 
 func referenceOutsideForOutput(addr addrs.AbsOutputValue) (selfPath, referencePath addrs.Module) {
@@ -214,23 +242,88 @@ func referencesForOutput(c *configs.Output) []*addrs.Reference {
 
 // GraphNodeReferencer
 func (n *NodeApplyableOutput) References() []*addrs.Reference {
-	return appendResourceDestroyReferences(referencesForOutput(n.Config))
+	return referencesForOutput(n.Config)
 }
 
-// GraphNodeEvalable
-func (n *NodeApplyableOutput) EvalTree() EvalNode {
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalOpFilter{
-				Ops: []walkOperation{walkEval, walkRefresh, walkPlan, walkApply, walkValidate, walkDestroy, walkPlanDestroy},
-				Node: &EvalWriteOutput{
-					Addr:      n.Addr.OutputValue,
-					Sensitive: n.Config.Sensitive,
-					Expr:      n.Config.Expr,
-				},
-			},
-		},
+// GraphNodeExecutable
+func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	state := ctx.State()
+	if state == nil {
+		return
 	}
+
+	changes := ctx.Changes() // may be nil, if we're not working on a changeset
+
+	val := cty.UnknownVal(cty.DynamicPseudoType)
+	changeRecorded := n.Change != nil
+	// we we have a change recorded, we don't need to re-evaluate if the value
+	// was known
+	if changeRecorded {
+		var err error
+		val, err = n.Change.After.Decode(cty.DynamicPseudoType)
+		diags = diags.Append(err)
+	}
+
+	// If there was no change recorded, or the recorded change was not wholly
+	// known, then we need to re-evaluate the output
+	if !changeRecorded || !val.IsWhollyKnown() {
+		// This has to run before we have a state lock, since evaluation also
+		// reads the state
+		val, diags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+		// We'll handle errors below, after we have loaded the module.
+		// Outputs don't have a separate mode for validation, so validate
+		// depends_on expressions here too
+		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+		// Ensure that non-sensitive outputs don't include sensitive values
+		_, marks := val.UnmarkDeep()
+		_, hasSensitive := marks["sensitive"]
+		if !n.Config.Sensitive && hasSensitive {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Output refers to sensitive values",
+				Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
+				Subject:  n.Config.DeclRange.Ptr(),
+			})
+		}
+	}
+
+	// handling the interpolation error
+	if diags.HasErrors() {
+		if flagWarnOutputErrors {
+			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Addr, diags.Err())
+			// if we're continuing, make sure the output is included, and
+			// marked as unknown. If the evaluator was able to find a type
+			// for the value in spite of the error then we'll use it.
+			n.setValue(state, changes, cty.UnknownVal(val.Type()))
+
+			// Keep existing warnings, while converting errors to warnings.
+			// This is not meant to be the normal path, so there no need to
+			// make the errors pretty.
+			var warnings tfdiags.Diagnostics
+			for _, d := range diags {
+				switch d.Severity() {
+				case tfdiags.Warning:
+					warnings = warnings.Append(d)
+				case tfdiags.Error:
+					desc := d.Description()
+					warnings = warnings.Append(tfdiags.SimpleWarning(fmt.Sprintf("%s:%s", desc.Summary, desc.Detail)))
+				}
+			}
+
+			return warnings
+		}
+		return diags
+	}
+	n.setValue(state, changes, val)
+
+	// If we were able to evaluate a new value, we can update that in the
+	// refreshed state as well.
+	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
+		n.setValue(state, changes, val)
+	}
+
+	return diags
 }
 
 // dag.GraphNodeDotter impl.
@@ -244,7 +337,7 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 	}
 }
 
-// NodeDestroyableOutput represents an output that is "destroybale":
+// NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
 	Addr   addrs.AbsOutputValue
@@ -252,11 +345,8 @@ type NodeDestroyableOutput struct {
 }
 
 var (
-	_ RemovableIfNotTargeted    = (*NodeDestroyableOutput)(nil)
-	_ GraphNodeTargetDownstream = (*NodeDestroyableOutput)(nil)
-	_ GraphNodeReferencer       = (*NodeDestroyableOutput)(nil)
-	_ GraphNodeEvalable         = (*NodeDestroyableOutput)(nil)
-	_ dag.GraphNodeDotter       = (*NodeDestroyableOutput)(nil)
+	_ GraphNodeExecutable = (*NodeDestroyableOutput)(nil)
+	_ dag.GraphNodeDotter = (*NodeDestroyableOutput)(nil)
 )
 
 func (n *NodeDestroyableOutput) Name() string {
@@ -268,29 +358,57 @@ func (n *NodeDestroyableOutput) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }
 
-// RemovableIfNotTargeted
-func (n *NodeDestroyableOutput) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
+func (n *NodeDestroyableOutput) temporaryValue() bool {
+	// this must always be evaluated if it is a root module output
+	return !n.Addr.Module.IsRoot()
 }
 
-// This will keep the destroy node in the graph if its corresponding output
-// node is also in the destroy graph.
-func (n *NodeDestroyableOutput) TargetDownstream(targetedDeps, untargetedDeps dag.Set) bool {
-	return true
-}
-
-// GraphNodeReferencer
-func (n *NodeDestroyableOutput) References() []*addrs.Reference {
-	return referencesForOutput(n.Config)
-}
-
-// GraphNodeEvalable
-func (n *NodeDestroyableOutput) EvalTree() EvalNode {
-	return &EvalDeleteOutput{
-		Addr: n.Addr,
+// GraphNodeExecutable
+func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	state := ctx.State()
+	if state == nil {
+		return nil
 	}
+
+	// if this is a root module, try to get a before value from the state for
+	// the diff
+	sensitiveBefore := false
+	before := cty.NullVal(cty.DynamicPseudoType)
+	mod := state.Module(n.Addr.Module)
+	if n.Addr.Module.IsRoot() && mod != nil {
+		for name, o := range mod.OutputValues {
+			if name == n.Addr.OutputValue.Name {
+				sensitiveBefore = o.Sensitive
+				before = o.Value
+				break
+			}
+		}
+	}
+
+	changes := ctx.Changes()
+	if changes != nil {
+		change := &plans.OutputChange{
+			Addr:      n.Addr,
+			Sensitive: sensitiveBefore,
+			Change: plans.Change{
+				Action: plans.Delete,
+				Before: before,
+				After:  cty.NullVal(cty.DynamicPseudoType),
+			},
+		}
+
+		cs, err := change.Encode()
+		if err != nil {
+			// Should never happen, since we just constructed this right above
+			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+		}
+		log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
+		changes.AppendOutputChange(cs)     // add the new planned change
+	}
+
+	state.RemoveOutputValue(n.Addr)
+	return nil
 }
 
 // dag.GraphNodeDotter impl.
@@ -302,4 +420,89 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 			"shape": "note",
 		},
 	}
+}
+
+func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+	// If we have an active changeset then we'll first replicate the value in
+	// there and lookup the prior value in the state. This is used in
+	// preference to the state where present, since it *is* able to represent
+	// unknowns, while the state cannot.
+	if changes != nil {
+		// if this is a root module, try to get a before value from the state for
+		// the diff
+		sensitiveBefore := false
+		before := cty.NullVal(cty.DynamicPseudoType)
+		mod := state.Module(n.Addr.Module)
+		if n.Addr.Module.IsRoot() && mod != nil {
+			for name, o := range mod.OutputValues {
+				if name == n.Addr.OutputValue.Name {
+					before = o.Value
+					sensitiveBefore = o.Sensitive
+					break
+				}
+			}
+		}
+
+		// We will not show the value is either the before or after are marked
+		// as sensitivity. We can show the value again once sensitivity is
+		// removed from both the config and the state.
+		sensitiveChange := sensitiveBefore || n.Config.Sensitive
+
+		// strip any marks here just to be sure we don't panic on the True comparison
+		val, _ = val.UnmarkDeep()
+
+		var action plans.Action
+		switch {
+		case val.IsNull():
+			action = plans.Delete
+
+		case before.IsNull():
+			action = plans.Create
+
+		case val.IsWhollyKnown() &&
+			val.Equals(before).True() &&
+			n.Config.Sensitive == sensitiveBefore:
+			// Sensitivity must also match to be a NoOp.
+			// Theoretically marks may not match here, but sensitivity is the
+			// only one we can act on, and the state will have been loaded
+			// without any marks to consider.
+			action = plans.NoOp
+
+		default:
+			action = plans.Update
+		}
+
+		change := &plans.OutputChange{
+			Addr:      n.Addr,
+			Sensitive: sensitiveChange,
+			Change: plans.Change{
+				Action: action,
+				Before: before,
+				After:  val,
+			},
+		}
+
+		cs, err := change.Encode()
+		if err != nil {
+			// Should never happen, since we just constructed this right above
+			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+		}
+		log.Printf("[TRACE] ExecuteWriteOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
+		changes.AppendOutputChange(cs)     // add the new planned change
+	}
+
+	if val.IsKnown() && !val.IsNull() {
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset below, if we have one on this graph walk.
+		log.Printf("[TRACE] EvalWriteOutput: Saving value for %s in state", n.Addr)
+		unmarkedVal, _ := val.UnmarkDeep()
+		stateVal := cty.UnknownAsNull(unmarkedVal)
+		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
+	} else {
+		log.Printf("[TRACE] EvalWriteOutput: Removing %s from state (it is now null)", n.Addr)
+		state.RemoveOutputValue(n.Addr)
+	}
+
 }

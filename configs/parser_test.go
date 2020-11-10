@@ -83,19 +83,26 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir(path)
-	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
 	}
 
 	versionI := 0
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
+	cfg, nestedDiags := BuildConfig(mod, ModuleWalkerFunc(
 		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
-			// SourceAddr as a path relative to our fixture directory.
+			// SourceAddr as a path relative to the calling module.
 			// A "real" implementation of ModuleWalker should accept the
 			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join(path, req.SourceAddr)
+
+			// Build a full path by walking up the module tree, prepending each
+			// source address path until we hit the root
+			paths := []string{req.SourceAddr}
+			for config := req.Parent; config != nil && config.Parent != nil; config = config.Parent {
+				paths = append([]string{config.SourceAddr}, paths...)
+			}
+			paths = append([]string{path}, paths...)
+			sourcePath := filepath.Join(paths...)
 
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
@@ -103,6 +110,8 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 			return mod, version, diags
 		},
 	))
+
+	diags = append(diags, nestedDiags...)
 	return cfg, diags
 }
 

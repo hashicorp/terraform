@@ -13,12 +13,12 @@ infrastructure.
 
 ## Usage
 
-Usage: `terraform destroy [options] [dir]`
+Usage: `terraform destroy [options]`
 
 Infrastructure managed by Terraform will be destroyed. This will ask for
 confirmation before destroying.
 
-This command accepts all the arguments and flags that the [apply
+This command accepts all the arguments and options that the [apply
 command](/docs/commands/apply.html) accepts, with the exception of a plan file
 argument.
 

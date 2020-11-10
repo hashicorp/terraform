@@ -13,12 +13,58 @@ as physical machines, VMs, network switches, containers, and more. Almost any
 infrastructure type can be represented as a resource in Terraform.
 
 A provider is responsible for understanding API interactions and exposing
-resources. Providers generally are an IaaS (e.g. Alibaba Cloud, AWS, GCP, Microsoft Azure,
-OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. Terraform Cloud,
-DNSimple, Cloudflare).
+resources. Most providers configure a specific infrastructure platform (either
+cloud or self-hosted). Providers can also offer local utilities for tasks like
+generating random numbers for unique resource names.
 
-Use the navigation to the left to find available providers by type or scroll
-down to see all providers.
+## Providers in the Terraform Registry
+
+The [Terraform Registry](https://registry.terraform.io/browse/providers)
+is the main directory of publicly available Terraform providers, and hosts
+providers for most major infrastructure platforms.
+
+Once you've found a provider you want to use, you can require it in your
+Terraform configuration and start using the resource types it provides.
+Terraform can automatically install providers from the Terraform Registry when
+you run `terraform init`.
+
+- To find providers for the infrastructure platforms you use, browse
+  [the providers section of the Terraform Registry](https://registry.terraform.io/browse/providers).
+- For details about how to use providers in your Terraform configurations, see
+  [Provider Requirements](../configuration/provider-requirements.html) and
+  [Provider Configuration](../configuration/providers.html).
+
+### Provider Documentation
+
+Every Terraform provider has its own documentation, describing its resource
+types and their arguments.
+
+The Terraform Registry is also the main home for provider documentation.
+When viewing a provider's page on the Terraform Registry, you can click the
+"Documentation" link in the header to browse its documentation. Provider
+documentation in the registry is versioned, and you can use the dropdown version
+menu in the header to switch which version's documentation you are viewing.
+
+## Lists of Terraform Providers
+
+Provider documentation used to be hosted directly on terraform.io, as part of
+Terraform's core documentation. Although some provider documentation might still
+be hosted here, the Terraform Registry is now the main home for all public
+provider docs. (The exception is the built-in
+[`terraform` provider](/docs/providers/terraform/index.html) for reading state
+data, since it is not available on the Terraform Registry.)
+
+As part of the old provider documentation, this section of the site included
+categorized lists of all of the providers that could be automatically installed
+by older versions of Terraform, plus a supplemental list of community providers
+that needed to be manually installed. Many of these providers have already moved
+to the Terraform Registry, but we will continue to host these lists for a while
+as part of the transition. Links to provider documentation URLs on terraform.io
+should still work, but will now redirect to the equivalent page in the Terraform
+Registry.
+
+Use the navigation to the left to browse the categorized lists, or see the main
+list of historical providers below.
 
 <div style="column-width: 14em;">
 
@@ -34,6 +80,7 @@ down to see all providers.
 - [AWS](/docs/providers/aws/index.html)
 - [Azure](/docs/providers/azurerm/index.html)
 - [Azure Active Directory](/docs/providers/azuread/index.html)
+- [Azure DevOps](/docs/providers/azuredevops/index.html)
 - [Azure Stack](/docs/providers/azurestack/index.html)
 - [A10 Networks](/docs/providers/vthunder/index.html)
 - [BaiduCloud](/docs/providers/baiducloud/index.html)
@@ -46,11 +93,15 @@ down to see all providers.
 - [Circonus](/docs/providers/circonus/index.html)
 - [Cisco ASA](/docs/providers/ciscoasa/index.html)
 - [Cisco ACI](/docs/providers/aci/index.html)
+- [Cisco MSO](/docs/providers/mso/index.html)
+- [CloudAMQP](/docs/providers/cloudamqp/index.html)
 - [Cloudflare](/docs/providers/cloudflare/index.html)
 - [Cloud-init](/docs/providers/cloudinit/index.html)
 - [CloudScale.ch](/docs/providers/cloudscale/index.html)
 - [CloudStack](/docs/providers/cloudstack/index.html)
 - [Cobbler](/docs/providers/cobbler/index.html)
+- [Cohesity](/docs/providers/cohesity/index.html)
+- [Constellix](/docs/providers/constellix/index.html)
 - [Consul](/docs/providers/consul/index.html)
 - [Datadog](/docs/providers/datadog/index.html)
 - [DigitalOcean](/docs/providers/do/index.html)
@@ -60,6 +111,7 @@ down to see all providers.
 - [Docker](/docs/providers/docker/index.html)
 - [Dome9](/docs/providers/dome9/index.html)
 - [Dyn](/docs/providers/dyn/index.html)
+- [EnterpriseCloud](/docs/providers/ecl/index.html)
 - [Exoscale](/docs/providers/exoscale/index.html)
 - [External](/docs/providers/external/index.html)
 - [F5 BIG-IP](/docs/providers/bigip/index.html)
@@ -85,7 +137,9 @@ down to see all providers.
 - [InfluxDB](/docs/providers/influxdb/index.html)
 - [Infoblox](/docs/providers/infoblox/index.html)
 - [JDCloud](/docs/providers/jdcloud/index.html)
+- [KingsoftCloud](/docs/providers/ksyun/index.html)
 - [Kubernetes](/docs/providers/kubernetes/index.html)
+- [Lacework](/docs/providers/lacework/index.html)
 - [LaunchDarkly](/docs/providers/launchdarkly/index.html)
 - [Librato](/docs/providers/librato/index.html)
 - [Linode](/docs/providers/linode/index.html)
@@ -98,10 +152,10 @@ down to see all providers.
 - [MySQL](/docs/providers/mysql/index.html)
 - [Naver Cloud](/docs/providers/ncloud/index.html)
 - [Netlify](/docs/providers/netlify/index.html)
-- [New Relic](/docs/providers/newrelic/index.html)
+- [New Relic](https://registry.terraform.io/providers/newrelic/newrelic/latest/docs)
 - [Nomad](/docs/providers/nomad/index.html)
 - [NS1](/docs/providers/ns1/index.html)
-- [Null](/docs/providers/null/index.html)
+- [Null](https://registry.terraform.io/providers/hashicorp/null/latest/docs)
 - [Nutanix](/docs/providers/nutanix/index.html)
 - [1&1](/docs/providers/oneandone/index.html)
 - [Okta](/docs/providers/okta/index.html)
@@ -116,7 +170,8 @@ down to see all providers.
 - [OVH](/docs/providers/ovh/index.html)
 - [Packet](/docs/providers/packet/index.html)
 - [PagerDuty](/docs/providers/pagerduty/index.html)
-- [Palo Alto Networks](/docs/providers/panos/index.html)
+- [Palo Alto Networks PANOS](/docs/providers/panos/index.html)
+- [Palo Alto Networks PrismaCloud](/docs/providers/prismacloud/index.html)
 - [PostgreSQL](/docs/providers/postgresql/index.html)
 - [PowerDNS](/docs/providers/powerdns/index.html)
 - [ProfitBricks](/docs/providers/profitbricks/index.html)
@@ -124,8 +179,9 @@ down to see all providers.
 - [RabbitMQ](/docs/providers/rabbitmq/index.html)
 - [Rancher](/docs/providers/rancher/index.html)
 - [Rancher2](/docs/providers/rancher2/index.html)
-- [Random](/docs/providers/random/index.html)
+- [Random](https://registry.terraform.io/providers/hashicorp/random/latest/docs)
 - [RightScale](/docs/providers/rightscale/index.html)
+- [Rubrik](/docs/providers/rubrik/index.html)
 - [Rundeck](/docs/providers/rundeck/index.html)
 - [RunScope](/docs/providers/runscope/index.html)
 - [Scaleway](/docs/providers/scaleway/index.html)
@@ -156,6 +212,7 @@ down to see all providers.
 - [VMware vRA7](/docs/providers/vra7/index.html)
 - [VMware vSphere](/docs/providers/vsphere/index.html)
 - [Vultr](/docs/providers/vultr/index.html)
+- [Wavefront](/docs/providers/wavefront/index.html)
 - [Yandex](/docs/providers/yandex/index.html)
 
 

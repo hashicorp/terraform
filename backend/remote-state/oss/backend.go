@@ -5,30 +5,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"runtime"
-	"strings"
-
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
-	"github.com/jmespath/go-jmespath"
-
 	"log"
 	"net/http"
+	"net/url"
+	"os"
+	"regexp"
+	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/location"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/version"
+	"github.com/jmespath/go-jmespath"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -194,10 +193,23 @@ func assumeRoleSchema() *schema.Schema {
 					Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
 				},
 				"session_expiration": {
-					Type:         schema.TypeInt,
-					Optional:     true,
-					Description:  "The time after which the established session for assuming role expires.",
-					ValidateFunc: validation.IntBetween(900, 3600),
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Description: "The time after which the established session for assuming role expires.",
+					ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+						min := 900
+						max := 3600
+						value, ok := v.(int)
+						if !ok {
+							return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
+						}
+
+						if value < min || value > max {
+							return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
+						}
+
+						return nil, nil
+					},
 				},
 			},
 		},
@@ -333,6 +345,11 @@ func (b *Backend) configure(ctx context.Context) error {
 		options = append(options, oss.SecurityToken(securityToken))
 	}
 	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", TerraformUA, TerraformVersion)))
+
+	proxyUrl := getHttpProxyUrl()
+	if proxyUrl != nil {
+		options = append(options, oss.Proxy(proxyUrl.String()))
+	}
 
 	client, err := oss.New(endpoint, accessKey, secretKey, options...)
 	b.ossClient = client
@@ -609,4 +626,21 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 	}
 
 	return accessKeyId.(string), accessKeySecret.(string), securityToken.(string), nil
+}
+
+func getHttpProxyUrl() *url.URL {
+	for _, v := range []string{"HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"} {
+		value := strings.Trim(os.Getenv(v), " ")
+		if value != "" {
+			if !regexp.MustCompile(`^http(s)?://`).MatchString(value) {
+				value = fmt.Sprintf("https://%s", value)
+			}
+			proxyUrl, err := url.Parse(value)
+			if err == nil {
+				return proxyUrl
+			}
+			break
+		}
+	}
+	return nil
 }

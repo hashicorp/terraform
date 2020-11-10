@@ -42,6 +42,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 		v.Description = ov.Description
 		v.DescriptionSet = ov.DescriptionSet
 	}
+	if ov.SensitiveSet {
+		v.Sensitive = ov.Sensitive
+		v.SensitiveSet = ov.SensitiveSet
+	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
 	}
@@ -163,6 +167,10 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	}
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
+
+	if len(omc.Providers) != 0 {
+		mc.Providers = omc.Providers
+	}
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.

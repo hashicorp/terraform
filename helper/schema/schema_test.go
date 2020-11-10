@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/hil"
-	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
@@ -125,11 +123,6 @@ func TestValueType_Zero(t *testing.T) {
 			t.Fatalf("%d: %#v != %#v", i, actual, tc.Value)
 		}
 	}
-}
-
-func interfaceToVariableSwallowError(input interface{}) ast.Variable {
-	variable, _ := hil.InterfaceToVariable(input)
-	return variable
 }
 
 func TestSchemaMap_Diff(t *testing.T) {
@@ -3563,14 +3556,14 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 		"Conflicting attributes cannot be required": {
 			map[string]*Schema{
-				"blacklist": &Schema{
+				"a": &Schema{
 					Type:     TypeBool,
 					Required: true,
 				},
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:          TypeBool,
 					Optional:      true,
-					ConflictsWith: []string{"blacklist"},
+					ConflictsWith: []string{"a"},
 				},
 			},
 			true,
@@ -3578,10 +3571,10 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 		"Attribute with conflicts cannot be required": {
 			map[string]*Schema{
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:          TypeBool,
 					Required:      true,
-					ConflictsWith: []string{"blacklist"},
+					ConflictsWith: []string{"a"},
 				},
 			},
 			true,
@@ -3589,14 +3582,14 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 		"ConflictsWith cannot be used w/ ComputedWhen": {
 			map[string]*Schema{
-				"blacklist": &Schema{
+				"a": &Schema{
 					Type:         TypeBool,
 					ComputedWhen: []string{"foor"},
 				},
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:          TypeBool,
 					Required:      true,
-					ConflictsWith: []string{"blacklist"},
+					ConflictsWith: []string{"a"},
 				},
 			},
 			true,
@@ -4818,44 +4811,44 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 		"Conflicting attributes generate error": {
 			Schema: map[string]*Schema{
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:     TypeString,
 					Optional: true,
 				},
-				"blacklist": &Schema{
+				"a": &Schema{
 					Type:          TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"whitelist"},
+					ConflictsWith: []string{"b"},
 				},
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": "white-val",
-				"blacklist": "black-val",
+				"b": "b-val",
+				"a": "a-val",
 			},
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"blacklist\": conflicts with whitelist"),
+				fmt.Errorf("\"a\": conflicts with b"),
 			},
 		},
 
 		"Conflicting attributes okay when unknown 1": {
 			Schema: map[string]*Schema{
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:     TypeString,
 					Optional: true,
 				},
-				"blacklist": &Schema{
+				"a": &Schema{
 					Type:          TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"whitelist"},
+					ConflictsWith: []string{"b"},
 				},
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": "white-val",
-				"blacklist": hcl2shim.UnknownVariableValue,
+				"b": "b-val",
+				"a": hcl2shim.UnknownVariableValue,
 			},
 
 			Err: false,
@@ -4863,20 +4856,20 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 		"Conflicting attributes okay when unknown 2": {
 			Schema: map[string]*Schema{
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:     TypeString,
 					Optional: true,
 				},
-				"blacklist": &Schema{
+				"a": &Schema{
 					Type:          TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"whitelist"},
+					ConflictsWith: []string{"b"},
 				},
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": hcl2shim.UnknownVariableValue,
-				"blacklist": "black-val",
+				"b": hcl2shim.UnknownVariableValue,
+				"a": "a-val",
 			},
 
 			Err: false,
@@ -4884,33 +4877,33 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 		"Conflicting attributes generate error even if one is unknown": {
 			Schema: map[string]*Schema{
-				"whitelist": &Schema{
+				"b": &Schema{
 					Type:          TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"blacklist", "greenlist"},
+					ConflictsWith: []string{"a", "c"},
 				},
-				"blacklist": &Schema{
+				"a": &Schema{
 					Type:          TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"whitelist", "greenlist"},
+					ConflictsWith: []string{"b", "c"},
 				},
-				"greenlist": &Schema{
+				"c": &Schema{
 					Type:          TypeString,
 					Optional:      true,
-					ConflictsWith: []string{"whitelist", "blacklist"},
+					ConflictsWith: []string{"b", "a"},
 				},
 			},
 
 			Config: map[string]interface{}{
-				"whitelist": hcl2shim.UnknownVariableValue,
-				"blacklist": "black-val",
-				"greenlist": "green-val",
+				"b": hcl2shim.UnknownVariableValue,
+				"a": "a-val",
+				"c": "c-val",
 			},
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"blacklist\": conflicts with greenlist"),
-				fmt.Errorf("\"greenlist\": conflicts with blacklist"),
+				fmt.Errorf("\"a\": conflicts with c"),
+				fmt.Errorf("\"c\": conflicts with a"),
 			},
 		},
 

@@ -73,30 +73,17 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
+	// the state was locked during succesfull context creation; unlock the state
+	// when the operation completes
+	defer func() {
+		err := op.StateLocker.Unlock(nil)
+		if err != nil {
+			b.ShowDiagnostics(err)
+			runningOp.Result = backend.OperationFailure
+		}
+	}()
 
-	// Setup the state
 	runningOp.State = tfCtx.State()
-
-	// If we're refreshing before plan, perform that
-	baseState := runningOp.State
-	if op.PlanRefresh {
-		log.Printf("[INFO] backend/local: plan calling Refresh")
-
-		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
-		}
-
-		refreshedState, refreshDiags := tfCtx.Refresh()
-		diags = diags.Append(refreshDiags)
-		if diags.HasErrors() {
-			b.ReportResult(runningOp, diags)
-			return
-		}
-		baseState = refreshedState // plan will be relative to our refreshed state
-		if b.CLI != nil {
-			b.CLI.Output("\n------------------------------------------------------------------------")
-		}
-	}
 
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
@@ -122,7 +109,8 @@ func (b *Local) opPlan(
 		b.ReportResult(runningOp, diags)
 		return
 	}
-	// Record state
+
+	// Record whether this plan includes any side-effects that could be applied.
 	runningOp.PlanEmpty = plan.Changes.Empty()
 
 	// Save the plan to disk
@@ -141,7 +129,7 @@ func (b *Local) opPlan(
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
 		// only write it if this plan is subsequently applied.
-		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, plan.State)
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
 		err := planfile.Create(path, configSnap, plannedStateFile, plan)
@@ -160,14 +148,14 @@ func (b *Local) opPlan(
 	if b.CLI != nil {
 		schemas := tfCtx.Schemas()
 
-		if plan.Changes.Empty() {
+		if runningOp.PlanEmpty {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			// Even if there are no changes, there still could be some warnings
 			b.ShowDiagnostics(diags)
 			return
 		}
 
-		b.renderPlan(plan, baseState, schemas)
+		b.renderPlan(plan, plan.State, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -194,8 +182,8 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas) {
-	RenderPlan(plan, state, schemas, b.CLI, b.Colorize())
+func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
+	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize())
 }
 
 // RenderPlan renders the given plan to the given UI.
@@ -209,7 +197,16 @@ func (b *Local) renderPlan(plan *plans.Plan, state *states.State, schemas *terra
 // please consider whether it's time to do the more disruptive refactoring
 // so that something other than the local backend package is offering this
 // functionality.
-func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+//
+// The difference between baseState and priorState is that baseState is the
+// result of implicitly running refresh (unless that was disabled) while
+// priorState is a snapshot of the state as it was before we took any actions
+// at all. priorState can optionally be nil if the caller has only a saved
+// plan and not the prior state it was built from. In that case, changes to
+// output values will not currently be rendered because their prior values
+// are currently stored only in the prior state. (see the docstring for
+// func planHasSideEffects for why this is and when that might change)
+func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -280,8 +277,8 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 
 		// check if the change is due to a tainted resource
 		tainted := false
-		if !state.Empty() {
-			if is := state.ResourceInstance(rcs.Addr); is != nil {
+		if !baseState.Empty() {
+			if is := baseState.ResourceInstance(rcs.Addr); is != nil {
 				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
 					tainted = obj.Status == states.ObjectTainted
 				}
@@ -314,6 +311,22 @@ func RenderPlan(plan *plans.Plan, state *states.State, schemas *terraform.Schema
 			"%d to add, %d to change, %d to destroy.",
 		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 	)))
+
+	// If there is at least one planned change to the root module outputs
+	// then we'll render a summary of those too.
+	var changedRootModuleOutputs []*plans.OutputChangeSrc
+	for _, output := range plan.Changes.Outputs {
+		if !output.Addr.Module.IsRoot() {
+			continue
+		}
+		if output.ChangeSrc.Action == plans.NoOp {
+			continue
+		}
+		changedRootModuleOutputs = append(changedRootModuleOutputs, output)
+	}
+	if len(changedRootModuleOutputs) > 0 {
+		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(changedRootModuleOutputs, colorize)))
+	}
 }
 
 const planHeaderIntro = `

@@ -20,6 +20,13 @@ type nodeExpandPlannableResource struct {
 	// during graph construction, if dependencies require us to force this
 	// on regardless of what the configuration says.
 	ForceCreateBeforeDestroy *bool
+
+	// skipRefresh indicates that we should skip refreshing individual instances
+	skipRefresh bool
+
+	// We attach dependencies to the Resource during refresh, since the
+	// instances are instantiated during DynamicExpand.
+	dependencies []addrs.ConfigResource
 }
 
 var (
@@ -29,7 +36,18 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 )
+
+func (n *nodeExpandPlannableResource) Name() string {
+	return n.NodeAbstractResource.Name() + " (expand)"
+}
+
+// GraphNodeAttachDependencies
+func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigResource) {
+	n.dependencies = deps
+}
 
 // GraphNodeDestroyerCBD
 func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
@@ -66,6 +84,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			NodeAbstractResource:     n.NodeAbstractResource,
 			Addr:                     resAddr,
 			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
+			dependencies:             n.dependencies,
+			skipRefresh:              n.skipRefresh,
 		})
 	}
 
@@ -96,6 +116,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		a.Schema = n.Schema
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
+		a.Dependencies = n.dependencies
 
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
@@ -126,6 +147,11 @@ type NodePlannableResource struct {
 	// during graph construction, if dependencies require us to force this
 	// on regardless of what the configuration says.
 	ForceCreateBeforeDestroy *bool
+
+	// skipRefresh indicates that we should skip refreshing individual instances
+	skipRefresh bool
+
+	dependencies []addrs.ConfigResource
 }
 
 var (
@@ -151,20 +177,15 @@ func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable
-func (n *NodePlannableResource) EvalTree() EvalNode {
+// GraphNodeExecutable
+func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
-		return &EvalNoop{}
+		return nil
 	}
 
-	// this ensures we can reference the resource even if the count is 0
-	return &EvalWriteResourceState{
-		Addr:         n.Addr,
-		Config:       n.Config,
-		ProviderAddr: n.ResolvedProvider,
-	}
+	return n.writeResourceState(ctx, n.Addr)
 }
 
 // GraphNodeDestroyerCBD
@@ -214,6 +235,8 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		a.Schema = n.Schema
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
+		a.dependsOn = n.dependsOn
+		a.Dependencies = n.dependencies
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -222,6 +245,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 			// to force on CreateBeforeDestroy due to dependencies on other
 			// nodes that have it.
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
+			skipRefresh:              n.skipRefresh,
 		}
 	}
 

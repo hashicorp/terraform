@@ -11,8 +11,9 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
-	"github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/Azure/go-autorest/autorest"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
 
 const (
@@ -72,7 +73,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	// Endpoint is optional (only for Stack)
 	endpoint := os.Getenv("ARM_ENDPOINT")
 
-	armClient, err := buildArmClient(BackendConfig{
+	armClient, err := buildArmClient(context.TODO(), BackendConfig{
 		SubscriptionID:                subscriptionID,
 		TenantID:                      tenantID,
 		ClientID:                      clientID,
@@ -128,7 +129,7 @@ type resourceNames struct {
 
 func testResourceNames(rString string, keyName string) resourceNames {
 	return resourceNames{
-		resourceGroup:        fmt.Sprintf("acctestrg-backend-%s", rString),
+		resourceGroup:        fmt.Sprintf("acctestRG-backend-%s-%s", strings.Replace(time.Now().Local().Format("060102150405.00"), ".", "", 1), rString),
 		location:             os.Getenv("ARM_LOCATION"),
 		storageAccountName:   fmt.Sprintf("acctestsa%s", rString),
 		storageContainerName: "acctestcont",
@@ -170,15 +171,16 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	accessKey := *keys[0].Value
 	names.storageAccountAccessKey = accessKey
 
-	storageClient, err := storage.NewBasicClientOnSovereignCloud(names.storageAccountName, accessKey, c.environment)
+	storageAuth, err := autorest.NewSharedKeyAuthorizer(names.storageAccountName, accessKey, autorest.SharedKey)
 	if err != nil {
-		return fmt.Errorf("failed to list storage account keys %s:", err)
+		return fmt.Errorf("Error building Authorizer: %+v", err)
 	}
 
+	containersClient := containers.NewWithEnvironment(c.environment)
+	containersClient.Client.Authorizer = storageAuth
+
 	log.Printf("Creating Container %q in Storage Account %q (Resource Group %q)", names.storageContainerName, names.storageAccountName, names.resourceGroup)
-	blobService := storageClient.GetBlobService()
-	container := blobService.GetContainerReference(names.storageContainerName)
-	err = container.Create(&storage.CreateContainerOptions{})
+	_, err = containersClient.Create(ctx, names.storageAccountName, names.storageContainerName, containers.CreateInput{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage container: %s", err)
 	}

@@ -3,27 +3,39 @@ layout: "registry"
 page_title: "Terraform Registry - HTTP API"
 sidebar_current: "docs-registry-api"
 description: |-
-  The /acl endpoints create, update, destroy, and query ACL tokens in Consul.
+  The /api endpoints list modules according to some criteria.
 ---
 
 # HTTP API
 
 When downloading modules from registry sources such as the public
-[Terraform Registry](https://registry.terraform.io), Terraform expects
-the given hostname to support the following module registry protocol.
+[Terraform Registry](https://registry.terraform.io/), Terraform CLI expects
+the given hostname to support
+[the module registry protocol](/docs/internals/module-registry-protocol.html),
+which is the minimal API required for Terraform CLI to successfully retrieve
+a module.
 
-A registry module source is of the form `hostname/namespace/name/provider`,
-where the initial hostname portion is implied to be `registry.terraform.io/`
-if not specified. The public Terraform Registry is therefore the default
-module source.
+The public Terraform Registry and the private registry included in Terraform
+Cloud and Terraform Enterprise implement a superset of that minimal module
+registry API to support additional use-cases such as searching for modules
+across the whole registry, retrieving documentation and schemas for modules,
+and so on.
 
-[Terraform Registry](https://registry.terraform.io) implements a superset
-of this API to allow for importing new modules, etc, but any endpoints not
-documented on this page are subject to change over time.
+This page describes the extended API implemented by the official module
+registry implementations, and is aimed at those intending to build clients
+to work with registry data. Third-party implementations of the registry
+protocol are not required to implement these extensions. If you intend to
+implement your own module registry, please refer to
+[the module registry protocol](/docs/internals/module-registry-protocol.html)
+instead.
+
+Terraform Registry also has some additional internal API endpoints used to
+support its UI. Any endpoints or properties not documented on this page are
+subject to change over time.
 
 ## Service Discovery
 
-The hostname portion of a module source string is first passed to
+The hostname portion of a module source address is first passed to
 [the service discovery protocol](/docs/internals/remote-service-discovery.html)
 to determine if the given host has a module registry and, if so, the base
 URL for its module registry endpoints.
@@ -35,6 +47,10 @@ sections can be appended to it.
 For example, if discovery produces the URL `https://modules.example.com/v1/`
 then this API would use full endpoint URLs like
 `https://modules.example.com/v1/{namespace}/{name}/{provider}/versions`.
+
+A module source address with no hostname is a shorthand for an address
+on `registry.terraform.io`. You can perform service discovery on that hostname
+to find the public Terraform Registry's module API endpoints.
 
 ## Base URL
 
@@ -730,8 +746,8 @@ is not in JSON format above due to being returned by an intermediate proxy.
 Endpoints that return lists of results use a common pagination format.
 
 They accept positive integer query variables `offset` and `limit` which have the
-usual SQL-like semantics. Each endpoint will have a sane default limit and a
-default offset of `0`. Each endpoint will also apply a sane maximum limit,
+usual SQL-like semantics. Each endpoint will have a default limit and a
+default offset of `0`. Each endpoint will also apply a maximum limit,
 requesting more results will just result in the maximum limit being used.
 
 The response for a paginated result set will look like:

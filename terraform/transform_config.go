@@ -25,9 +25,6 @@ type ConfigTransformer struct {
 	// Module is the module to add resources from.
 	Config *configs.Config
 
-	// Unique will only add resources that aren't already present in the graph.
-	Unique bool
-
 	// Mode will only add resources that match the given mode
 	ModeFilter bool
 	Mode       addrs.ResourceMode

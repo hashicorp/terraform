@@ -21,13 +21,6 @@ func TestTargetContains(t *testing.T) {
 			true,
 		},
 		{
-			// module.foo is an unkeyed module instance here, so it cannot
-			// contain another instance
-			mustParseTarget("module.foo"),
-			mustParseTarget("module.foo[0]"),
-			false,
-		},
-		{
 			RootModuleInstance,
 			mustParseTarget("module.foo"),
 			true,
@@ -97,6 +90,11 @@ func TestTargetContains(t *testing.T) {
 		{
 			mustParseTarget("module.bar.test_resource.foo"),
 			mustParseTarget("module.bar.test_resource.foo[0]"),
+			true,
+		},
+		{
+			mustParseTarget("module.bax"),
+			mustParseTarget("module.bax[0].test_resource.foo[0]"),
 			true,
 		},
 

@@ -25,4 +25,8 @@ type InputOpts struct {
 
 	// Default will be the value returned if no data is entered.
 	Default string
+
+	// Secret should be true if we are asking for sensitive input.
+	// If attached to a TTY, Terraform will disable echo.
+	Secret bool
 }

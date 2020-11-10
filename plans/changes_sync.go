@@ -21,6 +21,24 @@ type ChangesSync struct {
 	changes *Changes
 }
 
+// IsFullDestroy returns true if the set of changes indicates we are doing a
+// destroy of all resources.
+func (cs *ChangesSync) IsFullDestroy() bool {
+	if cs == nil {
+		panic("FullDestroy on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	for _, c := range cs.changes.Resources {
+		if c.Action != Delete {
+			return false
+		}
+	}
+
+	return true
+}
+
 // AppendResourceInstanceChange records the given resource instance change in
 // the set of planned resource changes.
 //
@@ -60,6 +78,29 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 		return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
 	}
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
+}
+
+// GetChangesForConfigResource searched the set of resource instance
+// changes and returns all changes related to a given configuration address.
+// This is be used to find possible changes related to a configuration
+// reference.
+//
+// If no such changes exist, nil is returned.
+//
+// The returned objects are a deep copy of the change recorded in the plan, so
+// callers may mutate them although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+	if cs == nil {
+		panic("GetChangesForConfigResource on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	var changes []*ResourceInstanceChangeSrc
+	for _, c := range cs.changes.InstancesForConfigResource(addr) {
+		changes = append(changes, c.DeepCopy())
+	}
+	return changes
 }
 
 // RemoveResourceInstanceChange searches the set of resource instance changes

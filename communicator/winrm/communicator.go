@@ -35,6 +35,7 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 		Port:     connInfo.Port,
 		HTTPS:    connInfo.HTTPS,
 		Insecure: connInfo.Insecure,
+		Timeout:  connInfo.TimeoutVal,
 	}
 	if len(connInfo.CACert) > 0 {
 		endpoint.CACert = []byte(connInfo.CACert)
@@ -52,13 +53,12 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 
 // Connect implementation of communicator.Communicator interface
 func (c *Communicator) Connect(o terraform.UIOutput) error {
-	if c.client != nil {
-		return nil
-	}
+	// Set the client to nil since we'll (re)create it
+	c.client = nil
 
 	params := winrm.DefaultParameters
 	params.Timeout = formatDuration(c.Timeout())
-	if c.connInfo.NTLM == true {
+	if c.connInfo.NTLM {
 		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 
@@ -189,7 +189,7 @@ func (c *Communicator) newCopyClient() (*winrmcp.Winrmcp, error) {
 		MaxOperationsPerShell: 15, // lowest common denominator
 	}
 
-	if c.connInfo.NTLM == true {
+	if c.connInfo.NTLM {
 		config.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 

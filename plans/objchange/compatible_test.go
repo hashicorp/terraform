@@ -151,6 +151,56 @@ func TestAssertObjectCompatible(t *testing.T) {
 						Type:     cty.String,
 						Computed: true,
 					},
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("wotsit").Mark("sensitive"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("thingy"),
+			}),
+			[]string{
+				`.name: inconsistent values for sensitive attribute`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("wotsit"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.StringVal("thingy").Mark("sensitive"),
+			}),
+			[]string{
+				`.name: inconsistent values for sensitive attribute`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"stuff": {
 						Type:     cty.DynamicPseudoType,
 						Required: true,
@@ -941,6 +991,40 @@ func TestAssertObjectCompatible(t *testing.T) {
 			}),
 			nil, // as above, the presence of a block whose attrs are all unknown indicates dynamic block expansion, so our usual count checks don't apply
 		},
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"key": {
+						Nesting: configschema.NestingList,
+						Block:   schemaWithFooBar,
+					},
+				},
+			},
+			// While we must make an exception for empty strings in sets due to
+			// the legacy SDK, lists should be compared more strictly.
+			// This does not count as a dynamic block placeholder
+			cty.ObjectVal(map[string]cty.Value{
+				"key": cty.ListVal([]cty.Value{
+					fooBarBlockValue,
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+						"bar": cty.StringVal(""),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"key": cty.ListVal([]cty.Value{
+					fooBlockValue,
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("hello"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("world"),
+					}),
+				}),
+			}),
+			[]string{".key: block count changed from 2 to 3"},
+		},
 
 		// NestingSet blocks
 		{
@@ -1077,6 +1161,47 @@ func TestAssertObjectCompatible(t *testing.T) {
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"block": {
 						Nesting: configschema.NestingSet,
+						Block:   schemaWithFooBar,
+					},
+				},
+			},
+			// The legacy SDK cannot handle missing strings in sets, and will
+			// insert empty strings to the planned value. Empty strings should
+			// be handled as nulls, and this object should represent a possible
+			// dynamic block.
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+						"bar": cty.StringVal(""),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("hello"),
+						"bar": cty.StringVal(""),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("world"),
+						"bar": cty.StringVal(""),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("nope"),
+						"bar": cty.StringVal(""),
+					}),
+				}),
+			}),
+			// there is no error here, because the presence of unknowns
+			// indicates this may be a dynamic block, and the length is unknown
+			nil,
+		},
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingSet,
 						Block:   schemaWithFoo,
 					},
 				},
@@ -1158,6 +1283,90 @@ func TestAssertObjectCompatible(t *testing.T) {
 					}),
 					cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.StringVal("b"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		// test a set with an unknown dynamic count going to 0 values
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block2": {
+						Nesting: configschema.NestingSet,
+						Block:   schemaWithFoo,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block2": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block2": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				})),
+			}),
+			nil,
+		},
+		// test a set with a patially known dynamic count reducing it's values
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block3": {
+						Nesting: configschema.NestingSet,
+						Block:   schemaWithFoo,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block3": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("a"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block3": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("a"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingSet,
+						Block:   schemaWithFooBar,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.UnknownVal(cty.String),
+						"bar": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"block": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("a"),
+						"bar": cty.StringVal(""),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("b"),
+						"bar": cty.StringVal(""),
 					}),
 				}),
 			}),

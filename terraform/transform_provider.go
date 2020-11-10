@@ -449,6 +449,7 @@ type graphNodeCloseProvider struct {
 
 var (
 	_ GraphNodeCloseProvider = (*graphNodeCloseProvider)(nil)
+	_ GraphNodeExecutable    = (*graphNodeCloseProvider)(nil)
 )
 
 func (n *graphNodeCloseProvider) Name() string {
@@ -460,9 +461,9 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 	return n.Addr.Module
 }
 
-// GraphNodeEvalable impl.
-func (n *graphNodeCloseProvider) EvalTree() EvalNode {
-	return CloseProviderEvalTree(n.Addr)
+// GraphNodeExecutable impl.
+func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	return diags.Append(ctx.CloseProvider(n.Addr))
 }
 
 // GraphNodeDependable impl.
@@ -486,13 +487,6 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dag.Do
 			"shape": "diamond",
 		},
 	}
-}
-
-// RemovableIfNotTargeted
-func (n *graphNodeCloseProvider) RemoveIfNotTargeted() bool {
-	// We need to add this so that this node will be removed if
-	// it isn't targeted or a dependency of a target.
-	return true
 }
 
 // graphNodeProxyProvider is a GraphNodeProvider implementation that is used to
@@ -728,9 +722,12 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 			continue
 		}
 
+		// Find the localName for the provider fqn
+		localName := mc.Module.LocalNameForProvider(addr.Provider)
+
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
-			if p.Name == addr.Provider.Type && p.Alias == addr.Alias {
+			if p.Name == localName && p.Alias == addr.Alias {
 				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break

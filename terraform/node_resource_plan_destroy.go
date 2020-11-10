@@ -1,13 +1,10 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlanDestroyableResourceInstance represents a resource that is ready
@@ -25,7 +22,7 @@ var (
 	_ GraphNodeResourceInstance     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeEvalable             = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeExecutable           = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
@@ -36,53 +33,48 @@ func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceIn
 }
 
 // GraphNodeEvalable
-func (n *NodePlanDestroyableResourceInstance) EvalTree() EvalNode {
+func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. These are written to by address in the EvalNodes we
 	// declare below.
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	if n.ResolvedProvider.Provider.Type == "" {
-		// Should never happen; indicates that the graph was not constructed
-		// correctly since we didn't get our provider attached.
-		panic(fmt.Sprintf("%T %q was not assigned a resolved provider", n, dag.VertexName(n)))
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-			&EvalReadState{
-				Addr:           addr.Resource,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-
-				Output: &state,
-			},
-			&EvalDiffDestroy{
-				Addr:         addr.Resource,
-				ProviderAddr: n.ResolvedProvider,
-				State:        &state,
-				Output:       &change,
-			},
-			&EvalCheckPreventDestroy{
-				Addr:   addr.Resource,
-				Config: n.Config,
-				Change: &change,
-			},
-			&EvalWriteDiff{
-				Addr:           addr.Resource,
-				ProviderSchema: &providerSchema,
-				Change:         &change,
-			},
-		},
+	state, err = n.ReadResourceInstanceState(ctx, addr)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
+
+	diffDestroy := &EvalDiffDestroy{
+		Addr:         addr.Resource,
+		ProviderAddr: n.ResolvedProvider,
+		State:        &state,
+		Output:       &change,
+	}
+	diags = diags.Append(diffDestroy.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }

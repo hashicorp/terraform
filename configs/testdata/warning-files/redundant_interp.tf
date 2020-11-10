@@ -29,8 +29,27 @@ resource "null_resource" "a" {
     # in the template.
     template = " ${var.triggers["greeting"]} "
 
-    # No warning for this one, because it's embedded inside a more complex
-    # expression and our check is only for direct assignment to attributes.
-    wrapped = ["${var.triggers["greeting"]}"]
+    wrapped = ["${var.triggers["greeting"]}"] # WARNING: Interpolation-only expressions are deprecated
   }
+}
+
+module "foo" {
+  source = "./foo"
+  foo = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
+
+data "null_data_source" "b" {
+  inputs = {
+    host = "${var.triggers["host"]}" # WARNING: Interpolation-only expressions are deprecated
+  }
+
+  has_computed_default = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
+
+output "output" {
+  value = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
+}
+
+locals {
+  foo = "${var.foo}" # WARNING: Interpolation-only expressions are deprecated
 }

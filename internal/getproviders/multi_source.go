@@ -1,6 +1,7 @@
 package getproviders
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -28,34 +29,46 @@ var _ Source = MultiSource(nil)
 // AvailableVersions retrieves all of the versions of the given provider
 // that are available across all of the underlying selectors, while respecting
 // each selector's matching patterns.
-func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, error) {
+func (s MultiSource) AvailableVersions(ctx context.Context, provider addrs.Provider) (VersionList, Warnings, error) {
 	if len(s) == 0 { // Easy case: there can be no available versions
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// We will return the union of all versions reported by the nested
 	// sources that have matching patterns that accept the given provider.
 	vs := make(map[Version]struct{})
+	var registryError bool
+	var warnings []string
 	for _, selector := range s {
 		if !selector.CanHandleProvider(provider) {
 			continue // doesn't match the given patterns
 		}
-		thisSourceVersions, err := selector.Source.AvailableVersions(provider)
+		thisSourceVersions, warningsResp, err := selector.Source.AvailableVersions(ctx, provider)
 		switch err.(type) {
 		case nil:
-			// okay
-		case ErrProviderNotKnown:
+		// okay
+		case ErrRegistryProviderNotKnown:
+			registryError = true
+			continue // ignore, then
+		case ErrProviderNotFound:
 			continue // ignore, then
 		default:
-			return nil, err
+			return nil, nil, err
 		}
 		for _, v := range thisSourceVersions {
 			vs[v] = struct{}{}
 		}
+		if len(warningsResp) > 0 {
+			warnings = append(warnings, warningsResp...)
+		}
 	}
 
 	if len(vs) == 0 {
-		return nil, ErrProviderNotKnown{provider}
+		if registryError {
+			return nil, nil, ErrRegistryProviderNotKnown{provider}
+		} else {
+			return nil, nil, ErrProviderNotFound{provider, s.sourcesForProvider(provider)}
+		}
 	}
 	ret := make(VersionList, 0, len(vs))
 	for v := range vs {
@@ -63,25 +76,25 @@ func (s MultiSource) AvailableVersions(provider addrs.Provider) (VersionList, er
 	}
 	ret.Sort()
 
-	return ret, nil
+	return ret, warnings, nil
 }
 
 // PackageMeta retrieves the package metadata for the requested provider package
 // from the first selector that indicates availability of it.
-func (s MultiSource) PackageMeta(provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
+func (s MultiSource) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
 	if len(s) == 0 { // Easy case: no providers exist at all
-		return PackageMeta{}, ErrProviderNotKnown{provider}
+		return PackageMeta{}, ErrProviderNotFound{provider, s.sourcesForProvider(provider)}
 	}
 
 	for _, selector := range s {
 		if !selector.CanHandleProvider(provider) {
 			continue // doesn't match the given patterns
 		}
-		meta, err := selector.Source.PackageMeta(provider, version, target)
+		meta, err := selector.Source.PackageMeta(ctx, provider, version, target)
 		switch err.(type) {
 		case nil:
 			return meta, nil
-		case ErrProviderNotKnown, ErrPlatformNotSupported:
+		case ErrProviderNotFound, ErrRegistryProviderNotKnown, ErrPlatformNotSupported:
 			continue // ignore, then
 		default:
 			return PackageMeta{}, err
@@ -223,4 +236,21 @@ func normalizeProviderNameOrWildcard(s string) (string, error) {
 		return s, nil
 	}
 	return addrs.ParseProviderPart(s)
+}
+
+func (s MultiSource) ForDisplay(provider addrs.Provider) string {
+	return strings.Join(s.sourcesForProvider(provider), "\n")
+}
+
+// sourcesForProvider returns a list of source display strings configured for a
+// given provider, taking into account any `Exclude` statements.
+func (s MultiSource) sourcesForProvider(provider addrs.Provider) []string {
+	ret := make([]string, 0)
+	for _, selector := range s {
+		if !selector.CanHandleProvider(provider) {
+			continue // doesn't match the given patterns
+		}
+		ret = append(ret, selector.Source.ForDisplay(provider))
+	}
+	return ret
 }

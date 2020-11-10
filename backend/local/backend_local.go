@@ -49,6 +49,18 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		diags = diags.Append(errwrap.Wrapf("Error locking state: {{err}}", err))
 		return nil, nil, nil, diags
 	}
+
+	defer func() {
+		// If we're returning with errors, and thus not producing a valid
+		// context, we'll want to avoid leaving the workspace locked.
+		if diags.HasErrors() {
+			err := op.StateLocker.Unlock(nil)
+			if err != nil {
+				diags = diags.Append(errwrap.Wrapf("Error unlocking state: {{err}}", err))
+			}
+		}
+	}()
+
 	log.Printf("[TRACE] backend/local: reading remote state for workspace %q", op.Workspace)
 	if err := s.RefreshState(); err != nil {
 		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
@@ -65,6 +77,11 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	opts.Destroy = op.Destroy
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
+
+	opts.SkipRefresh = op.Type == backend.OperationTypePlan && !op.PlanRefresh
+	if opts.SkipRefresh {
+		log.Printf("[DEBUG] backend/local: skipping refresh of managed resources")
+	}
 
 	// Load the latest state. If we enter contextFromPlanFile below then the
 	// state snapshot in the plan file must match this, or else it'll return
@@ -203,7 +220,7 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing
 		// has changed since the plan was created. (All of the "real-world"
-		// state manager implementstions support this, but simpler test backends
+		// state manager implementations support this, but simpler test backends
 		// may not.)
 		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
 			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {

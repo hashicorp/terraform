@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	backendAtlas "github.com/hashicorp/terraform/backend/atlas"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
 	backendRemote "github.com/hashicorp/terraform/backend/remote"
 	backendArtifactory "github.com/hashicorp/terraform/backend/remote-state/artifactory"
@@ -22,6 +21,7 @@ import (
 	backendGCS "github.com/hashicorp/terraform/backend/remote-state/gcs"
 	backendHTTP "github.com/hashicorp/terraform/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
+	backendKubernetes "github.com/hashicorp/terraform/backend/remote-state/kubernetes"
 	backendManta "github.com/hashicorp/terraform/backend/remote-state/manta"
 	backendOSS "github.com/hashicorp/terraform/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/backend/remote-state/pg"
@@ -55,7 +55,6 @@ func Init(services *disco.Disco) {
 
 		// Remote State backends.
 		"artifactory": func() backend.Backend { return backendArtifactory.New() },
-		"atlas":       func() backend.Backend { return backendAtlas.New() },
 		"azurerm":     func() backend.Backend { return backendAzure.New() },
 		"consul":      func() backend.Backend { return backendConsul.New() },
 		"cos":         func() backend.Backend { return backendCos.New() },
@@ -64,6 +63,7 @@ func Init(services *disco.Disco) {
 		"gcs":         func() backend.Backend { return backendGCS.New() },
 		"http":        func() backend.Backend { return backendHTTP.New() },
 		"inmem":       func() backend.Backend { return backendInmem.New() },
+		"kubernetes":  func() backend.Backend { return backendKubernetes.New() },
 		"manta":       func() backend.Backend { return backendManta.New() },
 		"oss":         func() backend.Backend { return backendOSS.New() },
 		"pg":          func() backend.Backend { return backendPg.New() },

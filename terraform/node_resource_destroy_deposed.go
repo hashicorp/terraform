@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceInstanceDeposedNodeFunc is a callback type used to convert
@@ -37,7 +37,7 @@ var (
 	_ GraphNodeResourceInstance              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeEvalable                      = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeExecutable                    = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
@@ -64,95 +64,52 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 }
 
 // GraphNodeEvalable impl.
-func (n *NodePlanDeposedResourceInstanceObject) EvalTree() EvalNode {
+func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
-	var state *states.ResourceInstanceObject
-
-	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
-
-	// During the refresh walk we will ensure that our record of the deposed
-	// object is up-to-date. If it was already deleted outside of Terraform
-	// then this will remove it from state and thus avoid us planning a
-	// destroy for it during the subsequent plan walk.
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkRefresh},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalGetProvider{
-					Addr:   n.ResolvedProvider,
-					Output: &provider,
-					Schema: &providerSchema,
-				},
-				&EvalReadStateDeposed{
-					Addr:           addr.Resource,
-					Provider:       &provider,
-					ProviderSchema: &providerSchema,
-					Key:            n.DeposedKey,
-					Output:         &state,
-				},
-				&EvalRefresh{
-					Addr:           addr.Resource,
-					ProviderAddr:   n.ResolvedProvider,
-					Provider:       &provider,
-					ProviderMetas:  n.ProviderMetas,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-					Output:         &state,
-				},
-				&EvalWriteStateDeposed{
-					Addr:           addr.Resource,
-					Key:            n.DeposedKey,
-					ProviderAddr:   n.ResolvedProvider,
-					ProviderSchema: &providerSchema,
-					State:          &state,
-				},
-			},
-		},
-	})
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
 
 	// During the plan walk we always produce a planned destroy change, because
 	// destroying is the only supported action for deposed objects.
 	var change *plans.ResourceInstanceChange
-	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkPlan, walkPlanDestroy},
-		Node: &EvalSequence{
-			Nodes: []EvalNode{
-				&EvalGetProvider{
-					Addr:   n.ResolvedProvider,
-					Output: &provider,
-					Schema: &providerSchema,
-				},
-				&EvalReadStateDeposed{
-					Addr:           addr.Resource,
-					Output:         &state,
-					Key:            n.DeposedKey,
-					Provider:       &provider,
-					ProviderSchema: &providerSchema,
-				},
-				&EvalDiffDestroy{
-					Addr:         addr.Resource,
-					ProviderAddr: n.ResolvedProvider,
-					DeposedKey:   n.DeposedKey,
-					State:        &state,
-					Output:       &change,
-				},
-				&EvalWriteDiff{
-					Addr:           addr.Resource,
-					DeposedKey:     n.DeposedKey,
-					ProviderSchema: &providerSchema,
-					Change:         &change,
-				},
-				// Since deposed objects cannot be referenced by expressions
-				// elsewhere, we don't need to also record the planned new
-				// state in this case.
-			},
-		},
-	})
+	var state *states.ResourceInstanceObject
 
-	return seq
+	readStateDeposed := &EvalReadStateDeposed{
+		Addr:           addr.Resource,
+		Output:         &state,
+		Key:            n.DeposedKey,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+	}
+	diags = diags.Append(readStateDeposed.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diffDestroy := &EvalDiffDestroy{
+		Addr:         addr.Resource,
+		ProviderAddr: n.ResolvedProvider,
+		DeposedKey:   n.DeposedKey,
+		State:        &state,
+		Output:       &change,
+	}
+	diags = diags.Append(diffDestroy.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	writeDiff := &EvalWriteDiff{
+		Addr:           addr.Resource,
+		DeposedKey:     n.DeposedKey,
+		ProviderSchema: &providerSchema,
+		Change:         &change,
+	}
+	diags = diags.Append(writeDiff.Eval(ctx))
+	return diags
 }
 
 // NodeDestroyDeposedResourceInstanceObject represents deposed resource
@@ -173,7 +130,7 @@ var (
 	_ GraphNodeDestroyerCBD                  = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeEvalable                      = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeExecutable                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 )
@@ -221,74 +178,100 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 	return nil
 }
 
-// GraphNodeEvalable impl.
-func (n *NodeDestroyDeposedResourceInstanceObject) EvalTree() EvalNode {
-	addr := n.ResourceInstanceAddr()
+// GraphNodeExecutable impl.
+func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	addr := n.ResourceInstanceAddr().Resource
 
-	var provider providers.Interface
-	var providerSchema *ProviderSchema
 	var state *states.ResourceInstanceObject
 	var change *plans.ResourceInstanceChange
-	var err error
+	var applyError error
 
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalGetProvider{
-				Addr:   n.ResolvedProvider,
-				Output: &provider,
-				Schema: &providerSchema,
-			},
-			&EvalReadStateDeposed{
-				Addr:           addr.Resource,
-				Output:         &state,
-				Key:            n.DeposedKey,
-				Provider:       &provider,
-				ProviderSchema: &providerSchema,
-			},
-			&EvalDiffDestroy{
-				Addr:         addr.Resource,
-				ProviderAddr: n.ResolvedProvider,
-				State:        &state,
-				Output:       &change,
-			},
-			// Call pre-apply hook
-			&EvalApplyPre{
-				Addr:   addr.Resource,
-				State:  &state,
-				Change: &change,
-			},
-			&EvalApply{
-				Addr:           addr.Resource,
-				Config:         nil, // No configuration because we are destroying
-				State:          &state,
-				Change:         &change,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-				Error:          &err,
-			},
-			// Always write the resource back to the state deposed... if it
-			// was successfully destroyed it will be pruned. If it was not, it will
-			// be caught on the next run.
-			&EvalWriteStateDeposed{
-				Addr:           addr.Resource,
-				Key:            n.DeposedKey,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-			},
-			&EvalApplyPost{
-				Addr:  addr.Resource,
-				State: &state,
-				Error: &err,
-			},
-			&EvalReturnError{
-				Error: &err,
-			},
-			&EvalUpdateStateHook{},
-		},
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
+
+	readStateDeposed := &EvalReadStateDeposed{
+		Addr:           addr,
+		Output:         &state,
+		Key:            n.DeposedKey,
+		Provider:       &provider,
+		ProviderSchema: &providerSchema,
+	}
+	diags = diags.Append(readStateDeposed.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diffDestroy := &EvalDiffDestroy{
+		Addr:         addr,
+		ProviderAddr: n.ResolvedProvider,
+		State:        &state,
+		Output:       &change,
+	}
+	diags = diags.Append(diffDestroy.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Call pre-apply hook
+	applyPre := &EvalApplyPre{
+		Addr:   addr,
+		State:  &state,
+		Change: &change,
+	}
+	diags = diags.Append(applyPre.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	apply := &EvalApply{
+		Addr:           addr,
+		Config:         nil, // No configuration because we are destroying
+		State:          &state,
+		Change:         &change,
+		Provider:       &provider,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		Output:         &state,
+		Error:          &applyError,
+	}
+	diags = diags.Append(apply.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Always write the resource back to the state deposed. If it
+	// was successfully destroyed it will be pruned. If it was not, it will
+	// be caught on the next run.
+	writeStateDeposed := &EvalWriteStateDeposed{
+		Addr:           addr,
+		Key:            n.DeposedKey,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderSchema: &providerSchema,
+		State:          &state,
+	}
+	diags = diags.Append(writeStateDeposed.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	applyPost := &EvalApplyPost{
+		Addr:  addr,
+		State: &state,
+		Error: &applyError,
+	}
+	diags = diags.Append(applyPost.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
+	}
+	if applyError != nil {
+		diags = diags.Append(applyError)
+		return diags
+	}
+	diags = diags.Append(UpdateStateHook(ctx))
+	return diags
 }
 
 // GraphNodeDeposer is an optional interface implemented by graph nodes that

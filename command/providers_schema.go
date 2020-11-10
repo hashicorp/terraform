@@ -20,7 +20,7 @@ func (c *ProvidersSchemaCommand) Help() string {
 }
 
 func (c *ProvidersSchemaCommand) Synopsis() string {
-	return "Prints the schemas of the providers used in the configuration"
+	return "Show schemas for the providers used in the configuration"
 }
 
 func (c *ProvidersSchemaCommand) Run(args []string) int {

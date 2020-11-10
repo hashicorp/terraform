@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"sync"
 
 	plugin "github.com/hashicorp/go-plugin"
@@ -61,7 +60,7 @@ func (p *GRPCProvisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 
 	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProvisionerSchema_Request))
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
@@ -96,7 +95,7 @@ func (p *GRPCProvisioner) ValidateProvisionerConfig(r provisioners.ValidateProvi
 	}
 	protoResp, err := p.client.ValidateProvisionerConfig(p.ctx, protoReq)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
@@ -130,7 +129,7 @@ func (p *GRPCProvisioner) ProvisionResource(r provisioners.ProvisionResourceRequ
 
 	outputClient, err := p.client.ProvisionResource(p.ctx, protoReq)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
 
@@ -169,7 +168,7 @@ func (p *GRPCProvisioner) Stop() error {
 func (p *GRPCProvisioner) Close() error {
 	// check this since it's not automatically inserted during plugin creation
 	if p.PluginClient == nil {
-		log.Println("[DEBUG] provider has no plugin.Client")
+		logger.Debug("provisioner has no plugin.Client")
 		return nil
 	}
 

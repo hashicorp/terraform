@@ -114,18 +114,11 @@ operation, and is re-calculated each time a new plan is created.
 
 Data resources have the same dependency resolution behavior
 [as defined for managed resources](./resources.html#resource-dependencies).
+Setting the `depends_on` meta-argument within `data` blocks defers reading of
+the data source until after all changes to the dependencies have been applied.
 
-In particular, the `depends_on` meta-argument is also available within `data`
-blocks, with the same meaning and syntax as in `resource` blocks.
+~> **NOTE:** **In Terraform 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
 
-However, due to the data resource behavior of deferring the read until the
-apply phase when depending on values that are not yet known, using `depends_on`
-with data resources will force the read to _always_ be deferred to the apply
-phase, and therefore a configuration that uses `depends_on` with a data
-resource can never converge.
-
-Due to this behavior, we do not recommend using `depends_on` with data
-resources.
 
 ## Multiple Resource Instances
 
@@ -140,7 +133,7 @@ own variant of the constraint arguments, producing an indexed result.
 
 ## Selecting a Non-default Provider Configuration
 
-Data resources support [the `providers` meta-argument](./resources.html#provider-selecting-a-non-default-provider-configuration)
+Data resources support [the `provider` meta-argument](./resources.html#provider-selecting-a-non-default-provider-configuration)
 as defined for managed resources, with the same syntax and behavior.
 
 ## Lifecycle Customizations
@@ -198,24 +191,23 @@ support the same [meta-arguments](./resources.html#meta-arguments) of resources
 with the exception of the
 [`lifecycle` configuration block](./resources.html#lifecycle-lifecycle-customizations).
 
-### Multiple Provider Instances
+### Non-Default Provider Configurations
 
-Similarly to [resources](./resources.html), the
-`provider` meta-argument can be used where a configuration has
-multiple aliased instances of the same provider:
+Similarly to [resources](./resources.html), when a module has multiple configurations for the same provider you can specify which configuration to use with the `provider` meta-argument:
 
 ```hcl
 data "aws_ami" "web" {
-  provider = "aws.west"
+  provider = aws.west
 
   # ...
 }
 ```
 
-See [Resources: Multiple Provider Instances](./resources.html#provider-selecting-a-non-default-provider-configuration)
+See
+[Resources: Selecting a Non-Default Provider Configuration](./resources.html#provider-selecting-a-non-default-provider-configuration)
 for more information.
 
-### Data Source Lifecycle
+## Data Source Lifecycle
 
 If the arguments of a data instance contain no references to computed values,
 such as attributes of resources that have not yet been created, then the

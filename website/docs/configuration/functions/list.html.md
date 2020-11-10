@@ -12,37 +12,22 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-~> **This function is deprecated.** From Terraform v0.12, the Terraform
-language has built-in syntax for creating lists using the `[` and `]`
-delimiters. Use the built-in syntax instead. The `list` function will be
-removed in a future version of Terraform.
+The `list` function is no longer available. Prior to Terraform v0.12 it was
+the only available syntax for writing a literal list inside an expression,
+but Terraform v0.12 introduced a new first-class syntax.
 
-`list` takes an arbitrary number of arguments and returns a list containing
-those values in the same order.
-
-## Examples
+To update an expression like `list(a, b, c)`, write the following instead:
 
 ```
-> list("a", "b", "c")
-[
-  "a",
-  "b",
-  "c",
-]
+tolist([a, b, c])
 ```
 
-Do not use the above form in Terraform v0.12 or above. Instead, use the
-built-in list construction syntax, which achieves the same result:
-
-```
-> ["a", "b", "c"]
-[
-  "a",
-  "b",
-  "c",
-]
-```
+The `[ ... ]` brackets construct a tuple value, and then the `tolist` function
+then converts it to a list. For more information on the value types in the
+Terraform language, see [Type Constraints](../types.html).
 
 ## Related Functions
 
-* [`tolist`](./tolist.html) converts a set value to a list.
+* [`concat`](./concat.html) produces a new list by concatenating together the
+  elements from other lists.
+* [`tolist`](./tolist.html) converts a set or tuple value to a list.

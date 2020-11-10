@@ -1,38 +1,45 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
-// NodePlannableLocal represents a named local value in a configuration module,
+// nodeExpandLocal represents a named local value in a configuration module,
 // which has not yet been expanded.
-type NodePlannableLocal struct {
+type nodeExpandLocal struct {
 	Addr   addrs.LocalValue
 	Module addrs.Module
 	Config *configs.Local
 }
 
 var (
-	_ RemovableIfNotTargeted     = (*NodePlannableLocal)(nil)
-	_ GraphNodeReferenceable     = (*NodePlannableLocal)(nil)
-	_ GraphNodeReferencer        = (*NodePlannableLocal)(nil)
-	_ GraphNodeDynamicExpandable = (*NodePlannableLocal)(nil)
-	_ graphNodeTemporaryValue    = (*NodePlannableLocal)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandLocal)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandLocal)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandLocal)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandLocal)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandLocal)(nil)
 )
 
+func (n *nodeExpandLocal) expandsInstances() {}
+
 // graphNodeTemporaryValue
-func (n *NodePlannableLocal) temporaryValue() bool {
+func (n *nodeExpandLocal) temporaryValue() bool {
 	return true
 }
 
-func (n *NodePlannableLocal) Name() string {
+func (n *nodeExpandLocal) Name() string {
 	path := n.Module.String()
-	addr := n.Addr.String()
+	addr := n.Addr.String() + " (expand)"
+
 	if path != "" {
 		return path + "." + addr
 	}
@@ -40,27 +47,22 @@ func (n *NodePlannableLocal) Name() string {
 }
 
 // GraphNodeModulePath
-func (n *NodePlannableLocal) ModulePath() addrs.Module {
+func (n *nodeExpandLocal) ModulePath() addrs.Module {
 	return n.Module
 }
 
-// RemovableIfNotTargeted
-func (n *NodePlannableLocal) RemoveIfNotTargeted() bool {
-	return true
-}
-
 // GraphNodeReferenceable
-func (n *NodePlannableLocal) ReferenceableAddrs() []addrs.Referenceable {
+func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
 // GraphNodeReferencer
-func (n *NodePlannableLocal) References() []*addrs.Reference {
+func (n *nodeExpandLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
-func (n *NodePlannableLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
@@ -85,10 +87,9 @@ type NodeLocal struct {
 
 var (
 	_ GraphNodeModuleInstance = (*NodeLocal)(nil)
-	_ RemovableIfNotTargeted  = (*NodeLocal)(nil)
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
-	_ GraphNodeEvalable       = (*NodeLocal)(nil)
+	_ GraphNodeExecutable     = (*NodeLocal)(nil)
 	_ graphNodeTemporaryValue = (*NodeLocal)(nil)
 	_ dag.GraphNodeDotter     = (*NodeLocal)(nil)
 )
@@ -112,11 +113,6 @@ func (n *NodeLocal) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }
 
-// RemovableIfNotTargeted
-func (n *NodeLocal) RemoveIfNotTargeted() bool {
-	return true
-}
-
 // GraphNodeReferenceable
 func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.LocalValue}
@@ -125,15 +121,50 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
 	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
-	return appendResourceDestroyReferences(refs)
+	return refs
 }
 
-// GraphNodeEvalable
-func (n *NodeLocal) EvalTree() EvalNode {
-	return &EvalLocal{
-		Addr: n.Addr.LocalValue,
-		Expr: n.Config.Expr,
+// GraphNodeExecutable
+// NodeLocal.Execute is an Execute implementation that evaluates the
+// expression for a local value and writes it into a transient part of
+// the state.
+func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	expr := n.Config.Expr
+	addr := n.Addr.LocalValue
+
+	// We ignore diags here because any problems we might find will be found
+	// again in EvaluateExpr below.
+	refs, _ := lang.ReferencesInExpr(expr)
+	for _, ref := range refs {
+		if ref.Subject == addr {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self-referencing local value",
+				Detail:   fmt.Sprintf("Local value %s cannot use its own result as part of its expression.", addr),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+				Context:  expr.Range().Ptr(),
+			})
+		}
 	}
+	if diags.HasErrors() {
+		return diags
+	}
+
+	val, moreDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
+	}
+
+	state := ctx.State()
+	if state == nil {
+		diags = diags.Append(fmt.Errorf("cannot write local value to nil state"))
+		return diags
+	}
+
+	state.SetLocalValue(addr.Absolute(ctx.Path()), val)
+
+	return diags
 }
 
 // dag.GraphNodeDotter impl.

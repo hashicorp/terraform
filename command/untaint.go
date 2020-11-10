@@ -27,7 +27,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&module, "module", "", "module")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -66,7 +66,11 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	workspace := c.Workspace()
+	workspace, err := c.Workspace()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		return 1
+	}
 	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
@@ -171,14 +175,17 @@ func (c *UntaintCommand) Help() string {
 	helpText := `
 Usage: terraform untaint [options] name
 
-  Manually unmark a resource as tainted, restoring it as the primary
-  instance in the state.  This reverses either a manual 'terraform taint'
-  or the result of provisioners failing on a resource.
+  Terraform uses the term "tainted" to describe a resource instance
+  which may not be fully functional, either because its creation
+  partially failed or because you've manually marked it as such using
+  the "terraform taint" command.
 
-  This will not modify your infrastructure. This command changes your
-  state to unmark a resource as tainted.  This command can be undone by
-  reverting the state backup file that is created, or by running
-  'terraform taint' on the resource.
+  This command removes that state from a resource instance, causing
+  Terraform to see it as fully-functional and not in need of
+  replacement.
+
+  This will not modify your infrastructure directly. It only avoids
+  Terraform planning to replace a tainted instance in a future operation.
 
 Options:
 
@@ -208,7 +215,7 @@ Options:
 }
 
 func (c *UntaintCommand) Synopsis() string {
-	return "Manually unmark a resource as tainted"
+	return "Remove the 'tainted' state from a resource instance"
 }
 
 func (c *UntaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {
