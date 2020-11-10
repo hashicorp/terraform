@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -113,5 +114,39 @@ func TestNodeApplyableProviderExecute_unknownApply(t *testing.T) {
 	}
 	if got, want := gotObj.GetAttr("test_string"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
 		t.Errorf("wrong configuration value\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
+	config := &configs.Provider{
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"test_string": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	})
+	providerAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("foo"),
+	}
+
+	n := &NodeApplyableProvider{&NodeAbstractProvider{
+		Addr:   providerAddr,
+		Config: config,
+	}}
+
+	ctx := &MockEvalContext{ProviderProvider: provider}
+	ctx.installSimpleEval()
+	if err := n.Execute(ctx, walkValidate); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if ctx.ConfigureProviderCalled {
+		t.Fatal("should not be called")
 	}
 }
