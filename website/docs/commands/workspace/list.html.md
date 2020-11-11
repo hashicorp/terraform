@@ -12,7 +12,7 @@ The `terraform workspace list` command is used to list all existing workspaces.
 
 ## Usage
 
-Usage: `terraform workspace list`
+Usage: `terraform workspace list [DIR]`
 
 The command will list all existing workspaces. The current workspace is
 indicated using an asterisk (`*`) marker.

@@ -13,7 +13,7 @@ workspace to use for further operations.
 
 ## Usage
 
-Usage: `terraform workspace select [NAME]`
+Usage: `terraform workspace select NAME [DIR]`
 
 This command will select another workspace. The named workspace must already
 exist.
