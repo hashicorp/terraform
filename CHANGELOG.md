@@ -7,7 +7,7 @@ NEW FEATURES:
 
     If you wish to retain the previous behavior of always taking the newest version allowed by the version constraints on each install, you can run `terraform init -upgrade` to see that behavior.
 
-* Terraform will now support reading and writing all compatible state files, even from future versions of Terraform. This means that users of Terraform 0.14.0 will be able to share state files with future Terraform versions until a new state file format version is needed. We have no plans to change the state file format at this time. [GH-26752]
+* Terraform will now support reading and writing all compatible state files, even from future versions of Terraform. This means that users of Terraform 0.14.0 will be able to share state files with future Terraform versions until a new state file format version is needed. We have no plans to change the state file format at this time. ([#26752](https://github.com/hashicorp/terraform/issues/26752))
 
 UPGRADE NOTES:
 * Outputs that reference sensitive values (which includes variables marked as sensitive, other module outputs marked as `sensitive`, or attributes a provider defines as `sensitive` if the `provider_sensitive_attrs` experiment is activated) must _also_ be defined as sensitive, or Terraform will error at plan.
@@ -21,7 +21,7 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
-* backend/gcs: Add service account impersonation to GCS backend [GH-26837]
+* backend/gcs: Add service account impersonation to GCS backend ([#26837](https://github.com/hashicorp/terraform/issues/26837))
 * config: Added `sensitive` argument for variable blocks, which supresses output where that variable is used ([#26183](https://github.com/hashicorp/terraform/pull/26183))
 * config: Added `alltrue` and `anytrue` functions, which serve as a sort of dynamic version of the `&&` and `||` or operators, respectively. These are intended to allow evaluating boolean conditions, such as in variable `validation` blocks, across all of the items in a collection using `for` expressions. ([#25656](https://github.com/hashicorp/terraform/issues/25656)], [[#26498](https://github.com/hashicorp/terraform/issues/26498))
 * config: New functions `textencodebase64` and `textdecodebase64` for encoding text in various character encodings other than UTF-8. ([#25470](https://github.com/hashicorp/terraform/issues/25470))
@@ -33,7 +33,7 @@ ENHANCEMENTS:
 * `terraform init`'s provider installation step will now abort promptly if Terraform receives an interrupt signal. ([#26405](https://github.com/hashicorp/terraform/issues/26405))
 * cli: A new global command line option `-chdir=...`, placed before the selected subcommand, instructs Terraform to switch to a different working directory before executing the subcommand. This is similar to switching to a new directory with `cd` before running Terraform, but it avoids changing the state of the calling shell. ([#26087](https://github.com/hashicorp/terraform/issues/26087))
 * cli: help text is been reorganized to emphasize the main commands and improve consistency ([#26695](https://github.com/hashicorp/terraform/issues/26695))
-* cli: Ensure that provider requirements are met by the locked dependencies for every command. This will help catch errors if the configuration has changed since the last run of `terraform init`. [GH-26761]
+* cli: Ensure that provider requirements are met by the locked dependencies for every command. This will help catch errors if the configuration has changed since the last run of `terraform init`. ([#26761](https://github.com/hashicorp/terraform/issues/26761))
 * core: When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI ([#26611](https://github.com/hashicorp/terraform/issues/26611))
 * core: `terraform plan` no longer uses a separate refresh phase. Instead, all resources are updated on-demand during planning ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * backend/consul: Split state into chunks when outgrowing the limit of the Consul KV store. This allows storing state larger than the Consul 512KB limit. ([#25856](https://github.com/hashicorp/terraform/issues/25856))
@@ -47,7 +47,7 @@ BUG FIXES:
 * config: Better errors for invalid terraform version constraints ([#26543](https://github.com/hashicorp/terraform/issues/26543))
 * config: fix panic when `element()` is called with a negative offset ([#26079](https://github.com/hashicorp/terraform/issues/26079))
 * config: `lookup()` will now only treat map as unknown if it is wholly unknown ([#26427](https://github.com/hashicorp/terraform/issues/26427))
-* config: Fix provider detection for resources when local name does not match provider type [GH-26871]
+* config: Fix provider detection for resources when local name does not match provider type ([#26871](https://github.com/hashicorp/terraform/issues/26871))
 * `terraform fmt`: Fix incorrect heredoc syntax in plan diff output ([#25725](https://github.com/hashicorp/terraform/issues/25725))
 * `terraform show`: Hide sensitive outputs from display ([#26740](https://github.com/hashicorp/terraform/issues/26740))
 * `terraform taint`: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. ([#26345](https://github.com/hashicorp/terraform/issues/26345))
