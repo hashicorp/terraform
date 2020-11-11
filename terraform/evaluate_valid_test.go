@@ -50,6 +50,14 @@ For example, to correlate with indices of a referring resource, use:
     aws_instance.count[count.index]
 - Unsupported attribute: This object has no argument, nested block, or exported attribute named "foo".`,
 		},
+		{
+			"boop_instance.yep",
+			``,
+		},
+		{
+			"boop_whatever.nope",
+			`Invalid resource type: A managed resource type "boop_whatever" is not supported by provider "registry.terraform.io/foobar/beep".`,
+		},
 	}
 
 	cfg := testModule(t, "static-validate-refs")
@@ -60,6 +68,12 @@ For example, to correlate with indices of a referring resource, use:
 				addrs.NewDefaultProvider("aws"): {
 					ResourceTypes: map[string]*configschema.Block{
 						"aws_instance": {},
+					},
+				},
+				addrs.MustParseProviderSourceString("foobar/beep"): {
+					ResourceTypes: map[string]*configschema.Block{
+						// intentional mismatch between resource type prefix and provider type
+						"boop_instance": {},
 					},
 				},
 			},

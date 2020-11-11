@@ -66,8 +66,12 @@ func (r *Resource) Addr() addrs.Resource {
 // config addr if an explicit "provider" argument was not provided.
 func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 	if r.ProviderConfigRef == nil {
+		// If no specific "provider" argument is given, we want to look up the
+		// provider config where the local name matches the implied provider
+		// from the resource type. This may be different from the resource's
+		// provider type.
 		return addrs.LocalProviderConfig{
-			LocalName: r.Provider.Type,
+			LocalName: r.Addr().ImpliedProvider(),
 		}
 	}
 
