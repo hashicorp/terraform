@@ -47,6 +47,7 @@ BUG FIXES:
 * config: Better errors for invalid terraform version constraints ([#26543](https://github.com/hashicorp/terraform/issues/26543))
 * config: fix panic when `element()` is called with a negative offset ([#26079](https://github.com/hashicorp/terraform/issues/26079))
 * config: `lookup()` will now only treat map as unknown if it is wholly unknown ([#26427](https://github.com/hashicorp/terraform/issues/26427))
+* config: Fix provider detection for resources when local name does not match provider type [GH-26871]
 * `terraform fmt`: Fix incorrect heredoc syntax in plan diff output ([#25725](https://github.com/hashicorp/terraform/issues/25725))
 * `terraform show`: Hide sensitive outputs from display ([#26740](https://github.com/hashicorp/terraform/issues/26740))
 * `terraform taint`: If the configuration's `required_version` constraint is not met, the `taint` subcommand will now correctly exit early. ([#26345](https://github.com/hashicorp/terraform/issues/26345))
