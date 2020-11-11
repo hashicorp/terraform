@@ -53,7 +53,7 @@ func TestProvisioner_connInfo(t *testing.T) {
 	if conf.ScriptPath != DefaultUnixScriptPath {
 		t.Fatalf("bad: %v", conf)
 	}
-	if conf.TargetPlatform != DefaultTargetPlatform {
+	if conf.TargetPlatform != TargetPlatformUnix {
 		t.Fatalf("bad: %v", conf)
 	}
 	if conf.BastionHost != "127.0.1.1" {

@@ -345,7 +345,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr
 
-	if !c.config.noPty && c.connInfo.TargetPlatform != "windows" {
+	if !c.config.noPty && c.connInfo.TargetPlatform != TargetPlatformWindows {
 		// Request a PTY
 		termModes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // do not echo
@@ -429,7 +429,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	}
 	var script bytes.Buffer
 
-	if string(prefix) != "#!" && c.connInfo.TargetPlatform != "windows" {
+	if string(prefix) != "#!" && c.connInfo.TargetPlatform != TargetPlatformWindows {
 		script.WriteString(DefaultShebang)
 	}
 	script.ReadFrom(reader)
@@ -437,7 +437,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
-	if c.connInfo.TargetPlatform != "windows" {
+	if c.connInfo.TargetPlatform != TargetPlatformWindows {
 		var stdout, stderr bytes.Buffer
 		cmd := &remote.Cmd{
 			Command: fmt.Sprintf("chmod 0777 %s", path),

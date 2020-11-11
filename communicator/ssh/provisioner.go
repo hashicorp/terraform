@@ -39,8 +39,10 @@ const (
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
 
-	// DefaultTargetPlatform is used if no target platform has been specified
-	DefaultTargetPlatform = "unix"
+	// TargetPlatformUnix used for cleaner code, and is used if no target platform has been specified
+	TargetPlatformUnix = "unix"
+	//TargetPlatformWindows used for cleaner code
+	TargetPlatformWindows = "windows"
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
@@ -113,14 +115,18 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
-	// Set default targetPlatform to unix
+	// Set default targetPlatform to unix if it's empty
 	if connInfo.TargetPlatform == "" {
-		connInfo.TargetPlatform = DefaultTargetPlatform
+		connInfo.TargetPlatform = TargetPlatformUnix
+	} else if connInfo.TargetPlatform != TargetPlatformUnix && connInfo.TargetPlatform != TargetPlatformWindows {
+		return nil, fmt.Errorf("target_platform for provisioner has to be either %s or %s", TargetPlatformUnix, TargetPlatformWindows)
 	}
-	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == DefaultTargetPlatform {
+	// Choose an appropriate default script path based on the target platform. There is no single
+	// suitable default script path which works on both UNIX and Windows targets.
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == TargetPlatformUnix {
 		connInfo.ScriptPath = DefaultUnixScriptPath
 	}
-	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == "windows" {
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == TargetPlatformWindows {
 		connInfo.ScriptPath = DefaultWindowsScriptPath
 	}
 	if connInfo.Timeout != "" {

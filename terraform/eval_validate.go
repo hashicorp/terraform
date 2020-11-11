@@ -161,11 +161,11 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		// For type=ssh only (enforced in ssh communicator)
 		"target_platform": {
 			Type:     cty.String,
 			Optional: true,
 		},
-		// For type=ssh only (enforced in ssh communicator)
 		"private_key": {
 			Type:     cty.String,
 			Optional: true,
