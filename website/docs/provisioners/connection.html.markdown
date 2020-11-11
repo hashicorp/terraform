@@ -123,10 +123,9 @@ block would create a dependency cycle.
 
 * `host_key` - The public key from the remote host or the signing CA, used to
   verify the connection.
-* `target_platform` - The target platform to connect to. Valid values are: `windows` and `unix`. Defaults to `unix` if not set.  
-  By default the script_path is set to `c:\windows\temp\terraform_%RAND%.cmd` if not provided,  
-  so the SSH DefaultShell on windows is assumed to be CMD, if DefaultShell is set to powershell use `"script_path": "c:/windows/temp/terraform_%RAND%.ps1"`  
-  see: https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows for more details
+* `target_platform` - The target platform to connect to. Valid values are `windows` and `unix`. Defaults to `unix` if not set.
+
+    If the platform is set to `windows`, the default `script_path` is `c:\windows\temp\terraform_%RAND%.cmd`, assuming [the SSH default shell](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) is `cmd.exe`. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"`  
 
 **Additional arguments only supported by the `winrm` connection type:**
 
