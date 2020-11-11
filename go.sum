@@ -390,6 +390,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lib/pq v1.0.0 h1:X5PMW56eZitiTeO7tKzZxFCSpbFZJtkMMooicw2us9A=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/lib/pq v1.8.0 h1:9xohqzkUwzR4Ga4ivdTcawVS89YSDVxXMa3xJX3cGzg=
+github.com/lib/pq v1.8.0/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/likexian/gokit v0.0.0-20190309162924-0a377eecf7aa/go.mod h1:QdfYv6y6qPA9pbBA2qXtoT8BMKha6UyNbxWGWl/9Jfk=
 github.com/likexian/gokit v0.0.0-20190418170008-ace88ad0983b/go.mod h1:KKqSnk/VVSW8kEyO2vVCXoanzEutKdlBAPohmGXkxCk=
 github.com/likexian/gokit v0.0.0-20190501133040-e77ea8b19cdc/go.mod h1:3kvONayqCaj+UgrRZGpgfXzHdMYCAO0KAt4/8n0L57Y=
