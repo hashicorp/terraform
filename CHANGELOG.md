@@ -11,6 +11,7 @@ ENHANCEMENTS:
 
 * cli: Improved support for Windows console UI on Windows 10, including bold colors and underline for HCL diagnostics. [GH-26588]
 * cli: The family of error messages with the summary "Invalid for_each argument" will now include some additional context about which external values contributed to the result. [GH-26747]
+* communicator/ssh: Add support for Windows targets. The `remote-exec` provisioner now works correctly when connecting to Windows servers using SSH. Specify the `target_platform` as `"windows"` in the `connection` block. [GH-26865]
 
 BUG FIXES:
 
