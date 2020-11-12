@@ -147,6 +147,12 @@ func (s *Scope) Functions() map[string]function.Function {
 			return s.funcs
 		})
 
+		s.funcs["template"] = funcs.MakeTemplateFunc(func() map[string]function.Function {
+			// The template function prevents recursive calls to itself
+			// by copying this map and overwriting the "template" entry.
+			return s.funcs
+		})
+
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.
