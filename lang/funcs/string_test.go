@@ -88,12 +88,24 @@ func TestTemplate(t *testing.T) {
 			`vars map does not contain key "name", referenced at str:1,10-14`,
 		},
 		{
+			cty.StringVal("\xDF"),
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			`str:1,1-2: Invalid character encoding; All input files must be UTF-8 encoded. Ensure that UTF-8 encoding is selected in your editor., and 1 other diagnostic(s)`,
+		},
+		{
 			cty.StringVal(""),
 			cty.MapVal(map[string]cty.Value{
 				"name": cty.StringVal("Jodie"),
 			}),
 			cty.StringVal(""),
 			``,
+		},
+		{
+			cty.NilVal,
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			`argument must not be null`,
 		},
 		{
 			cty.StringVal("Hello, ${name}!"),
