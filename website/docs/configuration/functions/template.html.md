@@ -48,3 +48,5 @@ The `template` function can be used with the `file` function to read a template 
 
 * [`file`](./file.html) reads a file from disk and returns its literal contents
   without any template interpretation.
+* [`templatefile`](./templatefile.html) reads the file at the given path and renders its
+  content as a template.
