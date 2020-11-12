@@ -85,7 +85,7 @@ func TestTemplate(t *testing.T) {
 			cty.StringVal("Hello, ${name}!"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			`vars map does not contain key "name", referenced at Hello, ${name}!:1,10-14`,
+			`vars map does not contain key "name", referenced at str:1,10-14`,
 		},
 		{
 			cty.StringVal(""),
@@ -135,7 +135,7 @@ func TestTemplate(t *testing.T) {
 			cty.StringVal("Hello, ${template(\"\",{})}!"),
 			cty.MapValEmpty(cty.String),
 			cty.NilVal,
-			`Hello, ${template("",{})}!:1,10-19: Error in function call; Call to function "template" failed: cannot recursively call template from inside template call.`,
+			`str:1,10-19: Error in function call; Call to function "template" failed: cannot recursively call template from inside template call.`,
 		},
 		{
 			cty.StringVal("%{ for x in list ~}\n- ${x}\n%{ endfor ~}"),
@@ -155,7 +155,7 @@ func TestTemplate(t *testing.T) {
 				"list": cty.True,
 			}),
 			cty.NilVal,
-			"%{ for x in list ~}\n- ${x}\n%{ endfor ~}:1,13-17: Iteration over non-iterable value; A value of type bool cannot be used as the collection in a 'for' expression.",
+			`str:1,13-17: Iteration over non-iterable value; A value of type bool cannot be used as the collection in a 'for' expression.`,
 		},
 		{
 			cty.StringVal("${val}"),

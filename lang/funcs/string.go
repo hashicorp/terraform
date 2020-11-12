@@ -78,7 +78,7 @@ func MakeTemplateFunc(funcsCb func() map[string]function.Function) function.Func
 	}
 
 	loadTmpl := func(fn string) (hcl.Expression, error) {
-		expr, diags := hclsyntax.ParseTemplate([]byte(fn), fn, hcl.Pos{Line: 1, Column: 1})
+		expr, diags := hclsyntax.ParseTemplate([]byte(fn), params[0].Name, hcl.Pos{Line: 1, Column: 1})
 		if diags.HasErrors() {
 			return nil, diags
 		}
