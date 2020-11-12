@@ -1,5 +1,5 @@
 ---
-layout: "backend-types"
+layout: "language"
 page_title: "Backend Type: consul"
 sidebar_current: "docs-backends-types-standard-consul"
 description: |-

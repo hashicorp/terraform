@@ -1,5 +1,5 @@
 ---
-layout: "backend-types"
+layout: "language"
 page_title: "Backend Type: cos"
 sidebar_current: "docs-backends-types-standard-cos"
 description: |-

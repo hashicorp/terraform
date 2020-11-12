@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "formatdate - Functions - Configuration Language"
 sidebar_current: "docs-funcs-datetime-formatdate"
 description: |-

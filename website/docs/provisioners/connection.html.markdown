@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provisioner Connection Settings"
 sidebar_current: "docs-provisioners-connection"
 description: |-

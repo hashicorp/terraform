@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "State: Remote Storage"
 sidebar_current: "docs-state-remote"
 description: |-

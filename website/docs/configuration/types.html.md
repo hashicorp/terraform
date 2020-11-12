@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Type Constraints - Configuration Language"
 sidebar_current: "docs-config-types"
 description: |-

@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "bcrypt - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-bcrypt"
 description: |-

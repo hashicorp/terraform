@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "uuid - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-uuid"
 description: |-

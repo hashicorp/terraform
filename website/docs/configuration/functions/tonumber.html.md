@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "tonumber - Functions - Configuration Language"
 sidebar_current: "docs-funcs-conversion-tonumber"
 description: |-

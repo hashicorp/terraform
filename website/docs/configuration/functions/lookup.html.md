@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "lookup - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-lookup"
 description: |-

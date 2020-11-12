@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "range - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-range"
 description: |-

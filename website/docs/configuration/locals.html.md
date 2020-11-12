@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Local Values - Configuration Language"
 sidebar_current: "docs-config-locals"
 description: |-
