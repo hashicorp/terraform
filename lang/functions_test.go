@@ -289,6 +289,16 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"deepmerge": {
+			{
+				`deepmerge({"a"="b"}, {"c"="d"})`,
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"c": cty.StringVal("d"),
+				}),
+			},
+		},
+
 		"dirname": {
 			{
 				`dirname("testdata/hello.txt")`,

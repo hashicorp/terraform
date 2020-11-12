@@ -152,6 +152,134 @@ var CoalesceFunc = function.New(&function.Spec{
 	},
 })
 
+// DeepMergeFunc constructs a function that takes an arbitrary number of maps or
+// objects, and returns a single value that contains a merged set of keys and
+// values from all of the inputs.
+//
+// If more than one given map or object defines the same key then the one that
+// is later in the argument sequence takes precedence.
+//
+// Nested object will be recursed to the bottom, and partial maps will be combined to
+// create the final map. Types can be changed [array->string] without issue, so no
+// type checking occurs to prevent this.
+var DeepMergeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "maps",
+		Type:             cty.DynamicPseudoType,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		// empty args is accepted, so assume an empty object since we have no
+		// key-value types.
+		if len(args) == 0 {
+			return cty.EmptyObject, nil
+		}
+
+		// check for invalid arguments
+		for _, arg := range args {
+			ty := arg.Type()
+
+			// we can't work with dynamic types, so move along
+			if ty.Equals(cty.DynamicPseudoType) {
+				return cty.DynamicPseudoType, nil
+			}
+
+			if !ty.IsMapType() && !ty.IsObjectType() {
+				return cty.NilType, fmt.Errorf("arguments must be maps or objects, got %#v", ty.FriendlyName())
+			}
+		}
+
+		//premerge objects so we can determine final type
+		outputMap := cty.NullVal(cty.NilType)
+
+		for _, arg := range args {
+			outputMap = recursiveMerge(arg, outputMap)
+		}
+
+		if outputMap.Type().HasDynamicTypes() {
+			return cty.DynamicPseudoType, nil
+		}
+
+		return outputMap.Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		outputMap := cty.NullVal(cty.NilType)
+
+		for _, arg := range args {
+			outputMap = recursiveMerge(arg, outputMap)
+		}
+
+		return outputMap, nil
+	},
+})
+
+func recursiveMerge(newValue cty.Value, existingValue cty.Value) cty.Value {
+
+	// unknown types trump known ones, don't merge
+	if !existingValue.IsKnown() {
+		return existingValue
+	}
+
+	// New value isn't mergeable, so just replace.
+	newValueMergeable := newValue.Type().IsMapType() || newValue.Type().IsObjectType()
+	existingValueMergeable := existingValue.Type().IsMapType() || existingValue.Type().IsObjectType()
+	if !newValueMergeable || !existingValueMergeable || existingValue.IsNull() {
+		return newValue
+	}
+
+	if newValue.IsNull() {
+		return existingValue
+	}
+
+	mergedMap := existingValue.AsValueMap()
+	for it := newValue.ElementIterator(); it.Next(); {
+		k, newValue := it.Element()
+		key := k.AsString()
+		if newValue.IsNull() {
+			delete(mergedMap, key)
+			continue
+		}
+
+		mergedMap[key] = recursiveMerge(newValue, mergedMap[key])
+	}
+	// strip out any null properties
+	for key, value := range mergedMap {
+		if value.IsNull() {
+			delete(mergedMap, key)
+		}
+	}
+
+	return wrapAsObjectOrMap(mergedMap)
+}
+
+func wrapAsObjectOrMap(input map[string]cty.Value) cty.Value {
+	if len(input) == 0 {
+		return cty.EmptyObjectVal
+	}
+
+	typesMatch := true
+	firstType := cty.NilType
+
+	for _, value := range input {
+		ty := value.Type()
+		if firstType == cty.NilType {
+			firstType = ty
+		}
+
+		if !ty.Equals(firstType) {
+			typesMatch = false
+		}
+	}
+
+	if typesMatch {
+		return cty.MapVal(input)
+	}
+
+	return cty.ObjectVal(input)
+}
+
 // IndexFunc constructs a function that finds the element index for a given value in a list.
 var IndexFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -572,6 +700,20 @@ func AnyTrue(collection cty.Value) (cty.Value, error) {
 // Coalesce takes any number of arguments and returns the first one that isn't empty.
 func Coalesce(args ...cty.Value) (cty.Value, error) {
 	return CoalesceFunc.Call(args)
+}
+
+// DeepMergeFunc constructs a function that takes an arbitrary number of maps or
+// objects, and returns a single value that contains a merged set of keys and
+// values from all of the inputs.
+//
+// If more than one given map or object defines the same key then the one that
+// is later in the argument sequence takes precedence.
+//
+// Nested object will be recursed to the bottom, and partial maps will be combined to
+// create the final map. Types can be changed [array->string] without issue, so no
+// type checking occurs to prevent this.
+func DeepMerge(maps ...cty.Value) (cty.Value, error) {
+	return DeepMergeFunc.Call(maps)
 }
 
 // Index finds the element index for a given value in a list.
