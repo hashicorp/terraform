@@ -31,7 +31,11 @@ uses it isn't required.
 
 ## Examples
 
-Our examples are distributed across several repos. [~~This README file in the Terraform repo has links to all of them.~~](https://github.com/hashicorp/terraform/tree/master/examples)
+Examples are distributed across several repos.
+
+You will find examples in `examples` directories inside [the following repos](https://github.com/search?q=terraform-provider-).
+These examples are directly provided by the terraform providers.  
+If you are looking for examples about a specific provider, you can directly search for it in github search bar with the following repo name: terraform-provider-{provider_name}.
 
 To use these examples, Terraform must first be installed on your machine.
 You can install Terraform from the [downloads page](/downloads.html).
