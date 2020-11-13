@@ -32,7 +32,7 @@ function-like constructs called _type constructors._
   represent a type; instead, it represents a _kind_ of similar types.
 
 Type constraints look like other kinds of Terraform
-[expressions](./expressions.html), but are a special syntax. Within the
+[expressions](/docs/configuration/expressions/index.html), but are a special syntax. Within the
 Terraform language, they are only valid in the `type` argument of an
 [input variable](./variables.html).
 
@@ -160,7 +160,7 @@ like the following:
 
 The Terraform language has literal expressions for creating tuple and object
 values, which are described in
-[Expressions: Literal Expressions](./expressions.html#literal-expressions) as
+[Expressions: Literal Expressions](/docs/configuration/expressions/types.html#literal-expressions) as
 "list/tuple" literals and "map/object" literals, respectively.
 
 Terraform does _not_ provide any way to directly represent lists, maps, or sets.

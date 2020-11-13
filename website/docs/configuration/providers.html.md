@@ -28,7 +28,8 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 Provider configurations belong in the root module of a Terraform configuration.
 (Child modules receive their provider configurations from the root module; for
 more information, see
-[Providers Within Modules](./modules.html#providers-within-modules).)
+[The Module `providers` Meta-Argument](/docs/configuration/meta-arguments/module-providers.html)
+and [Module Development: Providers Within Modules](/docs/modules/providers.html).)
 
 A provider configuration is created using a `provider` block:
 
@@ -49,7 +50,7 @@ the provider. Most arguments in this section are defined by the provider itself;
 in this example both `project` and `region` are specific to the `google`
 provider.
 
-You can use [expressions](./expressions.html) in the values of these
+You can use [expressions](/docs/configuration/expressions/index.html) in the values of these
 configuration arguments, but can only reference values that are known before the
 configuration is applied. This means you can safely reference input variables,
 but not attributes exported by resources (with an exception for resource
@@ -160,7 +161,7 @@ module "aws_vpc" {
 ```
 
 Modules have some special requirements when passing in providers; see
-[Providers Within Modules](./modules.html#providers-within-modules)
+[The Module `providers` Meta-Argument](/docs/configuration/meta-arguments/module-providers.html)
 for more details. In most cases, only _root modules_ should define provider
 configurations, with all child modules obtaining their provider configurations
 from their parents.
@@ -177,7 +178,7 @@ works the same way as the `version` argument in a
 constraint in a provider configuration is only used if `required_providers`
 does not include one for that provider.
 
-**The `version` argument in provider configurations is deprecated.** 
+**The `version` argument in provider configurations is deprecated.**
 In Terraform 0.13 and later, version constraints should always be declared in
 [the `required_providers` block](./provider-requirements.html). The `version`
 argument will be removed in a future version of Terraform.

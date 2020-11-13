@@ -35,7 +35,7 @@ Most commonly, modules use:
   the calling module.
 * [Output values](/docs/configuration/outputs.html) to return results to the
   calling module, which it can then use to populate arguments elsewhere.
-* [Resources](/docs/configuration/resources.html) to define one or more
+* [Resources](/docs/configuration/blocks/resources/index.html) to define one or more
   infrastructure objects that the module will manage.
 
 To define a module, create a new directory for it and place one or more `.tf`

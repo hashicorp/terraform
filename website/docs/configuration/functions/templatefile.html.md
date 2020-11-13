@@ -21,10 +21,10 @@ templatefile(path, vars)
 ```
 
 The template syntax is the same as for
-[string templates](../expressions.html#string-templates) in the main Terraform
-language, including interpolation sequences delimited with `${` ... `}`.
-This function just allows longer template sequences to be factored out
-into a separate file for readability.
+[string templates](/docs/configuration/expressions/strings.html#string-templates)
+in the main Terraform language, including interpolation sequences delimited with
+`${` ... `}`. This function just allows longer template sequences to be factored
+out into a separate file for readability.
 
 The "vars" argument must be a map. Within the template file, each of the keys
 in the map is available as a variable for interpolation. The template may
@@ -78,8 +78,8 @@ The `templatefile` function renders the template:
 
 ```
 > templatefile(
-               "${path.module}/backends.tmpl", 
-               { 
+               "${path.module}/backends.tmpl",
+               {
                  config = {
                    "x"   = "y"
                    "foo" = "bar"
@@ -102,7 +102,7 @@ interpolation sequences and directives.
 Instead, you can write a template that consists only of a single interpolated
 call to either [`jsonencode`](./jsonencode.html) or
 [`yamlencode`](./yamlencode.html), specifying the value to encode using
-[normal Terraform expression syntax](/docs/configuration/expressions.html)
+[normal Terraform expression syntax](/docs/configuration/expressions/index.html)
 as in the following examples:
 
 ```
@@ -122,9 +122,9 @@ this will produce a valid JSON or YAML representation of the given data
 structure, without the need to manually handle escaping or delimiters.
 In the latest examples above, the repetition based on elements of `ip_addrs` is
 achieved by using a
-[`for` expression](/docs/configuration/expressions.html#for-expressions)
+[`for` expression](/docs/configuration/expressions/for.html)
 rather than by using
-[template directives](/docs/configuration/expressions.html#directives).
+[template directives](/docs/configuration/expressions/strings.html#directives).
 
 ```json
 {"backends":["10.0.0.1:8080","10.0.0.2:8080"]}

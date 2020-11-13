@@ -46,7 +46,7 @@ valid [identifier](./syntax.html#identifiers). In a root module, this name is
 displayed to the user; in a child module, it can be used to access the output's
 value.
 
-The `value` argument takes an [expression](./expressions.html)
+The `value` argument takes an [expression](/docs/configuration/expressions/index.html)
 whose result is to be returned to the user. In this example, the expression
 refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
@@ -98,7 +98,7 @@ output "db_password" {
 }
 ```
 
-Setting an output value as sensitive prevents Terraform from showing its value 
+Setting an output value as sensitive prevents Terraform from showing its value
 in `plan` and `apply`. In the following scenario, our root module has an output declared as sensitive
 and a module call with a sensitive output, which we then use in a resource attribute.
 
@@ -163,7 +163,7 @@ correctly determine the dependencies between resources defined in different
 modules.
 
 Just as with
-[resource dependencies](./resources.html#resource-dependencies),
+[resource dependencies](/docs/configuration/blocks/resources/behavior.html#resource-dependencies),
 Terraform analyzes the `value` expression for an output value and automatically
 determines a set of dependencies, but in less-common cases there are
 dependencies that cannot be recognized implicitly. In these rare cases, the

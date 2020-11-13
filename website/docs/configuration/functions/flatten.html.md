@@ -35,9 +35,9 @@ Indirectly-nested lists, such as those in maps, are _not_ flattened.
 ## Flattening nested structures for `for_each`
 
 The
-[resource `for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+[resource `for_each`](/docs/configuration/meta-arguments/for_each.html)
 and
-[`dynamic` block](/docs/configuration/expressions.html#dynamic-blocks)
+[`dynamic` block](/docs/configuration/expressions/dynamic-blocks.html)
 language features both require a collection value that has one element for
 each repetition.
 

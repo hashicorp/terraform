@@ -33,7 +33,7 @@ results are also valid YAML because YAML is a JSON superset.
 -->
 
 This function maps
-[Terraform language values](../expressions.html#types-and-values)
+[Terraform language values](/docs/configuration/expressions/types.html)
 to YAML tags in the following way:
 
 | Terraform type | YAML type            |

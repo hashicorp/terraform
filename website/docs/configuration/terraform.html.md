@@ -51,7 +51,7 @@ can be used with your configuration.
 If the running version of Terraform doesn't match the constraints specified,
 Terraform will produce an error and exit without taking any further actions.
 
-When you use [child modules](./modules.html), each module can specify its own
+When you use [child modules](/docs/configuration/blocks/modules/index.html), each module can specify its own
 version requirements. The requirements of all modules in the tree must be
 satisfied.
 
