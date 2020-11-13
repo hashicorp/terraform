@@ -46,7 +46,7 @@ number of fields, or this function will produce an error.
 ## Use with the `for_each` meta-argument
 
 You can use the result of `csvdecode` with
-[the `for_each` meta-argument](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+[the `for_each` meta-argument](/docs/configuration/meta-arguments/for_each.html)
 to describe a collection of similar objects whose differences are
 described by the rows in the given CSV file.
 
@@ -94,7 +94,7 @@ create or destroy associated instances as appropriate.
 
 If there is no reasonable value you can use as a unique identifier in your CSV
 then you could instead use
-[the `count` meta-argument](/docs/configuration/resources.html#count-multiple-resource-instances-by-count)
+[the `count` meta-argument](/docs/configuration/meta-arguments/count.html)
 to define an object for each CSV row, with each one identified by its index into
 the list returned by `csvdecode`. However, in that case any future updates to
 the CSV may be disruptive if they change the positions of particular objects in

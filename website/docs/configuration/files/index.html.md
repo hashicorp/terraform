@@ -34,7 +34,7 @@ treating the entire module as a single document. Separating various blocks into
 different files is purely for the convenience of readers and maintainers, and
 has no effect on the module's behavior.
 
-A Terraform module can use [module calls](/docs/configuration/modules.html) to
+A Terraform module can use [module calls](/docs/configuration/blocks/modules/index.html) to
 explicitly include other modules into the configuration. These child modules can
 come from local directories (nested in the parent module's directory, or
 anywhere else on disk), or from external sources like the

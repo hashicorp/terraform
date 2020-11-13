@@ -23,8 +23,8 @@ max(5, 12, 9)
 ```
 
 For more details on syntax, see
-[_Function Calls_](./expressions.html#function-calls)
-on the Expressions page.
+[_Function Calls_](/docs/configuration/expressions/function-calls.html)
+in the Expressions section.
 
 The Terraform language does not support user-defined functions, and so only
 the functions built in to the language are available for use. The navigation

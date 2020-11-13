@@ -14,9 +14,9 @@ dependency that come from outside of its own codebase:
 
 * [Providers](./provider-requirements.html), which are plugins for Terraform
   that extend it with support for interacting with various external systems.
-* [Modules](./modules.html), which allow splitting out groups of Terraform
-  configuration constructs (written in the Terraform language) into reusable
-  abstractions.
+* [Modules](/docs/configuration/blocks/modules/index.html), which allow
+  splitting out groups of Terraform configuration constructs (written in the
+  Terraform language) into reusable abstractions.
 
 Both of these dependency types can be published and updated independently from
 Terraform itself and from the configurations that depend on them. For that
@@ -168,7 +168,7 @@ block in the dependency lock file.
 @@ -6,6 +6,26 @@
    ]
  }
- 
+
 +provider "registry.terraform.io/hashicorp/azurerm" {
 +  version     = "2.30.0"
 +  constraints = "~> 2.12"
@@ -219,7 +219,7 @@ block to reflect that change.
 +++ .terraform.lock.hcl	2020-10-07 16:43:42.785665945 -0700
 @@ -7,22 +7,22 @@
  }
- 
+
  provider "registry.terraform.io/hashicorp/azurerm" {
 -  version     = "2.1.0"
 -  constraints = "~> 2.1.0"
