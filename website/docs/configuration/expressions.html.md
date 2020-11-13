@@ -321,19 +321,6 @@ Note that unlike `count`, splat expressions are _not_ directly applicable to res
 
 * `values(aws_instance.example)[*].id`
 
-### Local Named Values
-
-Within the bodies of certain expressions, or in some other specific contexts,
-there are other named values available beyond the global values listed above.
-(For example, the body of a resource block where `count` is set can use a
-special `count.index` value.) These local names are described in the
-documentation for the specific contexts where they appear.
-
--> **Note:** Local named values are often referred to as _variables_ or
-_temporary variables_ in their documentation. These are not [input
-variables](./variables.html); they are just arbitrary names
-that temporarily represent a value.
-
 ### Values Not Yet Known
 
 When Terraform is planning a set of changes that will apply your configuration,
