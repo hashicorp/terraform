@@ -26,7 +26,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	var flagForce bool
-	cmdFlags := c.Meta.defaultFlagSet("state push")
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state push")
 	cmdFlags.BoolVar(&flagForce, "force", false, "")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -75,9 +75,18 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Determine the workspace name
+	workspace := c.Workspace()
+
+	// Check remote Terraform version is compatible
+	remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
+	c.showDiagnostics(remoteVersionDiags)
+	if remoteVersionDiags.HasErrors() {
+		return 1
+	}
+
 	// Get the state manager for the currently-selected workspace
-	env := c.Workspace()
-	stateMgr, err := b.StateMgr(env)
+	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 		return 1

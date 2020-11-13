@@ -177,6 +177,10 @@ type Meta struct {
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
+
+	// Used with commands which write state to allow users to write remote
+	// state even if the remote and local Terraform versions don't match.
+	ignoreRemoteVersion bool
 }
 
 type PluginOverrides struct {
@@ -374,6 +378,17 @@ func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
+
+	return f
+}
+
+// ignoreRemoteVersionFlagSet add the ignore-remote version flag to suppress
+// the error when the configured Terraform version on the remote workspace
+// does not match the local Terraform version.
+func (m *Meta) ignoreRemoteVersionFlagSet(n string) *flag.FlagSet {
+	f := m.defaultFlagSet(n)
+
+	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions differ")
 
 	return f
 }

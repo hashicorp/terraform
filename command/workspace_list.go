@@ -55,6 +55,9 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This command will not write state
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())

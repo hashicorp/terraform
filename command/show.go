@@ -71,6 +71,9 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// the show command expects the config dir to always be the cwd
 	cwd, err := os.Getwd()
 	if err != nil {
