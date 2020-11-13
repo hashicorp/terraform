@@ -31,7 +31,7 @@ uses it isn't required.
 
 ## Examples
 
-Our examples are distributed across several repos. [This README file in the Terraform repo has links to all of them.](https://github.com/hashicorp/terraform/tree/master/examples)
+Our examples are distributed across several repos. [~~This README file in the Terraform repo has links to all of them.~~](https://github.com/hashicorp/terraform/tree/master/examples)
 
 To use these examples, Terraform must first be installed on your machine.
 You can install Terraform from the [downloads page](/downloads.html).
