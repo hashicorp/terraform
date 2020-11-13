@@ -38,6 +38,7 @@ ENHANCEMENTS:
 * core: `terraform plan` no longer uses a separate refresh phase. Instead, all resources are updated on-demand during planning ([#26270](https://github.com/hashicorp/terraform/issues/26270))
 * backend/consul: Split state into chunks when outgrowing the limit of the Consul KV store. This allows storing state larger than the Consul 512KB limit. ([#25856](https://github.com/hashicorp/terraform/issues/25856))
 * backend/consul: Add force-unlock support to the Consul backend ([#25837](https://github.com/hashicorp/terraform/issues/25837))
+* modules: Adds support for loading modules with S3 virtual hosted-style access [GH-26914]
 * On Unix-based operating systems other than MacOS, the `SSL_CERT_DIR` environment variable can now be a colon-separated list of multiple certificate search paths. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
 * On MacOS, Terraform will now use the `Security.framework` API to access the system trust roots, for improved consistency with other MacOS software. ([#26357](https://github.com/hashicorp/terraform/issues/26357))
 
