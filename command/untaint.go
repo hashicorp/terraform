@@ -21,7 +21,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var module string
 	var allowMissing bool
-	cmdFlags := c.Meta.defaultFlagSet("untaint")
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("untaint")
 	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
@@ -65,12 +65,22 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the state
+	// Determine the workspace name
 	workspace, err := c.Workspace()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
 		return 1
 	}
+
+	// Check remote Terraform version is compatible
+	remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
+	diags = diags.Append(remoteVersionDiags)
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
+
+	// Get the state
 	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
@@ -189,26 +199,30 @@ Usage: terraform untaint [options] name
 
 Options:
 
-  -allow-missing      If specified, the command will succeed (exit code 0)
-                      even if the resource is missing.
+  -allow-missing          If specified, the command will succeed (exit code 0)
+                          even if the resource is missing.
 
-  -backup=path        Path to backup the existing state file before
-                      modifying. Defaults to the "-state-out" path with
-                      ".backup" extension. Set to "-" to disable backup.
+  -backup=path            Path to backup the existing state file before
+						  modifying. Defaults to the "-state-out" path with
+						  ".backup" extension. Set to "-" to disable backup.
 
-  -lock=true          Lock the state file when locking is supported.
+  -lock=true              Lock the state file when locking is supported.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock-timeout=0s        Duration to retry a state lock.
 
-  -module=path        The module path where the resource lives. By
-                      default this will be root. Child modules can be specified
-                      by names. Ex. "consul" or "consul.vpc" (nested modules).
+  -module=path            The module path where the resource lives. By default
+						  this will be root. Child modules can be specified by
+						  names. Ex. "consul" or "consul.vpc" (nested modules).
 
-  -state=path         Path to read and save state (unless state-out
-                      is specified). Defaults to "terraform.tfstate".
+  -state=path             Path to read and save state (unless state-out
+                          is specified). Defaults to "terraform.tfstate".
 
-  -state-out=path     Path to write updated state file. By default, the
-                      "-state" path will be used.
+  -state-out=path         Path to write updated state file. By default, the
+                          "-state" path will be used.
+
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          differ. This may result in an unusable workspace, and
+                          should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)

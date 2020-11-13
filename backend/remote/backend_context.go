@@ -156,11 +156,20 @@ func (b *Remote) getRemoteWorkspaceName(localWorkspaceName string) string {
 	}
 }
 
-func (b *Remote) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName string) (string, error) {
+func (b *Remote) getRemoteWorkspace(ctx context.Context, localWorkspaceName string) (*tfe.Workspace, error) {
 	remoteWorkspaceName := b.getRemoteWorkspaceName(localWorkspaceName)
 
-	log.Printf("[TRACE] backend/remote: looking up workspace id for %s/%s", b.organization, remoteWorkspaceName)
+	log.Printf("[TRACE] backend/remote: looking up workspace for %s/%s", b.organization, remoteWorkspaceName)
 	remoteWorkspace, err := b.client.Workspaces.Read(ctx, b.organization, remoteWorkspaceName)
+	if err != nil {
+		return nil, err
+	}
+
+	return remoteWorkspace, nil
+}
+
+func (b *Remote) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName string) (string, error) {
+	remoteWorkspace, err := b.getRemoteWorkspace(ctx, localWorkspaceName)
 	if err != nil {
 		return "", err
 	}
