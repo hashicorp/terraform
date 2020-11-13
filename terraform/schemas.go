@@ -205,9 +205,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 			return
 		}
 		defer func() {
-			if closer, ok := provisioner.(ResourceProvisionerCloser); ok {
-				closer.Close()
-			}
+			provisioner.Close()
 		}()
 
 		resp := provisioner.GetSchema()

@@ -1,14 +1,8 @@
 package terraform
 
 import (
-	"testing"
-
 	"github.com/hashicorp/terraform/provisioners"
 )
-
-func TestMockResourceProvisioner_impl(t *testing.T) {
-	var _ ResourceProvisioner = new(MockResourceProvisioner)
-}
 
 // simpleMockProvisioner returns a MockProvisioner that is pre-configured
 // with schema for its own config, with the same content as returned by

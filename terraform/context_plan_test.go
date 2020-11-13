@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -930,7 +931,7 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State: state,
@@ -1654,7 +1655,7 @@ func TestContext2Plan_provisionerCycle(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"local-exec": testProvisionerFuncFixed(pr),
 		},
 	})

@@ -26,7 +26,7 @@ type contextComponentFactory interface {
 // basicComponentFactory just calls a factory from a map directly.
 type basicComponentFactory struct {
 	providers    map[addrs.Provider]providers.Factory
-	provisioners map[string]ProvisionerFactory
+	provisioners map[string]provisioners.Factory
 }
 
 func (c *basicComponentFactory) ResourceProviders() []string {

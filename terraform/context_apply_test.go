@@ -1864,7 +1864,7 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -2302,7 +2302,7 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 	}
 
-	provisioners := map[string]ProvisionerFactory{
+	provisioners := map[string]provisioners.Factory{
 		"local-exec": testProvisionerFuncFixed(pr),
 	}
 	ctx := testContext2(t, &ContextOpts{
@@ -4086,7 +4086,7 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4135,7 +4135,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		Variables: InputValues{
@@ -4193,7 +4193,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4230,7 +4230,7 @@ func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4267,7 +4267,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4315,7 +4315,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State: state,
@@ -4666,7 +4666,7 @@ func TestContext2Apply_provisionerFailContinue(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4714,7 +4714,7 @@ func TestContext2Apply_provisionerFailContinueHook(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4768,7 +4768,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4820,7 +4820,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4889,7 +4889,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4959,7 +4959,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5026,7 +5026,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		Variables: InputValues{
@@ -5087,7 +5087,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5133,7 +5133,7 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5186,7 +5186,7 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5246,7 +5246,7 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5301,7 +5301,7 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
-			Provisioners: map[string]ProvisionerFactory{
+			Provisioners: map[string]provisioners.Factory{
 				"shell": testProvisionerFuncFixed(pr),
 			},
 		})
@@ -5330,7 +5330,7 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
-			Provisioners: map[string]ProvisionerFactory{
+			Provisioners: map[string]provisioners.Factory{
 				"shell": testProvisionerFuncFixed(pr),
 			},
 		})
@@ -5370,7 +5370,7 @@ func TestContext2Apply_provisionerForEachSelfRef(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5397,7 +5397,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -5445,7 +5445,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State: state,
@@ -6250,7 +6250,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State:   state,
@@ -9834,7 +9834,7 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 	}
 
-	provisioners := map[string]ProvisionerFactory{
+	provisioners := map[string]provisioners.Factory{
 		"shell": testProvisionerFuncFixed(pr),
 	}
 
@@ -12194,7 +12194,7 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		Variables: InputValues{

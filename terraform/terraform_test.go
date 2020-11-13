@@ -228,7 +228,7 @@ func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	}
 }
 
-func testProvisionerFuncFixed(rp provisioners.Interface) ProvisionerFactory {
+func testProvisionerFuncFixed(rp provisioners.Interface) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
 		return rp, nil
 	}
