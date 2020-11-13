@@ -3484,7 +3484,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	m := testModule(t, "apply-multi-var-comprehensive")
 	p := testProvider("test")
 
-	configs := map[string]*ResourceConfig{}
+	configs := map[string]cty.Value{}
 	var configsLock sync.Mutex
 
 	p.ApplyResourceChangeFn = testApplyFn
@@ -3498,7 +3498,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		// and so the assertions below expect an old-style ResourceConfig, which
 		// we'll construct via our shim for now to avoid rewriting all of the
 		// assertions.
-		configs[key] = NewResourceConfigShimmed(req.Config, p.GetSchemaReturn.ResourceTypes["test_thing"])
+		configs[key] = req.ProposedNewState
 
 		retVals := make(map[string]cty.Value)
 		for it := proposed.ElementIterator(); it.Next(); {
@@ -3563,102 +3563,99 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 		t.Fatalf("errors during plan")
 	}
 
-	checkConfig := func(key string, want map[string]interface{}) {
+	checkConfig := func(key string, want cty.Value) {
 		configsLock.Lock()
 		defer configsLock.Unlock()
 
-		if _, ok := configs[key]; !ok {
+		got, ok := configs[key]
+		if !ok {
 			t.Errorf("no config recorded for %s; expected a configuration", key)
 			return
 		}
-		got := configs[key].Config
+
 		t.Run("config for "+key, func(t *testing.T) {
-			want["key"] = key // to avoid doing this for every example
 			for _, problem := range deep.Equal(got, want) {
 				t.Errorf(problem)
 			}
 		})
 	}
 
-	checkConfig("multi_count_var.0", map[string]interface{}{
-		"source_id":   hcl2shim.UnknownVariableValue,
-		"source_name": "source.0",
-	})
-	checkConfig("multi_count_var.2", map[string]interface{}{
-		"source_id":   hcl2shim.UnknownVariableValue,
-		"source_name": "source.2",
-	})
-	checkConfig("multi_count_derived.0", map[string]interface{}{
-		"source_id":   hcl2shim.UnknownVariableValue,
-		"source_name": "source.0",
-	})
-	checkConfig("multi_count_derived.2", map[string]interface{}{
-		"source_id":   hcl2shim.UnknownVariableValue,
-		"source_name": "source.2",
-	})
-	checkConfig("whole_splat", map[string]interface{}{
-		"source_ids": []interface{}{
-			hcl2shim.UnknownVariableValue,
-			hcl2shim.UnknownVariableValue,
-			hcl2shim.UnknownVariableValue,
-		},
-		"source_names": []interface{}{
-			"source.0",
-			"source.1",
-			"source.2",
-		},
-		"source_ids_from_func": hcl2shim.UnknownVariableValue,
-		"source_names_from_func": []interface{}{
-			"source.0",
-			"source.1",
-			"source.2",
-		},
-
-		"source_ids_wrapped": []interface{}{
-			[]interface{}{
-				hcl2shim.UnknownVariableValue,
-				hcl2shim.UnknownVariableValue,
-				hcl2shim.UnknownVariableValue,
-			},
-		},
-		"source_names_wrapped": []interface{}{
-			[]interface{}{
-				"source.0",
-				"source.1",
-				"source.2",
-			},
-		},
-
-		"first_source_id":   hcl2shim.UnknownVariableValue,
-		"first_source_name": "source.0",
-	})
-	checkConfig("child.whole_splat", map[string]interface{}{
-		"source_ids": []interface{}{
-			hcl2shim.UnknownVariableValue,
-			hcl2shim.UnknownVariableValue,
-			hcl2shim.UnknownVariableValue,
-		},
-		"source_names": []interface{}{
-			"source.0",
-			"source.1",
-			"source.2",
-		},
-
-		"source_ids_wrapped": []interface{}{
-			[]interface{}{
-				hcl2shim.UnknownVariableValue,
-				hcl2shim.UnknownVariableValue,
-				hcl2shim.UnknownVariableValue,
-			},
-		},
-		"source_names_wrapped": []interface{}{
-			[]interface{}{
-				"source.0",
-				"source.1",
-				"source.2",
-			},
-		},
-	})
+	checkConfig("multi_count_var.0", cty.ObjectVal(map[string]cty.Value{
+		"source_id":   cty.UnknownVal(cty.String),
+		"source_name": cty.StringVal("source.0"),
+	}))
+	checkConfig("multi_count_var.2", cty.ObjectVal(map[string]cty.Value{
+		"source_id":   cty.UnknownVal(cty.String),
+		"source_name": cty.StringVal("source.2"),
+	}))
+	checkConfig("multi_count_derived.0", cty.ObjectVal(map[string]cty.Value{
+		"source_id":   cty.UnknownVal(cty.String),
+		"source_name": cty.StringVal("source.0"),
+	}))
+	checkConfig("multi_count_derived.2", cty.ObjectVal(map[string]cty.Value{
+		"source_id":   cty.UnknownVal(cty.String),
+		"source_name": cty.StringVal("source.2"),
+	}))
+	checkConfig("whole_splat", cty.ObjectVal(map[string]cty.Value{
+		"source_ids": cty.ListVal([]cty.Value{
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+		}),
+		"source_names": cty.ListVal([]cty.Value{
+			cty.StringVal("source.0"),
+			cty.StringVal("source.1"),
+			cty.StringVal("source.2"),
+		}),
+		"source_ids_from_func": cty.UnknownVal(cty.String),
+		"source_names_from_func": cty.ListVal([]cty.Value{
+			cty.StringVal("source.0"),
+			cty.StringVal("source.1"),
+			cty.StringVal("source.2"),
+		}),
+		"source_ids_wrapped": cty.ListVal([]cty.Value{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+				cty.UnknownVal(cty.String),
+				cty.UnknownVal(cty.String),
+			}),
+		}),
+		"source_names_wrapped": cty.ListVal([]cty.Value{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("source.0"),
+				cty.StringVal("source.1"),
+				cty.StringVal("source.2"),
+			}),
+		}),
+		"first_source_id":   cty.UnknownVal(cty.String),
+		"first_source_name": cty.StringVal("source.0"),
+	}))
+	checkConfig("child.whole_splat", cty.ObjectVal(map[string]cty.Value{
+		"source_ids": cty.ListVal([]cty.Value{
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+		}),
+		"source_names": cty.ListVal([]cty.Value{
+			cty.StringVal("source.0"),
+			cty.StringVal("source.1"),
+			cty.StringVal("source.2"),
+		}),
+		"source_ids_wrapped": cty.ListVal([]cty.Value{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+				cty.UnknownVal(cty.String),
+				cty.UnknownVal(cty.String),
+			}),
+		}),
+		"source_names_wrapped": cty.ListVal([]cty.Value{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("source.0"),
+				cty.StringVal("source.1"),
+				cty.StringVal("source.2"),
+			}),
+		}),
+	}))
 
 	t.Run("apply", func(t *testing.T) {
 		state, diags := ctx.Apply()

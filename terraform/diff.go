@@ -103,18 +103,6 @@ func (d *Diff) AddModule(path addrs.ModuleInstance) *ModuleDiff {
 // This should be the preferred lookup mechanism as it allows for future
 // lookup optimizations.
 func (d *Diff) ModuleByPath(path addrs.ModuleInstance) *ModuleDiff {
-	if d == nil {
-		return nil
-	}
-	for _, mod := range d.Modules {
-		if mod.Path == nil {
-			panic("missing module path")
-		}
-		modPath := normalizeModulePath(mod.Path)
-		if modPath.String() == path.String() {
-			return mod
-		}
-	}
 	return nil
 }
 
@@ -190,7 +178,7 @@ func (d *Diff) String() string {
 	keys := make([]string, 0, len(d.Modules))
 	lookup := make(map[string]*ModuleDiff)
 	for _, m := range d.Modules {
-		addr := normalizeModulePath(m.Path)
+		addr := addrs.ModuleInstance{} //normalizeModulePath(m.Path)
 		key := addr.String()
 		keys = append(keys, key)
 		lookup[key] = m
@@ -201,11 +189,11 @@ func (d *Diff) String() string {
 		m := lookup[key]
 		mStr := m.String()
 
-		// If we're the root module, we just write the output directly.
-		if reflect.DeepEqual(m.Path, rootModulePath) {
-			buf.WriteString(mStr + "\n")
-			continue
-		}
+		//// If we're the root module, we just write the output directly.
+		//if reflect.DeepEqual(m.Path, rootModulePath) {
+		//    buf.WriteString(mStr + "\n")
+		//    continue
+		//}
 
 		buf.WriteString(fmt.Sprintf("%s:\n", key))
 
@@ -219,13 +207,6 @@ func (d *Diff) String() string {
 }
 
 func (d *Diff) init() {
-	if d.Modules == nil {
-		rootDiff := &ModuleDiff{Path: rootModulePath}
-		d.Modules = []*ModuleDiff{rootDiff}
-	}
-	for _, m := range d.Modules {
-		m.init()
-	}
 }
 
 // ModuleDiff tracks the differences between resources to apply within
@@ -304,7 +285,7 @@ func (d *ModuleDiff) Instances(id string) []*InstanceDiff {
 
 // IsRoot says whether or not this module diff is for the root module.
 func (d *ModuleDiff) IsRoot() bool {
-	return reflect.DeepEqual(d.Path, rootModulePath)
+	panic("not implemented")
 }
 
 // String outputs the diff in a long but command-line friendly output
