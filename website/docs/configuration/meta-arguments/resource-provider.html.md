@@ -1,0 +1,58 @@
+---
+layout: "language"
+page_title: "The Resource provider Meta-Argument - Configuration Language"
+---
+
+# The Resource `provider` Meta-Argument
+
+The `provider` meta-argument specifies which provider configuration to use for a resource,
+overriding Terraform's default behavior of selecting one based on the resource
+type name. Its value should be an unquoted `<PROVIDER>.<ALIAS>` reference.
+
+As described in [Provider Configuration](/docs/configuration/providers.html), you can optionally
+create multiple configurations for a single provider (usually to manage
+resources in different regions of multi-region services). Each provider can have
+one default configuration, and any number of alternate configurations that
+include an extra name segment (or "alias").
+
+By default, Terraform interprets the initial word in the resource type name
+(separated by underscores) as the local name of a provider, and uses that
+provider's default configuration. For example, the resource type
+`google_compute_instance` is associated automatically with the default
+configuration for the provider named `google`.
+
+By using the `provider` meta-argument, you can select an alternate provider
+configuration for a resource:
+
+```hcl
+# default configuration
+provider "google" {
+  region = "us-central1"
+}
+
+# alternate configuration, whose alias is "europe"
+provider "google" {
+  alias  = "europe"
+  region = "europe-west1"
+}
+
+resource "google_compute_instance" "example" {
+  # This "provider" meta-argument selects the google provider
+  # configuration whose alias is "europe", rather than the
+  # default configuration.
+  provider = google.europe
+
+  # ...
+}
+```
+
+A resource always has an implicit dependency on its associated provider, to
+ensure that the provider is fully configured before any resource actions
+are taken.
+
+The `provider` meta-argument expects
+[a `<PROVIDER>.<ALIAS>` reference](/docs/configuration/providers.html#referring-to-alternate-providers),
+which does not need to be quoted. Arbitrary expressions are not permitted for
+`provider` because it must be resolved while Terraform is constructing the
+dependency graph, before it is safe to evaluate expressions.
+
