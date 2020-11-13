@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
 description: |-

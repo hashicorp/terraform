@@ -1,5 +1,5 @@
 ---
-layout: "commands-state"
+layout: "docs"
 page_title: "Command: state push"
 sidebar_current: "docs-commands-state-sub-push"
 description: |-

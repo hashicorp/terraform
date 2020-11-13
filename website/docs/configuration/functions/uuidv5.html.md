@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "uuidv5 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-uuidv5"
 description: |-

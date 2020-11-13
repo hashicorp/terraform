@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "keys - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-keys"
 description: |-

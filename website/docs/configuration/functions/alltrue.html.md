@@ -1,5 +1,5 @@
 ---
-layout: functions
+layout: "language"
 page_title: alltrue - Functions - Configuration Language
 sidebar_current: docs-funcs-collection-alltrue
 description: |-

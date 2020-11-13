@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "title - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-title"
 description: |-

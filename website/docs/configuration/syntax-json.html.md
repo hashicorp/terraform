@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "JSON Configuration Syntax - Configuration Language"
 sidebar_current: "docs-config-syntax-json"
 description: |-

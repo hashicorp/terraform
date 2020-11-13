@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Version Constraints - Configuration Language"
 ---
 
