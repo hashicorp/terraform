@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/experiments"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -285,6 +286,18 @@ func TestFunctions(t *testing.T) {
 						"b": cty.StringVal("5"),
 						"c": cty.StringVal("6"),
 					}),
+				}),
+			},
+		},
+
+		"defaults": {
+			// This function is pretty specialized and so this is mainly
+			// just a test that it is defined at all. See the function's
+			// own unit tests for more interesting test cases.
+			{
+				`defaults({a: 4}, {a: 5})`,
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.NumberIntVal(4),
 				}),
 			},
 		},
@@ -1039,32 +1052,89 @@ func TestFunctions(t *testing.T) {
 		},
 	}
 
-	data := &dataForTests{} // no variables available; we only need literals here
-	scope := &Scope{
-		Data:    data,
-		BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
-	}
+	experimentalFuncs := map[string]experiments.Experiment{}
+	experimentalFuncs["defaults"] = experiments.ModuleVariableOptionalAttrs
 
-	// Check that there is at least one test case for each function, omitting
-	// those functions that do not return consistent values
-	allFunctions := scope.Functions()
-
-	// TODO: we can test the impure functions partially by configuring the scope
-	// with PureOnly: true and then verify that they return unknown values of a
-	// suitable type.
-	for _, impureFunc := range impureFunctions {
-		delete(allFunctions, impureFunc)
-	}
-	for f, _ := range scope.Functions() {
-		if _, ok := tests[f]; !ok {
-			t.Errorf("Missing test for function %s\n", f)
+	t.Run("all functions are tested", func(t *testing.T) {
+		data := &dataForTests{} // no variables available; we only need literals here
+		scope := &Scope{
+			Data:    data,
+			BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
 		}
-	}
+
+		// Check that there is at least one test case for each function, omitting
+		// those functions that do not return consistent values
+		allFunctions := scope.Functions()
+
+		// TODO: we can test the impure functions partially by configuring the scope
+		// with PureOnly: true and then verify that they return unknown values of a
+		// suitable type.
+		for _, impureFunc := range impureFunctions {
+			delete(allFunctions, impureFunc)
+		}
+		for f := range scope.Functions() {
+			if _, ok := tests[f]; !ok {
+				t.Errorf("Missing test for function %s\n", f)
+			}
+		}
+	})
 
 	for funcName, funcTests := range tests {
 		t.Run(funcName, func(t *testing.T) {
+
+			// prepareScope starts as a no-op, but if a function is marked as
+			// experimental in our experimentalFuncs table above then we'll
+			// reassign this to be a function that activates the appropriate
+			// experiment.
+			prepareScope := func(t *testing.T, scope *Scope) {}
+
+			if experiment, isExperimental := experimentalFuncs[funcName]; isExperimental {
+				// First, we'll run all of the tests without the experiment
+				// enabled to see that they do actually fail in that case.
+				for _, test := range funcTests {
+					testName := fmt.Sprintf("experimental(%s)", test.src)
+					t.Run(testName, func(t *testing.T) {
+						data := &dataForTests{} // no variables available; we only need literals here
+						scope := &Scope{
+							Data:    data,
+							BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
+						}
+
+						expr, parseDiags := hclsyntax.ParseExpression([]byte(test.src), "test.hcl", hcl.Pos{Line: 1, Column: 1})
+						if parseDiags.HasErrors() {
+							for _, diag := range parseDiags {
+								t.Error(diag.Error())
+							}
+							return
+						}
+
+						_, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+						if !diags.HasErrors() {
+							t.Errorf("experimental function %q succeeded without its experiment %s enabled\nexpr: %s", funcName, experiment.Keyword(), test.src)
+						}
+					})
+				}
+
+				// Now make the experiment active in the scope so that the
+				// function will actually work when we test it below.
+				prepareScope = func(t *testing.T, scope *Scope) {
+					t.Helper()
+					t.Logf("activating experiment %s to test %q", experiment.Keyword(), funcName)
+					experimentsSet := experiments.NewSet()
+					experimentsSet.Add(experiment)
+					scope.SetActiveExperiments(experimentsSet)
+				}
+			}
+
 			for _, test := range funcTests {
 				t.Run(test.src, func(t *testing.T) {
+					data := &dataForTests{} // no variables available; we only need literals here
+					scope := &Scope{
+						Data:    data,
+						BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
+					}
+					prepareScope(t, scope)
+
 					expr, parseDiags := hclsyntax.ParseExpression([]byte(test.src), "test.hcl", hcl.Pos{Line: 1, Column: 1})
 					if parseDiags.HasErrors() {
 						for _, diag := range parseDiags {
