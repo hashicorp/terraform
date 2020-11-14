@@ -70,6 +70,8 @@ func (b *Local) opApply(
 
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
+		initialState := tfCtx.State().DeepCopy()
+
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, planDiags := tfCtx.Plan()
@@ -104,7 +106,7 @@ func (b *Local) opApply(
 
 			if !trivialPlan {
 				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(plan, runningOp.State, tfCtx.Schemas())
+				b.renderPlan(plan, initialState, plan.State, tfCtx.Schemas())
 				b.CLI.Output("")
 			}
 

@@ -83,6 +83,7 @@ func (b *Local) opPlan(
 		}
 	}()
 
+	initialState := tfCtx.State().DeepCopy()
 	runningOp.State = tfCtx.State()
 
 	// Perform the plan in a goroutine so we can be interrupted
@@ -155,7 +156,7 @@ func (b *Local) opPlan(
 			return
 		}
 
-		b.renderPlan(plan, plan.State, schemas)
+		b.renderPlan(plan, initialState, plan.State, schemas)
 
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
@@ -182,8 +183,8 @@ func (b *Local) opPlan(
 	}
 }
 
-func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
-	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize())
+func (b *Local) renderPlan(plan *plans.Plan, baseState, priorState *states.State, schemas *terraform.Schemas) {
+	RenderPlan(plan, baseState, priorState, schemas, b.CLI, b.Colorize())
 }
 
 // RenderPlan renders the given plan to the given UI.
@@ -206,7 +207,12 @@ func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *t
 // output values will not currently be rendered because their prior values
 // are currently stored only in the prior state. (see the docstring for
 // func planHasSideEffects for why this is and when that might change)
-func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+func RenderPlan(plan *plans.Plan, baseState, priorState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+	if statesShowDrift(baseState, priorState) {
+		// We've detected some drift by refreshing during our planning, then.
+		renderDrift(baseState, priorState, schemas, ui, colorize)
+	}
+
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -327,6 +333,91 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Sc
 	if len(changedRootModuleOutputs) > 0 {
 		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(changedRootModuleOutputs, colorize)))
 	}
+}
+
+// statesShowDrift reports whether the two given states have any differences
+// that suggest "drift", in the sense of managed resources whose state
+// data has changed. The result makes sense only if priorState is the result
+// of running refresh operations against baseState.
+func statesShowDrift(baseState, priorState *states.State) bool {
+	if baseState == nil || priorState == nil {
+		return false
+	}
+	for _, bms := range baseState.Modules {
+		for _, brs := range bms.Resources {
+			if brs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue // only managed resources can "drift"
+			}
+			prs := priorState.Resource(brs.Addr)
+			if prs == nil {
+				// Refreshing detected that the remote object has been deleted
+				return true
+			}
+			if !prs.Equal(brs) {
+				// Refreshing detected that the remote object has changed.
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func renderDrift(baseState, priorState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+	// The cyan "Note:" here is following the color we use for the <= "read"
+	// action in the plan output, because this is reporting the result of
+	// all of the resource reading we've done. This isn't a "warning" because
+	// intentionally creating drift is an intentional part of some workflows
+	// (albeit less common ones, and some that may not be so advisable).
+	// The aim is just to draw attention to the changes as an explanation
+	// for possible unexpected changes in the plan, not to assume or suggest
+	// that such changes are "bad".
+	ui.Output("\n------------------------------------------------------------------------")
+	ui.Output(colorize.Color("\n[reset][bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]"))
+	ui.Output("\nTerraform detected the following changes made outside Terraform since\nthe most recent \"terraform apply\":\n")
+
+	for _, bms := range baseState.Modules {
+		for _, brs := range bms.Resources {
+			if brs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue // only managed resources can "drift"
+			}
+			addr := brs.Addr
+			prs := priorState.Resource(brs.Addr)
+
+			provider := brs.ProviderConfig.Provider
+			providerSchema := schemas.ProviderSchema(provider)
+			if providerSchema == nil {
+				// Should never happen
+				ui.Output(fmt.Sprintf("(schema missing for %s)\n", provider))
+				continue
+			}
+			rSchema, _ := providerSchema.SchemaForResourceAddr(addr.Resource)
+			if rSchema == nil {
+				// Should never happen
+				ui.Output(fmt.Sprintf("(schema missing for %s)\n", addr))
+				continue
+			}
+
+			for key, bis := range brs.Instances {
+				var pis *states.ResourceInstance
+				if prs != nil {
+					pis = prs.Instance(key)
+				}
+
+				diff := format.ResourceInstanceDrift(
+					addr.Instance(key),
+					bis, pis,
+					rSchema,
+					colorize,
+				)
+				if diff != "" {
+					ui.Output(diff)
+				}
+			}
+		}
+	}
+
+	ui.Output("Unless you have made equivalent changes to your configuration, or\nignored the relevant attributes using ignore_changes, the following plan\nmay include actions to undo or respond to these changes.")
+	ui.Output("\n------------------------------------------------------------------------")
 }
 
 const planHeaderIntro = `

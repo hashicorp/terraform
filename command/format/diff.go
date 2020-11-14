@@ -143,6 +143,137 @@ func ResourceChange(
 	return buf.String()
 }
 
+// ResourceInstanceDrift returns a string representation of a change to a
+// particular resource instance that was made outside of Terraform, for
+// reporting a change that has already happened rather than one that is planned.
+//
+// The the two resource instances have equal current objects then the result
+// will be an empty string to indicate that there is no drift to render.
+//
+// The resource schema must be provided along with the change so that the
+// formatted change can reflect the configuration structure for the associated
+// resource.
+//
+// If "color" is non-nil, it will be used to color the result. Otherwise,
+// no color codes will be included.
+func ResourceInstanceDrift(
+	addr addrs.AbsResourceInstance,
+	before, after *states.ResourceInstance,
+	schema *configschema.Block,
+	color *colorstring.Colorize,
+) string {
+	var buf bytes.Buffer
+
+	if color == nil {
+		color = &colorstring.Colorize{
+			Colors:  colorstring.DefaultColors,
+			Disable: true,
+			Reset:   false,
+		}
+	}
+
+	dispAddr := addr.String()
+	action := plans.Update
+
+	switch {
+	case after == nil || after.Current == nil:
+		// The object was deleted
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been deleted", dispAddr)))
+		action = plans.Delete
+	default:
+		// The object was changed
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been changed", dispAddr)))
+	}
+
+	buf.WriteString(color.Color("[reset]\n"))
+
+	buf.WriteString(color.Color(DiffActionSymbol(action)) + " ")
+
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		buf.WriteString(fmt.Sprintf(
+			"resource %q %q",
+			addr.Resource.Resource.Type,
+			addr.Resource.Resource.Name,
+		))
+	case addrs.DataResourceMode:
+		buf.WriteString(fmt.Sprintf(
+			"data %q %q ",
+			addr.Resource.Resource.Type,
+			addr.Resource.Resource.Name,
+		))
+	default:
+		// should never happen, since the above is exhaustive
+		buf.WriteString(addr.String())
+	}
+
+	buf.WriteString(" {")
+
+	p := blockBodyDiffPrinter{
+		buf:     &buf,
+		color:   color,
+		action:  action,
+		concise: experiment.Enabled(experiment.X_concise_diff),
+	}
+
+	// Most commonly-used resources have nested blocks that result in us
+	// going at least three traversals deep while we recurse here, so we'll
+	// start with that much capacity and then grow as needed for deeper
+	// structures.
+	path := make(cty.Path, 0, 3)
+
+	ty := schema.ImpliedType()
+
+	var err error
+	var oldObj, newObj *states.ResourceInstanceObject
+	oldObj, err = before.Current.Decode(ty)
+	if err != nil {
+		// Should never happen in here, since we've already been through
+		// loads of layers of encode/decode of the planned changes before now.
+		panic(fmt.Sprintf("failed to decode old object for %s while rendering diff: %s", addr, err))
+	}
+	if after != nil && after.Current != nil {
+		newObj, err = after.Current.Decode(ty)
+		if err != nil {
+			// Should never happen in here, since we've already been through
+			// loads of layers of encode/decode of the planned changes before now.
+			panic(fmt.Sprintf("failed to decode new object for %s while rendering diff: %s", addr, err))
+		}
+	}
+
+	oldVal := oldObj.Value
+	var newVal cty.Value
+	if newObj != nil {
+		newVal = newObj.Value
+	} else {
+		newVal = cty.NullVal(ty)
+	}
+
+	if newVal.RawEquals(oldVal) {
+		// Nothing to show, then.
+		return ""
+	}
+
+	// We currently have an opt-out that permits the legacy SDK to return values
+	// that defy our usual conventions around handling of nesting blocks. To
+	// avoid the rendering code from needing to handle all of these, we'll
+	// normalize first.
+	// (Ideally we'd do this as part of the SDK opt-out implementation in core,
+	// but we've added it here for now to reduce risk of unexpected impacts
+	// on other code in core.)
+	oldVal = objchange.NormalizeObjectFromLegacySDK(oldVal, schema)
+	newVal = objchange.NormalizeObjectFromLegacySDK(newVal, schema)
+
+	result := p.writeBlockBodyDiff(schema, oldVal, newVal, 6, path)
+	if result.bodyWritten {
+		buf.WriteString("\n")
+		buf.WriteString(strings.Repeat(" ", 4))
+	}
+	buf.WriteString("}\n")
+
+	return buf.String()
+}
+
 // OutputChanges returns a string representation of a set of changes to output
 // values for inclusion in user-facing plan output.
 //

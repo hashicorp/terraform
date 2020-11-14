@@ -163,7 +163,7 @@ func (c *ShowCommand) Run(args []string) int {
 		// package rather than in the backends themselves, but for now we're
 		// accepting this oddity because "terraform show" is a less commonly
 		// used way to render a plan than "terraform plan" is.
-		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize())
+		localBackend.RenderPlan(plan, stateFile.State, stateFile.State, schemas, c.Ui, c.Colorize())
 		return 0
 	}
 
