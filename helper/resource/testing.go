@@ -423,10 +423,9 @@ func Test(t TestT, c TestCase) {
 		return
 	}
 
-	// We require verbose mode so that the user knows what is going on.
+	// Encourage verbose mode so that the user knows what is going on.
 	if !testTesting && !testing.Verbose() && !c.IsUnitTest {
-		t.Fatal("Acceptance tests must be run with the -v flag on tests")
-		return
+		log.Printf("[WARN] Use the -v flag to enable verbose test output")
 	}
 
 	// Run the PreCheck if we have it
