@@ -61,6 +61,7 @@ password = <sensitive>
 ```
 
 Note that outputs with the `sensitive` attribute will be redacted:
+
 ```shellsession
 $ terraform output password
 password = <sensitive>
