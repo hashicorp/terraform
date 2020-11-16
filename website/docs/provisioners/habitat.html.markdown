@@ -10,10 +10,7 @@ description: |-
 
 The `habitat` provisioner installs the [Habitat](https://habitat.sh) supervisor and loads configured services. This provisioner only supports Linux targets using the `ssh` connection type at this time.
 
-!> **Note:** This provisioner has been deprecated as of Terraform 0.13.4 and will be
-removed in a future version of Terraform. For most common situations there are better
-alternatives to using provisioners. For more information, see
-[the main Provisioners page](./).
+!> **Note:** This provisioner was removed in the 0.14.0 version of Terraform after being deprecated as of Terraform 0.13.4. For most common situations there are better alternatives to using provisioners. For more information, see [the main Provisioners page](./).
 
 ## Requirements
 
