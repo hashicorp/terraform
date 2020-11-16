@@ -66,8 +66,12 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		return diags.ErrWithWarnings()
 	}
 
+	// If our config value contains any marked values, ensure those are
+	// stripped out before sending this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+
 	req := providers.PrepareProviderConfigRequest{
-		Config: configVal,
+		Config: unmarkedConfigVal,
 	}
 
 	validateResp := provider.PrepareProviderConfig(req)
@@ -108,7 +112,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 		return diags.ErrWithWarnings()
 	}
 
-	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
+	// If our config value contains any marked values, ensure those are
+	// stripped out before sending this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+
+	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
 	configDiags = configDiags.InConfigBody(configBody)
 
 	return configDiags.ErrWithWarnings()
