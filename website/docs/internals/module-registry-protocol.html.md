@@ -10,7 +10,7 @@ description: |-
 
 # Module Registry Protocol
 
--> Third-party provider registries are supported only in Terraform CLI 0.11 and later. Prior versions do not support this protocol.
+-> Third-party module registries are supported only in Terraform CLI 0.11 and later. Prior versions do not support this protocol.
 
 The module registry protocol is what Terraform CLI uses to discover metadata
 about modules available for installation and to locate the distribution
@@ -32,25 +32,27 @@ Terraform CLI itself does not use them.
 ## Module Addresses
 
 Each Terraform module has an associated address. A module address has the
-syntax `hostname/namespace/name/provider`, where:
+syntax `hostname/namespace/name/system`, where:
 
-* `hostname` is the hostname of the provider registry that serves this module.
+* `hostname` is the hostname of the module registry that serves this module.
 * `namespace` is the name of a namespace, unique on a particular hostname, that
   can contain one or more modules that are somehow related. On the public
   Terraform Registry the "namespace" represents the organization that is
   packaging and distributing the module.
 * `name` is the module name, which generally names the abstraction that the
   module is intending to create.
-* `provider` is the name of a provider that the module is primarily written to
-  target. For multi-cloud abstractions, there can be multiple modules with
-  addresses that differ only in "provider" to reflect provider-specific
+* `system` is the name of a remote system that the module is primarily written
+  to target. For multi-cloud abstractions, there can be multiple modules with
+  addresses that differ only in "system" to reflect provider-specific
   implementations of the abstraction, like
   `registry.terraform.io/hashicorp/consul/aws` vs.
-  `registry.terraform.io/hashicorp/consul/azurerm`. The provider name commonly
-  matches the type portion of the address of an official provider, but that
-  is not required.
+  `registry.terraform.io/hashicorp/consul/azurerm`. The system name commonly
+  matches the type portion of the address of an official provider, like `aws`
+  or `azurerm` in the above examples, but that is not required and so you can
+  use whichever system keywords make sense for the organization of your
+  particular registry.
 
-The `hostname/` portion of a provider address (including its slash delimiter)
+The `hostname/` portion of a module address (including its slash delimiter)
 is optional, and if omitted defaults to `registry.terraform.io/`.
 
 For example:
@@ -61,12 +63,12 @@ For example:
 * `example.com/awesomecorp/consul/happycloud` is a hypothetical module published
   on a third-party registry.
 
-If you intend only to share a module you've developed for use by all
-Terraform users, please consider publishing it into the public
-[Terraform Registry](https://registry.terraform.io/), which will make your
-module discoverable. You only need to implement this module registry
-protocol if you wish to publish modules whose addresses include a different
-hostname that is under your control.
+If you intend to share a module you've developed for use by all Terraform
+users, please consider publishing it into the public
+[Terraform Registry](https://registry.terraform.io/) to make your module more
+discoverable. You only need to implement this module registry protocol if you
+wish to publish modules whose addresses include a different hostname that is
+under your control.
 
 ## Module Versions
 
@@ -80,7 +82,7 @@ blocks have the same source address.
 
 ## Service Discovery
 
-The providers protocol begins with Terraform CLI using
+The module registry protocol begins with Terraform CLI using
 [Terraform's remote service discovery protocol](./remote-service-discovery.html),
 with the hostname in the module address acting as the "User-facing Hostname".
 
@@ -134,9 +136,6 @@ available versions for a given fully-qualified module.
   This is required and is specified as part of the URL path.
 
 - `system` `(string: <required>)` - The name of the target system.
-=======
-- `provider` `(string: <required>)` - The name of the provider.
->>>>>>> Remove 'system' references from module registry protocol docs.
   This is required and is specified as part of the URL path.
 
 ### Sample Request
