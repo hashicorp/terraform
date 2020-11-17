@@ -68,3 +68,28 @@ func TestProviderAddrs(t *testing.T) {
 		t.Error(problem)
 	}
 }
+
+// Module outputs should not effect the result of Empty
+func TestModuleOutputChangesEmpty(t *testing.T) {
+	changes := &Changes{
+		Outputs: []*OutputChangeSrc{
+			{
+				Addr: addrs.AbsOutputValue{
+					Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
+					OutputValue: addrs.OutputValue{
+						Name: "output",
+					},
+				},
+				ChangeSrc: ChangeSrc{
+					Action: Update,
+					Before: []byte("a"),
+					After:  []byte("b"),
+				},
+			},
+		},
+	}
+
+	if !changes.Empty() {
+		t.Fatal("plan has no visible changes")
+	}
+}
