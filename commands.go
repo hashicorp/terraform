@@ -284,6 +284,7 @@ func initCommands(
 				Revision:          GitCommit,
 				Version:           Version,
 				VersionPrerelease: VersionPrerelease,
+				Platform:          getproviders.CurrentPlatform,
 				CheckFunc:         commandVersionCheck,
 			}, nil
 		},
