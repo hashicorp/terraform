@@ -116,9 +116,10 @@ module "consul" {
 ```
 
 If you are using the SaaS version of Terraform Cloud, its private
-registry hostname is `app.terraform.io`. If you are using a Terraform Enterprise
-instance, its private registry hostname is the same hostname you use to
-access the Terraform Cloud application.
+registry hostname is `app.terraform.io`. If you use a self-hosted Terraform
+Enterprise instance, its private registry hostname is the same as the host
+where you'd access the web UI and the host you'd use when configuring
+the `remote` backend.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
