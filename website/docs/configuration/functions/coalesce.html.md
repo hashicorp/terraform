@@ -16,6 +16,11 @@ earlier, see
 `coalesce` takes any number of arguments and returns the first one
 that isn't null or an empty string.
 
+All of the arguments must be of the same type. Terraform will try to
+convert mismatched arguments to the most general of the types that all
+arguments can convert to, or return an error if the types are incompatible.
+The result type is the same as the type of all of the arguments.
+
 ## Examples
 
 ```
@@ -33,6 +38,22 @@ symbol to expand the list as arguments:
 ```
 > coalesce(["", "b"]...)
 b
+```
+
+Terraform attempts to select a result type that all of the arguments can
+convert to, so mixing argument types may produce surprising results due to
+Terraform's automatic type conversion rules:
+
+```
+> coalesce(1, "hello")
+"1"
+> coalesce(true, "hello")
+"true"
+> coalesce({}, "hello")
+
+Error: Error in function call
+
+Call to function "coalesce" failed: all arguments must have the same type.
 ```
 
 ## Related Functions
