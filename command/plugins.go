@@ -18,7 +18,6 @@ import (
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/provisioners"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // NOTE WELL: The logic in this file is primarily about plugin types OTHER THAN
@@ -120,7 +119,7 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	return dirs
 }
 
-func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
+func (m *Meta) provisionerFactories() map[string]provisioners.Factory {
 	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)
 	plugins, _ = plugins.ValidateVersions()
@@ -131,7 +130,7 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	// name here, even though the discovery interface forces us to pretend
 	// that might not be true.
 
-	factories := make(map[string]terraform.ProvisionerFactory)
+	factories := make(map[string]provisioners.Factory)
 
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
@@ -175,7 +174,7 @@ func internalPluginClient(kind, name string) (*plugin.Client, error) {
 	return plugin.NewClient(cfg), nil
 }
 
-func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
+func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
 		cfg := &plugin.ClientConfig{
 			Cmd:              exec.Command(meta.Path),
@@ -191,7 +190,7 @@ func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory 
 	}
 }
 
-func internalProvisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
+func internalProvisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
 		client, err := internalPluginClient("provisioner", meta.Name)
 		if err != nil {
