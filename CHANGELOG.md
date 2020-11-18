@@ -19,10 +19,6 @@ BUG FIXES:
 
 * cli: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. [GH-26509]
 
-EXPERIMENTS:
-
-* Continuing the `module_variable_optional_attrs` experiment started in v0.14.0, there is now an experimental `defaults` function intended for use with it, to allow for concisely defining and merging in default values for any unset optional attributes in a deep data structure. The function is callable only when the `module_variable_optional_attrs` experiment is available, because it's intended for use only with incoming variable values that might have certain attributes unset.
-
 ## Previous Releases
 
 For information on prior major releases, see their changelogs:
