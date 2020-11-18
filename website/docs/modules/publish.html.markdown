@@ -14,7 +14,7 @@ If you've built a module that you intend to be reused, we recommend
 your module, generate documentation, and more.
 
 Published modules can be easily consumed by Terraform, and users can
-[constrain module versions](/docs/configuration/modules.html#module-versions)
+[constrain module versions](/docs/configuration/blocks/modules/syntax.html#version)
 for safe and predictable updates. The following example shows how a caller
 might use a module from the Terraform Registry:
 
@@ -37,6 +37,6 @@ do not support the first-class versioning mechanism, but some sources have
 their own mechanisms for selecting particular VCS commits, etc.
 
 We recommend that modules distributed via other protocols still use the
-[standard module structure](./#standard-module-structure) so that it can
-be used in a similar way to a registry module, or even _become_ a registry
-module at a later time.
+[standard module structure](/docs/modules/structure.html) so that they can
+be used in a similar way as a registry module or be published on the registry
+at a later time.

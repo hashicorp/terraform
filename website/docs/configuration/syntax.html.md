@@ -53,7 +53,7 @@ after the equals sign is the argument's value.
 The context where the argument appears determines what value types are valid
 (for example, each resource type has a schema that defines the types of its
 arguments), but many arguments accept arbitrary
-[expressions](./expressions.html), which allow the value to
+[expressions](/docs/configuration/expressions/index.html), which allow the value to
 either be specified literally or generated from other values programmatically.
 
 -> **Note:** Terraform's configuration language is based on a more general

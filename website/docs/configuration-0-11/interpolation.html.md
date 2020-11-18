@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Expressions](../configuration/expressions.html) and
+[Configuration Language: Expressions](/docs/configuration/expressions/index.html) and
 [Configuration Language: Functions](../configuration/functions.html).
 
 Embedded within strings in Terraform, whether you're using the

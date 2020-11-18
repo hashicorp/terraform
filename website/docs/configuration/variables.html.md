@@ -21,7 +21,7 @@ and allowing modules to be shared between different configurations.
 
 When you declare variables in the root module of your configuration, you can
 set their values using CLI options and environment variables.
-When you declare them in [child modules](./modules.html),
+When you declare them in [child modules](/docs/configuration/blocks/modules/index.html),
 the calling module should pass values in the `module` block.
 
 If you're familiar with traditional programming languages, it can be useful to
@@ -36,7 +36,7 @@ compare Terraform modules to function definitions:
 variable is being discussed. Other kinds of variables in Terraform include
 _environment variables_ (set by the shell where Terraform runs) and _expression
 variables_ (used to indirectly represent a value in an
-[expression](./expressions.html)).
+[expression](/docs/configuration/expressions/index.html)).
 
 ## Declaring an Input Variable
 
@@ -78,7 +78,7 @@ The name of a variable can be any valid [identifier](./syntax.html#identifiers)
 _except_ the following: `source`, `version`, `providers`, `count`, `for_each`, `lifecycle`, `depends_on`, `locals`.
 
 These names are reserved for meta-arguments in
-[module configuration blocks](./modules.html), and cannot be
+[module configuration blocks](/docs/configuration/blocks/modules/syntax.html), and cannot be
 declared as variable names.
 
 ## Arguments
@@ -106,7 +106,7 @@ configuration.
 [inpage-type]: #type-constraints
 
 The `type` argument in a `variable` block allows you to restrict the
-[type of value](./expressions.html#types-and-values) that will be accepted as
+[type of value](/docs/configuration/expressions/types.html) that will be accepted as
 the value for a variable. If no type constraint is set then a value of any type
 is accepted.
 
@@ -302,7 +302,7 @@ random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 ## Using Input Variable Values
 
 Within the module that declared a variable, its value can be accessed from
-within [expressions](./expressions.html) as `var.<NAME>`,
+within [expressions](/docs/configuration/expressions/index.html) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
 -> **Note:** Input variables are _created_ by a `variable` block, but you
@@ -332,7 +332,7 @@ can be set in a number of ways:
 The following sections describe these options in more detail. This section does
 not apply to _child_ modules, where values for input variables are instead
 assigned in the configuration of their parent module, as described in
-[_Modules_](./modules.html).
+[_Modules_](/docs/configuration/blocks/modules/index.html).
 
 ### Variables on the Command Line
 
@@ -411,9 +411,10 @@ and lower case letters as in the above example.
 
 ### Complex-typed Values
 
-When variable values are provided in a variable definitions file, Terraform's
-[usual syntax](./expressions.html#structural-types) can be used to assign
-complex-typed values, like lists and maps.
+When variable values are provided in a variable definitions file, you can use
+Terraform's usual syntax for
+[literal expressions](/docs/configuration/expressions/types.html#literal-expressions)
+to assign complex-typed values, like lists and maps.
 
 Some special rules apply to the `-var` command line option and to environment
 variables. For convenience, Terraform defaults to interpreting `-var` and

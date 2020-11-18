@@ -15,7 +15,7 @@ potentially save you time and effort.
 
 - [The `terraform console` command](/docs/commands/console.html) starts an
   interactive shell for evaluating Terraform
-  [expressions](/docs/configuration/expressions.html), which can be a faster way
+  [expressions](/docs/configuration/expressions/index.html), which can be a faster way
   to verify that a particular resource argument results in the value you expect.
 
 
