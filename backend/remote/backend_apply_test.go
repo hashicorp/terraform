@@ -542,8 +542,8 @@ func TestRemote_applyApprovedExternally(t *testing.T) {
 		t.Fatalf("error starting operation: %v", err)
 	}
 
-	// Wait 2 seconds to make sure the run started.
-	time.Sleep(2 * time.Second)
+	// Wait 50 milliseconds to make sure the run started.
+	time.Sleep(50 * time.Millisecond)
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
@@ -617,8 +617,8 @@ func TestRemote_applyDiscardedExternally(t *testing.T) {
 		t.Fatalf("error starting operation: %v", err)
 	}
 
-	// Wait 2 seconds to make sure the run started.
-	time.Sleep(2 * time.Second)
+	// Wait 50 milliseconds to make sure the run started.
+	time.Sleep(50 * time.Millisecond)
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
@@ -871,7 +871,7 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 		"approve": "yes",
 	})
 
-	op.StateLockTimeout = 5 * time.Second
+	op.StateLockTimeout = 50 * time.Millisecond
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
@@ -887,8 +887,8 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 	case <-sigint:
 		// Stop redirecting SIGINT signals.
 		signal.Stop(sigint)
-	case <-time.After(10 * time.Second):
-		t.Fatalf("expected lock timeout after 5 seconds, waited 10 seconds")
+	case <-time.After(200 * time.Millisecond):
+		t.Fatalf("expected lock timeout after 50 milliseconds, waited 200 milliseconds")
 	}
 
 	if len(input.answers) != 2 {
