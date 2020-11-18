@@ -72,6 +72,8 @@ EXPERIMENTS:
 
     Marking an attribute as "optional" changes the type conversion behavior for that type constraint so that if the given value is a map or object that has no attribute of that name then Terraform will silently give that attribute the value `null`, rather than returning an error saying that it is required. The resulting value still conforms to the type constraint in that the attribute is considered to be present, but references to it in the recieving module will find a null value and can act on that accordingly.
     
+    This experiment also includes a function named `defaults` which you can use in a local value to replace the null values representing optional attributes with non-null default values. The function also requires that you enable the `module_variable_optional_attrs` experiment for any module which calls it.
+    
 * `provider_sensitive_attrs`: This is an unusual experiment in that it doesn't directly allow you to use a new feature in your module configuration but instead it changes the automatic behavior of Terraform in modules where it's enabled.
 
     For modules where this experiment is active, Terraform will consider the attribute sensitivity flags set in provider resource type schemas when propagating the "sensitive" flag through expressions in the configuration. This is experimental because it has the potential to make far more items in the output be marked as sensitive than before, and so we want to get some experience and feedback about it before hopefully making this the default behavior.
