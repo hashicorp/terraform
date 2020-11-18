@@ -78,6 +78,15 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 		child.Children, modDiags = buildChildModules(child, walker)
 		diags = append(diags, modDiags...)
 
+		if mod.Backend != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Backend configuration ignored",
+				Detail:   "Any selected backend applies to the entire configuration, so Terraform expects provider configurations only in the root module.\n\nThis is a warning rather than an error because it's sometimes convenient to temporarily call a root module as a child module for testing purposes, but this backend configuration block will have no effect.",
+				Subject:  mod.Backend.DeclRange.Ptr(),
+			})
+		}
+
 		ret[call.Name] = child
 	}
 
