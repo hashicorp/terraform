@@ -68,6 +68,8 @@ BUG FIXES:
 
 EXPERIMENTS:
 
+_Experiments_ are Terraform language features that are not yet finalized but that we've included in a release so you can potentially try them out and share feedback. These features are only available if you explicitly enable the relevant experiment for your module. To share feedback on active experiments, please open an enhancement request issue in the main Terraform repository.
+
 * `module_variable_optional_attrs`: When declaring an input variable for a module whose type constraint (`type` argument) contains an object type constraint, the type expressions for the attributes can be annotated with the experimental `optional(...)` modifier.
 
     Marking an attribute as "optional" changes the type conversion behavior for that type constraint so that if the given value is a map or object that has no attribute of that name then Terraform will silently give that attribute the value `null`, rather than returning an error saying that it is required. The resulting value still conforms to the type constraint in that the attribute is considered to be present, but references to it in the recieving module will find a null value and can act on that accordingly.
