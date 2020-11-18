@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 func TestCommunicator_new(t *testing.T) {
