@@ -41,11 +41,10 @@ The following operators are valid:
   versions for which the comparison is true. "Greater-than" requests newer
   versions, and "less-than" requests older versions.
 
-- `~>`: Allows the specified version, plus newer versions that only
-  increase the _most specific_ segment of the specified version number. For
-  example, `~> 0.9` is equivalent to `>= 0.9, < 1.0`, and `~> 0.8.4`, is
-  equivalent to `>= 0.8.4, < 0.9`. This is usually called the pessimistic
-  constraint operator.
+- `~>`: Allows only the _rightmost_ version component to increment. For example,
+  to allow new patch releases within a specific minor release, use the full
+  version number: `~> 1.0.4` will allow installation of `1.0.5` and `1.0.10`
+  but not `1.1.0`. This is usually called the pessimistic constraint operator.
 
 ## Version Constraint Behavior
 

@@ -16,7 +16,7 @@ about Terraform 0.11 and earlier, see
 
 Most Terraform configurations are written in
 [the native Terraform language syntax](./syntax.html), which is designed to be
-easy for humans to read and update.
+relatively easy for humans to read and update.
 
 Terraform also supports an alternative syntax that is JSON-compatible. This
 syntax is useful when generating portions of a configuration programmatically,

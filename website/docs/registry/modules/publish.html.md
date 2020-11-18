@@ -25,10 +25,7 @@ any submodules or examples in the module's source repository.
 
 ## Requirements
 
-The list below contains all the requirements for publishing a module.
-Meeting the requirements for publishing a module is extremely easy. The
-list may appear long only to ensure we're detailed, but adhering to the
-requirements should happen naturally.
+The list below contains all the requirements for publishing a module:
 
 - **GitHub.** The module must be on GitHub and must be a public repo.
 This is only a requirement for the [public registry](https://registry.terraform.io).

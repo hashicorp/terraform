@@ -12,13 +12,13 @@ The [Terraform Registry](https://registry.terraform.io) is an interactive resour
 
 ![screenshot: terraform registry landing page](./images/registry1.png)
 
-The Terraform Registry is integrated [directly into Terraform](/docs/configuration/provider-requirements.html) to make it easy to use providers and modules. Anyone can publish and consume providers and modules on the public [Terraform Registry](https://registry.terraform.io). (To publish private modules within your organization, you can use a [private registry](/docs/registry/private.html) or [reference repositories and other sources directly](/docs/modules/sources.html).)
+The Terraform Registry is integrated [directly into Terraform](/docs/configuration/provider-requirements.html) so you can directly specify providers and modules. Anyone can publish and consume providers and modules on the public [Terraform Registry](https://registry.terraform.io). (To publish private modules within your organization, you can use a [private registry](/docs/registry/private.html) or [reference repositories and other sources directly](/docs/modules/sources.html).)
 
 Use the navigation to the left to learn more about using the Terraform Registry.
 
 ## Navigating the Registry
 
-As the Terraform ecosystem continues to grow, the Registry is designed to make it easy to discover integrations and solutions across dozens of categories. Select a provider or module card to learn more, filter results to a [specific tier](./providers/index.html#provider-tiers-amp-namespaces), or use the search field at the top of the Registry to find what you’re looking for. (Note that search supports keyboard navigation.)
+The registry has a number of different categories for both modules and providers to help with navigating the large number of available options. Select a provider or module card to learn more, filter results to a [specific tier](./providers/index.html#provider-tiers-amp-namespaces), or use the search field at the top of the Registry to find what you’re looking for. (Note that search supports keyboard navigation.)
 
 ![screenshot: terraform registry browse](./images/registry2.png)
 
