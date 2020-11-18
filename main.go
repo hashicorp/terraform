@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
@@ -280,6 +281,32 @@ func wrappedMain() int {
 		Autocomplete:          true,
 		AutocompleteInstall:   "install-autocomplete",
 		AutocompleteUninstall: "uninstall-autocomplete",
+	}
+
+	// Before we continue we'll check whether the requested command is
+	// actually known. If not, we might be able to suggest an alternative
+	// if it seems like the user made a typo.
+	// (This bypasses the built-in help handling in cli.CLI for the situation
+	// where a command isn't found, because it's likely more helpful to
+	// mention what specifically went wrong, rather than just printing out
+	// a big block of usage information.)
+	if cmd := cliRunner.Subcommand(); cmd != "" {
+		// Due to the design of cli.CLI, this special error message only works
+		// for typos of top-level commands. For a subcommand typo, like
+		// "terraform state posh", cmd would be "state" here and thus would
+		// be considered to exist, and it would print out its own usage message.
+		if _, exists := Commands[cmd]; !exists {
+			suggestions := make([]string, 0, len(Commands))
+			for name := range Commands {
+				suggestions = append(suggestions, name)
+			}
+			suggestion := didyoumean.NameSuggestion(cmd, suggestions)
+			if suggestion != "" {
+				suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+			}
+			fmt.Fprintf(os.Stderr, "Terraform has no command named %q.%s\n\nTo see all of Terraform's top-level commands, run:\n  terraform -help\n\n", cmd, suggestion)
+			return 1
+		}
 	}
 
 	exitCode, err := cliRunner.Run()
