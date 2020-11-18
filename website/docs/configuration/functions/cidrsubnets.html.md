@@ -70,7 +70,7 @@ platforms.
 ```
 
 You can use nested `cidrsubnets` calls with
-[`for` expressions](/docs/configuration/expressions.html#for-expressions)
+[`for` expressions](/docs/configuration/expressions/for.html)
 to concisely allocate groups of network address blocks:
 
 ```

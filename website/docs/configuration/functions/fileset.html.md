@@ -69,7 +69,7 @@ before Terraform takes any actions.
 ```
 
 A common use of `fileset` is to create one resource instance per matched file, using
-[the `for_each` meta-argument](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+[the `for_each` meta-argument](/docs/configuration/meta-arguments/for_each.html):
 
 ```hcl
 resource "example_thing" "example" {

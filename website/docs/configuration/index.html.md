@@ -19,7 +19,7 @@ heart of the workflow.
 ## About the Terraform Language
 
 The main purpose of the Terraform language is declaring
-[resources](./resources.html), which represent infrastructure objects. All other
+[resources](/docs/configuration/blocks/resources/index.html), which represent infrastructure objects. All other
 language features exist only to make the definition of resources more flexible
 and convenient.
 

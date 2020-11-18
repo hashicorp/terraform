@@ -61,7 +61,7 @@ $ terraform state show 'module.foo.packet_device.worker'
 ## Example: Show a Resource configured with count
 
 The example below shows the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+[`count`](/docs/configuration/meta-arguments/count.html):
 
 ```shell
 $ terraform state show 'packet_device.worker[0]'
@@ -70,7 +70,7 @@ $ terraform state show 'packet_device.worker[0]'
 ## Example: Show a Resource configured with for_each
 
 The example below shows the `"example"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+[`for_each`](/docs/configuration/meta-arguments/for_each.html):
 
 Linux, Mac OS, and UNIX:
 

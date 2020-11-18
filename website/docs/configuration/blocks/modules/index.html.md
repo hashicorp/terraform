@@ -48,11 +48,19 @@ module registry for sharing modules internally within your organization.
 
 ## Using Modules
 
-- [Module Blocks](/docs/configuration/modules.html) documents the syntax for
+- [Module Blocks](/docs/configuration/blocks/modules/syntax.html) documents the syntax for
   calling a child module from a parent module, including meta-arguments like
   `for_each`.
+
 - [Module Sources](/docs/modules/sources.html) documents what kinds of paths,
   addresses, and URIs can be used in the `source` argument of a module block.
+
+- The Meta-Arguments section documents special arguments that can be used with
+  every module, including
+  [`providers`](/docs/configuration/meta-arguments/module-providers.html),
+  [`depends_on`](/docs/configuration/meta-arguments/depends_on.html),
+  [`count`](/docs/configuration/meta-arguments/count.html),
+  and [`for_each`](/docs/configuration/meta-arguments/for_each.html).
 
 ## Developing Modules
 

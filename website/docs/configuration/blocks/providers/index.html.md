@@ -13,7 +13,7 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 
 ## What Providers Do
 
-Each provider adds a set of [resource types](/docs/configuration/resources.html)
+Each provider adds a set of [resource types](/docs/configuration/blocks/resources/index.html)
 and/or [data sources](/docs/configuration/data-sources.html) that Terraform can
 manage.
 

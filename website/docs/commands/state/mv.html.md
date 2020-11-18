@@ -95,7 +95,7 @@ $ terraform state mv -state-out=other.tfstate 'module.app' 'module.app'
 ## Example: Move a Resource configured with count
 
 The example below moves the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count) to
+[`count`](/docs/configuration/meta-arguments/count.html) to
 the first instance of a resource named `helper` also configured with `count`:
 
 ```shell
@@ -105,7 +105,7 @@ $ terraform state mv 'packet_device.worker[0]' 'packet_device.helper[0]'
 ## Example: Move a Resource configured with for_each
 
 The example below moves the `"example123"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+[`for_each`](/docs/configuration/meta-arguments/for_each.html)
 to the `"example456"` instance of a resource named `helper` also configuring `for_each`:
 
 Linux, Mac OS, and UNIX:

@@ -18,7 +18,8 @@ configuration to make use of information defined outside of Terraform,
 or defined by another separate Terraform configuration.
 
 Each [provider](./providers.html) may offer data sources
-alongside its set of [resource types](./resources.html#resource-types-and-arguments).
+alongside its set of [resource](/docs/configuration/blocks/resources/index.html)
+types.
 
 ## Using Data Sources
 
@@ -71,7 +72,7 @@ infrastructure platform.
 
 Most of the items within the body of a `data` block are defined by and
 specific to the selected data source, and these arguments can make full
-use of [expressions](./expressions.html) and other dynamic
+use of [expressions](/docs/configuration/expressions/index.html) and other dynamic
 Terraform language features.
 
 However, there are some "meta-arguments" that are defined by Terraform itself
@@ -113,7 +114,7 @@ operation, and is re-calculated each time a new plan is created.
 ## Data Resource Dependencies
 
 Data resources have the same dependency resolution behavior
-[as defined for managed resources](./resources.html#resource-dependencies).
+[as defined for managed resources](/docs/configuration/blocks/resources/behavior.html#resource-dependencies).
 Setting the `depends_on` meta-argument within `data` blocks defers reading of
 the data source until after all changes to the dependencies have been applied.
 
@@ -122,8 +123,8 @@ the data source until after all changes to the dependencies have been applied.
 
 ## Multiple Resource Instances
 
-Data resources support [`count`](./resources.html#count-multiple-resource-instances-by-count)
-and [`for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+Data resources support [`count`](/docs/configuration/meta-arguments/count.html)
+and [`for_each`](/docs/configuration/meta-arguments/for_each.html)
 meta-arguments as defined for managed resources, with the same syntax and behavior.
 
 As with managed resources, when `count` or `for_each` is present it is important to
@@ -133,7 +134,7 @@ own variant of the constraint arguments, producing an indexed result.
 
 ## Selecting a Non-default Provider Configuration
 
-Data resources support [the `provider` meta-argument](./resources.html#provider-selecting-a-non-default-provider-configuration)
+Data resources support [the `provider` meta-argument](/docs/configuration/meta-arguments/resource-provider.html)
 as defined for managed resources, with the same syntax and behavior.
 
 ## Lifecycle Customizations
@@ -187,13 +188,15 @@ resource "aws_instance" "web" {
 ## Meta-Arguments
 
 As data sources are essentially a read only subset of resources, they also
-support the same [meta-arguments](./resources.html#meta-arguments) of resources
+support the same [meta-arguments](/docs/configuration/blocks/resources/syntax.html#meta-arguments) of resources
 with the exception of the
-[`lifecycle` configuration block](./resources.html#lifecycle-lifecycle-customizations).
+[`lifecycle` configuration block](/docs/configuration/meta-arguments/lifecycle.html).
 
 ### Non-Default Provider Configurations
 
-Similarly to [resources](./resources.html), when a module has multiple configurations for the same provider you can specify which configuration to use with the `provider` meta-argument:
+Similarly to [resources](/docs/configuration/blocks/resources/index.html), when
+a module has multiple configurations for the same provider you can specify which
+configuration to use with the `provider` meta-argument:
 
 ```hcl
 data "aws_ami" "web" {
@@ -204,7 +207,7 @@ data "aws_ami" "web" {
 ```
 
 See
-[Resources: Selecting a Non-Default Provider Configuration](./resources.html#provider-selecting-a-non-default-provider-configuration)
+[The Resource `provider` Meta-Argument](/docs/configuration/meta-arguments/resource-provider.html)
 for more information.
 
 ## Data Source Lifecycle
