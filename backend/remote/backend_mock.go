@@ -360,7 +360,7 @@ func (m *mockLogReader) Read(l []byte) (int, error) {
 		if written, err := m.read(l); err != io.ErrNoProgress {
 			return written, err
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 
