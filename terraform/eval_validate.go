@@ -421,9 +421,11 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 			}
 		}
 
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateResourceTypeConfigRequest{
 			TypeName: cfg.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		}
 
 		resp := provider.ValidateResourceTypeConfig(req)
@@ -451,9 +453,11 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 			return diags.Err()
 		}
 
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateDataSourceConfigRequest{
 			TypeName: cfg.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		}
 
 		resp := provider.ValidateDataSourceConfig(req)
