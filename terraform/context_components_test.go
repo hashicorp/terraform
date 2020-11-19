@@ -62,7 +62,7 @@ func simpleTestSchema() *configschema.Block {
 				Optional: true,
 			},
 			"test_number": {
-				Type:     cty.String,
+				Type:     cty.Number,
 				Optional: true,
 			},
 			"test_bool": {

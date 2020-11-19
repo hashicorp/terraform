@@ -374,9 +374,11 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) tfdiags.Diagnostics {
 			}
 		}
 
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateResourceTypeConfigRequest{
 			TypeName: cfg.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		}
 
 		resp := provider.ValidateResourceTypeConfig(req)
@@ -404,9 +406,11 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) tfdiags.Diagnostics {
 			return diags
 		}
 
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateDataSourceConfigRequest{
 			TypeName: cfg.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		}
 
 		resp := provider.ValidateDataSourceConfig(req)

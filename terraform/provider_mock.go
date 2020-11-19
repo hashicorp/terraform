@@ -6,6 +6,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
@@ -124,6 +125,24 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	return ret
 }
 
+func (p *MockProvider) getResourceSchema(name string) providers.Schema {
+	schema := p.getSchema()
+	resSchema, ok := schema.ResourceTypes[name]
+	if !ok {
+		panic("unknown resource type " + name)
+	}
+	return resSchema
+}
+
+func (p *MockProvider) getDatasourceSchema(name string) providers.Schema {
+	schema := p.getSchema()
+	dataSchema, ok := schema.DataSources[name]
+	if !ok {
+		panic("unknown data source " + name)
+	}
+	return dataSchema
+}
+
 func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
 	p.Lock()
 	defer p.Unlock()
@@ -137,12 +156,21 @@ func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 	return p.PrepareProviderConfigResponse
 }
 
-func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.ValidateResourceTypeConfigCalled = true
 	p.ValidateResourceTypeConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol,
+	// and return any relevant errors
+	resourceSchema := p.getResourceSchema(r.TypeName)
+	_, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	if p.ValidateResourceTypeConfigFn != nil {
 		return p.ValidateResourceTypeConfigFn(r)
@@ -151,12 +179,20 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 	return p.ValidateResourceTypeConfigResponse
 }
 
-func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.ValidateDataSourceConfigCalled = true
 	p.ValidateDataSourceConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	dataSchema := p.getDatasourceSchema(r.TypeName)
+	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	if p.ValidateDataSourceConfigFn != nil {
 		return p.ValidateDataSourceConfigFn(r)
