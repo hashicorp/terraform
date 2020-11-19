@@ -39,3 +39,6 @@ resource "foo_instance" /* ... */ "baz" {
     thingy = "${var.instance_type}"
   }
 }
+
+  provider "" {
+}
