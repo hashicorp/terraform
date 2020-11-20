@@ -66,15 +66,15 @@ func simpleTestSchema() *configschema.Block {
 				Optional: true,
 			},
 			"test_bool": {
-				Type:     cty.String,
+				Type:     cty.Bool,
 				Optional: true,
 			},
 			"test_list": {
-				Type:     cty.String,
+				Type:     cty.List(cty.String),
 				Optional: true,
 			},
 			"test_map": {
-				Type:     cty.String,
+				Type:     cty.Map(cty.String),
 				Optional: true,
 			},
 		},
