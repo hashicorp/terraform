@@ -17,6 +17,7 @@ const (
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
 	ConfigDrivenMove               = Experiment("config_driven_move")
+	PreconditionsPostconditions    = Experiment("preconditions_postconditions")
 )
 
 func init() {
@@ -26,6 +27,7 @@ func init() {
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerCurrentExperiment(ModuleVariableOptionalAttrs)
+	registerCurrentExperiment(PreconditionsPostconditions)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
