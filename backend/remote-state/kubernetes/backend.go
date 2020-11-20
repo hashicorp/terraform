@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/go-homedir"
 	k8sSchema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -114,16 +114,17 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("KUBE_CLUSTER_CA_CERT_DATA", ""),
 				Description: "PEM-encoded root certificates bundle for TLS authentication.",
 			},
+			"config_paths": {
+				Type:        schema.TypeList,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Optional:    true,
+				Description: "A list of paths to kube config files. Can be set with KUBE_CONFIG_PATHS environment variable.",
+			},
 			"config_path": {
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc(
-					[]string{
-						"KUBE_CONFIG",
-						"KUBECONFIG",
-					},
-					"~/.kube/config"),
-				Description: "Path to the kube config file, defaults to ~/.kube/config",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KUBE_CONFIG_PATH", ""),
+				Description: "Path to the kube config file. Can be set with KUBE_CONFIG_PATH environment variable.",
 			},
 			"config_context": {
 				Type:        schema.TypeString,
@@ -285,15 +286,7 @@ func getInitialConfig(data *schema.ResourceData) (*restclient.Config, error) {
 	var cfg *restclient.Config
 	var err error
 
-	c := &cli.BasicUi{Writer: os.Stdout}
-
 	inCluster := data.Get("in_cluster_config").(bool)
-	cf := data.Get("load_config_file").(bool)
-
-	if !inCluster && !cf {
-		c.Output(noConfigError)
-	}
-
 	if inCluster {
 		cfg, err = restclient.InClusterConfig()
 		if err != nil {
@@ -313,13 +306,34 @@ func getInitialConfig(data *schema.ResourceData) (*restclient.Config, error) {
 }
 
 func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
-	path, err := homedir.Expand(d.Get("config_path").(string))
-	if err != nil {
-		return nil, err
+	loader := &clientcmd.ClientConfigLoadingRules{}
+
+	configPaths := []string{}
+	if v, ok := d.Get("config_path").(string); ok && v != "" {
+		configPaths = []string{v}
+	} else if v, ok := d.Get("config_paths").([]interface{}); ok && len(v) > 0 {
+		for _, p := range v {
+			configPaths = append(configPaths, p.(string))
+		}
+	} else if v := os.Getenv("KUBE_CONFIG_PATHS"); v != "" {
+		configPaths = filepath.SplitList(v)
 	}
 
-	loader := &clientcmd.ClientConfigLoadingRules{
-		ExplicitPath: path,
+	expandedPaths := []string{}
+	for _, p := range configPaths {
+		path, err := homedir.Expand(p)
+		if err != nil {
+			log.Printf("[DEBUG] Could not expand path: %s", err)
+			return nil, err
+		}
+		log.Printf("[DEBUG] Using kubeconfig: %s", path)
+		expandedPaths = append(expandedPaths, path)
+	}
+
+	if len(expandedPaths) == 1 {
+		loader.ExplicitPath = expandedPaths[0]
+	} else {
+		loader.Precedence = expandedPaths
 	}
 
 	overrides := &clientcmd.ConfigOverrides{}
@@ -367,13 +381,13 @@ func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
 	cfg, err := cc.ClientConfig()
 	if err != nil {
 		if pathErr, ok := err.(*os.PathError); ok && os.IsNotExist(pathErr.Err) {
-			log.Printf("[INFO] Unable to load config file as it doesn't exist at %q", path)
+			log.Printf("[INFO] Unable to load config file as it doesn't exist at %q", pathErr.Path)
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to load config (%s%s): %s", path, ctxSuffix, err)
+		return nil, fmt.Errorf("Failed to initialize kubernetes configuration: %s", err)
 	}
 
-	log.Printf("[INFO] Successfully loaded config file (%s%s)", path, ctxSuffix)
+	log.Printf("[INFO] Successfully initialized config")
 	return cfg, nil
 }
 
