@@ -153,6 +153,55 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	}
 
+	if !m.ActiveExperiments.Has(experiments.PreconditionsPostconditions) {
+		for _, r := range m.ManagedResources {
+			for _, c := range r.Preconditions {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Preconditions are experimental",
+					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
+					Subject:  c.DeclRange.Ptr(),
+				})
+			}
+			for _, c := range r.Postconditions {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Postconditions are experimental",
+					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
+					Subject:  c.DeclRange.Ptr(),
+				})
+			}
+		}
+		for _, r := range m.DataResources {
+			for _, c := range r.Preconditions {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Preconditions are experimental",
+					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
+					Subject:  c.DeclRange.Ptr(),
+				})
+			}
+			for _, c := range r.Postconditions {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Postconditions are experimental",
+					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
+					Subject:  c.DeclRange.Ptr(),
+				})
+			}
+		}
+		for _, o := range m.Outputs {
+			for _, c := range o.Preconditions {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Preconditions are experimental",
+					Detail:   "The output value preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
+					Subject:  c.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
+
 	return diags
 }
 

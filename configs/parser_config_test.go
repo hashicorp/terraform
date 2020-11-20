@@ -97,7 +97,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 		{
 			"invalid-files/data-resource-lifecycle.tf",
 			hcl.DiagError,
-			"Unsupported lifecycle block",
+			"Invalid data resource lifecycle argument",
 		},
 		{
 			"invalid-files/variable-type-unknown.tf",
