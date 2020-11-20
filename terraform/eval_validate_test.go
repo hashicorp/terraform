@@ -26,6 +26,9 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 		if got, want := req.Config.GetAttr("test_string"), cty.StringVal("bar"); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_string\ngot:  %#v\nwant: %#v", got, want)
 		}
+		if got, want := req.Config.GetAttr("test_number"), cty.NumberIntVal(2); !got.RawEquals(want) {
+			t.Fatalf("wrong value for test_number\ngot:  %#v\nwant: %#v", got, want)
+		}
 		return providers.ValidateResourceTypeConfigResponse{}
 	}
 
@@ -36,6 +39,7 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("bar"),
+			"test_number": cty.NumberIntVal(2).Mark("sensitive"),
 		}),
 	}
 	node := &EvalValidateResource{
@@ -117,6 +121,9 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 		if got, want := req.Config.GetAttr("test_string"), cty.StringVal("bar"); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_string\ngot:  %#v\nwant: %#v", got, want)
 		}
+		if got, want := req.Config.GetAttr("test_number"), cty.NumberIntVal(2); !got.RawEquals(want) {
+			t.Fatalf("wrong value for test_number\ngot:  %#v\nwant: %#v", got, want)
+		}
 		return providers.ValidateDataSourceConfigResponse{}
 	}
 
@@ -127,6 +134,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("bar"),
+			"test_number": cty.NumberIntVal(2).Mark("sensitive"),
 		}),
 	}
 
