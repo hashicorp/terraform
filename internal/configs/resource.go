@@ -22,6 +22,9 @@ type Resource struct {
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
 
+	Preconditions  []*CheckRule
+	Postconditions []*CheckRule
+
 	DependsOn []hcl.Traversal
 
 	// Managed is populated only for Mode = addrs.ManagedResourceMode,
@@ -81,7 +84,7 @@ func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 	}
 }
 
-func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.ManagedResourceMode,
@@ -237,6 +240,24 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 			}
 
+			for _, block := range lcContent.Blocks {
+				switch block.Type {
+				case "precondition", "postcondition":
+					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					diags = append(diags, moreDiags...)
+					switch block.Type {
+					case "precondition":
+						r.Preconditions = append(r.Preconditions, cr)
+					case "postcondition":
+						r.Postconditions = append(r.Postconditions, cr)
+					}
+				default:
+					// The cases above should be exhaustive for all block types
+					// defined in the lifecycle schema, so this shouldn't happen.
+					panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
+				}
+			}
+
 		case "connection":
 			if seenConnection != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -307,7 +328,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	return r, diags
 }
 
-func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.DataResourceMode,
@@ -368,6 +389,7 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	}
 
 	var seenEscapeBlock *hcl.Block
+	var seenLifecycle *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
 
@@ -391,21 +413,59 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 			// will see a blend of both.
 			r.Config = hcl.MergeBodies([]hcl.Body{r.Config, block.Body})
 
-		// The rest of these are just here to reserve block type names for future use.
 		case "lifecycle":
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported lifecycle block",
-				Detail:   "Data resources do not have lifecycle settings, so a lifecycle block is not allowed.",
-				Subject:  &block.DefRange,
-			})
+			if seenLifecycle != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate lifecycle block",
+					Detail:   fmt.Sprintf("This resource already has a lifecycle block at %s.", seenLifecycle.DefRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			seenLifecycle = block
+
+			lcContent, lcDiags := block.Body.Content(resourceLifecycleBlockSchema)
+			diags = append(diags, lcDiags...)
+
+			// All of the attributes defined for resource lifecycle are for
+			// managed resources only, so we can emit a common error message
+			// for any given attributes that HCL accepted.
+			for name, attr := range lcContent.Attributes {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid data resource lifecycle argument",
+					Detail:   fmt.Sprintf("The lifecycle argument %q is defined only for managed resources (\"resource\" blocks), and is not valid for data resources.", name),
+					Subject:  attr.NameRange.Ptr(),
+				})
+			}
+
+			for _, block := range lcContent.Blocks {
+				switch block.Type {
+				case "precondition", "postcondition":
+					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					diags = append(diags, moreDiags...)
+					switch block.Type {
+					case "precondition":
+						r.Preconditions = append(r.Preconditions, cr)
+					case "postcondition":
+						r.Postconditions = append(r.Postconditions, cr)
+					}
+				default:
+					// The cases above should be exhaustive for all block types
+					// defined in the lifecycle schema, so this shouldn't happen.
+					panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
+				}
+			}
 
 		default:
+			// Any other block types are ones we're reserving for future use,
+			// but don't have any defined meaning today.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in data block",
 				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
-				Subject:  &block.TypeRange,
+				Subject:  block.TypeRange.Ptr(),
 			})
 		}
 	}
@@ -551,13 +611,17 @@ var resourceBlockSchema = &hcl.BodySchema{
 var dataBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
 	Blocks: []hcl.BlockHeaderSchema{
-		{Type: "lifecycle"}, // reserved for future use
-		{Type: "locals"},    // reserved for future use
-		{Type: "_"},         // meta-argument escaping block
+		{Type: "lifecycle"},
+		{Type: "locals"}, // reserved for future use
+		{Type: "_"},      // meta-argument escaping block
 	},
 }
 
 var resourceLifecycleBlockSchema = &hcl.BodySchema{
+	// We tell HCL that these elements are all valid for both "resource"
+	// and "data" lifecycle blocks, but the rules are actually more restrictive
+	// than that. We deal with that after decoding so that we can return
+	// more specific error messages than HCL would typically return itself.
 	Attributes: []hcl.AttributeSchema{
 		{
 			Name: "create_before_destroy",
@@ -568,5 +632,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		{
 			Name: "ignore_changes",
 		},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		{Type: "precondition"},
+		{Type: "postcondition"},
 	},
 }
