@@ -16,6 +16,7 @@ const (
 	VariableValidation             = Experiment("variable_validation")
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
+	PreconditionsPostconditions    = Experiment("preconditions_postconditions")
 )
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
 	registerCurrentExperiment(ModuleVariableOptionalAttrs)
 	registerCurrentExperiment(SuppressProviderSensitiveAttrs)
+	registerCurrentExperiment(PreconditionsPostconditions)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
