@@ -236,8 +236,11 @@ func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	refs := make([]*addrs.Reference, 0, l)
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
+	for _, check := range c.Preconditions {
+		checkRefs, _ := lang.ReferencesInExpr(check.Condition)
+		refs = append(refs, checkRefs...)
+	}
 	return refs
-
 }
 
 // GraphNodeReferencer
