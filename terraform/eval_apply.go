@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
@@ -36,6 +37,14 @@ type EvalApply struct {
 	CreateNew           *bool
 	Error               *error
 	CreateBeforeDestroy bool
+
+	// RepetitionData, if not nil, will have its referent replaced with the
+	// repetition data (count.index, each.key, etc) which the evaluation used
+	// for the main resource configuration. (This is an output value pointer,
+	// just like the double-pointer fields elsewhere here, but has a single
+	// pointer indirection just because instances.RepetitionData is normally
+	// passed by value.)
+	RepetitionData *instances.RepetitionData
 }
 
 // TODO: test
@@ -67,6 +76,9 @@ func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		var configDiags tfdiags.Diagnostics
 		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 		keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
+		if n.RepetitionData != nil {
+			*n.RepetitionData = keyData
+		}
 		configVal, _, configDiags = ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
