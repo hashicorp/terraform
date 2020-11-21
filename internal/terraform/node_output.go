@@ -270,6 +270,16 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		}
 	}
 
+	checkDiags := evalCheckRules(
+		checkOutputPrecondition,
+		n.Config.Preconditions,
+		ctx, nil, EvalDataForNoInstanceKey,
+	)
+	diags = diags.Append(checkDiags)
+	if diags.HasErrors() {
+		return diags // failed preconditions prevent further evaluation
+	}
+
 	// If there was no change recorded, or the recorded change was not wholly
 	// known, then we need to re-evaluate the output
 	if !changeRecorded || !val.IsWhollyKnown() {

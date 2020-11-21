@@ -95,7 +95,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	change, state, planDiags := n.planDataSource(ctx, state)
+	change, state, repeatData, planDiags := n.planDataSource(ctx, state)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -113,6 +113,18 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 
 	diags = diags.Append(n.writeChange(ctx, change, ""))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		checkResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, addr.Resource, repeatData,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 
@@ -193,7 +205,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
-		change, instancePlanState, planDiags := n.plan(
+		change, instancePlanState, repeatData, planDiags := n.plan(
 			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
@@ -240,6 +252,19 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 				return diags
 			}
 		}
+
+		// Post-conditions might block completion. We intentionally do this
+		// _after_ writing the state/diff because we want to check against
+		// the result of the operation, and to fail on future operations
+		// until the user makes the condition succeed.
+		// (Note that some preconditions will end up being skipped during
+		// planning, because their conditions depend on values not yet known.)
+		checkDiags := evalCheckRules(
+			checkResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, addr.Resource, repeatData,
+		)
+		diags = diags.Append(checkDiags)
 	} else {
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
