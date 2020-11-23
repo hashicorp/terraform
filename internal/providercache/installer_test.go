@@ -208,7 +208,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
-				globalCacheDirPath := t.TempDir()
+				globalCacheDirPath := tmpDir(t)
 				globalCacheDir := NewDirWithPlatform(globalCacheDirPath, fakePlatform)
 				inst.SetGlobalCacheDir(globalCacheDir)
 			},
@@ -327,7 +327,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				nil,
 			),
 			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
-				globalCacheDirPath := t.TempDir()
+				globalCacheDirPath := tmpDir(t)
 				globalCacheDir := NewDirWithPlatform(globalCacheDirPath, fakePlatform)
 				_, err := globalCacheDir.InstallPackage(
 					context.Background(),
@@ -1149,7 +1149,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				t.Fatalf("invalid test: must set at least one of Check, WantEvents, or WantErr")
 			}
 
-			outputDir := NewDirWithPlatform(t.TempDir(), fakePlatform)
+			outputDir := NewDirWithPlatform(tmpDir(t), fakePlatform)
 			source := test.Source
 			if source == nil {
 				source = getproviders.NewMockSource(nil, nil)
@@ -1628,4 +1628,15 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 
 	resp.WriteHeader(404)
 	resp.Write([]byte(`unrecognized path scheme`))
+}
+
+// In order to be able to compare the recorded temp dir paths, we need to
+// normalize the path to match what the installer would report.
+func tmpDir(t *testing.T) string {
+	d := t.TempDir()
+	unlinked, err := filepath.EvalSymlinks(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Clean(unlinked)
 }
