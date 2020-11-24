@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/e2e"
-	tfcore "github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestVersion(t *testing.T) {
@@ -31,7 +31,7 @@ func TestVersion(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	wantVersion := fmt.Sprintf("Terraform v%s", tfcore.VersionString())
+	wantVersion := fmt.Sprintf("Terraform v%s", version.String())
 	if !strings.Contains(stdout, wantVersion) {
 		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
 	}
@@ -63,7 +63,7 @@ func TestVersionWithProvider(t *testing.T) {
 			t.Errorf("unexpected stderr output:\n%s", stderr)
 		}
 
-		wantVersion := fmt.Sprintf("Terraform v%s", tfcore.VersionString())
+		wantVersion := fmt.Sprintf("Terraform v%s", version.String())
 		if !strings.Contains(stdout, wantVersion) {
 			t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
 		}
