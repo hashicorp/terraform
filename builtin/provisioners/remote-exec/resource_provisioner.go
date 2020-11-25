@@ -3,92 +3,135 @@ package remoteexec
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/mitchellh/go-linereader"
+	"github.com/zclconf/go-cty/cty"
 )
 
-// maxBackoffDealy is the maximum delay between retry attempts
-var maxBackoffDelay = 10 * time.Second
-var initialBackoffDelay = time.Second
-
-func Provisioner() terraform.ResourceProvisioner {
-	return &schema.Provisioner{
-		Schema: map[string]*schema.Schema{
-			"inline": {
-				Type:          schema.TypeList,
-				Elem:          &schema.Schema{Type: schema.TypeString},
-				PromoteSingle: true,
-				Optional:      true,
-				ConflictsWith: []string{"script", "scripts"},
-			},
-
-			"script": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"inline", "scripts"},
-			},
-
-			"scripts": {
-				Type:          schema.TypeList,
-				Elem:          &schema.Schema{Type: schema.TypeString},
-				Optional:      true,
-				ConflictsWith: []string{"script", "inline"},
-			},
-		},
-
-		ApplyFunc: applyFn,
-	}
+func New() provisioners.Interface {
+	return &provisioner{}
 }
 
-// Apply executes the remote exec provisioner
-func applyFn(ctx context.Context) error {
-	connState := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
-	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
-	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+type provisioner struct {
+	// this stored from the running context, so that Stop() can cancel the
+	// command
+	mu     sync.Mutex
+	cancel context.CancelFunc
+}
 
-	// Get a new communicator
-	comm, err := communicator.New(connState)
+func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"inline": {
+				Type:     cty.List(cty.String),
+				Optional: true,
+			},
+			"script": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"scripts": {
+				Type:     cty.List(cty.String),
+				Optional: true,
+			},
+		},
+	}
+
+	resp.Provisioner = schema
+	return resp
+}
+
+func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisionerConfigRequest) (resp provisioners.ValidateProvisionerConfigResponse) {
+	cfg, err := p.GetSchema().Provisioner.CoerceValue(req.Config)
 	if err != nil {
-		return err
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	inline := cfg.GetAttr("inline")
+	script := cfg.GetAttr("script")
+	scripts := cfg.GetAttr("scripts")
+
+	set := 0
+	if !inline.IsNull() {
+		set++
+	}
+	if !script.IsNull() {
+		set++
+	}
+	if !scripts.IsNull() {
+		set++
+	}
+	if set != 1 {
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New(
+			`only one of "inline", "script", or "scripts" must be set`))
+	}
+	return resp
+}
+
+func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+	p.mu.Lock()
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancel = cancel
+	p.mu.Unlock()
+
+	comm, err := communicator.New(req.Connection)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 
 	// Collect the scripts
-	scripts, err := collectScripts(data)
+	scripts, err := collectScripts(req.Config)
 	if err != nil {
-		return err
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	for _, s := range scripts {
 		defer s.Close()
 	}
 
 	// Copy and execute each script
-	if err := runScripts(ctx, o, comm, scripts); err != nil {
-		return err
+	if err := runScripts(ctx, req.UIOutput, comm, scripts); err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 
+	return resp
+}
+
+func (p *provisioner) Stop() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.cancel()
+	return nil
+}
+
+func (p *provisioner) Close() error {
 	return nil
 }
 
 // generateScripts takes the configuration and creates a script from each inline config
-func generateScripts(d *schema.ResourceData) ([]string, error) {
+func generateScripts(inline cty.Value) ([]string, error) {
 	var lines []string
-	for _, l := range d.Get("inline").([]interface{}) {
-		line, ok := l.(string)
-		if !ok {
-			return nil, fmt.Errorf("Error parsing %v as a string", l)
+	for _, l := range inline.AsValueSlice() {
+		s := l.AsString()
+		if s == "" {
+			return nil, errors.New("invalid empty string in 'scripts'")
 		}
-		lines = append(lines, line)
+		lines = append(lines, s)
 	}
 	lines = append(lines, "")
 
@@ -97,10 +140,10 @@ func generateScripts(d *schema.ResourceData) ([]string, error) {
 
 // collectScripts is used to collect all the scripts we need
 // to execute in preparation for copying them.
-func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
+func collectScripts(v cty.Value) ([]io.ReadCloser, error) {
 	// Check if inline
-	if _, ok := d.GetOk("inline"); ok {
-		scripts, err := generateScripts(d)
+	if inline := v.GetAttr("inline"); !inline.IsNull() {
+		scripts, err := generateScripts(inline)
 		if err != nil {
 			return nil, err
 		}
@@ -115,21 +158,21 @@ func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
 
 	// Collect scripts
 	var scripts []string
-	if script, ok := d.GetOk("script"); ok {
-		scr, ok := script.(string)
-		if !ok {
-			return nil, fmt.Errorf("Error parsing script %v as string", script)
+	if script := v.GetAttr("script"); !script.IsNull() {
+		s := script.AsString()
+		if s == "" {
+			return nil, errors.New("invalid empty string in 'script'")
 		}
-		scripts = append(scripts, scr)
+		scripts = append(scripts, s)
 	}
 
-	if scriptList, ok := d.GetOk("scripts"); ok {
-		for _, script := range scriptList.([]interface{}) {
-			scr, ok := script.(string)
-			if !ok {
-				return nil, fmt.Errorf("Error parsing script %v as string", script)
+	if scriptList := v.GetAttr("scripts"); !scriptList.IsNull() {
+		for _, script := range scriptList.AsValueSlice() {
+			s := script.AsString()
+			if s == "" {
+				return nil, errors.New("invalid empty string in 'script'")
 			}
-			scripts = append(scripts, scr)
+			scripts = append(scripts, script.AsString())
 		}
 	}
 
@@ -151,12 +194,7 @@ func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
 }
 
 // runScripts is used to copy and execute a set of scripts
-func runScripts(
-	ctx context.Context,
-	o terraform.UIOutput,
-	comm communicator.Communicator,
-	scripts []io.ReadCloser) error {
-
+func runScripts(ctx context.Context, o provisioners.UIOutput, comm communicator.Communicator, scripts []io.ReadCloser) error {
 	retryCtx, cancel := context.WithTimeout(ctx, comm.Timeout())
 	defer cancel()
 
@@ -182,8 +220,8 @@ func runScripts(
 		defer outW.Close()
 		defer errW.Close()
 
-		go copyOutput(o, outR)
-		go copyOutput(o, errR)
+		go copyUIOutput(o, outR)
+		go copyUIOutput(o, errR)
 
 		remotePath := comm.ScriptPath()
 
@@ -216,8 +254,7 @@ func runScripts(
 	return nil
 }
 
-func copyOutput(
-	o terraform.UIOutput, r io.Reader) {
+func copyUIOutput(o provisioners.UIOutput, r io.Reader) {
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
