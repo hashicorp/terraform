@@ -20,9 +20,12 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 const (
@@ -84,8 +87,8 @@ func (e fatalError) FatalError() error {
 }
 
 // New creates a new communicator implementation over SSH.
-func New(s *terraform.InstanceState) (*Communicator, error) {
-	connInfo, err := parseConnectionInfo(s)
+func New(v cty.Value) (*Communicator, error) {
+	connInfo, err := parseConnectionInfo(v)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +120,7 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 }
 
 // Connect implementation of communicator.Communicator interface
-func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
+func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 	// Grab a lock so we can modify our internal attributes
 	c.lock.Lock()
 	defer c.lock.Unlock()
