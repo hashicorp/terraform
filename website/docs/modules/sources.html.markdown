@@ -184,7 +184,7 @@ a specific revision to install.
 
 Arbitrary Git repositories can be used by prefixing the address with the
 special `git::` prefix. After this prefix, any valid
-[Git URL](https://git-scm.com/docs/git-clone#_git_urls_a_id_urls_a)
+[Git URL](https://git-scm.com/docs/git-clone#_git_urls)
 can be specified to select one of the protocols supported by Git.
 
 For example, to use HTTPS or SSH:
