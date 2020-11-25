@@ -10,7 +10,7 @@ import (
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		GRPCProviderFunc: func() tfplugin5.ProviderServer {
-			return grpcwrap.New(simple.Provider())
+			return grpcwrap.Provider(simple.Provider())
 		},
 	})
 }

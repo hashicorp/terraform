@@ -99,7 +99,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	reattachCh := make(chan *plugin.ReattachConfig)
 	closeCh := make(chan struct{})
 	provider := &providerServer{
-		ProviderServer: grpcwrap.New(simple.Provider()),
+		ProviderServer: grpcwrap.Provider(simple.Provider()),
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

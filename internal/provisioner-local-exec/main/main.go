@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/builtin/providers/terraform"
+	localexec "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
 	"github.com/hashicorp/terraform/internal/grpcwrap"
 	"github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin"
@@ -10,8 +10,8 @@ import (
 func main() {
 	// Provide a binary version of the internal terraform provider for testing
 	plugin.Serve(&plugin.ServeOpts{
-		GRPCProviderFunc: func() tfplugin5.ProviderServer {
-			return grpcwrap.Provider(terraform.NewProvider())
+		GRPCProvisionerFunc: func() tfplugin5.ProvisionerServer {
+			return grpcwrap.Provisioner(localexec.New())
 		},
 	})
 }
