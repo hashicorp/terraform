@@ -46,8 +46,9 @@ func FormatValue(v cty.Value, indent int) string {
 	case ty.IsPrimitiveType():
 		switch ty {
 		case cty.String:
-			// FIXME: If it's a multi-line string, better to render it using
-			// HEREDOC-style syntax.
+			if formatted, isMultiline := formatMultilineString(v, indent); isMultiline {
+				return formatted
+			}
 			return strconv.Quote(v.AsString())
 		case cty.Number:
 			bf := v.AsBigFloat()
@@ -73,6 +74,56 @@ func FormatValue(v cty.Value, indent int) string {
 
 	// Should never get here because there are no other types
 	return fmt.Sprintf("%#v", v)
+}
+
+func formatMultilineString(v cty.Value, indent int) (string, bool) {
+	str := v.AsString()
+	lines := strings.Split(str, "\n")
+	if len(lines) < 2 {
+		return "", false
+	}
+
+	// If the value is indented, we use the indented form of heredoc for readability.
+	operator := "<<"
+	if indent > 0 {
+		operator = "<<-"
+	}
+
+	// Default delimiter is "End Of Text" by convention
+	delimiter := "EOT"
+
+OUTER:
+	for {
+		// Check if any of the lines are in conflict with the delimiter. The
+		// parser allows leading and trailing whitespace, so we must remove it
+		// before comparison.
+		for _, line := range lines {
+			// If the delimiter matches a line, extend it and start again
+			if strings.TrimSpace(line) == delimiter {
+				delimiter = delimiter + "_"
+				continue OUTER
+			}
+		}
+
+		// None of the lines match the delimiter, so we're ready
+		break
+	}
+
+	// Write the heredoc, with indentation as appropriate.
+	var buf strings.Builder
+
+	buf.WriteString(operator)
+	buf.WriteString(delimiter)
+	for _, line := range lines {
+		buf.WriteByte('\n')
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(line)
+	}
+	buf.WriteByte('\n')
+	buf.WriteString(strings.Repeat(" ", indent))
+	buf.WriteString(delimiter)
+
+	return buf.String(), true
 }
 
 func formatMappingValue(v cty.Value, indent int) string {
