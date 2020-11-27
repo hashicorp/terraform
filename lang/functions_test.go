@@ -602,6 +602,29 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"parseduration": {
+			{
+				`parseduration("1m30s")`,
+				cty.NumberIntVal(90),
+			},
+			{
+				`parseduration("1m30s", "milliseconds")`,
+				cty.NumberIntVal(90000),
+			},
+			{
+				`parseduration("1m30s", "seconds")`,
+				cty.NumberIntVal(90),
+			},
+			{
+				`parseduration("1m30s", "minutes")`,
+				cty.NumberIntVal(1),
+			},
+			{
+				`parseduration("1m30s", "hours")`,
+				cty.NumberIntVal(0),
+			},
+		},
+
 		"parseint": {
 			{
 				`parseint("100", 10)`,

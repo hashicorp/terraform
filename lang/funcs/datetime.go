@@ -1,10 +1,12 @@
 package funcs
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // TimestampFunc constructs a function that returns a string representation of the current date and time.
@@ -40,6 +42,67 @@ var TimeAddFunc = function.New(&function.Spec{
 		}
 
 		return cty.StringVal(ts.Add(duration).Format(time.RFC3339)), nil
+	},
+})
+
+// ParseDurationFunc is a function that parses a string argument and returns the duration expressed in the specified unit.
+var ParseDurationFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "duration",
+			Type: cty.String,
+		},
+	},
+	VarParam: &function.Parameter{
+		Name: "unit",
+		Type: cty.String,
+	},
+	Type: function.StaticReturnType(cty.Number),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		if len(args) > 2 {
+			return cty.UnknownVal(cty.Number), fmt.Errorf("too many arguments")
+		}
+
+		var durationStr, unit string
+		var err error
+
+		if err = gocty.FromCtyValue(args[0], &durationStr); err != nil {
+			return cty.UnknownVal(cty.Number), function.NewArgError(0, err)
+		}
+
+		if len(args) == 2 {
+			if err = gocty.FromCtyValue(args[1], &unit); err != nil {
+				return cty.UnknownVal(cty.Number), function.NewArgError(1, err)
+			}
+		} else {
+			unit = "seconds"
+		}
+
+		duration, err := time.ParseDuration(durationStr)
+		if err != nil {
+			return cty.UnknownVal(cty.Number), function.NewArgError(0, err)
+		}
+
+		var result cty.Value
+
+		switch unit {
+		case "milliseconds":
+			result = cty.NumberIntVal(duration.Milliseconds())
+		case "seconds":
+			result = cty.NumberIntVal(int64(duration.Seconds()))
+		case "minutes":
+			result = cty.NumberIntVal(int64(duration.Minutes()))
+		case "hours":
+			result = cty.NumberIntVal(int64(duration.Hours()))
+		default:
+			return cty.UnknownVal(cty.Number), function.NewArgErrorf(
+				1,
+				"unit must be one of milliseconds, seconds, minutes or hours, not %q",
+				unit,
+			)
+		}
+
+		return result, nil
 	},
 })
 

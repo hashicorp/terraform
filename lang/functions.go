@@ -94,6 +94,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"merge":            stdlib.MergeFunc,
 			"min":              stdlib.MinFunc,
 			"parseint":         stdlib.ParseIntFunc,
+			"parseduration":    funcs.ParseDurationFunc,
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              stdlib.PowFunc,
 			"range":            stdlib.RangeFunc,
