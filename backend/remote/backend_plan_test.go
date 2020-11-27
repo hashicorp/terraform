@@ -620,7 +620,7 @@ func TestRemote_planLockTimeout(t *testing.T) {
 		"approve": "yes",
 	})
 
-	op.StateLockTimeout = 5 * time.Second
+	op.StateLockTimeout = 50 * time.Millisecond
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
@@ -636,8 +636,8 @@ func TestRemote_planLockTimeout(t *testing.T) {
 	case <-sigint:
 		// Stop redirecting SIGINT signals.
 		signal.Stop(sigint)
-	case <-time.After(10 * time.Second):
-		t.Fatalf("expected lock timeout after 5 seconds, waited 10 seconds")
+	case <-time.After(200 * time.Millisecond):
+		t.Fatalf("expected lock timeout after 50 milliseconds, waited 200 milliseconds")
 	}
 
 	if len(input.answers) != 2 {

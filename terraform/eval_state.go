@@ -37,7 +37,9 @@ type EvalReadState struct {
 	Output **states.ResourceInstanceObject
 }
 
-func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalReadState) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if n.Provider == nil || *n.Provider == nil {
 		panic("EvalReadState used with no Provider object")
 	}
@@ -52,33 +54,35 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	if src == nil {
 		// Presumably we only have deposed objects, then.
 		log.Printf("[TRACE] EvalReadState: no state present for %s", absAddr)
-		return nil, nil
+		return nil
 	}
 
 	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
-		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+		diags = diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr))
+		return diags
 	}
-	var diags tfdiags.Diagnostics
+
 	src, diags = UpgradeResourceState(absAddr, *n.Provider, src, schema, currentVersion)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would
 		// be pretty weird anyway, since this operation is supposed to seem
 		// invisible to the user.
-		return nil, diags.Err()
+		return diags
 	}
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
-		return nil, err
+		diags = diags.Append(err)
+		return diags
 	}
 
 	if n.Output != nil {
 		*n.Output = obj
 	}
-	return obj, nil
+	return diags
 }
 
 // EvalReadStateDeposed is an EvalNode implementation that reads the
@@ -102,7 +106,9 @@ type EvalReadStateDeposed struct {
 	Output **states.ResourceInstanceObject
 }
 
-func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalReadStateDeposed) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if n.Provider == nil || *n.Provider == nil {
 		panic("EvalReadStateDeposed used with no Provider object")
 	}
@@ -112,7 +118,8 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 
 	key := n.Key
 	if key == states.NotDeposed {
-		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
+		diags = diags.Append(fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported"))
+		return diags
 	}
 	absAddr := n.Addr.Absolute(ctx.Path())
 	log.Printf("[TRACE] EvalReadStateDeposed: reading state for %s deposed object %s", absAddr, n.Key)
@@ -121,32 +128,34 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	if src == nil {
 		// Presumably we only have deposed objects, then.
 		log.Printf("[TRACE] EvalReadStateDeposed: no state present for %s deposed object %s", absAddr, n.Key)
-		return nil, nil
+		return diags
 	}
 
 	schema, currentVersion := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
 	if schema == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
-		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr)
+		diags = diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", absAddr))
+		return diags
 	}
-	var diags tfdiags.Diagnostics
+
 	src, diags = UpgradeResourceState(absAddr, *n.Provider, src, schema, currentVersion)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would
 		// be pretty weird anyway, since this operation is supposed to seem
 		// invisible to the user.
-		return nil, diags.Err()
+		return diags
 	}
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
-		return nil, err
+		diags = diags.Append(err)
+		return diags
 	}
 	if n.Output != nil {
 		*n.Output = obj
 	}
-	return obj, nil
+	return diags
 }
 
 // UpdateStateHook calls the PostStateUpdate hook with the current state.
@@ -173,7 +182,7 @@ type evalWriteEmptyState struct {
 	EvalWriteState
 }
 
-func (n *evalWriteEmptyState) Eval(ctx EvalContext) (interface{}, error) {
+func (n *evalWriteEmptyState) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	var state *states.ResourceInstanceObject
 	n.State = &state
 	return n.EvalWriteState.Eval(ctx)
@@ -204,7 +213,9 @@ type EvalWriteState struct {
 	targetState phaseState
 }
 
-func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalWriteState) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if n.State == nil {
 		// Note that a pointer _to_ nil is valid here, indicating the total
 		// absense of an object as we'd see during destroy.
@@ -223,14 +234,15 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	if n.ProviderAddr.Provider.Type == "" {
-		return nil, fmt.Errorf("failed to write state for %s: missing provider type", absAddr)
+		diags = diags.Append(fmt.Errorf("failed to write state for %s: missing provider type", absAddr))
+		return diags
 	}
 	obj := *n.State
 	if obj == nil || obj.Value.IsNull() {
 		// No need to encode anything: we'll just write it directly.
 		state.SetResourceInstanceCurrent(absAddr, nil, n.ProviderAddr)
 		log.Printf("[TRACE] EvalWriteState: removing state object for %s", absAddr)
-		return nil, nil
+		return diags
 	}
 
 	// store the new deps in the state
@@ -255,15 +267,17 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
-		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
+		diags = diags.Append(fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr))
+		return diags
 	}
 	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
+		diags = diags.Append(fmt.Errorf("failed to encode %s in state: %s", absAddr, err))
+		return diags
 	}
 
 	state.SetResourceInstanceCurrent(absAddr, src, n.ProviderAddr)
-	return nil, nil
+	return diags
 }
 
 // EvalWriteStateDeposed is an EvalNode implementation that writes
@@ -286,7 +300,9 @@ type EvalWriteStateDeposed struct {
 	ProviderAddr addrs.AbsProviderConfig
 }
 
-func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if n.State == nil {
 		// Note that a pointer _to_ nil is valid here, indicating the total
 		// absense of an object as we'd see during destroy.
@@ -299,7 +315,8 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 
 	if key == states.NotDeposed {
 		// should never happen
-		return nil, fmt.Errorf("can't save deposed object for %s without a deposed key; this is a bug in Terraform that should be reported", absAddr)
+		diags = diags.Append(fmt.Errorf("can't save deposed object for %s without a deposed key; this is a bug in Terraform that should be reported", absAddr))
+		return diags
 	}
 
 	obj := *n.State
@@ -307,7 +324,7 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		// No need to encode anything: we'll just write it directly.
 		state.SetResourceInstanceDeposed(absAddr, key, nil, n.ProviderAddr)
 		log.Printf("[TRACE] EvalWriteStateDeposed: removing state object for %s deposed %s", absAddr, key)
-		return nil, nil
+		return diags
 	}
 	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
 		// Should never happen, unless our state object is nil
@@ -319,16 +336,18 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
-		return nil, fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
+		diags = diags.Append(fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr))
+		return diags
 	}
 	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
+		diags = diags.Append(fmt.Errorf("failed to encode %s in state: %s", absAddr, err))
+		return diags
 	}
 
 	log.Printf("[TRACE] EvalWriteStateDeposed: writing state object for %s deposed %s", absAddr, key)
 	state.SetResourceInstanceDeposed(absAddr, key, src, n.ProviderAddr)
-	return nil, nil
+	return diags
 }
 
 // EvalDeposeState is an EvalNode implementation that moves the current object
@@ -353,7 +372,7 @@ type EvalDeposeState struct {
 }
 
 // TODO: test
-func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalDeposeState) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	absAddr := n.Addr.Absolute(ctx.Path())
 	state := ctx.State()
 
@@ -370,7 +389,7 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 		*n.OutputKey = key
 	}
 
-	return nil, nil
+	return nil
 }
 
 // EvalMaybeRestoreDeposedObject is an EvalNode implementation that will
@@ -405,7 +424,9 @@ type EvalMaybeRestoreDeposedObject struct {
 }
 
 // TODO: test
-func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	absAddr := n.Addr.Absolute(ctx.Path())
 	dk := *n.Key
 	state := ctx.State()
@@ -414,7 +435,6 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 		// This should never happen, and so it always indicates a bug.
 		// We should evaluate this node only if we've previously deposed
 		// an object as part of the same operation.
-		var diags tfdiags.Diagnostics
 		if n.PlannedChange != nil && *n.PlannedChange != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -434,7 +454,7 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 				),
 			))
 		}
-		return nil, diags.Err()
+		return diags
 	}
 
 	restored := state.MaybeRestoreResourceInstanceDeposed(absAddr, dk)
@@ -444,7 +464,7 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) (interface{}, erro
 		log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", absAddr, dk)
 	}
 
-	return nil, nil
+	return diags
 }
 
 // EvalRefreshLifecycle is an EvalNode implementation that updates
@@ -461,21 +481,21 @@ type EvalRefreshLifecycle struct {
 	ForceCreateBeforeDestroy bool
 }
 
-func (n *EvalRefreshLifecycle) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalRefreshLifecycle) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	state := *n.State
 	if state == nil {
 		// no existing state
-		return nil, nil
+		return nil
 	}
 
 	// In 0.13 we could be refreshing a resource with no config.
 	// We should be operating on managed resource, but check here to be certain
 	if n.Config == nil || n.Config.Managed == nil {
 		log.Printf("[WARN] EvalRefreshLifecycle: no Managed config value found in instance state for %q", n.Addr)
-		return nil, nil
+		return nil
 	}
 
 	state.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
 
-	return nil, nil
+	return nil
 }

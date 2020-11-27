@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "State: Remote Storage"
 sidebar_current: "docs-state-remote"
 description: |-
@@ -19,18 +19,14 @@ which can then be shared between all members of a team. Terraform supports
 storing state in [Terraform Cloud](https://www.hashicorp.com/products/terraform/),
 [HashiCorp Consul](https://www.consul.io/), Amazon S3, Azure Blob Storage, Google Cloud Storage, Alibaba Cloud OSS, and more.
 
-Remote state is a feature of [backends](/docs/backends). Configuring and
-using remote backends is easy and you can get started with remote state
-quickly. If you then want to migrate back to using local state, backends make
-that easy as well.
+Remote state is a feature of [backends](/docs/backends), which you can activate
+in your configuration's root module.
 
 ## Delegation and Teamwork
 
-Remote state gives you more than just easier version control and
-safer storage. It also allows you to delegate the
-[outputs](/docs/configuration/outputs.html) to other teams. This allows
-your infrastructure to be more easily broken down into components that
-multiple teams can access.
+Remote state allows you to share
+[output values](/docs/configuration/outputs.html) with other configurations.
+This allows your infrastructure to be decomposed into smaller components.
 
 Put another way, remote state also allows teams to share infrastructure
 resources in a read-only way without relying on any additional configuration
@@ -45,8 +41,8 @@ remote state and have other Terraform states consume that.
 For example usage, see
 [the `terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
 
-While remote state is a convenient, built-in mechanism for sharing data
-between configurations, it is also possible to use more general stores to
+While remote state can be a convenient, built-in mechanism for sharing data
+between configurations, you may prefer to use more general stores to
 pass settings both to other configurations and to other consumers. For example,
 if your environment has [HashiCorp Consul](https://www.consul.io/) then you
 can have one Terraform configuration that writes to Consul using

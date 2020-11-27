@@ -116,25 +116,25 @@ func (n *graphNodeImportState) ModulePath() addrs.Module {
 }
 
 // GraphNodeExecutable impl.
-func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error {
+func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// Reset our states
 	n.states = nil
 
 	provider, _, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// import state
 	absAddr := n.Addr.Resource.Absolute(ctx.Path())
-	var diags tfdiags.Diagnostics
 
 	// Call pre-import hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreImportState(absAddr, n.ID)
-	})
-	if err != nil {
-		return err
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
@@ -143,7 +143,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error 
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return diags.Err()
+		return diags
 	}
 
 	imported := resp.ImportedResources
@@ -153,10 +153,10 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error 
 	n.states = imported
 
 	// Call post-import hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostImportState(absAddr, imported)
-	})
-	return err
+	}))
+	return diags
 }
 
 // GraphNodeDynamicExpandable impl.
@@ -259,16 +259,18 @@ func (n *graphNodeImportStateSub) Path() addrs.ModuleInstance {
 }
 
 // GraphNodeExecutable impl.
-func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) error {
+func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// If the Ephemeral type isn't set, then it is an error
 	if n.State.TypeName == "" {
-		return fmt.Errorf("import of %s didn't set type", n.TargetAddr.String())
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.TargetAddr.String()))
+		return diags
 	}
 
 	state := n.State.AsInstanceObject()
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// EvalRefresh
@@ -280,14 +282,13 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) err
 		State:          &state,
 		Output:         &state,
 	}
-	_, err = evalRefresh.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(evalRefresh.Eval(ctx))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Verify the existance of the imported resource
 	if state.Value.IsNull() {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Cannot import non-existent remote object",
@@ -296,7 +297,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) err
 				n.TargetAddr.Resource.String(),
 			),
 		))
-		return diags.Err()
+		return diags
 	}
 
 	//EvalWriteState
@@ -306,6 +307,6 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) err
 		ProviderSchema: &providerSchema,
 		State:          &state,
 	}
-	_, err = evalWriteState.Eval(ctx)
-	return err
+	diags = diags.Append(evalWriteState.Eval(ctx))
+	return diags
 }

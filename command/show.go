@@ -68,6 +68,9 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// the show command expects the config dir to always be the cwd
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -209,7 +212,7 @@ Options:
 }
 
 func (c *ShowCommand) Synopsis() string {
-	return "Inspect Terraform state or plan"
+	return "Show the current state or a saved plan"
 }
 
 // getPlanFromPath returns a plan and statefile if the user-supplied path points

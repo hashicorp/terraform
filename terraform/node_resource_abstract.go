@@ -305,8 +305,7 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 // eval is the only change we get to set the resource "each mode" to list
 // in that case, allowing expression evaluation to see it as a zero-element list
 // rather than as not set at all.
-func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.AbsResource) error {
-	var diags tfdiags.Diagnostics
+func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
 	state := ctx.State()
 
 	// We'll record our expansion decision in the shared "expander" object
@@ -320,7 +319,7 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
 		diags = diags.Append(countDiags)
 		if countDiags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		state.SetResourceProvider(addr, n.ResolvedProvider)
@@ -330,7 +329,7 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		// This method takes care of all of the business logic of updating this
@@ -343,7 +342,7 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
 	}
 
-	return nil
+	return diags
 }
 
 // ReadResourceInstanceState reads the current object for a specific instance in

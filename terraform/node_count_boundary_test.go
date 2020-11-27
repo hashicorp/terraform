@@ -53,9 +53,9 @@ func TestNodeCountBoundaryExecute(t *testing.T) {
 	}
 	node := NodeCountBoundary{Config: config}
 
-	err := node.Execute(ctx, walkApply)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkApply)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 	if !state.HasResources() {
 		t.Fatal("resources missing from state")

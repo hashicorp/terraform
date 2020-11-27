@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
@@ -259,6 +260,10 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
 	if d.Operation == walkValidate {
+		// Ensure variable sensitivity is captured in the validate walk
+		if config.Sensitive {
+			return cty.UnknownVal(wantType).Mark("sensitive"), diags
+		}
 		return cty.UnknownVal(wantType), diags
 	}
 
@@ -752,9 +757,14 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				continue
 			}
 
+			// EXPERIMENTAL: Suppressing provider-defined sensitive attrs
+			// from Terraform output.
+
 			// If our schema contains sensitive values, mark those as sensitive
-			if schema.ContainsSensitive() {
-				val = markProviderSensitiveAttributes(schema, val)
+			if moduleConfig.Module.ActiveExperiments.Has(experiments.SuppressProviderSensitiveAttrs) {
+				if schema.ContainsSensitive() {
+					val = markProviderSensitiveAttributes(schema, val)
+				}
 			}
 			instances[key] = val.MarkWithPaths(change.AfterValMarks)
 			continue
@@ -774,9 +784,14 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		val := ios.Value
+		// EXPERIMENTAL: Suppressing provider-defined sensitive attrs
+		// from Terraform output.
+
 		// If our schema contains sensitive values, mark those as sensitive
-		if schema.ContainsSensitive() {
-			val = markProviderSensitiveAttributes(schema, val)
+		if moduleConfig.Module.ActiveExperiments.Has(experiments.SuppressProviderSensitiveAttrs) {
+			if schema.ContainsSensitive() {
+				val = markProviderSensitiveAttributes(schema, val)
+			}
 		}
 		instances[key] = val
 	}

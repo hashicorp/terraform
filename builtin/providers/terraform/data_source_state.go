@@ -18,24 +18,42 @@ func dataSourceRemoteStateGetSchema() providers.Schema {
 		Block: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"backend": {
-					Type:     cty.String,
-					Required: true,
+					Type:            cty.String,
+					Description:     "The remote backend to use, e.g. `remote` or `http`.",
+					DescriptionKind: configschema.StringMarkdown,
+					Required:        true,
 				},
 				"config": {
-					Type:     cty.DynamicPseudoType,
-					Optional: true,
+					Type: cty.DynamicPseudoType,
+					Description: "The configuration of the remote backend. " +
+						"Although this is optional, most backends require " +
+						"some configuration.\n\n" +
+						"The object can use any arguments that would be valid " +
+						"in the equivalent `terraform { backend \"<TYPE>\" { ... } }` " +
+						"block.",
+					DescriptionKind: configschema.StringMarkdown,
+					Optional:        true,
 				},
 				"defaults": {
-					Type:     cty.DynamicPseudoType,
-					Optional: true,
+					Type: cty.DynamicPseudoType,
+					Description: "Default values for outputs, in case " +
+						"the state file is empty or lacks a required output.",
+					DescriptionKind: configschema.StringMarkdown,
+					Optional:        true,
 				},
 				"outputs": {
-					Type:     cty.DynamicPseudoType,
-					Computed: true,
+					Type: cty.DynamicPseudoType,
+					Description: "An object containing every root-level " +
+						"output in the remote state.",
+					DescriptionKind: configschema.StringMarkdown,
+					Computed:        true,
 				},
 				"workspace": {
-					Type:     cty.String,
-					Optional: true,
+					Type: cty.String,
+					Description: "The Terraform workspace to use, if " +
+						"the backend supports workspaces.",
+					DescriptionKind: configschema.StringMarkdown,
+					Optional:        true,
 				},
 			},
 		},

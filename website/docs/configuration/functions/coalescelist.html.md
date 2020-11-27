@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "coalescelist - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-coalescelist"
 description: |-

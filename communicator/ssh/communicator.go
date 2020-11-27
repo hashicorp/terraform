@@ -139,13 +139,15 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 				"  Private key: %t\n"+
 				"  Certificate: %t\n"+
 				"  SSH Agent: %t\n"+
-				"  Checking Host Key: %t",
+				"  Checking Host Key: %t\n"+
+				"  Target Platform: %s\n",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.PrivateKey != "",
 			c.connInfo.Certificate != "",
 			c.connInfo.Agent,
 			c.connInfo.HostKey != "",
+			c.connInfo.TargetPlatform,
 		))
 
 		if c.connInfo.BastionHost != "" {
@@ -357,7 +359,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr
 
-	if !c.config.noPty {
+	if !c.config.noPty && c.connInfo.TargetPlatform != TargetPlatformWindows {
 		// Request a PTY
 		termModes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // do not echo
@@ -439,35 +441,35 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("Error reading script: %s", err)
 	}
-
 	var script bytes.Buffer
-	if string(prefix) != "#!" {
+
+	if string(prefix) != "#!" && c.connInfo.TargetPlatform != TargetPlatformWindows {
 		script.WriteString(DefaultShebang)
 	}
-
 	script.ReadFrom(reader)
+
 	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
+	if c.connInfo.TargetPlatform != TargetPlatformWindows {
+		var stdout, stderr bytes.Buffer
+		cmd := &remote.Cmd{
+			Command: fmt.Sprintf("chmod 0777 %s", path),
+			Stdout:  &stdout,
+			Stderr:  &stderr,
+		}
+		if err := c.Start(cmd); err != nil {
+			return fmt.Errorf(
+				"Error chmodding script file to 0777 in remote "+
+					"machine: %s", err)
+		}
 
-	var stdout, stderr bytes.Buffer
-	cmd := &remote.Cmd{
-		Command: fmt.Sprintf("chmod 0777 %s", path),
-		Stdout:  &stdout,
-		Stderr:  &stderr,
+		if err := cmd.Wait(); err != nil {
+			return fmt.Errorf(
+				"Error chmodding script file to 0777 in remote "+
+					"machine %v: %s %s", err, stdout.String(), stderr.String())
+		}
 	}
-	if err := c.Start(cmd); err != nil {
-		return fmt.Errorf(
-			"Error chmodding script file to 0777 in remote "+
-				"machine: %s", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf(
-			"Error chmodding script file to 0777 in remote "+
-				"machine %v: %s %s", err, stdout.String(), stderr.String())
-	}
-
 	return nil
 }
 

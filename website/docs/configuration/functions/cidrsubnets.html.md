@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "cidrsubnets - Functions - Configuration Language"
 sidebar_current: "docs-funcs-ipnet-cidrsubnets"
 description: |-
@@ -70,7 +70,7 @@ platforms.
 ```
 
 You can use nested `cidrsubnets` calls with
-[`for` expressions](/docs/configuration/expressions.html#for-expressions)
+[`for` expressions](/docs/configuration/expressions/for.html)
 to concisely allocate groups of network address blocks:
 
 ```

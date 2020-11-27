@@ -20,7 +20,7 @@ func (c *ProvidersSchemaCommand) Help() string {
 }
 
 func (c *ProvidersSchemaCommand) Synopsis() string {
-	return "Prints the schemas of the providers used in the configuration"
+	return "Show schemas for the providers used in the configuration"
 }
 
 func (c *ProvidersSchemaCommand) Run(args []string) int {
@@ -66,6 +66,9 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
 	}
+
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
 
 	// we expect that the config dir is the cwd
 	cwd, err := os.Getwd()

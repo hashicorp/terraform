@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeRootVariable represents a root variable input.
@@ -36,7 +37,7 @@ func (n *NodeRootVariable) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // GraphNodeExecutable
-func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	// We don't actually need to _evaluate_ a root module variable, because
 	// its value is always constant and already stashed away in our EvalContext.
 	// However, we might need to run some user-defined validation rules against

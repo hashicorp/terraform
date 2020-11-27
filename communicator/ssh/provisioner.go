@@ -29,41 +29,49 @@ const (
 	// DefaultPort is used if there is no port given
 	DefaultPort = 22
 
-	// DefaultScriptPath is used as the path to copy the file to
-	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/terraform_%RAND%.sh"
+	// DefaultUnixScriptPath is used as the path to copy the file to
+	// for remote execution on unix if not provided otherwise.
+	DefaultUnixScriptPath = "/tmp/terraform_%RAND%.sh"
+	// DefaultWindowsScriptPath is used as the path to copy the file to
+	// for remote execution on windows if not provided otherwise.
+	DefaultWindowsScriptPath = "C:/windows/temp/terraform_%RAND%.cmd"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
+
+	// TargetPlatformUnix used for cleaner code, and is used if no target platform has been specified
+	TargetPlatformUnix = "unix"
+	//TargetPlatformWindows used for cleaner code
+	TargetPlatformWindows = "windows"
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User              string
-	Password          string
-	PrivateKey        string `mapstructure:"private_key"`
-	Certificate       string `mapstructure:"certificate"`
-	Host              string
-	HostKey           string `mapstructure:"host_key"`
-	Port              int
-	Agent             bool
-	Timeout           string
-	ScriptPath        string        `mapstructure:"script_path"`
-	TimeoutVal        time.Duration `mapstructure:"-"`
-	ProxyHost         string        `mapstructure:"proxy_host"`
-	ProxyPort         string        `mapstructure:"proxy_port"`
-	ProxyUserName     string        `mapstructure:"proxy_user_name"`
-	ProxyUserPassword string        `mapstructure:"proxy_user_password"`
-
-	BastionUser        string `mapstructure:"bastion_user"`
-	BastionPassword    string `mapstructure:"bastion_password"`
-	BastionPrivateKey  string `mapstructure:"bastion_private_key"`
-	BastionCertificate string `mapstructure:"bastion_certificate"`
-	BastionHost        string `mapstructure:"bastion_host"`
-	BastionHostKey     string `mapstructure:"bastion_host_key"`
-	BastionPort        int    `mapstructure:"bastion_port"`
+	User               string
+	Password           string
+	PrivateKey         string `mapstructure:"private_key"`
+	Certificate        string `mapstructure:"certificate"`
+	Host               string
+	HostKey            string `mapstructure:"host_key"`
+	Port               int
+	Agent              bool
+	Timeout            string
+	ScriptPath         string        `mapstructure:"script_path"`
+	TargetPlatform     string        `mapstructure:"target_platform"`
+	TimeoutVal         time.Duration `mapstructure:"-"`
+	ProxyHost          string        `mapstructure:"proxy_host"`
+	ProxyPort          string        `mapstructure:"proxy_port"`
+	ProxyUserName      string        `mapstructure:"proxy_user_name"`
+	ProxyUserPassword  string        `mapstructure:"proxy_user_password"`
+	BastionUser        string        `mapstructure:"bastion_user"`
+	BastionPassword    string        `mapstructure:"bastion_password"`
+	BastionPrivateKey  string        `mapstructure:"bastion_private_key"`
+	BastionCertificate string        `mapstructure:"bastion_certificate"`
+	BastionHost        string        `mapstructure:"bastion_host"`
+	BastionHostKey     string        `mapstructure:"bastion_host_key"`
+	BastionPort        int           `mapstructure:"bastion_port"`
 
 	AgentIdentity string `mapstructure:"agent_identity"`
 }
@@ -110,8 +118,19 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
-	if connInfo.ScriptPath == "" {
-		connInfo.ScriptPath = DefaultScriptPath
+	// Set default targetPlatform to unix if it's empty
+	if connInfo.TargetPlatform == "" {
+		connInfo.TargetPlatform = TargetPlatformUnix
+	} else if connInfo.TargetPlatform != TargetPlatformUnix && connInfo.TargetPlatform != TargetPlatformWindows {
+		return nil, fmt.Errorf("target_platform for provisioner has to be either %s or %s", TargetPlatformUnix, TargetPlatformWindows)
+	}
+	// Choose an appropriate default script path based on the target platform. There is no single
+	// suitable default script path which works on both UNIX and Windows targets.
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == TargetPlatformUnix {
+		connInfo.ScriptPath = DefaultUnixScriptPath
+	}
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == TargetPlatformWindows {
+		connInfo.ScriptPath = DefaultWindowsScriptPath
 	}
 	if connInfo.Timeout != "" {
 		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)

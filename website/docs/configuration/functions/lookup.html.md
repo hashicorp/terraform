@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "lookup - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-lookup"
 description: |-
@@ -13,7 +13,7 @@ earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
 `lookup` retrieves the value of a single element from a map, given its key.
-If the given key does not exist, a the given default value is returned instead.
+If the given key does not exist, the given default value is returned instead.
 
 ```
 lookup(map, key, default)

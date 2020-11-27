@@ -1,5 +1,5 @@
 ---
-layout: "commands-providers"
+layout: "docs"
 page_title: "Command: providers lock"
 sidebar_current: "docs-commands-providers-lock"
 description: |-
@@ -7,7 +7,7 @@ description: |-
   to the dependency lock file without initializing the referenced providers.
 ---
 
-# Command: terraform providers mirror
+# Command: terraform providers lock
 
 The `terraform providers lock` consults upstream registries (by default) in
 order to write provider dependency information into

@@ -205,6 +205,10 @@ type Meta struct {
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
+
+	// Used with commands which write state to allow users to write remote
+	// state even if the remote and local Terraform versions don't match.
+	ignoreRemoteVersion bool
 }
 
 type testingOverrides struct {
@@ -421,6 +425,28 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 		}
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
+
+		// Read the dependency locks so that they can be verified against the
+		// provider requirements in the configuration
+		lockedDependencies, diags := m.lockedDependencies()
+
+		// If the locks file is invalid, we should fail early rather than
+		// ignore it. A missing locks file will return no error.
+		if diags.HasErrors() {
+			return nil, diags.Err()
+		}
+		opts.LockedDependencies = lockedDependencies
+
+		// If any unmanaged providers or dev overrides are enabled, they must
+		// be listed in the context so that they can be ignored when verifying
+		// the locks against the configuration
+		opts.ProvidersInDevelopment = make(map[addrs.Provider]struct{})
+		for provider := range m.UnmanagedProviders {
+			opts.ProvidersInDevelopment[provider] = struct{}{}
+		}
+		for provider := range m.ProviderDevOverrides {
+			opts.ProvidersInDevelopment[provider] = struct{}{}
+		}
 	}
 
 	opts.ProviderSHA256s = m.providerPluginsLock().Read()
@@ -440,6 +466,17 @@ func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
+
+	return f
+}
+
+// ignoreRemoteVersionFlagSet add the ignore-remote version flag to suppress
+// the error when the configured Terraform version on the remote workspace
+// does not match the local Terraform version.
+func (m *Meta) ignoreRemoteVersionFlagSet(n string) *flag.FlagSet {
+	f := m.defaultFlagSet(n)
+
+	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions differ")
 
 	return f
 }

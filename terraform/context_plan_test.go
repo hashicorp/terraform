@@ -78,6 +78,11 @@ func TestContext2Plan_basic(t *testing.T) {
 			t.Fatal("unknown instance:", i)
 		}
 	}
+
+	if !p.PrepareProviderConfigCalled {
+		t.Fatal("provider config was not checked before Configure")
+	}
+
 }
 
 func TestContext2Plan_createBefore_deposed(t *testing.T) {
@@ -6419,5 +6424,53 @@ data "test_data_source" "b" {
 	// read.
 	if !readDataSourceB {
 		t.Fatal("data source b was not read during plan")
+	}
+}
+
+func TestContext2Plan_rpcDiagnostics(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		resp := testDiffFn(req)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("don't frobble"))
+		return resp
+	}
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "frobble") {
+			t.Fatalf(`expected frobble, got %q`, des)
+		}
 	}
 }

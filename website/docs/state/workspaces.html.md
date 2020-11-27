@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "State: Workspaces"
 sidebar_current: "docs-state-workspaces"
 description: |-

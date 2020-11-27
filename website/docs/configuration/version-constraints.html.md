@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Version Constraints - Configuration Language"
 ---
 
@@ -9,7 +9,7 @@ Anywhere that Terraform lets you specify a range of acceptable versions for
 something, it expects a specially formatted string known as a version
 constraint. Version constraints are used when configuring:
 
-- [Modules](./modules.html)
+- [Modules](/docs/configuration/blocks/modules/index.html)
 - [Provider requirements](./provider-requirements.html)
 - [The `required_version` setting](./terraform.html#specifying-a-required-terraform-version) in the `terraform` block.
 
@@ -22,7 +22,7 @@ other dependency management systems like Bundler and NPM.
 version = ">= 1.2.0, < 2.0.0"
 ```
 
-A version constraint is a [string literal](./expressions.html#string-literals)
+A version constraint is a [string literal](/docs/configuration/expressions/strings.html)
 containing one or more conditions, which are separated by commas.
 
 Each condition consists of an operator and a version number.
@@ -41,11 +41,10 @@ The following operators are valid:
   versions for which the comparison is true. "Greater-than" requests newer
   versions, and "less-than" requests older versions.
 
-- `~>`: Allows the specified version, plus newer versions that only
-  increase the _most specific_ segment of the specified version number. For
-  example, `~> 0.9` is equivalent to `>= 0.9, < 1.0`, and `~> 0.8.4`, is
-  equivalent to `>= 0.8.4, < 0.9`. This is usually called the pessimistic
-  constraint operator.
+- `~>`: Allows only the _rightmost_ version component to increment. For example,
+  to allow new patch releases within a specific minor release, use the full
+  version number: `~> 1.0.4` will allow installation of `1.0.5` and `1.0.10`
+  but not `1.1.0`. This is usually called the pessimistic constraint operator.
 
 ## Version Constraint Behavior
 

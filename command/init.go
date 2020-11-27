@@ -264,6 +264,7 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
+		c.ignoreRemoteBackendVersionConflict(back)
 		workspace, err := c.Workspace()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -1052,7 +1053,7 @@ Options:
 }
 
 func (c *InitCommand) Synopsis() string {
-	return "Initialize a Terraform working directory"
+	return "Prepare your working directory for other commands"
 }
 
 const errInitConfigError = `

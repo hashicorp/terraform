@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "setunion - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-setunion"
 description: |-

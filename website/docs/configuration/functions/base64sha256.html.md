@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "base64sha256 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-base64sha256"
 description: |-

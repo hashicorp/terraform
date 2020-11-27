@@ -33,54 +33,76 @@ The command-line flags are all optional. The list of available flags are:
 These examples assume the following Terraform output snippet.
 
 ```hcl
-output "lb_address" {
-  value = "${aws_alb.web.public_dns}"
+output "instance_ips" {
+  value = aws_instance.web.*.public_ip
 }
 
-output "instance_ips" {
-  value = ["${aws_instance.web.*.public_ip}"]
+output "lb_address" {
+  value = aws_alb.web.public_dns
 }
 
 output "password" {
   sensitive = true
-  value = ["${var.secret_password}"]
+  value = var.secret_password
 }
 ```
 
 To list all outputs:
 
-```shell
+```shellsession
 $ terraform output
+instance_ips = [
+  "54.43.114.12",
+  "52.122.13.4",
+  "52.4.116.53"
+]
+lb_address = "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
+password = <sensitive>
 ```
 
 Note that outputs with the `sensitive` attribute will be redacted:
-```shell
+
+```shellsession
 $ terraform output password
 password = <sensitive>
 ```
 
 To query for the DNS address of the load balancer:
 
-```shell
+```shellsession
 $ terraform output lb_address
-my-app-alb-1657023003.us-east-1.elb.amazonaws.com
+"my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 ```
 
 To query for all instance IP addresses:
 
-```shell
+```shellsession
 $ terraform output instance_ips
-test = [
-    54.43.114.12,
-    52.122.13.4,
-    52.4.116.53
+instance_ips = [
+  "54.43.114.12",
+  "52.122.13.4",
+  "52.4.116.53"
 ]
 ```
 
-To query for a particular value in a list, use `-json` and a JSON
-command-line parser such as [jq](https://stedolan.github.io/jq/).
-For example, to query for the first instance's IP address:
+## Use in automation
 
-```shell
-$ terraform output -json instance_ips | jq '.value[0]'
+The `terraform output` command by default displays in a human-readable format,
+which can change over time to improve clarity. For use in automation, use
+`-json` to output the stable JSON format. You can parse the output using a JSON
+command-line parser such as [jq](https://stedolan.github.io/jq/).
+
+For string outputs, you can remove quotes using `jq -r`:
+
+```shellsession
+$ terraform output -json lb_address | jq -r .
+my-app-alb-1657023003.us-east-1.elb.amazonaws.com
+```
+
+To query for a particular value in a list, use `jq` with an index filter. For
+example, to query for the first instance's IP address:
+
+```shellsession
+$ terraform output -json instance_ips | jq '.[0]'
+"54.43.114.12"
 ```

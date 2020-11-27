@@ -61,6 +61,9 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	env, err := c.Workspace()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -223,5 +226,5 @@ Options:
 }
 
 func (c *OutputCommand) Synopsis() string {
-	return "Read an output from a state file"
+	return "Show output values from your root module"
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeApplyableProvider represents a provider during an apply.
@@ -20,36 +21,37 @@ var (
 )
 
 // GraphNodeExecutable
-func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	_, err := ctx.InitProvider(n.Addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 	provider, _, err := GetProvider(ctx, n.Addr)
-	if err != nil {
-		return err
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	switch op {
 	case walkValidate:
-		return n.ValidateProvider(ctx, provider)
+		return diags.Append(n.ValidateProvider(ctx, provider))
 	case walkPlan, walkApply, walkDestroy:
-		return n.ConfigureProvider(ctx, provider, false)
+		return diags.Append(n.ConfigureProvider(ctx, provider, false))
 	case walkImport:
-		return n.ConfigureProvider(ctx, provider, true)
+		return diags.Append(n.ConfigureProvider(ctx, provider, true))
 	}
-	return nil
+	return diags
 }
 
-func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider providers.Interface) error {
-	var diags tfdiags.Diagnostics
+func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider providers.Interface) (diags tfdiags.Diagnostics) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.ProviderConfig())
 
 	resp := provider.GetSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	configSchema := resp.Provider.Block
@@ -63,24 +65,27 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
+	// If our config value contains any marked values, ensure those are
+	// stripped out before sending this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+
 	req := providers.PrepareProviderConfigRequest{
-		Config: configVal,
+		Config: unmarkedConfigVal,
 	}
 
 	validateResp := provider.PrepareProviderConfig(req)
 	diags = diags.Append(validateResp.Diagnostics)
 
-	return diags.ErrWithWarnings()
+	return diags
 }
 
 // ConfigureProvider configures a provider that is already initialized and retrieved.
 // If verifyConfigIsKnown is true, ConfigureProvider will return an error if the
 // provider configVal is not wholly known and is meant only for use during import.
-func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider providers.Interface, verifyConfigIsKnown bool) error {
-	var diags tfdiags.Diagnostics
+func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider providers.Interface, verifyConfigIsKnown bool) (diags tfdiags.Diagnostics) {
 	config := n.ProviderConfig()
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
@@ -88,14 +93,14 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	resp := provider.GetSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	configSchema := resp.Provider.Block
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	if verifyConfigIsKnown && !configVal.IsWhollyKnown() {
@@ -105,11 +110,36 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			Detail:   fmt.Sprintf("The configuration for %s depends on values that cannot be determined until apply.", n.Addr),
 			Subject:  &config.DeclRange,
 		})
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
-	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
-	configDiags = configDiags.InConfigBody(configBody)
+	// If our config value contains any marked values, ensure those are
+	// stripped out before sending this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 
-	return configDiags.ErrWithWarnings()
+	// Allow the provider to validate and insert any defaults into the full
+	// configuration.
+	req := providers.PrepareProviderConfigRequest{
+		Config: unmarkedConfigVal,
+	}
+
+	// PrepareProviderConfig is only used for validation. We are intentionally
+	// ignoring the PreparedConfig field to maintain existing behavior.
+	prepareResp := provider.PrepareProviderConfig(req)
+	diags = diags.Append(prepareResp.Diagnostics)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// If the provider returns something different, log a warning to help
+	// indicate to provider developers that the value is not used.
+	preparedCfg := prepareResp.PreparedConfig
+	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
+		log.Printf("[WARN] PrepareProviderConfig from %q changed the config value, but that value is unused", n.Addr)
+	}
+
+	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
+	diags = diags.Append(configDiags.InConfigBody(configBody))
+
+	return diags
 }

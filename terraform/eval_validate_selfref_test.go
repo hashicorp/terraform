@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
@@ -98,11 +97,7 @@ func TestEvalValidateSelfRef(t *testing.T) {
 				Config:         body,
 				ProviderSchema: &ps,
 			}
-			result, err := n.Eval(nil)
-			if result != nil {
-				t.Fatal("result should always be nil")
-			}
-			diags := tfdiags.Diagnostics(nil).Append(err)
+			diags := n.Eval(nil)
 			if diags.HasErrors() != test.Err {
 				if test.Err {
 					t.Errorf("unexpected success; want error")

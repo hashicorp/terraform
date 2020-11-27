@@ -23,9 +23,9 @@ func TestNodePlannableResourceExecute(t *testing.T) {
 			},
 			Addr: mustAbsResourceAddr("test_instance.foo"),
 		}
-		err := node.Execute(ctx, walkApply)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err.Error())
+		diags := node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
 		}
 		if !state.Empty() {
 			t.Fatalf("expected no state, got:\n %s", state.String())
@@ -48,9 +48,9 @@ func TestNodePlannableResourceExecute(t *testing.T) {
 			},
 			Addr: mustAbsResourceAddr("test_instance.foo"),
 		}
-		err := node.Execute(ctx, walkApply)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err.Error())
+		diags := node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
 		}
 		if state.Empty() {
 			t.Fatal("expected resources in state, got empty state")

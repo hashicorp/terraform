@@ -41,9 +41,9 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 		},
 	}
 
-	err := node.Execute(ctx, walkImport)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkImport)
+	if diags.HasErrors() {
+		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
 
 	if len(node.states) != 1 {
@@ -93,9 +93,9 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 			Module:   addrs.RootModule,
 		},
 	}
-	err := node.Execute(ctx, walkImport)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkImport)
+	if diags.HasErrors() {
+		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
 
 	// check for resource in state

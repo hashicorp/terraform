@@ -87,6 +87,9 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
@@ -190,5 +193,5 @@ Options:
 }
 
 func (c *GraphCommand) Synopsis() string {
-	return "Create a visual graph of Terraform resources"
+	return "Generate a Graphviz graph of the steps in an operation"
 }

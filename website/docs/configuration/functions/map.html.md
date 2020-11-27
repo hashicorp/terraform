@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "map - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-map"
 description: |-
@@ -12,35 +12,25 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
 
-~> **This function is deprecated.** From Terraform v0.12, the Terraform
-language has built-in syntax for creating maps using the `{` and `}`
-delimiters. Use the built-in syntax instead. The `map` function will be
-removed in a future version of Terraform.
+The `map` function is no longer available. Prior to Terraform v0.12 it was
+the only available syntax for writing a literal map inside an expression,
+but Terraform v0.12 introduced a new first-class syntax.
 
-`map` takes an even number of arguments and returns a map whose elements
-are constructed from consecutive pairs of arguments.
-
-## Examples
+To update an expression like `map("a", "b", "c", "d")`, write the following instead:
 
 ```
-> map("a", "b", "c", "d")
-{
-  "a" = "b"
-  "c" = "d"
-}
+tomap({
+  a = "b"
+  c = "d"
+})
 ```
 
-Do not use the above form in Terraform v0.12 or above. Instead, use the
-built-in map construction syntax, which achieves the same result:
-
-```
-> {"a" = "b", "c" = "d"}
-{
-  "a" = "b"
-  "c" = "d"
-}
-```
+The `{ ... }` braces construct an object value, and then the `tomap` function
+then converts it to a map. For more information on the value types in the
+Terraform language, see [Type Constraints](../types.html).
 
 ## Related Functions
 
-* [`tomap`](./tomap.html) performs a type conversion to a map type.
+* [`tomap`](./tomap.html) converts an object value to a map.
+* [`zipmap`](./zipmap.html) constructs a map dynamically, by taking keys from
+  one list and values from another list.

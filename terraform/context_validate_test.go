@@ -546,7 +546,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
-			diags.Append(errors.New("foo is not set"))
+			diags = diags.Append(errors.New("foo is not set"))
 		}
 		return providers.ValidateResourceTypeConfigResponse{
 			Diagnostics: diags,
@@ -810,7 +810,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	pr.ValidateProvisionerConfigFn = func(req provisioners.ValidateProvisionerConfigRequest) provisioners.ValidateProvisionerConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("test_string").IsNull() {
-			diags.Append(errors.New("test_string is not set"))
+			diags = diags.Append(errors.New("test_string is not set"))
 		}
 		return provisioners.ValidateProvisionerConfigResponse{
 			Diagnostics: diags,
@@ -943,7 +943,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
-			diags.Append(errors.New("foo is not set"))
+			diags = diags.Append(errors.New("foo is not set"))
 		}
 		return providers.ValidateResourceTypeConfigResponse{
 			Diagnostics: diags,
@@ -1131,6 +1131,71 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_varSensitive(t *testing.T) {
+	// Smoke test through validate where a variable has sensitive applied
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "foo" {
+  default = "xyz"
+  sensitive = true
+}
+
+variable "bar" {
+  sensitive = true
+}
+
+data "aws_data_source" "bar" {
+  foo = var.bar
+}
+
+resource "aws_instance" "foo" {
+  foo = var.foo
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		// Providers receive unmarked values
+		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
+			t.Fatalf("wrong value for foo\ngot:  %#v\nwant: %#v", got, want)
+		}
+		return providers.ValidateResourceTypeConfigResponse{}
+	}
+	p.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
+		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
+			t.Fatalf("wrong value for foo\ngot:  %#v\nwant: %#v", got, want)
+		}
+		return providers.ValidateDataSourceConfigResponse{}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"bar": &InputValue{
+				Value:      cty.StringVal("boop"),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ValidateResourceTypeConfigCalled {
+		t.Fatal("expected ValidateResourceTypeConfigFn to be called")
+	}
+
+	if !p.ValidateDataSourceConfigCalled {
+		t.Fatal("expected ValidateDataSourceConfigFn to be called")
+	}
+}
+
 // Manually validate using the new PlanGraphBuilder
 func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	fixture := contextFixtureApplyVars(t)
@@ -1246,6 +1311,46 @@ resource "aws_instance" "foo" {
 	// Should get this error:
 	// Unsupported attribute: This object does not have an attribute named "missing"
 	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Validate_invalidSensitiveModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+variable "foo" {
+  default = "xyz"
+  sensitive = true
+}
+
+output "out" {
+  value = var.foo
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "aws_instance" "foo" {
+  foo = module.child.out
+}`,
+	})
+
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	// Should get this error:
+	// Output refers to sensitive values: Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; strings.Index(got, want) == -1 {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1752,16 +1857,12 @@ output "out" {
 	}
 }
 
-func TestContext2Validate_invalidIgnoreChanges(t *testing.T) {
+func TestContext2Validate_rpcDiagnostics(t *testing.T) {
 	// validate module and output depends_on
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_instance" "a" {
-  lifecycle {
-    ignore_changes = [foo]
-  }
 }
-
 `,
 	})
 
@@ -1770,11 +1871,14 @@ resource "test_instance" "a" {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Computed: true},
-					"foo": {Type: cty.String, Computed: true, Optional: true},
+					"id": {Type: cty.String, Computed: true},
 				},
 			},
 		},
+	}
+
+	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't frobble")),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -1784,14 +1888,18 @@ resource "test_instance" "a" {
 		},
 	})
 	diags := ctx.Validate()
-	if !diags.HasErrors() {
-		t.Fatal("succeeded; want errors")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
 	}
 
 	for _, d := range diags {
 		des := d.Description().Summary
-		if !strings.Contains(des, "Cannot ignore") {
-			t.Fatalf(`expected "Invalid depends_on reference", got %q`, des)
+		if !strings.Contains(des, "frobble") {
+			t.Fatalf(`expected frobble, got %q`, des)
 		}
 	}
 }

@@ -1,5 +1,5 @@
 ---
-layout: "commands-state"
+layout: "docs"
 page_title: "Command: state"
 sidebar_current: "docs-commands-state-index"
 description: |-
@@ -46,9 +46,8 @@ if you don't want to keep them around.
 ## Command-Line Friendly
 
 The output and command-line structure of the state subcommands is
-designed to be easy to use with Unix command-line tools such as grep, awk,
-etc. Consequently, the output is also friendly to the equivalent PowerShell
-commands within Windows.
+designed to be usable with Unix command-line tools such as grep, awk,
+and similar PowerShell commands.
 
 For advanced filtering and modification, we recommend piping Terraform
 state subcommands together with other command line tools.

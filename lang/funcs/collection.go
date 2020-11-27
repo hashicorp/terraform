@@ -220,50 +220,6 @@ func flattener(flattenList cty.Value) ([]cty.Value, bool) {
 	return out, true
 }
 
-// ListFunc constructs a function that takes an arbitrary number of arguments
-// and returns a list containing those values in the same order.
-//
-// This function is deprecated in Terraform v0.12
-var ListFunc = function.New(&function.Spec{
-	Params: []function.Parameter{},
-	VarParam: &function.Parameter{
-		Name:             "vals",
-		Type:             cty.DynamicPseudoType,
-		AllowUnknown:     true,
-		AllowDynamicType: true,
-		AllowNull:        true,
-	},
-	Type: func(args []cty.Value) (ret cty.Type, err error) {
-		if len(args) == 0 {
-			return cty.NilType, errors.New("at least one argument is required")
-		}
-
-		argTypes := make([]cty.Type, len(args))
-
-		for i, arg := range args {
-			argTypes[i] = arg.Type()
-		}
-
-		retType, _ := convert.UnifyUnsafe(argTypes)
-		if retType == cty.NilType {
-			return cty.NilType, errors.New("all arguments must have the same type")
-		}
-
-		return cty.List(retType), nil
-	},
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		newList := make([]cty.Value, 0, len(args))
-
-		for _, arg := range args {
-			// We already know this will succeed because of the checks in our Type func above
-			arg, _ = convert.Convert(arg, retType.ElementType())
-			newList = append(newList, arg)
-		}
-
-		return cty.ListVal(newList), nil
-	},
-})
-
 // LookupFunc constructs a function that performs dynamic lookups of map types.
 var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -351,81 +307,6 @@ var LookupFunc = function.New(&function.Spec{
 
 		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
 			"lookup failed to find '%s'", lookupKey)
-	},
-})
-
-// MapFunc constructs a function that takes an even number of arguments and
-// returns a map whose elements are constructed from consecutive pairs of arguments.
-//
-// This function is deprecated in Terraform v0.12
-var MapFunc = function.New(&function.Spec{
-	Params: []function.Parameter{},
-	VarParam: &function.Parameter{
-		Name:             "vals",
-		Type:             cty.DynamicPseudoType,
-		AllowUnknown:     true,
-		AllowDynamicType: true,
-		AllowNull:        true,
-	},
-	Type: func(args []cty.Value) (ret cty.Type, err error) {
-		if len(args) < 2 || len(args)%2 != 0 {
-			return cty.NilType, fmt.Errorf("map requires an even number of two or more arguments, got %d", len(args))
-		}
-
-		argTypes := make([]cty.Type, len(args)/2)
-		index := 0
-
-		for i := 0; i < len(args); i += 2 {
-			argTypes[index] = args[i+1].Type()
-			index++
-		}
-
-		valType, _ := convert.UnifyUnsafe(argTypes)
-		if valType == cty.NilType {
-			return cty.NilType, errors.New("all arguments must have the same type")
-		}
-
-		return cty.Map(valType), nil
-	},
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		for _, arg := range args {
-			if !arg.IsWhollyKnown() {
-				return cty.UnknownVal(retType), nil
-			}
-		}
-
-		outputMap := make(map[string]cty.Value)
-
-		for i := 0; i < len(args); i += 2 {
-
-			keyVal, err := convert.Convert(args[i], cty.String)
-			if err != nil {
-				return cty.NilVal, err
-			}
-			if keyVal.IsNull() {
-				return cty.NilVal, fmt.Errorf("argument %d is a null key", i+1)
-			}
-			key := keyVal.AsString()
-
-			val := args[i+1]
-
-			var variable cty.Value
-			err = gocty.FromCtyValue(val, &variable)
-			if err != nil {
-				return cty.NilVal, err
-			}
-
-			// We already know this will succeed because of the checks in our Type func above
-			variable, _ = convert.Convert(variable, retType.ElementType())
-
-			// Check for duplicate keys
-			if _, ok := outputMap[key]; ok {
-				return cty.NilVal, fmt.Errorf("argument %d is a duplicate key: %q", i+1, key)
-			}
-			outputMap[key] = variable
-		}
-
-		return cty.MapVal(outputMap), nil
 	},
 })
 
@@ -611,6 +492,48 @@ var TransposeFunc = function.New(&function.Spec{
 		}
 
 		return cty.MapVal(outputMap), nil
+	},
+})
+
+// ListFunc constructs a function that takes an arbitrary number of arguments
+// and returns a list containing those values in the same order.
+//
+// This function is deprecated in Terraform v0.12
+var ListFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		return cty.DynamicPseudoType, fmt.Errorf("the \"list\" function was deprecated in Terraform v0.12 and is no longer available; use tolist([ ... ]) syntax to write a literal list")
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		return cty.DynamicVal, fmt.Errorf("the \"list\" function was deprecated in Terraform v0.12 and is no longer available; use tolist([ ... ]) syntax to write a literal list")
+	},
+})
+
+// MapFunc constructs a function that takes an even number of arguments and
+// returns a map whose elements are constructed from consecutive pairs of arguments.
+//
+// This function is deprecated in Terraform v0.12
+var MapFunc = function.New(&function.Spec{
+	Params: []function.Parameter{},
+	VarParam: &function.Parameter{
+		Name:             "vals",
+		Type:             cty.DynamicPseudoType,
+		AllowUnknown:     true,
+		AllowDynamicType: true,
+		AllowNull:        true,
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		return cty.DynamicPseudoType, fmt.Errorf("the \"map\" function was deprecated in Terraform v0.12 and is no longer available; use tomap({ ... }) syntax to write a literal map")
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		return cty.DynamicVal, fmt.Errorf("the \"map\" function was deprecated in Terraform v0.12 and is no longer available; use tomap({ ... }) syntax to write a literal map")
 	},
 })
 

@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "filesha1 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-crypto-filesha1"
 description: |-

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -19,11 +20,13 @@ type VersionCommand struct {
 	Version           string
 	VersionPrerelease string
 	CheckFunc         VersionCheckFunc
+	Platform          getproviders.Platform
 }
 
 type VersionOutput struct {
 	Version            string            `json:"terraform_version"`
 	Revision           string            `json:"terraform_revision"`
+	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
 }
@@ -137,6 +140,7 @@ func (c *VersionCommand) Run(args []string) int {
 		output := VersionOutput{
 			Version:            versionOutput,
 			Revision:           c.Revision,
+			Platform:           c.Platform.String(),
 			ProviderSelections: selectionsOutput,
 			Outdated:           outdated,
 		}
@@ -150,6 +154,8 @@ func (c *VersionCommand) Run(args []string) int {
 		return 0
 	} else {
 		c.Ui.Output(versionString.String())
+		c.Ui.Output(fmt.Sprintf("on %s", c.Platform))
+
 		if len(providerVersions) != 0 {
 			sort.Strings(providerVersions)
 			for _, str := range providerVersions {
@@ -169,5 +175,5 @@ func (c *VersionCommand) Run(args []string) int {
 }
 
 func (c *VersionCommand) Synopsis() string {
-	return "Prints the Terraform version"
+	return "Show the current Terraform version"
 }

@@ -1734,8 +1734,16 @@ func TestContext2Apply_cancel(t *testing.T) {
 	}()
 
 	state := <-stateCh
-	if applyDiags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", applyDiags.Err())
+	// only expecting an early exit error
+	if !applyDiags.HasErrors() {
+		t.Fatal("expected early exit error")
+	}
+
+	for _, d := range applyDiags {
+		desc := d.Description()
+		if desc.Summary != "execution halted" {
+			t.Fatalf("unexpected error: %v", applyDiags.Err())
+		}
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -1812,8 +1820,16 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 
 	// Wait for apply to complete
 	state := <-stateCh
-	if applyDiags.HasErrors() {
-		t.Fatalf("unexpected error: %s", applyDiags.Err())
+	// only expecting an early exit error
+	if !applyDiags.HasErrors() {
+		t.Fatal("expected early exit error")
+	}
+
+	for _, d := range applyDiags {
+		desc := d.Description()
+		if desc.Summary != "execution halted" {
+			t.Fatalf("unexpected error: %v", applyDiags.Err())
+		}
 	}
 
 	checkStateString(t, state, `
@@ -1882,7 +1898,18 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 
 	// Wait for completion
 	state := <-stateCh
-	assertNoErrors(t, applyDiags)
+
+	// we are expecting only an early exit error
+	if !applyDiags.HasErrors() {
+		t.Fatal("expected early exit error")
+	}
+
+	for _, d := range applyDiags {
+		desc := d.Description()
+		if desc.Summary != "execution halted" {
+			t.Fatalf("unexpected error: %v", applyDiags.Err())
+		}
+	}
 
 	checkStateString(t, state, `
 aws_instance.foo: (tainted)
@@ -11869,6 +11896,60 @@ variable "sensitive_map" {
 
 resource "test_resource" "foo" {
 	value = var.sensitive_map.x
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("plan errors: %s", diags.Err())
+	}
+
+	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
+		if len(pvms) != 1 {
+			t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
+		}
+		pvm := pvms[0]
+		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
+			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
+		}
+		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
+		}
+	}
+
+	addr := mustResourceInstanceAddr("test_resource.foo")
+	fooChangeSrc := plan.Changes.ResourceInstance(addr)
+	verifySensitiveValue(fooChangeSrc.AfterValMarks)
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatalf("apply errors: %s", diags.Err())
+	}
+
+	fooState := state.ResourceInstance(addr)
+	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
+}
+
+func TestContext2Apply_variableSensitivityProviders(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+	experiments = [provider_sensitive_attrs]
+}
+
+resource "test_resource" "foo" {
 	sensitive_value = "should get marked"
 }
 
@@ -11917,10 +11998,6 @@ resource "test_resource" "baz" {
 		}
 	}
 
-	addr := mustResourceInstanceAddr("test_resource.foo")
-	fooChangeSrc := plan.Changes.ResourceInstance(addr)
-	verifySensitiveValue(fooChangeSrc.AfterValMarks)
-
 	// Sensitive attributes (defined by the provider) are marked
 	// as sensitive when referenced from another resource
 	// "bar" references sensitive resources in "foo"
@@ -11936,9 +12013,6 @@ resource "test_resource" "baz" {
 	if diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
-
-	fooState := state.ResourceInstance(addr)
-	verifySensitiveValue(fooState.Current.AttrSensitivePaths)
 
 	barState := state.ResourceInstance(barAddr)
 	verifySensitiveValue(barState.Current.AttrSensitivePaths)
@@ -12201,5 +12275,59 @@ resource "test_resource" "foo" {
 	inst := state.ResourceInstance(mustResourceInstanceAddr("test_resource.foo"))
 	if inst == nil {
 		t.Fatal("missing 'test_resource.foo' in state:", state)
+	}
+}
+
+func TestContext2Apply_rpcDiagnostics(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp = testApplyFn(req)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("don't frobble"))
+		return resp
+	}
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if len(diags) == 0 {
+		t.Fatal("expected warnings")
+	}
+
+	for _, d := range diags {
+		des := d.Description().Summary
+		if !strings.Contains(des, "frobble") {
+			t.Fatalf(`expected frobble, got %q`, des)
+		}
 	}
 }

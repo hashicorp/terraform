@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Syntax - Configuration Language"
 sidebar_current: "docs-config-syntax"
 description: |-
@@ -20,8 +20,8 @@ syntax of the language in more detail, revealing the building blocks that
 those constructs are built from.
 
 This page describes the _native syntax_ of the Terraform language, which is
-a rich language designed to be easy for humans to read and write. The
-constructs in the Terraform language can also be expressed in
+a rich language designed to be relatively easy for humans to read and write.
+The constructs in the Terraform language can also be expressed in
 [JSON syntax](./syntax-json.html), which is harder for humans
 to read and edit but easier to generate and parse programmatically.
 
@@ -53,7 +53,7 @@ after the equals sign is the argument's value.
 The context where the argument appears determines what value types are valid
 (for example, each resource type has a schema that defines the types of its
 arguments), but many arguments accept arbitrary
-[expressions](./expressions.html), which allow the value to
+[expressions](/docs/configuration/expressions/index.html), which allow the value to
 either be specified literally or generated from other values programmatically.
 
 -> **Note:** Terraform's configuration language is based on a more general

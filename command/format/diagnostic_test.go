@@ -1,14 +1,227 @@
 package format
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/tfdiags"
 )
+
+func TestDiagnostic(t *testing.T) {
+
+	tests := map[string]struct {
+		Diag interface{}
+		Want string
+	}{
+		"sourceless error": {
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"A sourceless error",
+				"It has no source references but it does have a pretty long detail that should wrap over multiple lines.",
+			),
+			`
+[bold][red]Error: [reset][bold]A sourceless error[reset]
+
+It has no source references but it does
+have a pretty long detail that should
+wrap over multiple lines.
+`,
+		},
+		"sourceless warning": {
+			tfdiags.Sourceless(
+				tfdiags.Warning,
+				"A sourceless warning",
+				"It has no source references but it does have a pretty long detail that should wrap over multiple lines.",
+			),
+			`
+[bold][yellow]Warning: [reset][bold]A sourceless warning[reset]
+
+It has no source references but it does
+have a pretty long detail that should
+wrap over multiple lines.
+`,
+		},
+		"error with source code subject": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+			},
+			`
+[bold][red]Error: [reset][bold]Bad bad bad[reset]
+
+  on test.tf line 1:
+   1: test [underline]source[reset] code
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and known expression": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.StringVal("blah"),
+						}),
+					},
+				},
+			},
+			`
+[bold][red]Error: [reset][bold]Bad bad bad[reset]
+
+  on test.tf line 1:
+   1: test [underline]source[reset] code
+    [dark_gray]|----------------[reset]
+    [dark_gray]|[reset] [bold]boop.beep[reset] is "blah"
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and expression referring to sensitive value": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.StringVal("blah").Mark("sensitive"),
+						}),
+					},
+				},
+			},
+			`
+[bold][red]Error: [reset][bold]Bad bad bad[reset]
+
+  on test.tf line 1:
+   1: test [underline]source[reset] code
+    [dark_gray]|----------------[reset]
+    [dark_gray]|[reset] [bold]boop.beep[reset] has a sensitive value
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and unknown string expression": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.UnknownVal(cty.String),
+						}),
+					},
+				},
+			},
+			`
+[bold][red]Error: [reset][bold]Bad bad bad[reset]
+
+  on test.tf line 1:
+   1: test [underline]source[reset] code
+    [dark_gray]|----------------[reset]
+    [dark_gray]|[reset] [bold]boop.beep[reset] is a string, known only after apply
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and unknown expression of unknown type": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.UnknownVal(cty.DynamicPseudoType),
+						}),
+					},
+				},
+			},
+			`
+[bold][red]Error: [reset][bold]Bad bad bad[reset]
+
+  on test.tf line 1:
+   1: test [underline]source[reset] code
+    [dark_gray]|----------------[reset]
+    [dark_gray]|[reset] [bold]boop.beep[reset] will be known only after apply
+
+Whatever shall we do?
+`,
+		},
+	}
+
+	sources := map[string][]byte{
+		"test.tf": []byte(`test source code`),
+	}
+
+	// This empty Colorize just passes through all of the formatting codes
+	// untouched, because it doesn't define any formatting keywords.
+	colorize := &colorstring.Colorize{}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(test.Diag) // to normalize it into a tfdiag.Diagnostic
+			diag := diags[0]
+			got := strings.TrimSpace(Diagnostic(diag, sources, colorize, 40))
+			want := strings.TrimSpace(test.Want)
+			if got != want {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+			}
+		})
+	}
+}
 
 func TestDiagnosticWarningsCompact(t *testing.T) {
 	var diags tfdiags.Diagnostics
