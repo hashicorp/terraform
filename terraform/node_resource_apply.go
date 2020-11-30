@@ -43,10 +43,7 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
-	var resources []addrs.AbsResource
 	for _, module := range moduleInstances {
-		resAddr := n.Addr.Resource.Absolute(module)
-		resources = append(resources, resAddr)
 		g.Add(&NodeApplyableResource{
 			NodeAbstractResource: n.NodeAbstractResource,
 			Addr:                 n.Addr.Resource.Absolute(module),

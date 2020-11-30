@@ -73,13 +73,11 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	var g Graph
 
 	expander := ctx.InstanceExpander()
-	var resources []addrs.AbsResource
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
 	// Add the current expanded resource to the graph
 	for _, module := range moduleInstances {
 		resAddr := n.Addr.Resource.Absolute(module)
-		resources = append(resources, resAddr)
 		g.Add(&NodePlannableResource{
 			NodeAbstractResource:     n.NodeAbstractResource,
 			Addr:                     resAddr,
@@ -170,11 +168,6 @@ func (n *NodePlannableResource) Path() addrs.ModuleInstance {
 
 func (n *NodePlannableResource) Name() string {
 	return n.Addr.String()
-}
-
-// GraphNodeModuleInstance
-func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
-	return n.Addr.Module
 }
 
 // GraphNodeExecutable

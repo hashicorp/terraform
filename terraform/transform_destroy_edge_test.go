@@ -274,14 +274,6 @@ test_object.A (destroy)
 test_object.B (destroy)
 `
 
-const testTransformDestroyEdgeCreatorStr = `
-test_object.A
-  test_object.A (destroy)
-test_object.A (destroy)
-  test_object.B (destroy)
-test_object.B (destroy)
-`
-
 const testTransformDestroyEdgeMultiStr = `
 test_object.A (destroy)
   test_object.B (destroy)
