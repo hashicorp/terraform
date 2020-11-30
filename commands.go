@@ -46,11 +46,6 @@ var HiddenCommands map[string]struct{}
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
 
-const (
-	ErrorPrefix  = "e:"
-	OutputPrefix = "o:"
-)
-
 func initCommands(
 	originalWorkingDir string,
 	config *cliconfig.Config,
