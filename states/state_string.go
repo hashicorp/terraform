@@ -197,7 +197,7 @@ func (ms *Module) testString() string {
 		}
 
 		if obj := is.Current; obj != nil && len(obj.Dependencies) > 0 {
-			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			buf.WriteString("\n  Dependencies:\n")
 			for _, dep := range obj.Dependencies {
 				buf.WriteString(fmt.Sprintf("    %s\n", dep.String()))
 			}
