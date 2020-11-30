@@ -26,7 +26,7 @@ ENHANCEMENTS:
 * config: New functions `textencodebase64` and `textdecodebase64` for encoding text in various character encodings other than UTF-8. ([#25470](https://github.com/hashicorp/terraform/issues/25470))
 * `terraform plan` and `terraform apply`: Added an experimental concise diff renderer. By default, Terraform plans now hide most unchanged fields, only displaying the most relevant changes and some identifying context. This experiment can be disabled by setting a `TF_X_CONCISE_DIFF` environment variable to `0`. ([#26187](https://github.com/hashicorp/terraform/issues/26187))
 * config: `ignore_changes` can now apply to map keys that are not listed in the configuration ([#26421](https://github.com/hashicorp/terraform/issues/26421))
-* `terraform console`: Now has distinct rendering of lists, sets, and tuples, and correctly renders objects with `null` attribute values. ([#26189](https://github.com/hashicorp/terraform/issues/26189))
+* `terraform console`: Now has distinct rendering of lists, sets, and tuples, and correctly renders objects with `null` attribute values. Multi-line strings are rendered using the "heredoc" syntax. ([#26189](https://github.com/hashicorp/terraform/issues/26189), [#27054](https://github.com/hashicorp/terraform/issues/27054))
 * `terraform login`: Added support for OAuth2 application scopes. ([#26239](https://github.com/hashicorp/terraform/issues/26239))
 * `terraform fmt`: Will now do some slightly more opinionated normalization behaviors, using the documented idiomatic syntax. ([#26390](https://github.com/hashicorp/terraform/issues/26390))
 * `terraform init`'s provider installation step will now abort promptly if Terraform receives an interrupt signal. ([#26405](https://github.com/hashicorp/terraform/issues/26405))
