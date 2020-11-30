@@ -4389,7 +4389,6 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	var expectedState []string
 	for i := 0; i < 13; i++ {
 		key := fmt.Sprintf("aws_instance.foo[%d]", i)
 		id := fmt.Sprintf("i-abc%d", i)
@@ -4403,7 +4402,6 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 			},
 			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		)
-		expectedState = append(expectedState, fmt.Sprintf("%s:\n  ID = %s\n", key, id))
 	}
 
 	ctx := testContext2(t, &ContextOpts{

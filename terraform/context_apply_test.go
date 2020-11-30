@@ -5700,7 +5700,7 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	state, diags = ctx.Apply()
+	_, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -8049,7 +8049,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 	}
 
 	h.Active = true
-	state, diags := ctx.Apply()
+	_, diags := ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -8141,7 +8141,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan()
+	_, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
@@ -8162,7 +8162,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		},
 	})
 
-	plan, diags = ctx.Plan()
+	plan, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}

@@ -1054,18 +1054,6 @@ func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
 	}
 }
 
-const testContextGraph = `
-root: root
-aws_instance.bar
-  aws_instance.bar -> provider.aws
-aws_instance.foo
-  aws_instance.foo -> provider.aws
-provider.aws
-root
-  root -> aws_instance.bar
-  root -> aws_instance.foo
-`
-
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)
   ID = bar

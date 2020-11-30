@@ -38,12 +38,6 @@ func TestMain(m *testing.M) {
 	experiment.Flag(flag.CommandLine)
 	flag.Parse()
 
-	// Make sure shadow operations fail our real tests
-	contextFailOnShadowError = true
-
-	// Always DeepCopy the Diff on every Plan during a test
-	contextTestDeepCopyOnPlan = true
-
 	// We have fmt.Stringer implementations on lots of objects that hide
 	// details that we very often want to see in tests, so we just disable
 	// spew's use of String methods globally on the assumption that spew
