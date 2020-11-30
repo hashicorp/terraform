@@ -62,7 +62,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	// to "install" them. This test is mimicking the a happy path of going
 	// directly from "go build" to validate/plan/apply without interacting
 	// with any registries, mirrors, lock files, etc.
-	stdout, stderr, err = tf.Run("validate")
+	stdout, _, err = tf.Run("validate")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n%s", err, stderr)
 	}
@@ -70,7 +70,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	if got, want := stdout, `The configuration is valid, but`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the success message\nwant: %s\n%s", want, got)
 	}
-	if got, want := stderr, `Provider development overrides are in effect`; !strings.Contains(got, want) {
+	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
 }

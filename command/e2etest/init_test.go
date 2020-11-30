@@ -373,13 +373,13 @@ func TestInitProviderWarnings(t *testing.T) {
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
-	_, stderr, err := tf.Run("init")
+	stdout, _, err := tf.Run("init")
 	if err == nil {
 		t.Fatal("expected error, got success")
 	}
 
-	if !strings.Contains(stderr, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
-		t.Errorf("expected warning message is missing from output:\n%s", stderr)
+	if !strings.Contains(stdout, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
+		t.Errorf("expected warning message is missing from output:\n%s", stdout)
 	}
 
 }
