@@ -57,9 +57,6 @@ type evalReadData struct {
 	// determine if there are any changes that will force this data sources to
 	// be deferred to apply.
 	dependsOn []addrs.ConfigResource
-	// forceDependsOn indicates that resources may be missing from dependsOn,
-	// but the parent module may have depends_on configured.
-	forceDependsOn bool
 }
 
 // readDataSource handles everything needed to call ReadDataSource on the provider.
