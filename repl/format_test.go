@@ -58,7 +58,28 @@ func TestFormatValue(t *testing.T) {
 		},
 		{
 			cty.StringVal("hello\nworld"),
-			`"hello\nworld"`, // Ideally we'd use heredoc syntax here for better readability, but we don't yet
+			`<<EOT
+hello
+world
+EOT`,
+		},
+		{
+			cty.StringVal("EOR\nEOS\nEOT\nEOU"),
+			`<<EOT_
+EOR
+EOS
+EOT
+EOU
+EOT_`,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("boop\nbeep")}),
+			`{
+  "foo" = <<-EOT
+  boop
+  beep
+  EOT
+}`,
 		},
 		{
 			cty.Zero,
