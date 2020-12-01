@@ -5,6 +5,8 @@ page_title: "References to Values - Configuration Language"
 
 # References to Named Values
 
+> **Hands-on:** Try the [Create Dynamic Expressions](https://learn.hashicorp.com/tutorials/terraform/expressions?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 Terraform makes several kinds of named values available. Each of these names is
 an expression that references the associated value; you can use them as
 standalone expressions, or combine them with other expressions to compute new
