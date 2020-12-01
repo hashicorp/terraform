@@ -5,6 +5,8 @@ page_title: "Function Calls - Configuration Language"
 
 # Function Calls
 
+> **Hands-on:** Try the [Perform Dynamic Operations with Functions](https://learn.hashicorp.com/tutorials/terraform/functions?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 The Terraform language has a number of
 [built-in functions](/docs/configuration/functions.html) that can be used
 in expressions to transform and combine values. These
