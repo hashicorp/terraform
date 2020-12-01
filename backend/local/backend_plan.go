@@ -354,9 +354,3 @@ This means that Terraform did not detect any differences between your
 configuration and real physical resources that exist. As a result, no
 actions need to be performed.
 `
-
-const planRefreshing = `
-[reset][bold]Refreshing Terraform state in-memory prior to plan...[reset]
-The refreshed state will be used to calculate this plan, but will not be
-persisted to local or remote state storage.
-`
