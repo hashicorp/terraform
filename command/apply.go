@@ -70,7 +70,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 	if c.Destroy && planFile != nil {
-		c.Ui.Error(fmt.Sprintf("Destroy can't be called with a plan file."))
+		c.Ui.Error("Destroy can't be called with a plan file.")
 		return 1
 	}
 	if planFile != nil {
@@ -118,7 +118,7 @@ func (c *ApplyCommand) Run(args []string) int {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to read plan from plan file",
-				fmt.Sprintf("The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file."),
+				"The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file.",
 			))
 			c.showDiagnostics(diags)
 			return 1
@@ -335,7 +335,7 @@ func outputsAsString(state *states.State, modPath addrs.ModuleInstance, includeH
 		// Output the outputs in alphabetical order
 		keyLen := 0
 		ks := make([]string, 0, len(outputs))
-		for key, _ := range outputs {
+		for key := range outputs {
 			ks = append(ks, key)
 			if len(key) > keyLen {
 				keyLen = len(key)
