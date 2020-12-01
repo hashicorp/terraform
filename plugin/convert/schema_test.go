@@ -353,8 +353,8 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			converted := ConfigSchemaToProto(tc.Block)
-			if !cmp.Equal(converted, tc.Want, typeComparer, equateEmpty) {
-				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, equateEmpty))
+			if !cmp.Equal(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported) {
+				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported))
 			}
 		})
 	}
