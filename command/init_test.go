@@ -844,7 +844,7 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	args := []string{"-input=false", "-backend-config=path=foo"}
-	if code := c.Run([]string{"-input=false"}); code != 0 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
 
@@ -975,7 +975,7 @@ func TestInit_getProvider(t *testing.T) {
 			Version:          999,
 			Lineage:          "123-456-789",
 			TerraformVersion: "999.0.0",
-			Outputs:          make(map[string]interface{}, 0),
+			Outputs:          make(map[string]interface{}),
 			Resources:        make([]map[string]interface{}, 0),
 		}
 		src, err := json.MarshalIndent(fs, "", "  ")
@@ -984,6 +984,9 @@ func TestInit_getProvider(t *testing.T) {
 		}
 		src = append(src, '\n')
 		_, err = f.Write(src)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ui := new(cli.MockUi)
 		m.Ui = ui

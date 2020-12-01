@@ -1240,12 +1240,3 @@ const successBackendSet = `
 Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.
 `
-
-const errBackendLegacy = `
-This working directory is configured to use the legacy remote state features
-from Terraform 0.8 or earlier. Remote state changed significantly in Terraform
-0.9 and the automatic upgrade mechanism has now been removed.
-
-To upgrade, please first use Terraform v0.11 to complete the upgrade steps:
-    https://www.terraform.io/docs/backends/legacy-0-8.html
-`

@@ -967,15 +967,3 @@ test_instance.foo:
   ID = yay
   provider = provider["registry.terraform.io/hashicorp/test"]
 `
-
-const testImportCustomProviderStr = `
-test_instance.foo:
-  ID = yay
-  provider = provider["registry.terraform.io/hashicorp/test"].alias
-`
-
-const testImportProviderMismatchStr = `
-test_instance.foo:
-  ID = yay
-  provider = provider["registry.terraform.io/hashicorp/test-beta"]
-`
