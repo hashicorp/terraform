@@ -55,7 +55,6 @@ type Communicator struct {
 	client          *ssh.Client
 	config          *sshConfig
 	conn            net.Conn
-	address         string
 	cancelKeepAlive context.CancelFunc
 
 	lock sync.Mutex
