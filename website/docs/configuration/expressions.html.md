@@ -23,6 +23,10 @@ Terraform's types are `string`, `number`, `bool`, `list`, `tuple`, `map`,
 This information has moved to
 [Types and Values](/docs/configuration/expressions/types.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="references-to-named-values"></a>
 <a id="local-named-values"></a>
 <a id="named-values-and-dependencies"></a>
@@ -38,6 +42,10 @@ You can refer to certain values by name, like `var.some_variable` or
 This information has moved to
 [References to Values](/docs/configuration/expressions/references.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="arithmetic-operators"></a>
 <a id="equality-operators"></a>
 <a id="comparison-operators"></a>
@@ -51,6 +59,10 @@ numbers (`+`) or comparing two values to get a bool (`==`, `>=`, etc.).
 This information has moved to
 [Operators](/docs/configuration/expressions/references.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 ## Conditional Expressions
 
 The `condition ? true_val : false_val` expression chooses between two
@@ -58,6 +70,10 @@ expressions based on a bool condition.
 
 This information has moved to
 [Conditional Expressions](/docs/configuration/expressions/conditionals.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
 
 <a id="expanding-function-arguments"></a>
 <a id="available-functions"></a>
@@ -69,6 +85,10 @@ Terraform's functions can be called like `function_name(arg1, arg2)`.
 This information has moved to
 [Function Calls](/docs/configuration/expressions/function-calls.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="for-expressions"></a>
 
 ## `for` Expressions
@@ -78,6 +98,10 @@ value into another complex type value.
 
 This information has moved to
 [For Expressions](/docs/configuration/expressions/for.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
 
 <a id="splat-expressions"></a>
 <a id="legacy-attribute-only-splat-expressions"></a>
@@ -90,6 +114,10 @@ collections.
 This information has moved to
 [Splat Expressions](/docs/configuration/expressions/splat.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="dynamic-blocks"></a>
 <a id="best-practices-for-dynamic-blocks"></a>
 
@@ -100,6 +128,10 @@ except it creates multiple repeatable nested blocks instead of a complex value.
 
 This information has moved to
 [Dynamic Blocks](/docs/configuration/expressions/dynamic-blocks.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
 
 <a id="string-literals"></a>
 <a id="string-templates"></a>
@@ -121,3 +153,5 @@ Strings can also include escape sequences like `\n`, interpolation sequences
 
 This information has moved to
 [Strings and Templates](/docs/configuration/expressions/strings.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
