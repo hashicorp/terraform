@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -10,10 +9,10 @@ type ZeroTwelveUpgradeCommand struct {
 }
 
 func (c *ZeroTwelveUpgradeCommand) Run(args []string) int {
-	c.Ui.Output(fmt.Sprintf(`
+	c.Ui.Output(`
 The 0.12upgrade command has been removed. You must run this command with
 Terraform v0.12 to upgrade your configuration syntax before upgrading to the
-current version.`))
+current version.`)
 	return 0
 }
 
