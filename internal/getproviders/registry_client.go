@@ -261,7 +261,7 @@ func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provide
 				match = true
 			}
 		}
-		if match == false {
+		if !match {
 			// If the protocol version is not supported, try to find the closest
 			// matching version.
 			closest, err := c.findClosestProtocolCompatibleVersion(ctx, provider, version)
