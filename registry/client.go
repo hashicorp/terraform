@@ -65,10 +65,6 @@ type Client struct {
 	// services is a required *disco.Disco, which may have services and
 	// credentials pre-loaded.
 	services *disco.Disco
-
-	// retry is the number of retries the client will attempt for each request
-	// if it runs into a transient failure with the remote registry.
-	retry int
 }
 
 // NewClient returns a new initialized registry client.
