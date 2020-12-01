@@ -67,12 +67,11 @@ func TestLockWithContext(t *testing.T) {
 
 	// unlock the state during LockWithContext
 	unlocked := make(chan struct{})
+	var unlockErr error
 	go func() {
 		defer close(unlocked)
 		<-attempted
-		if err := s.Unlock(id); err != nil {
-			t.Fatal(err)
-		}
+		unlockErr = s.Unlock(id)
 	}()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
@@ -85,6 +84,9 @@ func TestLockWithContext(t *testing.T) {
 
 	// ensure the goruotine completes
 	<-unlocked
+	if unlockErr != nil {
+		t.Fatal(unlockErr)
+	}
 }
 
 func TestMain(m *testing.M) {
