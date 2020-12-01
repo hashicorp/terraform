@@ -1273,7 +1273,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Unsupported attribute: This object does not have an attribute named "missing"
-	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Unsupported attribute"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1310,7 +1310,7 @@ resource "aws_instance" "foo" {
 	}
 	// Should get this error:
 	// Unsupported attribute: This object does not have an attribute named "missing"
-	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Unsupported attribute"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1350,7 +1350,7 @@ resource "aws_instance" "foo" {
 	}
 	// Should get this error:
 	// Output refers to sensitive values: Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.
-	if got, want := diags.Err().Error(), "Output refers to sensitive values"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1379,7 +1379,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Invalid resource count attribute: The special "count" attribute is no longer supported after Terraform v0.12. Instead, use length(aws_instance.test) to count resource instances.
-	if got, want := diags.Err().Error(), "Invalid resource count attribute:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Invalid resource count attribute:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1410,7 +1410,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), "Reference to undeclared module:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Reference to undeclared module:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1441,7 +1441,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), "Reference to undeclared module:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Reference to undeclared module:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1471,7 +1471,7 @@ resource "test_instance" "bar" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), "Reference to undeclared resource:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Reference to undeclared resource:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1504,7 +1504,7 @@ resource "test_instance" "bar" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), `no argument, nested block, or exported attribute named "does_not_exist_in_schema"`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `no argument, nested block, or exported attribute named "does_not_exist_in_schema"`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1527,7 +1527,7 @@ func TestContext2Validate_variableCustomValidationsFail(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
-	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1660,7 +1660,7 @@ resource "aws_instance" "foo" {
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
-	if got, want := diags.Err().Error(), `Invalid count argument`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `Invalid count argument`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1692,7 +1692,7 @@ resource "aws_instance" "foo" {
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
-	if got, want := diags.Err().Error(), `Invalid for_each argument`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `Invalid for_each argument`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
