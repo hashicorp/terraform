@@ -8,10 +8,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -51,8 +49,6 @@ type testMod struct {
 // Only one version for now, as we only lookup latest from the registry.
 type testProvider struct {
 	version string
-	os      string
-	arch    string
 	url     string
 }
 
@@ -135,20 +131,6 @@ func init() {
 	}
 }
 
-func latestVersion(versions []string) string {
-	var col version.Collection
-	for _, v := range versions {
-		ver, err := version.NewVersion(v)
-		if err != nil {
-			panic(err)
-		}
-		col = append(col, ver)
-	}
-
-	sort.Sort(col)
-	return col[len(col)-1].String()
-}
-
 func mockRegHandler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -188,7 +170,6 @@ func mockRegHandler() http.Handler {
 		w.Header().Set("X-Terraform-Get", location)
 		w.WriteHeader(http.StatusNoContent)
 		// no body
-		return
 	}
 
 	moduleVersions := func(w http.ResponseWriter, r *http.Request) {
