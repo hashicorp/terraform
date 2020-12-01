@@ -217,6 +217,15 @@ The `version` argument is optional; if omitted, Terraform will accept any
 version of the provider as compatible. However, we strongly recommend specifying
 a version constraint for every provider your module depends on.
 
+To ensure Terraform always installs the same provider versions for a given
+configuration, you can use Terraform CLI to create a
+[dependency lock file](/docs/configuration/dependency-lock.html)
+and commit it to version control along with your configuration. If a lock file
+is present, Terraform Cloud, CLI, and Enterprise will all obey it when
+installing providers.
+
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](https://learn.hashicorp.com/tutorials/terraform/provider-versioning?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 ### Best Practices for Provider Versions
 
 Each module should at least declare the minimum provider version it is known
