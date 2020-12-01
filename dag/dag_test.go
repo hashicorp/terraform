@@ -340,7 +340,7 @@ func BenchmarkDAG(b *testing.B) {
 		// layer B
 		for i := 0; i < count; i++ {
 			B := fmt.Sprintf("B%d", i)
-			g.Add(fmt.Sprintf(B))
+			g.Add(B)
 			for j := 0; j < count; j++ {
 				g.Connect(BasicEdge(B, fmt.Sprintf("A%d", j)))
 			}
@@ -349,7 +349,7 @@ func BenchmarkDAG(b *testing.B) {
 		// layer C
 		for i := 0; i < count; i++ {
 			c := fmt.Sprintf("C%d", i)
-			g.Add(fmt.Sprintf(c))
+			g.Add(c)
 			for j := 0; j < count; j++ {
 				// connect them to previous layers so we have something that requires reduction
 				g.Connect(BasicEdge(c, fmt.Sprintf("A%d", j)))
@@ -360,7 +360,7 @@ func BenchmarkDAG(b *testing.B) {
 		// layer D
 		for i := 0; i < count; i++ {
 			d := fmt.Sprintf("D%d", i)
-			g.Add(fmt.Sprintf(d))
+			g.Add(d)
 			for j := 0; j < count; j++ {
 				g.Connect(BasicEdge(d, fmt.Sprintf("A%d", j)))
 				g.Connect(BasicEdge(d, fmt.Sprintf("B%d", j)))
