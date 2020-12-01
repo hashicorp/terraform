@@ -140,6 +140,9 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 			},
 		},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 	tf.AddEnv("PLUGIN_PROTOCOL_VERSION=5")

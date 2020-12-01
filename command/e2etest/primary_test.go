@@ -107,7 +107,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 	stateResources := state.RootModule().Resources
 	var gotResources []string
-	for n, _ := range stateResources {
+	for n := range stateResources {
 		gotResources = append(gotResources, n)
 	}
 	sort.Strings(gotResources)
