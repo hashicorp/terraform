@@ -55,6 +55,9 @@ func TestTerraformProvidersMirror(t *testing.T) {
 	}
 	var got []string
 	walkErr := filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if info.IsDir() {
 			return nil // we only care about leaf files for this test
 		}
