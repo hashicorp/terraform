@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -32,11 +31,6 @@ import (
 const fixtureDir = "./testdata"
 
 func TestMain(m *testing.M) {
-	// We want to shadow on tests just to make sure the shadow graph works
-	// in case we need it and to find any race issues.
-	experiment.SetEnabled(experiment.X_shadow, true)
-
-	experiment.Flag(flag.CommandLine)
 	flag.Parse()
 
 	// Make sure shadow operations fail our real tests
