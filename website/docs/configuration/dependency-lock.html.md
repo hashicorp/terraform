@@ -9,6 +9,8 @@ page_title: "Dependency Lock File (.terraform.lock.hcl) - Configuration Language
 versions of Terraform did not track dependency selections at all, so the
 information here is not relevant to those versions.
 
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](https://learn.hashicorp.com/tutorials/terraform/provider-versioning?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 A Terraform configuration may refer to two different kinds of external
 dependency that come from outside of its own codebase:
 
