@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestUIOutput_impl(t *testing.T) {
