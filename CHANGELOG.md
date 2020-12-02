@@ -1,4 +1,4 @@
-## 0.14.0 (Unreleased)
+## 0.14.0 (December 02, 2020)
 
 NEW FEATURES:
 * Terraform now supports marking input variables as sensitive, and will propagate that sensitivity through expressions that derive from sensitive input variables.
@@ -35,7 +35,7 @@ ENHANCEMENTS:
 * cli: Ensure that provider requirements are met by the locked dependencies for every command. This will help catch errors if the configuration has changed since the last run of `terraform init`. ([#26761](https://github.com/hashicorp/terraform/issues/26761))
 * core: When sensitive values are used as part of provisioner configuration, logging is disabled to ensure the values are not displayed to the UI ([#26611](https://github.com/hashicorp/terraform/issues/26611))
 * core: `terraform plan` no longer uses a separate refresh phase. Instead, all resources are updated on-demand during planning ([#26270](https://github.com/hashicorp/terraform/issues/26270))
-* modules: Adds support for loading modules with S3 virtual hosted-style access [GH-26914]
+* modules: Adds support for loading modules with S3 virtual hosted-style access ([#26914](https://github.com/hashicorp/terraform/issues/26914))
 * backend/consul: Split state into chunks when outgrowing the limit of the Consul KV store. This allows storing state larger than the Consul 512KB limit. ([#25856](https://github.com/hashicorp/terraform/issues/25856))
 * backend/consul: Add force-unlock support to the Consul backend ([#25837](https://github.com/hashicorp/terraform/issues/25837))
 * backend/gcs: Add service account impersonation to GCS backend ([#26837](https://github.com/hashicorp/terraform/issues/26837))
