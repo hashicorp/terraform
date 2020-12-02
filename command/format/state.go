@@ -45,9 +45,10 @@ func State(opts *StateOpts) string {
 
 	buf := bytes.NewBufferString("[reset]")
 	p := blockBodyDiffPrinter{
-		buf:    buf,
-		color:  opts.Color,
-		action: plans.NoOp,
+		buf:     buf,
+		color:   opts.Color,
+		action:  plans.NoOp,
+		verbose: true,
 	}
 
 	// Format all the modules
