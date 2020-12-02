@@ -4,7 +4,7 @@ page_title: "textdecodebase64 - Functions - Configuration Language"
 sidebar_current: "docs-funcs-encoding-textdecodebase64"
 description: |-
   The textdecodebase64 function decodes a string that was previously Base64-encoded,
-and then interprets the result as characters in a specified character encoding.
+  and then interprets the result as characters in a specified character encoding.
 ---
 
 # `textdecodebase64` Function
