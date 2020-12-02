@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeAbstractResourceInstance represents a resource instance with no
@@ -198,4 +199,48 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 	}
 
 	return nil
+}
+
+// PreApplyHook calls the pre-Apply hook
+func (n *NodeAbstractResourceInstance) PreApplyHook(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if change == nil {
+		panic(fmt.Sprintf("PreApplyHook for %s called with nil Change", n.Addr))
+	}
+
+	if resourceHasUserVisibleApply(n.Addr.Resource) {
+		priorState := change.Before
+		plannedNewState := change.After
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreApply(n.Addr, nil, change.Action, priorState, plannedNewState)
+		}))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	return nil
+}
+
+// PostApplyHook calls the post-Apply hook
+func (n *NodeAbstractResourceInstance) PostApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err *error) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if resourceHasUserVisibleApply(n.Addr.Resource) {
+		var newState cty.Value
+		if state != nil {
+			newState = state.Value
+		} else {
+			newState = cty.NullVal(cty.DynamicPseudoType)
+		}
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostApply(n.Addr, nil, newState, *err)
+		}))
+	}
+
+	diags = diags.Append(*err)
+
+	return diags
 }

@@ -326,12 +326,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	evalApplyPre := &EvalApplyPre{
-		Addr:   addr,
-		State:  &state,
-		Change: &diffApply,
-	}
-	diags = diags.Append(evalApplyPre.Eval(ctx))
+	diags = diags.Append(n.PreApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -439,12 +434,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	applyPost := &EvalApplyPost{
-		Addr:  addr,
-		State: &state,
-		Error: &applyError,
-	}
-	diags = diags.Append(applyPost.Eval(ctx))
+	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}

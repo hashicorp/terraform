@@ -216,12 +216,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// Call pre-apply hook
-	applyPre := &EvalApplyPre{
-		Addr:   addr,
-		State:  &state,
-		Change: &change,
-	}
-	diags = diags.Append(applyPre.Eval(ctx))
+	diags = diags.Append(n.PreApplyHook(ctx, change))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -257,15 +252,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	applyPost := &EvalApplyPost{
-		Addr:  addr,
-		State: &state,
-		Error: &applyError,
-	}
-	diags = diags.Append(applyPost.Eval(ctx))
+	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}
+
 	if applyError != nil {
 		diags = diags.Append(applyError)
 		return diags
