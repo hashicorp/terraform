@@ -48,6 +48,11 @@ The following arguments are supported:
   that will be copied to the remote resource and then executed. They are executed
   in the order they are provided. This cannot be provided with `inline` or `script`.
 
+* `allow_missing_exit_status` - (Optional) If `true`, commands that run without
+  returning a exit status will be treated as a success, allowing terraform to
+  continue. This is particularly useful in situations where the user issues a command
+  that closes the underlying connection before returning (e.g. reboot).
+
 ## Script Arguments
 
 You cannot pass any arguments to scripts using the `script` or

@@ -45,6 +45,13 @@ func Provisioner() terraform.ResourceProvisioner {
 				Optional:      true,
 				ConflictsWith: []string{"script", "inline"},
 			},
+
+			"allow_missing_exit_status": {
+				Type:     schema.TypeBool,
+				Elem:     &schema.Schema{Type: schema.TypeBool},
+				Optional: true,
+				Default:  false,
+			},
 		},
 
 		ApplyFunc: applyFn,
@@ -74,7 +81,19 @@ func applyFn(ctx context.Context) error {
 
 	// Copy and execute each script
 	if err := runScripts(ctx, o, comm, scripts); err != nil {
-		return err
+
+		// Check if we can ignore a script execution that has terminated
+		// without reporting the status code and continue. This is the case
+		// if the user script issued a reboot command.
+		if !data.Get("allow_missing_exit_status").(bool) {
+			return err
+		}
+
+		// The absence of an exit status from the execution is defined as -1.
+		if eerr, ok := err.(*remote.ExitError); ok && eerr.ExitStatus != -1 {
+			return err
+		}
+
 	}
 
 	return nil
