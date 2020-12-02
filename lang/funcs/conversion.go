@@ -118,7 +118,6 @@ var TypeFunc = function.New(&function.Spec{
 func TypeString(ty cty.Type) string {
 	var b strings.Builder
 	writeType(ty, &b, 0)
-	b.WriteByte('\n') // always end with a newline for easier printing
 	return b.String()
 }
 
@@ -143,7 +142,7 @@ func writeType(ty cty.Type, b *strings.Builder, indent int) {
 		for _, name := range attrNames {
 			aty := atys[name]
 			b.WriteString(indentSpaces(indent))
-			fmt.Fprintf(b, "%q: ", name)
+			fmt.Fprintf(b, "%s: ", name)
 			writeType(aty, b, indent)
 			b.WriteString(",\n")
 		}
@@ -156,7 +155,7 @@ func writeType(ty cty.Type, b *strings.Builder, indent int) {
 			b.WriteString("tuple")
 			return
 		}
-		b.WriteString("tuple({\n")
+		b.WriteString("tuple([\n")
 		indent++
 		for _, ety := range etys {
 			b.WriteString(indentSpaces(indent))
@@ -165,7 +164,7 @@ func writeType(ty cty.Type, b *strings.Builder, indent int) {
 		}
 		indent--
 		b.WriteString(indentSpaces(indent))
-		b.WriteString("})")
+		b.WriteString("])")
 	case ty.IsCollectionType():
 		ety := ty.ElementType()
 		switch {
@@ -209,4 +208,8 @@ func writeType(ty cty.Type, b *strings.Builder, indent int) {
 
 func indentSpaces(level int) string {
 	return strings.Repeat("    ", level)
+}
+
+func Type(input []cty.Value) (cty.Value, error) {
+	return TypeFunc.Call(input)
 }
