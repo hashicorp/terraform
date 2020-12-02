@@ -130,6 +130,7 @@ require (
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.42.0 // indirect
+	honnef.co/go/tools v0.0.1-2020.1.4
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v10.0.0+incompatible
