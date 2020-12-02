@@ -6,6 +6,8 @@ description: |-
   Terraform plugin signing trust levels
 ---
 
+<!-- THIS PAGED IS LINKED TO IN THE CLI -->
+
 # Plugin Signing
 
 ~> **Note** Currently only provider plugins fetched from a registry are authenticated.
