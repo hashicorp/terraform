@@ -5,6 +5,8 @@ page_title: "Expressions - Configuration Language"
 
 # Expressions
 
+> **Hands-on:** Try the [Create Dynamic Expressions](https://learn.hashicorp.com/tutorials/terraform/expressions?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 _Expressions_ are used to refer to or compute values within a configuration.
 The simplest expressions are just literal values, like `"hello"` or `5`,
 but the Terraform language also allows more complex expressions such as

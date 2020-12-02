@@ -211,7 +211,9 @@ using a sentence structure similar to the above examples.
 
 [inpage-sensitive]: #suppressing-values-in-cli-output
 
--> This feature was introduced in Terraform CLI v0.14.0.
+-> This feature was introduced in Terraform v0.14.0.
+
+> **Hands-on:** Try the [Protect Sensitive Input Variables](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 Setting a variable as `sensitive` prevents Terraform from showing its value in the `plan` or `apply` output, when that variable is used within a configuration.
 

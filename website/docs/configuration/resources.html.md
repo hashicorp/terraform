@@ -21,6 +21,10 @@ pages.
 This information has moved to
 [Resource Blocks](/docs/configuration/blocks/resources/syntax.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="resource-behavior"></a>
 <a id="accessing-resource-attributes"></a>
 <a id="resource-dependencies"></a>
@@ -31,9 +35,24 @@ This information has moved to
 This information has moved to
 [Resource Behavior](/docs/configuration/blocks/resources/behavior.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 ## Resource Meta-Arguments
 
-Each resource meta-argument has moved to its own page.
+Each resource meta-argument has moved to its own page:
+
+- [`depends_on`](/docs/configuration/meta-arguments/depends_on.html)
+- [`count`](/docs/configuration/meta-arguments/count.html)
+- [`for_each`](/docs/configuration/meta-arguments/for_each.html)
+- [`provider`](/docs/configuration/meta-arguments/resource-provider.html)
+- [`lifecycle`](/docs/configuration/meta-arguments/lifecycle.html)
+- [Provisioners](/docs/configuration/blocks/resources/provisioners/index.html)
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
 
 <a id="depends_on-explicit-resource-dependencies"></a>
 
@@ -41,6 +60,10 @@ Each resource meta-argument has moved to its own page.
 
 This information has moved to
 [`depends_on`](/docs/configuration/meta-arguments/depends_on.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
 
 <a id="count-multiple-resource-instances-by-count"></a>
 <a id="the-count-object"></a>
@@ -53,6 +76,10 @@ This information has moved to
 This information has moved to
 [`count`](/docs/configuration/meta-arguments/count.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings"></a>
 <a id="the-each-object"></a>
 <a id="using-expressions-in-for_each"></a>
@@ -64,12 +91,20 @@ This information has moved to
 This information has moved to
 [`for_each`](/docs/configuration/meta-arguments/for_each.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="provider-selecting-a-non-default-provider-configuration"></a>
 
 ### `provider`
 
 This information has moved to
 [`provider`](/docs/configuration/meta-arguments/resource-provider.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
 
 <a id="lifecycle-lifecycle-customizations"></a>
 
@@ -78,9 +113,15 @@ This information has moved to
 This information has moved to
 [`lifecycle`](/docs/configuration/meta-arguments/lifecycle.html).
 
+<div style="height: 100vh; margin: 0; padding: 0;"></div>
+
+
+
 <a id="provisioner-and-connection-resource-provisioners"></a>
 
 ### Provisioners
 
 This information has moved to
 [Provisioners](/docs/configuration/blocks/resources/provisioners/index.html).
+
+<div style="height: 100vh; margin: 0; padding: 0;"></div>

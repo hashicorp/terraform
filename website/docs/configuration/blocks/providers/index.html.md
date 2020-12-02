@@ -69,6 +69,8 @@ and commit it to version control along with your configuration. If a lock file
 is present, Terraform Cloud, CLI, and Enterprise will all obey it when
 installing providers.
 
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](https://learn.hashicorp.com/tutorials/terraform/provider-versioning?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 ## How to Find Providers
 
 To find providers for the infrastructure platforms you use, browse
