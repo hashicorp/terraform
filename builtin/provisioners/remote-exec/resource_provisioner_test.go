@@ -27,7 +27,7 @@ func TestProvisioner(t *testing.T) {
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"inline": "echo foo",
+		"command": "echo foo",
 	})
 
 	warn, errs := Provisioner().Validate(c)
@@ -60,7 +60,7 @@ exit 0
 
 func TestResourceProvider_generateScript(t *testing.T) {
 	conf := map[string]interface{}{
-		"inline": []interface{}{
+		"command": []interface{}{
 			"cd /tmp",
 			"wget http://foobar",
 			"exit 0",
@@ -83,10 +83,10 @@ func TestResourceProvider_generateScript(t *testing.T) {
 	}
 }
 
-func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
+func TestResourceProvider_generateScriptEmptyCommand(t *testing.T) {
 	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
-		"inline": []interface{}{""},
+		"command": []interface{}{""},
 	}
 
 	_, err := generateScripts(schema.TestResourceDataRaw(
@@ -100,9 +100,9 @@ func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
 	}
 }
 
-func TestResourceProvider_CollectScripts_inline(t *testing.T) {
+func TestResourceProvider_CollectScripts_command(t *testing.T) {
 	conf := map[string]interface{}{
-		"inline": []interface{}{
+		"command": []interface{}{
 			"cd /tmp",
 			"wget http://foobar",
 			"exit 0",
@@ -233,7 +233,7 @@ func TestProvisionerTimeout(t *testing.T) {
 
 	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
-		"inline": []interface{}{"echo hello"},
+		"command": []interface{}{"echo hello"},
 	}
 
 	scripts, err := collectScripts(schema.TestResourceDataRaw(

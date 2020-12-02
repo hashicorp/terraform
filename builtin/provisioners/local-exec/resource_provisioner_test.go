@@ -192,3 +192,27 @@ func TestResourceProvider_ApplyCustomEnv(t *testing.T) {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
 }
+func TestResourceProvider_Validate_multiline(t *testing.T) {
+	expectedScriptOut := `echo foo
+echo bar
+exit 0`
+	c := map[string]interface{}{
+		"command": []interface{}{
+			"echo foo",
+			"echo bar",
+			"exit 0",
+		},
+	}
+
+	out, err := generateCommand(
+		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, c),
+	)
+
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if out != expectedScriptOut {
+		t.Fatalf("bad: %v", out)
+	}
+}

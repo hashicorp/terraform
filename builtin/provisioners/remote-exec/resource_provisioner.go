@@ -25,7 +25,7 @@ var initialBackoffDelay = time.Second
 func Provisioner() terraform.ResourceProvisioner {
 	return &schema.Provisioner{
 		Schema: map[string]*schema.Schema{
-			"inline": {
+			"command": {
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				PromoteSingle: true,
@@ -36,14 +36,14 @@ func Provisioner() terraform.ResourceProvisioner {
 			"script": {
 				Type:          schema.TypeString,
 				Optional:      true,
-				ConflictsWith: []string{"inline", "scripts"},
+				ConflictsWith: []string{"command", "scripts"},
 			},
 
 			"scripts": {
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
-				ConflictsWith: []string{"script", "inline"},
+				ConflictsWith: []string{"script", "command"},
 			},
 		},
 
@@ -80,10 +80,10 @@ func applyFn(ctx context.Context) error {
 	return nil
 }
 
-// generateScripts takes the configuration and creates a script from each inline config
+// generateScripts takes the configuration and creates a script from each command config
 func generateScripts(d *schema.ResourceData) ([]string, error) {
 	var lines []string
-	for _, l := range d.Get("inline").([]interface{}) {
+	for _, l := range d.Get("command").([]interface{}) {
 		line, ok := l.(string)
 		if !ok {
 			return nil, fmt.Errorf("Error parsing %v as a string", l)
@@ -98,8 +98,8 @@ func generateScripts(d *schema.ResourceData) ([]string, error) {
 // collectScripts is used to collect all the scripts we need
 // to execute in preparation for copying them.
 func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
-	// Check if inline
-	if _, ok := d.GetOk("inline"); ok {
+	// Check if command
+	if _, ok := d.GetOk("command"); ok {
 		scripts, err := generateScripts(d)
 		if err != nil {
 			return nil, err
