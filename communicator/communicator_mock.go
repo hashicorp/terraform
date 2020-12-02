@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/provisioners"
 )
 
 // MockCommunicator is an implementation of Communicator that can be used for tests.
@@ -24,7 +24,7 @@ type MockCommunicator struct {
 }
 
 // Connect implementation of communicator.Communicator interface
-func (c *MockCommunicator) Connect(o terraform.UIOutput) error {
+func (c *MockCommunicator) Connect(o provisioners.UIOutput) error {
 	return nil
 }
 

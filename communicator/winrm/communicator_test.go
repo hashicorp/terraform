@@ -9,7 +9,8 @@ import (
 
 	"github.com/dylanmei/winrmtest"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/communicator/shared"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func newMockWinRMServer(t *testing.T) *winrmtest.Remote {
@@ -47,20 +48,16 @@ func TestStart(t *testing.T) {
 	wrm := newMockWinRMServer(t)
 	defer wrm.Close()
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "user",
-				"password": "pass",
-				"host":     wrm.Host,
-				"port":     strconv.Itoa(wrm.Port),
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(wrm.Host),
+		"port":     cty.StringVal(strconv.Itoa(wrm.Port)),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -84,21 +81,16 @@ func TestStart(t *testing.T) {
 func TestUpload(t *testing.T) {
 	wrm := newMockWinRMServer(t)
 	defer wrm.Close()
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(wrm.Host),
+		"port":     cty.StringVal(strconv.Itoa(wrm.Port)),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "user",
-				"password": "pass",
-				"host":     wrm.Host,
-				"port":     strconv.Itoa(wrm.Port),
-				"timeout":  "30s",
-			},
-		},
-	}
-
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -131,15 +123,13 @@ func TestScriptPath(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		r := &terraform.InstanceState{
-			Ephemeral: terraform.EphemeralState{
-				ConnInfo: map[string]string{
-					"type":        "winrm",
-					"script_path": tc.Input,
-				},
-			},
-		}
-		comm, err := New(r)
+		v := cty.ObjectVal(map[string]cty.Value{
+			"host":        cty.StringVal(""),
+			"type":        cty.StringVal("winrm"),
+			"script_path": cty.StringVal(tc.Input),
+		})
+
+		comm, err := New(v)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -158,21 +148,16 @@ func TestScriptPath(t *testing.T) {
 func TestNoTransportDecorator(t *testing.T) {
 	wrm := newMockWinRMServer(t)
 	defer wrm.Close()
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(wrm.Host),
+		"port":     cty.StringVal(strconv.Itoa(wrm.Port)),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "user",
-				"password": "pass",
-				"host":     wrm.Host,
-				"port":     strconv.Itoa(wrm.Port),
-				"timeout":  "30s",
-			},
-		},
-	}
-
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -192,21 +177,17 @@ func TestTransportDecorator(t *testing.T) {
 	wrm := newMockWinRMServer(t)
 	defer wrm.Close()
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "user",
-				"password": "pass",
-				"host":     wrm.Host,
-				"port":     strconv.Itoa(wrm.Port),
-				"use_ntlm": "true",
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(wrm.Host),
+		"port":     cty.StringVal(strconv.Itoa(wrm.Port)),
+		"use_ntlm": cty.StringVal("true"),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -226,7 +207,7 @@ func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
 	staticSeedPath := "C:/Temp/terraform_1298498081.cmd"
-	c, err := New(&terraform.InstanceState{})
+	c, err := New(cty.NullVal(shared.ConnectionBlockSupersetSchema.ImpliedType()))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

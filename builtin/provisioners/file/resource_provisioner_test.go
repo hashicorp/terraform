@@ -3,110 +3,95 @@ package file
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func TestResourceProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = Provisioner()
-}
-
-func TestProvisioner(t *testing.T) {
-	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
 func TestResourceProvider_Validate_good_source(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"source":      "/tmp/foo",
-		"destination": "/tmp/bar",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"source":      cty.StringVal("/tmp/foo"),
+		"destination": cty.StringVal("/tmp/bar"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if len(resp.Diagnostics) > 0 {
+		t.Fatal(resp.Diagnostics.ErrWithWarnings())
 	}
 }
 
 func TestResourceProvider_Validate_good_content(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"content":     "value to copy",
-		"destination": "/tmp/bar",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"content":     cty.StringVal("value to copy"),
+		"destination": cty.StringVal("/tmp/bar"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if len(resp.Diagnostics) > 0 {
+		t.Fatal(resp.Diagnostics.ErrWithWarnings())
 	}
 }
 
 func TestResourceProvider_Validate_good_unknown_variable_value(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"content":     hcl2shim.UnknownVariableValue,
-		"destination": "/tmp/bar",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"content":     cty.UnknownVal(cty.String),
+		"destination": cty.StringVal("/tmp/bar"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if len(resp.Diagnostics) > 0 {
+		t.Fatal(resp.Diagnostics.ErrWithWarnings())
 	}
 }
 
 func TestResourceProvider_Validate_bad_not_destination(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"source": "nope",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"source": cty.StringVal("nope"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) == 0 {
-		t.Fatalf("Should have errors")
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("Should have errors")
 	}
 }
 
 func TestResourceProvider_Validate_bad_no_source(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"destination": "/tmp/bar",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"destination": cty.StringVal("/tmp/bar"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) == 0 {
-		t.Fatalf("Should have errors")
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("Should have errors")
 	}
 }
 
 func TestResourceProvider_Validate_bad_to_many_src(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"source":      "nope",
-		"content":     "value to copy",
-		"destination": "/tmp/bar",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"source":      cty.StringVal("nope"),
+		"content":     cty.StringVal("vlue to copy"),
+		"destination": cty.StringVal("/tmp/bar"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) == 0 {
-		t.Fatalf("Should have errors")
-	}
-}
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
 
-func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	return terraform.NewResourceConfigRaw(c)
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("Should have errors")
+	}
 }

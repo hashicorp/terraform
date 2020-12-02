@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/masterzen/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Communicator represents the WinRM communicator
@@ -24,8 +25,8 @@ type Communicator struct {
 }
 
 // New creates a new communicator implementation over WinRM.
-func New(s *terraform.InstanceState) (*Communicator, error) {
-	connInfo, err := parseConnectionInfo(s)
+func New(v cty.Value) (*Communicator, error) {
+	connInfo, err := parseConnectionInfo(v)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,7 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 }
 
 // Connect implementation of communicator.Communicator interface
-func (c *Communicator) Connect(o terraform.UIOutput) error {
+func (c *Communicator) Connect(o provisioners.UIOutput) error {
 	// Set the client to nil since we'll (re)create it
 	c.client = nil
 

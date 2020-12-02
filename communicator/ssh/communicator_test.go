@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -125,20 +125,16 @@ func TestNew_Invalid(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "i-am-invalid",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("i-am-invalid"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -150,19 +146,15 @@ func TestNew_Invalid(t *testing.T) {
 }
 
 func TestNew_InvalidHost(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "i-am-invalid",
-				"port":     "22",
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("i-am-invalid"),
+		"port":     cty.StringVal("22"),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	_, err := New(r)
+	_, err := New(v)
 	if err == nil {
 		t.Fatal("should have had an error creating communicator")
 	}
@@ -172,20 +164,16 @@ func TestStart(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -211,19 +199,15 @@ func TestKeepAlives(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -261,19 +245,16 @@ func TestFailedKeepAlives(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -296,20 +277,16 @@ func TestLostConnection(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -586,19 +563,15 @@ func TestAccUploadFile(t *testing.T) {
 		t.Skip()
 	}
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":    "ssh",
-				"user":    os.Getenv("USER"),
-				"host":    "127.0.0.1",
-				"port":    "22",
-				"timeout": "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":    cty.StringVal("ssh"),
+		"user":    cty.StringVal(os.Getenv("USER")),
+		"host":    cty.StringVal("127.0.0.1"),
+		"port":    cty.StringVal("22"),
+		"timeout": cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -634,19 +607,15 @@ func TestAccHugeUploadFile(t *testing.T) {
 		t.Skip()
 	}
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":    "ssh",
-				"user":    os.Getenv("USER"),
-				"host":    "127.0.0.1",
-				"port":    "22",
-				"timeout": "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":    cty.StringVal("ssh"),
+		"host":    cty.StringVal("127.0.0.1"),
+		"user":    cty.StringVal(os.Getenv("USER")),
+		"port":    cty.StringVal("22"),
+		"timeout": cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -706,16 +675,13 @@ func TestScriptPath(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		r := &terraform.InstanceState{
-			Ephemeral: terraform.EphemeralState{
-				ConnInfo: map[string]string{
-					"type":        "ssh",
-					"host":        "127.0.0.1",
-					"script_path": tc.Input,
-				},
-			},
-		}
-		comm, err := New(r)
+		v := cty.ObjectVal(map[string]cty.Value{
+			"type":        cty.StringVal("ssh"),
+			"host":        cty.StringVal("127.0.0.1"),
+			"script_path": cty.StringVal(tc.Input),
+		})
+
+		comm, err := New(v)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -735,14 +701,10 @@ func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
 	staticSeedPath := "/tmp/terraform_1298498081.sh"
-	c, err := New(&terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type": "ssh",
-				"host": "127.0.0.1",
-			},
-		},
-	})
+	c, err := New(cty.ObjectVal(map[string]cty.Value{
+		"type": cty.StringVal("ssh"),
+		"host": cty.StringVal("127.0.0.1"),
+	}))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

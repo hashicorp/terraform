@@ -194,12 +194,6 @@ func initCommands(
 			}, nil
 		},
 
-		"internal-plugin": func() (cli.Command, error) {
-			return &command.InternalPluginCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"login": func() (cli.Command, error) {
 			return &command.LoginCommand{
 				Meta: meta,

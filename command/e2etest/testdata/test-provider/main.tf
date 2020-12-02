@@ -1,6 +1,10 @@
-provider "test" {
-
+terraform {
+  required_providers {
+    simple = {
+      source = "hashicorp/test"
+    }
+  }
 }
 
-resource "test_resource_signal" "test" {
+resource "simple_resource" "test" {
 }

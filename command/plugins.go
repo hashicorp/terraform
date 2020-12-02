@@ -9,11 +9,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
+	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
+	localexec "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
+	remoteexec "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
@@ -134,8 +136,8 @@ func (m *Meta) provisionerFactories() map[string]provisioners.Factory {
 
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
-	for name := range InternalProvisioners {
-		factories[name] = internalProvisionerFactory(discovery.PluginMeta{Name: name})
+	for name, factory := range internalProvisionerFactories() {
+		factories[name] = factory
 	}
 
 	byName := plugins.ByName()
@@ -149,29 +151,6 @@ func (m *Meta) provisionerFactories() map[string]provisioners.Factory {
 	}
 
 	return factories
-}
-
-func internalPluginClient(kind, name string) (*plugin.Client, error) {
-	cmdLine, err := BuildPluginCommandString(kind, name)
-	if err != nil {
-		return nil, err
-	}
-
-	// See the docstring for BuildPluginCommandString for why we need to do
-	// this split here.
-	cmdArgv := strings.Split(cmdLine, TFSPACE)
-
-	cfg := &plugin.ClientConfig{
-		Cmd:              exec.Command(cmdArgv[0], cmdArgv[1:]...),
-		HandshakeConfig:  tfplugin.Handshake,
-		Managed:          true,
-		VersionedPlugins: tfplugin.VersionedPlugins,
-		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		AutoMTLS:         enableProviderAutoMTLS,
-		Logger:           logging.NewLogger(kind),
-	}
-
-	return plugin.NewClient(cfg), nil
 }
 
 func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
@@ -190,13 +169,11 @@ func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
 	}
 }
 
-func internalProvisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
-	return func() (provisioners.Interface, error) {
-		client, err := internalPluginClient("provisioner", meta.Name)
-		if err != nil {
-			return nil, fmt.Errorf("[WARN] failed to build command line for internal plugin %q: %s", meta.Name, err)
-		}
-		return newProvisionerClient(client)
+func internalProvisionerFactories() map[string]provisioners.Factory {
+	return map[string]provisioners.Factory{
+		"file":        provisioners.FactoryFixed(fileprovisioner.New()),
+		"local-exec":  provisioners.FactoryFixed(localexec.New()),
+		"remote-exec": provisioners.FactoryFixed(remoteexec.New()),
 	}
 }
 
