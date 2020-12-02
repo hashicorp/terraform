@@ -32,7 +32,7 @@ func simpleMockComponentFactory() *basicComponentFactory {
 				return provider, nil
 			},
 		},
-		provisioners: map[string]ProvisionerFactory{
+		provisioners: map[string]provisioners.Factory{
 			"test": func() (provisioners.Interface, error) {
 				return provisioner, nil
 			},

@@ -26,18 +26,28 @@ func TestEvalReadState(t *testing.T) {
 	provider := providers.Interface(mockProvider)
 
 	cases := map[string]struct {
-		Resources          map[string]*ResourceState
+		State              *states.State
 		Node               *EvalReadState
 		ExpectedInstanceId string
 	}{
 		"ReadState gets primary instance state": {
-			Resources: map[string]*ResourceState{
-				"aws_instance.bar": &ResourceState{
-					Primary: &InstanceState{
-						ID: "i-abc123",
-					},
-				},
-			},
+			State: states.BuildState(func(s *states.SyncState) {
+				providerAddr := addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("aws"),
+					Module:   addrs.RootModule,
+				}
+				oneAddr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Absolute(addrs.RootModuleInstance)
+				s.SetResourceProvider(oneAddr, providerAddr)
+				s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.NoKey), &states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"i-abc123"}`),
+				}, providerAddr)
+			}),
+
 			Node: &EvalReadState{
 				Addr: addrs.Resource{
 					Mode: addrs.ManagedResourceMode,
@@ -56,15 +66,7 @@ func TestEvalReadState(t *testing.T) {
 	for k, c := range cases {
 		t.Run(k, func(t *testing.T) {
 			ctx := new(MockEvalContext)
-			state := MustShimLegacyState(&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path:      rootModulePath,
-						Resources: c.Resources,
-					},
-				},
-			})
-			ctx.StateState = state.SyncWrapper()
+			ctx.StateState = c.State.SyncWrapper()
 			ctx.PathPath = addrs.RootModuleInstance
 
 			diags := c.Node.Eval(ctx)
@@ -97,18 +99,28 @@ func TestEvalReadStateDeposed(t *testing.T) {
 	provider := providers.Interface(mockProvider)
 
 	cases := map[string]struct {
-		Resources          map[string]*ResourceState
+		State              *states.State
 		Node               *EvalReadStateDeposed
 		ExpectedInstanceId string
 	}{
 		"ReadStateDeposed gets deposed instance": {
-			Resources: map[string]*ResourceState{
-				"aws_instance.bar": &ResourceState{
-					Deposed: []*InstanceState{
-						&InstanceState{ID: "i-abc123"},
-					},
-				},
-			},
+			State: states.BuildState(func(s *states.SyncState) {
+				providerAddr := addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("aws"),
+					Module:   addrs.RootModule,
+				}
+				oneAddr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Absolute(addrs.RootModuleInstance)
+				s.SetResourceProvider(oneAddr, providerAddr)
+				s.SetResourceInstanceDeposed(oneAddr.Instance(addrs.NoKey), states.DeposedKey("00000001"), &states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"i-abc123"}`),
+				}, providerAddr)
+			}),
+
 			Node: &EvalReadStateDeposed{
 				Addr: addrs.Resource{
 					Mode: addrs.ManagedResourceMode,
@@ -127,15 +139,7 @@ func TestEvalReadStateDeposed(t *testing.T) {
 	for k, c := range cases {
 		t.Run(k, func(t *testing.T) {
 			ctx := new(MockEvalContext)
-			state := MustShimLegacyState(&State{
-				Modules: []*ModuleState{
-					&ModuleState{
-						Path:      rootModulePath,
-						Resources: c.Resources,
-					},
-				},
-			})
-			ctx.StateState = state.SyncWrapper()
+			ctx.StateState = c.State.SyncWrapper()
 			ctx.PathPath = addrs.RootModuleInstance
 
 			diags := c.Node.Eval(ctx)

@@ -31,6 +31,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Meta are the meta-options that are available on all or most commands.
@@ -147,7 +149,7 @@ type Meta struct {
 	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
-	backendState *terraform.BackendState
+	backendState *legacy.BackendState
 
 	// Variables for the context (private)
 	variableArgs rawFlags
