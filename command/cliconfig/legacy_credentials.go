@@ -23,7 +23,7 @@ import (
 // that the credentials source will use when asked to save or forget credentials
 // and when a "credentials helper" program is not active.
 func credentialsConfigFile() (string, error) {
-	configDir, err := ConfigDir()
+	configDir, err := LegacyConfigDir()
 	if err != nil {
 		return "", err
 	}
@@ -33,7 +33,7 @@ func credentialsConfigFile() (string, error) {
 // CredentialsSource creates and returns a service credentials source whose
 // behavior depends on which "credentials" and "credentials_helper" blocks,
 // if any, are present in the receiving config.
-func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) (*CredentialsSource, error) {
+func (c *LegacyConfig) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) (*CredentialsSource, error) {
 	credentialsFilePath, err := credentialsConfigFile()
 	if err != nil {
 		// If we managed to load a Config object at all then we would already
@@ -72,14 +72,14 @@ func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) 
 // As the name suggests, this function is here only for testing and should not
 // be used in normal application code.
 func EmptyCredentialsSourceForTests(credentialsFilePath string) *CredentialsSource {
-	cfg := &Config{}
+	cfg := &LegacyConfig{}
 	return cfg.credentialsSource("", nil, credentialsFilePath)
 }
 
 // credentialsSource is an internal factory for the credentials source which
 // allows overriding the credentials file path, which allows setting it to
 // a temporary file location when testing.
-func (c *Config) credentialsSource(helperType string, helper svcauth.CredentialsSource, credentialsFilePath string) *CredentialsSource {
+func (c *LegacyConfig) credentialsSource(helperType string, helper svcauth.CredentialsSource, credentialsFilePath string) *CredentialsSource {
 	configured := map[svchost.Hostname]cty.Value{}
 	for userHost, creds := range c.Credentials {
 		host, err := svchost.ForComparison(userHost)

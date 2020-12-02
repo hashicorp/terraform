@@ -127,7 +127,7 @@ func wrappedMain() int {
 	// path in the TERRAFORM_CONFIG_FILE environment variable (though probably
 	// ill-advised) will be resolved relative to the true working directory,
 	// not the overridden one.
-	config, diags := cliconfig.LoadConfig()
+	config, diags := cliconfig.LegacyLoadConfig()
 
 	if len(diags) > 0 {
 		// Since we haven't instantiated a command.Meta yet, we need to do

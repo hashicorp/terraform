@@ -53,7 +53,7 @@ const (
 
 func initCommands(
 	originalWorkingDir string,
-	config *cliconfig.Config,
+	config *cliconfig.LegacyConfig,
 	services *disco.Disco,
 	providerSrc getproviders.Source,
 	providerDevOverrides map[addrs.Provider]getproviders.PackageLocalDir,
@@ -74,7 +74,7 @@ func initCommands(
 		services.ForceHostServices(host, hostConfig.Services)
 	}
 
-	configDir, err := cliconfig.ConfigDir()
+	configDir, err := cliconfig.LegacyConfigDir()
 	if err != nil {
 		configDir = "" // No config dir available (e.g. looking up a home directory failed)
 	}
@@ -442,7 +442,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
+func credentialsSource(config *cliconfig.LegacyConfig) (auth.CredentialsSource, error) {
 	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
 	return config.CredentialsSource(helperPlugins)
 }

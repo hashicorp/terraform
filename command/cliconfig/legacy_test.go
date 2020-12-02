@@ -13,13 +13,13 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./testdata"
 
-func TestLoadConfig(t *testing.T) {
-	c, err := loadConfigFile(filepath.Join(fixtureDir, "config"))
+func TestLegacyLoadConfig(t *testing.T) {
+	c, err := legacyLoadConfigFile(filepath.Join(fixtureDir, "config"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := &Config{
+	expected := &LegacyConfig{
 		Providers: map[string]string{
 			"aws": "foo",
 			"do":  "bar",
@@ -31,16 +31,16 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_env(t *testing.T) {
+func TestLegacyLoadConfig_env(t *testing.T) {
 	defer os.Unsetenv("TFTEST")
 	os.Setenv("TFTEST", "hello")
 
-	c, err := loadConfigFile(filepath.Join(fixtureDir, "config-env"))
+	c, err := legacyLoadConfigFile(filepath.Join(fixtureDir, "config-env"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := &Config{
+	expected := &LegacyConfig{
 		Providers: map[string]string{
 			"aws":    "hello",
 			"google": "bar",
@@ -55,14 +55,14 @@ func TestLoadConfig_env(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_hosts(t *testing.T) {
-	got, diags := loadConfigFile(filepath.Join(fixtureDir, "hosts"))
+func TestLegacyLoadConfig_hosts(t *testing.T) {
+	got, diags := legacyLoadConfigFile(filepath.Join(fixtureDir, "hosts"))
 	if len(diags) != 0 {
 		t.Fatalf("%s", diags.Err())
 	}
 
-	want := &Config{
-		Hosts: map[string]*ConfigHost{
+	want := &LegacyConfig{
+		Hosts: map[string]*LegacyConfigHost{
 			"example.com": {
 				Services: map[string]interface{}{
 					"modules.v1": "https://example.com/",
@@ -76,13 +76,13 @@ func TestLoadConfig_hosts(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_credentials(t *testing.T) {
-	got, err := loadConfigFile(filepath.Join(fixtureDir, "credentials"))
+func TestLegacyLoadConfig_credentials(t *testing.T) {
+	got, err := legacyLoadConfigFile(filepath.Join(fixtureDir, "credentials"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want := &Config{
+	want := &LegacyConfig{
 		Credentials: map[string]map[string]interface{}{
 			"example.com": map[string]interface{}{
 				"token": "foo the bar baz",
@@ -92,8 +92,8 @@ func TestLoadConfig_credentials(t *testing.T) {
 				"password": "baz",
 			},
 		},
-		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
-			"foo": &ConfigCredentialsHelper{
+		CredentialsHelpers: map[string]*LegacyConfigCredentialsHelper{
+			"foo": &LegacyConfigCredentialsHelper{
 				Args: []string{"bar", "baz"},
 			},
 		},
@@ -104,9 +104,9 @@ func TestLoadConfig_credentials(t *testing.T) {
 	}
 }
 
-func TestConfigValidate(t *testing.T) {
+func TestLegacyConfigValidate(t *testing.T) {
 	tests := map[string]struct {
-		Config    *Config
+		Config    *LegacyConfig
 		DiagCount int
 	}{
 		"nil": {
@@ -114,27 +114,27 @@ func TestConfigValidate(t *testing.T) {
 			0,
 		},
 		"empty": {
-			&Config{},
+			&LegacyConfig{},
 			0,
 		},
 		"host good": {
-			&Config{
-				Hosts: map[string]*ConfigHost{
+			&LegacyConfig{
+				Hosts: map[string]*LegacyConfigHost{
 					"example.com": {},
 				},
 			},
 			0,
 		},
 		"host with bad hostname": {
-			&Config{
-				Hosts: map[string]*ConfigHost{
+			&LegacyConfig{
+				Hosts: map[string]*LegacyConfigHost{
 					"example..com": {},
 				},
 			},
 			1, // host block has invalid hostname
 		},
 		"credentials good": {
-			&Config{
+			&LegacyConfig{
 				Credentials: map[string]map[string]interface{}{
 					"example.com": map[string]interface{}{
 						"token": "foo",
@@ -144,7 +144,7 @@ func TestConfigValidate(t *testing.T) {
 			0,
 		},
 		"credentials with bad hostname": {
-			&Config{
+			&LegacyConfig{
 				Credentials: map[string]map[string]interface{}{
 					"example..com": map[string]interface{}{
 						"token": "foo",
@@ -154,16 +154,16 @@ func TestConfigValidate(t *testing.T) {
 			1, // credentials block has invalid hostname
 		},
 		"credentials helper good": {
-			&Config{
-				CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+			&LegacyConfig{
+				CredentialsHelpers: map[string]*LegacyConfigCredentialsHelper{
 					"foo": {},
 				},
 			},
 			0,
 		},
 		"credentials helper too many": {
-			&Config{
-				CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+			&LegacyConfig{
+				CredentialsHelpers: map[string]*LegacyConfigCredentialsHelper{
 					"foo": {},
 					"bar": {},
 				},
@@ -171,22 +171,22 @@ func TestConfigValidate(t *testing.T) {
 			1, // no more than one credentials_helper block allowed
 		},
 		"provider_installation good none": {
-			&Config{
+			&LegacyConfig{
 				ProviderInstallation: nil,
 			},
 			0,
 		},
 		"provider_installation good one": {
-			&Config{
-				ProviderInstallation: []*ProviderInstallation{
+			&LegacyConfig{
+				ProviderInstallation: []*LegacyProviderInstallation{
 					{},
 				},
 			},
 			0,
 		},
 		"provider_installation too many": {
-			&Config{
-				ProviderInstallation: []*ProviderInstallation{
+			&LegacyConfig{
+				ProviderInstallation: []*LegacyProviderInstallation{
 					{},
 					{},
 				},
@@ -194,7 +194,7 @@ func TestConfigValidate(t *testing.T) {
 			1, // no more than one provider_installation block allowed
 		},
 		"plugin_cache_dir does not exist": {
-			&Config{
+			&LegacyConfig{
 				PluginCacheDir: "fake",
 			},
 			1, // The specified plugin cache dir %s cannot be opened
@@ -214,8 +214,8 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
-func TestConfig_Merge(t *testing.T) {
-	c1 := &Config{
+func TestLegacyConfig_Merge(t *testing.T) {
+	c1 := &LegacyConfig{
 		Providers: map[string]string{
 			"foo": "bar",
 			"bar": "blah",
@@ -224,7 +224,7 @@ func TestConfig_Merge(t *testing.T) {
 			"local":  "local",
 			"remote": "bad",
 		},
-		Hosts: map[string]*ConfigHost{
+		Hosts: map[string]*LegacyConfigHost{
 			"example.com": {
 				Services: map[string]interface{}{
 					"modules.v1": "http://example.com/",
@@ -236,25 +236,25 @@ func TestConfig_Merge(t *testing.T) {
 				"bar": "baz",
 			},
 		},
-		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+		CredentialsHelpers: map[string]*LegacyConfigCredentialsHelper{
 			"buz": {},
 		},
-		ProviderInstallation: []*ProviderInstallation{
+		ProviderInstallation: []*LegacyProviderInstallation{
 			{
-				Methods: []*ProviderInstallationMethod{
+				Methods: []*LegacyProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("a")},
 					{Location: ProviderInstallationFilesystemMirror("b")},
 				},
 			},
 			{
-				Methods: []*ProviderInstallationMethod{
+				Methods: []*LegacyProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("c")},
 				},
 			},
 		},
 	}
 
-	c2 := &Config{
+	c2 := &LegacyConfig{
 		Providers: map[string]string{
 			"bar": "baz",
 			"baz": "what",
@@ -262,7 +262,7 @@ func TestConfig_Merge(t *testing.T) {
 		Provisioners: map[string]string{
 			"remote": "remote",
 		},
-		Hosts: map[string]*ConfigHost{
+		Hosts: map[string]*LegacyConfigHost{
 			"example.net": {
 				Services: map[string]interface{}{
 					"modules.v1": "https://example.net/",
@@ -274,19 +274,19 @@ func TestConfig_Merge(t *testing.T) {
 				"bur": "bez",
 			},
 		},
-		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+		CredentialsHelpers: map[string]*LegacyConfigCredentialsHelper{
 			"biz": {},
 		},
-		ProviderInstallation: []*ProviderInstallation{
+		ProviderInstallation: []*LegacyProviderInstallation{
 			{
-				Methods: []*ProviderInstallationMethod{
+				Methods: []*LegacyProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("d")},
 				},
 			},
 		},
 	}
 
-	expected := &Config{
+	expected := &LegacyConfig{
 		Providers: map[string]string{
 			"foo": "bar",
 			"bar": "baz",
@@ -296,7 +296,7 @@ func TestConfig_Merge(t *testing.T) {
 			"local":  "local",
 			"remote": "remote",
 		},
-		Hosts: map[string]*ConfigHost{
+		Hosts: map[string]*LegacyConfigHost{
 			"example.com": {
 				Services: map[string]interface{}{
 					"modules.v1": "http://example.com/",
@@ -316,24 +316,24 @@ func TestConfig_Merge(t *testing.T) {
 				"bur": "bez",
 			},
 		},
-		CredentialsHelpers: map[string]*ConfigCredentialsHelper{
+		CredentialsHelpers: map[string]*LegacyConfigCredentialsHelper{
 			"buz": {},
 			"biz": {},
 		},
-		ProviderInstallation: []*ProviderInstallation{
+		ProviderInstallation: []*LegacyProviderInstallation{
 			{
-				Methods: []*ProviderInstallationMethod{
+				Methods: []*LegacyProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("a")},
 					{Location: ProviderInstallationFilesystemMirror("b")},
 				},
 			},
 			{
-				Methods: []*ProviderInstallationMethod{
+				Methods: []*LegacyProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("c")},
 				},
 			},
 			{
-				Methods: []*ProviderInstallationMethod{
+				Methods: []*LegacyProviderInstallationMethod{
 					{Location: ProviderInstallationFilesystemMirror("d")},
 				},
 			},
@@ -346,14 +346,14 @@ func TestConfig_Merge(t *testing.T) {
 	}
 }
 
-func TestConfig_Merge_disableCheckpoint(t *testing.T) {
-	c1 := &Config{
+func TestLegacyConfig_Merge_disableCheckpoint(t *testing.T) {
+	c1 := &LegacyConfig{
 		DisableCheckpoint: true,
 	}
 
-	c2 := &Config{}
+	c2 := &LegacyConfig{}
 
-	expected := &Config{
+	expected := &LegacyConfig{
 		Providers:         map[string]string{},
 		Provisioners:      map[string]string{},
 		DisableCheckpoint: true,
@@ -365,14 +365,14 @@ func TestConfig_Merge_disableCheckpoint(t *testing.T) {
 	}
 }
 
-func TestConfig_Merge_disableCheckpointSignature(t *testing.T) {
-	c1 := &Config{
+func TestLegacyConfig_Merge_disableCheckpointSignature(t *testing.T) {
+	c1 := &LegacyConfig{
 		DisableCheckpointSignature: true,
 	}
 
-	c2 := &Config{}
+	c2 := &LegacyConfig{}
 
-	expected := &Config{
+	expected := &LegacyConfig{
 		Providers:                  map[string]string{},
 		Provisioners:               map[string]string{},
 		DisableCheckpointSignature: true,

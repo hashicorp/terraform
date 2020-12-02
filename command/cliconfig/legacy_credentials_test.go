@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 )
 
@@ -96,7 +96,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 
 	mockCredsFilename := filepath.Join(d, "credentials.tfrc.json")
 
-	cfg := &Config{
+	cfg := &LegacyConfig{
 		// This simulates there being a credentials block manually configured
 		// in some file _other than_ credentials.tfrc.json.
 		Credentials: map[string]map[string]interface{}{

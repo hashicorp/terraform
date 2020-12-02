@@ -20,7 +20,7 @@ import (
 // CLI configuration and some default search locations. This will be the
 // provider source used for provider installation in the "terraform init"
 // command, unless overridden by the special -plugin-dir option.
-func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+func providerSource(configs []*cliconfig.LegacyProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
 	if len(configs) == 0 {
 		// If there's no explicit installation configuration then we'll build
 		// up an implicit one with direct registry installation along with
@@ -35,7 +35,7 @@ func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.D
 	return explicitProviderSource(config, services)
 }
 
-func explicitProviderSource(config *cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+func explicitProviderSource(config *cliconfig.LegacyProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var searchRules []getproviders.MultiSourceSelector
 
@@ -141,7 +141,7 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	}
 
 	addLocalDir("terraform.d/plugins") // our "vendor" directory
-	cliConfigDir, err := cliconfig.ConfigDir()
+	cliConfigDir, err := cliconfig.LegacyConfigDir()
 	if err == nil {
 		addLocalDir(filepath.Join(cliConfigDir, "plugins"))
 	}
@@ -226,7 +226,7 @@ func providerSourceForCLIConfigLocation(loc cliconfig.ProviderInstallationLocati
 	}
 }
 
-func providerDevOverrides(configs []*cliconfig.ProviderInstallation) map[addrs.Provider]getproviders.PackageLocalDir {
+func providerDevOverrides(configs []*cliconfig.LegacyProviderInstallation) map[addrs.Provider]getproviders.PackageLocalDir {
 	if len(configs) == 0 {
 		return nil
 	}

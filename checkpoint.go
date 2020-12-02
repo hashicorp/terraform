@@ -18,7 +18,7 @@ var checkpointResult chan *checkpoint.CheckResponse
 
 // runCheckpoint runs a HashiCorp Checkpoint request. You can read about
 // Checkpoint here: https://github.com/hashicorp/go-checkpoint.
-func runCheckpoint(c *cliconfig.Config) {
+func runCheckpoint(c *cliconfig.LegacyConfig) {
 	// If the user doesn't want checkpoint at all, then return.
 	if c.DisableCheckpoint {
 		log.Printf("[INFO] Checkpoint disabled. Not running.")
@@ -26,7 +26,7 @@ func runCheckpoint(c *cliconfig.Config) {
 		return
 	}
 
-	configDir, err := cliconfig.ConfigDir()
+	configDir, err := cliconfig.LegacyConfigDir()
 	if err != nil {
 		log.Printf("[ERR] Checkpoint setup error: %s", err)
 		checkpointResult <- nil

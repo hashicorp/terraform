@@ -12,15 +12,15 @@ import (
 func TestLoadConfig_providerInstallation(t *testing.T) {
 	for _, configFile := range []string{"provider-installation", "provider-installation.json"} {
 		t.Run(configFile, func(t *testing.T) {
-			got, diags := loadConfigFile(filepath.Join(fixtureDir, configFile))
+			got, diags := legacyLoadConfigFile(filepath.Join(fixtureDir, configFile))
 			if diags.HasErrors() {
 				t.Errorf("unexpected diagnostics: %s", diags.Err().Error())
 			}
 
-			want := &Config{
-				ProviderInstallation: []*ProviderInstallation{
+			want := &LegacyConfig{
+				ProviderInstallation: []*LegacyProviderInstallation{
 					{
-						Methods: []*ProviderInstallationMethod{
+						Methods: []*LegacyProviderInstallationMethod{
 							{
 								Location: ProviderInstallationFilesystemMirror("/tmp/example1"),
 								Include:  []string{"example.com/*/*"},
@@ -55,7 +55,7 @@ func TestLoadConfig_providerInstallation(t *testing.T) {
 }
 
 func TestLoadConfig_providerInstallationErrors(t *testing.T) {
-	_, diags := loadConfigFile(filepath.Join(fixtureDir, "provider-installation-errors"))
+	_, diags := legacyLoadConfigFile(filepath.Join(fixtureDir, "provider-installation-errors"))
 	want := `7 problems:
 
 - Invalid provider_installation method block: Unknown provider installation method "not_a_thing" at 2:3.
