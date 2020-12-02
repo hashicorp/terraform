@@ -690,7 +690,7 @@ Plan: 0 to add, 0 to change, 1 to destroy.`
 }
 
 func getAddrs(resources []*plans.ResourceInstanceChangeSrc) []string {
-	addrs := make([]string, len(resources), len(resources))
+	addrs := make([]string, len(resources))
 	for i, r := range resources {
 		addrs[i] = r.Addr.String()
 	}

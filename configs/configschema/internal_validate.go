@@ -34,7 +34,7 @@ func (b *Block) internalValidate(prefix string, err error) error {
 		if !validName.MatchString(name) {
 			err = multierror.Append(err, fmt.Errorf("%s%s: name may contain only lowercase letters, digits and underscores", prefix, name))
 		}
-		if attrS.Optional == false && attrS.Required == false && attrS.Computed == false {
+		if !attrS.Optional && !attrS.Required && !attrS.Computed {
 			err = multierror.Append(err, fmt.Errorf("%s%s: must set Optional, Required or Computed", prefix, name))
 		}
 		if attrS.Optional && attrS.Required {

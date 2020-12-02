@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1538,31 +1535,6 @@ output = test
 	testStateOutput(t, statePath, expected)
 }
 
-func testHttpServer(t *testing.T) net.Listener {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/header", testHttpHandlerHeader)
-
-	var server http.Server
-	server.Handler = mux
-	go server.Serve(ln)
-
-	return ln
-}
-
-func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
-	var url url.URL
-	url.Scheme = "file"
-	url.Path = filepath.ToSlash(testFixturePath("init"))
-
-	w.Header().Add("X-Terraform-Get", url.String())
-	w.WriteHeader(200)
-}
-
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
@@ -1648,24 +1620,4 @@ foo = "bar"
 
 const applyVarFileJSON = `
 { "foo": "bar" }
-`
-
-const testApplyDisableBackupStr = `
-ID = bar
-Tainted = false
-`
-
-const testApplyDisableBackupStateStr = `
-ID = bar
-Tainted = false
-`
-
-const testApplyStateStr = `
-ID = bar
-Tainted = false
-`
-
-const testApplyStateDiffStr = `
-ID = bar
-Tainted = false
 `

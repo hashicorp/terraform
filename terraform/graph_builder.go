@@ -1,9 +1,7 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -39,12 +37,6 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 			continue
 		}
 		log.Printf("[TRACE] Executing graph transform %T", step)
-
-		stepName := fmt.Sprintf("%T", step)
-		dot := strings.LastIndex(stepName, ".")
-		if dot >= 0 {
-			stepName = stepName[dot+1:]
-		}
 
 		err := step.Transform(g)
 		if thisStepStr := g.StringWithNodeTypes(); thisStepStr != lastStepStr {

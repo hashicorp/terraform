@@ -618,7 +618,6 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 	p.buf.WriteRune('\n')
 	p.buf.WriteString(strings.Repeat(" ", indent+2))
 	p.buf.WriteString("}")
-	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) bool {
@@ -876,7 +875,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 			}
 
-			if strings.Index(oldS, "\n") < 0 && strings.Index(newS, "\n") < 0 {
+			if !strings.Contains(oldS, "\n") && !strings.Contains(newS, "\n") {
 				break
 			}
 
@@ -1050,7 +1049,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					if hidden > 0 && i < len(elemDiffs) {
 						hidden--
 						nextContextDiff = suppressedElements[hidden]
-						suppressedElements = suppressedElements[:hidden]
 					}
 
 					// If there are still hidden elements, show an elision

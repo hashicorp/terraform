@@ -76,18 +76,18 @@ func (s *State) String() string {
 
 // testString is used to produce part of the output of State.String. It should
 // never be used directly.
-func (m *Module) testString() string {
+func (ms *Module) testString() string {
 	var buf bytes.Buffer
 
-	if len(m.Resources) == 0 {
+	if len(ms.Resources) == 0 {
 		buf.WriteString("<no state>")
 	}
 
 	// We use AbsResourceInstance here, even though everything belongs to
 	// the same module, just because we have a sorting behavior defined
 	// for those but not for just ResourceInstance.
-	addrsOrder := make([]addrs.AbsResourceInstance, 0, len(m.Resources))
-	for _, rs := range m.Resources {
+	addrsOrder := make([]addrs.AbsResourceInstance, 0, len(ms.Resources))
+	for _, rs := range ms.Resources {
 		for ik := range rs.Instances {
 			addrsOrder = append(addrsOrder, rs.Addr.Instance(ik))
 		}
@@ -99,8 +99,8 @@ func (m *Module) testString() string {
 
 	for _, fakeAbsAddr := range addrsOrder {
 		addr := fakeAbsAddr.Resource
-		rs := m.Resource(addr.ContainingResource())
-		is := m.ResourceInstance(addr)
+		rs := ms.Resource(addr.ContainingResource())
+		is := ms.ResourceInstance(addr)
 
 		// Here we need to fake up a legacy-style address as the old state
 		// types would've used, since that's what our tests against those
@@ -197,24 +197,24 @@ func (m *Module) testString() string {
 		}
 
 		if obj := is.Current; obj != nil && len(obj.Dependencies) > 0 {
-			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			buf.WriteString("\n  Dependencies:\n")
 			for _, dep := range obj.Dependencies {
 				buf.WriteString(fmt.Sprintf("    %s\n", dep.String()))
 			}
 		}
 	}
 
-	if len(m.OutputValues) > 0 {
+	if len(ms.OutputValues) > 0 {
 		buf.WriteString("\nOutputs:\n\n")
 
-		ks := make([]string, 0, len(m.OutputValues))
-		for k := range m.OutputValues {
+		ks := make([]string, 0, len(ms.OutputValues))
+		for k := range ms.OutputValues {
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
 
 		for _, k := range ks {
-			v := m.OutputValues[k]
+			v := ms.OutputValues[k]
 			lv := hcl2shim.ConfigValueFromHCL2(v.Value)
 			switch vTyped := lv.(type) {
 			case string:

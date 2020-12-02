@@ -412,7 +412,7 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 }
 
 func connectToAgent(connInfo *connectionInfo) (*sshAgent, error) {
-	if connInfo.Agent != true {
+	if !connInfo.Agent {
 		// No agent configured
 		return nil, nil
 	}
@@ -546,13 +546,6 @@ func (s *sshAgent) sortSigners(signers []ssh.Signer) {
 			head++
 			continue
 		}
-	}
-
-	ss := []string{}
-	for _, signer := range signers {
-		pk := signer.PublicKey()
-		k := pk.(*agent.Key)
-		ss = append(ss, k.Comment)
 	}
 }
 

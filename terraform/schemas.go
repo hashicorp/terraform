@@ -274,10 +274,3 @@ func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeNam
 func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ps.SchemaForResourceType(addr.Mode, addr.Type)
 }
-
-// ProviderSchemaRequest is used to describe to a ResourceProvider which
-// aspects of schema are required, when calling the GetSchema method.
-type ProviderSchemaRequest struct {
-	ResourceTypes []string
-	DataSources   []string
-}

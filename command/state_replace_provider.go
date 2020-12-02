@@ -90,7 +90,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(fmt.Sprintf(errStateNotFound))
+		c.Ui.Error(errStateNotFound)
 		return 1
 	}
 
@@ -119,7 +119,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	// Explain the changes
 	colorize := c.Colorize()
 	c.Ui.Output("Terraform will perform the following actions:\n")
-	c.Ui.Output(colorize.Color(fmt.Sprintf("  [yellow]~[reset] Updating provider:")))
+	c.Ui.Output(colorize.Color("  [yellow]~[reset] Updating provider:"))
 	c.Ui.Output(colorize.Color(fmt.Sprintf("    [red]-[reset] %s", from)))
 	c.Ui.Output(colorize.Color(fmt.Sprintf("    [green]+[reset] %s\n", to)))
 
@@ -134,7 +134,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 			"\n[bold]Do you want to make these changes?[reset]\n" +
 				"Only 'yes' will be accepted to continue.\n",
 		))
-		v, err := c.Ui.Ask(fmt.Sprintf("Enter a value:"))
+		v, err := c.Ui.Ask("Enter a value:")
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error asking for approval: %s", err))
 			return 1

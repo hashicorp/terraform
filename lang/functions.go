@@ -162,15 +162,6 @@ func (s *Scope) Functions() map[string]function.Function {
 	return s.funcs
 }
 
-var unimplFunc = function.New(&function.Spec{
-	Type: func([]cty.Value) (cty.Type, error) {
-		return cty.DynamicPseudoType, fmt.Errorf("function not yet implemented")
-	},
-	Impl: func([]cty.Value, cty.Type) (cty.Value, error) {
-		return cty.DynamicVal, fmt.Errorf("function not yet implemented")
-	},
-})
-
 // experimentalFunction checks whether the given experiment is enabled for
 // the recieving scope. If so, it will return the given function verbatim.
 // If not, it will return a placeholder function that just returns an

@@ -197,7 +197,6 @@ type Meta struct {
 	stateOutPath     string
 	backupPath       string
 	parallelism      int
-	provider         string
 	stateLock        bool
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
@@ -643,14 +642,14 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
-var invalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
+var errInvalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
 
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
 func (m *Meta) Workspace() (string, error) {
 	current, overridden := m.WorkspaceOverridden()
 	if overridden && !validWorkspaceName(current) {
-		return "", invalidWorkspaceNameEnvVar
+		return "", errInvalidWorkspaceNameEnvVar
 	}
 	return current, nil
 }

@@ -154,7 +154,7 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity:    hcl.DiagError,
 					Summary:     "Invalid for_each set argument",
-					Detail:      fmt.Sprintf(`The given "for_each" argument value is unsuitable: "for_each" sets must not contain null values.`),
+					Detail:      `The given "for_each" argument value is unsuitable: "for_each" sets must not contain null values.`,
 					Subject:     expr.Range().Ptr(),
 					Expression:  expr,
 					EvalContext: hclCtx,

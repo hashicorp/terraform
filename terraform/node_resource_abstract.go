@@ -349,12 +349,8 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 // the state.
 func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-
-	if provider == nil {
-		panic("ReadResourceInstanceState used with no Provider object")
-	}
-	if providerSchema == nil {
-		panic("ReadResourceInstanceState used with no ProviderSchema object")
+	if err != nil {
+		return nil, err
 	}
 
 	log.Printf("[TRACE] ReadResourceInstanceState: reading state for %s", addr)

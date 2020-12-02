@@ -921,17 +921,6 @@ module.child[0].nested:
     provider = provider["registry.terraform.io/hashicorp/aws"]
 `
 
-const testImportModuleExistingStr = `
-<no state>
-module.foo:
-  aws_instance.bar:
-    ID = bar
-    provider = provider["registry.terraform.io/hashicorp/aws"]
-  aws_instance.foo:
-    ID = foo
-    provider = provider["registry.terraform.io/hashicorp/aws"]
-`
-
 const testImportMultiStr = `
 aws_instance.foo:
   ID = foo

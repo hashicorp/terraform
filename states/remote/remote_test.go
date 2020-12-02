@@ -1,49 +1,10 @@
 package remote
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"testing"
-
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/states/statemgr"
 )
-
-// testClient is a generic function to test any client.
-func testClient(t *testing.T, c Client) {
-	var buf bytes.Buffer
-	s := statemgr.TestFullInitialState()
-	sf := &statefile.File{State: s}
-	if err := statefile.Write(sf, &buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	data := buf.Bytes()
-
-	if err := c.Put(data); err != nil {
-		t.Fatalf("put: %s", err)
-	}
-
-	p, err := c.Get()
-	if err != nil {
-		t.Fatalf("get: %s", err)
-	}
-	if !bytes.Equal(p.Data, data) {
-		t.Fatalf("bad: %#v", p)
-	}
-
-	if err := c.Delete(); err != nil {
-		t.Fatalf("delete: %s", err)
-	}
-
-	p, err = c.Get()
-	if err != nil {
-		t.Fatalf("get: %s", err)
-	}
-	if p != nil {
-		t.Fatalf("bad: %#v", p)
-	}
-}
 
 func TestRemoteClient_noPayload(t *testing.T) {
 	s := &State{

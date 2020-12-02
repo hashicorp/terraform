@@ -195,7 +195,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 				key := "key"
 				v.Key = &key
 			}
-			b.client.Variables.Create(nil, workspaceID, *v)
+			b.client.Variables.Create(context.TODO(), workspaceID, *v)
 
 			_, _, diags := b.Context(op)
 

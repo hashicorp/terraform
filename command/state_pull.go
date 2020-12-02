@@ -22,7 +22,6 @@ func (c *StatePullCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
-	args = cmdFlags.Args()
 
 	// Load the backend
 	b, backendDiags := c.Backend(nil)

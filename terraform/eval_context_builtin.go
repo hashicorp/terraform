@@ -332,7 +332,6 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 
 	args := ctx.VariableValues[key]
 	if args == nil {
-		args = make(map[string]cty.Value)
 		ctx.VariableValues[key] = vals
 		return
 	}

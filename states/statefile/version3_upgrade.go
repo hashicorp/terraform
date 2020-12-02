@@ -3,7 +3,6 @@ package statefile
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -336,35 +335,6 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		}
 	}
 
-	dependencies := make([]string, 0, len(rsOld.Dependencies))
-	for _, v := range rsOld.Dependencies {
-		depStr, err := parseLegacyDependency(v)
-		if err != nil {
-			// We just drop invalid dependencies on the floor here, because
-			// they tend to get left behind in Terraform 0.11 when resources
-			// are renamed or moved between modules and there's no automatic
-			// way to fix them here. In practice it shouldn't hurt to miss
-			// a few dependency edges in the state because a subsequent plan
-			// will run a refresh walk first and re-synchronize the
-			// dependencies with the configuration.
-			//
-			// There is one rough edges where this can cause an incorrect
-			// result, though: If the first command the user runs after
-			// upgrading to Terraform 0.12 uses -refresh=false and thus
-			// prevents the dependency reorganization from occurring _and_
-			// that initial plan discovered "orphaned" resources (not present
-			// in configuration any longer) then when the plan is applied the
-			// destroy ordering will be incorrect for the instances of those
-			// resources. We expect that is a rare enough situation that it
-			// isn't a big deal, and even when it _does_ occur it's common for
-			// the apply to succeed anyway unless many separate resources with
-			// complex inter-dependencies are all orphaned at once.
-			log.Printf("statefile: ignoring invalid dependency address %q while upgrading from state version 3 to version 4: %s", v, err)
-			continue
-		}
-		dependencies = append(dependencies, depStr)
-	}
-
 	return &instanceObjectStateV4{
 		IndexKey:       instKeyRaw,
 		Status:         status,
@@ -472,29 +442,4 @@ func simplifyImpliedValueType(ty cty.Type) cty.Type {
 		// No other normalizations are possible
 		return ty
 	}
-}
-
-func parseLegacyDependency(s string) (string, error) {
-	parts := strings.Split(s, ".")
-	ret := parts[0]
-	for _, part := range parts[1:] {
-		if part == "*" {
-			break
-		}
-		if i, err := strconv.Atoi(part); err == nil {
-			ret = ret + fmt.Sprintf("[%d]", i)
-			break
-		}
-		ret = ret + "." + part
-	}
-
-	// The result must parse as a reference, or else we'll create an invalid
-	// state file.
-	var diags tfdiags.Diagnostics
-	_, diags = addrs.ParseRefStr(ret)
-	if diags.HasErrors() {
-		return "", diags.Err()
-	}
-
-	return ret, nil
 }

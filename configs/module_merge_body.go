@@ -112,9 +112,7 @@ func (b mergeBody) prepareContent(base *hcl.BodyContent, override *hcl.BodyConte
 		}
 		content.Blocks = append(content.Blocks, block)
 	}
-	for _, block := range override.Blocks {
-		content.Blocks = append(content.Blocks, block)
-	}
+	content.Blocks = append(content.Blocks, override.Blocks...)
 
 	return content
 }

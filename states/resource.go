@@ -135,7 +135,7 @@ func (i *ResourceInstance) GetGeneration(gen Generation) *ResourceInstanceObject
 		return i.Deposed[dk]
 	}
 	if gen == nil {
-		panic(fmt.Sprintf("get with nil Generation"))
+		panic("get with nil Generation")
 	}
 	// Should never fall out here, since the above covers all possible
 	// Generation values.

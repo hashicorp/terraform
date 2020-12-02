@@ -495,10 +495,10 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 					}
 
 					if err == errRunDiscarded {
+						err = errApplyDiscarded
 						if op.Destroy {
 							err = errDestroyDiscarded
 						}
-						err = errApplyDiscarded
 					}
 
 					result <- err

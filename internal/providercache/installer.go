@@ -385,7 +385,7 @@ NeedProvider:
 				// implementation, so we don't worry about potentially
 				// creating a duplicate here.
 				newHashes = append(newHashes, newHash)
-				lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+				locks.SetProvider(provider, version, reqs[provider], newHashes)
 
 				if cb := evts.LinkFromCacheSuccess; cb != nil {
 					cb(provider, version, new.PackageDir)
@@ -511,7 +511,7 @@ NeedProvider:
 			// and so the hashes would cover only the current platform.
 			newHashes = append(newHashes, meta.AcceptableHashes()...)
 		}
-		lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+		locks.SetProvider(provider, version, reqs[provider], newHashes)
 
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)

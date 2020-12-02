@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
@@ -238,11 +237,10 @@ func TestProvisionerTimeout(t *testing.T) {
 
 	done := make(chan struct{})
 
+	var runErr error
 	go func() {
 		defer close(done)
-		if err := runScripts(ctx, o, c, scripts); err != nil {
-			t.Fatal(err)
-		}
+		runErr = runScripts(ctx, o, c, scripts)
 	}()
 
 	select {
@@ -252,8 +250,7 @@ func TestProvisionerTimeout(t *testing.T) {
 	}
 
 	<-done
-}
-
-func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	return terraform.NewResourceConfigRaw(c)
+	if runErr != nil {
+		t.Fatal(err)
+	}
 }
