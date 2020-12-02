@@ -21,6 +21,9 @@ protobuf:
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
+staticcheck:
+	@sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
+
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
@@ -70,4 +73,4 @@ endif
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck generate protobuf website website-test
+.PHONY: fmtcheck generate protobuf website website-test staticcheck
