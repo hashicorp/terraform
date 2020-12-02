@@ -9,7 +9,7 @@ page_title: "Files and Directories - Configuration Language"
 
 Code in the Terraform language is stored in plain text files with the `.tf` file
 extension. There is also
-[a JSON-based variant of the language](./syntax-json.html) that is named with
+[a JSON-based variant of the language](/docs/configuration/syntax-json.html) that is named with
 the `.tf.json` file extension.
 
 Files containing Terraform code are often called _configuration files._
