@@ -1022,9 +1022,11 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			var changeShown bool
 
 			for i := 0; i < len(elemDiffs); i++ {
-				for i < len(elemDiffs) && elemDiffs[i].Action == plans.NoOp {
-					suppressedElements = append(suppressedElements, elemDiffs[i])
-					i++
+				if !p.verbose {
+					for i < len(elemDiffs) && elemDiffs[i].Action == plans.NoOp {
+						suppressedElements = append(suppressedElements, elemDiffs[i])
+						i++
+					}
 				}
 
 				// If we have some suppressed elements on the stack…
