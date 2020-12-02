@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // ResourceProvisionerPlugin is the plugin.Plugin implementation.

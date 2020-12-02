@@ -9,7 +9,7 @@ import (
 
 	"github.com/dylanmei/winrmtest"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 func newMockWinRMServer(t *testing.T) *winrmtest.Remote {

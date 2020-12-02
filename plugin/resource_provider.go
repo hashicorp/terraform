@@ -4,7 +4,7 @@ import (
 	"net/rpc"
 
 	plugin "github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // ResourceProviderPlugin is the plugin.Plugin implementation.
