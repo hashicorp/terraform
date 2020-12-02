@@ -101,7 +101,7 @@ var TypeFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		return cty.StringVal(TypeString(args[0].Type())), nil
+		return cty.StringVal(TypeString(args[0].Type())).Mark("raw"), nil
 	},
 })
 

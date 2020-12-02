@@ -185,6 +185,8 @@ func TestType(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
+		// The value is marked to help with formatting
+		got, _ = got.Unmark()
 
 		if got.AsString() != test.Want {
 			t.Errorf("wrong result:\n%s", cmp.Diff(got.AsString(), test.Want))
