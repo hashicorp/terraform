@@ -116,10 +116,26 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	// If we have an Update action, our before and after values are equal,
 	// and only differ on their sensitivity, the newVal is the after val
-	// and we should not communicate with the provider or perform further action.
+	// and we should not communicate with the provider. We do need to update
+	// the state with this new value, to ensure the sensitivity change is
+	// persisted.
 	eqV := unmarkedBefore.Equals(unmarkedAfter)
 	eq := eqV.IsKnown() && eqV.True()
 	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
+		// Copy the previous state, changing only the value
+		newState := &states.ResourceInstanceObject{
+			CreateBeforeDestroy: state.CreateBeforeDestroy,
+			Dependencies:        state.Dependencies,
+			Private:             state.Private,
+			Status:              state.Status,
+			Value:               change.After,
+		}
+
+		// Write the final state
+		if n.Output != nil {
+			*n.Output = newState
+		}
+
 		return nil, diags.ErrWithWarnings()
 	}
 
