@@ -14,7 +14,7 @@ it with resources.
 > **Hands-on:** Try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/tutorials/terraform/for-each?in=terraform/0-13&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 By default, a [resource block](/docs/configuration/blocks/resources/syntax.html) configures one real
-infrastructure object. (Similarly, a
+infrastructure object (and similarly, a
 [module block](/docs/configuration/blocks/modules/syntax.html) includes a
 child module's contents into the configuration one time).
 However, sometimes you want to manage several similar objects (like a fixed
