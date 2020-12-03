@@ -8,8 +8,6 @@ description: |-
 
 # Upgrading to Terraform v0.14
 
-### Please note: the links in this draft version of the upgrade guide will not function correctly until the guide is live on terraform.io. We'd kindly ask that our community not file issues for broken links in this draft version of the document.
-
 Terraform v0.14 is a major release and so it includes some small changes in
 behavior that you may need to consider when upgrading. This guide is intended
 to help with that process.
@@ -51,6 +49,7 @@ Upgrade guide sections:
 * [Provider Dependency Lock File](#provider-dependency-lock-file)
 * [Concise Terraform Plan Output](#concise-terraform-plan-output)
 * [Sensitive Values in Plan Output](#sensitive-values-in-plan-output)
+* [Other important workflow changes](#other-changes)
 
 ## Before You Upgrade
 
@@ -406,3 +405,14 @@ may cause those values to become visible to others.
 Sensitive values are also still saved in state snapshots stored in your
 configured backend. Use the access control and audit mechanisms offered by
 the remote system to control who can access that data.
+
+
+## Other Important Workflow Changes
+
+### Terraform Output Formatting
+
+We've modified the formatting of `terraform output` to match the formatting of `terraform show`. 
+
+We consider the console output of Terraform human readable; specifically designed and optimized for operators and practitioners to review themselves. As a result we occasionally (maybe even regularly) intend to tweak that output to help improve consistently, clarity, actionability and more.
+
+If you rely on `terraform output` in automation, please use `terraform output -json`. 

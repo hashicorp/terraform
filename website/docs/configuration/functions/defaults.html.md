@@ -8,7 +8,7 @@ description: |-
 
 # `defaults` Function
 
--> **Note:** This function is available only in Terraform 0.14 and later.
+-> **Note:** This function is available only in Terraform 0.15 and later.
 
 ~> **Experimental:** This function is part of
 [the optional attributes experiment](../types.html#experimental-optional-object-type-attributes)
