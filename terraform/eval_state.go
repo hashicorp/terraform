@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -313,37 +312,4 @@ func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) tfdiags.Diagnostic
 	}
 
 	return diags
-}
-
-// EvalRefreshLifecycle is an EvalNode implementation that updates
-// the status of the lifecycle options stored in the state.
-// This currently only applies to create_before_destroy.
-type EvalRefreshLifecycle struct {
-	Addr addrs.AbsResourceInstance
-
-	Config *configs.Resource
-	// Prior State
-	State **states.ResourceInstanceObject
-	// ForceCreateBeforeDestroy indicates a create_before_destroy resource
-	// depends on this resource.
-	ForceCreateBeforeDestroy bool
-}
-
-func (n *EvalRefreshLifecycle) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	state := *n.State
-	if state == nil {
-		// no existing state
-		return nil
-	}
-
-	// In 0.13 we could be refreshing a resource with no config.
-	// We should be operating on managed resource, but check here to be certain
-	if n.Config == nil || n.Config.Managed == nil {
-		log.Printf("[WARN] EvalRefreshLifecycle: no Managed config value found in instance state for %q", n.Addr)
-		return nil
-	}
-
-	state.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
-
-	return nil
 }
