@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
 earlier, see
-[0.11 Configuration Language: Modules](../configuration-0-11/modules.html).
+[0.11 Configuration Language: Modules](/docs/configuration-0-11/modules.html).
 
 > **Hands-on:** Try the [Reuse Configuration with Modules](https://learn.hashicorp.com/collections/terraform/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 

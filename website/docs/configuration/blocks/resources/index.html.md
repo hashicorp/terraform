@@ -15,7 +15,7 @@ as DNS records.
 - [Resource Blocks](/docs/configuration/blocks/resources/syntax.html) documents
   the syntax for declaring resources.
 
-- [Resource Behavior](/docs/configuration/resources/behavior.html) explains in
+- [Resource Behavior](/docs/configuration/blocks/resources/behavior.html) explains in
   more detail how Terraform handles resource declarations when applying a
   configuration.
 
