@@ -49,7 +49,7 @@ Upgrade guide sections:
 * [Provider Dependency Lock File](#provider-dependency-lock-file)
 * [Concise Terraform Plan Output](#concise-terraform-plan-output)
 * [Sensitive Values in Plan Output](#sensitive-values-in-plan-output)
-* [Other important workflow changes](#other-changes)
+* [Other important workflow changes](#other-important-workflow-changes)
 
 ## Before You Upgrade
 
