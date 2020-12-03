@@ -123,12 +123,12 @@ There are two special considerations with the "trust on first use" model:
   your current platform _and_ any other packages that might be available for
   other platforms.
 
-  In this case, the `terraform init` output will include the fingerprint of
-  the key that signed the checksums, with a message like
-  `(signed by a HashiCorp partner, key ID DC9FC6B1FCE47986)`. You may wish to
-  confirm that you trust the holder of the given key before committing the
-  lock file containing the signed checksums, or to retrieve and verify the
-  full set of available packages for the given provider version.
+    In this case, the `terraform init` output will include the fingerprint of
+    the key that signed the checksums, with a message like
+    `(signed by a HashiCorp partner, key ID DC9FC6B1FCE47986)`. You may wish to
+    confirm that you trust the holder of the given key before committing the
+    lock file containing the signed checksums, or to retrieve and verify the
+    full set of available packages for the given provider version.
 
 * If you install a provider for the first time using an alternative
   installation method, such as a filesystem or network mirror, Terraform will
@@ -137,12 +137,12 @@ There are two special considerations with the "trust on first use" model:
   for other platforms and so the configuration will not be usable on any other
   platform.
 
-  To avoid this problem you can pre-populate checksums for a variety of
-  different platforms in your lock file using
-  [the `terraform providers lock` command](/docs/commands/providers/lock.html),
-  which will then allow future calls to `terraform init` to verify that the
-  packages available in your chosen mirror match the official packages from
-  the provider's origin registry.
+    To avoid this problem you can pre-populate checksums for a variety of
+    different platforms in your lock file using
+    [the `terraform providers lock` command](/docs/commands/providers/lock.html),
+    which will then allow future calls to `terraform init` to verify that the
+    packages available in your chosen mirror match the official packages from
+    the provider's origin registry.
 
 ## Understanding Lock File Changes
 
@@ -300,27 +300,27 @@ The two hashing schemes currently supported are:
   part of the Terraform provider registry protocol and is therefore used for
   providers that you install directly from an origin registry.
 
-  This hashing scheme captures a SHA256 hash of each of the official `.zip`
-  packages indexed in the origin registry. This is an effective scheme for
-  verifying the official release packages when installed from a registry, but
-  it's not suitable for verifying packages that come from other
-  [provider installation methods](/docs/commands/cli-config.html#provider-installation),
-  such as filesystem mirrors using the unpacked directory layout.
+    This hashing scheme captures a SHA256 hash of each of the official `.zip`
+    packages indexed in the origin registry. This is an effective scheme for
+    verifying the official release packages when installed from a registry, but
+    it's not suitable for verifying packages that come from other
+    [provider installation methods](/docs/commands/cli-config.html#provider-installation),
+    such as filesystem mirrors using the unpacked directory layout.
 
 * `h1:`: a mnemonic for "hash scheme 1", which is the current preferred hashing
   scheme.
 
-  Hash scheme 1 is also a SHA256 hash, but is one computed from the _contents_
-  of the provider distribution package, rather than of the `.zip` archive
-  it's contained within. This scheme therefore has the advantage that it can
-  be calculated for an official `.zip` file, an unpacked directory with the
-  same contents, or a recompressed `.zip` file which contains the same files
-  but potentially different metadata or compression schemes.
+    Hash scheme 1 is also a SHA256 hash, but is one computed from the _contents_
+    of the provider distribution package, rather than of the `.zip` archive
+    it's contained within. This scheme therefore has the advantage that it can
+    be calculated for an official `.zip` file, an unpacked directory with the
+    same contents, or a recompressed `.zip` file which contains the same files
+    but potentially different metadata or compression schemes.
 
-  Due to the limited scope of the `zh:` scheme, Terraform will
-  opportunistically add in the corresponding `h1:` checksums as it learns
-  of them, which is what caused the addition of a second `h1:` checksum
-  in the example change shown above.
+    Due to the limited scope of the `zh:` scheme, Terraform will
+    opportunistically add in the corresponding `h1:` checksums as it learns
+    of them, which is what caused the addition of a second `h1:` checksum
+    in the example change shown above.
 
 Terraform will add a new hash to an existing provider only if the hash is
 calculated from a package that _also_ matches one of the existing hashes. In
