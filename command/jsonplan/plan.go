@@ -12,10 +12,10 @@ import (
 	"github.com/hashicorp/terraform/command/jsonconfig"
 	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/version"
 )
 

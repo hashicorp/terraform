@@ -11,7 +11,7 @@ import (
 	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 

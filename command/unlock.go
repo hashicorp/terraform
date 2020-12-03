@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/states/statemgr"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 )

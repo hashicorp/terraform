@@ -10,8 +10,8 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // stateValues is the common representation of resolved values for both the

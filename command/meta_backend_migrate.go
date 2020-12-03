@@ -13,9 +13,9 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 type backendMigrateOpts struct {

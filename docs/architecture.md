@@ -92,12 +92,12 @@ specified in the operation, then uses the _config loader_ to load and do
 initial processing/validation of the configuration specified in the
 operation. It then uses these, along with the other settings given in the
 operation, to construct a
-[`terraform.Context`](https://godoc.org/github.com/hashicorp/terraform/terraform#Context),
+[`terraform.Context`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#Context),
 which is the main object that actually performs Terraform operations.
 
 The `local` backend finally calls an appropriate method on that context to
 begin execution of the relevant command, such as
-[`Plan`](https://godoc.org/github.com/hashicorp/terraform/terraform#Context.Plan)
+[`Plan`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#Context.Plan)
 or
 [`Apply`](), which in turn constructs a graph using a _graph builder_,
 described in a later section.
@@ -167,7 +167,7 @@ kind of arbitrary blob store.
 ## Graph Builder
 
 A _graph builder_ is called by a
-[`terraform.Context`](https://godoc.org/github.com/hashicorp/terraform/terraform#Context)
+[`terraform.Context`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#Context)
 method (e.g. `Plan` or `Apply`) to produce the graph that will be used
 to represent the necessary steps for that operation and the dependency
 relationships between them.
@@ -177,7 +177,7 @@ In most cases, the
 graphs each represent a specific object in the configuration, or something
 derived from those configuration objects. For example, each `resource` block
 in the configuration has one corresponding
-[`GraphNodeResource`](https://godoc.org/github.com/hashicorp/terraform/terraform#GraphNodeResource)
+[`GraphNodeResource`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#GraphNodeResource)
 vertex representing it in the "plan" graph. (Terraform Core uses terminology
 inconsistently, describing graph vertices also as graph nodes in various
 places. These both describe the same concept.)
@@ -194,23 +194,23 @@ graph from the set of changes described in the plan that is being applied.
 
 The graph builders all work in terms of a sequence of _transforms_, which
 are implementations of
-[`terraform.GraphTransformer`](https://godoc.org/github.com/hashicorp/terraform/terraform#GraphTransformer).
+[`terraform.GraphTransformer`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#GraphTransformer).
 Implementations of this interface just take a graph and mutate it in any
 way needed, and so the set of available transforms is quite varied. Some
 import examples include:
 
-* [`ConfigTransformer`](https://godoc.org/github.com/hashicorp/terraform/terraform#ConfigTransformer),
+* [`ConfigTransformer`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#ConfigTransformer),
   which creates a graph vertex for each `resource` block in the configuration.
 
-* [`StateTransformer`](https://godoc.org/github.com/hashicorp/terraform/terraform#StateTransformer),
+* [`StateTransformer`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#StateTransformer),
   which creates a graph vertex for each resource instance currently tracked
   in the state.
 
-* [`ReferenceTransformer`](https://godoc.org/github.com/hashicorp/terraform/terraform#ReferenceTransformer),
+* [`ReferenceTransformer`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#ReferenceTransformer),
   which analyses the configuration to find dependencies between resources and
   other objects and creates any necessary "happens after" edges for these.
 
-* [`ProviderTransformer`](https://godoc.org/github.com/hashicorp/terraform/terraform#ProviderTransformer),
+* [`ProviderTransformer`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#ProviderTransformer),
   which associates each resource or resource instance with exactly one
   provider configuration (implementing
   [the inheritance rules](https://www.terraform.io/docs/modules/usage.html#providers-within-modules))
@@ -224,7 +224,7 @@ builder uses a different subset of these depending on the needs of the
 operation that is being performed.
 
 The result of graph building is a
-[`terraform.Graph`](https://godoc.org/github.com/hashicorp/terraform/terraform#Graph), which
+[`terraform.Graph`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#Graph), which
 can then be processed using a _graph walker_.
 
 ## Graph Walk
@@ -236,13 +236,13 @@ itself is implemented in
 (where "DAG" is short for [_Directed Acyclic Graph_](https://en.wikipedia.org/wiki/Directed_acyclic_graph)), in
 [`AcyclicGraph.Walk`](https://godoc.org/github.com/hashicorp/terraform/dag#AcyclicGraph.Walk).
 However, the "interesting" Terraform walk functionality is implemented in
-[`terraform.ContextGraphWalker`](https://godoc.org/github.com/hashicorp/terraform/terraform#ContextGraphWalker),
+[`terraform.ContextGraphWalker`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#ContextGraphWalker),
 which implements a small set of higher-level operations that are performed
 during the graph walk:
 
 * `EnterPath` is called once for each module in the configuration, taking a
   module address and returning a
-  [`terraform.EvalContext`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalContext)
+  [`terraform.EvalContext`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalContext)
   that tracks objects within that module. `terraform.Context` is the _global_
   context for the entire operation, while `terraform.EvalContext` is a
   context for processing within a single module, and is the primary means
@@ -291,49 +291,49 @@ a plan operation would include the following high-level steps:
   this operation.
 
 Each evaluation step for a vertex is an implementation of
-[`terraform.EvalNode`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalNode).
+[`terraform.EvalNode`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalNode).
 As with graph transforms, the behavior of these implementations varies widely:
 whereas graph transforms can take any action against the graph, an `EvalNode`
 implementation can take any action against the `EvalContext`.
 
 The implementation of `terraform.EvalContext` used in real processing
 (as opposed to testing) is
-[`terraform.BuiltinEvalContext`](https://godoc.org/github.com/hashicorp/terraform/terraform#BuiltinEvalContext).
+[`terraform.BuiltinEvalContext`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#BuiltinEvalContext).
 It provides coordinated access to plugins, the current state, and the current
 plan via the `EvalContext` interface methods.
 
 In order to be evaluated, a vertex must implement
-[`terraform.GraphNodeEvalable`](https://godoc.org/github.com/hashicorp/terraform/terraform#GraphNodeEvalable),
+[`terraform.GraphNodeEvalable`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#GraphNodeEvalable),
 which has a single method that returns an `EvalNode`. In practice, most
 implementations return an instance of
-[`terraform.EvalSequence`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalSequence),
+[`terraform.EvalSequence`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalSequence),
 which wraps a number of other `EvalNode` objects to be executed in sequence.
 
 There are numerous `EvalNode` implementations with different behaviors, but
 some prominent examples are:
 
-* [`EvalReadState`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalReadState),
+* [`EvalReadState`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalReadState),
   which extracts the data for a particular resource instance from the state.
 
-* [`EvalWriteState`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalWriteState),
+* [`EvalWriteState`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalWriteState),
   which conversely replaces the data for a particular resource instance in
   the state with some updated data resulting from changes made by the
   provider.
 
-* [`EvalInitProvider`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalInitProvider),
+* [`EvalInitProvider`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalInitProvider),
   which starts up a provider plugin and passes the user-provided configuration
   to it, caching the provider inside the `EvalContext`.
 
-* [`EvalGetProvider`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalGetProvider),
+* [`EvalGetProvider`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalGetProvider),
   which retrieves an already-initialized provider that is cached in the
   `EvalContext`.
 
-* [`EvalValidateResource`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalValidateResource),
+* [`EvalValidateResource`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalValidateResource),
   which checks to make sure that resource configuration conforms to the
   expected schema and gives a provider plugin the opportunity to check that
   given values are within the expected range, etc.
 
-* [`EvalApply`](https://godoc.org/github.com/hashicorp/terraform/terraform#EvalApply),
+* [`EvalApply`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#EvalApply),
   which calls into a provider plugin to make apply some planned changes
   to a given resource instance.
 
@@ -401,9 +401,8 @@ known when the main graph is constructed, but become known while evaluating
 other vertices in the main graph.
 
 This special behavior applies to vertex objects that implement
-[`terraform.GraphNodeDynamicExpandable`](https://godoc.org/github.com/hashicorp/terraform/terraform#GraphNodeDynamicExpandable). Such vertexes have their own nested _graph builder_, _graph walk_,
+[`terraform.GraphNodeDynamicExpandable`](https://godoc.org/github.com/hashicorp/terraform/internal/terraform#GraphNodeDynamicExpandable). Such vertexes have their own nested _graph builder_, _graph walk_,
 and _vertex evaluation_ steps, with the same behaviors as described in these
 sections for the main graph. The difference is in which graph transforms
 are used to construct the graph and in which evaluation steps apply to the
 nodes in that sub-graph.
-
