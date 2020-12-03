@@ -52,8 +52,8 @@ read-only attributes with information obtained from the remote API; this often
 includes things that can't be known until the resource is created, like the
 resource's unique random ID.
 
-Many providers also include [data sources](./data-sources.html), which are a
-special type of resource used only for looking up information.
+Many providers also include [data sources](/docs/configuration/data-sources.html),
+which are a special type of resource used only for looking up information.
 
 For a list of the attributes a resource or data source type provides, consult
 its documentation; these are generally included in a second list below its list
@@ -83,8 +83,9 @@ However, some dependencies cannot be recognized implicitly in configuration. For
 example, if Terraform must manage access control policies _and_ take actions
 that require those policies to be present, there is a hidden dependency between
 the access policy and a resource whose creation depends on it. In these rare
-cases, [the `depends_on` meta-argument](./depends_on.html) can explicitly specify a
-dependency.
+cases,
+[the `depends_on` meta-argument](/docs/configuration/meta-arguments/depends_on.html)
+can explicitly specify a dependency.
 
 ## Local-only Resources
 
