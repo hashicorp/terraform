@@ -99,11 +99,20 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 						Sensitive: true,
 						Default:   cty.StringVal("foo"),
 					},
+					// Avoid double marking a value
+					"some_other_var": {
+						Name:      "some_other_var",
+						Sensitive: true,
+						Default:   cty.StringVal("bar"),
+					},
 				},
 			},
 		},
 		VariableValues: map[string]map[string]cty.Value{
-			"": {"some_var": cty.StringVal("bar")},
+			"": {
+				"some_var":       cty.StringVal("bar"),
+				"some_other_var": cty.StringVal("boop").Mark("sensitive"),
+			},
 		},
 		VariableValuesLock: &sync.Mutex{},
 	}
@@ -116,6 +125,18 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 	want := cty.StringVal("bar").Mark("sensitive")
 	got, diags := scope.Data.GetInputVariable(addrs.InputVariable{
 		Name: "some_var",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+
+	want = cty.StringVal("boop").Mark("sensitive")
+	got, diags = scope.Data.GetInputVariable(addrs.InputVariable{
+		Name: "some_other_var",
 	}, tfdiags.SourceRange{})
 
 	if len(diags) != 0 {
