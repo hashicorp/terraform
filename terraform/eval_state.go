@@ -218,27 +218,6 @@ type EvalDeposeState struct {
 	OutputKey *states.DeposedKey
 }
 
-// TODO: test
-func (n *EvalDeposeState) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	absAddr := n.Addr.Absolute(ctx.Path())
-	state := ctx.State()
-
-	var key states.DeposedKey
-	if n.ForceKey == states.NotDeposed {
-		key = state.DeposeResourceInstanceObject(absAddr)
-	} else {
-		key = n.ForceKey
-		state.DeposeResourceInstanceObjectForceKey(absAddr, key)
-	}
-	log.Printf("[TRACE] EvalDeposeState: prior object for %s now deposed with key %s", absAddr, key)
-
-	if n.OutputKey != nil {
-		*n.OutputKey = key
-	}
-
-	return nil
-}
-
 // EvalMaybeRestoreDeposedObject is an EvalNode implementation that will
 // restore a particular deposed object of the specified resource instance
 // to be the "current" object if and only if the instance doesn't currently

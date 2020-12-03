@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -234,15 +235,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if createBeforeDestroyEnabled {
-		deposeState := &EvalDeposeState{
-			Addr:      addr,
-			ForceKey:  n.PreallocatedDeposedKey,
-			OutputKey: &deposedKey,
+		state := ctx.State()
+		if n.PreallocatedDeposedKey == states.NotDeposed {
+			deposedKey = state.DeposeResourceInstanceObject(n.Addr)
+		} else {
+			deposedKey = n.PreallocatedDeposedKey
+			state.DeposeResourceInstanceObjectForceKey(n.Addr, deposedKey)
 		}
-		diags = diags.Append(deposeState.Eval(ctx))
-		if diags.HasErrors() {
-			return diags
-		}
+		log.Printf("[TRACE] managedResourceExecute: prior object for %s now deposed with key %s", n.Addr, deposedKey)
 	}
 
 	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
