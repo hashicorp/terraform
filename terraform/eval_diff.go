@@ -208,6 +208,23 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	unmarkedConfigVal, unmarkedPaths := origConfigVal.UnmarkDeepWithPaths()
 	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
 
+	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
+	// Allow the provider to validate the final set of values.
+	// The config was statically validated early on, but there may have been
+	// unknown values which the provider could not validate at the time.
+	// TODO: It would be more correct to validate the config after
+	// ignore_changes has been applied, but the current implementation cannot
+	// exclude computed-only attributes when given the `all` option.
+	validateResp := provider.ValidateResourceTypeConfig(
+		providers.ValidateResourceTypeConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   unmarkedConfigVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
+	}
+
 	// ignore_changes is meant to only apply to the configuration, so it must
 	// be applied before we generate a plan. This ensures the config used for
 	// the proposed value, the proposed value itself, and the config presented
@@ -229,20 +246,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
-	// Allow the provider to validate the final set of values.
-	// The config was statically validated early on, but there may have been
-	// unknown values which the provider could not validate at the time.
-	validateResp := provider.ValidateResourceTypeConfig(
-		providers.ValidateResourceTypeConfigRequest{
-			TypeName: n.Addr.Resource.Type,
-			Config:   configValIgnored,
-		},
-	)
-	if validateResp.Diagnostics.HasErrors() {
-		return nil, validateResp.Diagnostics.InConfigBody(config.Config).Err()
 	}
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -330,7 +333,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
-			return diags
+			return nil, diags.ErrWithWarnings()
 		}
 	}
 
