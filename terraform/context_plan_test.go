@@ -6539,3 +6539,63 @@ resource "test_instance" "a" {
 		}
 	}
 }
+
+func TestContext2Plan_validateIgnoreAll(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = all
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = testDiffFn
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.TypeName == "test_instance" {
+			if !req.Config.GetAttr("id").IsNull() {
+				diags = diags.Append(errors.New("id cannot be set in config"))
+			}
+		}
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: diags,
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a","data":"foo"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+}
