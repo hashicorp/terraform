@@ -136,6 +136,53 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				"b": cty.StringVal("b value"),
 			}),
 		},
+		"map_index_multiple_keys": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+					"a2": cty.StringVal("a2 value"),
+					"a3": cty.StringVal("a3 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Map(cty.String)),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{`a["a1"]`, `a["a2"]`, `a["a3"]`, `b`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a1": cty.StringVal("a1 value"),
+					"a2": cty.StringVal("a2 value"),
+					"a3": cty.StringVal("a3 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
+		"map_index_redundant": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+					"a2": cty.StringVal("a2 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Map(cty.String)),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{`a["a1"]`, `a`, `b`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+					"a2": cty.StringVal("a2 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
 		"missing_map_index": {
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.MapVal(map[string]cty.Value{
