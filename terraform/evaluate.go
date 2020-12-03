@@ -297,7 +297,8 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		val = cty.UnknownVal(wantType)
 	}
 
-	if config.Sensitive {
+	// Mark if sensitive, and avoid double-marking if this has already been marked
+	if config.Sensitive && !val.HasMark("sensitive") {
 		val = val.Mark("sensitive")
 	}
 
