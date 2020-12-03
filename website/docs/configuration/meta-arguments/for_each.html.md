@@ -16,7 +16,7 @@ it with resources.
 By default, a [resource block](/docs/configuration/blocks/resources/syntax.html) configures one real
 infrastructure object. (Similarly, a
 [module block](/docs/configuration/blocks/modules/syntax.html) includes a
-child module's contents into the configuration one time.)
+child module's contents into the configuration one time).
 However, sometimes you want to manage several similar objects (like a fixed
 pool of compute instances) without writing a separate block for each one.
 Terraform has two ways to do this:
