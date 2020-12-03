@@ -12049,7 +12049,7 @@ resource "test_resource" "foo" {
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				&states.ResourceInstanceObjectSrc{
 					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"id":"foo", "value":"hello"}`),
+					AttrsJSON: []byte(`{"id":"foo", "value":"hello", "network_interface":[]}`),
 					// No AttrSensitivePaths present
 				},
 				addrs.AbsProviderConfig{
@@ -12070,6 +12070,9 @@ resource "test_resource" "foo" {
 
 	fooState := state.ResourceInstance(addr)
 
+	if len(fooState.Current.AttrSensitivePaths) != 1 {
+		t.Fatalf("wrong number of sensitive paths, expected 1, got, %v", len(fooState.Current.AttrSensitivePaths))
+	}
 	got := fooState.Current.AttrSensitivePaths[0]
 	want := cty.PathValueMarks{
 		Path:  cty.GetAttrPath("value"),
