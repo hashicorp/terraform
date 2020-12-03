@@ -122,7 +122,7 @@ output "out" {
 
 output "a" {
   value     = "secret"
-  sensitive = true"
+  sensitive = true
 }
 ```
 
