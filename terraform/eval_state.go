@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -216,79 +215,4 @@ type EvalDeposeState struct {
 	// was generated for the object. This can then be passed to
 	// EvalUndeposeState.Key so it knows which deposed instance to forget.
 	OutputKey *states.DeposedKey
-}
-
-// EvalMaybeRestoreDeposedObject is an EvalNode implementation that will
-// restore a particular deposed object of the specified resource instance
-// to be the "current" object if and only if the instance doesn't currently
-// have a current object.
-//
-// This is intended for use when the create leg of a create before destroy
-// fails with no partial new object: if we didn't take any action, the user
-// would be left in the unfortunate situation of having no current object
-// and the previously-workign object now deposed. This EvalNode causes a
-// better outcome by restoring things to how they were before the replace
-// operation began.
-//
-// The create operation may have produced a partial result even though it
-// failed and it's important that we don't "forget" that state, so in that
-// situation the prior object remains deposed and the partial new object
-// remains the current object, allowing the situation to hopefully be
-// improved in a subsequent run.
-type EvalMaybeRestoreDeposedObject struct {
-	Addr addrs.ResourceInstance
-
-	// PlannedChange might be the action we're performing that includes
-	// the possiblity of restoring a deposed object. However, it might also
-	// be nil. It's here only for use in error messages and must not be
-	// used for business logic.
-	PlannedChange **plans.ResourceInstanceChange
-
-	// Key is a pointer to the deposed object key that should be forgotten
-	// from the state, which must be non-nil.
-	Key *states.DeposedKey
-}
-
-// TODO: test
-func (n *EvalMaybeRestoreDeposedObject) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	absAddr := n.Addr.Absolute(ctx.Path())
-	dk := *n.Key
-	state := ctx.State()
-
-	if dk == states.NotDeposed {
-		// This should never happen, and so it always indicates a bug.
-		// We should evaluate this node only if we've previously deposed
-		// an object as part of the same operation.
-		if n.PlannedChange != nil && *n.PlannedChange != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Attempt to restore non-existent deposed object",
-				fmt.Sprintf(
-					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
-					absAddr, (*n.PlannedChange).Action,
-				),
-			))
-		} else {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Attempt to restore non-existent deposed object",
-				fmt.Sprintf(
-					"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
-					absAddr,
-				),
-			))
-		}
-		return diags
-	}
-
-	restored := state.MaybeRestoreResourceInstanceDeposed(absAddr, dk)
-	if restored {
-		log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", absAddr, dk)
-	} else {
-		log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", absAddr, dk)
-	}
-
-	return diags
 }

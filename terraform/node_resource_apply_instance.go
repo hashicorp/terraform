@@ -411,15 +411,40 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if createBeforeDestroyEnabled && applyError != nil {
-		maybeRestoreDesposedObject := &EvalMaybeRestoreDeposedObject{
-			Addr:          addr,
-			PlannedChange: &diffApply,
-			Key:           &deposedKey,
+		if deposedKey == states.NotDeposed {
+			// This should never happen, and so it always indicates a bug.
+			// We should evaluate this node only if we've previously deposed
+			// an object as part of the same operation.
+			if diffApply != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Attempt to restore non-existent deposed object",
+					fmt.Sprintf(
+						"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
+						addr, diffApply.Action,
+					),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Attempt to restore non-existent deposed object",
+					fmt.Sprintf(
+						"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
+						addr,
+					),
+				))
+			}
+		} else {
+			restored := ctx.State().MaybeRestoreResourceInstanceDeposed(addr.Absolute(ctx.Path()), deposedKey)
+			if restored {
+				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", addr, deposedKey)
+			} else {
+				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", addr, deposedKey)
+			}
 		}
-		diags := diags.Append(maybeRestoreDesposedObject.Eval(ctx))
-		if diags.HasErrors() {
-			return diags
-		}
+	}
+	if diags.HasErrors() {
+		return diags
 	}
 
 	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
