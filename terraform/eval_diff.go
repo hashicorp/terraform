@@ -322,6 +322,23 @@ func (n *EvalDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		}
 	}
 
+	if resp.LegacyTypeSystem {
+		// Because we allow legacy providers to depart from the contract and
+		// return changes to non-computed values, the plan response may have
+		// altered values that were already suppressed with ignore_changes.
+		// A prime example of this is where providers attempt to obfuscate
+		// config data by turning the config value into a hash and storing the
+		// hash value in the state. There are enough cases of this in existing
+		// providers that we must accommodate the behavior for now, so for
+		// ignore_changes to work at all on these values, we will revert the
+		// ignored values once more.
+		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal)
+		diags = diags.Append(ignoreChangeDiags)
+		if ignoreChangeDiags.HasErrors() {
+			return diags
+		}
+	}
+
 	// Add the marks back to the planned new value -- this must happen after ignore changes
 	// have been processed
 	unmarkedPlannedNewVal := plannedNewVal

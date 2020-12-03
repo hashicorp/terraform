@@ -6473,3 +6473,69 @@ resource "test_instance" "a" {
 		}
 	}
 }
+
+// ignore_changes needs to be re-applied to the planned value for provider
+// using the LegacyTypeSystem
+func TestContext2Plan_legacyProviderIgnoreChanges(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = [data]
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		m := req.ProposedNewState.AsValueMap()
+		// this provider "hashes" the data attribute as bar
+		m["data"] = cty.StringVal("bar")
+
+		resp.PlannedState = cty.ObjectVal(m)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a","data":"foo"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
+		}
+	}
+}
