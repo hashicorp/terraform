@@ -9,7 +9,7 @@ description: |-
 
 # `alltrue` Function
 
--> **Note:** This function is avaialble in Terraform 0.14 and later.
+-> **Note:** This function is available in Terraform 0.14 and later.
 
 `alltrue` returns `true` if all elements in a given collection are `true`
 or `"true"`. It also returns `true` if the collection is empty.
