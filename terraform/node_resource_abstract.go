@@ -385,6 +385,51 @@ func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr a
 	return obj, nil
 }
 
+// ReadResourceInstanceStateDeposed reads the deposed object for a specific
+// instance in the state.
+func (n *NodeAbstractResource) ReadResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	if key == states.NotDeposed {
+		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
+	}
+
+	log.Printf("[TRACE] EvalReadStateDeposed: reading state for %s deposed object %s", addr, key)
+
+	src := ctx.State().ResourceInstanceObject(addr, key)
+	if src == nil {
+		// Presumably we only have deposed objects, then.
+		log.Printf("[TRACE] EvalReadStateDeposed: no state present for %s deposed object %s", addr, key)
+		return nil, nil
+	}
+
+	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema == nil {
+		// Shouldn't happen since we should've failed long ago if no schema is present
+		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr)
+
+	}
+
+	src, diags := UpgradeResourceState(addr, provider, src, schema, currentVersion)
+	if diags.HasErrors() {
+		// Note that we don't have any channel to return warnings here. We'll
+		// accept that for now since warnings during a schema upgrade would
+		// be pretty weird anyway, since this operation is supposed to seem
+		// invisible to the user.
+		return nil, diags.Err()
+	}
+
+	obj, err := src.Decode(schema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
 // annoyingly-task-specific helper function that returns true if and only if
 // the following conditions hold:

@@ -245,14 +245,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	readState := &EvalReadState{
-		Addr:           addr,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-
-		Output: &state,
-	}
-	diags = diags.Append(readState.Eval(ctx))
+	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -296,14 +290,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	readState = &EvalReadState{
-		Addr:           addr,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-
-		Output: &state,
-	}
-	diags = diags.Append(readState.Eval(ctx))
+	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
