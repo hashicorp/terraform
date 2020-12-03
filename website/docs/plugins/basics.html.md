@@ -27,9 +27,6 @@ exposes an implementation for a specific service, such as AWS, or provisioner,
 such as bash. Plugins are executed as a separate process and communicate with
 the main Terraform binary over an RPC interface.
 
-More details are available in
-_[Plugin Internals](/docs/internals/internal-plugins.html)_.
-
 The code within the binaries must adhere to certain interfaces.
 The network communication and RPC is handled automatically by higher-level
 Terraform libraries. The exact interface to implement is documented
