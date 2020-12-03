@@ -9,7 +9,7 @@ description: |-
 
 # `anytrue` Function
 
--> **Note:** This function is avaialble in Terraform 0.14 and later.
+-> **Note:** This function is available in Terraform 0.14 and later.
 
 `anytrue` returns `true` if any element in a given collection is `true`
 or `"true"`. It also returns `false` if the collection is empty.
