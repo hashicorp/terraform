@@ -277,9 +277,9 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 		return nil
 	}
 
-	// store the new deps in the state
+	// store the new deps in the state.
+	// We check for nil here because don't want to override existing dependencies on orphaned nodes.
 	if dependencies != nil {
-		log.Printf("[TRACE] writeResourceInstanceState: recording %d dependencies for %s", len(dependencies), absAddr)
 		obj.Dependencies = dependencies
 	}
 
