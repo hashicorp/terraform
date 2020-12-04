@@ -1,12 +1,5 @@
 package terraform
 
-type phaseState int
-
-const (
-	workingState phaseState = iota
-	refreshState
-)
-
 // UpdateStateHook calls the PostStateUpdate hook with the current state.
 func UpdateStateHook(ctx EvalContext) error {
 	// In principle we could grab the lock here just long enough to take a

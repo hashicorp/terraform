@@ -245,6 +245,13 @@ func (n *NodeAbstractResourceInstance) PostApplyHook(ctx EvalContext, state *sta
 	return diags
 }
 
+type phaseState int
+
+const (
+	workingState phaseState = iota
+	refreshState
+)
+
 // writeResourceInstanceState saves the given object as the current object for
 // the selected resource instance.
 //
