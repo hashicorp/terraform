@@ -67,7 +67,7 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -76,16 +76,10 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	// During the plan walk we always produce a planned destroy change, because
 	// destroying is the only supported action for deposed objects.
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
 
-	readStateDeposed := &EvalReadStateDeposed{
-		Addr:           addr.Resource,
-		Output:         &state,
-		Key:            n.DeposedKey,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(readStateDeposed.Eval(ctx))
+	// Read the state for the deposed resource instance
+	state, err := n.ReadResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
+	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -181,8 +175,6 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr().Resource
-
-	var state *states.ResourceInstanceObject
 	var change *plans.ResourceInstanceChange
 	var applyError error
 
@@ -192,14 +184,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	readStateDeposed := &EvalReadStateDeposed{
-		Addr:           addr,
-		Output:         &state,
-		Key:            n.DeposedKey,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(readStateDeposed.Eval(ctx))
+	// Read the state for the deposed resource instance
+	state, err := n.ReadResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
+	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -216,12 +203,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// Call pre-apply hook
-	applyPre := &EvalApplyPre{
-		Addr:   addr,
-		State:  &state,
-		Change: &change,
-	}
-	diags = diags.Append(applyPre.Eval(ctx))
+	diags = diags.Append(n.PreApplyHook(ctx, change))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -257,15 +239,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	applyPost := &EvalApplyPost{
-		Addr:  addr,
-		State: &state,
-		Error: &applyError,
-	}
-	diags = diags.Append(applyPost.Eval(ctx))
+	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}
+
 	if applyError != nil {
 		diags = diags.Append(applyError)
 		return diags

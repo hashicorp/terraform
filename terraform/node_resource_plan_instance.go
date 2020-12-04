@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -155,15 +156,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	if diags.HasErrors() {
 		return diags
 	}
-	refreshLifecycle := &EvalRefreshLifecycle{
-		Addr:                     addr,
-		Config:                   n.Config,
-		State:                    &instanceRefreshState,
-		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-	}
-	diags = diags.Append(refreshLifecycle.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
+
+	// In 0.13 we could be refreshing a resource with no config.
+	// We should be operating on managed resource, but check here to be certain
+	if n.Config == nil || n.Config.Managed == nil {
+		log.Printf("[WARN] managedResourceExecute: no Managed config value found in instance state for %q", n.Addr)
+	} else {
+		if instanceRefreshState != nil {
+			instanceRefreshState.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+		}
 	}
 
 	// Refresh, maybe
