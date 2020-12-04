@@ -245,11 +245,15 @@ func (n *NodeAbstractResourceInstance) PostApplyHook(ctx EvalContext, state *sta
 	return diags
 }
 
-// writeResourceInstanceState saves the given object
-// as the current object for the selected resource instance.
+// writeResourceInstanceState saves the given object as the current object for
+// the selected resource instance.
 //
-// targetState determines which context state we're writing to during plan.
-// The default is the global working state.
+// dependencies is a parameter, instead of those directly attacted to the
+// NodeAbstractResourceInstance, because we don't write dependencies for
+// datasources.
+//
+// targetState determines which context state we're writing to during plan. The
+// default is the global working state.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, dependencies []addrs.ConfigResource, targetState phaseState) error {
 	absAddr := n.Addr
 	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
