@@ -7,57 +7,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
 )
-
-func TestEvalWriteStateDeposed(t *testing.T) {
-	state := states.NewState()
-	ctx := new(MockEvalContext)
-	ctx.StateState = state.SyncWrapper()
-	ctx.PathPath = addrs.RootModuleInstance
-
-	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id": {
-				Type:     cty.String,
-				Optional: true,
-			},
-		},
-	})
-	providerSchema := mockProvider.GetSchemaReturn
-
-	obj := &states.ResourceInstanceObject{
-		Value: cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-abc123"),
-		}),
-		Status: states.ObjectReady,
-	}
-	node := &EvalWriteStateDeposed{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "aws_instance",
-			Name: "foo",
-		}.Instance(addrs.NoKey),
-		Key: states.DeposedKey("deadbeef"),
-
-		State: &obj,
-
-		ProviderSchema: &providerSchema,
-		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("aws")),
-	}
-	diags := node.Eval(ctx)
-	if diags.HasErrors() {
-		t.Fatalf("Got err: %#v", diags.ErrWithWarnings())
-	}
-
-	checkStateString(t, state, `
-aws_instance.foo: (1 deposed)
-  ID = <not created>
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  Deposed ID 1 = i-abc123
-	`)
-}
 
 func TestUpdateStateHook(t *testing.T) {
 	mockHook := new(MockHook)

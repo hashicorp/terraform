@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
@@ -227,14 +228,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	// Always write the resource back to the state deposed. If it
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
-	writeStateDeposed := &EvalWriteStateDeposed{
-		Addr:           addr,
-		Key:            n.DeposedKey,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeStateDeposed.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -272,4 +266,47 @@ type graphNodeDeposer struct {
 
 func (n *graphNodeDeposer) SetPreallocatedDeposedKey(key states.DeposedKey) {
 	n.PreallocatedDeposedKey = key
+}
+
+func (n *NodeDestroyDeposedResourceInstanceObject) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject) error {
+	absAddr := n.Addr
+	key := n.DeposedKey
+	state := ctx.State()
+
+	if key == states.NotDeposed {
+		// should never happen
+		return fmt.Errorf("can't save deposed object for %s without a deposed key; this is a bug in Terraform that should be reported", absAddr)
+	}
+
+	if obj == nil {
+		// No need to encode anything: we'll just write it directly.
+		state.SetResourceInstanceDeposed(absAddr, key, nil, n.ResolvedProvider)
+		log.Printf("[TRACE] writeResourceInstanceStateDeposed: removing state object for %s deposed %s", absAddr, key)
+		return nil
+	}
+
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+	if providerSchema == nil {
+		// Should never happen, unless our state object is nil
+		panic("writeResourceInstanceStateDeposed used with no ProviderSchema object")
+	}
+
+	schema, currentVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if schema == nil {
+		// It shouldn't be possible to get this far in any real scenario
+		// without a schema, but we might end up here in contrived tests that
+		// fail to set up their world properly.
+		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
+	}
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+	if err != nil {
+		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
+	}
+
+	log.Printf("[TRACE] writeResourceInstanceStateDeposed: writing state object for %s deposed %s", absAddr, key)
+	state.SetResourceInstanceDeposed(absAddr, key, src, n.ResolvedProvider)
+	return nil
 }
