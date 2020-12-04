@@ -11,56 +11,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 )
 
-func TestReadResourceInstanceState(t *testing.T) {
-
-}
-
-func TestEvalWriteState(t *testing.T) {
-	state := states.NewState()
-	ctx := new(MockEvalContext)
-	ctx.StateState = state.SyncWrapper()
-	ctx.PathPath = addrs.RootModuleInstance
-
-	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id": {
-				Type:     cty.String,
-				Optional: true,
-			},
-		},
-	})
-	providerSchema := mockProvider.GetSchemaReturn
-
-	obj := &states.ResourceInstanceObject{
-		Value: cty.ObjectVal(map[string]cty.Value{
-			"id": cty.StringVal("i-abc123"),
-		}),
-		Status: states.ObjectReady,
-	}
-	node := &EvalWriteState{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "aws_instance",
-			Name: "foo",
-		}.Instance(addrs.NoKey),
-
-		State: &obj,
-
-		ProviderSchema: &providerSchema,
-		ProviderAddr:   addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("aws")),
-	}
-	diags := node.Eval(ctx)
-	if diags.HasErrors() {
-		t.Fatalf("Got err: %#v", diags.ErrWithWarnings())
-	}
-
-	checkStateString(t, state, `
-aws_instance.foo:
-  ID = i-abc123
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-	`)
-}
-
 func TestEvalWriteStateDeposed(t *testing.T) {
 	state := states.NewState()
 	ctx := new(MockEvalContext)

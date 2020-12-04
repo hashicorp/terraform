@@ -224,14 +224,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		if diags.HasErrors() {
 			return diags
 		}
-
-		evalWriteState := &EvalWriteState{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-		}
-		diags = diags.Append(evalWriteState.Eval(ctx))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 		if diags.HasErrors() {
 			return diags
 		}

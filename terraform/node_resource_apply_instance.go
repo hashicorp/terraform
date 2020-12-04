@@ -173,13 +173,8 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	// We don't write dependencies for datasources
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -362,14 +357,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Dependencies:   &n.Dependencies,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -398,14 +386,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState = &EvalWriteState{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Dependencies:   &n.Dependencies,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}

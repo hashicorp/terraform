@@ -95,25 +95,11 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 
 	// write the data source into both the refresh state and the
 	// working state
-	writeRefreshState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		targetState:    refreshState,
-	}
-	diags = diags.Append(writeRefreshState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, refreshState))
 	if diags.HasErrors() {
 		return diags
 	}
-
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -183,15 +169,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		writeRefreshState := &EvalWriteState{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderSchema: &providerSchema,
-			State:          &instanceRefreshState,
-			targetState:    refreshState,
-			Dependencies:   &n.Dependencies,
-		}
-		diags = diags.Append(writeRefreshState.Eval(ctx))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, n.Dependencies, refreshState))
 		if diags.HasErrors() {
 			return diags
 		}
@@ -220,13 +198,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		State:          &instancePlanState,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
