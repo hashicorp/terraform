@@ -300,13 +300,20 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 		return diags
 	}
 
-	//EvalWriteState
-	evalWriteState := &EvalWriteState{
-		Addr:           n.TargetAddr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
+	schema, currentVersion := providerSchema.SchemaForResourceAddr(n.TargetAddr.ContainingResource().Resource)
+	if schema == nil {
+		// It shouldn't be possible to get this far in any real scenario
+		// without a schema, but we might end up here in contrived tests that
+		// fail to set up their world properly.
+		diags = diags.Append(fmt.Errorf("failed to encode %s in state: no resource type schema available", n.TargetAddr.Resource))
+		return diags
 	}
-	diags = diags.Append(evalWriteState.Eval(ctx))
+	src, err := state.Encode(schema.ImpliedType(), currentVersion)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("failed to encode %s in state: %s", n.TargetAddr.Resource, err))
+		return diags
+	}
+	ctx.State().SetResourceInstanceCurrent(n.TargetAddr, src, n.ResolvedProvider)
+
 	return diags
 }

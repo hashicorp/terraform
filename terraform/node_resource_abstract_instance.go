@@ -244,3 +244,65 @@ func (n *NodeAbstractResourceInstance) PostApplyHook(ctx EvalContext, state *sta
 
 	return diags
 }
+
+// writeResourceInstanceState saves the given object
+// as the current object for the selected resource instance.
+//
+// targetState determines which context state we're writing to during plan.
+// The default is the global working state.
+func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, dependencies []addrs.ConfigResource, targetState phaseState) error {
+	absAddr := n.Addr
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+
+	var state *states.SyncState
+	switch targetState {
+	case refreshState:
+		log.Printf("[TRACE] writeResourceInstanceState: using RefreshState for %s", absAddr)
+		state = ctx.RefreshState()
+	default:
+		state = ctx.State()
+	}
+
+	if obj == nil || obj.Value.IsNull() {
+		// No need to encode anything: we'll just write it directly.
+		state.SetResourceInstanceCurrent(absAddr, nil, n.ResolvedProvider)
+		log.Printf("[TRACE] writeResourceInstanceState: removing state object for %s", absAddr)
+		return nil
+	}
+
+	// store the new deps in the state
+	if dependencies != nil {
+		log.Printf("[TRACE] writeResourceInstanceState: recording %d dependencies for %s", len(dependencies), absAddr)
+		obj.Dependencies = dependencies
+	}
+
+	if providerSchema == nil {
+		// Should never happen, unless our state object is nil
+		panic("writeResourceInstanceState used with nil ProviderSchema")
+	}
+
+	if obj != nil {
+		log.Printf("[TRACE] writeResourceInstanceState: writing current state object for %s", absAddr)
+	} else {
+		log.Printf("[TRACE] writeResourceInstanceState: removing current state object for %s", absAddr)
+	}
+
+	schema, currentVersion := (*providerSchema).SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if schema == nil {
+		// It shouldn't be possible to get this far in any real scenario
+		// without a schema, but we might end up here in contrived tests that
+		// fail to set up their world properly.
+		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
+	}
+
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+	if err != nil {
+		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
+	}
+
+	state.SetResourceInstanceCurrent(absAddr, src, n.ResolvedProvider)
+	return nil
+}

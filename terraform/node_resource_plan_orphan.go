@@ -97,14 +97,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			return diags
 		}
 
-		writeRefreshState := &EvalWriteState{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-			targetState:    refreshState,
-		}
-		diags = diags.Append(writeRefreshState.Eval(ctx))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, refreshState))
 		if diags.HasErrors() {
 			return diags
 		}
@@ -137,12 +130,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	return diags
 }
