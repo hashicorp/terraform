@@ -2,7 +2,8 @@
 
 BUG FIXES:
 
-* terraform: Fix permanent diff when a resource changes only in sensitivity, for example due to changing the sensitivity of a variable or output used as an attribute value. [GH-27128]
+* core: Fix permanent diff when a resource changes only in sensitivity, for example due to changing the sensitivity of a variable or output used as an attribute value. [GH-27128]
+* core: Fix issues where `ignore_changes` appears to not work, or causes validation errors with some resources [GH-27141]
 
 ## 0.14.0 (December 02, 2020)
 
