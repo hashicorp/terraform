@@ -49,7 +49,7 @@ func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *
 func GetProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Interface, *ProviderSchema, error) {
 	if addr.Provider.Type == "" {
 		// Should never happen
-		panic("EvalGetProvider used with uninitialized provider configuration address")
+		panic("GetProvider used with uninitialized provider configuration address")
 	}
 	provider := ctx.Provider(addr)
 	if provider == nil {
