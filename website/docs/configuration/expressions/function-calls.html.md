@@ -30,6 +30,11 @@ min(55, 3453, 2)
 
 A function call expression evaluates to the function's return value.
 
+## Available Functions
+
+For a full list of available functions, see
+[the function reference](/docs/configuration/functions.html).
+
 ## Expanding Function Arguments
 
 If the arguments to pass to a function are available in a list or tuple value,
@@ -43,8 +48,45 @@ min([55, 2453, 2]...)
 The expansion symbol is three periods (`...`), not a Unicode ellipsis character
 (`…`). Expansion is a special syntax that is only available in function calls.
 
-## Available Functions
+## When Terraform Calls Functions
 
-For a full list of available functions, see
-[the function reference](/docs/configuration/functions.html).
+Most of Terraform's built-in functions are, in programming language terms,
+[pure functions](https://en.wikipedia.org/wiki/Pure_function). This means that
+their result is based only on their arguments and so it doesn't make any
+practical difference when Terraform would call them.
 
+However, a small subset of functions interact with outside state and so for
+those it can be helpful to know when Terraform will call them in relation to
+other events that occur in a Terraform run.
+
+The small set of special functions includes
+[`file`](../functions/file.html),
+[`templatefile`](../functions/templatefile.html),
+[`timestamp`](../functions/timestamp.html),
+and [`uuid`](../functions/uuid.html).
+If you are not working with these functions then you don't need
+to read this section, although the information here may still be interesting
+background information.
+
+The `file` and `templatefile` functions are intended for reading files that
+are included as a static part of the configuration and so Terraform will
+execute these functions as part of initial configuration validation, before
+taking any other actions with the configuration. That means you cannot use
+either function to read files that your configuration might generate
+dynamically on disk as part of the plan or apply steps.
+
+The `timestamp` function returns a representation of the current system time
+at the point when Terraform calls it, and the `uuid` function returns a random
+result which differs on each call. Without any special behavior these would
+would both cause the final configuration during the apply step not to match the
+actions shown in the plan, which violates the Terraform execution model.
+
+For that reason, Terraform arranges for both of those functions to produce
+[unknown value](references.html#values-not-yet-known) results during the
+plan step, with the real result being decided only during the apply step.
+For `timestamp` in particular, this means that the recorded time will be
+the instant when Terraform began applying the change, rather than when
+Terraform _planned_ the change.
+
+For more details on the behavior of these functions, refer to their own
+documentation pages.
