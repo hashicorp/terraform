@@ -9,7 +9,8 @@ page_title: "Dynamic Blocks - Configuration Language"
 Within top-level block constructs like resources, expressions can usually be
 used only when assigning a value to an argument using the `name = expression`
 form. This covers many uses, but some resource types include repeatable _nested
-blocks_ in their arguments, which do not accept expressions:
+blocks_ in their arguments, which typically represent separate objects that
+are related to (or embedded within) the containing object:
 
 ```hcl
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
@@ -42,9 +43,10 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 }
 ```
 
-A `dynamic` block acts much like a `for` expression, but produces nested blocks
-instead of a complex typed value. It iterates over a given complex value, and
-generates a nested block for each element of that complex value.
+A `dynamic` block acts much like a [`for` expression](for.html), but produces
+nested blocks instead of a complex typed value. It iterates over a given
+complex value, and generates a nested block for each element of that complex
+value.
 
 - The label of the dynamic block (`"setting"` in the example above) specifies
   what kind of nested block to generate.
@@ -86,6 +88,56 @@ and
 [`setproduct`](/docs/configuration/functions/setproduct.html)
 functions.
 
+## Multi-level Nested Block Structures
+
+Some providers define resource types that include multiple levels of blocks
+nested inside one another. You can generate these nested structures dynamically
+when necessary by nesting `dynamic` blocks in the `content` portion of other
+`dynamic` blocks.
+
+For example, a module might accept a complex data structure like the following:
+
+```hcl
+variable "load_balancer_origin_groups" {
+  type = map(object({
+    origins = set(object({
+      hostname = string
+    }))
+  }))
+}
+```
+
+If you were defining a resource whose type expects a block for each origin
+group and then nested blocks for each origin within a group, you could ask
+Terraform to generate that dynamically using the following nested `dynamic`
+blocks:
+
+```hcl
+  dynamic "origin_group" {
+    for_each = var.load_balancer_origin_groups
+    content {
+      name = origin_group.key
+
+      dynamic "origin" {
+        for_each = origin_group.value.origins
+        content {
+          hostname = origin.value.hostname
+        }
+      }
+    }
+  }
+```
+
+When using nested `dynamic` blocks it's particularly important to pay attention
+to the iterator symbol for each block. In the above example,
+`origin_group.value` refers to the current element of the outer block, while
+`origin.value` refers to the current element of the inner block.
+
+If a particular resource type defines nested blocks that have the same type
+name as one of their parents, you can use the `iterator` argument in each of
+`dynamic` blocks to choose a different iterator symbol that makes the two
+easier to distinguish.
+
 ## Best Practices for `dynamic` Blocks
 
 Overuse of `dynamic` blocks can make configuration hard to read and maintain, so
@@ -93,3 +145,10 @@ we recommend using them only when you need to hide details in order to build a
 clean user interface for a re-usable module. Always write nested blocks out
 literally where possible.
 
+If you find yourself defining most or all of a `resource` block's arguments and
+nested blocks using directly-corresponding attributes from an input variable
+then that might suggest that your module is not creating a useful abstraction.
+It may be better for the calling module to define the resource itself then
+pass information about it into your module. For more information on this design
+tradeoff, see [When to Write a Module](/docs/modules/#when-to-write-a-module)
+and [Module Composition](/docs/modules/composition.html).

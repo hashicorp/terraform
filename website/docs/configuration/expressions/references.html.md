@@ -60,24 +60,58 @@ For more information about how to use resource references, see
 
 `var.<NAME>` is the value of the [input variable](/docs/configuration/variables.html) of the given name.
 
+If the variable has a type constraint (`type` argument) as part of its
+declaration, Terraform will automatically convert the caller's given value
+to conform to the type constraint.
+
+For that reason, you can safely assume that a reference using `var.` will
+always produce a value that conforms to the type constraint, even if the caller
+provided a value of a different type that was automatically converted.
+
+In particular, note that if you define a variable as being of an object type
+with particular attributes then only _those specific attributes_ will be
+available in expressions elsewhere in the module, even if the caller actually
+passed in a value with additional attributes. You must define in the type
+constraint all of the attributes you intend to use elsewhere in your module.
+
 ### Local Values
 
 `local.<NAME>` is the value of the [local value](/docs/configuration/locals.html) of the given name.
 
+Local values can refer to other local values, even within the same `locals`
+block, as long as you don't introduce circular dependencies.
+
 ### Child Module Outputs
 
-* `module.<MODULE NAME>.<OUTPUT NAME>` is the value of the specified
-  [output value](/docs/configuration/outputs.html) from a
-  [child module](/docs/configuration/blocks/modules/index.html) called by the
-  current module.
+`module.<MODULE NAME>` is an value representing the results of
+[a `module` block](../blocks/modules/).
+
+If the corresponding `module` block does not have either `count` nor `for_each`
+set then the value will be an object with one attribute for each output value
+defined in the child module. To access one of the module's
+[output values](../outputs.html), use `module.<MODULE NAME>.<OUTPUT NAME>`.
+
+If the corresponding `module` uses `for_each` then the value will be a map
+of objects whose keys correspond with the keys in the `for_each` expression,
+and whose values are each objects with one attribute for each output value
+defined in the child module, each representing one module instance.
+
+If the corresponding module uses `count` then the result is similar to for
+`for_each` except that the value is a _list_ with the requested number of
+elements, each one representing one module instance.
 
 ### Data Sources
 
-* `data.<DATA TYPE>.<NAME>` is an object representing a
-  [data resource](/docs/configuration/data-sources.html) of the given data
-  source type and name. If the resource has the `count` argument set, the value
-  is a list of objects representing its instances. If the resource has the `for_each`
-  argument set, the value is a map of objects representing its instances.
+`data.<DATA TYPE>.<NAME>` is an object representing a
+[data resource](/docs/configuration/data-sources.html) of the given data
+source type and name. If the resource has the `count` argument set, the value
+is a list of objects representing its instances. If the resource has the `for_each`
+argument set, the value is a map of objects representing its instances.
+
+For more information, see
+[References to Resource Attributes](#references-to-resource-attributes), which
+also applies to data resources aside from the addition of the `data.` prefix
+to mark the reference as for a data resource.
 
 ### Filesystem and Workspace Info
 
@@ -90,6 +124,36 @@ For more information about how to use resource references, see
   directory, causing these paths to be different.
 * `terraform.workspace` is the name of the currently selected
   [workspace](/docs/state/workspaces.html).
+
+Use the values in this section carefully, because they include information
+about the context in which a configuration is being applied and so may
+inadvertently hurt the portability or composability of a module.
+
+For example, if you use `path.cwd` directly to populate a path into a resource
+argument then later applying the same configuration from a different directory
+or on a different computer with a different directory structure will cause
+the provider to consider the change of path to be a change to be applied, even
+if the path still refers to the same file.
+
+Similarly, if you use any of these values as a form of namespacing in a shared
+module, such as using `terraform.workspace` as a prefix for globally-unique
+object names, it may not be possible to call your module more than once in
+the same configuration.
+
+Aside from `path.module`, we recommend using the values in this section only
+in the root module of your configuration. If you are writing a shared module
+which needs a prefix to help create unique names, define an input variable
+for your module and allow the calling module to define the prefix. The
+calling module can then use `terraform.workspace` to define it if appropriate,
+or some other value if not:
+
+```hcl
+module "example" {
+  # ...
+
+  name_prefix = "app-${terraform-workspace}"
+}
+```
 
 ### Block-Local Values
 
@@ -109,6 +173,12 @@ where they appear. Some of most common local names are:
 _temporary variables_ in their documentation. These are not [input
 variables](/docs/configuration/variables.html); they are just arbitrary names
 that temporarily represent a value.
+
+The names in this section relate to top-level configuration blocks only.
+If you use [`dynamic` blocks](dynamic-blocks.html) to dynamically generate
+resource-type-specific _nested_ blocks within `resource` and `data` blocks then
+you'll refer to the key and value of each element differently. See the
+`dynamic` blocks documentation for details.
 
 ## Named Values and Dependencies
 
