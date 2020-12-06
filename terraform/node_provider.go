@@ -51,9 +51,8 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	// if a provider config is empty (only an alias), return early and don't continue
 	// validation. validate doesn't need to fully configure the provider itself, so
 	// skipping a provider with an implied configuration won't prevent other validation from completing.
-	emptySchema := &configschema.Block{}
-	_, _, evalDiags := ctx.EvaluateBlock(configBody, emptySchema, nil, EvalDataForNoInstanceKey)
-	if !evalDiags.HasErrors() {
+	_, noConfigDiags := configBody.Content(&hcl.BodySchema{})
+	if !noConfigDiags.HasErrors() {
 		return nil
 	}
 
@@ -68,7 +67,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		// Should never happen in real code, but often comes up in tests where
 		// mock schemas are being used that tend to be incomplete.
 		log.Printf("[WARN] ValidateProvider: no config schema is available for %s, so using empty schema", n.Addr)
-		configSchema = emptySchema
+		configSchema = &configschema.Block{}
 	}
 
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
