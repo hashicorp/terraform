@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provisioners Without a Resource"
 sidebar_current: "docs-provisioners-null-resource"
 description: |-

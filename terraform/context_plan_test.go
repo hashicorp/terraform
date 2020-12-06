@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -930,7 +931,7 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State: state,
@@ -1654,7 +1655,7 @@ func TestContext2Plan_provisionerCycle(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"local-exec": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -4388,7 +4389,6 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	var expectedState []string
 	for i := 0; i < 13; i++ {
 		key := fmt.Sprintf("aws_instance.foo[%d]", i)
 		id := fmt.Sprintf("i-abc%d", i)
@@ -4402,7 +4402,6 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 			},
 			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		)
-		expectedState = append(expectedState, fmt.Sprintf("%s:\n  ID = %s\n", key, id))
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -5604,6 +5603,12 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
+		Variables: InputValues{
+			"another_var": &InputValue{
+				Value:      cty.StringVal("boop"),
+				SourceType: ValueFromCaller,
+			},
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5629,21 +5634,32 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo": cty.StringVal("foo"),
+				"foo":   cty.StringVal("foo"),
+				"value": cty.StringVal("boop"),
 			}), ric.After)
 			if len(res.ChangeSrc.BeforeValMarks) != 0 {
 				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
 			}
-			if len(res.ChangeSrc.AfterValMarks) != 1 {
-				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+			if len(res.ChangeSrc.AfterValMarks) != 2 {
+				t.Errorf("expected AfterValMarks to contain two elements: %#v", res.ChangeSrc.AfterValMarks)
 				continue
 			}
-			pvm := res.ChangeSrc.AfterValMarks[0]
-			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
-				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			// validate that the after marks have "foo" and "value"
+			contains := func(pvmSlice []cty.PathValueMarks, stepName string) bool {
+				for _, pvm := range pvmSlice {
+					if pvm.Path.Equals(cty.GetAttrPath(stepName)) {
+						if pvm.Marks.Equal(cty.NewValueMarks("sensitive")) {
+							return true
+						}
+					}
+				}
+				return false
 			}
-			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
-				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			if !contains(res.ChangeSrc.AfterValMarks, "foo") {
+				t.Error("unexpected AfterValMarks to contain \"foo\" with sensitive mark")
+			}
+			if !contains(res.ChangeSrc.AfterValMarks, "value") {
+				t.Error("unexpected AfterValMarks to contain \"value\" with sensitive mark")
 			}
 		default:
 			t.Fatal("unknown instance:", i)
@@ -6472,5 +6488,131 @@ resource "test_instance" "a" {
 		if !strings.Contains(des, "frobble") {
 			t.Fatalf(`expected frobble, got %q`, des)
 		}
+	}
+}
+
+// ignore_changes needs to be re-applied to the planned value for provider
+// using the LegacyTypeSystem
+func TestContext2Plan_legacyProviderIgnoreChanges(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = [data]
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		m := req.ProposedNewState.AsValueMap()
+		// this provider "hashes" the data attribute as bar
+		m["data"] = cty.StringVal("bar")
+
+		resp.PlannedState = cty.ObjectVal(m)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a","data":"foo"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
+		}
+	}
+}
+
+func TestContext2Plan_validateIgnoreAll(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = all
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetSchemaReturn = &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = testDiffFn
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.TypeName == "test_instance" {
+			if !req.Config.GetAttr("id").IsNull() {
+				diags = diags.Append(errors.New("id cannot be set in config"))
+			}
+		}
+		return providers.ValidateResourceTypeConfigResponse{
+			Diagnostics: diags,
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a","data":"foo"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }

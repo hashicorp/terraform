@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "extend"
 page_title: "Provider Plugins"
 sidebar_current: "docs-plugins-provider"
 description: |-

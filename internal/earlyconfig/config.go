@@ -158,8 +158,8 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 	for name, reqs := range c.Module.RequiredProviders {
 		var fqn addrs.Provider
 		if source := reqs.Source; source != "" {
-			addr, diags := addrs.ParseProviderSourceString(source)
-			if diags.HasErrors() {
+			addr, parseDiags := addrs.ParseProviderSourceString(source)
+			if parseDiags.HasErrors() {
 				diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
 					Severity: tfconfig.DiagError,
 					Summary:  "Invalid provider source",

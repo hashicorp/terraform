@@ -10,14 +10,14 @@ description: |-
 # Command: console
 
 The `terraform console` command provides an interactive console for
-evaluating [expressions](/docs/configuration/expressions.html).
+evaluating [expressions](/docs/configuration/expressions/index.html).
 
 ## Usage
 
 Usage: `terraform console [options]`
 
 This command provides an interactive command-line console for evaluating and
-experimenting with [expressions](/docs/configuration/expressions.html).
+experimenting with [expressions](/docs/configuration/expressions/index.html).
 This is useful for testing interpolations before using them in configurations,
 and for interacting with any values currently saved in
 [state](/docs/state/index.html).

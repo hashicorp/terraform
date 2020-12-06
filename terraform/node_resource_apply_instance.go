@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -172,13 +173,8 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	// We don't write dependencies for datasources
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -234,25 +230,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if createBeforeDestroyEnabled {
-		deposeState := &EvalDeposeState{
-			Addr:      addr,
-			ForceKey:  n.PreallocatedDeposedKey,
-			OutputKey: &deposedKey,
+		state := ctx.State()
+		if n.PreallocatedDeposedKey == states.NotDeposed {
+			deposedKey = state.DeposeResourceInstanceObject(n.Addr)
+		} else {
+			deposedKey = n.PreallocatedDeposedKey
+			state.DeposeResourceInstanceObjectForceKey(n.Addr, deposedKey)
 		}
-		diags = diags.Append(deposeState.Eval(ctx))
-		if diags.HasErrors() {
-			return diags
-		}
+		log.Printf("[TRACE] managedResourceExecute: prior object for %s now deposed with key %s", n.Addr, deposedKey)
 	}
 
-	readState := &EvalReadState{
-		Addr:           addr,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-
-		Output: &state,
-	}
-	diags = diags.Append(readState.Eval(ctx))
+	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -296,14 +285,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	readState = &EvalReadState{
-		Addr:           addr,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-
-		Output: &state,
-	}
-	diags = diags.Append(readState.Eval(ctx))
+	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -326,12 +309,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	evalApplyPre := &EvalApplyPre{
-		Addr:   addr,
-		State:  &state,
-		Change: &diffApply,
-	}
-	diags = diags.Append(evalApplyPre.Eval(ctx))
+	diags = diags.Append(n.PreApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -379,14 +357,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Dependencies:   &n.Dependencies,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -415,36 +386,49 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState = &EvalWriteState{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Dependencies:   &n.Dependencies,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
 
 	if createBeforeDestroyEnabled && applyError != nil {
-		maybeRestoreDesposedObject := &EvalMaybeRestoreDeposedObject{
-			Addr:          addr,
-			PlannedChange: &diffApply,
-			Key:           &deposedKey,
+		if deposedKey == states.NotDeposed {
+			// This should never happen, and so it always indicates a bug.
+			// We should evaluate this node only if we've previously deposed
+			// an object as part of the same operation.
+			if diffApply != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Attempt to restore non-existent deposed object",
+					fmt.Sprintf(
+						"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
+						addr, diffApply.Action,
+					),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Attempt to restore non-existent deposed object",
+					fmt.Sprintf(
+						"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
+						addr,
+					),
+				))
+			}
+		} else {
+			restored := ctx.State().MaybeRestoreResourceInstanceDeposed(addr.Absolute(ctx.Path()), deposedKey)
+			if restored {
+				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", addr, deposedKey)
+			} else {
+				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", addr, deposedKey)
+			}
 		}
-		diags := diags.Append(maybeRestoreDesposedObject.Eval(ctx))
-		if diags.HasErrors() {
-			return diags
-		}
+	}
+	if diags.HasErrors() {
+		return diags
 	}
 
-	applyPost := &EvalApplyPost{
-		Addr:  addr,
-		State: &state,
-		Error: &applyError,
-	}
-	diags = diags.Append(applyPost.Eval(ctx))
+	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}

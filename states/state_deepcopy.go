@@ -101,18 +101,18 @@ func (rs *Resource) DeepCopy() *Resource {
 // is the caller's responsibility to ensure mutual exclusion for the duration
 // of the operation, but may then freely modify the receiver and the returned
 // copy independently once this method returns.
-func (is *ResourceInstance) DeepCopy() *ResourceInstance {
-	if is == nil {
+func (i *ResourceInstance) DeepCopy() *ResourceInstance {
+	if i == nil {
 		return nil
 	}
 
-	deposed := make(map[DeposedKey]*ResourceInstanceObjectSrc, len(is.Deposed))
-	for k, obj := range is.Deposed {
+	deposed := make(map[DeposedKey]*ResourceInstanceObjectSrc, len(i.Deposed))
+	for k, obj := range i.Deposed {
 		deposed[k] = obj.DeepCopy()
 	}
 
 	return &ResourceInstance{
-		Current: is.Current.DeepCopy(),
+		Current: i.Current.DeepCopy(),
 		Deposed: deposed,
 	}
 }
@@ -125,54 +125,54 @@ func (is *ResourceInstance) DeepCopy() *ResourceInstance {
 // It is the caller's responsibility to ensure mutual exclusion for the duration
 // of the operation, but may then freely modify the receiver and the returned
 // copy independently once this method returns.
-func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
-	if obj == nil {
+func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
+	if os == nil {
 		return nil
 	}
 
 	var attrsFlat map[string]string
-	if obj.AttrsFlat != nil {
-		attrsFlat = make(map[string]string, len(obj.AttrsFlat))
-		for k, v := range obj.AttrsFlat {
+	if os.AttrsFlat != nil {
+		attrsFlat = make(map[string]string, len(os.AttrsFlat))
+		for k, v := range os.AttrsFlat {
 			attrsFlat[k] = v
 		}
 	}
 
 	var attrsJSON []byte
-	if obj.AttrsJSON != nil {
-		attrsJSON = make([]byte, len(obj.AttrsJSON))
-		copy(attrsJSON, obj.AttrsJSON)
+	if os.AttrsJSON != nil {
+		attrsJSON = make([]byte, len(os.AttrsJSON))
+		copy(attrsJSON, os.AttrsJSON)
 	}
 
 	var attrPaths []cty.PathValueMarks
-	if obj.AttrSensitivePaths != nil {
-		attrPaths = make([]cty.PathValueMarks, len(obj.AttrSensitivePaths))
-		copy(attrPaths, obj.AttrSensitivePaths)
+	if os.AttrSensitivePaths != nil {
+		attrPaths = make([]cty.PathValueMarks, len(os.AttrSensitivePaths))
+		copy(attrPaths, os.AttrSensitivePaths)
 	}
 
 	var private []byte
-	if obj.Private != nil {
-		private = make([]byte, len(obj.Private))
-		copy(private, obj.Private)
+	if os.Private != nil {
+		private = make([]byte, len(os.Private))
+		copy(private, os.Private)
 	}
 
 	// Some addrs.Referencable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
 	var dependencies []addrs.ConfigResource
-	if obj.Dependencies != nil {
-		dependencies = make([]addrs.ConfigResource, len(obj.Dependencies))
-		copy(dependencies, obj.Dependencies)
+	if os.Dependencies != nil {
+		dependencies = make([]addrs.ConfigResource, len(os.Dependencies))
+		copy(dependencies, os.Dependencies)
 	}
 
 	return &ResourceInstanceObjectSrc{
-		Status:              obj.Status,
-		SchemaVersion:       obj.SchemaVersion,
+		Status:              os.Status,
+		SchemaVersion:       os.SchemaVersion,
 		Private:             private,
 		AttrsFlat:           attrsFlat,
 		AttrsJSON:           attrsJSON,
 		AttrSensitivePaths:  attrPaths,
 		Dependencies:        dependencies,
-		CreateBeforeDestroy: obj.CreateBeforeDestroy,
+		CreateBeforeDestroy: os.CreateBeforeDestroy,
 	}
 }
 
@@ -184,28 +184,28 @@ func (obj *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 // is the caller's responsibility to ensure mutual exclusion for the duration
 // of the operation, but may then freely modify the receiver and the returned
 // copy independently once this method returns.
-func (obj *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
-	if obj == nil {
+func (o *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
+	if o == nil {
 		return nil
 	}
 
 	var private []byte
-	if obj.Private != nil {
-		private = make([]byte, len(obj.Private))
-		copy(private, obj.Private)
+	if o.Private != nil {
+		private = make([]byte, len(o.Private))
+		copy(private, o.Private)
 	}
 
 	// Some addrs.Referenceable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
 	var dependencies []addrs.ConfigResource
-	if obj.Dependencies != nil {
-		dependencies = make([]addrs.ConfigResource, len(obj.Dependencies))
-		copy(dependencies, obj.Dependencies)
+	if o.Dependencies != nil {
+		dependencies = make([]addrs.ConfigResource, len(o.Dependencies))
+		copy(dependencies, o.Dependencies)
 	}
 
 	return &ResourceInstanceObject{
-		Value:        obj.Value,
-		Status:       obj.Status,
+		Value:        o.Value,
+		Status:       o.Status,
 		Private:      private,
 		Dependencies: dependencies,
 	}

@@ -161,8 +161,11 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
-
 		// For type=ssh only (enforced in ssh communicator)
+		"target_platform": {
+			Type:     cty.String,
+			Optional: true,
+		},
 		"private_key": {
 			Type:     cty.String,
 			Optional: true,
@@ -230,18 +233,6 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 	},
-}
-
-// connectionBlockSupersetSchema is a schema representing the superset of all
-// possible arguments for "connection" blocks across all supported connection
-// types.
-//
-// This currently lives here because we've not yet updated our communicator
-// subsystem to be aware of schema itself. It's exported only for use in the
-// configs/configupgrade package and should not be used from anywhere else.
-// The caller may not modify any part of the returned schema data structure.
-func ConnectionBlockSupersetSchema() *configschema.Block {
-	return connectionBlockSupersetSchema
 }
 
 // EvalValidateResource validates the configuration of a resource.
@@ -371,9 +362,11 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) tfdiags.Diagnostics {
 			}
 		}
 
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateResourceTypeConfigRequest{
 			TypeName: cfg.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		}
 
 		resp := provider.ValidateResourceTypeConfig(req)
@@ -401,9 +394,11 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) tfdiags.Diagnostics {
 			return diags
 		}
 
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateDataSourceConfigRequest{
 			TypeName: cfg.Type,
-			Config:   configVal,
+			Config:   unmarkedConfigVal,
 		}
 
 		resp := provider.ValidateDataSourceConfig(req)

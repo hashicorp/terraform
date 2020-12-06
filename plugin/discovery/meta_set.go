@@ -118,7 +118,7 @@ func (s PluginMetaSet) Newest() PluginMeta {
 			panic(err)
 		}
 
-		if first == true || version.NewerThan(winnerVersion) {
+		if first || version.NewerThan(winnerVersion) {
 			winner = p
 			winnerVersion = version
 			first = false

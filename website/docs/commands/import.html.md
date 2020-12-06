@@ -87,6 +87,11 @@ in the configuration for the target resource, and that is the best behavior in m
   the working directory. This flag can be used multiple times. This is only
   useful with the `-config` flag.
 
+* `-ignore-remote-version` - When using the enhanced remote backend with
+  Terraform Cloud, continue even if remote and local Terraform versions differ.
+  This may result in an unusable Terraform Cloud workspace, and should be used
+  with extreme caution.
+
 ## Provider Configuration
 
 Terraform will attempt to load configuration files that configure the
@@ -133,7 +138,7 @@ $ terraform import module.foo.aws_instance.bar i-abcd1234
 ## Example: Import into Resource configured with count
 
 The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
-[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+[`count`](/docs/configuration/meta-arguments/count.html):
 
 ```shell
 $ terraform import 'aws_instance.baz[0]' i-abcd1234
@@ -142,7 +147,7 @@ $ terraform import 'aws_instance.baz[0]' i-abcd1234
 ## Example: Import into Resource configured with for_each
 
 The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
-[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+[`for_each`](/docs/configuration/meta-arguments/for_each.html):
 
 Linux, Mac OS, and UNIX:
 

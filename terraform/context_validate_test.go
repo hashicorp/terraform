@@ -546,7 +546,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
-			diags.Append(errors.New("foo is not set"))
+			diags = diags.Append(errors.New("foo is not set"))
 		}
 		return providers.ValidateResourceTypeConfigResponse{
 			Diagnostics: diags,
@@ -709,7 +709,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -744,7 +744,7 @@ func TestContext2Validate_badResourceConnection(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -776,7 +776,7 @@ func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -810,7 +810,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	pr.ValidateProvisionerConfigFn = func(req provisioners.ValidateProvisionerConfigRequest) provisioners.ValidateProvisionerConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("test_string").IsNull() {
-			diags.Append(errors.New("test_string is not set"))
+			diags = diags.Append(errors.New("test_string is not set"))
 		}
 		return provisioners.ValidateProvisionerConfigResponse{
 			Diagnostics: diags,
@@ -822,7 +822,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 	})
@@ -943,7 +943,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
-			diags.Append(errors.New("foo is not set"))
+			diags = diags.Append(errors.New("foo is not set"))
 		}
 		return providers.ValidateResourceTypeConfigResponse{
 			Diagnostics: diags,
@@ -983,7 +983,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Provisioners: map[string]ProvisionerFactory{
+		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
 		State: state,
@@ -1131,6 +1131,71 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_varSensitive(t *testing.T) {
+	// Smoke test through validate where a variable has sensitive applied
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "foo" {
+  default = "xyz"
+  sensitive = true
+}
+
+variable "bar" {
+  sensitive = true
+}
+
+data "aws_data_source" "bar" {
+  foo = var.bar
+}
+
+resource "aws_instance" "foo" {
+  foo = var.foo
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+		// Providers receive unmarked values
+		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
+			t.Fatalf("wrong value for foo\ngot:  %#v\nwant: %#v", got, want)
+		}
+		return providers.ValidateResourceTypeConfigResponse{}
+	}
+	p.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
+		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
+			t.Fatalf("wrong value for foo\ngot:  %#v\nwant: %#v", got, want)
+		}
+		return providers.ValidateDataSourceConfigResponse{}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Variables: InputValues{
+			"bar": &InputValue{
+				Value:      cty.StringVal("boop"),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ValidateResourceTypeConfigCalled {
+		t.Fatal("expected ValidateResourceTypeConfigFn to be called")
+	}
+
+	if !p.ValidateDataSourceConfigCalled {
+		t.Fatal("expected ValidateDataSourceConfigFn to be called")
+	}
+}
+
 // Manually validate using the new PlanGraphBuilder
 func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	fixture := contextFixtureApplyVars(t)
@@ -1208,7 +1273,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Unsupported attribute: This object does not have an attribute named "missing"
-	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Unsupported attribute"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1245,7 +1310,7 @@ resource "aws_instance" "foo" {
 	}
 	// Should get this error:
 	// Unsupported attribute: This object does not have an attribute named "missing"
-	if got, want := diags.Err().Error(), "Unsupported attribute"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Unsupported attribute"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1285,7 +1350,7 @@ resource "aws_instance" "foo" {
 	}
 	// Should get this error:
 	// Output refers to sensitive values: Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.
-	if got, want := diags.Err().Error(), "Output refers to sensitive values"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1314,7 +1379,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Invalid resource count attribute: The special "count" attribute is no longer supported after Terraform v0.12. Instead, use length(aws_instance.test) to count resource instances.
-	if got, want := diags.Err().Error(), "Invalid resource count attribute:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Invalid resource count attribute:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1345,7 +1410,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), "Reference to undeclared module:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Reference to undeclared module:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1376,7 +1441,7 @@ output "out" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), "Reference to undeclared module:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Reference to undeclared module:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1406,7 +1471,7 @@ resource "test_instance" "bar" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), "Reference to undeclared resource:"; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), "Reference to undeclared resource:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1439,7 +1504,7 @@ resource "test_instance" "bar" {
 	}
 	// Should get this error:
 	// Reference to undeclared module: No module call named "foo" is declared in the root module.
-	if got, want := diags.Err().Error(), `no argument, nested block, or exported attribute named "does_not_exist_in_schema"`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `no argument, nested block, or exported attribute named "does_not_exist_in_schema"`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1462,7 +1527,7 @@ func TestContext2Validate_variableCustomValidationsFail(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
-	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1595,7 +1660,7 @@ resource "aws_instance" "foo" {
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
-	if got, want := diags.Err().Error(), `Invalid count argument`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `Invalid count argument`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
@@ -1627,7 +1692,7 @@ resource "aws_instance" "foo" {
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
-	if got, want := diags.Err().Error(), `Invalid for_each argument`; strings.Index(got, want) == -1 {
+	if got, want := diags.Err().Error(), `Invalid for_each argument`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }

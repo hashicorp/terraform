@@ -32,7 +32,7 @@ func simpleMockComponentFactory() *basicComponentFactory {
 				return provider, nil
 			},
 		},
-		provisioners: map[string]ProvisionerFactory{
+		provisioners: map[string]provisioners.Factory{
 			"test": func() (provisioners.Interface, error) {
 				return provisioner, nil
 			},
@@ -62,19 +62,19 @@ func simpleTestSchema() *configschema.Block {
 				Optional: true,
 			},
 			"test_number": {
-				Type:     cty.String,
+				Type:     cty.Number,
 				Optional: true,
 			},
 			"test_bool": {
-				Type:     cty.String,
+				Type:     cty.Bool,
 				Optional: true,
 			},
 			"test_list": {
-				Type:     cty.String,
+				Type:     cty.List(cty.String),
 				Optional: true,
 			},
 			"test_map": {
-				Type:     cty.String,
+				Type:     cty.Map(cty.String),
 				Optional: true,
 			},
 		},

@@ -70,14 +70,18 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		configSchema = &configschema.Block{}
 	}
 
-	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
+	configVal, _, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
 		return diags
 	}
 
+	// If our config value contains any marked values, ensure those are
+	// stripped out before sending this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+
 	req := providers.PrepareProviderConfigRequest{
-		Config: configVal,
+		Config: unmarkedConfigVal,
 	}
 
 	validateResp := provider.PrepareProviderConfig(req)
@@ -117,10 +121,14 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 		return diags
 	}
 
+	// If our config value contains any marked values, ensure those are
+	// stripped out before sending this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+
 	// Allow the provider to validate and insert any defaults into the full
 	// configuration.
 	req := providers.PrepareProviderConfigRequest{
-		Config: configVal,
+		Config: unmarkedConfigVal,
 	}
 
 	// PrepareProviderConfig is only used for validation. We are intentionally
@@ -134,11 +142,11 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	// If the provider returns something different, log a warning to help
 	// indicate to provider developers that the value is not used.
 	preparedCfg := prepareResp.PreparedConfig
-	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(configVal) {
+	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
 		log.Printf("[WARN] PrepareProviderConfig from %q changed the config value, but that value is unused", n.Addr)
 	}
 
-	configDiags := ctx.ConfigureProvider(n.Addr, configVal)
+	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
 	diags = diags.Append(configDiags.InConfigBody(configBody))
 
 	return diags

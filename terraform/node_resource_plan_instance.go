@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -94,25 +95,11 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 
 	// write the data source into both the refresh state and the
 	// working state
-	writeRefreshState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		targetState:    refreshState,
-	}
-	diags = diags.Append(writeRefreshState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, refreshState))
 	if diags.HasErrors() {
 		return diags
 	}
-
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -155,15 +142,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	if diags.HasErrors() {
 		return diags
 	}
-	refreshLifecycle := &EvalRefreshLifecycle{
-		Addr:                     addr,
-		Config:                   n.Config,
-		State:                    &instanceRefreshState,
-		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-	}
-	diags = diags.Append(refreshLifecycle.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
+
+	// In 0.13 we could be refreshing a resource with no config.
+	// We should be operating on managed resource, but check here to be certain
+	if n.Config == nil || n.Config.Managed == nil {
+		log.Printf("[WARN] managedResourceExecute: no Managed config value found in instance state for %q", n.Addr)
+	} else {
+		if instanceRefreshState != nil {
+			instanceRefreshState.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+		}
 	}
 
 	// Refresh, maybe
@@ -182,15 +169,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		writeRefreshState := &EvalWriteState{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderSchema: &providerSchema,
-			State:          &instanceRefreshState,
-			targetState:    refreshState,
-			Dependencies:   &n.Dependencies,
-		}
-		diags = diags.Append(writeRefreshState.Eval(ctx))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, n.Dependencies, refreshState))
 		if diags.HasErrors() {
 			return diags
 		}
@@ -219,13 +198,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		State:          &instancePlanState,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}

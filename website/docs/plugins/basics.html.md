@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "extend"
 page_title: "Plugin Basics"
 sidebar_current: "docs-plugins-basics"
 description: |-
@@ -26,9 +26,6 @@ Terraform providers and provisioners are provided via plugins. Each plugin
 exposes an implementation for a specific service, such as AWS, or provisioner,
 such as bash. Plugins are executed as a separate process and communicate with
 the main Terraform binary over an RPC interface.
-
-More details are available in
-_[Plugin Internals](/docs/internals/internal-plugins.html)_.
 
 The code within the binaries must adhere to certain interfaces.
 The network communication and RPC is handled automatically by higher-level

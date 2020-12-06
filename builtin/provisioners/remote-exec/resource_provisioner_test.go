@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log"
 	"testing"
 	"time"
 
@@ -11,44 +12,33 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func TestResourceProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = Provisioner()
-}
-
-func TestProvisioner(t *testing.T) {
-	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
 func TestResourceProvider_Validate_good(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"inline": "echo foo",
+	c := cty.ObjectVal(map[string]cty.Value{
+		"inline": cty.ListVal([]cty.Value{cty.StringVal("echo foo")}),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: c,
+	})
+	if len(resp.Diagnostics) > 0 {
+		t.Fatal(resp.Diagnostics.ErrWithWarnings())
 	}
 }
 
 func TestResourceProvider_Validate_bad(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"invalid": "nope",
+	c := cty.ObjectVal(map[string]cty.Value{
+		"invalid": cty.StringVal("nope"),
 	})
 
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) == 0 {
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: c,
+	})
+	if !resp.Diagnostics.HasErrors() {
 		t.Fatalf("Should have errors")
 	}
 }
@@ -59,17 +49,13 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	conf := map[string]interface{}{
-		"inline": []interface{}{
-			"cd /tmp",
-			"wget http://foobar",
-			"exit 0",
-		},
-	}
+	inline := cty.ListVal([]cty.Value{
+		cty.StringVal("cd /tmp"),
+		cty.StringVal("wget http://foobar"),
+		cty.StringVal("exit 0"),
+	})
 
-	out, err := generateScripts(
-		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
-	)
+	out, err := generateScripts(inline)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -84,34 +70,28 @@ func TestResourceProvider_generateScript(t *testing.T) {
 }
 
 func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
-	conf := map[string]interface{}{
-		"inline": []interface{}{""},
-	}
+	inline := cty.ListVal([]cty.Value{cty.StringVal("")})
 
-	_, err := generateScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	_, err := generateScripts(inline)
 	if err == nil {
 		t.Fatal("expected error, got none")
 	}
 
-	if !strings.Contains(err.Error(), "Error parsing") {
-		t.Fatalf("expected parsing error, got: %s", err)
+	if !strings.Contains(err.Error(), "empty string") {
+		t.Fatalf("expected empty string error, got: %s", err)
 	}
 }
 
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	conf := map[string]interface{}{
-		"inline": []interface{}{
-			"cd /tmp",
-			"wget http://foobar",
-			"exit 0",
-		},
+	conf := map[string]cty.Value{
+		"inline": cty.ListVal([]cty.Value{
+			cty.StringVal("cd /tmp"),
+			cty.StringVal("wget http://foobar"),
+			cty.StringVal("exit 0"),
+		}),
 	}
 
-	scripts, err := collectScripts(
-		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
-	)
+	scripts, err := collectScripts(cty.ObjectVal(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -132,13 +112,19 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
-	conf := map[string]interface{}{
-		"script": "testdata/script1.sh",
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	conf, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"scripts": cty.ListVal([]cty.Value{
+			cty.StringVal("testdata/script1.sh"),
+		}),
+	}))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	scripts, err := collectScripts(
-		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
-	)
+	scripts, err := collectScripts(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -159,17 +145,21 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
-	conf := map[string]interface{}{
-		"scripts": []interface{}{
-			"testdata/script1.sh",
-			"testdata/script1.sh",
-			"testdata/script1.sh",
-		},
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	conf, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"scripts": cty.ListVal([]cty.Value{
+			cty.StringVal("testdata/script1.sh"),
+			cty.StringVal("testdata/script1.sh"),
+			cty.StringVal("testdata/script1.sh"),
+		}),
+	}))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	scripts, err := collectScripts(
-		schema.TestResourceDataRaw(t, Provisioner().(*schema.Provisioner).Schema, conf),
-	)
+	scripts, err := collectScripts(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -192,25 +182,28 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
-	p := Provisioner().(*schema.Provisioner)
-	conf := map[string]interface{}{
-		"scripts": []interface{}{""},
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	conf, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"scripts": cty.ListVal([]cty.Value{cty.StringVal("")}),
+	}))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	_, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
-
+	_, err = collectScripts(conf)
 	if err == nil {
 		t.Fatal("expected error")
 	}
 
-	if !strings.Contains(err.Error(), "Error parsing") {
-		t.Fatalf("Expected parsing error, got: %s", err)
+	if !strings.Contains(err.Error(), "empty string") {
+		t.Fatalf("Expected empty string error, got: %s", err)
 	}
 }
 
 func TestProvisionerTimeout(t *testing.T) {
-	o := new(terraform.MockUIOutput)
+	o := cli.NewMockUi()
 	c := new(communicator.MockCommunicator)
 
 	disconnected := make(chan struct{})
@@ -231,13 +224,11 @@ func TestProvisionerTimeout(t *testing.T) {
 	c.UploadScripts = map[string]string{"hello": "echo hello"}
 	c.RemoteScriptPath = "hello"
 
-	p := Provisioner().(*schema.Provisioner)
-	conf := map[string]interface{}{
-		"inline": []interface{}{"echo hello"},
+	conf := map[string]cty.Value{
+		"inline": cty.ListVal([]cty.Value{cty.StringVal("echo hello")}),
 	}
 
-	scripts, err := collectScripts(schema.TestResourceDataRaw(
-		t, p.Schema, conf))
+	scripts, err := collectScripts(cty.ObjectVal(conf))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,11 +237,10 @@ func TestProvisionerTimeout(t *testing.T) {
 
 	done := make(chan struct{})
 
+	var runErr error
 	go func() {
 		defer close(done)
-		if err := runScripts(ctx, o, c, scripts); err != nil {
-			t.Fatal(err)
-		}
+		runErr = runScripts(ctx, o, c, scripts)
 	}()
 
 	select {
@@ -260,8 +250,7 @@ func TestProvisionerTimeout(t *testing.T) {
 	}
 
 	<-done
-}
-
-func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	return terraform.NewResourceConfigRaw(c)
+	if runErr != nil {
+		t.Fatal(err)
+	}
 }

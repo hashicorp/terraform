@@ -196,30 +196,6 @@ var IndexFunc = function.New(&function.Spec{
 	},
 })
 
-// Flatten until it's not a cty.List, and return whether the value is known.
-// We can flatten lists with unknown values, as long as they are not
-// lists themselves.
-func flattener(flattenList cty.Value) ([]cty.Value, bool) {
-	out := make([]cty.Value, 0)
-	for it := flattenList.ElementIterator(); it.Next(); {
-		_, val := it.Element()
-		if val.Type().IsListType() || val.Type().IsSetType() || val.Type().IsTupleType() {
-			if !val.IsKnown() {
-				return out, false
-			}
-
-			res, known := flattener(val)
-			if !known {
-				return res, known
-			}
-			out = append(out, res...)
-		} else {
-			out = append(out, val)
-		}
-	}
-	return out, true
-}
-
 // LookupFunc constructs a function that performs dynamic lookups of map types.
 var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -536,20 +512,6 @@ var MapFunc = function.New(&function.Spec{
 		return cty.DynamicVal, fmt.Errorf("the \"map\" function was deprecated in Terraform v0.12 and is no longer available; use tomap({ ... }) syntax to write a literal map")
 	},
 })
-
-// helper function to add an element to a list, if it does not already exist
-func appendIfMissing(slice []cty.Value, element cty.Value) ([]cty.Value, error) {
-	for _, ele := range slice {
-		eq, err := stdlib.Equal(ele, element)
-		if err != nil {
-			return slice, err
-		}
-		if eq.True() {
-			return slice, nil
-		}
-	}
-	return append(slice, element), nil
-}
 
 // Length returns the number of elements in the given collection or number of
 // Unicode characters in the given string.

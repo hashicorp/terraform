@@ -1,28 +1,9 @@
 package terraform
 
 import (
-	"testing"
-
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
-
-func TestMockResourceProvider_impl(t *testing.T) {
-	var _ ResourceProvider = new(MockResourceProvider)
-	var _ ResourceProviderCloser = new(MockResourceProvider)
-}
-
-// testProviderComponentFactory creates a componentFactory that contains only
-// a single given.
-func testProviderComponentFactory(name string, provider providers.Interface) *basicComponentFactory {
-	return &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider(name): providers.FactoryFixed(provider),
-		},
-	}
-}
 
 // mockProviderWithConfigSchema is a test helper to concisely create a mock
 // provider with the given schema for its own configuration.
@@ -56,18 +37,6 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 				},
 			},
 			ResourceTypes: map[string]*configschema.Block{
-				name: schema,
-			},
-		},
-	}
-}
-
-// mockProviderWithDataSourceSchema is a test helper to concisely create a mock
-// provider with a schema containing a single data source.
-func mockProviderWithDataSourceSchema(name string, schema *configschema.Block) *MockResourceProvider {
-	return &MockResourceProvider{
-		GetSchemaReturn: &ProviderSchema{
-			DataSources: map[string]*configschema.Block{
 				name: schema,
 			},
 		},

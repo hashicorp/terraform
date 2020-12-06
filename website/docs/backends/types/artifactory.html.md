@@ -1,5 +1,5 @@
 ---
-layout: "backend-types"
+layout: "language"
 page_title: "Backend Type: artifactory"
 sidebar_current: "docs-backends-types-standard-artifactory"
 description: |-

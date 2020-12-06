@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "Functions - Configuration Language"
 sidebar_current: "docs-config-functions"
 description: |-
@@ -13,6 +13,8 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Interpolation Syntax](../configuration-0-11/interpolation.html).
 
+> **Hands-on:** Try the [Perform Dynamic Operations with Functions](https://learn.hashicorp.com/tutorials/terraform/functions?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 The Terraform language includes a number of built-in functions that you can
 call from within expressions to transform and combine values. The general
 syntax for function calls is a function name followed by comma-separated
@@ -23,8 +25,8 @@ max(5, 12, 9)
 ```
 
 For more details on syntax, see
-[_Function Calls_](./expressions.html#function-calls)
-on the Expressions page.
+[_Function Calls_](/docs/configuration/expressions/function-calls.html)
+in the Expressions section.
 
 The Terraform language does not support user-defined functions, and so only
 the functions built in to the language are available for use. The navigation

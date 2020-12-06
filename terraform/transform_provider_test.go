@@ -545,31 +545,6 @@ provider["registry.terraform.io/hashicorp/foo"] (close)
   provider["registry.terraform.io/hashicorp/foo"]
 `
 
-const testTransformDisableProviderBasicStr = `
-module.child
-  provider["registry.terraform.io/hashicorp/aws"] (disabled)
-  var.foo
-provider["registry.terraform.io/hashicorp/aws"] (close)
-  module.child
-  provider["registry.terraform.io/hashicorp/aws"] (disabled)
-provider["registry.terraform.io/hashicorp/aws"] (disabled)
-var.foo
-`
-
-const testTransformDisableProviderKeepStr = `
-aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
-module.child
-  provider["registry.terraform.io/hashicorp/aws"]
-  var.foo
-provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"] (close)
-  aws_instance.foo
-  module.child
-  provider["registry.terraform.io/hashicorp/aws"]
-var.foo
-`
-
 const testTransformModuleProviderConfigStr = `
 module.child.aws_instance.thing
   provider["registry.terraform.io/hashicorp/aws"].foo

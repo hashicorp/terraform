@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Attributes as Blocks - Configuration Language"
 sidebar_current: "docs-config-attr-as-blocks"
 description: |-
@@ -153,7 +153,7 @@ example = [
 
 For the arguments that use the attributes-as-blocks usage mode, the above is
 a better pattern than using
-[`dynamic` blocks](/docs/configuration/expressions.html#dynamic-blocks)
+[`dynamic` blocks](/docs/configuration/expressions/dynamic-blocks.html)
 because the case where the
 caller provides an empty list will result in explicitly assigning an empty
 list value, rather than assigning no value at all and thus retaining and

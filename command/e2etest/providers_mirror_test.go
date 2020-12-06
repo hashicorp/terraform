@@ -54,7 +54,10 @@ func TestTerraformProvidersMirror(t *testing.T) {
 		"registry.terraform.io/hashicorp/template/terraform-provider-template_2.1.1_windows_386.zip",
 	}
 	var got []string
-	err = filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
+	walkErr := filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if info.IsDir() {
 			return nil // we only care about leaf files for this test
 		}
@@ -65,8 +68,8 @@ func TestTerraformProvidersMirror(t *testing.T) {
 		got = append(got, filepath.ToSlash(relPath))
 		return nil
 	})
-	if err != nil {
-		t.Fatal(err)
+	if walkErr != nil {
+		t.Fatal(walkErr)
 	}
 	sort.Strings(got)
 

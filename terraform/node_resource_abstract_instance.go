@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeAbstractResourceInstance represents a resource instance with no
@@ -197,5 +198,115 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 		return diags.Err()
 	}
 
+	return nil
+}
+
+// PreApplyHook calls the pre-Apply hook
+func (n *NodeAbstractResourceInstance) PreApplyHook(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if change == nil {
+		panic(fmt.Sprintf("PreApplyHook for %s called with nil Change", n.Addr))
+	}
+
+	if resourceHasUserVisibleApply(n.Addr.Resource) {
+		priorState := change.Before
+		plannedNewState := change.After
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreApply(n.Addr, nil, change.Action, priorState, plannedNewState)
+		}))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	return nil
+}
+
+// PostApplyHook calls the post-Apply hook
+func (n *NodeAbstractResourceInstance) PostApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err *error) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if resourceHasUserVisibleApply(n.Addr.Resource) {
+		var newState cty.Value
+		if state != nil {
+			newState = state.Value
+		} else {
+			newState = cty.NullVal(cty.DynamicPseudoType)
+		}
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostApply(n.Addr, nil, newState, *err)
+		}))
+	}
+
+	diags = diags.Append(*err)
+
+	return diags
+}
+
+// writeResourceInstanceState saves the given object as the current object for
+// the selected resource instance.
+//
+// dependencies is a parameter, instead of those directly attacted to the
+// NodeAbstractResourceInstance, because we don't write dependencies for
+// datasources.
+//
+// targetState determines which context state we're writing to during plan. The
+// default is the global working state.
+func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, dependencies []addrs.ConfigResource, targetState phaseState) error {
+	absAddr := n.Addr
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+
+	var state *states.SyncState
+	switch targetState {
+	case refreshState:
+		log.Printf("[TRACE] writeResourceInstanceState: using RefreshState for %s", absAddr)
+		state = ctx.RefreshState()
+	default:
+		state = ctx.State()
+	}
+
+	if obj == nil || obj.Value.IsNull() {
+		// No need to encode anything: we'll just write it directly.
+		state.SetResourceInstanceCurrent(absAddr, nil, n.ResolvedProvider)
+		log.Printf("[TRACE] writeResourceInstanceState: removing state object for %s", absAddr)
+		return nil
+	}
+
+	// store the new deps in the state.
+	// We check for nil here because don't want to override existing dependencies on orphaned nodes.
+	if dependencies != nil {
+		obj.Dependencies = dependencies
+	}
+
+	if providerSchema == nil {
+		// Should never happen, unless our state object is nil
+		panic("writeResourceInstanceState used with nil ProviderSchema")
+	}
+
+	if obj != nil {
+		log.Printf("[TRACE] writeResourceInstanceState: writing current state object for %s", absAddr)
+	} else {
+		log.Printf("[TRACE] writeResourceInstanceState: removing current state object for %s", absAddr)
+	}
+
+	schema, currentVersion := (*providerSchema).SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if schema == nil {
+		// It shouldn't be possible to get this far in any real scenario
+		// without a schema, but we might end up here in contrived tests that
+		// fail to set up their world properly.
+		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
+	}
+
+	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+	if err != nil {
+		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
+	}
+
+	state.SetResourceInstanceCurrent(absAddr, src, n.ResolvedProvider)
 	return nil
 }

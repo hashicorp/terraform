@@ -38,16 +38,6 @@ func testParser(files map[string]string) *Parser {
 	return NewParser(fs)
 }
 
-// testModuleFromFile reads a single file, wraps it in a module, and returns
-// it. This is a helper for use in unit tests.
-func testModuleFromFile(filename string) (*Module, hcl.Diagnostics) {
-	parser := NewParser(nil)
-	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := NewModule([]*File{f}, nil)
-	diags = append(diags, modDiags...)
-	return mod, modDiags
-}
-
 // testModuleConfigFrom File reads a single file from the given path as a
 // module and returns its configuration. This is a helper for use in unit tests.
 func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {

@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.9"
 sidebar_current: "upgrade-guides-0-9"
 description: |-
@@ -48,7 +48,7 @@ terraform {
 
 **Action:** Nothing immediately, everything will continue working
 except scripts using `terraform remote config`.
-As soon as possible, [upgrade to backends](/docs/backends/legacy-0-8.html).
+As soon as possible, [upgrade to backends](/docs/configuration/blocks/backends/index.html).
 
 ## State Locking
 

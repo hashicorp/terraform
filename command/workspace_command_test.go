@@ -13,8 +13,9 @@ import (
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 func TestWorkspace_createAndChange(t *testing.T) {
@@ -379,14 +380,14 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	}
 
 	// create a non-empty state
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+	originalState := &legacy.State{
+		Modules: []*legacy.ModuleState{
+			&legacy.ModuleState{
 				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+				Resources: map[string]*legacy.ResourceState{
+					"test_instance.foo": &legacy.ResourceState{
 						Type: "test_instance",
-						Primary: &terraform.InstanceState{
+						Primary: &legacy.InstanceState{
 							ID: "bar",
 						},
 					},
@@ -400,7 +401,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	if err := terraform.WriteState(originalState, f); err != nil {
+	if err := legacy.WriteState(originalState, f); err != nil {
 		t.Fatal(err)
 	}
 

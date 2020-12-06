@@ -17,6 +17,7 @@
 // branch or any other development branch.
 //
 syntax = "proto3";
+option go_package = "github.com/hashicorp/terraform/internal/tfplugin5";
 
 package tfplugin5;
 

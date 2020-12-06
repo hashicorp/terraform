@@ -212,6 +212,24 @@ func (n *EvalDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	unmarkedConfigVal, unmarkedPaths := origConfigVal.UnmarkDeepWithPaths()
 	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
 
+	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
+	// Allow the provider to validate the final set of values.
+	// The config was statically validated early on, but there may have been
+	// unknown values which the provider could not validate at the time.
+	// TODO: It would be more correct to validate the config after
+	// ignore_changes has been applied, but the current implementation cannot
+	// exclude computed-only attributes when given the `all` option.
+	validateResp := provider.ValidateResourceTypeConfig(
+		providers.ValidateResourceTypeConfigRequest{
+			TypeName: n.Addr.Resource.Type,
+			Config:   unmarkedConfigVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config))
+		return diags
+	}
+
 	// ignore_changes is meant to only apply to the configuration, so it must
 	// be applied before we generate a plan. This ensures the config used for
 	// the proposed value, the proposed value itself, and the config presented
@@ -233,21 +251,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		if diags.HasErrors() {
 			return diags
 		}
-	}
-
-	log.Printf("[TRACE] Re-validating config for %q", n.Addr.Absolute(ctx.Path()))
-	// Allow the provider to validate the final set of values.
-	// The config was statically validated early on, but there may have been
-	// unknown values which the provider could not validate at the time.
-	validateResp := provider.ValidateResourceTypeConfig(
-		providers.ValidateResourceTypeConfigRequest{
-			TypeName: n.Addr.Resource.Type,
-			Config:   configValIgnored,
-		},
-	)
-	if validateResp.Diagnostics.HasErrors() {
-		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config))
-		return diags
 	}
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -318,6 +321,23 @@ func (n *EvalDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
 					),
 				))
 			}
+			return diags
+		}
+	}
+
+	if resp.LegacyTypeSystem {
+		// Because we allow legacy providers to depart from the contract and
+		// return changes to non-computed values, the plan response may have
+		// altered values that were already suppressed with ignore_changes.
+		// A prime example of this is where providers attempt to obfuscate
+		// config data by turning the config value into a hash and storing the
+		// hash value in the state. There are enough cases of this in existing
+		// providers that we must accommodate the behavior for now, so for
+		// ignore_changes to work at all on these values, we will revert the
+		// ignored values once more.
+		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal)
+		diags = diags.Append(ignoreChangeDiags)
+		if ignoreChangeDiags.HasErrors() {
 			return diags
 		}
 	}
@@ -664,47 +684,58 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 	}
 
 	ret, _ := cty.Transform(config, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		// Easy path for when we are only matching the entire value. The only
+		// values we break up for inspection are maps.
+		if !v.Type().IsMapType() {
+			for _, ignored := range ignoredValues {
+				if path.Equals(ignored.path) {
+					return ignored.value, nil
+				}
+			}
+			return v, nil
+		}
+		// We now know this must be a map, so we need to accumulate the values
+		// key-by-key.
+
+		if !v.IsNull() && !v.IsKnown() {
+			// since v is not known, we cannot ignore individual keys
+			return v, nil
+		}
+
+		// The configMap is the current configuration value, which we will
+		// mutate based on the ignored paths and the prior map value.
+		var configMap map[string]cty.Value
+		switch {
+		case v.IsNull() || v.LengthInt() == 0:
+			configMap = map[string]cty.Value{}
+		default:
+			configMap = v.AsValueMap()
+		}
+
 		for _, ignored := range ignoredValues {
 			if !path.Equals(ignored.path) {
-				return v, nil
+				continue
 			}
 
-			// no index, so we can return the entire value
 			if ignored.key.IsNull() {
+				// The map address is confirmed to match at this point,
+				// so if there is no key, we want the entire map and can
+				// stop accumulating values.
 				return ignored.value, nil
 			}
-
-			// we have an index key, so make sure we have a map
-			if !v.Type().IsMapType() {
-				// we'll let other validation catch any type mismatch
-				return v, nil
-			}
-
 			// Now we know we are ignoring a specific index of this map, so get
 			// the config map and modify, add, or remove the desired key.
-			var configMap map[string]cty.Value
-			var priorMap map[string]cty.Value
-
-			if !v.IsNull() {
-				if !v.IsKnown() {
-					// if the entire map is not known, we can't ignore any
-					// specific keys yet.
-					continue
-				}
-				configMap = v.AsValueMap()
-			}
-			if configMap == nil {
-				configMap = map[string]cty.Value{}
-			}
 
 			// We also need to create a prior map, so we can check for
-			// existence while getting the value. Value.Index will always
-			// return null.
-			if !ignored.value.IsNull() {
-				priorMap = ignored.value.AsValueMap()
-			}
-			if priorMap == nil {
+			// existence while getting the value, because Value.Index will
+			// return null for a key with a null value and for a non-existent
+			// key.
+			var priorMap map[string]cty.Value
+			switch {
+			case ignored.value.IsNull() || ignored.value.LengthInt() == 0:
 				priorMap = map[string]cty.Value{}
+			default:
+				priorMap = ignored.value.AsValueMap()
 			}
 
 			key := ignored.key.AsString()
@@ -718,14 +749,13 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 			default:
 				configMap[key] = priorElem
 			}
-
-			if len(configMap) == 0 {
-				return cty.MapValEmpty(v.Type().ElementType()), nil
-			}
-
-			return cty.MapVal(configMap), nil
 		}
-		return v, nil
+
+		if len(configMap) == 0 {
+			return cty.MapValEmpty(v.Type().ElementType()), nil
+		}
+
+		return cty.MapVal(configMap), nil
 	})
 	return ret, nil
 }

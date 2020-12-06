@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "compact - Functions - Configuration Language"
 sidebar_current: "docs-funcs-collection-compact"
 description: |-

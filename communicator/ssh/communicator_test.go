@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -99,6 +99,7 @@ func newMockLineServer(t *testing.T, signer ssh.Signer, pubKey string) string {
 			t.Log("Accepted channel")
 
 			go func(in <-chan *ssh.Request) {
+				defer channel.Close()
 				for req := range in {
 					// since this channel's requests are serviced serially,
 					// this will block keepalive probes, and can simulate a
@@ -112,8 +113,6 @@ func newMockLineServer(t *testing.T, signer ssh.Signer, pubKey string) string {
 					}
 				}
 			}(requests)
-
-			defer channel.Close()
 		}
 		conn.Close()
 	}()
@@ -125,20 +124,16 @@ func TestNew_Invalid(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "i-am-invalid",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("i-am-invalid"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -150,19 +145,15 @@ func TestNew_Invalid(t *testing.T) {
 }
 
 func TestNew_InvalidHost(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "i-am-invalid",
-				"port":     "22",
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("i-am-invalid"),
+		"port":     cty.StringVal("22"),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	_, err := New(r)
+	_, err := New(v)
 	if err == nil {
 		t.Fatal("should have had an error creating communicator")
 	}
@@ -172,20 +163,16 @@ func TestStart(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -211,19 +198,15 @@ func TestKeepAlives(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -261,19 +244,16 @@ func TestFailedKeepAlives(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -296,20 +276,16 @@ func TestLostConnection(t *testing.T) {
 	address := newMockLineServer(t, nil, testClientPublicKey)
 	parts := strings.Split(address, ":")
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("ssh"),
+		"user":     cty.StringVal("user"),
+		"password": cty.StringVal("pass"),
+		"host":     cty.StringVal(parts[0]),
+		"port":     cty.StringVal(parts[1]),
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -586,19 +562,15 @@ func TestAccUploadFile(t *testing.T) {
 		t.Skip()
 	}
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":    "ssh",
-				"user":    os.Getenv("USER"),
-				"host":    "127.0.0.1",
-				"port":    "22",
-				"timeout": "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":    cty.StringVal("ssh"),
+		"user":    cty.StringVal(os.Getenv("USER")),
+		"host":    cty.StringVal("127.0.0.1"),
+		"port":    cty.StringVal("22"),
+		"timeout": cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -634,19 +606,15 @@ func TestAccHugeUploadFile(t *testing.T) {
 		t.Skip()
 	}
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":    "ssh",
-				"user":    os.Getenv("USER"),
-				"host":    "127.0.0.1",
-				"port":    "22",
-				"timeout": "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":    cty.StringVal("ssh"),
+		"host":    cty.StringVal("127.0.0.1"),
+		"user":    cty.StringVal(os.Getenv("USER")),
+		"port":    cty.StringVal("22"),
+		"timeout": cty.StringVal("30s"),
+	})
 
-	c, err := New(r)
+	c, err := New(v)
 	if err != nil {
 		t.Fatalf("error creating communicator: %s", err)
 	}
@@ -706,16 +674,13 @@ func TestScriptPath(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		r := &terraform.InstanceState{
-			Ephemeral: terraform.EphemeralState{
-				ConnInfo: map[string]string{
-					"type":        "ssh",
-					"host":        "127.0.0.1",
-					"script_path": tc.Input,
-				},
-			},
-		}
-		comm, err := New(r)
+		v := cty.ObjectVal(map[string]cty.Value{
+			"type":        cty.StringVal("ssh"),
+			"host":        cty.StringVal("127.0.0.1"),
+			"script_path": cty.StringVal(tc.Input),
+		})
+
+		comm, err := New(v)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -735,14 +700,10 @@ func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
 	staticSeedPath := "/tmp/terraform_1298498081.sh"
-	c, err := New(&terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type": "ssh",
-				"host": "127.0.0.1",
-			},
-		},
-	})
+	c, err := New(cty.ObjectVal(map[string]cty.Value{
+		"type": cty.StringVal("ssh"),
+		"host": cty.StringVal("127.0.0.1"),
+	}))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -751,34 +712,6 @@ func TestScriptPath_randSeed(t *testing.T) {
 		t.Fatalf("rand not seeded! got: %s", path)
 	}
 }
-
-const testClientPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpQIBAAKCAQEAxOgNXOJ/jrRDxBZTSk2X9otNy9zcpUmJr5ifDi5sy7j2ZiQS
-beBt1Wf+tLNWis8Cyq06ttEvjjRuM75yucyD6GrqDTXVCSm4PeOIQeDhPhw26wYZ
-O0h/mFgrAiCwaEl8AFXVBInOhVn/0nqgUpkwckh76bjTsNeifkiugK3cfJOuBdrU
-ZGbgugJjmYo4Cmv7ECo1gCFT5N+BAjOji3z3N5ClBH5HaWC77jH7kTH0k5cZ+ZRQ
-tG9EqLyvWlnzTAR/Yly0JInkOa16Ms1Au5sIJwEoJfHKsNVK06IlLob53nblwYW0
-H5gv1Kb/rS+nUkpPtA5YFShB7iZnPLPPv6qXSwIDAQABAoIBAC0UY1rMkB9/rbQK
-2G6+bPgI1HrDydAdkeQdsOxyPH43jlG8GGwHYZ3l/S4pkLqewijcmACay6Rm5IP8
-Kg/XfquLLqJvnKJIZuHkYaGTdn3dv8T21Hf6FRwvs0j9auW1TSpWfDpZwmpNPIBX
-irTeVXUUmynbIrvt4km/IhRbuYrbbb964CLYD1DCl3XssXxoRNvPpc5EtOuyDorA
-5g1hvZR1FqbOAmOuNQMYJociMuWB8mCaHb+o1Sg4A65OLXxoKs0cuwInJ/n/R4Z3
-+GrV+x5ypBMxXgjjQtKMLEOujkvxs1cp34hkbhKMHHXxbMu5jl74YtGGsLLk90rq
-ieZGIgECgYEA49OM9mMCrDoFUTZdJaSARA/MOXkdQgrqVTv9kUHee7oeMZZ6lS0i
-bPU7g+Bq+UAN0qcw9x992eAElKjBA71Q5UbZYWh29BDMZd8bRJmwz4P6aSMoYLWI
-Sr31caJU9LdmPFatarNeehjSJtlTuoZD9+NElnnUwNaTeOOo5UdhTQsCgYEA3UGm
-QWoDUttFwK9oL2KL8M54Bx6EzNhnyk03WrqBbR7PJcPKnsF0R/0soQ+y0FW0r8RJ
-TqG6ze5fUJII72B4GlMTQdP+BIvaKQttwWQTNIjbbv4NksF445gdVOO1xi9SvQ7k
-uvMVxOb+1jL3HAFa3furWu2tJRDs6dhuaILLxsECgYEAhnhlKUBDYZhVbxvhWsh/
-lKymY/3ikQqUSX7BKa1xPiIalDY3YDllql4MpMgfG8L85asdMZ96ztB0o7H/Ss/B
-IbLxt5bLLz+DBVXsaE82lyVU9h10RbCgI01/w3SHJHHjfBXFAcehKfvgfmGkE+IP
-2A5ie1aphrCgFqh5FetNuQUCgYEAibL42I804FUtFR1VduAa/dRRqQSaW6528dWa
-lLGsKRBalUNEEAeP6dmr89UEUVp1qEo94V0QGGe5FDi+rNPaC3AWdQqNdaDgNlkx
-hoFU3oYqIuqj4ejc5rBd2N4a2+vJz3W8bokozDGC+iYf2mMRfUPKwj1XW9Er0OFs
-3UhBsEECgYEAto/iJB7ZlCM7EyV9JW0tsEt83rbKMQ/Ex0ShbBIejej0Xx7bwx60
-tVgay+bzJnNkXu6J4XVI98A/WsdI2kW4hL0STYdHV5HVA1l87V4ZbvTF2Bx8a8RJ
-OF3UjpMTWKqOprw9nAu5VuwNRVzORF8ER8rgGeaR2/gsSvIYFy9VXq8=
------END RSA PRIVATE KEY-----`
 
 var testClientPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDE6A1c4n+OtEPEFlNKTZf2i03L3NylSYmvmJ8OLmzLuPZmJBJt4G3VZ/60s1aKzwLKrTq20S+ONG4zvnK5zIPoauoNNdUJKbg944hB4OE+HDbrBhk7SH+YWCsCILBoSXwAVdUEic6FWf/SeqBSmTBySHvpuNOw16J+SK6Ardx8k64F2tRkZuC6AmOZijgKa/sQKjWAIVPk34ECM6OLfPc3kKUEfkdpYLvuMfuRMfSTlxn5lFC0b0SovK9aWfNMBH9iXLQkieQ5rXoyzUC7mwgnASgl8cqw1UrToiUuhvneduXBhbQfmC/Upv+tL6dSSk+0DlgVKEHuJmc8s8+/qpdL`
 

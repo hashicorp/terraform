@@ -38,8 +38,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	ctx := walker.EvalContext()
 
 	// Walk the graph.
-	var walkFn dag.WalkFunc
-	walkFn = func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
 		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
 
 		defer func() {

@@ -22,7 +22,6 @@ func (c *StatePullCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
-	args = cmdFlags.Args()
 
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
@@ -30,6 +29,9 @@ func (c *StatePullCommand) Run(args []string) int {
 		c.showDiagnostics(backendDiags)
 		return 1
 	}
+
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
 
 	// Get the state manager for the current workspace
 	env, err := c.Workspace()

@@ -1,5 +1,5 @@
 ---
-layout: functions
+layout: "language"
 page_title: anytrue - Functions - Configuration Language
 sidebar_current: docs-funcs-collection-anytrue
 description: |-
@@ -9,9 +9,7 @@ description: |-
 
 # `anytrue` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
+-> **Note:** This function is available in Terraform 0.14 and later.
 
 `anytrue` returns `true` if any element in a given collection is `true`
 or `"true"`. It also returns `false` if the collection is empty.

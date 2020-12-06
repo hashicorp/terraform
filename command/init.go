@@ -264,6 +264,7 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
+		c.ignoreRemoteBackendVersionConflict(back)
 		workspace, err := c.Workspace()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -321,9 +322,9 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 	}
 
 	if upgrade {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Upgrading modules...")))
+		c.Ui.Output(c.Colorize().Color("[reset][bold]Upgrading modules..."))
 	} else {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf("[reset][bold]Initializing modules...")))
+		c.Ui.Output(c.Colorize().Color("[reset][bold]Initializing modules..."))
 	}
 
 	hooks := uiModuleInstallHooks{
@@ -350,7 +351,7 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 }
 
 func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
-	c.Ui.Output(c.Colorize().Color(fmt.Sprintf("\n[reset][bold]Initializing the backend...")))
+	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing the backend..."))
 
 	var backendConfig *configs.Backend
 	var backendConfigOverride hcl.Body
@@ -1089,15 +1090,6 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
-`
-
-const outputInitProvidersUnconstrained = `
-The following providers do not have any version constraints in configuration,
-so the latest version was installed.
-
-To prevent automatic upgrades to new major versions that may contain breaking
-changes, we recommend adding version constraints in a required_providers block
-in your configuration, with the constraint strings suggested below.
 `
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's

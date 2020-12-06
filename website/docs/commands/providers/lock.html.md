@@ -1,5 +1,5 @@
 ---
-layout: "commands-providers"
+layout: "docs"
 page_title: "Command: providers lock"
 sidebar_current: "docs-commands-providers-lock"
 description: |-
@@ -7,7 +7,7 @@ description: |-
   to the dependency lock file without initializing the referenced providers.
 ---
 
-# Command: terraform providers mirror
+# Command: terraform providers lock
 
 The `terraform providers lock` consults upstream registries (by default) in
 order to write provider dependency information into
@@ -25,11 +25,11 @@ automatic approach may not be sufficient:
   be able to populate all of the possible package checksums for the selected
   provider versions.
 
-  If you use `terraform lock` to write the official release checksums for a
-  provider into the dependency lock file then future `terraform init` runs
-  will verify the packages available in your selected mirror against the
-  official checksums previously recorded, giving additional certainty that
-  the mirror is serving the provider packages it is claiming to.
+    If you use `terraform lock` to write the official release checksums for a
+    provider into the dependency lock file then future `terraform init` runs
+    will verify the packages available in your selected mirror against the
+    official checksums previously recorded, giving additional certainty that
+    the mirror is serving the provider packages it is claiming to.
 
 * If your team runs Terraform across a number of different platforms (e.g.
   on both Windows and Linux) and the upstream registry for a provider is unable
@@ -81,14 +81,14 @@ You can customize the default behavior using the following additional option:
   available for the given platform and will save enough package checksums in
   the lock file to support _at least_ the specified platforms.
   
-  Use this option multiple times to include checksums for multiple target
-  systems.
+    Use this option multiple times to include checksums for multiple target
+    systems.
 
-  Target platform names consist of an operating system and a CPU
-  architecture. For example, `linux_amd64` selects the Linux operating system
-  running on an AMD64 or x86_64 CPU.
+    Target platform names consist of an operating system and a CPU
+    architecture. For example, `linux_amd64` selects the Linux operating system
+    running on an AMD64 or x86_64 CPU.
 
-  There is more detail on this option in the following section.
+    There is more detail on this option in the following section.
 
 ## Specifying Target Platforms
 

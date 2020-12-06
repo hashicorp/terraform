@@ -1,11 +1,12 @@
 package terraform
 
 import (
-	"encoding/json"
+	"errors"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
@@ -75,9 +76,6 @@ type MockProvider struct {
 	ImportResourceStateResponse providers.ImportResourceStateResponse
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
-	// Legacy return type for existing tests, which will be shimmed into an
-	// ImportResourceStateResponse if set
-	ImportStateReturn []*InstanceState
 
 	ReadDataSourceCalled   bool
 	ReadDataSourceResponse providers.ReadDataSourceResponse
@@ -124,6 +122,24 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	return ret
 }
 
+func (p *MockProvider) getResourceSchema(name string) providers.Schema {
+	schema := p.getSchema()
+	resSchema, ok := schema.ResourceTypes[name]
+	if !ok {
+		panic("unknown resource type " + name)
+	}
+	return resSchema
+}
+
+func (p *MockProvider) getDatasourceSchema(name string) providers.Schema {
+	schema := p.getSchema()
+	dataSchema, ok := schema.DataSources[name]
+	if !ok {
+		panic("unknown data source " + name)
+	}
+	return dataSchema
+}
+
 func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
 	p.Lock()
 	defer p.Unlock()
@@ -137,12 +153,21 @@ func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 	return p.PrepareProviderConfigResponse
 }
 
-func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.ValidateResourceTypeConfigCalled = true
 	p.ValidateResourceTypeConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol,
+	// and return any relevant errors
+	resourceSchema := p.getResourceSchema(r.TypeName)
+	_, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	if p.ValidateResourceTypeConfigFn != nil {
 		return p.ValidateResourceTypeConfigFn(r)
@@ -151,12 +176,20 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 	return p.ValidateResourceTypeConfigResponse
 }
 
-func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.ValidateDataSourceConfigCalled = true
 	p.ValidateDataSourceConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	dataSchema := p.getDatasourceSchema(r.TypeName)
+	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	if p.ValidateDataSourceConfigFn != nil {
 		return p.ValidateDataSourceConfigFn(r)
@@ -287,58 +320,32 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	return p.ApplyResourceChangeResponse
 }
 
-func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
 	p.Lock()
 	defer p.Unlock()
-
-	if p.ImportStateReturn != nil {
-		for _, is := range p.ImportStateReturn {
-			if is.Attributes == nil {
-				is.Attributes = make(map[string]string)
-			}
-			is.Attributes["id"] = is.ID
-
-			typeName := is.Ephemeral.Type
-			// Use the requested type if the resource has no type of it's own.
-			// We still return the empty type, which will error, but this prevents a panic.
-			if typeName == "" {
-				typeName = r.TypeName
-			}
-
-			schema := p.GetSchemaReturn.ResourceTypes[typeName]
-			if schema == nil {
-				panic("no schema found for " + typeName)
-			}
-
-			private, err := json.Marshal(is.Meta)
-			if err != nil {
-				panic(err)
-			}
-
-			state, err := hcl2shim.HCL2ValueFromFlatmap(is.Attributes, schema.ImpliedType())
-			if err != nil {
-				panic(err)
-			}
-
-			state, err = schema.CoerceValue(state)
-			if err != nil {
-				panic(err)
-			}
-
-			p.ImportResourceStateResponse.ImportedResources = append(
-				p.ImportResourceStateResponse.ImportedResources,
-				providers.ImportedResource{
-					TypeName: is.Ephemeral.Type,
-					State:    state,
-					Private:  private,
-				})
-		}
-	}
 
 	p.ImportResourceStateCalled = true
 	p.ImportResourceStateRequest = r
 	if p.ImportResourceStateFn != nil {
 		return p.ImportResourceStateFn(r)
+	}
+
+	// fixup the cty value to match the schema
+	for i, res := range p.ImportResourceStateResponse.ImportedResources {
+		schema := p.GetSchemaReturn.ResourceTypes[res.TypeName]
+		if schema == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("no schema found for " + res.TypeName))
+			return resp
+		}
+
+		var err error
+		res.State, err = schema.CoerceValue(res.State)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+
+		p.ImportResourceStateResponse.ImportedResources[i] = res
 	}
 
 	return p.ImportResourceStateResponse

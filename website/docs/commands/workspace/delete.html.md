@@ -1,5 +1,5 @@
 ---
-layout: "commands-workspace"
+layout: "docs"
 page_title: "Command: workspace delete"
 sidebar_current: "docs-commands-workspace-sub-delete"
 description: |-
@@ -12,7 +12,7 @@ The `terraform workspace delete` command is used to delete an existing workspace
 
 ## Usage
 
-Usage: `terraform workspace delete [NAME]`
+Usage: `terraform workspace delete [OPTIONS] NAME [DIR]`
 
 This command will delete the specified workspace.
 
@@ -30,6 +30,8 @@ from getting into this situation.
 The command-line flags are all optional. The only supported flag is:
 
 * `-force` - Delete the workspace even if its state is not empty. Defaults to false.
+* `-lock`  - Lock the state file when locking is supported. Defaults to true.
+* `-lock-timeout`   - Duration to retry a state lock. Default 0s.
 
 ## Example
 

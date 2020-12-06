@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,7 +17,7 @@ import (
 type contextTestFixture struct {
 	Config       *configs.Config
 	Providers    map[addrs.Provider]providers.Factory
-	Provisioners map[string]ProvisionerFactory
+	Provisioners map[string]provisioners.Factory
 }
 
 // ContextOpts returns a ContextOps pre-populated with the elements of this

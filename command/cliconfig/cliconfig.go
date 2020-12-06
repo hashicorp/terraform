@@ -287,39 +287,39 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 
 // Merge merges two configurations and returns a third entirely
 // new configuration with the two merged.
-func (c1 *Config) Merge(c2 *Config) *Config {
+func (c *Config) Merge(c2 *Config) *Config {
 	var result Config
 	result.Providers = make(map[string]string)
 	result.Provisioners = make(map[string]string)
-	for k, v := range c1.Providers {
+	for k, v := range c.Providers {
 		result.Providers[k] = v
 	}
 	for k, v := range c2.Providers {
-		if v1, ok := c1.Providers[k]; ok {
+		if v1, ok := c.Providers[k]; ok {
 			log.Printf("[INFO] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
 		}
 		result.Providers[k] = v
 	}
-	for k, v := range c1.Provisioners {
+	for k, v := range c.Provisioners {
 		result.Provisioners[k] = v
 	}
 	for k, v := range c2.Provisioners {
-		if v1, ok := c1.Provisioners[k]; ok {
+		if v1, ok := c.Provisioners[k]; ok {
 			log.Printf("[INFO] Local %s provisioner configuration '%s' overrides '%s'", k, v, v1)
 		}
 		result.Provisioners[k] = v
 	}
-	result.DisableCheckpoint = c1.DisableCheckpoint || c2.DisableCheckpoint
-	result.DisableCheckpointSignature = c1.DisableCheckpointSignature || c2.DisableCheckpointSignature
+	result.DisableCheckpoint = c.DisableCheckpoint || c2.DisableCheckpoint
+	result.DisableCheckpointSignature = c.DisableCheckpointSignature || c2.DisableCheckpointSignature
 
-	result.PluginCacheDir = c1.PluginCacheDir
+	result.PluginCacheDir = c.PluginCacheDir
 	if result.PluginCacheDir == "" {
 		result.PluginCacheDir = c2.PluginCacheDir
 	}
 
-	if (len(c1.Hosts) + len(c2.Hosts)) > 0 {
+	if (len(c.Hosts) + len(c2.Hosts)) > 0 {
 		result.Hosts = make(map[string]*ConfigHost)
-		for name, host := range c1.Hosts {
+		for name, host := range c.Hosts {
 			result.Hosts[name] = host
 		}
 		for name, host := range c2.Hosts {
@@ -327,9 +327,9 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		}
 	}
 
-	if (len(c1.Credentials) + len(c2.Credentials)) > 0 {
+	if (len(c.Credentials) + len(c2.Credentials)) > 0 {
 		result.Credentials = make(map[string]map[string]interface{})
-		for host, creds := range c1.Credentials {
+		for host, creds := range c.Credentials {
 			result.Credentials[host] = creds
 		}
 		for host, creds := range c2.Credentials {
@@ -340,9 +340,9 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		}
 	}
 
-	if (len(c1.CredentialsHelpers) + len(c2.CredentialsHelpers)) > 0 {
+	if (len(c.CredentialsHelpers) + len(c2.CredentialsHelpers)) > 0 {
 		result.CredentialsHelpers = make(map[string]*ConfigCredentialsHelper)
-		for name, helper := range c1.CredentialsHelpers {
+		for name, helper := range c.CredentialsHelpers {
 			result.CredentialsHelpers[name] = helper
 		}
 		for name, helper := range c2.CredentialsHelpers {
@@ -350,8 +350,8 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		}
 	}
 
-	if (len(c1.ProviderInstallation) + len(c2.ProviderInstallation)) > 0 {
-		result.ProviderInstallation = append(result.ProviderInstallation, c1.ProviderInstallation...)
+	if (len(c.ProviderInstallation) + len(c2.ProviderInstallation)) > 0 {
+		result.ProviderInstallation = append(result.ProviderInstallation, c.ProviderInstallation...)
 		result.ProviderInstallation = append(result.ProviderInstallation, c2.ProviderInstallation...)
 	}
 

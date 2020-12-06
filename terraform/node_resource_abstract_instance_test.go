@@ -6,6 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
@@ -108,4 +111,48 @@ func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
+	state := states.NewState()
+	ctx := new(MockEvalContext)
+	ctx.StateState = state.SyncWrapper()
+	ctx.PathPath = addrs.RootModuleInstance
+
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+
+	obj := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("i-abc123"),
+		}),
+		Status: states.ObjectReady,
+	}
+
+	node := &NodeAbstractResourceInstance{
+		Addr: mustResourceInstanceAddr("aws_instance.foo"),
+		// instanceState:        obj,
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		},
+	}
+	ctx.ProviderProvider = mockProvider
+	ctx.ProviderSchemaSchema = mockProvider.GetSchemaReturn
+
+	err := node.writeResourceInstanceState(ctx, obj, nil, workingState)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = i-abc123
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+	`)
 }

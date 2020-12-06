@@ -193,7 +193,7 @@ whose origin registry is at `example.com` can be installed only from the
 filesystem mirror at `/usr/share/terraform/providers`, while all other
 providers can be installed only directly from their origin registries.
 
-If you set both both `include` and `exclude` for a particular installation
+If you set both `include` and `exclude` for a particular installation
 method, the exclusion patterns take priority. For example, including
 `registry.terraform.io/hashicorp/*` but also excluding
 `registry.terraform.io/hashicorp/dns` will make that installation method apply
@@ -412,7 +412,7 @@ files into the override directory too.
 You may wish to enable a development override only for shell sessions where
 you are actively working on provider development. If so, you can write a
 local CLI configuration file with content like the above in your development
-directory, perhaps called `dev.tfrc` for the sake fo example, and then use the
+directory, perhaps called `dev.tfrc` for the sake of example, and then use the
 `TF_CLI_CONFIG_FILE` environment variable to instruct Terraform to use that
 localized CLI configuration instead of the default one:
 

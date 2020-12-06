@@ -29,13 +29,13 @@ type contextualFromConfigBody interface {
 
 // InConfigBody returns a copy of the receiver with any config-contextual
 // diagnostics elaborated in the context of the given body.
-func (d Diagnostics) InConfigBody(body hcl.Body) Diagnostics {
-	if len(d) == 0 {
+func (diags Diagnostics) InConfigBody(body hcl.Body) Diagnostics {
+	if len(diags) == 0 {
 		return nil
 	}
 
-	ret := make(Diagnostics, len(d))
-	for i, srcDiag := range d {
+	ret := make(Diagnostics, len(diags))
+	for i, srcDiag := range diags {
 		if cd, isCD := srcDiag.(contextualFromConfigBody); isCD {
 			ret[i] = cd.ElaborateFromConfigBody(body)
 		} else {

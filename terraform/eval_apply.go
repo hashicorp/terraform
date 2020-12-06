@@ -118,10 +118,26 @@ func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 
 	// If we have an Update action, our before and after values are equal,
 	// and only differ on their sensitivity, the newVal is the after val
-	// and we should not communicate with the provider or perform further action.
+	// and we should not communicate with the provider. We do need to update
+	// the state with this new value, to ensure the sensitivity change is
+	// persisted.
 	eqV := unmarkedBefore.Equals(unmarkedAfter)
 	eq := eqV.IsKnown() && eqV.True()
 	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
+		// Copy the previous state, changing only the value
+		newState := &states.ResourceInstanceObject{
+			CreateBeforeDestroy: state.CreateBeforeDestroy,
+			Dependencies:        state.Dependencies,
+			Private:             state.Private,
+			Status:              state.Status,
+			Value:               change.After,
+		}
+
+		// Write the final state
+		if n.Output != nil {
+			*n.Output = newState
+		}
+
 		return diags
 	}
 
@@ -355,70 +371,6 @@ func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 			return nil
 		}
 	}
-
-	return diags
-}
-
-// EvalApplyPre is an EvalNode implementation that does the pre-Apply work
-type EvalApplyPre struct {
-	Addr   addrs.ResourceInstance
-	Gen    states.Generation
-	State  **states.ResourceInstanceObject
-	Change **plans.ResourceInstanceChange
-}
-
-// TODO: test
-func (n *EvalApplyPre) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	change := *n.Change
-	absAddr := n.Addr.Absolute(ctx.Path())
-
-	if change == nil {
-		panic(fmt.Sprintf("EvalApplyPre for %s called with nil Change", absAddr))
-	}
-
-	if resourceHasUserVisibleApply(n.Addr) {
-		priorState := change.Before
-		plannedNewState := change.After
-
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(absAddr, n.Gen, change.Action, priorState, plannedNewState)
-		}))
-		if diags.HasErrors() {
-			return diags
-		}
-	}
-
-	return nil
-}
-
-// EvalApplyPost is an EvalNode implementation that does the post-Apply work
-type EvalApplyPost struct {
-	Addr  addrs.ResourceInstance
-	Gen   states.Generation
-	State **states.ResourceInstanceObject
-	Error *error
-}
-
-// TODO: test
-func (n *EvalApplyPost) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	state := *n.State
-
-	if resourceHasUserVisibleApply(n.Addr) {
-		absAddr := n.Addr.Absolute(ctx.Path())
-		var newState cty.Value
-		if state != nil {
-			newState = state.Value
-		} else {
-			newState = cty.NullVal(cty.DynamicPseudoType)
-		}
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(absAddr, n.Gen, newState, *n.Error)
-		}))
-	}
-
-	diags = diags.Append(*n.Error)
 
 	return diags
 }

@@ -443,20 +443,6 @@ func checkStateString(t *testing.T, state *states.State, expected string) {
 	}
 }
 
-func resourceState(resourceType, resourceID string) *ResourceState {
-	providerResource := strings.Split(resourceType, "_")
-	return &ResourceState{
-		Type: resourceType,
-		Primary: &InstanceState{
-			ID: resourceID,
-			Attributes: map[string]string{
-				"id": resourceID,
-			},
-		},
-		Provider: "provider." + providerResource[0],
-	}
-}
-
 // Test helper that gives a function 3 seconds to finish, assumes deadlock and
 // fails test if it does not.
 func testCheckDeadlock(t *testing.T, f func()) {
@@ -1067,18 +1053,6 @@ func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
 		}
 	}
 }
-
-const testContextGraph = `
-root: root
-aws_instance.bar
-  aws_instance.bar -> provider.aws
-aws_instance.foo
-  aws_instance.foo -> provider.aws
-provider.aws
-root
-  root -> aws_instance.bar
-  root -> aws_instance.foo
-`
 
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)

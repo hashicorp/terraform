@@ -10,13 +10,13 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/mapstructure"
 	sshagent "github.com/xanzy/ssh-agent"
+	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -29,54 +29,126 @@ const (
 	// DefaultPort is used if there is no port given
 	DefaultPort = 22
 
-	// DefaultScriptPath is used as the path to copy the file to
-	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/terraform_%RAND%.sh"
+	// DefaultUnixScriptPath is used as the path to copy the file to
+	// for remote execution on unix if not provided otherwise.
+	DefaultUnixScriptPath = "/tmp/terraform_%RAND%.sh"
+	// DefaultWindowsScriptPath is used as the path to copy the file to
+	// for remote execution on windows if not provided otherwise.
+	DefaultWindowsScriptPath = "C:/windows/temp/terraform_%RAND%.cmd"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
+
+	// TargetPlatformUnix used for cleaner code, and is used if no target platform has been specified
+	TargetPlatformUnix = "unix"
+	//TargetPlatformWindows used for cleaner code
+	TargetPlatformWindows = "windows"
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User        string
-	Password    string
-	PrivateKey  string `mapstructure:"private_key"`
-	Certificate string `mapstructure:"certificate"`
-	Host        string
-	HostKey     string `mapstructure:"host_key"`
-	Port        int
-	Agent       bool
-	Timeout     string
-	ScriptPath  string        `mapstructure:"script_path"`
-	TimeoutVal  time.Duration `mapstructure:"-"`
+	User           string
+	Password       string
+	PrivateKey     string
+	Certificate    string
+	Host           string
+	HostKey        string
+	Port           int
+	Agent          bool
+	ScriptPath     string
+	TargetPlatform string
+	Timeout        string
+	TimeoutVal     time.Duration
 
-	BastionUser        string `mapstructure:"bastion_user"`
-	BastionPassword    string `mapstructure:"bastion_password"`
-	BastionPrivateKey  string `mapstructure:"bastion_private_key"`
-	BastionCertificate string `mapstructure:"bastion_certificate"`
-	BastionHost        string `mapstructure:"bastion_host"`
-	BastionHostKey     string `mapstructure:"bastion_host_key"`
-	BastionPort        int    `mapstructure:"bastion_port"`
+	BastionUser        string
+	BastionPassword    string
+	BastionPrivateKey  string
+	BastionCertificate string
+	BastionHost        string
+	BastionHostKey     string
+	BastionPort        int
 
-	AgentIdentity string `mapstructure:"agent_identity"`
+	AgentIdentity string
 }
 
-// parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
-// a ConnectionInfo struct
-func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
+// decodeConnInfo decodes the given cty.Value using the same behavior as the
+// lgeacy mapstructure decoder in order to preserve as much of the existing
+// logic as possible for compatibility.
+func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 	connInfo := &connectionInfo{}
-	decConf := &mapstructure.DecoderConfig{
-		WeaklyTypedInput: true,
-		Result:           connInfo,
+	if v.IsNull() {
+		return connInfo, nil
 	}
-	dec, err := mapstructure.NewDecoder(decConf)
+
+	for k, v := range v.AsValueMap() {
+		if v.IsNull() {
+			continue
+		}
+
+		switch k {
+		case "user":
+			connInfo.User = v.AsString()
+		case "password":
+			connInfo.Password = v.AsString()
+		case "private_key":
+			connInfo.PrivateKey = v.AsString()
+		case "certificate":
+			connInfo.Certificate = v.AsString()
+		case "host":
+			connInfo.Host = v.AsString()
+		case "host_key":
+			connInfo.HostKey = v.AsString()
+		case "port":
+			p, err := strconv.Atoi(v.AsString())
+			if err != nil {
+				return nil, err
+			}
+			connInfo.Port = p
+		case "agent":
+			connInfo.Agent = v.True()
+		case "script_path":
+			connInfo.ScriptPath = v.AsString()
+		case "target_platform":
+			connInfo.TargetPlatform = v.AsString()
+		case "timeout":
+			connInfo.Timeout = v.AsString()
+		case "bastion_user":
+			connInfo.BastionUser = v.AsString()
+		case "bastion_password":
+			connInfo.BastionPassword = v.AsString()
+		case "bastion_private_key":
+			connInfo.BastionPrivateKey = v.AsString()
+		case "bastion_certificate":
+			connInfo.BastionCertificate = v.AsString()
+		case "bastion_host":
+			connInfo.BastionHost = v.AsString()
+		case "bastion_host_key":
+			connInfo.BastionHostKey = v.AsString()
+		case "bastion_port":
+			p, err := strconv.Atoi(v.AsString())
+			if err != nil {
+				return nil, err
+			}
+			connInfo.BastionPort = p
+		case "agent_identity":
+			connInfo.AgentIdentity = v.AsString()
+		}
+	}
+	return connInfo, nil
+}
+
+// parseConnectionInfo is used to convert the raw configuration into the
+// *connectionInfo struct.
+func parseConnectionInfo(v cty.Value) (*connectionInfo, error) {
+	v, err := shared.ConnectionBlockSupersetSchema.CoerceValue(v)
 	if err != nil {
 		return nil, err
 	}
-	if err := dec.Decode(s.Ephemeral.ConnInfo); err != nil {
+
+	connInfo, err := decodeConnInfo(v)
+	if err != nil {
 		return nil, err
 	}
 
@@ -85,7 +157,8 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	//
 	// And if SSH_AUTH_SOCK is not set, there's no agent to connect to, so we
 	// shouldn't try.
-	if s.Ephemeral.ConnInfo["agent"] == "" && os.Getenv("SSH_AUTH_SOCK") != "" {
+	agent := v.GetAttr("agent")
+	if agent.IsNull() && os.Getenv("SSH_AUTH_SOCK") != "" {
 		connInfo.Agent = true
 	}
 
@@ -106,8 +179,19 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
-	if connInfo.ScriptPath == "" {
-		connInfo.ScriptPath = DefaultScriptPath
+	// Set default targetPlatform to unix if it's empty
+	if connInfo.TargetPlatform == "" {
+		connInfo.TargetPlatform = TargetPlatformUnix
+	} else if connInfo.TargetPlatform != TargetPlatformUnix && connInfo.TargetPlatform != TargetPlatformWindows {
+		return nil, fmt.Errorf("target_platform for provisioner has to be either %s or %s", TargetPlatformUnix, TargetPlatformWindows)
+	}
+	// Choose an appropriate default script path based on the target platform. There is no single
+	// suitable default script path which works on both UNIX and Windows targets.
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == TargetPlatformUnix {
+		connInfo.ScriptPath = DefaultUnixScriptPath
+	}
+	if connInfo.ScriptPath == "" && connInfo.TargetPlatform == TargetPlatformWindows {
+		connInfo.ScriptPath = DefaultWindowsScriptPath
 	}
 	if connInfo.Timeout != "" {
 		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)
@@ -328,7 +412,7 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 }
 
 func connectToAgent(connInfo *connectionInfo) (*sshAgent, error) {
-	if connInfo.Agent != true {
+	if !connInfo.Agent {
 		// No agent configured
 		return nil, nil
 	}
@@ -462,13 +546,6 @@ func (s *sshAgent) sortSigners(signers []ssh.Signer) {
 			head++
 			continue
 		}
-	}
-
-	ss := []string{}
-	for _, signer := range signers {
-		pk := signer.PublicKey()
-		k := pk.(*agent.Key)
-		ss = append(ss, k.Comment)
 	}
 }
 

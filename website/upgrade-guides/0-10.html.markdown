@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.10"
 sidebar_current: "upgrade-guides-0-10"
 description: |-

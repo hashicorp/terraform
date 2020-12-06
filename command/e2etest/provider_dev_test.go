@@ -33,7 +33,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	// such as if it stops being buildable into an independent executable.
 	providerExeDir := filepath.Join(tf.WorkDir(), "pkgdir")
 	providerExePrefix := filepath.Join(providerExeDir, "terraform-provider-test_")
-	providerExe := e2e.GoBuild("github.com/hashicorp/terraform/builtin/bins/provider-test", providerExePrefix)
+	providerExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple/main", providerExePrefix)
 	t.Logf("temporary provider executable is %s", providerExe)
 
 	err := ioutil.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
@@ -62,7 +62,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	// to "install" them. This test is mimicking the a happy path of going
 	// directly from "go build" to validate/plan/apply without interacting
 	// with any registries, mirrors, lock files, etc.
-	stdout, stderr, err = tf.Run("validate")
+	stdout, _, err = tf.Run("validate")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n%s", err, stderr)
 	}
@@ -70,7 +70,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	if got, want := stdout, `The configuration is valid, but`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the success message\nwant: %s\n%s", want, got)
 	}
-	if got, want := stderr, `Provider development overrides are in effect`; !strings.Contains(got, want) {
+	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
 }

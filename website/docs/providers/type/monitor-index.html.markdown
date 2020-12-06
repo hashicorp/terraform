@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Monitor & Sys Management Providers"
 sidebar_current: "docs-providers-monitor"
 description: |-

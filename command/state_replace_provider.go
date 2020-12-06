@@ -25,7 +25,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 
 	var autoApprove bool
-	cmdFlags := c.Meta.defaultFlagSet("state replace-provider")
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state replace-provider")
 	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of replacements")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock states")
@@ -90,7 +90,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(fmt.Sprintf(errStateNotFound))
+		c.Ui.Error(errStateNotFound)
 		return 1
 	}
 
@@ -119,7 +119,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	// Explain the changes
 	colorize := c.Colorize()
 	c.Ui.Output("Terraform will perform the following actions:\n")
-	c.Ui.Output(colorize.Color(fmt.Sprintf("  [yellow]~[reset] Updating provider:")))
+	c.Ui.Output(colorize.Color("  [yellow]~[reset] Updating provider:"))
 	c.Ui.Output(colorize.Color(fmt.Sprintf("    [red]-[reset] %s", from)))
 	c.Ui.Output(colorize.Color(fmt.Sprintf("    [green]+[reset] %s\n", to)))
 
@@ -134,7 +134,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 			"\n[bold]Do you want to make these changes?[reset]\n" +
 				"Only 'yes' will be accepted to continue.\n",
 		))
-		v, err := c.Ui.Ask(fmt.Sprintf("Enter a value:"))
+		v, err := c.Ui.Ask("Enter a value:")
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error asking for approval: %s", err))
 			return 1
@@ -172,19 +172,24 @@ Usage: terraform state replace-provider [options] FROM_PROVIDER_FQN TO_PROVIDER_
 
 Options:
 
-  -auto-approve       Skip interactive approval.
+  -auto-approve           Skip interactive approval.
 
-  -backup=PATH        Path where Terraform should write the backup for the
-                      state file. This can't be disabled. If not set, Terraform
-                      will write it to the same path as the state file with
-                      a ".backup" extension.
+  -backup=PATH            Path where Terraform should write the backup for the
+						  state file. This can't be disabled. If not set,
+						  Terraform will write it to the same path as the state
+						  file with a ".backup" extension.
 
-  -lock=true          Lock the state files when locking is supported.
+  -lock=true              Lock the state files when locking is supported.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock-timeout=0s        Duration to retry a state lock.
 
-  -state=PATH         Path to the state file to update. Defaults to the configured
-                      backend, or "terraform.tfstate"
+  -state=PATH             Path to the state file to update. Defaults to the
+						  configured backend, or "terraform.tfstate"
+
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          differ. This may result in an unusable workspace, and
+                          should be used with extreme caution.
+
 `
 	return strings.TrimSpace(helpText)
 }

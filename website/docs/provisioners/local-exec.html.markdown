@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provisioner: local-exec"
 sidebar_current: "docs-provisioners-local"
 description: |-
@@ -29,7 +29,7 @@ resource "aws_instance" "web" {
   # ...
 
   provisioner "local-exec" {
-    command = "echo ${aws_instance.web.private_ip} >> private_ips.txt"
+    command = "echo ${self.private_ip} >> private_ips.txt"
   }
 }
 ```
