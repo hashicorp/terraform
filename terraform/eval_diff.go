@@ -668,7 +668,7 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 		// won't cause any changes in the transformation, but allows us to skip
 		// breaking up the maps and checking for key existence here too.
 		eq := p.Equals(c)
-		if eq.IsKnown() && eq.False() {
+		if !eq.IsKnown() || eq.False() {
 			// there a change to ignore at this path, store the prior value
 			ignoredValues = append(ignoredValues, ignoreChange{icPath, p, key})
 		}
