@@ -114,7 +114,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var instanceRefreshState *states.ResourceInstanceObject
 	var instancePlanState *states.ResourceInstanceObject
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -161,14 +161,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Plan the instance
-	evalDiff := PlanRequest{
-		Addr:                addr.Resource,
-		Provider:            provider,
-		ProviderSchema:      providerSchema,
-		State:               instanceRefreshState,
-		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-	}
-	change, instancePlanState, planDiags := n.plan(ctx, evalDiff)
+	change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
