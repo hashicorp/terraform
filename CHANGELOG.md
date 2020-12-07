@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* configs: Fix for errors when using multiple layers of sensitive input variables [GH-27095]
 * core: Fix permanent diff when a resource changes only in sensitivity, for example due to changing the sensitivity of a variable or output used as an attribute value. [GH-27128]
 * core: Fix issues where `ignore_changes` appears to not work, or causes validation errors with some resources [GH-27141]
 
