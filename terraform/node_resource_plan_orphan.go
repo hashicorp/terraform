@@ -83,16 +83,16 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refresh := &EvalRefresh{
+		evalRefresh := &EvalRefreshRequest{
 			Addr:           addr.Resource,
 			ProviderAddr:   n.ResolvedProvider,
 			Provider:       &provider,
 			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-			Output:         &state,
+			ProviderSchema: providerSchema,
+			State:          state,
 		}
-		diags = diags.Append(refresh.Eval(ctx))
+		state, refreshDiags := Refresh(evalRefresh, ctx)
+		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}

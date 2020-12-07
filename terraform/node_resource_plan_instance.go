@@ -155,16 +155,16 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	if !n.skipRefresh {
-		refresh := &EvalRefresh{
+		evalRefresh := &EvalRefreshRequest{
 			Addr:           addr.Resource,
 			ProviderAddr:   n.ResolvedProvider,
 			Provider:       &provider,
 			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &instanceRefreshState,
-			Output:         &instanceRefreshState,
+			ProviderSchema: providerSchema,
+			State:          instanceRefreshState,
 		}
-		diags := diags.Append(refresh.Eval(ctx))
+		instanceRefreshState, refreshDiags := Refresh(evalRefresh, ctx)
+		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}

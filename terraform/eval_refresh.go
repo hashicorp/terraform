@@ -18,56 +18,54 @@ import (
 
 // EvalRefresh is an EvalNode implementation that does a refresh for
 // a resource.
-type EvalRefresh struct {
+type EvalRefreshRequest struct {
 	Addr           addrs.ResourceInstance
 	ProviderAddr   addrs.AbsProviderConfig
 	Provider       *providers.Interface
 	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
-	ProviderSchema **ProviderSchema
-	State          **states.ResourceInstanceObject
-	Output         **states.ResourceInstanceObject
+	ProviderSchema *ProviderSchema
+	State          *states.ResourceInstanceObject
 }
 
 // TODO: test
-func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	state := *n.State
-	absAddr := n.Addr.Absolute(ctx.Path())
-
+func Refresh(req *EvalRefreshRequest, ctx EvalContext) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	state := req.State
+	absAddr := req.Addr.Absolute(ctx.Path())
 	var diags tfdiags.Diagnostics
 
 	// If we have no state, we don't do any refreshing
 	if state == nil {
-		log.Printf("[DEBUG] refresh: %s: no state, so not refreshing", n.Addr.Absolute(ctx.Path()))
-		return diags
+		log.Printf("[DEBUG] refresh: %s: no state, so not refreshing", absAddr)
+		return state, diags
 	}
 
-	schema, _ := (*n.ProviderSchema).SchemaForResourceAddr(n.Addr.ContainingResource())
+	schema, _ := req.ProviderSchema.SchemaForResourceAddr(req.Addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Type))
-		return diags
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", req.Addr.Resource.Type))
+		return state, diags
 	}
 
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ProviderAddr.Provider]; ok && m != nil {
+	if req.ProviderMetas != nil {
+		if m, ok := req.ProviderMetas[req.ProviderAddr.Provider]; ok && m != nil {
 			log.Printf("[DEBUG] EvalRefresh: ProviderMeta config value set")
 			// if the provider doesn't support this feature, throw an error
-			if (*n.ProviderSchema).ProviderMeta == nil {
+			if req.ProviderSchema.ProviderMeta == nil {
 				log.Printf("[DEBUG] EvalRefresh: no ProviderMeta schema")
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ProviderAddr.Provider.String()),
-					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr),
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", req.ProviderAddr.Provider.String()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", req.Addr),
 					Subject:  &m.ProviderRange,
 				})
 			} else {
-				log.Printf("[DEBUG] EvalRefresh: ProviderMeta schema found: %+v", (*n.ProviderSchema).ProviderMeta)
+				log.Printf("[DEBUG] EvalRefresh: ProviderMeta schema found: %+v", (*req.ProviderSchema).ProviderMeta)
 				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*n.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, (*req.ProviderSchema).ProviderMeta, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 				if configDiags.HasErrors() {
-					return diags
+					return state, diags
 				}
 			}
 		}
@@ -78,7 +76,7 @@ func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		return h.PreRefresh(absAddr, states.CurrentGen, state.Value)
 	}))
 	if diags.HasErrors() {
-		return diags
+		return state, diags
 	}
 
 	// Refresh!
@@ -90,18 +88,18 @@ func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		priorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
 	}
 
-	req := providers.ReadResourceRequest{
-		TypeName:     n.Addr.Resource.Type,
+	providerReq := providers.ReadResourceRequest{
+		TypeName:     req.Addr.Resource.Type,
 		PriorState:   priorVal,
 		Private:      state.Private,
 		ProviderMeta: metaConfigVal,
 	}
 
-	provider := *n.Provider
-	resp := provider.ReadResource(req)
+	provider := *req.Provider
+	resp := provider.ReadResource(providerReq)
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return diags
+		return state, diags
 	}
 
 	if resp.NewState == cty.NilVal {
@@ -117,12 +115,12 @@ func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ProviderAddr.Provider.String(), absAddr, tfdiags.FormatError(err),
+				req.ProviderAddr.Provider.String(), absAddr, tfdiags.FormatError(err),
 			),
 		))
 	}
 	if diags.HasErrors() {
-		return diags
+		return state, diags
 	}
 
 	// We have no way to exempt provider using the legacy SDK from this check,
@@ -131,35 +129,31 @@ func (n *EvalRefresh) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	// external changes which will be handled by the subsequent plan.
 	if errs := objchange.AssertObjectCompatible(schema, priorVal, resp.NewState); len(errs) > 0 {
 		var buf strings.Builder
-		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ProviderAddr.Provider.String(), absAddr)
+		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", req.ProviderAddr.Provider.String(), absAddr)
 		for _, err := range errs {
 			fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 		}
 		log.Print(buf.String())
 	}
 
-	newState := state.DeepCopy()
-	newState.Value = resp.NewState
-	newState.Private = resp.Private
-	newState.Dependencies = state.Dependencies
-	newState.CreateBeforeDestroy = state.CreateBeforeDestroy
+	ret := state.DeepCopy()
+	ret.Value = resp.NewState
+	ret.Private = resp.Private
+	ret.Dependencies = state.Dependencies
+	ret.CreateBeforeDestroy = state.CreateBeforeDestroy
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, newState.Value)
+		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, ret.Value)
 	}))
 	if diags.HasErrors() {
-		return diags
+		return ret, diags
 	}
 
 	// Mark the value if necessary
 	if len(priorPaths) > 0 {
-		newState.Value = newState.Value.MarkWithPaths(priorPaths)
+		ret.Value = ret.Value.MarkWithPaths(priorPaths)
 	}
 
-	if n.Output != nil {
-		*n.Output = newState
-	}
-
-	return diags
+	return ret, diags
 }

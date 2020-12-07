@@ -274,15 +274,15 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 	}
 
 	// EvalRefresh
-	evalRefresh := &EvalRefresh{
+	evalRefresh := &EvalRefreshRequest{
 		Addr:           n.TargetAddr.Resource,
 		ProviderAddr:   n.ResolvedProvider,
 		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Output:         &state,
+		ProviderSchema: providerSchema,
+		State:          state,
 	}
-	diags = diags.Append(evalRefresh.Eval(ctx))
+	state, refreshDiags := Refresh(evalRefresh, ctx)
+	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
 	}
