@@ -267,53 +267,20 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 	}
 
 	state := n.State.AsInstanceObject()
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
 
-	// EvalRefresh
-	evalRefresh := &EvalRefreshRequest{
-		Addr:           n.TargetAddr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		Provider:       &provider,
-		ProviderSchema: providerSchema,
-		State:          state,
+	// Refresh
+	riNode := &NodeAbstractResourceInstance{
+		Addr: n.TargetAddr,
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: n.ResolvedProvider,
+		},
 	}
-	state, refreshDiags := Refresh(evalRefresh, ctx)
+	state, refreshDiags := riNode.refresh(ctx, state)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// Verify the existance of the imported resource
-	if state.Value.IsNull() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import non-existent remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %s, the provider detected that no object exists with the given id. Only pre-existing objects can be imported; check that the id is correct and that it is associated with the provider's configured region or endpoint, or use \"terraform apply\" to create a new remote object for this resource.",
-				n.TargetAddr.Resource.String(),
-			),
-		))
-		return diags
-	}
-
-	schema, currentVersion := providerSchema.SchemaForResourceAddr(n.TargetAddr.ContainingResource().Resource)
-	if schema == nil {
-		// It shouldn't be possible to get this far in any real scenario
-		// without a schema, but we might end up here in contrived tests that
-		// fail to set up their world properly.
-		diags = diags.Append(fmt.Errorf("failed to encode %s in state: no resource type schema available", n.TargetAddr.Resource))
-		return diags
-	}
-	src, err := state.Encode(schema.ImpliedType(), currentVersion)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to encode %s in state: %s", n.TargetAddr.Resource, err))
-		return diags
-	}
-	ctx.State().SetResourceInstanceCurrent(n.TargetAddr, src, n.ResolvedProvider)
-
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, nil, workingState))
 	return diags
 }
