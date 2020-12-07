@@ -226,7 +226,6 @@ func TestInit_getUpgradeModules(t *testing.T) {
 
 	args := []string{
 		"-get=true",
-		"-get-plugins=false",
 		"-upgrade",
 		testFixturePath("init-get"),
 	}
