@@ -254,19 +254,15 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	evalDiff := &EvalDiff{
+	evalDiff := EvalPlanRequest{
 		Addr:           addr,
-		Config:         n.Config,
-		Provider:       &provider,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderMetas:  n.ProviderMetas,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		PreviousDiff:   &diff,
-		OutputChange:   &diffApply,
-		OutputState:    &state,
+		Provider:       provider,
+		ProviderSchema: providerSchema,
+		State:          state,
+		PlannedChange:  diff,
 	}
-	diags = diags.Append(evalDiff.Eval(ctx))
+	diffApply, state, planDiags := n.Plan(ctx, evalDiff)
+	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}

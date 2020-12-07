@@ -174,19 +174,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Plan the instance
-	diff := &EvalDiff{
+	evalDiff := EvalPlanRequest{
 		Addr:                addr.Resource,
-		Config:              n.Config,
+		Provider:            provider,
+		ProviderSchema:      providerSchema,
+		State:               instanceRefreshState,
 		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-		Provider:            &provider,
-		ProviderAddr:        n.ResolvedProvider,
-		ProviderMetas:       n.ProviderMetas,
-		ProviderSchema:      &providerSchema,
-		State:               &instanceRefreshState,
-		OutputChange:        &change,
-		OutputState:         &instancePlanState,
 	}
-	diags = diags.Append(diff.Eval(ctx))
+	change, instancePlanState, planDiags := n.Plan(ctx, evalDiff)
+	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
