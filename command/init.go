@@ -31,14 +31,11 @@ import (
 // module and clones it to the working directory.
 type InitCommand struct {
 	Meta
-
-	// getPlugins is for the -get-plugins flag
-	getPlugins bool
 }
 
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule string
-	var flagBackend, flagGet, flagUpgrade bool
+	var flagBackend, flagGet, flagUpgrade, getPlugins bool
 	var flagPluginPath FlagStringSlice
 	var flagVerifyPlugins bool
 	flagConfigExtra := newRawFlags("-backend-config")
@@ -49,7 +46,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
-	cmdFlags.BoolVar(&c.getPlugins, "get-plugins", true, "")
+	cmdFlags.BoolVar(&getPlugins, "get-plugins", true, "no-op flag, use provider_installation blocks to customize provider installation")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -66,7 +63,16 @@ func (c *InitCommand) Run(args []string) int {
 
 	if len(flagPluginPath) > 0 {
 		c.pluginPath = flagPluginPath
-		c.getPlugins = false
+	}
+
+	// If users are setting the no-op get-plugins command, give them a warning,
+	// this should allow us to remove the flag in the future.
+	if !getPlugins {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"No-op -get-plugins flag used",
+			`As of Terraform 0.13+, the -get-plugins=false command is a no-op flag. If you would like to customize provider installation, use a provider_installation block or other available Terraform settings.`,
+		))
 	}
 
 	// Validate the arg count
@@ -970,7 +976,6 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-force-copy":     complete.PredictNothing,
 		"-from-module":    completePredictModuleSource,
 		"-get":            completePredictBoolean,
-		"-get-plugins":    completePredictBoolean,
 		"-input":          completePredictBoolean,
 		"-lock":           completePredictBoolean,
 		"-lock-timeout":   complete.PredictAnything,
@@ -1023,6 +1028,9 @@ Options:
   -get=true            Download any modules for this configuration.
 
   -get-plugins=true    Download any missing plugins for this configuration.
+                       This command is a no-op in Terraform 0.13+: use
+                       -plugin-dir settings or provider_installation blocks
+                       instead.
 
   -input=true          Ask for input if necessary. If false, will error if
                        input was required.
@@ -1041,8 +1049,8 @@ Options:
   -reconfigure         Reconfigure the backend, ignoring any saved
                        configuration.
 
-  -upgrade=false       If installing modules (-get) or plugins (-get-plugins),
-                       ignore previously-downloaded objects and install the
+  -upgrade=false       If installing modules (-get) or plugins, ignore
+                       previously-downloaded objects and install the
                        latest version allowed within configured constraints.
 
   -verify-plugins=true Verify the authenticity and integrity of automatically
