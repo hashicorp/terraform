@@ -75,20 +75,18 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	readDataPlan := &evalReadDataPlan{
-		evalReadData: evalReadData{
-			Addr:           addr.Resource,
-			Config:         n.Config,
-			Provider:       &provider,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			OutputChange:   &change,
-			State:          &state,
-			dependsOn:      n.dependsOn,
-		},
+	evalReadData := &evalReadData{
+		Addr:           addr.Resource,
+		Config:         n.Config,
+		Provider:       &provider,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderMetas:  n.ProviderMetas,
+		ProviderSchema: &providerSchema,
+		OutputChange:   &change,
+		State:          &state,
+		dependsOn:      n.dependsOn,
 	}
-	diags = diags.Append(readDataPlan.Eval(ctx))
+	diags = diags.Append(evalReadData.Plan(ctx))
 	if diags.HasErrors() {
 		return diags
 	}

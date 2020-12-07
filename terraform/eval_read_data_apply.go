@@ -8,14 +8,9 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// evalReadDataApply is an EvalNode implementation that deals with the main part
-// of the data resource lifecycle: either actually reading from the data source
-// or generating a plan to do so.
-type evalReadDataApply struct {
-	evalReadData
-}
-
-func (n *evalReadDataApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
+// Apply deals with the main part of the data resource lifecycle: either
+// actually reading from the data source or generating a plan to do so.
+func (n *evalReadData) Apply(ctx EvalContext) tfdiags.Diagnostics {
 	absAddr := n.Addr.Absolute(ctx.Path())
 
 	var diags tfdiags.Diagnostics

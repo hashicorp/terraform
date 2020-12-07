@@ -14,14 +14,9 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// evalReadDataPlan is an EvalNode implementation that deals with the main part
-// of the data resource lifecycle: either actually reading from the data source
-// or generating a plan to do so.
-type evalReadDataPlan struct {
-	evalReadData
-}
-
-func (n *evalReadDataPlan) Eval(ctx EvalContext) tfdiags.Diagnostics {
+// Plan deals with the main part of the data resource lifecycle: either actually
+// reading from the data source or generating a plan to do so.
+func (n *evalReadData) Plan(ctx EvalContext) tfdiags.Diagnostics {
 	absAddr := n.Addr.Absolute(ctx.Path())
 
 	var diags tfdiags.Diagnostics
@@ -146,7 +141,7 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) tfdiags.Diagnostics {
 // forcePlanRead determines if we need to override the usual behavior of
 // immediately reading from the data source where possible, instead forcing us
 // to generate a plan.
-func (n *evalReadDataPlan) forcePlanRead(ctx EvalContext) bool {
+func (n *evalReadData) forcePlanRead(ctx EvalContext) bool {
 	// Check and see if any depends_on dependencies have
 	// changes, since they won't show up as changes in the
 	// configuration.

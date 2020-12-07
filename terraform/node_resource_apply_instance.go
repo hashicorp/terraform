@@ -156,19 +156,17 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
 	var state *states.ResourceInstanceObject
-	readDataApply := &evalReadDataApply{
-		evalReadData{
-			Addr:           addr,
-			Config:         n.Config,
-			Planned:        &change,
-			Provider:       &provider,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-		},
+	evalReadData := &evalReadData{
+		Addr:           addr,
+		Config:         n.Config,
+		Planned:        &change,
+		Provider:       &provider,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderMetas:  n.ProviderMetas,
+		ProviderSchema: &providerSchema,
+		State:          &state,
 	}
-	diags = diags.Append(readDataApply.Eval(ctx))
+	diags = diags.Append(evalReadData.Apply(ctx))
 	if diags.HasErrors() {
 		return diags
 	}
