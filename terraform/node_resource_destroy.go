@@ -149,18 +149,8 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		return diags
 	}
 
-	evalReduceDiff := &EvalReduceDiff{
-		Addr:      addr.Resource,
-		InChange:  &changeApply,
-		Destroy:   true,
-		OutChange: &changeApply,
-	}
-	diags = diags.Append(evalReduceDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// EvalReduceDiff may have simplified our planned change
+	changeApply = reducePlan(addr.Resource, changeApply, true)
+	// reducePlan may have simplified our planned change
 	// into a NoOp if it does not require destroying.
 	if changeApply == nil || changeApply.Action == plans.NoOp {
 		return diags

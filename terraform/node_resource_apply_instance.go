@@ -279,18 +279,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	reduceDiff := &EvalReduceDiff{
-		Addr:      addr,
-		InChange:  &diffApply,
-		Destroy:   false,
-		OutChange: &diffApply,
-	}
-	diags = diags.Append(reduceDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// EvalReduceDiff may have simplified our planned change
+	diffApply = reducePlan(addr, diffApply, false)
+	// reducePlan may have simplified our planned change
 	// into a NoOp if it only requires destroying, since destroying
 	// is handled by NodeDestroyResourceInstance.
 	if diffApply == nil || diffApply.Action == plans.NoOp {

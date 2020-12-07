@@ -97,41 +97,28 @@ func (n *EvalDiffDestroy) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	return diags
 }
 
-// EvalReduceDiff is an EvalNode implementation that takes a planned resource
-// instance change as might be produced by EvalDiff or EvalDiffDestroy and
-// "simplifies" it to a single atomic action to be performed by a specific
-// graph node.
+// reducePlan takes a planned resource instance change as might be produced by
+// Plan or PlanDestroy and "simplifies" it to a single atomic action to be
+// performed by a specific graph node.
 //
-// Callers must specify whether they are a destroy node or a regular apply
-// node.  If the result is NoOp then the given change requires no action for
-// the specific graph node calling this and so evaluation of the that graph
-// node should exit early and take no action.
+// Callers must specify whether they are a destroy node or a regular apply node.
+// If the result is NoOp then the given change requires no action for the
+// specific graph node calling this and so evaluation of the that graph node
+// should exit early and take no action.
 //
-// The object written to OutChange may either be identical to InChange or
-// a new change object derived from InChange. Because of the former case, the
-// caller must not mutate the object returned in OutChange.
-type EvalReduceDiff struct {
-	Addr      addrs.ResourceInstance
-	InChange  **plans.ResourceInstanceChange
-	Destroy   bool
-	OutChange **plans.ResourceInstanceChange
-}
-
-// TODO: test
-func (n *EvalReduceDiff) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	in := *n.InChange
-	out := in.Simplify(n.Destroy)
-	if n.OutChange != nil {
-		*n.OutChange = out
-	}
+// The returned object may either be identical to the input change or a new
+// change object derived from the input. Because of the former case, the caller
+// must not mutate the object returned in OutChange.
+func reducePlan(addr addrs.ResourceInstance, in *plans.ResourceInstanceChange, destroy bool) *plans.ResourceInstanceChange {
+	out := in.Simplify(destroy)
 	if out.Action != in.Action {
-		if n.Destroy {
-			log.Printf("[TRACE] EvalReduceDiff: %s change simplified from %s to %s for destroy node", n.Addr, in.Action, out.Action)
+		if destroy {
+			log.Printf("[TRACE] reducePlan: %s change simplified from %s to %s for destroy node", addr, in.Action, out.Action)
 		} else {
-			log.Printf("[TRACE] EvalReduceDiff: %s change simplified from %s to %s for apply node", n.Addr, in.Action, out.Action)
+			log.Printf("[TRACE] reducePlan: %s change simplified from %s to %s for apply node", addr, in.Action, out.Action)
 		}
 	}
-	return nil
+	return out
 }
 
 // EvalWriteDiff is an EvalNode implementation that saves a planned change
