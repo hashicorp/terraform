@@ -135,14 +135,14 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "resource":
-			cfg, cfgDiags := decodeResourceBlock(block)
+			cfg, cfgDiags := decodeResourceBlock(block, override)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ManagedResources = append(file.ManagedResources, cfg)
 			}
 
 		case "data":
-			cfg, cfgDiags := decodeDataBlock(block)
+			cfg, cfgDiags := decodeDataBlock(block, override)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.DataResources = append(file.DataResources, cfg)

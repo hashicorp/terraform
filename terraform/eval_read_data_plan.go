@@ -49,6 +49,19 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) tfdiags.Diagnostics {
 
 	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.Addr.Key, forEach)
+	if n.RepetitionData != nil {
+		*n.RepetitionData = keyData
+	}
+
+	checkDiags := evalCheckRules(
+		checkResourcePrecondition,
+		n.Config.Preconditions,
+		ctx, nil, keyData,
+	)
+	diags = diags.Append(checkDiags)
+	if diags.HasErrors() {
+		return diags // failed preconditions prevent further evaluation
+	}
 
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)

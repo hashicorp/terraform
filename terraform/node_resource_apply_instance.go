@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -156,6 +157,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
 	var state *states.ResourceInstanceObject
+	var repeatData instances.RepetitionData
 	readDataApply := &evalReadDataApply{
 		evalReadData{
 			Addr:           addr,
@@ -164,6 +166,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 			Provider:       &provider,
 			ProviderAddr:   n.ResolvedProvider,
 			ProviderMetas:  n.ProviderMetas,
+			RepetitionData: &repeatData,
 			ProviderSchema: &providerSchema,
 			State:          &state,
 		},
@@ -190,12 +193,25 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 
 	diags = diags.Append(UpdateStateHook(ctx))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		checkResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, addr, repeatData,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 
 func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
+	var repeatData instances.RepetitionData
 	var state *states.ResourceInstanceObject
 	var createNew bool
 	var createBeforeDestroyEnabled bool
@@ -262,6 +278,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderAddr:   n.ResolvedProvider,
 		ProviderMetas:  n.ProviderMetas,
 		ProviderSchema: &providerSchema,
+		RepetitionData: &repeatData,
 		State:          &state,
 		PreviousDiff:   &diff,
 		OutputChange:   &diffApply,
@@ -324,6 +341,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderAddr:        n.ResolvedProvider,
 		ProviderMetas:       n.ProviderMetas,
 		ProviderSchema:      &providerSchema,
+		RepetitionData:      &repeatData,
 		Output:              &state,
 		Error:               &applyError,
 		CreateNew:           &createNew,
@@ -434,5 +452,17 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	diags = diags.Append(UpdateStateHook(ctx))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		checkResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, addr, repeatData,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }

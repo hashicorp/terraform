@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -24,6 +25,14 @@ type evalReadData struct {
 	ProviderAddr   addrs.AbsProviderConfig
 	ProviderMetas  map[addrs.Provider]*configs.ProviderMeta
 	ProviderSchema **ProviderSchema
+
+	// RepetitionData, if not nil, will have its referent replaced with the
+	// repetition data (count.index, each.key, etc) which the evaluation used
+	// for the main resource configuration. (This is an output value pointer,
+	// just like the double-pointer fields elsewhere here, but has a single
+	// pointer indirection just because instances.RepetitionData is normally
+	// passed by value.)
+	RepetitionData *instances.RepetitionData
 
 	// Planned is set when dealing with data resources that were deferred to
 	// the apply walk, to let us see what was planned. If this is set, the

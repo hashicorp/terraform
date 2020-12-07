@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
-
-	"github.com/hashicorp/terraform/addrs"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -52,6 +52,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
+	var repeatData instances.RepetitionData
 
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -83,6 +84,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 			ProviderAddr:   n.ResolvedProvider,
 			ProviderMetas:  n.ProviderMetas,
 			ProviderSchema: &providerSchema,
+			RepetitionData: &repeatData,
 			OutputChange:   &change,
 			State:          &state,
 			dependsOn:      n.dependsOn,
@@ -110,6 +112,20 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		Change:         &change,
 	}
 	diags = diags.Append(writeDiff.Eval(ctx))
+
+	// Post-conditions might block completion. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	// (Note that some preconditions will end up being skipped during
+	// planning, because their conditions depend on values not yet known.)
+	checkDiags := evalCheckRules(
+		checkResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, addr.Resource, repeatData,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 
@@ -118,6 +134,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	addr := n.ResourceInstanceAddr()
 
 	var change *plans.ResourceInstanceChange
+	var repeatData instances.RepetitionData
 	var instanceRefreshState *states.ResourceInstanceObject
 	var instancePlanState *states.ResourceInstanceObject
 
@@ -184,6 +201,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		ProviderAddr:        n.ResolvedProvider,
 		ProviderMetas:       n.ProviderMetas,
 		ProviderSchema:      &providerSchema,
+		RepetitionData:      &repeatData,
 		State:               &instanceRefreshState,
 		OutputChange:        &change,
 		OutputState:         &instancePlanState,
@@ -209,5 +227,19 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		Change:         &change,
 	}
 	diags = diags.Append(writeDiff.Eval(ctx))
+
+	// Post-conditions might block completion. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	// (Note that some preconditions will end up being skipped during
+	// planning, because their conditions depend on values not yet known.)
+	checkDiags := evalCheckRules(
+		checkResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, addr.Resource, repeatData,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
