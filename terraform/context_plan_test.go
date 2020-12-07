@@ -5599,6 +5599,12 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
+		Variables: InputValues{
+			"another_var": &InputValue{
+				Value:      cty.StringVal("boop"),
+				SourceType: ValueFromCaller,
+			},
+		},
 	})
 
 	plan, diags := ctx.Plan()
@@ -5624,21 +5630,32 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo": cty.StringVal("foo"),
+				"foo":   cty.StringVal("foo"),
+				"value": cty.StringVal("boop"),
 			}), ric.After)
 			if len(res.ChangeSrc.BeforeValMarks) != 0 {
 				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
 			}
-			if len(res.ChangeSrc.AfterValMarks) != 1 {
-				t.Errorf("unexpected AfterValMarks: %#v", res.ChangeSrc.AfterValMarks)
+			if len(res.ChangeSrc.AfterValMarks) != 2 {
+				t.Errorf("expected AfterValMarks to contain two elements: %#v", res.ChangeSrc.AfterValMarks)
 				continue
 			}
-			pvm := res.ChangeSrc.AfterValMarks[0]
-			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
-				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
+			// validate that the after marks have "foo" and "value"
+			contains := func(pvmSlice []cty.PathValueMarks, stepName string) bool {
+				for _, pvm := range pvmSlice {
+					if pvm.Path.Equals(cty.GetAttrPath(stepName)) {
+						if pvm.Marks.Equal(cty.NewValueMarks("sensitive")) {
+							return true
+						}
+					}
+				}
+				return false
 			}
-			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
-				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
+			if !contains(res.ChangeSrc.AfterValMarks, "foo") {
+				t.Error("unexpected AfterValMarks to contain \"foo\" with sensitive mark")
+			}
+			if !contains(res.ChangeSrc.AfterValMarks, "value") {
+				t.Error("unexpected AfterValMarks to contain \"value\" with sensitive mark")
 			}
 		default:
 			t.Fatal("unknown instance:", i)
