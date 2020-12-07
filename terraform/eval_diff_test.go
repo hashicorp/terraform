@@ -92,6 +92,30 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				"b": cty.StringVal("new b value"),
 			}),
 		},
+		"map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("new a0 value"),
+					"a1": cty.UnknownVal(cty.String),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			[]string{`a`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
 		"map_index": {
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.MapVal(map[string]cty.Value{
@@ -131,6 +155,30 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 			[]string{`a["a1"]`},
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.MapVal(map[string]cty.Value{
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+		},
+		"map_index_unknown_value": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.StringVal("a1 value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
+					"a1": cty.UnknownVal(cty.String),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			[]string{`a["a1"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.MapVal(map[string]cty.Value{
+					"a0": cty.StringVal("a0 value"),
 					"a1": cty.StringVal("a1 value"),
 				}),
 				"b": cty.StringVal("b value"),
@@ -285,6 +333,30 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				"a": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("new a.foo value"),
 					"bar": cty.StringVal("new a.bar value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+			[]string{"a.bar"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("new a.foo value"),
+					"bar": cty.StringVal("a.bar value"),
+				}),
+				"b": cty.StringVal("new b value"),
+			}),
+		},
+		"unknown_object_attribute": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("a.foo value"),
+					"bar": cty.StringVal("a.bar value"),
+				}),
+				"b": cty.StringVal("b value"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("new a.foo value"),
+					"bar": cty.UnknownVal(cty.String),
 				}),
 				"b": cty.StringVal("new b value"),
 			}),
