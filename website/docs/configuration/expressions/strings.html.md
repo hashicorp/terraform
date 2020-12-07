@@ -72,6 +72,20 @@ In the above example, `EOT` is the identifier selected. Any identifier is
 allowed, but conventionally this identifier is in all-uppercase and begins with
 `EO`, meaning "end of". `EOT` in this case stands for "end of text".
 
+### Generating JSON or YAML
+
+Don't use "heredoc" strings to generate JSON or YAML. Instead, use
+[the `jsonencode` function](../functions/jsonencode.html) or
+[the `yamlencode` function](../functions/yamlencode.html) so that Terraform
+can be responsible for guaranteeing valid JSON or YAML syntax.
+
+```hcl
+  example = jsonencode({
+    a = 1
+    b = "hello"
+  })
+```
+
 ### Indented Heredocs
 
 The standard heredoc form (shown above) treats all space characters as literal
