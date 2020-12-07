@@ -85,14 +85,8 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr.Resource,
-		ProviderAddr: n.ResolvedProvider,
-		DeposedKey:   n.DeposedKey,
-		State:        &state,
-		Output:       &change,
-	}
-	diags = diags.Append(diffDestroy.Eval(ctx))
+	change, destroyPlanDiags := n.PlanDestroy(ctx, state, n.DeposedKey)
+	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -192,13 +186,8 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr,
-		ProviderAddr: n.ResolvedProvider,
-		State:        &state,
-		Output:       &change,
-	}
-	diags = diags.Append(diffDestroy.Eval(ctx))
+	change, destroyPlanDiags := n.PlanDestroy(ctx, state, n.DeposedKey)
+	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}

@@ -103,14 +103,8 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr.Resource,
-		State:        &state,
-		ProviderAddr: n.ResolvedProvider,
-		Output:       &change,
-		OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
-	}
-	diags = diags.Append(diffDestroy.Eval(ctx))
+	change, destroyPlanDiags := n.PlanDestroy(ctx, state, "")
+	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -130,6 +124,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, n.Dependencies, workingState))
 	return diags
 }

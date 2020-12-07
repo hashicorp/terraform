@@ -317,3 +317,63 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 	state.SetResourceInstanceCurrent(absAddr, src, n.ResolvedProvider)
 	return nil
 }
+
+// PlanDestroy returns a plain destroy diff.
+func (n *NodeAbstractResourceInstance) PlanDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	absAddr := n.Addr
+
+	if n.ResolvedProvider.Provider.Type == "" {
+		if deposedKey == "" {
+			panic(fmt.Sprintf("DestroyPlan for %s does not have ProviderAddr set", absAddr))
+		} else {
+			panic(fmt.Sprintf("DestroyPlan for %s (deposed %s) does not have ProviderAddr set", absAddr, deposedKey))
+		}
+	}
+
+	// If there is no state or our attributes object is null then we're already
+	// destroyed.
+	if currentState == nil || currentState.Value.IsNull() {
+		return nil, nil
+	}
+
+	// Call pre-diff hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreDiff(
+			absAddr, deposedKey.Generation(),
+			currentState.Value,
+			cty.NullVal(cty.DynamicPseudoType),
+		)
+	}))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Plan is always the same for a destroy. We don't need the provider's
+	// help for this one.
+	plan := &plans.ResourceInstanceChange{
+		Addr:       absAddr,
+		DeposedKey: deposedKey,
+		Change: plans.Change{
+			Action: plans.Delete,
+			Before: currentState.Value,
+			After:  cty.NullVal(cty.DynamicPseudoType),
+		},
+		Private:      currentState.Private,
+		ProviderAddr: n.ResolvedProvider,
+	}
+
+	// Call post-diff hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostDiff(
+			absAddr,
+			deposedKey.Generation(),
+			plan.Action,
+			plan.Before,
+			plan.After,
+		)
+	}))
+
+	return plan, diags
+}

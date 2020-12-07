@@ -4,98 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
-
-// EvalDiffDestroy is an EvalNode implementation that returns a plain
-// destroy diff.
-type EvalDiffDestroy struct {
-	Addr         addrs.ResourceInstance
-	DeposedKey   states.DeposedKey
-	State        **states.ResourceInstanceObject
-	ProviderAddr addrs.AbsProviderConfig
-
-	Output      **plans.ResourceInstanceChange
-	OutputState **states.ResourceInstanceObject
-}
-
-// TODO: test
-func (n *EvalDiffDestroy) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	absAddr := n.Addr.Absolute(ctx.Path())
-	state := *n.State
-
-	if n.ProviderAddr.Provider.Type == "" {
-		if n.DeposedKey == "" {
-			panic(fmt.Sprintf("EvalDiffDestroy for %s does not have ProviderAddr set", absAddr))
-		} else {
-			panic(fmt.Sprintf("EvalDiffDestroy for %s (deposed %s) does not have ProviderAddr set", absAddr, n.DeposedKey))
-		}
-	}
-
-	// If there is no state or our attributes object is null then we're already
-	// destroyed.
-	if state == nil || state.Value.IsNull() {
-		return nil
-	}
-
-	// Call pre-diff hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(
-			absAddr, n.DeposedKey.Generation(),
-			state.Value,
-			cty.NullVal(cty.DynamicPseudoType),
-		)
-	}))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// Change is always the same for a destroy. We don't need the provider's
-	// help for this one.
-	// TODO: Should we give the provider an opportunity to veto this?
-	change := &plans.ResourceInstanceChange{
-		Addr:       absAddr,
-		DeposedKey: n.DeposedKey,
-		Change: plans.Change{
-			Action: plans.Delete,
-			Before: state.Value,
-			After:  cty.NullVal(cty.DynamicPseudoType),
-		},
-		Private:      state.Private,
-		ProviderAddr: n.ProviderAddr,
-	}
-
-	// Call post-diff hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(
-			absAddr,
-			n.DeposedKey.Generation(),
-			change.Action,
-			change.Before,
-			change.After,
-		)
-	}))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// Update our output
-	*n.Output = change
-
-	if n.OutputState != nil {
-		// Record our proposed new state, which is nil because we're destroying.
-		*n.OutputState = nil
-	}
-
-	return diags
-}
 
 // reducePlan takes a planned resource instance change as might be produced by
 // Plan or PlanDestroy and "simplifies" it to a single atomic action to be
