@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -271,14 +272,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Compare the diffs
-	checkPlannedChange := &EvalCheckPlannedChange{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		Planned:        &diff,
-		Actual:         &diffApply,
-	}
-	diags = diags.Append(checkPlannedChange.Eval(ctx))
+	diags = diags.Append(n.checkPlannedChange(ctx, diff, diffApply, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -432,5 +426,72 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	diags = diags.Append(UpdateStateHook(ctx))
+	return diags
+}
+
+// checkPlannedChange produces errors if the _actual_ expected value is not
+// compatible with what was recorded in the plan.
+//
+// Errors here are most often indicative of a bug in the provider, so our error
+// messages will report with that in mind. It's also possible that there's a bug
+// in Terraform's Core's own "proposed new value" code in EvalDiff.
+func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema *ProviderSchema) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	addr := n.ResourceInstanceAddr().Resource
+
+	schema, _ := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support %q", addr.Resource.Type))
+		return diags
+	}
+
+	absAddr := addr.Absolute(ctx.Path())
+
+	log.Printf("[TRACE] EvalCheckPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
+
+	if plannedChange.Action != actualChange.Action {
+		switch {
+		case plannedChange.Action == plans.Update && actualChange.Action == plans.NoOp:
+			// It's okay for an update to become a NoOp once we've filled in
+			// all of the unknown values, since the final values might actually
+			// match what was there before after all.
+			log.Printf("[DEBUG] After incorporating new values learned so far during apply, %s change has become NoOp", absAddr)
+
+		case (plannedChange.Action == plans.CreateThenDelete && actualChange.Action == plans.DeleteThenCreate) ||
+			(plannedChange.Action == plans.DeleteThenCreate && actualChange.Action == plans.CreateThenDelete):
+			// If the order of replacement changed, then that is a bug in terraform
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Terraform produced inconsistent final plan",
+				fmt.Sprintf(
+					"When expanding the plan for %s to include new values learned so far during apply, the planned action changed from %s to %s.\n\nThis is a bug in Terraform and should be reported.",
+					absAddr, plannedChange.Action, actualChange.Action,
+				),
+			))
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced inconsistent final plan",
+				fmt.Sprintf(
+					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					absAddr, n.ResolvedProvider.Provider.String(),
+					plannedChange.Action, actualChange.Action,
+				),
+			))
+		}
+	}
+
+	errs := objchange.AssertObjectCompatible(schema, plannedChange.After, actualChange.After)
+	for _, err := range errs {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced inconsistent final plan",
+			fmt.Sprintf(
+				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				absAddr, n.ResolvedProvider.Provider.String(), tfdiags.FormatError(err),
+			),
+		))
+	}
 	return diags
 }
