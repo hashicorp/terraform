@@ -42,13 +42,7 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err := n.ReadResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -65,11 +59,6 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.WriteChange(ctx, change, ""))
 	return diags
 }

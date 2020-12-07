@@ -114,12 +114,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.WriteChange(ctx, change, ""))
 	if diags.HasErrors() {
 		return diags
 	}

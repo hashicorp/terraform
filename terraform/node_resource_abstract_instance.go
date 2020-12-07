@@ -377,3 +377,51 @@ func (n *NodeAbstractResourceInstance) PlanDestroy(ctx EvalContext, currentState
 
 	return plan, diags
 }
+
+// WriteChange  saves a planned change for an instance object into the set of
+// global planned changes.
+func (n *NodeAbstractResourceInstance) WriteChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey) error {
+	changes := ctx.Changes()
+
+	if change == nil {
+		// Caller sets nil to indicate that we need to remove a change from
+		// the set of changes.
+		gen := states.CurrentGen
+		if deposedKey != states.NotDeposed {
+			gen = deposedKey
+		}
+		changes.RemoveResourceInstanceChange(n.Addr, gen)
+		return nil
+	}
+
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+
+	if change.Addr.String() != n.Addr.String() || change.DeposedKey != deposedKey {
+		// Should never happen, and indicates a bug in the caller.
+		panic("inconsistent address and/or deposed key in WriteChange")
+	}
+
+	ri := n.Addr.Resource
+	schema, _ := providerSchema.SchemaForResourceAddr(ri.Resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		return fmt.Errorf("provider does not support resource type %q", ri.Resource.Type)
+	}
+
+	csrc, err := change.Encode(schema.ImpliedType())
+	if err != nil {
+		return fmt.Errorf("failed to encode planned changes for %s: %s", n.Addr, err)
+	}
+
+	changes.AppendResourceInstanceChange(csrc)
+	if deposedKey == states.NotDeposed {
+		log.Printf("[TRACE] WriteChange: recorded %s change for %s", change.Action, n.Addr)
+	} else {
+		log.Printf("[TRACE] WriteChange: recorded %s change for %s deposed object %s", change.Action, n.Addr, deposedKey)
+	}
+
+	return nil
+}

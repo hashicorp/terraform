@@ -102,12 +102,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.WriteChange(ctx, change, ""))
 	return diags
 }
 
@@ -197,11 +192,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.WriteChange(ctx, change, ""))
 	return diags
 }

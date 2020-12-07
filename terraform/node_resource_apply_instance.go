@@ -178,15 +178,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr,
-		ProviderSchema: &providerSchema,
-		Change:         nil,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	diags = diags.Append(n.WriteChange(ctx, nil, ""))
 
 	diags = diags.Append(UpdateStateHook(ctx))
 	return diags
@@ -314,15 +306,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr,
-		ProviderSchema: &providerSchema,
-		Change:         nil,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	diags = diags.Append(n.WriteChange(ctx, nil, ""))
 
 	evalMaybeTainted := &EvalMaybeTainted{
 		Addr:   addr,
