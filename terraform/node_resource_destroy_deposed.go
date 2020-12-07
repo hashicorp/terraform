@@ -73,13 +73,13 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	change, destroyPlanDiags := n.PlanDestroy(ctx, state, n.DeposedKey)
+	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(n.WriteChange(ctx, change, n.DeposedKey))
+	diags = diags.Append(n.writeChange(ctx, change, n.DeposedKey))
 	return diags
 }
 
@@ -168,7 +168,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	change, destroyPlanDiags := n.PlanDestroy(ctx, state, n.DeposedKey)
+	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
@@ -204,7 +204,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
+	diags = diags.Append(n.postApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}

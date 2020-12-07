@@ -227,8 +227,8 @@ func (n *NodeAbstractResourceInstance) PreApplyHook(ctx EvalContext, change *pla
 	return nil
 }
 
-// PostApplyHook calls the post-Apply hook
-func (n *NodeAbstractResourceInstance) PostApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err *error) tfdiags.Diagnostics {
+// postApplyHook calls the post-Apply hook
+func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err *error) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if resourceHasUserVisibleApply(n.Addr.Resource) {
@@ -321,8 +321,8 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 	return nil
 }
 
-// PlanDestroy returns a plain destroy diff.
-func (n *NodeAbstractResourceInstance) PlanDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+// planDestroy returns a plain destroy diff.
+func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	absAddr := n.Addr
@@ -381,9 +381,9 @@ func (n *NodeAbstractResourceInstance) PlanDestroy(ctx EvalContext, currentState
 	return plan, diags
 }
 
-// WriteChange  saves a planned change for an instance object into the set of
+// writeChange  saves a planned change for an instance object into the set of
 // global planned changes.
-func (n *NodeAbstractResourceInstance) WriteChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey) error {
+func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey) error {
 	changes := ctx.Changes()
 
 	if change == nil {

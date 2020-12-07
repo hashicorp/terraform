@@ -160,7 +160,7 @@ func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 			ctx.ProviderSchemaSchema = mockProvider.GetSchemaReturn
 			ctx.ProviderProvider = providers.Interface(mockProvider)
 
-			got, err := test.Node.ReadResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+			got, err := test.Node.readResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
 			if err != nil {
 				t.Fatalf("[%s] Got err: %#v", k, err.Error())
 			}

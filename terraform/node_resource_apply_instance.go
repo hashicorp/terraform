@@ -178,7 +178,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	diags = diags.Append(n.WriteChange(ctx, nil, ""))
+	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
 	diags = diags.Append(UpdateStateHook(ctx))
 	return diags
@@ -231,7 +231,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		log.Printf("[TRACE] managedResourceExecute: prior object for %s now deposed with key %s", n.Addr, deposedKey)
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	state, err = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -246,14 +246,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	evalDiff := EvalPlanRequest{
+	evalDiff := PlanRequest{
 		Addr:           addr,
 		Provider:       provider,
 		ProviderSchema: providerSchema,
 		State:          state,
 		PlannedChange:  diff,
 	}
-	diffApply, state, planDiags := n.Plan(ctx, evalDiff)
+	diffApply, state, planDiags := n.plan(ctx, evalDiff)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -265,7 +265,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	state, err = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -306,7 +306,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	diags = diags.Append(n.WriteChange(ctx, nil, ""))
+	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
 	evalMaybeTainted := &EvalMaybeTainted{
 		Addr:   addr,
@@ -390,7 +390,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
+	diags = diags.Append(n.postApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}

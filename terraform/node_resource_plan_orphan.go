@@ -65,7 +65,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	var state *states.ResourceInstanceObject
 	var err error
 
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -90,7 +90,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	change, destroyPlanDiags := n.PlanDestroy(ctx, state, "")
+	change, destroyPlanDiags := n.planDestroy(ctx, state, "")
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
@@ -101,7 +101,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	diags = diags.Append(n.WriteChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	if diags.HasErrors() {
 		return diags
 	}

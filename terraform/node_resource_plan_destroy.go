@@ -42,13 +42,13 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	state, err := n.ReadResourceInstanceState(ctx, addr)
+	state, err := n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	change, destroyPlanDiags := n.PlanDestroy(ctx, state, "")
+	change, destroyPlanDiags := n.planDestroy(ctx, state, "")
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
@@ -59,6 +59,6 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 		return diags
 	}
 
-	diags = diags.Append(n.WriteChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }

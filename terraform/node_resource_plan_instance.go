@@ -59,7 +59,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -102,7 +102,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	diags = diags.Append(n.WriteChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }
 
@@ -130,7 +130,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
+	instanceRefreshState, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -161,14 +161,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Plan the instance
-	evalDiff := EvalPlanRequest{
+	evalDiff := PlanRequest{
 		Addr:                addr.Resource,
 		Provider:            provider,
 		ProviderSchema:      providerSchema,
 		State:               instanceRefreshState,
 		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
 	}
-	change, instancePlanState, planDiags := n.Plan(ctx, evalDiff)
+	change, instancePlanState, planDiags := n.plan(ctx, evalDiff)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -184,6 +184,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	diags = diags.Append(n.WriteChange(ctx, change, ""))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }

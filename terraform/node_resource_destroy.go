@@ -156,7 +156,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		return diags
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -188,7 +188,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		if provisionerErr != nil {
 			// If we have a provisioning error, then we just call
 			// the post-apply hook now.
-			diags = diags.Append(n.PostApplyHook(ctx, state, &provisionerErr))
+			diags = diags.Append(n.postApplyHook(ctx, state, &provisionerErr))
 			if diags.HasErrors() {
 				return diags
 			}
@@ -224,7 +224,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	}
 
-	diags = diags.Append(n.PostApplyHook(ctx, state, &provisionerErr))
+	diags = diags.Append(n.postApplyHook(ctx, state, &provisionerErr))
 	if diags.HasErrors() {
 		return diags
 	}

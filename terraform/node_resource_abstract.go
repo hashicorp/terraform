@@ -352,9 +352,9 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 	return diags
 }
 
-// ReadResourceInstanceState reads the current object for a specific instance in
+// readResourceInstanceState reads the current object for a specific instance in
 // the state.
-func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
+func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err
@@ -437,7 +437,7 @@ func (n *NodeAbstractResource) ReadResourceInstanceStateDeposed(ctx EvalContext,
 	return obj, nil
 }
 
-type EvalPlanRequest struct {
+type PlanRequest struct {
 	Addr                addrs.ResourceInstance
 	CreateBeforeDestroy bool
 	Provider            providers.Interface
@@ -446,7 +446,7 @@ type EvalPlanRequest struct {
 	State               *states.ResourceInstanceObject
 }
 
-func (n *NodeAbstractResource) Plan(ctx EvalContext, req EvalPlanRequest) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodeAbstractResource) plan(ctx EvalContext, req PlanRequest) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	currentState := req.State
