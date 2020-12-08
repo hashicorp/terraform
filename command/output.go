@@ -68,6 +68,9 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	env := c.Workspace()
 
 	// Get the state

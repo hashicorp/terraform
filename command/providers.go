@@ -88,6 +88,9 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// Get the state
 	env := c.Workspace()
 	state, err := b.StateMgr(env)
