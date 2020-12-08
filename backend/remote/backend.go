@@ -652,6 +652,10 @@ func (b *Remote) StateMgr(name string) (state.State, error) {
 	return &remote.State{Client: client}, nil
 }
 
+func (b *Remote) StateMgrWithoutCheckVersion(name string) (state.State, error) {
+	return b.StateMgr(name)
+}
+
 // Operation implements backend.Enhanced.
 func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Get the remote workspace name.

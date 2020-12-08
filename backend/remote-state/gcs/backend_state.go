@@ -87,6 +87,14 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 // StateMgr reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
 func (b *Backend) StateMgr(name string) (state.State, error) {
+	return b.stateMgr(name, true)
+}
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (state.State, error) {
+	return b.stateMgr(name, false)
+}
+
+func (b *Backend) stateMgr(name string, checkVersion bool) (state.State, error) {
 	c, err := b.client(name)
 	if err != nil {
 		return nil, err
@@ -95,8 +103,14 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 	st := &remote.State{Client: c}
 
 	// Grab the value
-	if err := st.RefreshState(); err != nil {
-		return nil, err
+	if checkVersion {
+		if err := st.RefreshState(); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := st.RefreshStateWithoutCheckVersion(); err != nil {
+			return nil, err
+		}
 	}
 
 	// If we have no state, we have to create an empty state

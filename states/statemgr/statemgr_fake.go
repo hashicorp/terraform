@@ -61,6 +61,10 @@ func (m *fakeFull) RefreshState() error {
 	return m.t.WriteState(m.fakeP.State())
 }
 
+func (m *fakeFull) RefreshStateWithoutCheckVersion() error {
+	return m.t.WriteState(m.fakeP.State())
+}
+
 func (m *fakeFull) PersistState() error {
 	return m.fakeP.WriteState(m.t.State())
 }

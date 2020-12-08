@@ -111,3 +111,7 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 
 	return stateMgr, nil
 }
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (state.State, error) {
+	return b.StateMgr(name)
+}

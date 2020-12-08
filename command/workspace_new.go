@@ -148,6 +148,10 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	if err := stateFile.CheckTerraformVersion(); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
 
 	// save the existing state in the new Backend.
 	err = stateMgr.WriteState(stateFile.State)

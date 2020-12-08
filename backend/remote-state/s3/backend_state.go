@@ -125,6 +125,14 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 }
 
 func (b *Backend) StateMgr(name string) (state.State, error) {
+	return b.stateMgr(name, true)
+}
+
+func (b *Backend) StateMgrWithoutCheckVersion(name string) (state.State, error) {
+	return b.stateMgr(name, false)
+}
+
+func (b *Backend) stateMgr(name string, checkVersion bool) (state.State, error) {
 	client, err := b.remoteClient(name)
 	if err != nil {
 		return nil, err
@@ -173,9 +181,16 @@ func (b *Backend) StateMgr(name string) (state.State, error) {
 		// Grab the value
 		// This is to ensure that no one beat us to writing a state between
 		// the `exists` check and taking the lock.
-		if err := stateMgr.RefreshState(); err != nil {
-			err = lockUnlock(err)
-			return nil, err
+		if checkVersion {
+			if err := stateMgr.RefreshState(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
+		} else {
+			if err := stateMgr.RefreshStateWithoutCheckVersion(); err != nil {
+				err = lockUnlock(err)
+				return nil, err
+			}
 		}
 
 		// If we have no state, we have to create an empty state
