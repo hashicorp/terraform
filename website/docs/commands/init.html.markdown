@@ -140,15 +140,12 @@ You can modify `terraform init`'s plugin behavior with the following options:
 - `-upgrade` — Update all previously installed plugins to the newest version
   that complies with the configuration's version constraints. This option does
   not apply to manually installed plugins.
-- `-get-plugins=false` — Skips plugin installation. Terraform will use plugins
-  installed in the user plugins directory, and any plugins already installed
-  for the current working directory. If the installed plugins aren't sufficient
-  for the configuration, init fails.
-- `-plugin-dir=PATH` — Skips plugin installation and loads plugins _only_ from
-  the specified directory. This ignores the user plugins directory and any
-  plugins already installed in the current working directory. To restore the
-  default behavior after using this option, run init again and pass an empty
-  string to `-plugin-dir`.
+- `-get-plugins=false` — Skip plugin installation. _Note: Since Terraform 0.13, this
+  command has been superseded by [`provider_installation`](./cli-config.html#provider-installation)
+- `-plugin-dir=PATH` — Loads plugins _only_ from the specified directory. This
+  ignores the user plugins directory and any plugins already installed in the
+  current working directory. To restore the default behavior after using this option,
+  run init again and pass an empty string to `-plugin-dir`.
 - `-verify-plugins=false` — Skips release signature validation when
   installing downloaded plugins (not recommended). Official plugin releases are
   digitally signed by HashiCorp, and Terraform verifies these signatures when

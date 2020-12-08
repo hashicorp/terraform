@@ -171,9 +171,7 @@ Therefore if automatic installation is not desired, it is important to ensure
 that version constraints within Terraform configurations do not exclude all
 of the versions available from the bundle. If a suitable version cannot be
 found in the bundle, Terraform _will_ attempt to satisfy that dependency by
-automatic installation from the official repository. If you want
-`terraform init` to explicitly fail instead of contacting the repository, pass
-the `-get-plugins=false` option.
+automatic installation from the official repository.
 
 For full details about provider resolution, see
 [How Terraform Works: Plugin Discovery](https://www.terraform.io/docs/extend/how-terraform-works.html#discovery).
