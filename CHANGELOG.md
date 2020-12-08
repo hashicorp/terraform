@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* init: setting -get-plugins to false will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using provider_installation blocks [GH-27092]
+* init: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
 
 ## 0.14.2 (December 08, 2020)
 
