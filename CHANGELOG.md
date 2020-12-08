@@ -1,5 +1,10 @@
 ## 0.14.2 (Unreleased)
 
+BUG FIXES:
+
+* backend/remote: Disable the remote backend version compatibility check for workspaces set to use the "latest" pseudo-version. [GH-27199]
+* providers/terraform: Disable the remote backend version compatibility check for the `terraform_remote_state` data source. This check is unnecessary, because the data source is read-only by definition. [GH-27197]
+
 ## 0.14.1 (December 08, 2020)
 
 ENHANCEMENTS:
