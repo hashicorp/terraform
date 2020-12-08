@@ -451,29 +451,10 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.Re
 		return state, diags
 	}
 
-	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
-			log.Printf("[DEBUG] EvalRefresh: ProviderMeta config value set")
-			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta == nil {
-				log.Printf("[DEBUG] EvalRefresh: no ProviderMeta schema")
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
-					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
-					Subject:  &m.ProviderRange,
-				})
-			} else {
-				log.Printf("[DEBUG] EvalRefresh: ProviderMeta schema found: %+v", providerSchema.ProviderMeta)
-				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
-				diags = diags.Append(configDiags)
-				if configDiags.HasErrors() {
-					return state, diags
-				}
-			}
-		}
+	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return state, diags
 	}
 
 	// Call pre-refresh hook
@@ -605,26 +586,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plan, state, diags
 	}
 
-	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
-	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
-			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider),
-					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
-					Subject:  &m.ProviderRange,
-				})
-			} else {
-				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
-				diags = diags.Append(configDiags)
-				if configDiags.HasErrors() {
-					return plan, state, diags
-				}
-			}
-		}
+	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return plan, state, diags
 	}
 
 	var priorVal cty.Value
@@ -1191,4 +1156,366 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 		return cty.MapVal(configMap), nil
 	})
 	return ret, nil
+}
+
+// readDataSource handles everything needed to call ReadDataSource on the provider.
+// A previously evaluated configVal can be passed in, or a new one is generated
+// from the resource configuration.
+func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var newVal cty.Value
+
+	config := *n.Config
+
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return newVal, diags
+	}
+	if providerSchema == nil {
+		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+		return newVal, diags
+	}
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
+		return newVal, diags
+	}
+
+	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return newVal, diags
+	}
+
+	log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
+	validateResp := provider.ValidateDataSourceConfig(
+		providers.ValidateDataSourceConfigRequest{
+			TypeName: n.Addr.ContainingResource().Resource.Type,
+			Config:   configVal,
+		},
+	)
+	if validateResp.Diagnostics.HasErrors() {
+		return newVal, validateResp.Diagnostics.InConfigBody(config.Config)
+	}
+
+	// If we get down here then our configuration is complete and we're read
+	// to actually call the provider to read the data.
+	log.Printf("[TRACE] readDataSource: %s configuration is complete, so reading from provider", n.Addr)
+
+	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
+		TypeName:     n.Addr.ContainingResource().Resource.Type,
+		Config:       configVal,
+		ProviderMeta: metaConfigVal,
+	})
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
+	if diags.HasErrors() {
+		return newVal, diags
+	}
+	newVal = resp.State
+	if newVal == cty.NilVal {
+		// This can happen with incompletely-configured mocks. We'll allow it
+		// and treat it as an alias for a properly-typed null value.
+		newVal = cty.NullVal(schema.ImpliedType())
+	}
+
+	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+			),
+		))
+	}
+	if diags.HasErrors() {
+		return newVal, diags
+	}
+
+	if newVal.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced null object",
+			fmt.Sprintf(
+				"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr,
+			),
+		))
+	}
+
+	if !newVal.IsNull() && !newVal.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr,
+			),
+		))
+
+		// We'll still save the object, but we need to eliminate any unknown
+		// values first because we can't serialize them in the state file.
+		// Note that this may cause set elements to be coalesced if they
+		// differed only by having unknown values, but we don't worry about
+		// that here because we're saving the value only for inspection
+		// purposes; the error we added above will halt the graph walk.
+		newVal = cty.UnknownAsNull(newVal)
+	}
+
+	return newVal, diags
+}
+
+func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
+
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return metaConfigVal, diags.Append(err)
+	}
+	if providerSchema == nil {
+		return metaConfigVal, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+	}
+	if n.ProviderMetas != nil {
+		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
+			// if the provider doesn't support this feature, throw an error
+			if providerSchema.ProviderMeta == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
+					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
+					Subject:  &m.ProviderRange,
+				})
+			} else {
+				var configDiags tfdiags.Diagnostics
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
+				diags = diags.Append(configDiags)
+			}
+		}
+	}
+	return metaConfigVal, diags
+}
+
+// planDataSource deals with the main part of the data resource lifecycle:
+// either actually reading from the data source or generating a plan to do so.
+//
+// currentState is the current state for the data source, and the new state is
+// returned. While data sources are read-only, we need to start with the prior
+// state to determine if we have a change or not.  If we needed to read a new
+// value, but it still matches the previous state, then we can record a NoNop
+// change. If the states don't match then we record a Read change so that the
+// new value is applied to the state.
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentState *states.ResourceInstanceObject) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var configVal cty.Value
+
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return nil, nil, diags.Append(err)
+	}
+	if providerSchema == nil {
+		return nil, nil, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+	}
+
+	config := *n.Config
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
+		return nil, nil, diags
+	}
+
+	objTy := schema.ImpliedType()
+	priorVal := cty.NullVal(objTy)
+	if currentState != nil {
+		priorVal = currentState.Value
+	}
+
+	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	var configDiags tfdiags.Diagnostics
+	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	configKnown := configVal.IsWhollyKnown()
+	// If our configuration contains any unknown values, or we depend on any
+	// unknown values then we must defer the read to the apply phase by
+	// producing a "Read" change for this resource, and a placeholder value for
+	// it in the state.
+	if n.forcePlanReadData(ctx) || !configKnown {
+		if configKnown {
+			log.Printf("[TRACE] planDataSource: %s configuration is fully known, but we're forcing a read plan to be created", n.Addr)
+		} else {
+			log.Printf("[TRACE] planDataSource: %s configuration not fully known yet, so deferring to apply phase", n.Addr)
+		}
+
+		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreDiff(n.Addr, states.CurrentGen, priorVal, proposedNewVal)
+		}))
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
+
+		// Apply detects that the data source will need to be read by the After
+		// value containing unknowns from PlanDataResourceObject.
+		plannedChange := &plans.ResourceInstanceChange{
+			Addr:         n.Addr,
+			ProviderAddr: n.ResolvedProvider,
+			Change: plans.Change{
+				Action: plans.Read,
+				Before: priorVal,
+				After:  proposedNewVal,
+			},
+		}
+
+		plannedNewState := &states.ResourceInstanceObject{
+			Value:  proposedNewVal,
+			Status: states.ObjectPlanned,
+		}
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.Addr, states.CurrentGen, plans.Read, priorVal, proposedNewVal)
+		}))
+
+		return plannedChange, plannedNewState, diags
+	}
+
+	// We have a complete configuration with no dependencies to wait on, so we
+	// can read the data source into the state.
+	newVal, readDiags := n.readDataSource(ctx, configVal)
+	diags = diags.Append(readDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	// if we have a prior value, we can check for any irregularities in the response
+	if !priorVal.IsNull() {
+		// While we don't propose planned changes for data sources, we can
+		// generate a proposed value for comparison to ensure the data source
+		// is returning a result following the rules of the provider contract.
+		proposedVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
+			// Resources have the LegacyTypeSystem field to signal when they are
+			// using an SDK which may not produce precise values. While data
+			// sources are read-only, they can still return a value which is not
+			// compatible with the config+schema. Since we can't detect the legacy
+			// type system, we can only warn about this for now.
+			var buf strings.Builder
+			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s.",
+				n.ResolvedProvider, n.Addr)
+			for _, err := range errs {
+				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+			}
+			log.Print(buf.String())
+		}
+	}
+
+	plannedNewState := &states.ResourceInstanceObject{
+		Value:  newVal,
+		Status: states.ObjectReady,
+	}
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostDiff(n.Addr, states.CurrentGen, plans.Update, priorVal, newVal)
+	}))
+	return nil, plannedNewState, diags
+}
+
+// forcePlanReadData determines if we need to override the usual behavior of
+// immediately reading from the data source where possible, instead forcing us
+// to generate a plan.
+func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
+	// Check and see if any depends_on dependencies have
+	// changes, since they won't show up as changes in the
+	// configuration.
+	changes := ctx.Changes()
+	for _, d := range n.dependsOn {
+		if d.Resource.Mode == addrs.DataResourceMode {
+			// Data sources have no external side effects, so they pose a need
+			// to delay this read. If they do have a change planned, it must be
+			// because of a dependency on a managed resource, in which case
+			// we'll also encounter it in this list of dependencies.
+			continue
+		}
+
+		for _, change := range changes.GetChangesForConfigResource(d) {
+			if change != nil && change.Action != plans.NoOp {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// apply deals with the main part of the data resource lifecycle: either
+// actually reading from the data source or generating a plan to do so.
+func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned *plans.ResourceInstanceChange) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return nil, diags.Append(err)
+	}
+	if providerSchema == nil {
+		return nil, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+	}
+
+	if planned != nil && planned.Action != plans.Read {
+		// If any other action gets in here then that's always a bug; this
+		// EvalNode only deals with reading.
+		diags = diags.Append(fmt.Errorf(
+			"invalid action %s for %s: only Read is supported (this is a bug in Terraform; please report it!)",
+			planned.Action, n.Addr,
+		))
+		return nil, diags
+	}
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreApply(n.Addr, states.CurrentGen, planned.Action, planned.Before, planned.After)
+	}))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	config := *n.Config
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
+		return nil, diags
+	}
+
+	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.Addr.Resource.Key, forEach)
+
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		return nil, diags
+	}
+
+	newVal, readDiags := n.readDataSource(ctx, configVal)
+	diags = diags.Append(readDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	state := &states.ResourceInstanceObject{
+		Value:  newVal,
+		Status: states.ObjectReady,
+	}
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
+	}))
+
+	return state, diags
 }

@@ -135,9 +135,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	addr := n.ResourceInstanceAddr().Resource
-
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -153,21 +151,11 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	// In this particular call to EvalReadData we include our planned
+	// In this particular call to applyDataSource we include our planned
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
-	var state *states.ResourceInstanceObject
-	evalReadData := &readData{
-		Addr:           addr,
-		Config:         n.Config,
-		Planned:        &change,
-		Provider:       &provider,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderMetas:  n.ProviderMetas,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(evalReadData.apply(ctx))
+	state, applyDiags := n.applyDataSource(ctx, change)
+	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
 	}
