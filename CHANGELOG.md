@@ -8,6 +8,11 @@ ENHANCEMENTS:
 
 * backend/remote: When using the enhanced remote backend with commands which locally modify state, verify that the local Terraform version and the configured remote workspace Terraform version are compatible. This prevents accidentally upgrading the remote state to an incompatible version. The check is skipped for commands which do not write state, and can also be disabled by the use of a new command-line flag, `-ignore-remote-version`. [GH-26947]
 
+BUG FIXES:
+
+* init: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
+
+
 ## 0.13.5 (October 21, 2020)
 
 BUG FIXES:
