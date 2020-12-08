@@ -11,18 +11,10 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
-// EvalValidateSelfRef is an EvalNode implementation that checks to ensure that
-// expressions within a particular referencable block do not reference that
-// same block.
-type EvalValidateSelfRef struct {
-	Addr           addrs.Referenceable
-	Config         hcl.Body
-	ProviderSchema **ProviderSchema
-}
-
-func (n *EvalValidateSelfRef) Eval(ctx EvalContext) tfdiags.Diagnostics {
+// validateSelfRef checks to ensure that expressions within a particular
+// referencable block do not reference that same block.
+func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	addr := n.Addr
 
 	addrStrs := make([]string, 0, 1)
 	addrStrs = append(addrStrs, addr.String())
@@ -32,12 +24,11 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
 	}
 
-	if n.ProviderSchema == nil || *n.ProviderSchema == nil {
+	if providerSchema == nil {
 		diags = diags.Append(fmt.Errorf("provider schema unavailable while validating %s for self-references; this is a bug in Terraform and should be reported", addr))
 		return diags
 	}
 
-	providerSchema := *n.ProviderSchema
 	var schema *configschema.Block
 	switch tAddr := addr.(type) {
 	case addrs.Resource:
@@ -51,7 +42,7 @@ func (n *EvalValidateSelfRef) Eval(ctx EvalContext) tfdiags.Diagnostics {
 		return diags
 	}
 
-	refs, _ := lang.ReferencesInBlock(n.Config, schema)
+	refs, _ := lang.ReferencesInBlock(config, schema)
 	for _, ref := range refs {
 		for _, addrStr := range addrStrs {
 			if ref.Subject.String() == addrStr {
