@@ -3,8 +3,10 @@
 BUG FIXES:
 
 * configs: Fix for errors when using multiple layers of sensitive input variables [GH-27095]
+* configs: Fixed error when using sensitive input variables in conditionals [GH-27107]
 * core: Fix permanent diff when a resource changes only in sensitivity, for example due to changing the sensitivity of a variable or output used as an attribute value. [GH-27128]
 * core: Fix issues where `ignore_changes` appears to not work, or causes validation errors with some resources [GH-27141]
+* fmt: Fix formatting with parentheses [GH-27040]
 
 ## 0.14.0 (December 02, 2020)
 
