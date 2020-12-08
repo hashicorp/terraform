@@ -1,16 +1,16 @@
-## 0.14.1 (Unreleased)
+## 0.14.1 (December 08, 2020)
 
 ENHANCEMENTS:
 
-* backend/remote: When using the enhanced remote backend with commands which locally modify state, verify that the local Terraform version and the configured remote workspace Terraform version are compatible. This prevents accidentally upgrading the remote state to an incompatible version. The check is skipped for commands which do not write state, and can also be disabled by the use of a new command-line flag, `-ignore-remote-version`. [GH-26947]
+* backend/remote: When using the enhanced remote backend with commands which locally modify state, verify that the local Terraform version and the configured remote workspace Terraform version are compatible. This prevents accidentally upgrading the remote state to an incompatible version. The check is skipped for commands which do not write state, and can also be disabled by the use of a new command-line flag, `-ignore-remote-version`. ([#26947](https://github.com/hashicorp/terraform/issues/26947))
 
 BUG FIXES:
 
-* configs: Fix for errors when using multiple layers of sensitive input variables [GH-27095]
-* configs: Fix error when using sensitive input variables in conditionals [GH-27107]
-* core: Fix permanent diff when a resource changes only in sensitivity, for example due to changing the sensitivity of a variable or output used as an attribute value. [GH-27128]
-* core: Fix issues where `ignore_changes` appears to not work, or causes validation errors with some resources. [GH-27141]
-* `terraform fmt`: Fix incorrect formatting with attribute expressions enclosed in parentheses. [GH-27040]
+* configs: Fix for errors when using multiple layers of sensitive input variables ([#27095](https://github.com/hashicorp/terraform/issues/27095))
+* configs: Fix error when using sensitive input variables in conditionals ([#27107](https://github.com/hashicorp/terraform/issues/27107))
+* core: Fix permanent diff when a resource changes only in sensitivity, for example due to changing the sensitivity of a variable or output used as an attribute value. ([#27128](https://github.com/hashicorp/terraform/issues/27128))
+* core: Fix issues where `ignore_changes` appears to not work, or causes validation errors with some resources. ([#27141](https://github.com/hashicorp/terraform/issues/27141))
+* `terraform fmt`: Fix incorrect formatting with attribute expressions enclosed in parentheses. ([#27040](https://github.com/hashicorp/terraform/issues/27040))
 
 ## 0.14.0 (December 02, 2020)
 
