@@ -208,7 +208,7 @@ resource "aws_subnet" "example" {
 
   vpc_id            = each.value.network_id
   availability_zone = each.value.subnet_key
-  cidr_block        = each.value_cidr_block
+  cidr_block        = each.value.cidr_block
 }
 ```
 
