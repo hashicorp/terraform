@@ -345,9 +345,9 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 	return diags
 }
 
-// ReadResourceInstanceState reads the current object for a specific instance in
+// readResourceInstanceState reads the current object for a specific instance in
 // the state.
-func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
+func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err

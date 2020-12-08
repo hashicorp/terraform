@@ -63,14 +63,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// evaluation. These are written to by-address below.
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
+	var err error
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -83,16 +78,8 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refresh := &EvalRefresh{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			Provider:       &provider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-			Output:         &state,
-		}
-		diags = diags.Append(refresh.Eval(ctx))
+		state, refreshDiags := n.refresh(ctx, state)
+		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
@@ -103,14 +90,8 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr.Resource,
-		State:        &state,
-		ProviderAddr: n.ResolvedProvider,
-		Output:       &change,
-		OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
-	}
-	diags = diags.Append(diffDestroy.Eval(ctx))
+	change, destroyPlanDiags := n.planDestroy(ctx, state, "")
+	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -120,16 +101,11 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, n.Dependencies, workingState))
 	return diags
 }

@@ -59,7 +59,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -75,20 +75,18 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	readDataPlan := &evalReadDataPlan{
-		evalReadData: evalReadData{
-			Addr:           addr.Resource,
-			Config:         n.Config,
-			Provider:       &provider,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			OutputChange:   &change,
-			State:          &state,
-			dependsOn:      n.dependsOn,
-		},
+	evalReadData := &readData{
+		Addr:           addr.Resource,
+		Config:         n.Config,
+		Provider:       &provider,
+		ProviderAddr:   n.ResolvedProvider,
+		ProviderMetas:  n.ProviderMetas,
+		ProviderSchema: &providerSchema,
+		OutputChange:   &change,
+		State:          &state,
+		dependsOn:      n.dependsOn,
 	}
-	diags = diags.Append(readDataPlan.Eval(ctx))
+	diags = diags.Append(evalReadData.plan(ctx))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -104,12 +102,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }
 
@@ -121,7 +114,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var instanceRefreshState *states.ResourceInstanceObject
 	var instancePlanState *states.ResourceInstanceObject
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -137,7 +130,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
+	instanceRefreshState, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -155,16 +148,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	if !n.skipRefresh {
-		refresh := &EvalRefresh{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			Provider:       &provider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &instanceRefreshState,
-			Output:         &instanceRefreshState,
-		}
-		diags := diags.Append(refresh.Eval(ctx))
+		instanceRefreshState, refreshDiags := n.refresh(ctx, instanceRefreshState)
+		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
@@ -176,19 +161,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Plan the instance
-	diff := &EvalDiff{
-		Addr:                addr.Resource,
-		Config:              n.Config,
-		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-		Provider:            &provider,
-		ProviderAddr:        n.ResolvedProvider,
-		ProviderMetas:       n.ProviderMetas,
-		ProviderSchema:      &providerSchema,
-		State:               &instanceRefreshState,
-		OutputChange:        &change,
-		OutputState:         &instancePlanState,
-	}
-	diags = diags.Append(diff.Eval(ctx))
+	change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
+	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -203,11 +177,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }

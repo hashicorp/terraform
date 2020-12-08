@@ -66,18 +66,6 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 
 // GraphNodeEvalable impl.
 func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	addr := n.ResourceInstanceAddr()
-
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// During the plan walk we always produce a planned destroy change, because
-	// destroying is the only supported action for deposed objects.
-	var change *plans.ResourceInstanceChange
-
 	// Read the state for the deposed resource instance
 	state, err := n.ReadResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	diags = diags.Append(err)
@@ -85,25 +73,13 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr.Resource,
-		ProviderAddr: n.ResolvedProvider,
-		DeposedKey:   n.DeposedKey,
-		State:        &state,
-		Output:       &change,
-	}
-	diags = diags.Append(diffDestroy.Eval(ctx))
+	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
+	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		DeposedKey:     n.DeposedKey,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.writeChange(ctx, change, n.DeposedKey))
 	return diags
 }
 
@@ -192,13 +168,8 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr,
-		ProviderAddr: n.ResolvedProvider,
-		State:        &state,
-		Output:       &change,
-	}
-	diags = diags.Append(diffDestroy.Eval(ctx))
+	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
+	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -233,7 +204,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
+	diags = diags.Append(n.postApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}
