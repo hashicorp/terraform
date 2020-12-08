@@ -1,5 +1,9 @@
 ## 0.14.1 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/remote: When using the enhanced remote backend with commands which locally modify state, verify that the local Terraform version and the configured remote workspace Terraform version are compatible. This prevents accidentally upgrading the remote state to an incompatible version. The check is skipped for commands which do not write state, and can also be disabled by the use of a new command-line flag, `-ignore-remote-version`. [GH-26947]
+
 BUG FIXES:
 
 * configs: Fix for errors when using multiple layers of sensitive input variables [GH-27095]
