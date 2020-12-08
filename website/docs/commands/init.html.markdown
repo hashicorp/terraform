@@ -142,11 +142,10 @@ You can modify `terraform init`'s plugin behavior with the following options:
   cause Terraform to ignore any selections recorded in the dependency lock
   file, and to take the newest available version matching the configured
   version constraints.
-- `-get-plugins=false` — Skip plugin installation. If you previously ran
-  `terraform init` without this option, the previously-installed plugins will
-  remain available in your current working directory. If you have not
-  previously run without this option, subsequent Terraform commands will
-  fail due to the needed provider plugins being unavailable.
+- `-get-plugins=false` — Skip plugin installation. _Note: Since Terraform 0.13, this
+  command has been superseded by [`provider_installation`](./cli-config.html#provider-installation)
+  blocks or using the [`plugin_cache_dir`](./cli-config.html#plugin_cache_dir) setting.
+  It should not be used in Terraform versions 0.13+.
 - `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
   the specified directory, as if it had been configured as a `filesystem_mirror`
   in the CLI configuration. If you intend to routinely use a particular
