@@ -67,6 +67,9 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// we expect that the config dir is the cwd
 	cwd, err := os.Getwd()
 	if err != nil {
