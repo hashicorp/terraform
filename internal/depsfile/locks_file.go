@@ -2,7 +2,6 @@ package depsfile
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -128,7 +127,7 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 
 	newContent := f.Bytes()
 
-	err := replacefile.AtomicWriteFile(filename, newContent, os.ModePerm)
+	err := replacefile.AtomicWriteFile(filename, newContent, 0644)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
