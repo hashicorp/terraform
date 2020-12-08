@@ -65,12 +65,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	validateSelfRef := &EvalValidateSelfRef{
-		Addr:           addr.Resource,
-		Config:         config.Config,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(validateSelfRef.Eval(ctx))
+	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -110,12 +105,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	validateSelfRef := &EvalValidateSelfRef{
-		Addr:           addr.Resource,
-		Config:         config.Config,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(validateSelfRef.Eval(ctx))
+	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
