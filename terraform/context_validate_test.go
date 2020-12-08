@@ -546,7 +546,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
-			diags.Append(errors.New("foo is not set"))
+			diags = diags.Append(errors.New("foo is not set"))
 		}
 		return providers.ValidateResourceTypeConfigResponse{
 			Diagnostics: diags,
@@ -810,7 +810,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	pr.ValidateProvisionerConfigFn = func(req provisioners.ValidateProvisionerConfigRequest) provisioners.ValidateProvisionerConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("test_string").IsNull() {
-			diags.Append(errors.New("test_string is not set"))
+			diags = diags.Append(errors.New("test_string is not set"))
 		}
 		return provisioners.ValidateProvisionerConfigResponse{
 			Diagnostics: diags,
@@ -943,7 +943,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
-			diags.Append(errors.New("foo is not set"))
+			diags = diags.Append(errors.New("foo is not set"))
 		}
 		return providers.ValidateResourceTypeConfigResponse{
 			Diagnostics: diags,

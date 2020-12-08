@@ -321,10 +321,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			switch k := subj.Key.(type) {
 			case addrs.IntKey:
 				self, hclDiags = hcl.Index(val, cty.NumberIntVal(int64(k)), ref.SourceRange.ToHCL().Ptr())
-				diags.Append(hclDiags)
+				diags = diags.Append(hclDiags)
 			case addrs.StringKey:
 				self, hclDiags = hcl.Index(val, cty.StringVal(string(k)), ref.SourceRange.ToHCL().Ptr())
-				diags.Append(hclDiags)
+				diags = diags.Append(hclDiags)
 			default:
 				self = val
 			}
