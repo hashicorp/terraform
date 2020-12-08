@@ -1,5 +1,9 @@
 ## 0.12.30 (Unreleased)
 
+UPGRADE NOTES:
+
+* The builtin provider's `terraform_remote_state` data source no longer enforces Terraform version checks on the remote state file. This allows Terraform 0.12.30 to access remote state from future Terraform versions, up until a future incompatible state file version upgrade is required. [GH-26692]
+
 ENHANCEMENTS:
 
 * backend/remote: When using the enhanced remote backend with commands which locally modify state, verify that the local Terraform version and the configured remote workspace Terraform version are compatible. This prevents accidentally upgrading the remote state to an incompatible version. The check is skipped for commands which do not write state, and can also be disabled by the use of a new command-line flag, `-ignore-remote-version`. [GH-26947]
