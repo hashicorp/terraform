@@ -176,12 +176,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var state *states.ResourceInstanceObject
-	var createNew bool
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
 	addr := n.ResourceInstanceAddr().Resource
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -266,21 +265,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	var applyError error
-	evalApply := &EvalApply{
-		Addr:                addr,
-		Config:              n.Config,
-		State:               &state,
-		Change:              &diffApply,
-		Provider:            &provider,
-		ProviderAddr:        n.ResolvedProvider,
-		ProviderMetas:       n.ProviderMetas,
-		ProviderSchema:      &providerSchema,
-		Output:              &state,
-		Error:               &applyError,
-		CreateNew:           &createNew,
-		CreateBeforeDestroy: n.CreateBeforeDestroy(),
-	}
-	diags = diags.Append(evalApply.Eval(ctx))
+	state, applyError, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy(), applyError)
+	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -296,6 +282,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
+	createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
 	applyError, applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate, applyError)
 	diags = diags.Append(applyProvisionersDiags)
 	if diags.HasErrors() {

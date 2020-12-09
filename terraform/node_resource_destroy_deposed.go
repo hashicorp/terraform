@@ -67,7 +67,7 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 // GraphNodeEvalable impl.
 func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// Read the state for the deposed resource instance
-	state, err := n.ReadResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
+	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -151,18 +151,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	addr := n.ResourceInstanceAddr().Resource
 	var change *plans.ResourceInstanceChange
 	var applyError error
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
 	// Read the state for the deposed resource instance
-	state, err := n.ReadResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
+	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -180,18 +173,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	apply := &EvalApply{
-		Addr:           addr,
-		Config:         nil, // No configuration because we are destroying
-		State:          &state,
-		Change:         &change,
-		Provider:       &provider,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		Output:         &state,
-		Error:          &applyError,
-	}
-	diags = diags.Append(apply.Eval(ctx))
+	// we pass a nil configuration to apply because we are destroying
+	state, applyError, applyDiags := n.apply(ctx, state, change, nil, false, applyError)
+	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -210,11 +194,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	if applyError != nil {
-		diags = diags.Append(applyError)
-		return diags
+		return diags.Append(applyError)
 	}
-	diags = diags.Append(UpdateStateHook(ctx))
-	return diags
+
+	return diags.Append(UpdateStateHook(ctx))
 }
 
 // GraphNodeDeposer is an optional interface implemented by graph nodes that

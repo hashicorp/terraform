@@ -171,7 +171,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	gen := states.CurrentGen
 	csrc := changes.GetResourceInstanceChange(addr, gen)
 	if csrc == nil {
-		log.Printf("[TRACE] EvalReadDiff: No planned change recorded for %s", n.Addr)
+		log.Printf("[TRACE] readDiff: No planned change recorded for %s", n.Addr)
 		return nil, nil
 	}
 
@@ -180,7 +180,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 		return nil, fmt.Errorf("failed to decode planned changes for %s: %s", n.Addr, err)
 	}
 
-	log.Printf("[TRACE] EvalReadDiff: Read %s change from plan for %s", change.Action, n.Addr)
+	log.Printf("[TRACE] readDiff: Read %s change from plan for %s", change.Action, n.Addr)
 
 	return change, nil
 }
@@ -214,7 +214,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 	var diags tfdiags.Diagnostics
 
 	if change == nil {
-		panic(fmt.Sprintf("PreApplyHook for %s called with nil Change", n.Addr))
+		panic(fmt.Sprintf("preApplyHook for %s called with nil Change", n.Addr))
 	}
 
 	// Only managed resources have user-visible apply actions.
@@ -336,9 +336,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	if n.ResolvedProvider.Provider.Type == "" {
 		if deposedKey == "" {
-			panic(fmt.Sprintf("DestroyPlan for %s does not have ProviderAddr set", absAddr))
+			panic(fmt.Sprintf("planDestroy for %s does not have ProviderAddr set", absAddr))
 		} else {
-			panic(fmt.Sprintf("DestroyPlan for %s (deposed %s) does not have ProviderAddr set", absAddr, deposedKey))
+			panic(fmt.Sprintf("planDestroy for %s (deposed %s) does not have ProviderAddr set", absAddr, deposedKey))
 		}
 	}
 
@@ -411,7 +411,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 	if change.Addr.String() != n.Addr.String() || change.DeposedKey != deposedKey {
 		// Should never happen, and indicates a bug in the caller.
-		panic("inconsistent address and/or deposed key in WriteChange")
+		panic("inconsistent address and/or deposed key in writeChange")
 	}
 
 	ri := n.Addr.Resource
@@ -428,9 +428,9 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 	changes.AppendResourceInstanceChange(csrc)
 	if deposedKey == states.NotDeposed {
-		log.Printf("[TRACE] WriteChange: recorded %s change for %s", change.Action, n.Addr)
+		log.Printf("[TRACE] writeChange: recorded %s change for %s", change.Action, n.Addr)
 	} else {
-		log.Printf("[TRACE] WriteChange: recorded %s change for %s deposed object %s", change.Action, n.Addr, deposedKey)
+		log.Printf("[TRACE] writeChange: recorded %s change for %s deposed object %s", change.Action, n.Addr, deposedKey)
 	}
 
 	return nil
@@ -933,7 +933,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	if plannedChange != nil {
 		prevChange := *plannedChange
 		if prevChange.Action.IsReplace() && action == plans.Create {
-			log.Printf("[TRACE] EvalDiff: %s treating Create change as %s change to match with earlier plan", n.Addr, prevChange.Action)
+			log.Printf("[TRACE] plan: %s treating Create change as %s change to match with earlier plan", n.Addr, prevChange.Action)
 			action = prevChange.Action
 			priorVal = prevChange.Before
 		}
@@ -1789,4 +1789,311 @@ func (n *NodeAbstractResourceInstance) evalDestroyProvisionerConfig(ctx EvalCont
 	diags = diags.Append(evalDiags)
 
 	return config, diags
+}
+
+// apply accepts an applyConfig, instead of using n.Config, so destroy plans can
+// send a nil config. Most of the errors generated in apply are returned as
+// diagnostics, but if provider.ApplyResourceChange itself fails, that error is
+// returned as an error and nil diags are returned.
+func (n *NodeAbstractResourceInstance) apply(
+	ctx EvalContext,
+	state *states.ResourceInstanceObject,
+	change *plans.ResourceInstanceChange,
+	applyConfig *configs.Resource,
+	createBeforeDestroy bool,
+	applyError error) (*states.ResourceInstanceObject, error, tfdiags.Diagnostics) {
+
+	var diags tfdiags.Diagnostics
+	if state == nil {
+		state = &states.ResourceInstanceObject{}
+	}
+	var newState *states.ResourceInstanceObject
+	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return newState, applyError, diags.Append(err)
+	}
+	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
+		return newState, applyError, diags
+	}
+
+	log.Printf("[INFO] Starting apply for %s", n.Addr)
+
+	configVal := cty.NullVal(cty.DynamicPseudoType)
+	if applyConfig != nil {
+		var configDiags tfdiags.Diagnostics
+		forEach, _ := evaluateForEachExpression(applyConfig.ForEach, ctx)
+		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return newState, applyError, diags
+		}
+	}
+
+	if !configVal.IsWhollyKnown() {
+		diags = diags.Append(fmt.Errorf(
+			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
+			n.Addr,
+		))
+		return newState, applyError, diags
+	}
+
+	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return newState, applyError, diags
+	}
+
+	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
+
+	// If our config, Before or After value contain any marked values,
+	// ensure those are stripped out before sending
+	// this to the provider
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	unmarkedBefore, beforePaths := change.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, afterPaths := change.After.UnmarkDeepWithPaths()
+
+	// If we have an Update action, our before and after values are equal,
+	// and only differ on their sensitivity, the newVal is the after val
+	// and we should not communicate with the provider. We do need to update
+	// the state with this new value, to ensure the sensitivity change is
+	// persisted.
+	eqV := unmarkedBefore.Equals(unmarkedAfter)
+	eq := eqV.IsKnown() && eqV.True()
+	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
+		// Copy the previous state, changing only the value
+		newState = &states.ResourceInstanceObject{
+			CreateBeforeDestroy: state.CreateBeforeDestroy,
+			Dependencies:        state.Dependencies,
+			Private:             state.Private,
+			Status:              state.Status,
+			Value:               change.After,
+		}
+		return newState, applyError, diags
+	}
+
+	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
+		TypeName:       n.Addr.Resource.Resource.Type,
+		PriorState:     unmarkedBefore,
+		Config:         unmarkedConfigVal,
+		PlannedState:   unmarkedAfter,
+		PlannedPrivate: change.Private,
+		ProviderMeta:   metaConfigVal,
+	})
+	applyDiags := resp.Diagnostics
+	if applyConfig != nil {
+		applyDiags = applyDiags.InConfigBody(applyConfig.Config)
+	}
+	diags = diags.Append(applyDiags)
+
+	// Even if there are errors in the returned diagnostics, the provider may
+	// have returned a _partial_ state for an object that already exists but
+	// failed to fully configure, and so the remaining code must always run
+	// to completion but must be defensive against the new value being
+	// incomplete.
+	newVal := resp.NewState
+
+	// If we have paths to mark, mark those on this new value
+	if len(afterPaths) > 0 {
+		newVal = newVal.MarkWithPaths(afterPaths)
+	}
+
+	if newVal == cty.NilVal {
+		// Providers are supposed to return a partial new value even when errors
+		// occur, but sometimes they don't and so in that case we'll patch that up
+		// by just using the prior state, so we'll at least keep track of the
+		// object for the user to retry.
+		newVal = change.Before
+
+		// As a special case, we'll set the new value to null if it looks like
+		// we were trying to execute a delete, because the provider in this case
+		// probably left the newVal unset intending it to be interpreted as "null".
+		if change.After.IsNull() {
+			newVal = cty.NullVal(schema.ImpliedType())
+		}
+
+		// Ideally we'd produce an error or warning here if newVal is nil and
+		// there are no errors in diags, because that indicates a buggy
+		// provider not properly reporting its result, but unfortunately many
+		// of our historical test mocks behave in this way and so producing
+		// a diagnostic here fails hundreds of tests. Instead, we must just
+		// silently retain the old value for now. Returning a nil value with
+		// no errors is still always considered a bug in the provider though,
+		// and should be fixed for any "real" providers that do it.
+	}
+
+	var conformDiags tfdiags.Diagnostics
+	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+		conformDiags = conformDiags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.String(), tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+			),
+		))
+	}
+	diags = diags.Append(conformDiags)
+	if conformDiags.HasErrors() {
+		// Bail early in this particular case, because an object that doesn't
+		// conform to the schema can't be saved in the state anyway -- the
+		// serializer will reject it.
+		return newState, applyError, diags
+	}
+
+	// After this point we have a type-conforming result object and so we
+	// must always run to completion to ensure it can be saved. If n.Error
+	// is set then we must not return a non-nil error, in order to allow
+	// evaluation to continue to a later point where our state object will
+	// be saved.
+
+	// By this point there must not be any unknown values remaining in our
+	// object, because we've applied the change and we can't save unknowns
+	// in our persistent state. If any are present then we will indicate an
+	// error (which is always a bug in the provider) but we will also replace
+	// them with nulls so that we can successfully save the portions of the
+	// returned value that are known.
+	if !newVal.IsWhollyKnown() {
+		// To generate better error messages, we'll go for a walk through the
+		// value and make a separate diagnostic for each unknown value we
+		// find.
+		cty.Walk(newVal, func(path cty.Path, val cty.Value) (bool, error) {
+			if !val.IsKnown() {
+				pathStr := tfdiags.FormatCtyPath(path)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider returned invalid result object after apply",
+					fmt.Sprintf(
+						"After the apply operation, the provider still indicated an unknown value for %s%s. All values must be known after apply, so this is always a bug in the provider and should be reported in the provider's own repository. Terraform will still save the other known object values in the state.",
+						n.Addr, pathStr,
+					),
+				))
+			}
+			return true, nil
+		})
+
+		// NOTE: This operation can potentially be lossy if there are multiple
+		// elements in a set that differ only by unknown values: after
+		// replacing with null these will be merged together into a single set
+		// element. Since we can only get here in the presence of a provider
+		// bug, we accept this because storing a result here is always a
+		// best-effort sort of thing.
+		newVal = cty.UnknownAsNull(newVal)
+	}
+
+	if change.Action != plans.Delete && !diags.HasErrors() {
+		// Only values that were marked as unknown in the planned value are allowed
+		// to change during the apply operation. (We do this after the unknown-ness
+		// check above so that we also catch anything that became unknown after
+		// being known during plan.)
+		//
+		// If we are returning other errors anyway then we'll give this
+		// a pass since the other errors are usually the explanation for
+		// this one and so it's more helpful to let the user focus on the
+		// root cause rather than distract with this extra problem.
+		if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
+			if resp.LegacyTypeSystem {
+				// The shimming of the old type system in the legacy SDK is not precise
+				// enough to pass this consistency check, so we'll give it a pass here,
+				// but we will generate a warning about it so that we are more likely
+				// to notice in the logs if an inconsistency beyond the type system
+				// leads to a downstream provider failure.
+				var buf strings.Builder
+				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ResolvedProvider.String(), n.Addr)
+				for _, err := range errs {
+					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+				}
+				log.Print(buf.String())
+
+				// The sort of inconsistency we won't catch here is if a known value
+				// in the plan is changed during apply. That can cause downstream
+				// problems because a dependent resource would make its own plan based
+				// on the planned value, and thus get a different result during the
+				// apply phase. This will usually lead to a "Provider produced invalid plan"
+				// error that incorrectly blames the downstream resource for the change.
+
+			} else {
+				for _, err := range errs {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider produced inconsistent result after apply",
+						fmt.Sprintf(
+							"When applying changes to %s, provider %q produced an unexpected new value: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							n.Addr, n.ResolvedProvider.String(), tfdiags.FormatError(err),
+						),
+					))
+				}
+			}
+		}
+	}
+
+	// If a provider returns a null or non-null object at the wrong time then
+	// we still want to save that but it often causes some confusing behaviors
+	// where it seems like Terraform is failing to take any action at all,
+	// so we'll generate some errors to draw attention to it.
+	if !diags.HasErrors() {
+		if change.Action == plans.Delete && !newVal.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider returned invalid result object after apply",
+				fmt.Sprintf(
+					"After applying a %s plan, the provider returned a non-null object for %s. Destroying should always produce a null value, so this is always a bug in the provider and should be reported in the provider's own repository. Terraform will still save this errant object in the state for debugging and recovery.",
+					change.Action, n.Addr,
+				),
+			))
+		}
+		if change.Action != plans.Delete && newVal.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider returned invalid result object after apply",
+				fmt.Sprintf(
+					"After applying a %s plan, the provider returned a null object for %s. Only destroying should always produce a null value, so this is always a bug in the provider and should be reported in the provider's own repository.",
+					change.Action, n.Addr,
+				),
+			))
+		}
+	}
+
+	newStatus := states.ObjectReady
+
+	// Sometimes providers return a null value when an operation fails for some
+	// reason, but we'd rather keep the prior state so that the error can be
+	// corrected on a subsequent run. We must only do this for null new value
+	// though, or else we may discard partial updates the provider was able to
+	// complete.
+	if diags.HasErrors() && newVal.IsNull() {
+		// Otherwise, we'll continue but using the prior state as the new value,
+		// making this effectively a no-op. If the item really _has_ been
+		// deleted then our next refresh will detect that and fix it up.
+		// If change.Action is Create then change.Before will also be null,
+		// which is fine.
+		newVal = change.Before
+
+		// If we're recovering the previous state, we also want to restore the
+		// the tainted status of the object.
+		if state.Status == states.ObjectTainted {
+			newStatus = states.ObjectTainted
+		}
+	}
+
+	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
+		newState = &states.ResourceInstanceObject{
+			Status:              newStatus,
+			Value:               newVal,
+			Private:             resp.Private,
+			CreateBeforeDestroy: createBeforeDestroy,
+		}
+	}
+
+	if diags.HasErrors() {
+		// At this point, if we have an error in diags (and hadn't already returned), we return it as an error and clear the diags.
+		applyError = diags.Err()
+		log.Printf("[DEBUG] %s: apply errored", n.Addr)
+		return newState, applyError, nil
+	}
+
+	return newState, applyError, diags
 }

@@ -137,7 +137,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	var state *states.ResourceInstanceObject
 	var provisionerErr error
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -174,7 +174,8 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 
 	// Run destroy provisioners if not tainted
 	if state != nil && state.Status != states.ObjectTainted {
-		provisionerErr, applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
+		var applyProvisionersDiags tfdiags.Diagnostics
+		provisionerErr, applyProvisionersDiags = n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
 		diags = diags.Append(applyProvisionersDiags)
 		if diags.HasErrors() {
 			return diags
@@ -192,19 +193,10 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
-		evalApply := &EvalApply{
-			Addr:           addr.Resource,
-			Config:         nil, // No configuration because we are destroying
-			State:          &state,
-			Change:         &changeApply,
-			Provider:       &provider,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			Output:         &state,
-			Error:          &provisionerErr,
-		}
-		diags = diags.Append(evalApply.Eval(ctx))
+		var applyDiags tfdiags.Diagnostics
+		// we pass a nil configuration to apply because we are destroying
+		state, provisionerErr, applyDiags = n.apply(ctx, state, changeApply, nil, false, provisionerErr)
+		diags.Append(applyDiags)
 		if diags.HasErrors() {
 			return diags
 		}
