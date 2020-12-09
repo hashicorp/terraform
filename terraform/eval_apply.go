@@ -282,16 +282,18 @@ func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 				// error that incorrectly blames the downstream resource for the change.
 
 			} else {
+				var displayErrors []string
 				for _, err := range errs {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Provider produced inconsistent result after apply",
-						fmt.Sprintf(
-							"When applying changes to %s, provider %q produced an unexpected new value: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-							absAddr, n.ProviderAddr.Provider.String(), tfdiags.FormatError(err),
-						),
-					))
+					displayErrors = append(displayErrors, tfdiags.FormatError(err))
 				}
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider produced inconsistent result after apply",
+					fmt.Sprintf(
+						"When applying changes to %s, provider %q produced an unexpected new value: \n\n%s\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+						absAddr, n.ProviderAddr.Provider.String(), strings.Join(displayErrors, "\n\n"),
+					),
+				))
 			}
 		}
 	}
