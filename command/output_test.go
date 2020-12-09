@@ -130,6 +130,92 @@ func TestOutput_json(t *testing.T) {
 	}
 }
 
+func TestOutput_raw(t *testing.T) {
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "str"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "multistr"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar\nbaz"),
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "num"}.Absolute(addrs.RootModuleInstance),
+			cty.NumberIntVal(2),
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "bool"}.Absolute(addrs.RootModuleInstance),
+			cty.True,
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "obj"}.Absolute(addrs.RootModuleInstance),
+			cty.EmptyObjectVal,
+			false,
+		)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "null"}.Absolute(addrs.RootModuleInstance),
+			cty.NullVal(cty.String),
+			false,
+		)
+	})
+
+	statePath := testStateFile(t, originalState)
+
+	tests := map[string]struct {
+		WantOutput string
+		WantErr    bool
+	}{
+		"str":      {WantOutput: "bar"},
+		"multistr": {WantOutput: "bar\nbaz"},
+		"num":      {WantOutput: "2"},
+		"bool":     {WantOutput: "true"},
+		"obj":      {WantErr: true},
+		"null":     {WantErr: true},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var printed string
+			ui := cli.NewMockUi()
+			c := &OutputCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+				},
+				rawPrint: func(s string) {
+					printed = s
+				},
+			}
+			args := []string{
+				"-state", statePath,
+				"-raw",
+				name,
+			}
+			code := c.Run(args)
+
+			if code != 0 {
+				if !test.WantErr {
+					t.Errorf("unexpected failure\n%s", ui.ErrorWriter.String())
+				}
+				return
+			}
+
+			if test.WantErr {
+				t.Fatalf("succeeded, but want error")
+			}
+
+			if got, want := printed, test.WantOutput; got != want {
+				t.Errorf("wrong result\ngot:  %q\nwant: %q", got, want)
+			}
+		})
+	}
+}
+
 func TestOutput_emptyOutputs(t *testing.T) {
 	originalState := states.NewState()
 	statePath := testStateFile(t, originalState)
