@@ -205,15 +205,16 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 	return nil
 }
 
-// PreApplyHook calls the pre-Apply hook
-func (n *NodeAbstractResourceInstance) PreApplyHook(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
+// preApplyHook calls the pre-Apply hook
+func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if change == nil {
 		panic(fmt.Sprintf("PreApplyHook for %s called with nil Change", n.Addr))
 	}
 
-	if resourceHasUserVisibleApply(n.Addr.Resource) {
+	// Only managed resources have user-visible apply actions.
+	if n.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 		priorState := change.Before
 		plannedNewState := change.After
 
@@ -232,7 +233,8 @@ func (n *NodeAbstractResourceInstance) PreApplyHook(ctx EvalContext, change *pla
 func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err *error) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	if resourceHasUserVisibleApply(n.Addr.Resource) {
+	// Only managed resources have user-visible apply actions.
+	if n.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 		var newState cty.Value
 		if state != nil {
 			newState = state.Value

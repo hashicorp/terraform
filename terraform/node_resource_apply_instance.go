@@ -260,7 +260,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	diags = diags.Append(n.PreApplyHook(ctx, diffApply))
+	diags = diags.Append(n.preApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
 		return diags
 	}

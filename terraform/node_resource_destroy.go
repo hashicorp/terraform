@@ -167,7 +167,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		return diags
 	}
 
-	diags = diags.Append(n.PreApplyHook(ctx, changeApply))
+	diags = diags.Append(n.preApplyHook(ctx, changeApply))
 	if diags.HasErrors() {
 		return diags
 	}

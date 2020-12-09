@@ -375,20 +375,6 @@ func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	return diags
 }
 
-// resourceHasUserVisibleApply returns true if the given resource is one where
-// apply actions should be exposed to the user.
-//
-// Certain resources do apply actions only as an implementation detail, so
-// these should not be advertised to code outside of this package.
-func resourceHasUserVisibleApply(addr addrs.ResourceInstance) bool {
-	// Only managed resources have user-visible apply actions.
-	// In particular, this excludes data resources since we "apply" these
-	// only as an implementation detail of removing them from state when
-	// they are destroyed. (When reading, they don't get here at all because
-	// we present them as "Refresh" actions.)
-	return addr.ContainingResource().Mode == addrs.ManagedResourceMode
-}
-
 // EvalApplyProvisioners is an EvalNode implementation that executes
 // the provisioners for a resource.
 //

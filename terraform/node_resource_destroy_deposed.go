@@ -175,7 +175,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// Call pre-apply hook
-	diags = diags.Append(n.PreApplyHook(ctx, change))
+	diags = diags.Append(n.preApplyHook(ctx, change))
 	if diags.HasErrors() {
 		return diags
 	}
