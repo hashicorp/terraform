@@ -641,7 +641,10 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	// accidentally upgrade state with a new code path, and the version check
 	// logic is coarser and simpler.
 	if !b.ignoreVersionConflict {
-		if workspace.TerraformVersion != tfversion.String() {
+		wsv := workspace.TerraformVersion
+		// Explicitly ignore the pseudo-version "latest" here, as it will cause
+		// plan and apply to always fail.
+		if wsv != tfversion.String() && wsv != "latest" {
 			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", workspace.TerraformVersion, tfversion.String())
 		}
 	}
@@ -892,6 +895,13 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 			fmt.Sprintf("Workspace read failed: %s", err),
 		))
 		return diags
+	}
+
+	// If the workspace has the pseudo-version "latest", all bets are off. We
+	// cannot reasonably determine what the intended Terraform version is, so
+	// we'll skip version verification.
+	if workspace.TerraformVersion == "latest" {
+		return nil
 	}
 
 	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
