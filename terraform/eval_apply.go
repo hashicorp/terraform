@@ -375,56 +375,6 @@ func (n *EvalApply) Eval(ctx EvalContext) tfdiags.Diagnostics {
 	return diags
 }
 
-// EvalMaybeTainted is an EvalNode that takes the planned change, new value,
-// and possible error from an apply operation and produces a new instance
-// object marked as tainted if it appears that a create operation has failed.
-//
-// This EvalNode never returns an error, to ensure that a subsequent EvalNode
-// can still record the possibly-tainted object in the state.
-type EvalMaybeTainted struct {
-	Addr   addrs.ResourceInstance
-	Gen    states.Generation
-	Change **plans.ResourceInstanceChange
-	State  **states.ResourceInstanceObject
-	Error  *error
-}
-
-func (n *EvalMaybeTainted) Eval(ctx EvalContext) tfdiags.Diagnostics {
-	if n.State == nil || n.Change == nil || n.Error == nil {
-		return nil
-	}
-
-	state := *n.State
-	change := *n.Change
-	err := *n.Error
-
-	// nothing to do if everything went as planned
-	if err == nil {
-		return nil
-	}
-
-	if state != nil && state.Status == states.ObjectTainted {
-		log.Printf("[TRACE] EvalMaybeTainted: %s was already tainted, so nothing to do", n.Addr.Absolute(ctx.Path()))
-		return nil
-	}
-
-	if change.Action == plans.Create {
-		// If there are errors during a _create_ then the object is
-		// in an undefined state, and so we'll mark it as tainted so
-		// we can try again on the next run.
-		//
-		// We don't do this for other change actions because errors
-		// during updates will often not change the remote object at all.
-		// If there _were_ changes prior to the error, it's the provider's
-		// responsibility to record the effect of those changes in the
-		// object value it returned.
-		log.Printf("[TRACE] EvalMaybeTainted: %s encountered an error during creation, so it is now marked as tainted", n.Addr.Absolute(ctx.Path()))
-		*n.State = state.AsTainted()
-	}
-
-	return nil
-}
-
 // resourceHasUserVisibleApply returns true if the given resource is one where
 // apply actions should be exposed to the user.
 //

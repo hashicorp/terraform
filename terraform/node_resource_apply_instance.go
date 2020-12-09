@@ -289,16 +289,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// that is already complete.
 	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
-	evalMaybeTainted := &EvalMaybeTainted{
-		Addr:   addr,
-		State:  &state,
-		Change: &diffApply,
-		Error:  &applyError,
-	}
-	diags = diags.Append(evalMaybeTainted.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, applyError)
 
 	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
@@ -318,16 +309,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	evalMaybeTainted = &EvalMaybeTainted{
-		Addr:   addr,
-		State:  &state,
-		Change: &diffApply,
-		Error:  &applyError,
-	}
-	diags = diags.Append(evalMaybeTainted.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, applyError)
 
 	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
@@ -445,4 +427,31 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 		))
 	}
 	return diags
+}
+
+// maybeTainted takes the resource addr, new value, planned change, and possible
+// error from an apply operation and return a new instance object marked as
+// tainted if it appears that a create operation has failed.
+func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, change *plans.ResourceInstanceChange, err error) *states.ResourceInstanceObject {
+	if state == nil || change == nil || err == nil {
+		return state
+	}
+	if state.Status == states.ObjectTainted {
+		log.Printf("[TRACE] maybeTainted: %s was already tainted, so nothing to do", addr)
+		return state
+	}
+	if change.Action == plans.Create {
+		// If there are errors during a _create_ then the object is
+		// in an undefined state, and so we'll mark it as tainted so
+		// we can try again on the next run.
+		//
+		// We don't do this for other change actions because errors
+		// during updates will often not change the remote object at all.
+		// If there _were_ changes prior to the error, it's the provider's
+		// responsibility to record the effect of those changes in the
+		// object value it returned.
+		log.Printf("[TRACE] maybeTainted: %s encountered an error during creation, so it is now marked as tainted", addr)
+		return state.AsTainted()
+	}
+	return state
 }
