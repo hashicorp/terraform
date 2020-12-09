@@ -1,5 +1,11 @@
 ## 0.14.3 (Unreleased)
 
+ENHANCEMENTS:
+
+* `terraform output`: Now supports a new "raw" mode, activated by the `-raw` option, for printing out the raw string representation of a particular output value. [GH-27212]
+
+    Only primitive-typed values have a string representation, so this formatting mode is not compatible with complex types. The `-json` mode is still available as a general way to get a machine-readable representation of an output value of any type.
+
 BUG FIXES:
 
 * init: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
