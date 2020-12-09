@@ -6,11 +6,15 @@ import (
 	"reflect"
 	"strings"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -1520,4 +1524,269 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	}))
 
 	return state, diags
+}
+
+// evalApplyProvisioners determines if provisioners need to be run, and if so
+// executes the provisioners for a resource and returns an updated error if
+// provisioning fails.
+func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen, applyErr error) (error, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if state == nil {
+		log.Printf("[TRACE] evalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
+		return applyErr, nil
+	}
+	if applyErr != nil {
+		// We're already tainted, so just return out
+		return applyErr, nil
+	}
+	if when == configs.ProvisionerWhenCreate && !createNew {
+		// If we're not creating a new resource, then don't run provisioners
+		log.Printf("[TRACE] evalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
+		return applyErr, nil
+	}
+	if state.Status == states.ObjectTainted {
+		// No point in provisioning an object that is already tainted, since
+		// it's going to get recreated on the next apply anyway.
+		log.Printf("[TRACE] evalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
+		return applyErr, nil
+	}
+
+	provs := filterProvisioners(n.Config, when)
+	if len(provs) == 0 {
+		// We have no provisioners, so don't do anything
+		return applyErr, nil
+	}
+
+	// Call pre hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreProvisionInstance(n.Addr, state.Value)
+	}))
+	if diags.HasErrors() {
+		return applyErr, diags
+	}
+
+	// If there are no errors, then we append it to our output error
+	// if we have one, otherwise we just output it.
+	err := n.applyProvisioners(ctx, state, when, provs)
+	if err != nil {
+		applyErr = multierror.Append(applyErr, err)
+		log.Printf("[TRACE] evalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", n.Addr)
+		return applyErr, nil
+	}
+
+	// Call post hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostProvisionInstance(n.Addr, state.Value)
+	}))
+	return applyErr, diags
+}
+
+// filterProvisioners filters the provisioners on the resource to only
+// the provisioners specified by the "when" option.
+func filterProvisioners(config *configs.Resource, when configs.ProvisionerWhen) []*configs.Provisioner {
+	// Fast path the zero case
+	if config == nil || config.Managed == nil {
+		return nil
+	}
+
+	if len(config.Managed.Provisioners) == 0 {
+		return nil
+	}
+
+	result := make([]*configs.Provisioner, 0, len(config.Managed.Provisioners))
+	for _, p := range config.Managed.Provisioners {
+		if p.When == when {
+			result = append(result, p)
+		}
+	}
+
+	return result
+}
+
+// applyProvisioners executes the provisioners for a resource.
+func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, when configs.ProvisionerWhen, provs []*configs.Provisioner) error {
+	var diags tfdiags.Diagnostics
+
+	// this self is only used for destroy provisioner evaluation, and must
+	// refer to the last known value of the resource.
+	self := state.Value
+
+	var evalScope func(EvalContext, hcl.Body, cty.Value, *configschema.Block) (cty.Value, tfdiags.Diagnostics)
+	switch when {
+	case configs.ProvisionerWhenDestroy:
+		evalScope = n.evalDestroyProvisionerConfig
+	default:
+		evalScope = n.evalProvisionerConfig
+	}
+
+	// If there's a connection block defined directly inside the resource block
+	// then it'll serve as a base connection configuration for all of the
+	// provisioners.
+	var baseConn hcl.Body
+	if n.Config.Managed != nil && n.Config.Managed.Connection != nil {
+		baseConn = n.Config.Managed.Connection.Config
+	}
+
+	for _, prov := range provs {
+		log.Printf("[TRACE] applyProvisioners: provisioning %s with %q", n.Addr, prov.Type)
+
+		// Get the provisioner
+		provisioner := ctx.Provisioner(prov.Type)
+		schema := ctx.ProvisionerSchema(prov.Type)
+
+		config, configDiags := evalScope(ctx, prov.Config, self, schema)
+		diags = diags.Append(configDiags)
+		if diags.HasErrors() {
+			return diags.Err()
+		}
+
+		// If the provisioner block contains a connection block of its own then
+		// it can override the base connection configuration, if any.
+		var localConn hcl.Body
+		if prov.Connection != nil {
+			localConn = prov.Connection.Config
+		}
+
+		var connBody hcl.Body
+		switch {
+		case baseConn != nil && localConn != nil:
+			// Our standard merging logic applies here, similar to what we do
+			// with _override.tf configuration files: arguments from the
+			// base connection block will be masked by any arguments of the
+			// same name in the local connection block.
+			connBody = configs.MergeBodies(baseConn, localConn)
+		case baseConn != nil:
+			connBody = baseConn
+		case localConn != nil:
+			connBody = localConn
+		}
+
+		// start with an empty connInfo
+		connInfo := cty.NullVal(connectionBlockSupersetSchema.ImpliedType())
+
+		if connBody != nil {
+			var connInfoDiags tfdiags.Diagnostics
+			connInfo, connInfoDiags = evalScope(ctx, connBody, self, connectionBlockSupersetSchema)
+			diags = diags.Append(connInfoDiags)
+			if diags.HasErrors() {
+				return diags.Err()
+			}
+		}
+
+		{
+			// Call pre hook
+			err := ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PreProvisionInstanceStep(n.Addr, prov.Type)
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		// The output function
+		outputFn := func(msg string) {
+			ctx.Hook(func(h Hook) (HookAction, error) {
+				h.ProvisionOutput(n.Addr, prov.Type, msg)
+				return HookActionContinue, nil
+			})
+		}
+
+		// If our config or connection info contains any marked values, ensure
+		// those are stripped out before sending to the provisioner. Unlike
+		// resources, we have no need to capture the marked paths and reapply
+		// later.
+		unmarkedConfig, configMarks := config.UnmarkDeep()
+		unmarkedConnInfo, _ := connInfo.UnmarkDeep()
+
+		// Marks on the config might result in leaking sensitive values through
+		// provisioner logging, so we conservatively suppress all output in
+		// this case. This should not apply to connection info values, which
+		// provisioners ought not to be logging anyway.
+		if len(configMarks) > 0 {
+			outputFn = func(msg string) {
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					h.ProvisionOutput(n.Addr, prov.Type, "(output suppressed due to sensitive value in config)")
+					return HookActionContinue, nil
+				})
+			}
+		}
+
+		output := CallbackUIOutput{OutputFn: outputFn}
+		resp := provisioner.ProvisionResource(provisioners.ProvisionResourceRequest{
+			Config:     unmarkedConfig,
+			Connection: unmarkedConnInfo,
+			UIOutput:   &output,
+		})
+		applyDiags := resp.Diagnostics.InConfigBody(prov.Config)
+
+		// Call post hook
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostProvisionInstanceStep(n.Addr, prov.Type, applyDiags.Err())
+		})
+
+		switch prov.OnFailure {
+		case configs.ProvisionerOnFailureContinue:
+			if applyDiags.HasErrors() {
+				log.Printf("[WARN] Errors while provisioning %s with %q, but continuing as requested in configuration", n.Addr, prov.Type)
+			} else {
+				// Maybe there are warnings that we still want to see
+				diags = diags.Append(applyDiags)
+			}
+		default:
+			diags = diags.Append(applyDiags)
+			if applyDiags.HasErrors() {
+				log.Printf("[WARN] Errors while provisioning %s with %q, so aborting", n.Addr, prov.Type)
+				return diags.Err()
+			}
+		}
+
+		// Deal with the hook
+		if hookErr != nil {
+			return hookErr
+		}
+	}
+
+	// we have to drop warning-only diagnostics for now
+	if diags.HasErrors() {
+		return diags.ErrWithWarnings()
+	}
+
+	// log any warnings since we can't return them
+	if e := diags.ErrWithWarnings(); e != nil {
+		log.Printf("[WARN] applyProvisioners %s: %v", n.Addr, e)
+	}
+
+	return nil
+}
+
+func (n *NodeAbstractResourceInstance) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+	diags = diags.Append(forEachDiags)
+
+	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	config, _, configDiags := ctx.EvaluateBlock(body, schema, n.ResourceInstanceAddr().Resource, keyData)
+	diags = diags.Append(configDiags)
+
+	return config, diags
+}
+
+// during destroy a provisioner can only evaluate within the scope of the parent resource
+func (n *NodeAbstractResourceInstance) evalDestroyProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// For a destroy-time provisioner forEach is intentionally nil here,
+	// which EvalDataForInstanceKey responds to by not populating EachValue
+	// in its result. That's okay because each.value is prohibited for
+	// destroy-time provisioners.
+	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil)
+
+	evalScope := ctx.EvaluationScope(n.ResourceInstanceAddr().Resource, keyData)
+	config, evalDiags := evalScope.EvalSelfBlock(body, self, schema, keyData)
+	diags = diags.Append(evalDiags)
+
+	return config, diags
 }

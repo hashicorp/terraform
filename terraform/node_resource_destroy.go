@@ -174,14 +174,8 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 
 	// Run destroy provisioners if not tainted
 	if state != nil && state.Status != states.ObjectTainted {
-		evalApplyProvisioners := &EvalApplyProvisioners{
-			Addr:           addr.Resource,
-			State:          &state,
-			ResourceConfig: n.Config,
-			Error:          &provisionerErr,
-			When:           configs.ProvisionerWhenDestroy,
-		}
-		diags = diags.Append(evalApplyProvisioners.Eval(ctx))
+		provisionerErr, applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
+		diags = diags.Append(applyProvisionersDiags)
 		if diags.HasErrors() {
 			return diags
 		}

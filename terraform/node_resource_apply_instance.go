@@ -296,15 +296,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	applyProvisioners := &EvalApplyProvisioners{
-		Addr:           addr,
-		State:          &state, // EvalApplyProvisioners will skip if already tainted
-		ResourceConfig: n.Config,
-		CreateNew:      &createNew,
-		Error:          &applyError,
-		When:           configs.ProvisionerWhenCreate,
-	}
-	diags = diags.Append(applyProvisioners.Eval(ctx))
+	applyError, applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate, applyError)
+	diags = diags.Append(applyProvisionersDiags)
 	if diags.HasErrors() {
 		return diags
 	}
