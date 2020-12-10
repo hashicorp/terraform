@@ -474,6 +474,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
+	// Installation can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext()
+	defer done()
+
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -536,11 +540,19 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					),
 				))
 			case getproviders.ErrRegistryProviderNotKnown:
+				// We might be able to suggest an alternative provider to use
+				// instead of this one.
+				var suggestion string
+				alternative := getproviders.MissingProviderSuggestion(ctx, provider, inst.ProviderSource())
+				if alternative != provider {
+					suggestion = fmt.Sprintf("\n\nDid you intend to use %s? If so, you must specify that source address in each module which requires that provider.", alternative.ForDisplay())
+				}
+
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
-					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
-						provider.ForDisplay(), err,
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
 					),
 				))
 			case getproviders.ErrHostNoProviders:
@@ -736,6 +748,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			))
 		},
 	}
+	ctx = evts.OnContext(ctx)
 
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
 	// any overridden providers, so we'll warn about it to avoid later
@@ -747,10 +760,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	if upgrade {
 		mode = providercache.InstallUpgrades
 	}
-	// Installation can be aborted by interruption signals
-	ctx, done := c.InterruptibleContext()
-	defer done()
-	ctx = evts.OnContext(ctx)
 	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		c.showDiagnostics(diags)
