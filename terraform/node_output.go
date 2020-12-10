@@ -487,7 +487,7 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			// Should never happen, since we just constructed this right above
 			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
 		}
-		log.Printf("[TRACE] ExecuteWriteOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(cs)     // add the new planned change
 	}
@@ -496,12 +496,12 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// The state itself doesn't represent unknown values, so we null them
 		// out here and then we'll save the real unknown value in the planned
 		// changeset below, if we have one on this graph walk.
-		log.Printf("[TRACE] EvalWriteOutput: Saving value for %s in state", n.Addr)
+		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
 		unmarkedVal, _ := val.UnmarkDeep()
 		stateVal := cty.UnknownAsNull(unmarkedVal)
 		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
 	} else {
-		log.Printf("[TRACE] EvalWriteOutput: Removing %s from state (it is now null)", n.Addr)
+		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
 	}
 

@@ -137,7 +137,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	var state *states.ResourceInstanceObject
 	var provisionerErr error
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -215,6 +215,6 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		return diags
 	}
 
-	diags = diags.Append(UpdateStateHook(ctx))
+	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }

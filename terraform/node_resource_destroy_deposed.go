@@ -197,7 +197,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags.Append(applyError)
 	}
 
-	return diags.Append(UpdateStateHook(ctx))
+	return diags.Append(updateStateHook(ctx))
 }
 
 // GraphNodeDeposer is an optional interface implemented by graph nodes that
@@ -239,7 +239,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) writeResourceInstanceState(ct
 		return nil
 	}
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
 	}

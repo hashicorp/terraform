@@ -13,14 +13,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// UpgradeResourceState will, if necessary, run the provider-defined upgrade
+// upgradeResourceState will, if necessary, run the provider-defined upgrade
 // logic against the given state object to make it compliant with the
 // current schema version. This is a no-op if the given state object is
 // already at the latest version.
 //
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
-func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema *configschema.Block, currentVersion uint64) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
+func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema *configschema.Block, currentVersion uint64) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
 	// Remove any attributes from state that are not present in the schema.
 	// This was previously taken care of by the provider, but data sources do
 	// not go through the UpgradeResourceState process.
@@ -42,7 +42,7 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// TODO: This should eventually use a proper FQN.
 	providerType := addr.Resource.Resource.ImpliedProvider()
 	if src.SchemaVersion > currentVersion {
-		log.Printf("[TRACE] UpgradeResourceState: can't downgrade state for %s from version %d to %d", addr, src.SchemaVersion, currentVersion)
+		log.Printf("[TRACE] upgradeResourceState: can't downgrade state for %s from version %d to %d", addr, src.SchemaVersion, currentVersion)
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -62,9 +62,9 @@ func UpgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// representation, since only the provider has enough information to
 	// understand a flatmap built against an older schema.
 	if src.SchemaVersion != currentVersion {
-		log.Printf("[TRACE] UpgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentVersion, providerType)
+		log.Printf("[TRACE] upgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentVersion, providerType)
 	} else {
-		log.Printf("[TRACE] UpgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentVersion, providerType)
+		log.Printf("[TRACE] upgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentVersion, providerType)
 	}
 
 	req := providers.UpgradeResourceStateRequest{
