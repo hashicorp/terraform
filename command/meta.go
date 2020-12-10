@@ -624,6 +624,7 @@ func (m *Meta) process(args []string) []string {
 		m.View.Configure(&arguments.View{
 			CompactWarnings: m.compactWarnings,
 			NoColor:         !m.Color,
+		    InAutomation:    m.RunningInAutomation,
 		})
 	}
 

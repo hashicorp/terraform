@@ -124,6 +124,9 @@ output more consistent and less confusing in workflows where users don't
 directly execute Terraform commands, like in CI systems or other wrapping
 applications.
 
+It also supresses the 10-second updates given for interactive users, so as to
+minimize unnecessary output for automated workflows.
+
 This is a purely cosmetic change to Terraform's human-readable output, and the
 exact output differences can change between minor Terraform versions.
 

@@ -139,6 +139,67 @@ test_instance.foo: Still modifying... [id=test, 3s elapsed]
 	}
 }
 
+func TestUiHookPreApply_periodicTimer_InAutomation(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+	h.periodicUiTimer = 1 * time.Second
+	h.InAutomation = True
+	h.resources = map[string]uiResourceState{
+		"test_instance.foo": {
+			Op:    uiResourceModify,
+			Start: time.Now(),
+		},
+	}
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	priorState := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("test"),
+		"bar": cty.ListValEmpty(cty.String),
+	})
+	plannedNewState := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("test"),
+		"bar": cty.ListVal([]cty.Value{
+			cty.StringVal("baz"),
+		}),
+	})
+
+	action, err := h.PreApply(addr, states.CurrentGen, plans.Update, priorState, plannedNewState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	time.Sleep(3100 * time.Millisecond)
+
+	// stop the background writer
+	uiState := h.resources[addr.String()]
+	close(uiState.DoneCh)
+	<-uiState.done
+
+	// shouldn't get "Still modifying..." messages in automation
+	expectedOutput := `test_instance.foo: Modifying... [id=test]`
+
+	result := done(t)
+	output := result.Stdout()
+	if output != expectedOutput {
+		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
+	}
+
+	expectedErrOutput := ""
+	errOutput := result.Stderr()
+	if errOutput != expectedErrOutput {
+		t.Fatalf("Error output didn't match.\nExpected: %q\nGiven: %q", expectedErrOutput, errOutput)
+	}
+}
+
 // Test the PreApply hook's destroy path, including passing a deposed key as
 // the gen argument.
 func TestUiHookPreApply_destroy(t *testing.T) {

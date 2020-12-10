@@ -37,6 +37,7 @@ type UiHook struct {
 	viewLock sync.Mutex
 
 	periodicUiTimer time.Duration
+	InAutomation    bool
 
 	resources     map[string]uiResourceState
 	resourcesLock sync.Mutex
@@ -143,6 +144,11 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 
 		case <-time.After(h.periodicUiTimer):
 			// Timer up, show status
+		}
+
+		// Don't return periodic Still... status in automation workflows
+		if h.InAutomation {
+			continue
 		}
 
 		var msg string
