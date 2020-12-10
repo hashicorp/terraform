@@ -353,12 +353,12 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, err
 	}
 
-	log.Printf("[TRACE] ReadResourceInstanceState: reading state for %s", addr)
+	log.Printf("[TRACE] readResourceInstanceState: reading state for %s", addr)
 
 	src := ctx.State().ResourceInstanceObject(addr, states.CurrentGen)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
-		log.Printf("[TRACE] ReadResourceInstanceState: no state present for %s", addr)
+		log.Printf("[TRACE] readResourceInstanceState: no state present for %s", addr)
 		return nil, nil
 	}
 
@@ -385,24 +385,24 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 	return obj, nil
 }
 
-// ReadResourceInstanceStateDeposed reads the deposed object for a specific
+// readResourceInstanceStateDeposed reads the deposed object for a specific
 // instance in the state.
-func (n *NodeAbstractResource) ReadResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
+func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
 	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err
 	}
 
 	if key == states.NotDeposed {
-		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
+		return nil, fmt.Errorf("readResourceInstanceStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
 	}
 
-	log.Printf("[TRACE] EvalReadStateDeposed: reading state for %s deposed object %s", addr, key)
+	log.Printf("[TRACE] readResourceInstanceStateDeposed: reading state for %s deposed object %s", addr, key)
 
 	src := ctx.State().ResourceInstanceObject(addr, key)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
-		log.Printf("[TRACE] EvalReadStateDeposed: no state present for %s deposed object %s", addr, key)
+		log.Printf("[TRACE] readResourceInstanceStateDeposed: no state present for %s deposed object %s", addr, key)
 		return nil, nil
 	}
 
