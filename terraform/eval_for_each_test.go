@@ -52,6 +52,16 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 				"b": cty.UnknownVal(cty.Bool),
 			},
 		},
+		"map containing sensitive values, but strings are literal": {
+			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+				"a": cty.BoolVal(true).Mark("sensitive"),
+				"b": cty.BoolVal(false),
+			})),
+			map[string]cty.Value{
+				"a": cty.BoolVal(true).Mark("sensitive"),
+				"b": cty.BoolVal(false),
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -110,6 +120,14 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
 		},
+		"marked map": {
+			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+				"a": cty.BoolVal(true),
+				"b": cty.BoolVal(false),
+			}).Mark("sensitive")),
+			"Invalid for_each argument",
+			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+		},
 		"set containing booleans": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.BoolVal(true)})),
 			"Invalid for_each set argument",
@@ -130,13 +148,10 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
 		},
-		"map containing sensitive values": {
-			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
-				"a": cty.BoolVal(true).Mark("sensitive"),
-				"b": cty.BoolVal(false),
-			})),
+		"set containing marked values": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark("sensitive"), cty.StringVal("boop")})),
 			"Invalid for_each argument",
-			"Sensitive variables, or values derived from sensitive variables, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
 		},
 	}
 
