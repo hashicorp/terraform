@@ -65,6 +65,12 @@ func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	}
 }
 
+// ProviderSource returns the getproviders.Source that the installer would
+// use for installing any new providers.
+func (i *Installer) ProviderSource() getproviders.Source {
+	return i.source
+}
+
 // SetGlobalCacheDir activates a second tier of caching for the receiving
 // installer, with the given directory used as a read-through cache for
 // installation operations that need to retrieve new packages.
