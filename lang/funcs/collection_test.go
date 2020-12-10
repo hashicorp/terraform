@@ -171,9 +171,27 @@ func TestAllTrue(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListVal([]cty.Value{cty.True, cty.NullVal(cty.Bool)}),
+			cty.False,
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
-			true,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.UnknownVal(cty.Bool),
+			}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Bool)),
+			cty.UnknownVal(cty.Bool),
+			false,
 		},
 		{
 			cty.NullVal(cty.List(cty.Bool)),
@@ -234,9 +252,35 @@ func TestAnyTrue(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListVal([]cty.Value{cty.NullVal(cty.Bool), cty.True}),
+			cty.True,
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
-			true,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.False,
+			}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.True,
+			}),
+			cty.True,
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Bool)),
+			cty.UnknownVal(cty.Bool),
+			false,
 		},
 		{
 			cty.NullVal(cty.List(cty.Bool)),
