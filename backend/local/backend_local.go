@@ -78,7 +78,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
 
-	opts.SkipRefresh = op.Type == backend.OperationTypePlan && !op.PlanRefresh
+	opts.SkipRefresh = op.Type != backend.OperationTypeRefresh && !op.PlanRefresh
 	if opts.SkipRefresh {
 		log.Printf("[DEBUG] backend/local: skipping refresh of managed resources")
 	}
