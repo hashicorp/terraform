@@ -130,6 +130,14 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
 		},
+		"map containing sensitive values": {
+			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+				"a": cty.BoolVal(true).Mark("sensitive"),
+				"b": cty.BoolVal(false),
+			})),
+			"Invalid for_each argument",
+			"Sensitive variables, or values derived from sensitive variables, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+		},
 	}
 
 	for name, test := range tests {
